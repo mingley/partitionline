@@ -11348,6 +11348,8 @@ impl DeletedShareGroupOffsetsTopic {
 /// is topic-level, not partition-level.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeletedShareGroupOffsets {
+    /// DeleteShareGroupOffsets `ThrottleTimeMs` (JSON `0+`). JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Broker error message, when present.
@@ -11360,10 +11362,17 @@ impl DeletedShareGroupOffsets {
     /// Construct [`Self`].
     pub fn new(error_code: i16) -> Self {
         Self {
+            throttle_time_ms: 0,
             error_code,
             error_message: None,
             topics: Vec::new(),
         }
+    }
+
+    /// DeleteShareGroupOffsets `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Kafka error code (`0` is success).
@@ -11458,11 +11467,14 @@ pub fn decode_delete_share_group_offsets_request<B: Buf>(
 }
 
 /// Encode a DeleteShareGroupOffsets response.
+///
+/// ThrottleTimeMs is JSON `0+` (from [`DeletedShareGroupOffsets::throttle_time_ms`];
+/// JSON default `0`).
 pub fn encode_delete_share_group_offsets_response(
     buf: &mut BytesMut,
     resp: &DeletedShareGroupOffsets,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
     buf::put_array_len(buf, true, Some(resp.topics.len()))?;
@@ -11478,10 +11490,12 @@ pub fn encode_delete_share_group_offsets_response(
 }
 
 /// Decode a DeleteShareGroupOffsets response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire).
 pub fn decode_delete_share_group_offsets_response<B: Buf>(
     buf: &mut B,
 ) -> Result<DeletedShareGroupOffsets> {
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
@@ -11501,6 +11515,7 @@ pub fn decode_delete_share_group_offsets_response<B: Buf>(
     }
     buf::skip_tagged_fields(buf)?;
     Ok(DeletedShareGroupOffsets {
+        throttle_time_ms,
         error_code,
         error_message,
         topics,
@@ -21825,10 +21840,12 @@ mod tests {
         assert_eq!(del_topic.topic_id(), [3; 16]);
         assert_eq!(del_topic.error_code(), 0);
         let deleted = DeletedShareGroupOffsets {
+            throttle_time_ms: 0,
             error_code: 0,
             error_message: None,
             topics: vec![del_topic.clone()],
         };
+        assert_eq!(deleted.throttle_time_ms(), 0);
         assert_eq!(deleted.error_code(), 0);
         assert_eq!(deleted.topics(), std::slice::from_ref(&del_topic));
     }
@@ -24903,6 +24920,7 @@ mod tests {
         );
 
         let resp = DeletedShareGroupOffsets {
+            throttle_time_ms: 0,
             error_code: 0,
             error_message: None,
             topics: vec![DeletedShareGroupOffsetsTopic {
@@ -24984,6 +25002,7 @@ mod tests {
         );
 
         let with_topic = DeletedShareGroupOffsets {
+            throttle_time_ms: 0,
             error_code: crate::error::NOT_COORDINATOR,
             error_message: None,
             topics: vec![DeletedShareGroupOffsetsTopic {
@@ -25017,6 +25036,52 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DeleteShareGroupOffsets v0 first-topic body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn delete_share_group_offsets_response_throttle_time_ms_matches_java() {
+        // Kafka 4.1.0 DeleteShareGroupOffsetsResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on the spoken v0). Official Java
+        // DeleteShareGroupOffsetsRequest.getErrorResponse /
+        // DeleteShareGroupOffsetsResponse.throttleTimeMs set / read it.
+        // Encode writes DeletedShareGroupOffsets.throttle_time_ms
+        // (JSON default 0; DeletedShareGroupOffsets::new fills 0).
+        // Official getErrorDeleteResponseData leaves ThrottleTimeMs at
+        // the JSON default. This crate speaks v0 only. This is not
+        // AlterShareGroupOffsets / DescribeShareGroupOffsets
+        // ThrottleTimeMs.
+        let zero = DeletedShareGroupOffsets::new(crate::error::NOT_COORDINATOR);
+        let with = DeletedShareGroupOffsets {
+            throttle_time_ms: 3_600_000,
+            error_code: crate::error::NOT_COORDINATOR,
+            error_message: None,
+            topics: Vec::new(),
+        };
+        let mut buf = BytesMut::new();
+        encode_delete_share_group_offsets_response(&mut buf, &with).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_delete_share_group_offsets_response(&mut cur).unwrap();
+        assert_eq!(got, with);
+        assert_eq!(got.throttle_time_ms, 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "DeleteShareGroupOffsets v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with_buf = BytesMut::new();
+        encode_delete_share_group_offsets_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_delete_share_group_offsets_response(&mut zero_buf, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms(),
+            0,
+            "DeletedShareGroupOffsets::new still fills ThrottleTimeMs 0"
         );
     }
 
