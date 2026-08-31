@@ -681,6 +681,8 @@
 //! AllocateProducerIds v0 (ThrottleTimeMs is JSON `0+`),
 //! UnregisterBroker v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::UnregisterBrokerResponse::new`] fills `0`),
+//! DescribeCluster v0–v2 (v1 EndpointType, v2 IsFenced; ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::ClusterDescription::new`] fills `0`),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes; ThrottleTimeMs is JSON `0+`),
 //! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`),
 //! PushTelemetry v0 (ThrottleTimeMs is JSON `0+`),
@@ -1863,6 +1865,9 @@
 //! [`EndpointType`] `Display` is Java `EndpointType.toString` (`BROKER`).
 //! [`Admin::describe_cluster_timeout`] / [`Admin::describe_cluster_with_timeout`]
 //! are Java `DescribeClusterOptions.timeoutMs` (RPC deadline).
+//! ThrottleTimeMs is JSON `0+`; encode writes the field;
+//! [`protocol::admin::ClusterDescription::new`] fills `0`.
+//! Official Java `getErrorResponse` leaves throttle at the JSON default.
 //! [`ClusterDescription::nodes`] / [`ClusterDescription::controller`] are Java
 //! `DescribeClusterResult.nodes` / `controller` ([`Node`] is Java
 //! `org.apache.kafka.common.Node`, an alias of [`DescribeClusterBroker`]).

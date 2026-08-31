@@ -12294,21 +12294,21 @@ mod tests {
             empty_epoch.to_string(),
             "FeatureMetadata{finalizedFeatures:{}, finalizedFeaturesEpoch: , supportedFeatures:{}}"
         );
-        let cluster = ClusterDescription {
-            error_code: 0,
-            error_message: None,
-            cluster_id: Some("mock".into()),
-            controller_id: 1,
-            endpoint_type: 1,
-            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
-            brokers: vec![DescribeClusterBroker::new(
+        let cluster = ClusterDescription::new(
+            0,
+            None,
+            Some("mock".into()),
+            1,
+            1,
+            AUTHORIZED_OPERATIONS_OMITTED,
+            vec![DescribeClusterBroker::new(
                 1,
                 "127.0.0.1",
                 9092,
                 Some("r".into()),
                 false,
             )],
-        };
+        );
         assert_eq!(cluster.error_code(), 0);
         assert_eq!(cluster.cluster_id(), Some("mock"));
         assert_eq!(
@@ -12877,18 +12877,18 @@ mod tests {
         assert!(!push.terminating());
         assert_eq!(push.compression_type(), 0);
         assert_eq!(push.metrics(), b"m");
-        let cluster = ClusterDescription {
-            error_code: 0,
-            error_message: None,
-            cluster_id: Some("c".into()),
-            controller_id: 2,
-            endpoint_type: 1,
-            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
-            brokers: vec![
+        let cluster = ClusterDescription::new(
+            0,
+            None,
+            Some("c".into()),
+            2,
+            1,
+            AUTHORIZED_OPERATIONS_OMITTED,
+            vec![
                 DescribeClusterBroker::new(1, "h1", 9092, None, false),
                 DescribeClusterBroker::new(2, "h2", 9092, Some("r".into()), false),
             ],
-        };
+        );
         assert_eq!(cluster.nodes().len(), 2);
         assert_eq!(cluster.controller().map(DescribeClusterBroker::id), Some(2));
         assert_eq!(

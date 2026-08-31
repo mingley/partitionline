@@ -4039,18 +4039,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_describe_cluster_response(
                     &mut body,
                     version,
-                    &ClusterDescription {
-                        error_code: 0,
-                        error_message: None,
-                        cluster_id: Some("mock".into()),
+                    &ClusterDescription::new(
+                        0,
+                        None,
+                        Some("mock".into()),
                         controller_id,
-                        endpoint_type: endpoint,
-                        cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
-                        brokers: brokers
+                        endpoint,
+                        AUTHORIZED_OPERATIONS_OMITTED,
+                        brokers
                             .into_iter()
                             .map(DescribeClusterBroker::from)
                             .collect(),
-                    },
+                    ),
                 )
                 .unwrap();
             }

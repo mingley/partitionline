@@ -3883,6 +3883,9 @@ impl fmt::Display for ClusterResource {
 /// DescribeCluster response: cluster id, controller, and brokers.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClusterDescription {
+    /// DescribeCluster `ThrottleTimeMs` (JSON `0+`). First field.
+    /// JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Top-level error code (`0` is success).
     pub error_code: i16,
     /// Broker error message, when present.
@@ -3902,6 +3905,35 @@ pub struct ClusterDescription {
 }
 
 impl ClusterDescription {
+    /// Construct [`Self`].
+    #[must_use]
+    pub fn new(
+        error_code: i16,
+        error_message: Option<String>,
+        cluster_id: Option<String>,
+        controller_id: i32,
+        endpoint_type: i8,
+        cluster_authorized_operations: i32,
+        brokers: Vec<DescribeClusterBroker>,
+    ) -> Self {
+        Self {
+            throttle_time_ms: 0,
+            error_code,
+            error_message,
+            cluster_id,
+            controller_id,
+            endpoint_type,
+            cluster_authorized_operations,
+            brokers,
+        }
+    }
+
+    /// DescribeCluster `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
+    }
+
     /// Top-level error code (`0` is success).
     #[must_use]
     pub fn error_code(&self) -> i16 {
@@ -4062,13 +4094,17 @@ pub fn decode_describe_cluster_request<B: Buf>(
 }
 
 /// Encode a DescribeCluster response (v0–2; flexible from v0).
+///
+/// ThrottleTimeMs is JSON `0+` (`desc.throttle_time_ms`; JSON default
+/// `0`). Kafka 4.0 `validVersions` is `0-2`. This crate speaks 0–2.
+/// v3+ is not spoken. Top-level ErrorCode is at bytes 4–5.
 pub fn encode_describe_cluster_response(
     buf: &mut BytesMut,
     version: i16,
     desc: &ClusterDescription,
 ) -> crate::error::Result<()> {
     let _ = describe_cluster_spoken(version)?;
-    buf.put_i32(0);
+    buf.put_i32(desc.throttle_time_ms);
     buf.put_i16(desc.error_code);
     buf::put_compact_string(buf, desc.error_message.as_deref())?;
     if version >= 1 {
@@ -8315,13 +8351,14 @@ pub fn decode_unregister_broker_response<B: Buf>(buf: &mut B) -> Result<Unregist
 /// Decode a DescribeCluster response (v0–2; flexible from v0).
 ///
 /// v0 fills `endpoint_type` = [`ENDPOINT_TYPE_BROKERS`]. v0–v1 fill
-/// `is_fenced` = `false`.
+/// `is_fenced` = `false`. ThrottleTimeMs is JSON `0+` (always on the
+/// wire). Top-level ErrorCode is at bytes 4–5.
 pub fn decode_describe_cluster_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ClusterDescription> {
     let _ = describe_cluster_spoken(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
     let endpoint_type = if version >= 1 {
@@ -8355,6 +8392,7 @@ pub fn decode_describe_cluster_response<B: Buf>(
     let cluster_authorized_operations = buf::get_i32(buf)?;
     buf::skip_tagged_fields(buf)?;
     Ok(ClusterDescription {
+        throttle_time_ms,
         error_code,
         error_message,
         cluster_id,
@@ -20208,6 +20246,77 @@ mod tests {
     }
 
     #[test]
+    fn describe_cluster_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 DescribeClusterResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0–v2; first field). Official Java
+        // DescribeClusterResponse.throttleTimeMs /
+        // maybeSetThrottleTimeMs set / read it.
+        // DescribeClusterRequest.getErrorResponse leaves ThrottleTimeMs
+        // at the JSON default (does not set the argument). Encode writes
+        // ClusterDescription.throttle_time_ms (JSON default 0;
+        // ClusterDescription::new fills 0). Empty-Brokers v0 != v1
+        // (EndpointType); v1 == v2 (IsFenced only on broker entries).
+        // Top-level ErrorCode is at bytes 4–5. This crate speaks 0–2.
+        // This is not UnregisterBroker ThrottleTimeMs.
+        let zero = ClusterDescription::new(
+            0,
+            None,
+            Some("c".into()),
+            1,
+            ENDPOINT_TYPE_BROKERS,
+            AUTHORIZED_OPERATIONS_OMITTED,
+            vec![],
+        );
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut v0 = BytesMut::new();
+        let mut v1 = BytesMut::new();
+        for version in [0, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_describe_cluster_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_describe_cluster_response(&mut cur, version).unwrap();
+            assert_eq!(got, with);
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert_eq!(got.throttle_time_ms(), 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DescribeCluster v{version} ThrottleTimeMs leftover-empty"
+            );
+            if version == 0 {
+                v0.extend_from_slice(&buf);
+            }
+            if version == 1 {
+                v1.extend_from_slice(&buf);
+            }
+        }
+
+        let mut v2 = BytesMut::new();
+        encode_describe_cluster_response(&mut v2, 2, &with).unwrap();
+        assert_ne!(
+            &v0[..],
+            &v1[..],
+            "empty-Brokers v0 and v1 bodies differ (v1 EndpointType)"
+        );
+        assert_eq!(
+            &v1[..],
+            &v2[..],
+            "empty-Brokers v1 and v2 bodies match (IsFenced only on broker entries)"
+        );
+        let mut zero_v0 = BytesMut::new();
+        encode_describe_cluster_response(&mut zero_v0, 0, &zero).unwrap();
+        assert_ne!(
+            &v0[..],
+            &zero_v0[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "ClusterDescription::new still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
     fn describe_cluster_v0_roundtrip() {
         assert_eq!(EndpointType::Brokers.id(), ENDPOINT_TYPE_BROKERS);
         assert_eq!(EndpointType::Controllers.id(), ENDPOINT_TYPE_CONTROLLERS);
@@ -20223,21 +20332,21 @@ mod tests {
         assert!(EndpointType::from_id(99).is_none());
         assert_eq!(EndpointType::Brokers.to_string(), "BROKER");
         assert_eq!(EndpointType::Controllers.to_string(), "CONTROLLER");
-        let desc = ClusterDescription {
-            error_code: 0,
-            error_message: None,
-            cluster_id: Some("mock".into()),
-            controller_id: 1,
-            endpoint_type: ENDPOINT_TYPE_BROKERS,
-            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
-            brokers: vec![DescribeClusterBroker::new(
+        let desc = ClusterDescription::new(
+            0,
+            None,
+            Some("mock".into()),
+            1,
+            ENDPOINT_TYPE_BROKERS,
+            AUTHORIZED_OPERATIONS_OMITTED,
+            vec![DescribeClusterBroker::new(
                 1,
                 "127.0.0.1",
                 9092,
                 None,
                 false,
             )],
-        };
+        );
         let mut req = BytesMut::new();
         encode_describe_cluster_request(&mut req, 0, false, ENDPOINT_TYPE_BROKERS, false).unwrap();
         let mut cur = &req[..];
@@ -20312,15 +20421,15 @@ mod tests {
         assert_eq!(endpoint, ENDPOINT_TYPE_CONTROLLERS);
         assert!(fenced);
 
-        let desc = ClusterDescription {
-            error_code: 0,
-            error_message: None,
-            cluster_id: Some("m".into()),
-            controller_id: 1,
-            endpoint_type: ENDPOINT_TYPE_BROKERS,
-            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
-            brokers: vec![DescribeClusterBroker::new(1, "h", 9092, None, false)],
-        };
+        let desc = ClusterDescription::new(
+            0,
+            None,
+            Some("m".into()),
+            1,
+            ENDPOINT_TYPE_BROKERS,
+            AUTHORIZED_OPERATIONS_OMITTED,
+            vec![DescribeClusterBroker::new(1, "h", 9092, None, false)],
+        );
         // Throttle 0, error 0, null message, EndpointType 1, cluster "m",
         // controller 1, 1 broker id=1 host "h" port 9092 rack null unfenced,
         // authorized ops omitted, empty tagged fields.
@@ -20386,18 +20495,18 @@ mod tests {
             matches!(err, Error::Protocol(_)),
             "duplicate broker id is Java IllegalStateException"
         );
-        let v0 = ClusterDescription {
-            error_code: 0,
-            error_message: None,
-            cluster_id: Some("c".into()),
-            controller_id: 1,
-            endpoint_type: ENDPOINT_TYPE_BROKERS,
-            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
-            brokers: vec![
+        let v0 = ClusterDescription::new(
+            0,
+            None,
+            Some("c".into()),
+            1,
+            ENDPOINT_TYPE_BROKERS,
+            AUTHORIZED_OPERATIONS_OMITTED,
+            vec![
                 DescribeClusterBroker::new(1, "h1", 9092, None, false),
                 DescribeClusterBroker::new(2, "h2", 9093, Some("r".into()), false),
             ],
-        };
+        );
         let mut buf = BytesMut::new();
         encode_describe_cluster_response(&mut buf, 0, &v0).unwrap();
         let mut cur = buf.as_ref();
@@ -20412,15 +20521,15 @@ mod tests {
             "DescribeCluster v0 nodes leftover-empty; leftover {} bytes",
             cur.len()
         );
-        let v2 = ClusterDescription {
-            error_code: 0,
-            error_message: None,
-            cluster_id: Some("c".into()),
-            controller_id: 2,
-            endpoint_type: ENDPOINT_TYPE_BROKERS,
-            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
-            brokers: vec![a.clone(), b.clone()],
-        };
+        let v2 = ClusterDescription::new(
+            0,
+            None,
+            Some("c".into()),
+            2,
+            ENDPOINT_TYPE_BROKERS,
+            AUTHORIZED_OPERATIONS_OMITTED,
+            vec![a.clone(), b.clone()],
+        );
         buf.clear();
         encode_describe_cluster_response(&mut buf, 2, &v2).unwrap();
         let mut cur = buf.as_ref();
