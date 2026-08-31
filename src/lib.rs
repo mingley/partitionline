@@ -1096,6 +1096,7 @@
 //! below v7 encode omits it even when the body is non-empty and decode
 //! fills empty; v13+ uses TopicId;
 //! MaxWaitMs is JSON `0+` (decode returns it; encode already takes `max_wait_ms`);
+//! MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`);
 //! request LogStartOffset is v5+;
 //! CurrentLeaderEpoch is v9+; RackId and response PreferredReadReplica are
 //! v11+; response LogStartOffset is v5+; below those versions encode omits

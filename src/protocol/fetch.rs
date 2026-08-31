@@ -733,6 +733,7 @@ pub struct FetchedTopic {
 /// SessionId / SessionEpoch / ForgottenTopicsData are v7+. LogStartOffset
 /// is v5+. CurrentLeaderEpoch is v9+. RackId is v11+. Session is
 /// [`FetchMetadata::LEGACY`]. MaxWaitMs is JSON `0+` (decode returns it).
+/// MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`).
 #[expect(
     clippy::too_many_arguments,
     reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, and rack together"
@@ -1069,7 +1070,7 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
 }
 
 /// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id, session,
-/// forgotten, max_wait_ms)`.
+/// forgotten, max_wait_ms, min_bytes)`.
 ///
 /// `last_fetched_epoch` is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]
 /// below v12. `current_leader_epoch` is the same below v9. SessionId /
@@ -1078,10 +1079,11 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
 /// an empty forgotten list. LogStartOffset is v5+. RackId is v11+; below
 /// v11 decode fills empty. MaxWaitMs is JSON `0+` (INT32 after ReplicaId
 /// on v4–v14; first untagged field on v15+; official Java
-/// `FetchRequest.maxWait`).
+/// `FetchRequest.maxWait`). MinBytes is JSON `0+` (INT32 after MaxWaitMs;
+/// official Java `FetchRequest.minBytes`).
 #[expect(
     clippy::type_complexity,
-    reason = "Fetch request decode returns isolation, max bytes, topics, rack, session, forgotten, and max wait together"
+    reason = "Fetch request decode returns isolation, max bytes, topics, rack, session, forgotten, max wait, and min bytes together"
 )]
 pub fn decode_fetch_request<B: Buf>(
     buf: &mut B,
@@ -1094,13 +1096,14 @@ pub fn decode_fetch_request<B: Buf>(
     FetchMetadata,
     Vec<ForgottenTopic>,
     i32,
+    i32,
 )> {
     let flexible = fetch_flexible(version)?;
     if version <= 14 {
         let _replica = buf::get_i32(buf)?;
     }
     let max_wait_ms = buf::get_i32(buf)?;
-    let _min_bytes = buf::get_i32(buf)?;
+    let min_bytes = buf::get_i32(buf)?;
     let max_bytes = buf::get_i32(buf)?;
     let isolation = buf::get_i8(buf)?;
     let session = if version >= 7 {
@@ -1188,6 +1191,7 @@ pub fn decode_fetch_request<B: Buf>(
         session,
         forgotten_out,
         max_wait_ms,
+        min_bytes,
     ))
 }
 
@@ -1776,7 +1780,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_fetch_request(&mut buf, version, 3_600_000, 1, 1024, 0, &topics, None).unwrap();
             let mut cur = buf.as_ref();
-            let (iso, max_bytes, got, rack, session, forgotten, max_wait) =
+            let (iso, max_bytes, got, rack, session, forgotten, max_wait, ..) =
                 decode_fetch_request(&mut cur, version).unwrap();
             assert_eq!(iso, 0);
             assert_eq!(max_bytes, 1024);
@@ -1801,7 +1805,7 @@ mod tests {
         encode_fetch_request(&mut ten, 4, 10, 1, 1024, 0, &topics, None).unwrap();
         assert_ne!(&with[..], &ten[..], "v4 MaxWaitMs is not always 10");
         let mut cur = ten.as_ref();
-        let (.., max_wait) = decode_fetch_request(&mut cur, 4).unwrap();
+        let (.., max_wait, _) = decode_fetch_request(&mut cur, 4).unwrap();
         assert_eq!(max_wait, 10);
 
         let mut v15 = BytesMut::new();
@@ -1810,6 +1814,66 @@ mod tests {
             &with[..],
             &v15[..],
             "v4–v14 write ReplicaId then MaxWaitMs; v15+ MaxWaitMs is first untagged"
+        );
+    }
+
+    #[test]
+    fn fetch_request_min_bytes_matches_java() {
+        // Kafka 4.0 FetchRequest.json MinBytes is versions 0+ (INT32 after
+        // MaxWaitMs). Official Java FetchRequest.minBytes reads it. Encode
+        // already takes min_bytes; decode previously discarded it. This
+        // crate speaks 4–17. This is not MaxBytes / MaxWaitMs / ShareFetch
+        // MinBytes.
+        let topics = vec![FetchTopic {
+            topic: "t".into(),
+            topic_id: [7u8; 16],
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 0,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        for version in [4_i16, 11, 12, 15, 17] {
+            let mut buf = BytesMut::new();
+            encode_fetch_request(&mut buf, version, 10, 3_600_000, 1024, 0, &topics, None).unwrap();
+            let mut cur = buf.as_ref();
+            let (iso, max_bytes, got, rack, session, forgotten, max_wait, min_bytes) =
+                decode_fetch_request(&mut cur, version).unwrap();
+            assert_eq!(iso, 0);
+            assert_eq!(max_bytes, 1024);
+            assert_eq!(got.len(), 1);
+            assert!(forgotten.is_empty());
+            assert_eq!(max_wait, 10);
+            assert_eq!(min_bytes, 3_600_000);
+            if version >= 11 {
+                assert!(rack.is_empty());
+            }
+            if version >= 7 {
+                assert_eq!(session, FetchMetadata::LEGACY);
+            }
+            assert!(
+                cur.is_empty(),
+                "Fetch request v{version} MinBytes leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_fetch_request(&mut with, 4, 10, 3_600_000, 1024, 0, &topics, None).unwrap();
+        let mut one = BytesMut::new();
+        encode_fetch_request(&mut one, 4, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_ne!(&with[..], &one[..], "v4 MinBytes is not always 1");
+        let mut cur = one.as_ref();
+        let (.., min_bytes) = decode_fetch_request(&mut cur, 4).unwrap();
+        assert_eq!(min_bytes, 1);
+
+        let mut v15 = BytesMut::new();
+        encode_fetch_request(&mut v15, 15, 10, 3_600_000, 1024, 0, &topics, None).unwrap();
+        assert_ne!(
+            &with[..],
+            &v15[..],
+            "v4 and v15 both write MinBytes (JSON 0+); v15 omits untagged ReplicaId"
         );
     }
 
@@ -3150,7 +3214,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., forgotten, _) = decode_fetch_request(&mut cur, version).unwrap();
+            let (.., forgotten, _, _) = decode_fetch_request(&mut cur, version).unwrap();
             assert_eq!(forgotten.as_slice(), named.as_slice());
             assert!(
                 cur.is_empty(),
@@ -3173,7 +3237,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., forgotten, _) = decode_fetch_request(&mut cur, version).unwrap();
+            let (.., forgotten, _, _) = decode_fetch_request(&mut cur, version).unwrap();
             assert_eq!(forgotten.as_slice(), by_id.as_slice());
             assert!(
                 cur.is_empty(),
@@ -3197,7 +3261,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., forgotten, _) = decode_fetch_request(&mut cur, version).unwrap();
+            let (.., forgotten, _, _) = decode_fetch_request(&mut cur, version).unwrap();
             assert!(
                 forgotten.is_empty(),
                 "Fetch v{version} omits ForgottenTopicsData even when the body is non-empty"
