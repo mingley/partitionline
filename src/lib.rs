@@ -906,7 +906,10 @@
 //! including `NONE`; Java `Collections.singletonMap`);
 //! [`DescribeDelegationTokenRequest::owners_list_empty`] is Java
 //! `DescribeDelegationTokenRequest.ownersListEmpty` (`Some` empty is true;
-//! `None` is every visible token)),
+//! `None` is every visible token);
+//! [`protocol::admin::DescribeDelegationTokenRequest::error_response`] is Java
+//! `DescribeDelegationTokenRequest.getErrorResponse` (empty Tokens;
+//! ThrottleTimeMs JSON `0+`; convenience fills `0`)),
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible;
 //! [`protocol::admin::DescribeConfigsResponse::should_client_throttle`] is Java
 //! `DescribeConfigsResponse.shouldClientThrottle` (v2+);

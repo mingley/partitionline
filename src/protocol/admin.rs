@@ -16084,6 +16084,25 @@ impl DescribeDelegationTokenRequest {
     pub fn owners_list_empty(&self) -> bool {
         self.owners.as_ref().is_some_and(Vec::is_empty)
     }
+
+    /// Java `DescribeDelegationTokenRequest.getErrorResponse`.
+    ///
+    /// Sets the top-level `ErrorCode`. Tokens stay empty (Java
+    /// `DescribeDelegationTokenResponse(version, throttleTimeMs, error)`
+    /// passes an empty list). Request Owners are not copied.
+    /// ThrottleTimeMs is JSON `0+` (JSON default `0`;
+    /// [`DescribeDelegationTokenResponse::new`] fills `0`). Official Java
+    /// `getErrorResponse` sets `throttleTimeMs` from the argument.
+    /// ErrorCode is the first field; throttle is last. Java `error()` is
+    /// `Errors.forCode` only (identity on i16; not mapped). Empty Tokens
+    /// means v3 TokenRequester fields are not on the wire. This is not
+    /// [`Self::owners_list_empty`] /
+    /// [`DescribeDelegationTokenResponse::error_counts`] /
+    /// ExpireDelegationToken `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> DescribeDelegationTokenResponse {
+        DescribeDelegationTokenResponse::new(error_code, Vec::new())
+    }
 }
 
 impl Default for DescribeDelegationTokenRequest {
@@ -32237,6 +32256,95 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[test]
+    fn describe_delegation_token_request_error_response_matches_java() {
+        // Java 4.0 DescribeDelegationTokenRequest.getErrorResponse:
+        // new DescribeDelegationTokenResponse(version(), throttleTimeMs,
+        // Errors.forException(e)) which passes an empty token list.
+        // Request Owners are not copied. Official Java
+        // DescribeDelegationTokenRequest.getErrorResponse. Official Java
+        // sets throttleTimeMs from the argument;
+        // DescribeDelegationTokenResponse::new fills 0. ErrorCode is
+        // first (bytes 0-1); throttle is last. Java error() is
+        // Errors.forCode only (identity on i16; not mapped). Empty
+        // Tokens means v3 TokenRequester fields are not on the wire.
+        // This crate speaks 1-3. This is not ownersListEmpty /
+        // errorCounts / ExpireDelegationToken getErrorResponse /
+        // RenewDelegationToken getErrorResponse.
+        let req =
+            DescribeDelegationTokenRequest::new(Some(vec![DescribeDelegationTokenOwner::new(
+                "User", "alice",
+            )]));
+        assert!(
+            req.owners.as_ref().is_some_and(|owners| !owners.is_empty()),
+            "fixture request must have Owners so we can prove they are not copied"
+        );
+        assert_eq!(
+            DescribeDelegationTokenRequest::error_response(0),
+            DescribeDelegationTokenResponse::new(0, Vec::new())
+        );
+        let err = DescribeDelegationTokenRequest::error_response(
+            crate::error::DELEGATION_TOKEN_AUTHORIZATION_FAILED,
+        );
+        assert_eq!(
+            err,
+            DescribeDelegationTokenResponse::new(
+                crate::error::DELEGATION_TOKEN_AUTHORIZATION_FAILED,
+                Vec::new()
+            )
+        );
+        assert!(
+            err.tokens.is_empty(),
+            "getErrorResponse must not copy Owners into Tokens"
+        );
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "DescribeDelegationTokenResponse::new still fills ThrottleTimeMs 0"
+        );
+        let mut v1_buf = BytesMut::new();
+        encode_describe_delegation_token_response(&mut v1_buf, 1, &err).unwrap();
+        let mut v2_buf = BytesMut::new();
+        encode_describe_delegation_token_response(&mut v2_buf, 2, &err).unwrap();
+        let mut v3_buf = BytesMut::new();
+        encode_describe_delegation_token_response(&mut v3_buf, 3, &err).unwrap();
+        assert_ne!(&v1_buf[..], &v2_buf[..], "v1 classic vs v2 compact");
+        assert_eq!(
+            &v2_buf[..],
+            &v3_buf[..],
+            "empty-Tokens v2 and v3 bodies match"
+        );
+        for version in 1..=3_i16 {
+            let mut resp = BytesMut::new();
+            encode_describe_delegation_token_response(&mut resp, version, &err).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_describe_delegation_token_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert!(
+                cur.is_empty(),
+                "DescribeDelegationToken v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_describe_delegation_token_response(&mut with_buf, 1, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_describe_delegation_token_response(&mut zero_buf, 1, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_describe_delegation_token_response(&mut conv, 1, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
+        );
     }
 
     #[test]
