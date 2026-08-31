@@ -202,6 +202,63 @@ impl FindCoordinatorResponse {
     }
 }
 
+/// Java `FindCoordinatorRequest` helpers.
+pub struct FindCoordinatorRequest;
+
+impl FindCoordinatorRequest {
+    /// Java `FindCoordinatorRequest.Builder.build`.
+    ///
+    /// Returns `(key, coordinator_keys)` after the Java rewrite. `key`
+    /// `None` is Java `data.key() == null`.
+    ///
+    /// `keyType` TRANSACTION below v1 is `UnsupportedVersionException`
+    /// (`features supported only in 2 or later`). More than one
+    /// CoordinatorKey below [`MIN_BATCHED_VERSION`] is
+    /// `NoBatchedFindCoordinatorsException` (same message as encode).
+    /// Below v4, a single CoordinatorKey is copied into `Key` and
+    /// CoordinatorKeys is emptied. v4+ with empty CoordinatorKeys and a
+    /// non-null `Key` copies that key into CoordinatorKeys and clears
+    /// `Key` to the JSON default (`""`). Encode still writes Key on
+    /// v1–v3 and CoordinatorKeys on v4+; this is the Builder rewrite.
+    /// This crate speaks 1–6. v0 is not spoken (the TRANSACTION check
+    /// is Java's). This is not [`FindCoordinatorResponse::has_error`] /
+    /// [`FindCoordinatorResponse::error_counts`] / getErrorResponse /
+    /// OffsetFetch `Builder.build`.
+    pub fn build(
+        version: i16,
+        key: Option<&str>,
+        key_type: i8,
+        coordinator_keys: &[&str],
+    ) -> Result<(Option<String>, Vec<String>)> {
+        if version < 1 && key_type == COORDINATOR_TRANSACTION {
+            return Err(Error::Unsupported(format!(
+                "Cannot create a v{version} FindCoordinator request because we require features supported only in 2 or later."
+            )));
+        }
+        if version < MIN_BATCHED_VERSION {
+            if coordinator_keys.len() > 1 {
+                return Err(Error::Unsupported(format!(
+                    "Cannot create a v{version} FindCoordinator request because we require features supported only in {MIN_BATCHED_VERSION} or later."
+                )));
+            }
+            if let Some(first) = coordinator_keys.first() {
+                return Ok((Some((*first).to_string()), Vec::new()));
+            }
+            return Ok((key.map(str::to_string), Vec::new()));
+        }
+        if coordinator_keys.is_empty() {
+            if let Some(k) = key {
+                return Ok((Some(String::new()), vec![k.to_string()]));
+            }
+            return Ok((None, Vec::new()));
+        }
+        Ok((
+            key.map(str::to_string),
+            coordinator_keys.iter().map(|k| (*k).to_string()).collect(),
+        ))
+    }
+}
+
 /// Java `ConsumerProtocol` (classic JoinGroup / SyncGroup protocol type).
 pub struct ConsumerProtocol;
 
@@ -4958,6 +5015,171 @@ mod tests {
             assert!(
                 cur.is_empty(),
                 "FindCoordinator v{version} hasError leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+    }
+
+    #[test]
+    fn find_coordinator_request_build_matches_java() {
+        // Java 4.0 FindCoordinatorRequest.Builder.build: TRANSACTION
+        // below v1 is UnsupportedVersionException; more than one
+        // CoordinatorKey below MIN_BATCHED_VERSION is
+        // NoBatchedFindCoordinatorsException; a single CoordinatorKey
+        // below v4 is copied into Key; v4+ with empty CoordinatorKeys
+        // and a non-null Key copies that key into CoordinatorKeys and
+        // clears Key to "". Official Java
+        // FindCoordinatorRequest.Builder.build. Encode still writes Key
+        // on v1-v3 and CoordinatorKeys on v4+. This crate speaks 1-6.
+        // This is not hasError / errorCounts / getErrorResponse /
+        // OffsetFetch Builder.build.
+        let v0_txn =
+            FindCoordinatorRequest::build(0, Some("t"), COORDINATOR_TRANSACTION, &[]).unwrap_err();
+        assert!(
+            matches!(v0_txn, Error::Unsupported(_)),
+            "v0 TRANSACTION is Java UnsupportedVersionException, got {v0_txn}"
+        );
+        assert!(
+            v0_txn.to_string().contains("only in 2 or later"),
+            "got {v0_txn}"
+        );
+        assert_eq!(
+            FindCoordinatorRequest::build(0, Some("g"), COORDINATOR_GROUP, &[]).unwrap(),
+            (Some("g".into()), Vec::new()),
+            "v0 GROUP is not the TRANSACTION check"
+        );
+        assert_eq!(
+            FindCoordinatorRequest::build(1, Some("t"), COORDINATOR_TRANSACTION, &[]).unwrap(),
+            (Some("t".into()), Vec::new()),
+            "v1 TRANSACTION is spoken"
+        );
+        let batched = FindCoordinatorRequest::build(3, Some("g"), COORDINATOR_GROUP, &["a", "b"])
+            .unwrap_err();
+        assert!(
+            matches!(batched, Error::Unsupported(_)),
+            "two keys on v3 is Java NoBatchedFindCoordinatorsException, got {batched}"
+        );
+        assert!(
+            batched.to_string().contains("only in 4 or later"),
+            "got {batched}"
+        );
+        assert!(
+            encode_find_coordinator_request_keys(
+                &mut BytesMut::new(),
+                3,
+                &["a", "b"],
+                COORDINATOR_GROUP,
+            )
+            .is_err(),
+            "encode also rejects two keys below v4"
+        );
+        assert_eq!(
+            FindCoordinatorRequest::build(3, None, COORDINATOR_GROUP, &["g"]).unwrap(),
+            (Some("g".into()), Vec::new()),
+            "v3 CoordinatorKeys of 1 is copied into Key"
+        );
+        assert_eq!(
+            FindCoordinatorRequest::build(3, Some("old"), COORDINATOR_GROUP, &["g"]).unwrap(),
+            (Some("g".into()), Vec::new()),
+            "v3 CoordinatorKeys of 1 overwrites Key"
+        );
+        assert_eq!(
+            FindCoordinatorRequest::build(3, Some("g"), COORDINATOR_GROUP, &[]).unwrap(),
+            (Some("g".into()), Vec::new()),
+            "v3 empty CoordinatorKeys keeps Key"
+        );
+        assert_eq!(
+            FindCoordinatorRequest::build(4, Some("g"), COORDINATOR_GROUP, &[]).unwrap(),
+            (Some(String::new()), vec!["g".into()]),
+            "v4 empty CoordinatorKeys copies Key"
+        );
+        assert_eq!(
+            FindCoordinatorRequest::build(4, Some(""), COORDINATOR_GROUP, &[]).unwrap(),
+            (Some(String::new()), vec![String::new()]),
+            "v4 empty Key is not Java null"
+        );
+        assert_eq!(
+            FindCoordinatorRequest::build(4, None, COORDINATOR_GROUP, &[]).unwrap(),
+            (None, Vec::new()),
+            "v4 null Key is not copied into CoordinatorKeys"
+        );
+        assert_eq!(
+            FindCoordinatorRequest::build(4, Some("old"), COORDINATOR_GROUP, &["g"]).unwrap(),
+            (Some("old".into()), vec!["g".into()]),
+            "v4 existing CoordinatorKeys keeps Key"
+        );
+        assert_eq!(
+            FindCoordinatorRequest::build(6, Some("g"), COORDINATOR_SHARE, &["a", "b"]).unwrap(),
+            (Some("g".into()), vec!["a".into(), "b".into()]),
+            "v6 CoordinatorKeys of N is as-is"
+        );
+
+        for version in 1..=3_i16 {
+            let (key, keys) =
+                FindCoordinatorRequest::build(version, None, COORDINATOR_GROUP, &["g"]).unwrap();
+            assert_eq!(key.as_deref(), Some("g"));
+            assert!(keys.is_empty());
+            let mut buf = BytesMut::new();
+            encode_find_coordinator_request_typed(
+                &mut buf,
+                version,
+                key.as_deref().unwrap_or(""),
+                COORDINATOR_GROUP,
+            )
+            .unwrap();
+            let mut cur = &buf[..];
+            let (decoded, key_type) =
+                decode_find_coordinator_request_keys(&mut cur, version).unwrap();
+            assert_eq!(key_type, COORDINATOR_GROUP);
+            assert_eq!(decoded, vec!["g".to_string()]);
+            assert!(
+                cur.is_empty(),
+                "FindCoordinator v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        for version in 4..=6_i16 {
+            let (key, keys) =
+                FindCoordinatorRequest::build(version, Some("g"), COORDINATOR_GROUP, &[]).unwrap();
+            assert_eq!(key.as_deref(), Some(""));
+            assert_eq!(keys, vec!["g".to_string()]);
+            let mut buf = BytesMut::new();
+            let key_refs: Vec<&str> = keys.iter().map(String::as_str).collect();
+            encode_find_coordinator_request_keys(&mut buf, version, &key_refs, COORDINATOR_GROUP)
+                .unwrap();
+            let mut typed = BytesMut::new();
+            encode_find_coordinator_request_typed(&mut typed, version, "g", COORDINATOR_GROUP)
+                .unwrap();
+            assert_eq!(
+                buf.as_ref(),
+                typed.as_ref(),
+                "v{version} folded Key must match encode_find_coordinator_request_typed"
+            );
+            let mut cur = &buf[..];
+            let (decoded, key_type) =
+                decode_find_coordinator_request_keys(&mut cur, version).unwrap();
+            assert_eq!(key_type, COORDINATOR_GROUP);
+            assert_eq!(decoded, vec!["g".to_string()]);
+            assert!(
+                cur.is_empty(),
+                "FindCoordinator v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+
+            let (kept_key, kept_keys) =
+                FindCoordinatorRequest::build(version, Some("old"), COORDINATOR_GROUP, &["h"])
+                    .unwrap();
+            assert_eq!(kept_key.as_deref(), Some("old"));
+            assert_eq!(kept_keys, vec!["h".to_string()]);
+            buf.clear();
+            encode_find_coordinator_request_keys(&mut buf, version, &["h"], COORDINATOR_GROUP)
+                .unwrap();
+            let mut cur = &buf[..];
+            let (decoded, ..) = decode_find_coordinator_request_keys(&mut cur, version).unwrap();
+            assert_eq!(decoded, vec!["h".to_string()]);
+            assert!(
+                cur.is_empty(),
+                "FindCoordinator v{version} Builder.build empty leftover-empty; leftover {} bytes",
                 cur.len()
             );
         }

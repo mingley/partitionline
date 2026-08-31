@@ -126,6 +126,13 @@
 //! [`CoordinatorType`] is Java `FindCoordinatorRequest.CoordinatorType`
 //! (`id` / `forId`; unknown is `None`). [`protocol::group::MIN_BATCHED_VERSION`]
 //! is Java `FindCoordinatorRequest.MIN_BATCHED_VERSION`.
+//! [`protocol::group::FindCoordinatorRequest::build`] is Java
+//! `FindCoordinatorRequest.Builder.build` (`keyType` TRANSACTION below
+//! v1 is `UnsupportedVersionException`; more than one CoordinatorKey
+//! below v4 is `NoBatchedFindCoordinatorsException`; a single
+//! CoordinatorKey below v4 is copied into `Key`; v4+ with empty
+//! CoordinatorKeys and a non-null `Key` copies that key into
+//! CoordinatorKeys).
 //! [`protocol::group::FindCoordinatorResponse::should_client_throttle`] is Java
 //! `FindCoordinatorResponse.shouldClientThrottle` (v2+);
 //! [`protocol::group::FindCoordinatorResponse::error_counts`] is Java
