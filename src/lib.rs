@@ -1310,7 +1310,10 @@
 //! is Java `ListOffsetsResponse.singletonListOffsetsTopicResponse`.
 //! [`protocol::offsets::ListOffsetsResponsePartition::error`] /
 //! [`protocol::offsets::ListOffsetsTopicRequest::error_result`] are Java
-//! `ListOffsetsRequest.getErrorResponse` (partition body / one topic).
+//! `ListOffsetsRequest.getErrorResponse` (partition body / one topic);
+//! [`protocol::offsets::ListOffsetsRequest::duplicate_partitions`] is Java
+//! `ListOffsetsRequest.duplicatePartitions` (`(topic, partition)` pairs
+//! that appear more than once).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]

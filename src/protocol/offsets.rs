@@ -1,6 +1,6 @@
 //! ListOffsets (api key 2). v1–v5 classic; v6–v10 flexible.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -301,6 +301,30 @@ impl ListOffsetsTopicResponse {
             name: name.into(),
             partitions,
         }
+    }
+}
+
+/// Java `ListOffsetsRequest` helpers.
+pub struct ListOffsetsRequest;
+
+impl ListOffsetsRequest {
+    /// Java `ListOffsetsRequest.duplicatePartitions`.
+    ///
+    /// `(topic, partition)` pairs that appear more than once. The first
+    /// occurrence is not a duplicate (Java `Set.add`).
+    #[must_use]
+    pub fn duplicate_partitions(topics: &[ListOffsetsTopicRequest]) -> HashSet<(String, i32)> {
+        let mut seen = HashSet::new();
+        let mut duplicates = HashSet::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let tp = (topic.name.clone(), partition.partition);
+                if !seen.insert(tp.clone()) {
+                    let _inserted = duplicates.insert(tp);
+                }
+            }
+        }
+        duplicates
     }
 }
 
@@ -1032,6 +1056,71 @@ mod tests {
         assert!(
             cur.is_empty(),
             "ListOffsets v10 response shares the v6 layout"
+        );
+    }
+
+    #[test]
+    fn list_offsets_duplicate_partitions_matches_java() {
+        // Java ListOffsetsRequest.duplicatePartitions: (topic, partition)
+        // pairs that appear more than once. The first occurrence is not a
+        // duplicate (Set.add).
+        assert!(ListOffsetsRequest::duplicate_partitions(&[]).is_empty());
+        let unique = [ListOffsetsTopicRequest::new(
+            "t",
+            vec![
+                ListOffsetsPartitionRequest::new(0, RecordBatch::NO_PARTITION_LEADER_EPOCH, -1),
+                ListOffsetsPartitionRequest::new(3, RecordBatch::NO_PARTITION_LEADER_EPOCH, -2),
+            ],
+        )];
+        assert!(ListOffsetsRequest::duplicate_partitions(&unique).is_empty());
+        let two = [
+            ListOffsetsTopicRequest::new(
+                "a",
+                vec![ListOffsetsPartitionRequest::new(
+                    0,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    -1,
+                )],
+            ),
+            ListOffsetsTopicRequest::new(
+                "a",
+                vec![
+                    ListOffsetsPartitionRequest::new(0, RecordBatch::NO_PARTITION_LEADER_EPOCH, -2),
+                    ListOffsetsPartitionRequest::new(1, RecordBatch::NO_PARTITION_LEADER_EPOCH, -1),
+                ],
+            ),
+        ];
+        assert_eq!(
+            ListOffsetsRequest::duplicate_partitions(&two),
+            HashSet::from([("a".into(), 0)])
+        );
+        let mut buf = BytesMut::new();
+        encode_list_offsets_topics_request(&mut buf, 1, 0, &two, 0).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_list_offsets_topics_request(&mut cur, 1).unwrap().1;
+        assert_eq!(decoded, two);
+        assert_eq!(
+            ListOffsetsRequest::duplicate_partitions(&decoded),
+            ListOffsetsRequest::duplicate_partitions(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "ListOffsets v1 duplicatePartitions leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_list_offsets_topics_request(&mut buf, 6, 0, &two, 0).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_list_offsets_topics_request(&mut cur, 6).unwrap().1;
+        assert_eq!(decoded, two);
+        assert_eq!(
+            ListOffsetsRequest::duplicate_partitions(&decoded),
+            ListOffsetsRequest::duplicate_partitions(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "ListOffsets v6 duplicatePartitions leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 }
