@@ -4788,7 +4788,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             TXN_OFFSET_COMMIT => {
-                let (_tid, gid, member, topics) =
+                let (_tid, gid, member, topics, ..) =
                     decode_txn_offset_commit_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 if st.coord_node != node_id {
