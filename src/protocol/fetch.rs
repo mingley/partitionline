@@ -253,7 +253,8 @@ impl FetchTopic {
 ///
 /// Java `FetchRequestData.ForgottenTopic`. Encode still writes an empty
 /// ForgottenTopicsData array; this type is the in-memory list
-/// [`FetchRequest::forgotten_topics`] reads.
+/// [`FetchRequest::forgotten_topics`] reads and
+/// [`FetchRequest::forgotten_from_removed`] builds from removed+replaced.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgottenTopic {
     /// Topic name (v4–v12). Empty at v13+ (topic id on the wire).
@@ -325,6 +326,39 @@ impl FetchRequest {
         to_forget
     }
 
+    /// Java `FetchRequest.Builder.build` ForgottenTopicsData from removed
+    /// and replaced.
+    ///
+    /// Grouped by topic name (Java `LinkedHashMap` keyed by
+    /// `TopicIdPartition.topic()`). The first topic id for a name is kept;
+    /// later partitions for that name append (`ArrayList`, duplicates
+    /// kept). `replaced` is included only on v13+ (a same-name topic-id
+    /// replacement is not forgotten below v13, so the newly added fetch
+    /// partition is not removed). Encode still writes an empty
+    /// ForgottenTopicsData array. Distinct from [`Self::forgotten_topics`],
+    /// which reads an already-built list and looks up names by id at v13+.
+    #[must_use]
+    pub fn forgotten_from_removed<'a, R, S>(
+        version: i16,
+        removed: R,
+        replaced: S,
+    ) -> Vec<ForgottenTopic>
+    where
+        R: IntoIterator<Item = ([u8; 16], &'a str, i32)>,
+        S: IntoIterator<Item = ([u8; 16], &'a str, i32)>,
+    {
+        let mut order: Vec<String> = Vec::new();
+        let mut by_name: HashMap<String, ForgottenTopic> = HashMap::new();
+        add_to_forgotten_topic_map(&mut order, &mut by_name, removed);
+        if version >= 13 {
+            add_to_forgotten_topic_map(&mut order, &mut by_name, replaced);
+        }
+        order
+            .into_iter()
+            .filter_map(|name| by_name.remove(&name))
+            .collect()
+    }
+
     /// Java `FetchRequest.getErrorResponse`.
     ///
     /// Below v13 each request topic is [`FetchTopic::error_result`]. v13+
@@ -346,6 +380,29 @@ impl FetchRequest {
         } else {
             Vec::new()
         }
+    }
+}
+
+fn add_to_forgotten_topic_map<'a, I>(
+    order: &mut Vec<String>,
+    by_name: &mut HashMap<String, ForgottenTopic>,
+    to_forget: I,
+) where
+    I: IntoIterator<Item = ([u8; 16], &'a str, i32)>,
+{
+    for (topic_id, topic, partition) in to_forget {
+        by_name
+            .entry(topic.to_string())
+            .or_insert_with(|| {
+                order.push(topic.to_string());
+                ForgottenTopic {
+                    topic: topic.to_string(),
+                    topic_id,
+                    partitions: Vec::new(),
+                }
+            })
+            .partitions
+            .push(partition);
     }
 }
 
@@ -1742,6 +1799,112 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} forgottenTopics empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn fetch_request_forgotten_from_removed_matches_java() {
+        // Java FetchRequest.Builder.build ForgottenTopicsData: LinkedHashMap
+        // keyed by topic name; first topicId for that name wins; partitions
+        // append (duplicates kept). replaced is included only on v13+.
+        // Encode still writes empty ForgottenTopicsData.
+        let none: Vec<([u8; 16], &str, i32)> = Vec::new();
+        assert!(FetchRequest::forgotten_from_removed(12, none.clone(), none.clone()).is_empty());
+        assert!(FetchRequest::forgotten_from_removed(13, none.clone(), none.clone()).is_empty());
+
+        let id_a = [1u8; 16];
+        let id_b = [2u8; 16];
+        let id_a2 = [3u8; 16];
+        let id_c = [4u8; 16];
+        let removed = [
+            (id_a, "a", 0i32),
+            (id_b, "b", 1),
+            (id_a2, "a", 2),
+            (id_a, "a", 0),
+        ];
+        let replaced = [(id_a2, "a", 3i32), (id_c, "c", 0)];
+
+        let v12 = FetchRequest::forgotten_from_removed(12, removed, replaced);
+        assert_eq!(
+            v12,
+            vec![
+                ForgottenTopic {
+                    topic: "a".into(),
+                    topic_id: id_a,
+                    partitions: vec![0, 2, 0],
+                },
+                ForgottenTopic {
+                    topic: "b".into(),
+                    topic_id: id_b,
+                    partitions: vec![1],
+                },
+            ],
+            "below v13 replaced is omitted; first topicId for a name is kept"
+        );
+        let v13 = FetchRequest::forgotten_from_removed(13, removed, replaced);
+        assert_eq!(
+            v13,
+            vec![
+                ForgottenTopic {
+                    topic: "a".into(),
+                    topic_id: id_a,
+                    partitions: vec![0, 2, 0, 3],
+                },
+                ForgottenTopic {
+                    topic: "b".into(),
+                    topic_id: id_b,
+                    partitions: vec![1],
+                },
+                ForgottenTopic {
+                    topic: "c".into(),
+                    topic_id: id_c,
+                    partitions: vec![0],
+                },
+            ]
+        );
+        assert_eq!(
+            FetchRequest::forgotten_topics(13, &v13, &HashMap::new()).len(),
+            6,
+            "Builder list flattened by forgottenTopics keeps duplicates"
+        );
+
+        let fetch = vec![FetchTopic {
+            topic: "t".into(),
+            topic_id: [0u8; 16],
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 10,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        for version in [12_i16, 13] {
+            let forgotten = FetchRequest::forgotten_from_removed(version, removed, replaced);
+            assert!(!forgotten.is_empty());
+            let mut buf = BytesMut::new();
+            encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &fetch, None).unwrap();
+            let mut cur = buf.as_ref();
+            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "Fetch v{version} Builder.build forgotten leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [12_i16, 17] {
+            let forgotten =
+                FetchRequest::forgotten_from_removed(version, none.clone(), none.clone());
+            assert!(forgotten.is_empty());
+            let mut buf = BytesMut::new();
+            encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &fetch, None).unwrap();
+            let mut cur = buf.as_ref();
+            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "Fetch v{version} Builder.build forgotten empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }
