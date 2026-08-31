@@ -1522,6 +1522,10 @@
 //! [`protocol::epoch::supports_topic_permission`] is Java
 //! `OffsetsForLeaderEpochRequest.supportsTopicPermission` (v3+ uses topic
 //! Describe instead of Cluster permission).
+//! [`protocol::epoch::OffsetsForLeaderEpochRequest::for_consumer`] is Java
+//! `OffsetsForLeaderEpochRequest.Builder.forConsumer` (ReplicaId
+//! [`protocol::epoch::CONSUMER_REPLICA_ID`]; oldest allowed version 3;
+//! latest 4).
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] are Java
 //! `OffsetsForLeaderEpochResponse.UNDEFINED_EPOCH` / `UNDEFINED_EPOCH_OFFSET`.

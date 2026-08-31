@@ -193,6 +193,25 @@ impl OffsetsForLeaderEpochResponse {
     }
 }
 
+/// Java `OffsetsForLeaderEpochRequest` version helpers.
+pub struct OffsetsForLeaderEpochRequest;
+
+impl OffsetsForLeaderEpochRequest {
+    /// Java `OffsetsForLeaderEpochRequest.Builder.forConsumer`.
+    ///
+    /// ReplicaId is [`CONSUMER_REPLICA_ID`]. Oldest allowed version is 3
+    /// (topic Describe instead of Cluster;
+    /// [`supports_topic_permission`]). Latest is 4 (Java
+    /// `ApiKeys.OFFSET_FOR_LEADER_EPOCH.latestVersion()` on Kafka 4.0;
+    /// this crate speaks 0–4). Topics are the caller's collection (Java
+    /// `setTopics`). This is not [`supports_topic_permission`] /
+    /// `forFollower` / `Builder.build` / replicaId encode.
+    #[must_use]
+    pub const fn for_consumer() -> (i16, i16, i32) {
+        (3, 4, CONSUMER_REPLICA_ID)
+    }
+}
+
 /// Encode a single-topic, single-partition OffsetForLeaderEpoch request.
 ///
 /// [`CONSUMER_REPLICA_ID`] is written on v3+. `current_leader_epoch`
@@ -594,6 +613,58 @@ mod tests {
         assert!(!supports_topic_permission(2));
         assert!(supports_topic_permission(3));
         assert!(supports_topic_permission(4));
+    }
+
+    #[test]
+    fn offsets_for_leader_epoch_request_for_consumer_matches_java() {
+        // Java 4.0 OffsetsForLeaderEpochRequest.Builder.forConsumer:
+        // ReplicaId is CONSUMER_REPLICA_ID, oldest allowed version is 3
+        // (topic Describe instead of Cluster), latest is
+        // ApiKeys.OFFSET_FOR_LEADER_EPOCH.latestVersion() (4 on Kafka
+        // 4.0). Official Java
+        // OffsetsForLeaderEpochRequest.Builder.forConsumer. Topics are
+        // the caller's collection. This crate speaks 0-4. This is not
+        // supportsTopicPermission / forFollower / Builder.build /
+        // replicaId encode.
+        let (oldest, latest, replica_id) = OffsetsForLeaderEpochRequest::for_consumer();
+        assert_eq!(oldest, 3);
+        assert_eq!(latest, 4);
+        assert_eq!(replica_id, CONSUMER_REPLICA_ID);
+        assert!(supports_topic_permission(oldest));
+        assert!(!supports_topic_permission(oldest - 1));
+        let topics = [OffsetForLeaderTopic::new(
+            "t",
+            vec![OffsetForLeaderPartition::new(0, 3, 3)],
+        )];
+        leftover_for_consumer(oldest, replica_id, &topics);
+        leftover_for_consumer(oldest, replica_id, &[]);
+        leftover_for_consumer(latest, replica_id, &topics);
+        leftover_for_consumer(latest, replica_id, &[]);
+    }
+
+    fn leftover_for_consumer(version: i16, replica_id: i32, topics: &[OffsetForLeaderTopic]) {
+        let mut buf = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_request_with_replica_id(
+            &mut buf, version, topics, replica_id,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, got_replica) =
+            decode_offset_for_leader_epoch_topics_request(&mut cur, version).unwrap();
+        assert_eq!(got_replica, replica_id);
+        assert_eq!(decoded, topics);
+        let leftover = if topics.is_empty() {
+            format!(
+                "OffsetForLeaderEpoch v{version} forConsumer empty leftover-empty; leftover {} bytes",
+                cur.len()
+            )
+        } else {
+            format!(
+                "OffsetForLeaderEpoch v{version} forConsumer leftover-empty; leftover {} bytes",
+                cur.len()
+            )
+        };
+        assert!(cur.is_empty(), "{leftover}");
     }
 
     #[test]
