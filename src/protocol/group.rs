@@ -1803,6 +1803,16 @@ impl SyncGroupResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 2
     }
+
+    /// Java `SyncGroupResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). This is not Heartbeat / InitProducerId /
+    /// EndTxn / AddOffsetsToTxn / JoinGroup `errorCounts`.
+    #[must_use]
+    pub fn error_counts(error_code: i16) -> HashMap<i16, i32> {
+        HashMap::from([(error_code, 1)])
+    }
 }
 
 /// Encode SyncGroup v0–v5.
@@ -12266,6 +12276,42 @@ mod tests {
         let mut v1 = BytesMut::new();
         SyncGroupRequest::error_response(&mut v1, 1, 16, 0).unwrap();
         assert_ne!(&v0[..], &v1[..], "v1+ getErrorResponse includes throttle");
+    }
+
+    #[test]
+    fn sync_group_response_error_counts_matches_java() {
+        // Java SyncGroupResponse.errorCounts:
+        // Collections.singletonMap(Errors.forCode(data.errorCode()), 1),
+        // including NONE. Official Java SyncGroupResponse.errorCounts.
+        // This is not SyncGroupResponse.error / Heartbeat errorCounts /
+        // InitProducerId errorCounts / EndTxn errorCounts /
+        // AddOffsetsToTxn errorCounts / JoinGroup errorCounts.
+        assert_eq!(
+            SyncGroupResponse::error_counts(0),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            SyncGroupResponse::error_counts(crate::error::REBALANCE_IN_PROGRESS),
+            HashMap::from([(crate::error::REBALANCE_IN_PROGRESS, 1)])
+        );
+        for version in 0..=5_i16 {
+            let mut resp = BytesMut::new();
+            encode_sync_group_response(&mut resp, version, crate::error::NOT_COORDINATOR, &[])
+                .unwrap();
+            let mut cur = &resp[..];
+            let (err, ..) = decode_sync_group_response(&mut cur, version).unwrap();
+            assert_eq!(
+                SyncGroupResponse::error_counts(err),
+                HashMap::from([(crate::error::NOT_COORDINATOR, 1)]),
+                "SyncGroup v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "SyncGroup v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]

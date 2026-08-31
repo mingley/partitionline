@@ -303,7 +303,10 @@
 //! v5+ response round-trips ProtocolType / ProtocolName; below v5 encode
 //! omits them even when the body has values and decode fills `None`;
 //! [`protocol::group::SyncGroupResponse::should_client_throttle`] is Java
-//! `SyncGroupResponse.shouldClientThrottle` (v2+)),
+//! `SyncGroupResponse.shouldClientThrottle` (v2+);
+//! [`protocol::group::SyncGroupResponse::error_counts`] is Java
+//! `SyncGroupResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`)),
 //! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment
 //! JSON `9+` ([`protocol::group::encode_join_group_response_with_skip_assignment`];
 //! encode previously always wrote `false`; below v9 omit even when true and
