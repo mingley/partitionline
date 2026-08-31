@@ -534,7 +534,10 @@
 //! resource types are UNKNOWN);
 //! [`protocol::admin::AlterConfigsRequest::configs`] is Java
 //! `AlterConfigsRequest.configs` (ConfigResource to [`Config`]; unknown
-//! resource types are UNKNOWN; each value is [`ConfigEntry::new`])),
+//! resource types are UNKNOWN; each value is [`ConfigEntry::new`]);
+//! [`protocol::admin::AlterConfigsRequest::from_configs`] is Java
+//! `AlterConfigsRequest.Builder` from a configs map (null Value is
+//! [`Error::protocol`]; mapKey first stays)),
 //! DeleteRecords v0–v2 (v2 flexible;
 //! [`protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`];
 //! [`DeletedRecords::INVALID_LOW_WATERMARK`];
@@ -1316,6 +1319,9 @@
 //! [`protocol::admin::AlterConfigsRequest::configs`] is Java
 //! `AlterConfigsRequest.configs` (ConfigResource to [`Config`]; unknown
 //! resource types are UNKNOWN; each value is [`ConfigEntry::new`]).
+//! [`protocol::admin::AlterConfigsRequest::from_configs`] is Java
+//! `AlterConfigsRequest.Builder` from a configs map (null Value is
+//! [`Error::protocol`]; mapKey first stays).
 //! [`Admin::alter_configs_with`] is Java `alterConfigs(Map)` with a
 //! [`Config`] value. [`DescribeConfigsResult::config`] is the Java
 //! `describeConfigs` result `Config` (`entries` / `get`).

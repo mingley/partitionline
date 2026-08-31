@@ -2698,6 +2698,64 @@ impl AlterConfigsResponse {
 /// Java `AlterConfigsRequest` helpers.
 pub struct AlterConfigsRequest;
 
+impl AlterConfigsRequest {
+    /// Java `AlterConfigsRequest.Builder` from a configs map.
+    ///
+    /// Iterates caller order (Java `HashMap` iteration is unspecified).
+    /// Duplicate `(type, name)`: later `Resources.add` is ignored (Java
+    /// mapKey `ResourceType`+`ResourceName`; first stays). Duplicate
+    /// config names: later `Configs.add` is ignored (mapKey `Name` only;
+    /// first stays). A `None` value is [`Error::protocol`] (Java
+    /// `ConfigEntry` constructor `NullPointerException` on Value). Inverse
+    /// of [`Self::configs`]. `ValidateOnly` is not part of this helper.
+    pub fn from_configs<'a, I>(configs: I) -> Result<Vec<AlterConfigsResource>>
+    where
+        I: IntoIterator<Item = (i8, &'a str, Vec<TopicConfig>)>,
+    {
+        let mut order: Vec<(i8, String)> = Vec::new();
+        let mut by_resource: HashMap<(i8, String), Vec<TopicConfig>> = HashMap::new();
+        for (resource_type, name, entries) in configs {
+            let mut cfg_order: Vec<String> = Vec::new();
+            let mut by_name: HashMap<String, TopicConfig> = HashMap::new();
+            for entry in entries {
+                if entry.value.is_none() {
+                    return Err(Error::protocol(format!(
+                        "AlterConfigs ConfigEntry value for {} is null",
+                        entry.name
+                    )));
+                }
+                if by_name.contains_key(&entry.name) {
+                    continue;
+                }
+                cfg_order.push(entry.name.clone());
+                let _prev = by_name.insert(entry.name.clone(), entry);
+            }
+            let deduped = cfg_order
+                .into_iter()
+                .filter_map(|n| by_name.remove(&n))
+                .collect();
+            let key = (resource_type, name.to_string());
+            if by_resource.contains_key(&key) {
+                continue;
+            }
+            order.push(key.clone());
+            let _prev = by_resource.insert(key, deduped);
+        }
+        Ok(order
+            .into_iter()
+            .filter_map(|key| {
+                by_resource
+                    .remove(&key)
+                    .map(|configs| AlterConfigsResource {
+                        resource_type: key.0,
+                        name: key.1,
+                        configs,
+                    })
+            })
+            .collect())
+    }
+}
+
 /// One AlterConfigs resource (Resources array element).
 ///
 /// [`Self::error_result`] is Java `AlterConfigsRequest.getErrorResponse`
@@ -15432,6 +15490,130 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "IncrementalAlterConfigs v{version} from_configs empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn alter_configs_from_configs_matches_java() {
+        // Java AlterConfigsRequest.Builder(Map, boolean): iterate
+        // entrySet, Resources.add mapKey type+name first stays,
+        // Configs.add mapKey Name only first stays, ConfigEntry
+        // requireNonNull on Value.
+        let empty =
+            AlterConfigsRequest::from_configs(std::iter::empty::<(i8, &str, Vec<TopicConfig>)>())
+                .unwrap();
+        assert!(empty.is_empty());
+        let null_value = AlterConfigsRequest::from_configs([(
+            RESOURCE_TOPIC,
+            "t",
+            vec![TopicConfig {
+                name: "retention.ms".into(),
+                value: None,
+            }],
+        )])
+        .unwrap_err();
+        assert!(
+            matches!(null_value, Error::Protocol(_)),
+            "null Value is Java NullPointerException, got {null_value}"
+        );
+        let null_on_dup_name = AlterConfigsRequest::from_configs([(
+            RESOURCE_TOPIC,
+            "t",
+            vec![
+                TopicConfig {
+                    name: "k".into(),
+                    value: Some("1".into()),
+                },
+                TopicConfig {
+                    name: "k".into(),
+                    value: None,
+                },
+            ],
+        )])
+        .unwrap_err();
+        assert!(
+            matches!(null_on_dup_name, Error::Protocol(_)),
+            "ConfigEntry constructor runs before Configs.add, got {null_on_dup_name}"
+        );
+
+        let first = TopicConfig {
+            name: "retention.ms".into(),
+            value: Some("1".into()),
+        };
+        let later = TopicConfig {
+            name: "retention.ms".into(),
+            value: Some("2".into()),
+        };
+        let cleanup = TopicConfig {
+            name: "cleanup.policy".into(),
+            value: Some("compact".into()),
+        };
+        let broker = TopicConfig {
+            name: "num.network.threads".into(),
+            value: Some("8".into()),
+        };
+        let resources = AlterConfigsRequest::from_configs([
+            (
+                RESOURCE_TOPIC,
+                "t",
+                vec![first.clone(), later, cleanup.clone()],
+            ),
+            (RESOURCE_BROKER, "1", vec![broker.clone()]),
+            (
+                RESOURCE_TOPIC,
+                "t",
+                vec![TopicConfig {
+                    name: "x".into(),
+                    value: Some("y".into()),
+                }],
+            ),
+        ])
+        .unwrap();
+        assert_eq!(
+            resources,
+            vec![
+                AlterConfigsResource {
+                    resource_type: RESOURCE_TOPIC,
+                    name: "t".into(),
+                    configs: vec![first, cleanup],
+                },
+                AlterConfigsResource {
+                    resource_type: RESOURCE_BROKER,
+                    name: "1".into(),
+                    configs: vec![broker],
+                },
+            ]
+        );
+        assert_eq!(
+            resources.len(),
+            2,
+            "duplicate resource omitted; later same Name dropped"
+        );
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_alter_configs_resources_request(&mut buf, version, &resources, false).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, validate_only) =
+                decode_alter_configs_resources_request(&mut cur, version).unwrap();
+            assert_eq!(decoded, resources);
+            assert!(!validate_only);
+            assert!(
+                !cur.has_remaining(),
+                "AlterConfigs v{version} from_configs leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            buf.clear();
+            encode_alter_configs_resources_request(&mut buf, version, &empty, false).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, validate_only) =
+                decode_alter_configs_resources_request(&mut cur, version).unwrap();
+            assert_eq!(decoded, empty);
+            assert!(!validate_only);
+            assert!(
+                !cur.has_remaining(),
+                "AlterConfigs v{version} from_configs empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }
