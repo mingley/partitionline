@@ -4033,6 +4033,16 @@ impl DescribeClusterResponse {
         }
         Ok(nodes)
     }
+
+    /// Java `DescribeClusterResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). Brokers are not counted (they have
+    /// no ErrorCode). This is not Metadata / ListGroups `errorCounts`.
+    #[must_use]
+    pub fn error_counts(error_code: i16) -> HashMap<i16, i32> {
+        HashMap::from([(error_code, 1)])
+    }
 }
 
 /// Check that DescribeCluster `version` is spoken (0–2).
@@ -20626,6 +20636,51 @@ mod tests {
             "DescribeCluster v2 nodes leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn describe_cluster_response_error_counts_matches_java() {
+        // Java DescribeClusterResponse.errorCounts:
+        // errorCounts(Errors.forCode(data.errorCode())), including NONE
+        // (AbstractResponse.errorCounts is Collections.singletonMap).
+        // Official Java DescribeClusterResponse.errorCounts. Java
+        // DescribeClusterResponse has no error() helper. Brokers are not
+        // counted. This is not Metadata errorCounts / ListGroups
+        // errorCounts / DescribeClusterResponse.nodes.
+        assert_eq!(
+            DescribeClusterResponse::error_counts(0),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            DescribeClusterResponse::error_counts(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+            HashMap::from([(crate::error::CLUSTER_AUTHORIZATION_FAILED, 1)])
+        );
+        for version in 0..=2_i16 {
+            let desc = ClusterDescription::new(
+                crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                None,
+                Some("c".into()),
+                1,
+                ENDPOINT_TYPE_BROKERS,
+                AUTHORIZED_OPERATIONS_OMITTED,
+                vec![DescribeClusterBroker::new(1, "h", 9092, None, false)],
+            );
+            let mut resp = BytesMut::new();
+            encode_describe_cluster_response(&mut resp, version, &desc).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_describe_cluster_response(&mut cur, version).unwrap();
+            assert_eq!(
+                DescribeClusterResponse::error_counts(decoded.error_code),
+                HashMap::from([(crate::error::CLUSTER_AUTHORIZATION_FAILED, 1)]),
+                "DescribeCluster v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "DescribeCluster v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]

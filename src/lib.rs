@@ -785,7 +785,10 @@
 //! UnregisterBroker v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::UnregisterBrokerResponse::new`] fills `0`),
 //! DescribeCluster v0–v2 (v1 EndpointType, v2 IsFenced; ThrottleTimeMs is JSON `0+`;
-//! [`protocol::admin::ClusterDescription::new`] fills `0`),
+//! [`protocol::admin::ClusterDescription::new`] fills `0`;
+//! [`protocol::admin::DescribeClusterResponse::error_counts`] is Java
+//! `DescribeClusterResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`)),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes; ThrottleTimeMs is JSON `0+`),
 //! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`),
 //! PushTelemetry v0 (ThrottleTimeMs is JSON `0+`),
@@ -2064,6 +2067,9 @@
 //! `org.apache.kafka.common.Node`, an alias of [`DescribeClusterBroker`]).
 //! [`protocol::admin::DescribeClusterResponse::nodes`] is Java
 //! `DescribeClusterResponse.nodes` (duplicate broker id is [`Error::protocol`]).
+//! [`protocol::admin::DescribeClusterResponse::error_counts`] is Java
+//! `DescribeClusterResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`).
 //! [`ClusterDescription::cluster_resource`] is Java `ClusterResource` from the
 //! DescribeCluster cluster id ([`ClusterResource`] `Display` is
 //! `ClusterResource.toString`; missing id prints `null`).
