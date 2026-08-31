@@ -957,10 +957,14 @@
 //! a later entry for the same topic appends; first-seen topic order;
 //! duplicate pairs kept)), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; ThrottleTimeMs is JSON `0+`;
-//! request ProducerId is JSON `0+` (decode returns it last; encode already
+//! request ProducerId is JSON `0+` (decode returns it; encode already
 //! takes `producer_id`; official Java `AddOffsetsToTxnRequestData.producerId`;
 //! not EndTxn response ProducerId / InitProducerId / TxnOffsetCommit ProducerId /
 //! AddPartitionsToTxn ProducerId / WriteTxnMarkers ProducerId / ProducerEpoch);
+//! request ProducerEpoch is JSON `0+` (decode returns it last; encode already
+//! takes `producer_epoch`; official Java `AddOffsetsToTxnRequestData.producerEpoch`;
+//! not EndTxn response ProducerEpoch / InitProducerId / TxnOffsetCommit ProducerEpoch /
+//! AddPartitionsToTxn ProducerEpoch / WriteTxnMarkers ProducerEpoch / ProducerId);
 //! [`protocol::txn::AddOffsetsToTxnResponse::should_client_throttle`] is Java
 //! `AddOffsetsToTxnResponse.shouldClientThrottle` (v1+);
 //! [`protocol::txn::encode_add_offsets_to_txn_response`] still writes `0`), EndTxn v0–v5

@@ -629,20 +629,20 @@ pub fn encode_add_offsets_to_txn_request(
     Ok(())
 }
 
-/// Decode AddOffsetsToTxn: `(transactional_id, group_id, producer_id)`.
+/// Decode AddOffsetsToTxn: `(transactional_id, group_id, producer_id, producer_epoch)`.
 pub fn decode_add_offsets_to_txn_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(String, String, i64)> {
+) -> Result<(String, String, i64, i16)> {
     let flexible = add_offsets_to_txn_flexible(version)?;
     let tid = buf::get_string(buf, flexible)?.unwrap_or_default();
     let producer_id = buf::get_i64(buf)?;
-    let _epoch = buf::get_i16(buf)?;
+    let producer_epoch = buf::get_i16(buf)?;
     let gid = buf::get_string(buf, flexible)?.unwrap_or_default();
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((tid, gid, producer_id))
+    Ok((tid, gid, producer_id, producer_epoch))
 }
 
 /// Encode AddOffsetsToTxn: throttle `0` plus error code.
@@ -4669,7 +4669,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_add_offsets_to_txn_request(&mut buf, version, "tx", 9, 1, "g").unwrap();
             let mut cur = buf.as_ref();
-            let (tid, gid, producer_id) =
+            let (tid, gid, producer_id, ..) =
                 decode_add_offsets_to_txn_request(&mut cur, version).unwrap();
             assert_eq!((tid.as_str(), gid.as_str()), ("tx", "g"));
             assert_eq!(producer_id, 9);
@@ -4689,14 +4689,14 @@ mod tests {
             "v0 ProducerId is not always the same INT64"
         );
         let mut cur = nine.as_ref();
-        let (.., producer_id) = decode_add_offsets_to_txn_request(&mut cur, 0).unwrap();
+        let (_tid, _gid, producer_id, ..) = decode_add_offsets_to_txn_request(&mut cur, 0).unwrap();
         assert_eq!(producer_id, 9);
         assert!(
             cur.is_empty(),
             "AddOffsetsToTxn v0 ProducerId leftover-empty"
         );
         let mut cur = ten.as_ref();
-        let (.., producer_id) = decode_add_offsets_to_txn_request(&mut cur, 0).unwrap();
+        let (_tid, _gid, producer_id, ..) = decode_add_offsets_to_txn_request(&mut cur, 0).unwrap();
         assert_eq!(producer_id, 10);
         assert_eq!(
             nine.get(4..12),
@@ -4720,6 +4720,74 @@ mod tests {
         let mut v4 = BytesMut::new();
         encode_add_offsets_to_txn_request(&mut v4, 4, "tx", 9, 1, "g").unwrap();
         assert_eq!(&v3[..], &v4[..], "ProducerId bodies: v3 == v4");
+    }
+
+    #[test]
+    fn add_offsets_to_txn_request_producer_epoch_matches_java() {
+        // Kafka 4.0.0 AddOffsetsToTxnRequest.json ProducerEpoch is versions
+        // 0+ (INT16 after ProducerId / before GroupId). Official Java
+        // AddOffsetsToTxnRequestData.producerEpoch. Encode already writes
+        // producer_epoch. Decode previously discarded it. Kafka 4.0
+        // validVersions is 0-4. This crate speaks 0–4. This is not
+        // ProducerId / EndTxn response ProducerEpoch / InitProducerId /
+        // TxnOffsetCommit ProducerEpoch / AddPartitionsToTxn ProducerEpoch /
+        // WriteTxnMarkers ProducerEpoch.
+        for version in [0_i16, 1, 2, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_add_offsets_to_txn_request(&mut buf, version, "tx", 9, 1, "g").unwrap();
+            let mut cur = buf.as_ref();
+            let (tid, gid, producer_id, producer_epoch) =
+                decode_add_offsets_to_txn_request(&mut cur, version).unwrap();
+            assert_eq!((tid.as_str(), gid.as_str()), ("tx", "g"));
+            assert_eq!(producer_id, 9);
+            assert_eq!(producer_epoch, 1);
+            assert!(
+                cur.is_empty(),
+                "AddOffsetsToTxn v{version} ProducerEpoch leftover-empty"
+            );
+        }
+
+        let mut one = BytesMut::new();
+        encode_add_offsets_to_txn_request(&mut one, 0, "tx", 9, 1, "g").unwrap();
+        let mut two = BytesMut::new();
+        encode_add_offsets_to_txn_request(&mut two, 0, "tx", 9, 2, "g").unwrap();
+        assert_ne!(
+            &one[..],
+            &two[..],
+            "v0 ProducerEpoch is not always the same INT16"
+        );
+        let mut cur = one.as_ref();
+        let (.., producer_epoch) = decode_add_offsets_to_txn_request(&mut cur, 0).unwrap();
+        assert_eq!(producer_epoch, 1);
+        assert!(
+            cur.is_empty(),
+            "AddOffsetsToTxn v0 ProducerEpoch leftover-empty"
+        );
+        let mut cur = two.as_ref();
+        let (.., producer_epoch) = decode_add_offsets_to_txn_request(&mut cur, 0).unwrap();
+        assert_eq!(producer_epoch, 2);
+        assert_eq!(
+            one.get(12..14),
+            Some([0, 1].as_slice()),
+            "v0 classic ProducerEpoch follows TransactionalId STRING tx and ProducerId"
+        );
+
+        let mut v1 = BytesMut::new();
+        encode_add_offsets_to_txn_request(&mut v1, 1, "tx", 9, 1, "g").unwrap();
+        assert_eq!(&one[..], &v1[..], "ProducerEpoch bodies: v0 == v1");
+        let mut v2 = BytesMut::new();
+        encode_add_offsets_to_txn_request(&mut v2, 2, "tx", 9, 1, "g").unwrap();
+        assert_eq!(&v1[..], &v2[..], "ProducerEpoch bodies: v1 == v2");
+        let mut v3 = BytesMut::new();
+        encode_add_offsets_to_txn_request(&mut v3, 3, "tx", 9, 1, "g").unwrap();
+        assert_ne!(
+            &v2[..],
+            &v3[..],
+            "v3 adds compact strings and tagged fields"
+        );
+        let mut v4 = BytesMut::new();
+        encode_add_offsets_to_txn_request(&mut v4, 4, "tx", 9, 1, "g").unwrap();
+        assert_eq!(&v3[..], &v4[..], "ProducerEpoch bodies: v3 == v4");
     }
 
     #[test]
