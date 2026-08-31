@@ -6479,7 +6479,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        decode_alter_configs_resource_results(&mut body.clone(), version)
+        let (results, ..) = decode_alter_configs_resource_results(&mut body.clone(), version)?;
+        Ok(results)
     }
 
     async fn fetch_metadata(&mut self, topics: Option<&[String]>) -> Result<MetadataResponse> {

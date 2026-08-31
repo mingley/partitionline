@@ -693,7 +693,14 @@
 //! resource types are UNKNOWN; each value is [`ConfigEntry::new`]);
 //! [`protocol::admin::AlterConfigsRequest::from_configs`] is Java
 //! `AlterConfigsRequest.Builder` from a configs map (null Value is
-//! [`Error::protocol`]; mapKey first stays)),
+//! [`Error::protocol`]; mapKey first stays);
+//! [`protocol::admin::AlterConfigsRequest::error_response`] is Java
+//! `AlterConfigsRequest.getErrorResponse` (copies names / types;
+//! `ErrorMessage` stays JSON-null; always writes the `throttleTimeMs`
+//! argument);
+//! ThrottleTimeMs is JSON `0+` (on the wire for every spoken version,
+//! including v0); round-trips a non-zero value;
+//! [`protocol::admin::encode_alter_configs_resource_results`] still writes `0`),
 //! DeleteRecords v0–v2 (v2 flexible;
 //! [`protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`];
 //! [`DeletedRecords::INVALID_LOW_WATERMARK`];

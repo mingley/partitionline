@@ -2336,10 +2336,10 @@ impl AlterConfigsResourceResult {
     /// Sets `ResourceType`, `ResourceName`, and `ErrorCode`.
     /// `ErrorMessage` is the JSON default (null); official Java also
     /// sets the English `Errors.message` string. Throttle on the
-    /// response is the JSON default (`0`). IncrementalAlterConfigs Java
+    /// response is a top-level field. IncrementalAlterConfigs Java
     /// does not set `ThrottleTimeMs`. AlterConfigs Java sets it from
-    /// the `getErrorResponse` argument (crate encode writes `0` from
-    /// v1; v0 has no throttle field).
+    /// the `getErrorResponse` argument (JSON `0+`; crate convenience
+    /// encode writes `0`).
     #[must_use]
     pub fn error(resource_type: i8, name: impl Into<String>, error_code: i16) -> Self {
         Self {
@@ -2703,9 +2703,10 @@ pub fn decode_incremental_alter_configs_resource_results<B: Buf>(
 
 /// `true` when AlterConfigs `version` is flexible.
 ///
-/// v0–v1 are classic (v1 response adds ThrottleTimeMs). v2 is the first
-/// flexible version. Kafka 4.0 `validVersions` is `0-2`. This crate
-/// speaks 0–2. v3+ is not spoken.
+/// v0–v1 are classic. ThrottleTimeMs is JSON `0+` (on the wire for every
+/// spoken version). [`AlterConfigsResponse::should_client_throttle`] is
+/// v1+ (KIP-219). v2 is the first flexible version. Kafka 4.0
+/// `validVersions` is `0-2`. This crate speaks 0–2. v3+ is not spoken.
 fn alter_configs_flexible(version: i16) -> Result<bool> {
     match version {
         0 | 1 => Ok(false),
@@ -2800,6 +2801,30 @@ impl AlterConfigsRequest {
             })
             .collect())
     }
+
+    /// Java `AlterConfigsRequest.getErrorResponse`.
+    ///
+    /// Copies each resource name and type through
+    /// [`AlterConfigsResource::error_result`]. `ErrorMessage` stays the
+    /// JSON default (null); official Java also sets the English
+    /// `Errors.message` string. ThrottleTimeMs is written on every
+    /// spoken version from `throttle_time_ms` (Java always calls
+    /// `setThrottleTimeMs`).
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        resources: &[AlterConfigsResource],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        let results = AlterConfigsResource::error_results(resources, error_code);
+        encode_alter_configs_resource_results_with_throttle(
+            buf,
+            version,
+            &results,
+            throttle_time_ms,
+        )
+    }
 }
 
 /// One AlterConfigs resource (Resources array element).
@@ -2823,8 +2848,8 @@ impl AlterConfigsResource {
     /// Copies `ResourceName` / `ResourceType` and sets `ErrorCode`.
     /// `ErrorMessage` is the JSON default (null); official Java also
     /// sets the English `Errors.message` string. Request configs are
-    /// not copied. Throttle on the response is the JSON default (`0`)
-    /// from v1 (v0 has no throttle field).
+    /// not copied. ThrottleTimeMs is a top-level field
+    /// ([`AlterConfigsRequest::error_response`]).
     #[must_use]
     pub fn error_result(&self, error_code: i16) -> AlterConfigsResourceResult {
         AlterConfigsResourceResult::error(self.resource_type, self.name.clone(), error_code)
@@ -2945,8 +2970,8 @@ pub fn decode_alter_configs_resources_request<B: Buf>(
 
 /// Encode an AlterConfigs response (one resource).
 ///
-/// ThrottleTimeMs is encoded from v1 (KIP-219). v2 adds compact arrays/
-/// strings plus tagged fields.
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`). v2 adds compact arrays/strings plus tagged fields.
 pub fn encode_alter_configs_response(
     buf: &mut BytesMut,
     version: i16,
@@ -2966,15 +2991,30 @@ pub fn encode_alter_configs_response(
 }
 
 /// Encode AlterConfigs Responses of N.
+///
+/// Throttle is the JSON default (`0`).
 pub fn encode_alter_configs_resource_results(
     buf: &mut BytesMut,
     version: i16,
     results: &[AlterConfigsResourceResult],
 ) -> crate::error::Result<()> {
+    encode_alter_configs_resource_results_with_throttle(buf, version, results, 0)
+}
+
+/// Encode AlterConfigs v0–v2 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version,
+/// including v0. KIP-219 only changes
+/// [`AlterConfigsResponse::should_client_throttle`] (v1+). v2 is
+/// flexible.
+pub fn encode_alter_configs_resource_results_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[AlterConfigsResourceResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = alter_configs_flexible(version)?;
-    if version >= 1 {
-        buf.put_i32(0);
-    }
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
         buf.put_i16(r.error_code);
@@ -2993,19 +3033,20 @@ pub fn encode_alter_configs_resource_results(
 
 /// Decode an AlterConfigs response (first resource error).
 pub fn decode_alter_configs_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
-    let results = decode_alter_configs_resource_results(buf, version)?;
+    let (results, ..) = decode_alter_configs_resource_results(buf, version)?;
     Ok(results.first().map(|r| r.error_code).unwrap_or(0))
 }
 
 /// Decode AlterConfigs: every resource result.
+///
+/// Returns `(results, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire).
 pub fn decode_alter_configs_resource_results<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<AlterConfigsResourceResult>> {
+) -> Result<(Vec<AlterConfigsResourceResult>, i32)> {
     let flexible = alter_configs_flexible(version)?;
-    if version >= 1 {
-        let _th = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
@@ -3026,7 +3067,7 @@ pub fn decode_alter_configs_resource_results<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(out)
+    Ok((out, throttle_time_ms))
 }
 
 /// `true` when DeleteRecords `version` is flexible.
@@ -18529,10 +18570,10 @@ mod tests {
         );
         let mut v0r = BytesMut::new();
         encode_alter_configs_response(&mut v0r, 0, 0, "t").unwrap();
-        assert_ne!(
+        assert_eq!(
             &v1r[..],
             &v0r[..],
-            "AlterConfigs v1 response must include ThrottleTimeMs"
+            "AlterConfigs v0 and v1 both write ThrottleTimeMs (JSON 0+)"
         );
         let mut cur = &v0r[..];
         assert_eq!(decode_alter_configs_response(&mut cur, 0).unwrap(), 0);
@@ -18632,10 +18673,8 @@ mod tests {
         buf.clear();
         encode_alter_configs_resource_results(&mut buf, 2, &err_results).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_alter_configs_resource_results(&mut cur, 2).unwrap(),
-            err_results
-        );
+        let (decoded, ..) = decode_alter_configs_resource_results(&mut cur, 2).unwrap();
+        assert_eq!(decoded, err_results);
         assert!(
             !cur.has_remaining(),
             "AlterConfigs v2 getErrorResponse leftover-empty; leftover {} bytes",
@@ -18644,10 +18683,8 @@ mod tests {
         buf.clear();
         encode_alter_configs_resource_results(&mut buf, 1, &err_results).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_alter_configs_resource_results(&mut cur, 1).unwrap(),
-            err_results
-        );
+        let (decoded, ..) = decode_alter_configs_resource_results(&mut cur, 1).unwrap();
+        assert_eq!(decoded, err_results);
         assert!(
             !cur.has_remaining(),
             "AlterConfigs v1 getErrorResponse leftover-empty; leftover {} bytes",
@@ -18656,10 +18693,8 @@ mod tests {
         buf.clear();
         encode_alter_configs_resource_results(&mut buf, 0, &err_results).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_alter_configs_resource_results(&mut cur, 0).unwrap(),
-            err_results
-        );
+        let (decoded, ..) = decode_alter_configs_resource_results(&mut cur, 0).unwrap();
+        assert_eq!(decoded, err_results);
         assert!(
             !cur.has_remaining(),
             "AlterConfigs v0 getErrorResponse leftover-empty; leftover {} bytes",
@@ -18669,10 +18704,8 @@ mod tests {
         encode_alter_configs_resource_results(&mut buf, 2, std::slice::from_ref(&broker_err))
             .unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_alter_configs_resource_results(&mut cur, 2).unwrap(),
-            vec![broker_err]
-        );
+        let (decoded, ..) = decode_alter_configs_resource_results(&mut cur, 2).unwrap();
+        assert_eq!(decoded, vec![broker_err]);
         assert!(
             !cur.has_remaining(),
             "AlterConfigs broker getErrorResponse leftover-empty; leftover {} bytes",
@@ -18681,15 +18714,106 @@ mod tests {
         buf.clear();
         encode_alter_configs_resource_results(&mut buf, 2, &empty).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_alter_configs_resource_results(&mut cur, 2).unwrap(),
-            empty
-        );
+        let (decoded, ..) = decode_alter_configs_resource_results(&mut cur, 2).unwrap();
+        assert_eq!(decoded, empty);
         assert!(
             !cur.has_remaining(),
             "AlterConfigs empty getErrorResponse leftover-empty; leftover {} bytes",
             cur.remaining()
         );
+    }
+
+    #[test]
+    fn alter_configs_throttle_time_ms_matches_java() {
+        let resources = [AlterConfigsResource {
+            resource_type: RESOURCE_TOPIC,
+            name: "t".into(),
+            configs: vec![TopicConfig {
+                name: "k".into(),
+                value: Some("v".into()),
+            }],
+        }];
+        let err = AlterConfigsResource::error_results(&resources, 16);
+        assert!(err
+            .first()
+            .and_then(|r| r.error_message.as_deref())
+            .is_none());
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            AlterConfigsRequest::error_response(&mut buf, version, &resources, 16, 3_600_000)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_alter_configs_resource_results(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "AlterConfigs v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_alter_configs_resource_results_with_throttle(&mut with, 0, &err, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_alter_configs_resource_results_with_throttle(&mut zero, 0, &err, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_alter_configs_resource_results(&mut conv, 0, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_alter_configs_resource_results still writes ThrottleTimeMs 0"
+        );
+        let mut v1_with = BytesMut::new();
+        encode_alter_configs_resource_results_with_throttle(&mut v1_with, 1, &err, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 both write ThrottleTimeMs (JSON 0+); do not confuse with v2 flexible"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_alter_configs_resource_results_with_throttle(&mut v2_with, 2, &err, 3_600_000)
+            .unwrap();
+        assert_ne!(
+            &v1_with[..],
+            &v2_with[..],
+            "v2 adds compact arrays/strings plus tagged fields"
+        );
+
+        for version in [0_i16, 1, 2] {
+            let mut expected = BytesMut::new();
+            encode_alter_configs_resource_results_with_throttle(
+                &mut expected,
+                version,
+                &err,
+                3_600_000,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            AlterConfigsRequest::error_response(&mut got, version, &resources, 16, 3_600_000)
+                .unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "AlterConfigs v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (decoded, throttle) =
+                decode_alter_configs_resource_results(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert!(decoded.iter().all(|r| r.error_message.is_none()));
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "AlterConfigs v{version} getErrorResponse leftover-empty"
+            );
+        }
     }
 
     #[test]
