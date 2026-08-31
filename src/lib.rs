@@ -658,6 +658,8 @@
 //! [`protocol::fetch::FetchedPartition::is_diverging_epoch`] are Java
 //! `FetchResponse.preferredReadReplica` / `isPreferredReplica` /
 //! `isDivergingEpoch`.
+//! [`protocol::fetch::FetchedPartition::records_size`] is Java
+//! `FetchResponse.recordsSize` (`0` when records are empty);
 //! [`protocol::fetch::FetchResponse::should_client_throttle`] is Java
 //! `FetchResponse.shouldClientThrottle` (v8+).
 //! [`protocol::fetch::FetchResponse::topic_ids`] is Java

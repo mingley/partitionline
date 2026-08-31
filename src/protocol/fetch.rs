@@ -318,6 +318,21 @@ impl FetchedPartition {
     pub fn is_diverging_epoch(&self) -> bool {
         self.diverging_epoch >= 0
     }
+
+    /// Java `FetchResponse.recordsSize`.
+    ///
+    /// `0` when records are empty (Java `null` or `MemoryRecords.EMPTY`).
+    /// Otherwise the encoded size of the records blob.
+    pub fn records_size(&self) -> Result<i32> {
+        if self.records.is_empty() {
+            return Ok(0);
+        }
+        let mut recs = BytesMut::new();
+        for batch in &self.records {
+            records::encode_record_batch(&mut recs, batch)?;
+        }
+        buf::i32_from_usize(recs.len())
+    }
 }
 
 /// Java `FetchResponse` helpers.
@@ -861,6 +876,7 @@ mod tests {
         assert_eq!(none.preferred_read_replica(), None);
         assert!(!none.is_preferred_replica());
         assert!(!none.is_diverging_epoch());
+        assert_eq!(none.records_size().unwrap(), 0);
         let unknown =
             FetchedPartition::partition_response(3, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
         assert_eq!(unknown.partition, 3);
@@ -938,6 +954,57 @@ mod tests {
         assert!(pref.is_preferred_replica());
         pref.diverging_epoch = 3;
         assert!(pref.is_diverging_epoch());
+    }
+
+    #[test]
+    fn fetch_response_records_size_matches_java() {
+        // Java FetchResponse.recordsSize: 0 when records are null or
+        // MemoryRecords.EMPTY. Otherwise sizeInBytes of the records blob.
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"f")),
+            headers: vec![],
+        };
+        let mut part = FetchedPartition::partition_response(0, 0);
+        assert_eq!(part.records_size().unwrap(), 0);
+        part.records = vec![RecordBatch::from_records(vec![rec])];
+        let size = part.records_size().unwrap();
+        assert!(size > 0, "non-empty recordsSize must be the blob length");
+        let mut recs = BytesMut::new();
+        let batch = part.records.first().expect("one batch");
+        records::encode_record_batch(&mut recs, batch).unwrap();
+        assert_eq!(
+            size,
+            buf::i32_from_usize(recs.len()).unwrap(),
+            "recordsSize must match encoded records blob"
+        );
+        let topics = vec![FetchedTopic {
+            topic: "t".into(),
+            topic_id: [0; 16],
+            partitions: vec![part.clone()],
+        }];
+        for version in [11_i16, 12] {
+            let mut buf = BytesMut::new();
+            encode_fetch_response(&mut buf, version, &topics).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, _endpoints) = decode_fetch_response(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "Fetch v{version} recordsSize leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            let got = decoded
+                .first()
+                .and_then(|t| t.partitions.first())
+                .expect("one partition");
+            assert_eq!(
+                got.records_size().unwrap(),
+                size,
+                "v{version} decoded recordsSize must match"
+            );
+        }
     }
 
     #[test]
