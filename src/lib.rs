@@ -805,7 +805,10 @@
 //! ProducerIdLen JSON default `0`; ThrottleTimeMs JSON `0+`; convenience
 //! fills `0`)),
 //! UnregisterBroker v0 (ThrottleTimeMs is JSON `0+`;
-//! [`protocol::admin::UnregisterBrokerResponse::new`] fills `0`),
+//! [`protocol::admin::UnregisterBrokerResponse::new`] fills `0`;
+//! [`protocol::admin::UnregisterBrokerRequest::error_response`] is Java
+//! `UnregisterBrokerRequest.getErrorResponse` (ErrorMessage JSON-null;
+//! ThrottleTimeMs JSON `0+`; convenience fills `0`)),
 //! DescribeCluster v0–v2 (v1 EndpointType, v2 IsFenced; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::ClusterDescription::new`] fills `0`;
 //! [`protocol::admin::DescribeClusterResponse::error_counts`] is Java

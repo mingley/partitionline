@@ -8374,6 +8374,26 @@ impl UnregisterBrokerResponse {
     }
 }
 
+/// Java `UnregisterBrokerRequest` helpers.
+pub struct UnregisterBrokerRequest;
+
+impl UnregisterBrokerRequest {
+    /// Java `UnregisterBrokerRequest.getErrorResponse`.
+    ///
+    /// Sets the top-level `ErrorCode`. ErrorMessage stays the JSON
+    /// default (`null`). Request BrokerId is not copied. ThrottleTimeMs
+    /// is JSON `0+` (JSON default `0`; [`UnregisterBrokerResponse::new`]
+    /// fills `0`). Official Java `getErrorResponse` sets
+    /// `throttleTimeMs` from the argument. This is not
+    /// [`UnregisterBrokerResponse::error_counts`] /
+    /// AllocateProducerIds `getErrorResponse` / DescribeCluster
+    /// `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> UnregisterBrokerResponse {
+        UnregisterBrokerResponse::new(error_code, None)
+    }
+}
+
 /// Encode an UnregisterBroker request.
 pub fn encode_unregister_broker_request(
     buf: &mut BytesMut,
@@ -24852,6 +24872,65 @@ mod tests {
         assert_eq!(
             zero.throttle_time_ms, 0,
             "UnregisterBrokerResponse::new still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn unregister_broker_request_error_response_matches_java() {
+        // Java 4.0 UnregisterBrokerRequest.getErrorResponse:
+        // Errors.forException then setErrorCode / setThrottleTimeMs.
+        // ErrorMessage stays the JSON default (null). Request BrokerId
+        // is not copied. Official Java
+        // UnregisterBrokerRequest.getErrorResponse. Official Java sets
+        // throttleTimeMs from the argument;
+        // UnregisterBrokerResponse::new fills 0. This crate speaks 0.
+        // This is not errorCounts / AllocateProducerIds getErrorResponse
+        // / DescribeCluster getErrorResponse.
+        assert_eq!(
+            UnregisterBrokerRequest::error_response(0),
+            UnregisterBrokerResponse::new(0, None)
+        );
+        let err =
+            UnregisterBrokerRequest::error_response(crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(
+            err,
+            UnregisterBrokerResponse::new(crate::error::CLUSTER_AUTHORIZATION_FAILED, None)
+        );
+        assert_eq!(
+            err.error_message, None,
+            "getErrorResponse must not invent ErrorMessage"
+        );
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "UnregisterBrokerResponse::new still fills ThrottleTimeMs 0"
+        );
+        let mut resp = BytesMut::new();
+        encode_unregister_broker_response(&mut resp, &err).unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_unregister_broker_response(&mut cur).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "UnregisterBroker v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_unregister_broker_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_unregister_broker_response(&mut zero_buf, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_unregister_broker_response(&mut conv, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
         );
     }
 
