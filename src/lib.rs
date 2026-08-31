@@ -1585,6 +1585,10 @@
 //! partition-level codes, including `NONE`);
 //! [`protocol::admin::DescribeTopicPartitionsResponse::should_client_throttle`]
 //! is Java `DescribeTopicPartitionsResponse.shouldClientThrottle` (always);
+//! [`protocol::admin::DescribeTopicPartitionsRequest::error_response`] is Java
+//! `DescribeTopicPartitionsRequest.getErrorResponse` (one topic per request
+//! name; `isInternal` false; empty partitions; request Cursor / limit are
+//! not copied);
 //! [`Admin::list_topics`] / [`Admin::list_topics_with`] /
 //! [`Admin::list_topics_timeout`] / [`Admin::describe_topics`] /
 //! [`Admin::describe_topics_with`] / [`Admin::describe_topics_timeout`] /

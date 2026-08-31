@@ -10826,6 +10826,33 @@ impl DescribeTopicPartitionsResponse {
     }
 }
 
+/// Java `DescribeTopicPartitionsRequest` helpers.
+pub struct DescribeTopicPartitionsRequest;
+
+impl DescribeTopicPartitionsRequest {
+    /// Java `DescribeTopicPartitionsRequest.getErrorResponse`.
+    ///
+    /// One topic per request name. `isInternal` is false and partitions are
+    /// empty. Topic ids are zeros and authorized operations are
+    /// [`AUTHORIZED_OPERATIONS_OMITTED`] (JSON defaults). Request names are
+    /// copied. Request `ResponsePartitionLimit` / `Cursor` are not copied.
+    /// Throttle is the JSON default (`0`; crate encode writes `0`).
+    /// `NextCursor` is omitted.
+    #[must_use]
+    pub fn error_response<I>(topic_names: I, error_code: i16) -> DescribeTopicPartitionsResponse
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        DescribeTopicPartitionsResponse::new(
+            topic_names
+                .into_iter()
+                .map(|name| DescribedTopicPartitions::new(name, error_code))
+                .collect(),
+        )
+    }
+}
+
 fn put_compact_i32s(buf: &mut BytesMut, items: &[i32]) -> crate::error::Result<()> {
     buf::put_array_len(buf, true, Some(items.len()))?;
     for v in items {
@@ -15136,6 +15163,77 @@ mod tests {
                 (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
                 (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
             ])
+        );
+    }
+
+    #[test]
+    fn describe_topic_partitions_error_response_matches_java() {
+        // Java DescribeTopicPartitionsRequest.getErrorResponse: one topic
+        // per request name, isInternal false, empty partitions. TopicId
+        // zeros / TopicAuthorizedOperations omitted are JSON defaults.
+        // Request ResponsePartitionLimit / Cursor are not copied. Throttle
+        // is JSON default 0.
+        let err = crate::error::UNKNOWN_TOPIC_OR_PARTITION;
+        let empty = DescribeTopicPartitionsRequest::error_response(Vec::<String>::new(), err);
+        assert!(empty.topics.is_empty(), "empty request copies no topics");
+        assert!(empty.next_cursor.is_none(), "NextCursor stays omitted");
+        let mut buf = BytesMut::new();
+        encode_describe_topic_partitions_response(&mut buf, &empty).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_topic_partitions_response(&mut cur).unwrap(),
+            empty
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTopicPartitions empty getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let one = DescribeTopicPartitionsRequest::error_response(["t"], err);
+        assert_eq!(
+            one,
+            DescribeTopicPartitionsResponse::new(vec![DescribedTopicPartitions::new("t", err)])
+        );
+        assert!(!one.topics[0].is_internal);
+        assert!(one.topics[0].partitions.is_empty());
+        assert_eq!(one.topics[0].topic_id, [0; 16]);
+        assert_eq!(
+            one.topics[0].topic_authorized_operations,
+            AUTHORIZED_OPERATIONS_OMITTED
+        );
+        buf.clear();
+        encode_describe_topic_partitions_response(&mut buf, &one).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_topic_partitions_response(&mut cur).unwrap(),
+            one
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTopicPartitions one-topic getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let two = DescribeTopicPartitionsRequest::error_response(["t", "t2"], err);
+        assert_eq!(two.topics.len(), 2, "request names are copied");
+        assert_eq!(two.topics[0].name.as_deref(), Some("t"));
+        assert_eq!(two.topics[1].name.as_deref(), Some("t2"));
+        assert!(
+            two.topics.iter().all(|t| t.partitions.is_empty()),
+            "getErrorResponse must not invent partitions"
+        );
+        buf.clear();
+        encode_describe_topic_partitions_response(&mut buf, &two).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_topic_partitions_response(&mut cur).unwrap(),
+            two
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTopicPartitions two-topic getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
