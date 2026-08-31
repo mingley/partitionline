@@ -11038,7 +11038,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let coords = decode_find_coordinator_response_coordinators(&mut body.clone(), version)?;
+            let (coords, ..) =
+                decode_find_coordinator_response_coordinators(&mut body.clone(), version)?;
             let mut by_key: HashMap<String, (i16, i32)> = HashMap::new();
             for c in coords {
                 let _prev = by_key.insert(c.key, (c.error_code, c.node_id));

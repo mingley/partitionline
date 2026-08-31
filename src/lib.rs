@@ -101,7 +101,12 @@
 //! `hasReliableLeaderEpochs` is `true` even below Metadata v9).
 //! Name-based [`Admin::describe_topics`] uses DescribeTopicPartitions (api 75).
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
-//! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups).
+//! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups;
+//! ThrottleTimeMs is JSON `1+` on spoken v1–v6;
+//! [`protocol::group::encode_find_coordinator_response_coordinators_with_throttle`];
+//! encode previously always wrote `0` and decode discarded; convenience
+//! encode still writes `0`; official Java `getErrorResponse` sets
+//! `throttleTimeMs` from the argument on v2+; v1 leaves the JSON default `0`).
 //! [`CoordinatorType`] is Java `FindCoordinatorRequest.CoordinatorType`
 //! (`id` / `forId`; unknown is `None`). [`protocol::group::MIN_BATCHED_VERSION`]
 //! is Java `FindCoordinatorRequest.MIN_BATCHED_VERSION`.

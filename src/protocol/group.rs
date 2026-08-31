@@ -777,14 +777,34 @@ pub fn encode_find_coordinator_response(
 /// Encode FindCoordinator v4+ Coordinators of N (KIP-699).
 ///
 /// v1–v3 support one coordinator only (`does not support Coordinators`
-/// when `coordinators.len() != 1`).
+/// when `coordinators.len() != 1`). ThrottleTimeMs is the JSON default
+/// (`0`) on every spoken version (JSON `1+`).
 pub fn encode_find_coordinator_response_coordinators(
     buf: &mut BytesMut,
     version: i16,
     coordinators: &[CoordinatorResult],
 ) -> crate::error::Result<()> {
+    encode_find_coordinator_response_coordinators_with_throttle(buf, version, coordinators, 0)
+}
+
+/// Encode FindCoordinator v1–v6 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `1+`: written on every spoken version (this
+/// crate does not speak v0). v1–v2 are classic. v3 is flexible. v4–v6
+/// are Coordinators (KIP-699; v5 TRANSACTION_ABORTABLE; v6 share groups).
+/// Kafka 4.0 `validVersions` is `0-6`. This crate speaks 1–6. v0 and
+/// v7+ are not spoken. Official Java `getErrorResponse` sets
+/// `throttleTimeMs` from the argument on v2+; v1 leaves the JSON
+/// default `0`. Top-level ErrorCode is at bytes 4–5 on v1–v3; v4+ has
+/// no top-level ErrorCode.
+pub fn encode_find_coordinator_response_coordinators_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    coordinators: &[CoordinatorResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = find_coordinator_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     if find_coordinator_batched(version) {
         buf::put_array_len(buf, true, Some(coordinators.len()))?;
         for c in coordinators {
@@ -824,7 +844,7 @@ pub fn decode_find_coordinator_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i16, i32, String, i32)> {
-    let coords = decode_find_coordinator_response_coordinators(buf, version)?;
+    let (coords, ..) = decode_find_coordinator_response_coordinators(buf, version)?;
     let c = coords
         .into_iter()
         .next()
@@ -834,13 +854,16 @@ pub fn decode_find_coordinator_response<B: Buf>(
 
 /// Decode FindCoordinator v0–v6: every Coordinators entry.
 ///
-/// v1–v3 return a vec of 1 (`key` empty). v4+ is Coordinators[].
+/// Returns `(coordinators, throttle_time_ms)`. ThrottleTimeMs is JSON
+/// `1+` (always on the wire for spoken versions). v1–v3 return a vec
+/// of 1 (`key` empty). v4+ is Coordinators[]. Top-level ErrorCode is at
+/// bytes 4–5 on v1–v3; v4+ has no top-level ErrorCode.
 pub fn decode_find_coordinator_response_coordinators<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<CoordinatorResult>> {
+) -> Result<(Vec<CoordinatorResult>, i32)> {
     let flexible = find_coordinator_flexible(version)?;
-    let _throttle = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     if find_coordinator_batched(version) {
         let n = buf::get_array_len(buf, true)?.unwrap_or(0);
         let mut out = Vec::with_capacity(n);
@@ -862,7 +885,7 @@ pub fn decode_find_coordinator_response_coordinators<B: Buf>(
             });
         }
         buf::skip_tagged_fields(buf)?;
-        return Ok(out);
+        return Ok((out, throttle_time_ms));
     }
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_string(buf, flexible)?;
@@ -872,14 +895,17 @@ pub fn decode_find_coordinator_response_coordinators<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(vec![CoordinatorResult {
-        key: String::new(),
-        node_id,
-        host,
-        port,
-        error_code,
-        error_message,
-    }])
+    Ok((
+        vec![CoordinatorResult {
+            key: String::new(),
+            node_id,
+            host,
+            port,
+            error_code,
+            error_message,
+        }],
+        throttle_time_ms,
+    ))
 }
 
 /// `true` when JoinGroup `version` is flexible (v6+).
@@ -6117,7 +6143,9 @@ mod tests {
         encode_find_coordinator_response_coordinators(&mut buf, 2, &err).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_find_coordinator_response_coordinators(&mut cur, 2).unwrap(),
+            decode_find_coordinator_response_coordinators(&mut cur, 2)
+                .unwrap()
+                .0,
             err
         );
         assert!(
@@ -6129,13 +6157,150 @@ mod tests {
         encode_find_coordinator_response_coordinators(&mut buf, 1, &err).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_find_coordinator_response_coordinators(&mut cur, 1).unwrap(),
+            decode_find_coordinator_response_coordinators(&mut cur, 1)
+                .unwrap()
+                .0,
             err
         );
         assert!(
             cur.is_empty(),
             "FindCoordinator v1 getErrorResponse leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn find_coordinator_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 FindCoordinatorResponse.json ThrottleTimeMs is
+        // versions 1+ (INT32 on spoken v1–v6; first field; ignorable).
+        // Official Java FindCoordinatorRequest.getErrorResponse sets
+        // throttleTimeMs from the argument on v2+; v1 leaves the JSON
+        // default 0. encode_find_coordinator_response_coordinators still
+        // writes 0. KIP-219 only changes shouldClientThrottle (v2+).
+        // Empty-error v1 == v2 (classic); v3 is compact; empty-Coordinators
+        // v4 == v5 == v6 (KIP-699; TRANSACTION_ABORTABLE / share groups
+        // same layout). Top-level ErrorCode is at bytes 4–5 on v1–v3;
+        // v4+ has no top-level ErrorCode. This crate speaks 1–6. This is
+        // not JoinGroup / OffsetDelete ThrottleTimeMs.
+        let one = vec![CoordinatorResult::error(0)];
+        for version in [1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_find_coordinator_response_coordinators_with_throttle(
+                &mut buf, version, &one, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_find_coordinator_response_coordinators(&mut cur, version).unwrap();
+            assert_eq!(decoded, one);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "FindCoordinator v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+        let empty: Vec<CoordinatorResult> = vec![];
+        for version in [4, 5, 6] {
+            let mut buf = BytesMut::new();
+            encode_find_coordinator_response_coordinators_with_throttle(
+                &mut buf, version, &empty, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_find_coordinator_response_coordinators(&mut cur, version).unwrap();
+            assert_eq!(decoded, empty);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "FindCoordinator v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_find_coordinator_response_coordinators_with_throttle(&mut with, 1, &one, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_find_coordinator_response_coordinators_with_throttle(&mut zero, 1, &one, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_find_coordinator_response_coordinators(&mut conv, 1, &one).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_find_coordinator_response_coordinators still writes ThrottleTimeMs 0"
+        );
+        assert_eq!(
+            &with[4..6],
+            &[0, 0],
+            "v1 top-level ErrorCode is at bytes 4-5"
+        );
+
+        let mut v2_with = BytesMut::new();
+        encode_find_coordinator_response_coordinators_with_throttle(
+            &mut v2_with,
+            2,
+            &one,
+            3_600_000,
+        )
+        .unwrap();
+        assert_eq!(
+            &with[..],
+            &v2_with[..],
+            "empty-error ThrottleTimeMs bodies: v1 == v2"
+        );
+        let mut v3_with = BytesMut::new();
+        encode_find_coordinator_response_coordinators_with_throttle(
+            &mut v3_with,
+            3,
+            &one,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(&v2_with[..], &v3_with[..], "v3 adds compact tagged fields");
+        let mut v4_with = BytesMut::new();
+        encode_find_coordinator_response_coordinators_with_throttle(
+            &mut v4_with,
+            4,
+            &empty,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(
+            &v3_with[..],
+            &v4_with[..],
+            "v4 Coordinators must not match v3 top-level fields"
+        );
+        assert_ne!(&v4_with[4..6], &[0, 0], "v4+ has no top-level ErrorCode");
+        let mut v5_with = BytesMut::new();
+        encode_find_coordinator_response_coordinators_with_throttle(
+            &mut v5_with,
+            5,
+            &empty,
+            3_600_000,
+        )
+        .unwrap();
+        let mut v6_with = BytesMut::new();
+        encode_find_coordinator_response_coordinators_with_throttle(
+            &mut v6_with,
+            6,
+            &empty,
+            3_600_000,
+        )
+        .unwrap();
+        assert_eq!(
+            &v4_with[..],
+            &v5_with[..],
+            "empty-Coordinators ThrottleTimeMs bodies: v4 == v5"
+        );
+        assert_eq!(
+            &v5_with[..],
+            &v6_with[..],
+            "empty-Coordinators ThrottleTimeMs bodies: v5 == v6"
         );
     }
 
@@ -6181,7 +6346,9 @@ mod tests {
         encode_find_coordinator_response_coordinators(&mut buf, 3, &err).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_find_coordinator_response_coordinators(&mut cur, 3).unwrap(),
+            decode_find_coordinator_response_coordinators(&mut cur, 3)
+                .unwrap()
+                .0,
             err
         );
         assert!(
@@ -6253,7 +6420,9 @@ mod tests {
         encode_find_coordinator_response_coordinators(&mut buf, 4, &err).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_find_coordinator_response_coordinators(&mut cur, 4).unwrap(),
+            decode_find_coordinator_response_coordinators(&mut cur, 4)
+                .unwrap()
+                .0,
             err
         );
         assert!(
@@ -6366,7 +6535,7 @@ mod tests {
         buf.clear();
         encode_find_coordinator_response_coordinators(&mut buf, 4, &coords).unwrap();
         let mut cur = &buf[..];
-        let decoded = decode_find_coordinator_response_coordinators(&mut cur, 4).unwrap();
+        let (decoded, ..) = decode_find_coordinator_response_coordinators(&mut cur, 4).unwrap();
         assert_eq!(decoded, coords);
         assert!(
             cur.is_empty(),
@@ -6405,7 +6574,9 @@ mod tests {
         encode_find_coordinator_response_coordinators(&mut buf, 4, &two_err).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_find_coordinator_response_coordinators(&mut cur, 4).unwrap(),
+            decode_find_coordinator_response_coordinators(&mut cur, 4)
+                .unwrap()
+                .0,
             two_err
         );
         assert!(
@@ -6417,7 +6588,9 @@ mod tests {
         encode_find_coordinator_response_coordinators(&mut buf, 6, &two_err).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_find_coordinator_response_coordinators(&mut cur, 6).unwrap(),
+            decode_find_coordinator_response_coordinators(&mut cur, 6)
+                .unwrap()
+                .0,
             two_err
         );
         assert!(
@@ -6444,7 +6617,9 @@ mod tests {
         encode_find_coordinator_response_coordinators(&mut buf, 4, &empty).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_find_coordinator_response_coordinators(&mut cur, 4).unwrap(),
+            decode_find_coordinator_response_coordinators(&mut cur, 4)
+                .unwrap()
+                .0,
             empty
         );
         assert!(
