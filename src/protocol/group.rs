@@ -2373,6 +2373,38 @@ impl OffsetFetchResponse {
             Some(offset_fetch_v0_to_v7_error(version, groups))
         }
     }
+
+    /// Java `OffsetFetchResponse.partitionDataMap`.
+    ///
+    /// v1–v7 ignore `group_id` and flatten the first group's topics
+    /// (Java `data.topics()`). v8+ with no groups is an empty map (Java
+    /// `groupLevelErrors` is empty, so the v0–v7 path runs on empty
+    /// Topics). v8+ with groups uses the first matching `group_id`
+    /// (Java `stream().filter().collect().get(0)`). A missing group is
+    /// [`Error::protocol`] (Java `IndexOutOfBoundsException`). A later
+    /// partition overwrites the same pair (Java `HashMap.put`). Values
+    /// are [`FetchedOffset`] (Java `PartitionData` plus the partition
+    /// index).
+    pub fn partition_data_map(
+        version: i16,
+        groups: &[OffsetFetchGroupResult],
+        group_id: &str,
+    ) -> Result<HashMap<(String, i32), FetchedOffset>> {
+        if version >= 8 {
+            if groups.is_empty() {
+                return Ok(HashMap::new());
+            }
+            let Some(group) = groups.iter().find(|group| group.group_id == group_id) else {
+                return Err(Error::protocol(format!(
+                    "no group named {group_id} in OffsetFetchResponse"
+                )));
+            };
+            return Ok(offset_fetch_partition_data_map(&group.topics));
+        }
+        Ok(offset_fetch_partition_data_map(
+            groups.first().map(|g| g.topics.as_slice()).unwrap_or(&[]),
+        ))
+    }
 }
 
 /// Topic + committed offsets from OffsetFetch v1–v9.
@@ -2556,6 +2588,21 @@ fn offset_fetch_v1_top_level_error(topics: &[FetchedOffsetTopic]) -> i16 {
         }
     }
     0
+}
+
+fn offset_fetch_partition_data_map(
+    topics: &[FetchedOffsetTopic],
+) -> HashMap<(String, i32), FetchedOffset> {
+    let mut response_data = HashMap::new();
+    for topic in topics {
+        for partition in &topic.partitions {
+            let _prev = response_data.insert(
+                (topic.topic.clone(), partition.partition),
+                partition.clone(),
+            );
+        }
+    }
+    response_data
 }
 
 /// `true` when OffsetCommit `version` is flexible (v8+).
@@ -4478,6 +4525,137 @@ mod tests {
         assert_eq!(
             OffsetFetchResponse::group_level_error(8, &dup, "g"),
             Some(crate::error::NOT_COORDINATOR)
+        );
+    }
+
+    #[test]
+    fn offset_fetch_response_partition_data_map_matches_java() {
+        // Java OffsetFetchResponse.partitionDataMap: v1–v7 ignore
+        // group_id and flatten data.topics(). v8+ with no groups is
+        // empty (groupLevelErrors empty → v0–v7 path). v8+ with groups
+        // uses the first matching group_id (stream filter get(0)).
+        // Missing group is IndexOutOfBoundsException. HashMap.put
+        // overwrites the same pair.
+        assert!(OffsetFetchResponse::partition_data_map(8, &[], "g")
+            .unwrap()
+            .is_empty());
+        assert!(OffsetFetchResponse::partition_data_map(7, &[], "g")
+            .unwrap()
+            .is_empty());
+        let first = FetchedOffset {
+            partition: 0,
+            offset: 5,
+            leader_epoch: 2,
+            metadata: "m".into(),
+            error_code: 0,
+        };
+        let second = FetchedOffset::error(1, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        let overwrite = FetchedOffset {
+            partition: 0,
+            offset: 9,
+            leader_epoch: 3,
+            metadata: "n".into(),
+            error_code: crate::error::NOT_LEADER_OR_FOLLOWER,
+        };
+        let v7 = [OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics: vec![
+                FetchedOffsetTopic {
+                    topic: "t".into(),
+                    partitions: vec![first.clone(), second.clone()],
+                },
+                FetchedOffsetTopic {
+                    topic: "t".into(),
+                    partitions: vec![overwrite.clone()],
+                },
+            ],
+            error_code: 0,
+        }];
+        assert_eq!(
+            OffsetFetchResponse::partition_data_map(7, &v7, "ignored").unwrap(),
+            HashMap::from([
+                (("t".into(), 0), overwrite.clone()),
+                (("t".into(), 1), second.clone()),
+            ])
+        );
+        let v8 = [
+            OffsetFetchGroupResult {
+                group_id: "g".into(),
+                topics: vec![FetchedOffsetTopic {
+                    topic: "a".into(),
+                    partitions: vec![first.clone()],
+                }],
+                error_code: 0,
+            },
+            OffsetFetchGroupResult {
+                group_id: "g".into(),
+                topics: vec![FetchedOffsetTopic {
+                    topic: "b".into(),
+                    partitions: vec![second.clone()],
+                }],
+                error_code: crate::error::NOT_COORDINATOR,
+            },
+            OffsetFetchGroupResult {
+                group_id: "other".into(),
+                topics: vec![FetchedOffsetTopic {
+                    topic: "c".into(),
+                    partitions: vec![overwrite.clone()],
+                }],
+                error_code: 0,
+            },
+        ];
+        assert_eq!(
+            OffsetFetchResponse::partition_data_map(8, &v8, "g").unwrap(),
+            HashMap::from([(("a".into(), 0), first.clone())])
+        );
+        assert_eq!(
+            OffsetFetchResponse::group_level_error(8, &v8, "g"),
+            Some(crate::error::NOT_COORDINATOR)
+        );
+        assert_eq!(
+            OffsetFetchResponse::partition_data_map(8, &v8, "other").unwrap(),
+            HashMap::from([(("c".into(), 0), overwrite.clone())])
+        );
+        let missing = OffsetFetchResponse::partition_data_map(8, &v8, "missing").unwrap_err();
+        assert!(
+            matches!(missing, Error::Protocol(_)),
+            "v8+ missing group is Java IndexOutOfBoundsException"
+        );
+        let v2 = [OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics: vec![FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![FetchedOffset::new(0, 5, 0)],
+            }],
+            error_code: 0,
+        }];
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_groups_response(&mut buf, 2, &v2).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
+        assert_eq!(decoded, v2);
+        assert_eq!(
+            OffsetFetchResponse::partition_data_map(2, &decoded, "ignored").unwrap(),
+            OffsetFetchResponse::partition_data_map(2, &v2, "ignored").unwrap()
+        );
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v2 partitionDataMap leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_offset_fetch_groups_response(&mut buf, 8, &v8).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
+        assert_eq!(decoded, v8);
+        assert_eq!(
+            OffsetFetchResponse::partition_data_map(8, &decoded, "g").unwrap(),
+            OffsetFetchResponse::partition_data_map(8, &v8, "g").unwrap()
+        );
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v8 partitionDataMap leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 

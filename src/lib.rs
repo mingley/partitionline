@@ -150,6 +150,10 @@
 //! `OffsetFetchResponse.groupHasError` / `groupLevelError` (v8+ named
 //! group's `errorCode`; missing group is false / `None`; v1–v7 ignore
 //! `group_id` and use the top-level code, including `NONE`);
+//! [`protocol::group::OffsetFetchResponse::partition_data_map`] is Java
+//! `OffsetFetchResponse.partitionDataMap` (v1–v7 ignore `group_id`; v8+
+//! first matching group; missing group is [`Error::protocol`]; a later
+//! partition overwrites);
 //! [`protocol::group::OffsetFetchGroup::error_result`] /
 //! [`protocol::group::OffsetFetchGroup::error_results`] /
 //! [`protocol::group::OffsetFetchGroupResult::error`] are Java
@@ -827,6 +831,10 @@
 //! `OffsetFetchResponse.groupHasError` / `groupLevelError` (v8+ named
 //! group's `errorCode`; missing group is false / `None`; v1–v7 ignore
 //! `group_id` and use the top-level code, including `NONE`).
+//! [`protocol::group::OffsetFetchResponse::partition_data_map`] is Java
+//! `OffsetFetchResponse.partitionDataMap` (v1–v7 ignore `group_id`; v8+
+//! first matching group; missing group is [`Error::protocol`]; a later
+//! partition overwrites).
 //! [`OffsetAndMetadata::NO_METADATA`] /
 //! [`OffsetAndMetadata::INVALID_OFFSET`] are the client-type copies (assign
 //! uses that sentinel when OffsetFetch omits a partition, then
