@@ -1978,6 +1978,29 @@ impl LeaveGroupRequest {
     ) -> crate::error::Result<()> {
         encode_leave_group_response_version(buf, version, error_code, &[])
     }
+
+    /// Java `LeaveGroupRequest.members`.
+    ///
+    /// v0–v2 is a singleton of the first member's `member_id` (Java
+    /// `data.memberId()`); instance id and reason stay unset. Empty
+    /// members is a singleton with empty `member_id` (JSON default).
+    /// v3+ is the request Members list.
+    #[must_use]
+    pub fn members(version: i16, members: &[LeaveGroupMember]) -> Vec<LeaveGroupMember> {
+        if version <= 2 {
+            let member_id = members
+                .first()
+                .map(|m| m.member_id.clone())
+                .unwrap_or_default();
+            vec![LeaveGroupMember {
+                member_id,
+                group_instance_id: None,
+                reason: None,
+            }]
+        } else {
+            members.to_vec()
+        }
+    }
 }
 
 /// Java `LeaveGroupResponse` helpers.
@@ -7729,6 +7752,68 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_leave_group_request_members(&mut buf, 5, "g-rm", &members).unwrap();
         assert_eq!(&buf[..], REQ);
+    }
+
+    #[test]
+    fn leave_group_request_members_matches_java() {
+        // Java LeaveGroupRequest.members: v0–v2 is a singleton of
+        // data.memberId(); instance id and reason stay unset. v3+ is
+        // data.members().
+        let empty = LeaveGroupRequest::members(0, &[]);
+        assert_eq!(empty.len(), 1);
+        assert_eq!(empty[0].member_id, "");
+        assert!(empty[0].group_instance_id.is_none());
+        assert!(empty[0].reason.is_none());
+        let one = [LeaveGroupMember {
+            member_id: "m1".into(),
+            group_instance_id: Some("worker-1".into()),
+            reason: Some("admin".into()),
+        }];
+        let v2 = LeaveGroupRequest::members(2, &one);
+        assert_eq!(
+            v2,
+            vec![LeaveGroupMember {
+                member_id: "m1".into(),
+                group_instance_id: None,
+                reason: None,
+            }]
+        );
+        let v5 = LeaveGroupRequest::members(5, &one);
+        assert_eq!(v5, one);
+        let two = vec![
+            LeaveGroupMember {
+                member_id: "a".into(),
+                group_instance_id: Some("i1".into()),
+                reason: None,
+            },
+            LeaveGroupMember {
+                member_id: "b".into(),
+                group_instance_id: None,
+                reason: Some("gone".into()),
+            },
+        ];
+        assert_eq!(LeaveGroupRequest::members(3, &two), two);
+        let mut buf = BytesMut::new();
+        encode_leave_group_request_members(&mut buf, 0, "g", &one).unwrap();
+        let mut cur = buf.as_ref();
+        let (_gid, decoded) = decode_leave_group_request_version(&mut cur, 0).unwrap();
+        assert_eq!(LeaveGroupRequest::members(0, &decoded), v2);
+        assert!(
+            cur.is_empty(),
+            "LeaveGroup v0 members leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_leave_group_request_members(&mut buf, 5, "g", &two).unwrap();
+        let mut cur = buf.as_ref();
+        let (_gid, decoded) = decode_leave_group_request_version(&mut cur, 5).unwrap();
+        assert_eq!(decoded, two);
+        assert_eq!(LeaveGroupRequest::members(5, &decoded), two);
+        assert!(
+            cur.is_empty(),
+            "LeaveGroup v5 members leftover-empty; leftover {} bytes",
+            cur.len()
+        );
     }
 
     #[test]

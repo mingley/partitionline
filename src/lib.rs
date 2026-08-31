@@ -200,6 +200,8 @@
 //! [`protocol::group::LeaveGroupRequest::error_response`] is Java
 //! `LeaveGroupRequest.getErrorResponse` (empty Members; request members are
 //! not copied);
+//! [`protocol::group::LeaveGroupRequest::members`] is Java
+//! `LeaveGroupRequest.members` (v0–v2 singleton `member_id`; v3+ Members);
 //! [`protocol::group::LeaveGroupResponse::should_client_throttle`] is Java
 //! `LeaveGroupResponse.shouldClientThrottle` (v2+);
 //! [`protocol::group::LeaveGroupResponse::error_counts`] is Java
