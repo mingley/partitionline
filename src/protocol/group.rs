@@ -2088,6 +2088,26 @@ impl LeaveGroupResponse {
             ))),
         }
     }
+
+    /// Java `LeaveGroupResponse(List, Errors, int, short)`.
+    ///
+    /// v3+ keeps `error_code` and `members`. v0–v2 fold [`Self::error`]
+    /// into the top-level code and drop members (zero or many members
+    /// are allowed; unlike [`Self::for_version`] this does not require
+    /// exactly one). Throttle is the JSON default (`0`) on v1+ (omitted
+    /// on v0; not part of this helper).
+    #[must_use]
+    pub fn from_members(
+        version: i16,
+        error_code: i16,
+        members: &[LeaveGroupMemberResult],
+    ) -> (i16, Vec<LeaveGroupMemberResult>) {
+        if version <= 2 {
+            (Self::error(error_code, members), Vec::new())
+        } else {
+            (error_code, members.to_vec())
+        }
+    }
 }
 
 /// One partition in OffsetCommit v2–v9 / OffsetFetch v5.
@@ -8923,6 +8943,102 @@ mod tests {
             assert!(
                 cur.is_empty(),
                 "LeaveGroup v{version} (data, version) empty leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+    }
+
+    #[test]
+    fn leave_group_response_from_members_matches_java() {
+        let members = [
+            LeaveGroupMemberResult {
+                member_id: "ok".into(),
+                group_instance_id: None,
+                error_code: 0,
+            },
+            LeaveGroupMemberResult {
+                member_id: "unknown".into(),
+                group_instance_id: Some("i1".into()),
+                error_code: crate::error::UNKNOWN_MEMBER_ID,
+            },
+        ];
+        assert_eq!(
+            LeaveGroupResponse::from_members(3, crate::error::NOT_COORDINATOR, &members),
+            (crate::error::NOT_COORDINATOR, members.to_vec())
+        );
+        assert_eq!(
+            LeaveGroupResponse::from_members(5, 0, &members),
+            (0, members.to_vec())
+        );
+        assert_eq!(
+            LeaveGroupResponse::from_members(2, 0, &members),
+            (crate::error::UNKNOWN_MEMBER_ID, Vec::new())
+        );
+        assert_eq!(
+            LeaveGroupResponse::from_members(0, crate::error::NOT_COORDINATOR, &members),
+            (crate::error::NOT_COORDINATOR, Vec::new())
+        );
+        assert_eq!(LeaveGroupResponse::from_members(1, 0, &[]), (0, Vec::new()));
+        assert!(
+            LeaveGroupResponse::for_version(1, 0, &[]).is_err(),
+            "List constructor allows empty members on v<=2; data constructor does not"
+        );
+        assert!(
+            LeaveGroupResponse::for_version(2, 0, &members).is_err(),
+            "List constructor allows many members on v<=2; data constructor does not"
+        );
+        let one = LeaveGroupMemberResult {
+            member_id: "unknown".into(),
+            group_instance_id: Some("i1".into()),
+            error_code: crate::error::UNKNOWN_MEMBER_ID,
+        };
+        assert_eq!(
+            LeaveGroupResponse::from_members(0, 0, std::slice::from_ref(&one)),
+            (crate::error::UNKNOWN_MEMBER_ID, Vec::new())
+        );
+        assert_eq!(
+            LeaveGroupResponse::from_members(3, 0, std::slice::from_ref(&one)),
+            (0, vec![one.clone()])
+        );
+        assert_eq!(LeaveGroupResponse::from_members(3, 0, &[]), (0, Vec::new()));
+
+        for version in [0_i16, 1, 3, 5] {
+            let (error_code, rewritten) = LeaveGroupResponse::from_members(version, 0, &members);
+            let mut buf = BytesMut::new();
+            encode_leave_group_response_version(&mut buf, version, error_code, &rewritten).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded_err, decoded_members) =
+                decode_leave_group_response_version(&mut cur, version).unwrap();
+            if version >= 3 {
+                assert_eq!(decoded_err, 0);
+                assert_eq!(decoded_members, members);
+            } else {
+                assert_eq!(decoded_err, crate::error::UNKNOWN_MEMBER_ID);
+                assert!(
+                    decoded_members.is_empty(),
+                    "v{version} members must be dropped"
+                );
+            }
+            assert!(
+                cur.is_empty(),
+                "LeaveGroup v{version} from_members leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        for version in [0_i16, 1, 3, 5] {
+            let (error_code, rewritten) = LeaveGroupResponse::from_members(version, 0, &[]);
+            assert_eq!(error_code, 0);
+            assert!(rewritten.is_empty());
+            let mut buf = BytesMut::new();
+            encode_leave_group_response_version(&mut buf, version, error_code, &rewritten).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded_err, decoded_members) =
+                decode_leave_group_response_version(&mut cur, version).unwrap();
+            assert_eq!(decoded_err, 0);
+            assert!(decoded_members.is_empty());
+            assert!(
+                cur.is_empty(),
+                "LeaveGroup v{version} from_members empty leftover-empty; leftover {} bytes",
                 cur.len()
             );
         }
