@@ -5902,6 +5902,9 @@ fn alter_client_quotas_flexible(version: i16) -> Result<bool> {
 }
 
 /// Java `AlterClientQuotasResponse` helpers.
+///
+/// [`Self::from_quota_entities`] is Java
+/// `AlterClientQuotasResponse.fromQuotaEntities`.
 pub struct AlterClientQuotasResponse;
 
 impl AlterClientQuotasResponse {
@@ -5917,6 +5920,37 @@ impl AlterClientQuotasResponse {
             *count += 1;
         }
         counts
+    }
+
+    /// Java `AlterClientQuotasResponse.fromQuotaEntities`.
+    ///
+    /// Each outer item is one Java `ClientQuotaEntity` (type/name map
+    /// entries) plus that entity's `ApiError`. Entity pairs keep caller
+    /// order (Java `HashMap` iteration is unspecified). Duplicate type
+    /// keys are kept (`ArrayList.add`). `ErrorCode` / `ErrorMessage` come
+    /// from [`ApiError::error`] / [`ApiError::message`] (the message is
+    /// copied; contrast [`ClientQuotaAlterationResult::error`], which
+    /// leaves `ErrorMessage` null). Throttle is unused in this helper
+    /// (crate encode writes `0`).
+    #[must_use]
+    pub fn from_quota_entities<'a, I, E>(entities: I) -> Vec<ClientQuotaAlterationResult>
+    where
+        I: IntoIterator<Item = (E, ApiError)>,
+        E: IntoIterator<Item = (&'a str, Option<&'a str>)>,
+    {
+        entities
+            .into_iter()
+            .map(|(entity, error)| ClientQuotaAlterationResult {
+                error_code: error.error(),
+                error_message: error.message().map(str::to_string),
+                entity: entity
+                    .into_iter()
+                    .map(|(entity_type, name)| {
+                        ClientQuotaEntity::new(entity_type, name.map(str::to_string))
+                    })
+                    .collect(),
+            })
+            .collect()
     }
 }
 
@@ -15555,6 +15589,94 @@ mod tests {
             counts,
             HashMap::from([(0, 2), (crate::error::INVALID_REQUEST, 1),])
         );
+    }
+
+    #[test]
+    fn alter_client_quotas_from_quota_entities_matches_java() {
+        // Java AlterClientQuotasResponse.fromQuotaEntities: iterate
+        // entities, copy ClientQuotaEntity.entries into EntityData,
+        // ErrorCode/ErrorMessage from ApiError. throttleTimeMs unused.
+        let empty = AlterClientQuotasResponse::from_quota_entities(std::iter::empty::<(
+            Vec<(&str, Option<&str>)>,
+            crate::error::ApiError,
+        )>());
+        assert!(empty.is_empty());
+
+        let alice = ClientQuotaEntity::new(ClientQuotaEntity::USER, Some("alice".into()));
+        let app = ClientQuotaEntity::new(ClientQuotaEntity::CLIENT_ID, Some("app".into()));
+        let bob = ClientQuotaEntity::new(ClientQuotaEntity::USER, Some("bob".into()));
+        let default_user = ClientQuotaEntity::new(ClientQuotaEntity::USER, None);
+        let denied =
+            crate::error::ApiError::from_code(crate::error::INVALID_REQUEST, Some("no".into()));
+        let none = crate::error::ApiError::NONE;
+        let auth =
+            crate::error::ApiError::from_code(crate::error::CLUSTER_AUTHORIZATION_FAILED, None);
+        let results = AlterClientQuotasResponse::from_quota_entities([
+            (
+                vec![
+                    (ClientQuotaEntity::USER, Some("alice")),
+                    (ClientQuotaEntity::CLIENT_ID, Some("app")),
+                    (ClientQuotaEntity::USER, Some("bob")),
+                ],
+                denied,
+            ),
+            (vec![(ClientQuotaEntity::USER, None)], none),
+            (vec![(ClientQuotaEntity::USER, Some("alice"))], auth),
+        ]);
+        assert_eq!(
+            results,
+            vec![
+                ClientQuotaAlterationResult {
+                    error_code: crate::error::INVALID_REQUEST,
+                    error_message: Some("no".into()),
+                    entity: vec![alice.clone(), app, bob],
+                },
+                ClientQuotaAlterationResult {
+                    error_code: 0,
+                    error_message: None,
+                    entity: vec![default_user],
+                },
+                ClientQuotaAlterationResult {
+                    error_code: crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                    error_message: None,
+                    entity: vec![alice.clone()],
+                },
+            ]
+        );
+        let via_error =
+            ClientQuotaAlterationResult::error(vec![alice], crate::error::INVALID_REQUEST);
+        assert!(via_error.error_message().is_none());
+        assert_ne!(
+            results.first().expect("denied entry"),
+            &via_error,
+            "fromQuotaEntities copies ApiError.message; getErrorResponse leaves it null"
+        );
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_alter_client_quotas_response(&mut buf, version, &results).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_alter_client_quotas_response(&mut cur, version).unwrap(),
+                results
+            );
+            assert!(
+                !cur.has_remaining(),
+                "AlterClientQuotas v{version} fromQuotaEntities leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            buf.clear();
+            encode_alter_client_quotas_response(&mut buf, version, &empty).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_alter_client_quotas_response(&mut cur, version).unwrap(),
+                empty
+            );
+            assert!(
+                !cur.has_remaining(),
+                "AlterClientQuotas v{version} fromQuotaEntities empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]
