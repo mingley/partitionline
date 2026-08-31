@@ -346,11 +346,11 @@ pub struct AcquiredRange {
 /// (`PartitionIndex` and `ErrorCode`). Records and acquired ranges stay
 /// empty. Official Java leaves ErrorMessage, AcknowledgeErrorCode,
 /// AcknowledgeErrorMessage, CurrentLeader, and Records at JSON defaults
-/// (null / 0 / 0/0 / null). Crate encode writes ErrorMessage null,
-/// AcknowledgeErrorCode 0, AcknowledgeErrorMessage null, CurrentLeader from
-/// the partition fields (JSON default 0/0), empty Records, empty
-/// AcquiredRecords. NodeEndpoints stay empty on
-/// [`encode_share_fetch_response`];
+/// (null / 0 / 0/0 / null). Crate encode writes ErrorMessage from the
+/// partition fields (JSON default null), AcknowledgeErrorCode 0,
+/// AcknowledgeErrorMessage null, CurrentLeader from the partition fields
+/// (JSON default 0/0), empty Records, empty AcquiredRecords. NodeEndpoints
+/// stay empty on [`encode_share_fetch_response`];
 /// [`encode_share_fetch_response_with_endpoints`] writes a non-empty list.
 /// v1 AcquisitionLockTimeoutMs is 15000. Top-level ErrorCode stays 0
 /// (crate encode). Throttle is the JSON default (`0`).
@@ -360,6 +360,10 @@ pub struct ShareFetchedPartition {
     pub partition: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// ShareFetch partition `ErrorMessage` (JSON `0+` nullable compact
+    /// STRING). JSON default is null. This is not the top-level
+    /// `ErrorMessage`.
+    pub error_message: Option<String>,
     /// ShareFetch CurrentLeader `LeaderId` (JSON `0+` untagged nested
     /// `LeaderIdAndEpoch`). JSON default is `0` (`-1` means unknown).
     pub current_leader_id: i32,
@@ -378,11 +382,11 @@ impl ShareFetchedPartition {
     /// Sets `PartitionIndex` and `ErrorCode`. Records and acquired ranges
     /// stay empty. Official Java leaves ErrorMessage, AcknowledgeErrorCode,
     /// AcknowledgeErrorMessage, CurrentLeader, and Records at JSON defaults
-    /// (null / 0 / 0/0 / null). Crate encode writes ErrorMessage null,
-    /// AcknowledgeErrorCode 0, AcknowledgeErrorMessage null, CurrentLeader
-    /// from the partition fields (JSON default 0/0), empty Records, empty
-    /// AcquiredRecords. NodeEndpoints stay empty on
-    /// [`encode_share_fetch_response`];
+    /// (null / 0 / 0/0 / null). Crate encode writes ErrorMessage from the
+    /// partition fields (JSON default null), AcknowledgeErrorCode 0,
+    /// AcknowledgeErrorMessage null, CurrentLeader from the partition
+    /// fields (JSON default 0/0), empty Records, empty AcquiredRecords.
+    /// NodeEndpoints stay empty on [`encode_share_fetch_response`];
     /// [`encode_share_fetch_response_with_endpoints`] writes a non-empty
     /// list. v1 AcquisitionLockTimeoutMs is 15000. Top-level
     /// ErrorCode stays 0 (crate encode). Throttle is the JSON default
@@ -392,6 +396,7 @@ impl ShareFetchedPartition {
         Self {
             partition,
             error_code,
+            error_message: None,
             current_leader_id: 0,
             current_leader_epoch: 0,
             records: Vec::new(),
@@ -1055,11 +1060,14 @@ fn decode_leader<B: Buf>(buf: &mut B) -> Result<(i32, i32)> {
 /// [`ShareFetchedPartition::partition_response`] is Java
 /// `ShareFetchResponse.partitionResponse` (PartitionIndex and ErrorCode;
 /// crate encode writes CurrentLeader from the partition fields, JSON
-/// default 0/0, and v1 AcquisitionLockTimeoutMs 15000). NodeEndpoints stay
+/// default 0/0, partition ErrorMessage from the partition fields, JSON
+/// default null, and v1 AcquisitionLockTimeoutMs 15000). NodeEndpoints stay
 /// empty ([`encode_share_fetch_response_with_endpoints`] writes a non-empty
 /// list). NodeEndpoints is JSON `0+` (untagged compact array, not Fetch
 /// v16 tagged field 0). CurrentLeader is JSON `0+` (untagged nested
-/// `LeaderIdAndEpoch`, not Fetch v12+ tagged field 1).
+/// `LeaderIdAndEpoch`, not Fetch v12+ tagged field 1). Partition
+/// ErrorMessage is JSON `0+` (nullable compact STRING, not the top-level
+/// ErrorMessage).
 pub fn encode_share_fetch_response(
     buf: &mut BytesMut,
     version: i16,
@@ -1076,7 +1084,8 @@ pub fn encode_share_fetch_response(
 /// fields). [`encode_share_fetch_response`] still writes empty. This is
 /// not Fetch v16 tagged field 0. CurrentLeader is JSON `0+` (untagged
 /// nested `LeaderIdAndEpoch` from each partition, not Fetch v12+ tagged
-/// field 1).
+/// field 1). Partition ErrorMessage is JSON `0+` (nullable compact STRING
+/// from each partition, not the top-level ErrorMessage).
 pub fn encode_share_fetch_response_with_endpoints(
     buf: &mut BytesMut,
     version: i16,
@@ -1097,7 +1106,7 @@ pub fn encode_share_fetch_response_with_endpoints(
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i16(p.error_code);
-            buf::put_string(buf, flexible, None)?;
+            buf::put_string(buf, flexible, p.error_message.as_deref())?;
             buf.put_i16(0);
             buf::put_string(buf, flexible, None)?;
             encode_leader(buf, p.current_leader_id, p.current_leader_epoch);
@@ -1158,7 +1167,7 @@ pub fn decode_share_fetch_response<B: Buf>(
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
-            let _em = buf::get_string(buf, flexible)?;
+            let error_message = buf::get_string(buf, flexible)?;
             let _ack_err = buf::get_i16(buf)?;
             let _ack_msg = buf::get_string(buf, flexible)?;
             let (current_leader_id, current_leader_epoch) = decode_leader(buf)?;
@@ -1194,6 +1203,7 @@ pub fn decode_share_fetch_response<B: Buf>(
             partitions.push(ShareFetchedPartition {
                 partition,
                 error_code,
+                error_message,
                 current_leader_id,
                 current_leader_epoch,
                 records,
@@ -1705,6 +1715,7 @@ mod tests {
             partitions: vec![ShareFetchedPartition {
                 partition: 0,
                 error_code: 0,
+                error_message: None,
                 current_leader_id: 0,
                 current_leader_epoch: 0,
                 records: vec![RecordBatch::from_records(vec![rec])],
@@ -1978,6 +1989,7 @@ mod tests {
             partitions: vec![ShareFetchedPartition {
                 partition: 0,
                 error_code: 0,
+                error_message: None,
                 current_leader_id: 0,
                 current_leader_epoch: 0,
                 records: Vec::new(),
@@ -2018,6 +2030,7 @@ mod tests {
             partitions: vec![ShareFetchedPartition {
                 partition: 0,
                 error_code: 6,
+                error_message: None,
                 current_leader_id: 0,
                 current_leader_epoch: 0,
                 records: Vec::new(),
@@ -2084,6 +2097,7 @@ mod tests {
             partitions: vec![ShareFetchedPartition {
                 partition: 0,
                 error_code: 6,
+                error_message: None,
                 current_leader_id: 0,
                 current_leader_epoch: 0,
                 records: Vec::new(),
@@ -2095,6 +2109,7 @@ mod tests {
             partitions: vec![ShareFetchedPartition {
                 partition: 0,
                 error_code: 6,
+                error_message: None,
                 current_leader_id: 2,
                 current_leader_epoch: 7,
                 records: Vec::new(),
@@ -2152,6 +2167,111 @@ mod tests {
     }
 
     #[test]
+    fn share_fetch_response_error_message_matches_java() {
+        // Kafka 4.0.0 / 4.1 ShareFetchResponse.json partition ErrorMessage
+        // is versions 0+ (nullable compact STRING on every spoken version).
+        // Official Java ShareFetchResponse.partitionResponse leaves it at
+        // JSON null. Apache ShareFetchResponse.java has no errorMessage
+        // helper. This is not the top-level ErrorMessage. This does not
+        // start AcknowledgeErrorCode / AcknowledgeErrorMessage.
+        let defaults = vec![ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchedPartition {
+                partition: 0,
+                error_code: 6,
+                error_message: None,
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+                records: Vec::new(),
+                acquired: Vec::new(),
+            }],
+        }];
+        let with_msg = vec![ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchedPartition {
+                partition: 0,
+                error_code: 6,
+                error_message: Some("e".into()),
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+                records: Vec::new(),
+                acquired: Vec::new(),
+            }],
+        }];
+        let with_empty = vec![ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchedPartition {
+                partition: 0,
+                error_code: 6,
+                error_message: Some(String::new()),
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+                records: Vec::new(),
+                acquired: Vec::new(),
+            }],
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_response(&mut buf, version, &with_msg).unwrap();
+            let mut cur = buf.as_ref();
+            let (got, ..) = decode_share_fetch_response(&mut cur, version).unwrap();
+            assert_eq!(got, with_msg);
+            assert!(
+                cur.is_empty(),
+                "ShareFetch v{version} ErrorMessage leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_fetch_response(&mut with, 0, &with_msg).unwrap();
+        let mut empty = BytesMut::new();
+        encode_share_fetch_response(&mut empty, 0, &defaults).unwrap();
+        assert_ne!(
+            &with[..],
+            &empty[..],
+            "ShareFetch ErrorMessage is not always null"
+        );
+
+        let mut empty_present = BytesMut::new();
+        encode_share_fetch_response(&mut empty_present, 0, &with_empty).unwrap();
+        assert_ne!(
+            &empty_present[..],
+            &empty[..],
+            "empty-but-present ErrorMessage is not JSON null"
+        );
+        let mut cur = empty_present.as_ref();
+        let (got, ..) = decode_share_fetch_response(&mut cur, 0).unwrap();
+        assert_eq!(got, with_empty);
+        assert!(cur.is_empty(), "ShareFetch v0 ErrorMessage leftover-empty");
+
+        let pr = ShareFetchedPartition::partition_response(0, 6);
+        assert!(pr.error_message.is_none());
+        let mut conv = BytesMut::new();
+        encode_share_fetch_response(
+            &mut conv,
+            0,
+            &[ShareFetchedTopic {
+                topic_id: [7u8; 16],
+                partitions: vec![pr],
+            }],
+        )
+        .unwrap();
+        assert_eq!(
+            &conv[..],
+            &empty[..],
+            "partition_response still writes ErrorMessage null"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_share_fetch_response(&mut v1_with, 1, &with_msg).unwrap();
+        assert_ne!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 ErrorMessage share compact layout; v1 still adds AcquisitionLockTimeoutMs"
+        );
+    }
+
+    #[test]
     fn share_fetch_partition_response_leftover_empty() {
         let err = ShareFetchedPartition::partition_response(3, crate::error::UNKNOWN_TOPIC_ID);
         assert_eq!(
@@ -2159,6 +2279,7 @@ mod tests {
             ShareFetchedPartition {
                 partition: 3,
                 error_code: crate::error::UNKNOWN_TOPIC_ID,
+                error_message: None,
                 current_leader_id: 0,
                 current_leader_epoch: 0,
                 records: Vec::new(),
@@ -3316,6 +3437,7 @@ mod tests {
                         ShareFetchedPartition {
                             partition: 0,
                             error_code: 0,
+                            error_message: None,
                             current_leader_id: 0,
                             current_leader_epoch: 0,
                             records: Vec::new(),
@@ -3324,6 +3446,7 @@ mod tests {
                         ShareFetchedPartition {
                             partition: 3,
                             error_code: 0,
+                            error_message: None,
                             current_leader_id: 0,
                             current_leader_epoch: 0,
                             records: Vec::new(),
@@ -3336,6 +3459,7 @@ mod tests {
                     partitions: vec![ShareFetchedPartition {
                         partition: 1,
                         error_code: crate::error::UNKNOWN_TOPIC_ID,
+                        error_message: None,
                         current_leader_id: 0,
                         current_leader_epoch: 0,
                         records: Vec::new(),

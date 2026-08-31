@@ -5547,6 +5547,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 parts.push(ShareFetchedPartition {
                                     partition: p.partition,
                                     error_code: 0,
+                                    error_message: None,
                                     current_leader_id: 0,
                                     current_leader_epoch: 0,
                                     records: share_record_batches(taken, epoch),
