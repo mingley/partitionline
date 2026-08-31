@@ -159,6 +159,21 @@ impl ShareFetchedPartition {
             acquired: Vec::new(),
         }
     }
+
+    /// Java `ShareFetchResponse.recordsSize`.
+    ///
+    /// `0` when records are empty (Java `null` or `MemoryRecords.EMPTY`).
+    /// Otherwise the encoded size of the records blob.
+    pub fn records_size(&self) -> Result<i32> {
+        if self.records.is_empty() {
+            return Ok(0);
+        }
+        let mut recs = BytesMut::new();
+        for batch in &self.records {
+            records::encode_record_batch(&mut recs, batch)?;
+        }
+        buf::i32_from_usize(recs.len())
+    }
 }
 
 /// One topic in a ShareFetch response.
@@ -1512,6 +1527,56 @@ mod tests {
                 !cur.has_remaining(),
                 "ShareFetch v{version} empty partitionResponse leftover-empty; leftover {} bytes",
                 cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn share_fetch_response_records_size_matches_java() {
+        // Java ShareFetchResponse.recordsSize: 0 when records are null or
+        // MemoryRecords.EMPTY. Otherwise sizeInBytes of the records blob.
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"s")),
+            headers: vec![],
+        };
+        let mut part = ShareFetchedPartition::partition_response(0, 0);
+        assert_eq!(part.records_size().unwrap(), 0);
+        part.records = vec![RecordBatch::from_records(vec![rec])];
+        let size = part.records_size().unwrap();
+        assert!(size > 0, "non-empty recordsSize must be the blob length");
+        let mut recs = BytesMut::new();
+        let batch = part.records.first().expect("one batch");
+        records::encode_record_batch(&mut recs, batch).unwrap();
+        assert_eq!(
+            size,
+            buf::i32_from_usize(recs.len()).unwrap(),
+            "recordsSize must match encoded records blob"
+        );
+        let topics = vec![ShareFetchedTopic {
+            topic_id: [0u8; 16],
+            partitions: vec![part.clone()],
+        }];
+        for version in [0i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_response(&mut buf, version, &topics).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_share_fetch_response(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "ShareFetch v{version} recordsSize leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            let got = decoded
+                .first()
+                .and_then(|t| t.partitions.first())
+                .expect("one partition");
+            assert_eq!(
+                got.records_size().unwrap(),
+                size,
+                "v{version} decoded recordsSize must match"
             );
         }
     }
