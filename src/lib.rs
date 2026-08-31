@@ -885,7 +885,10 @@
 //! `RenewDelegationTokenResponse.shouldClientThrottle` (v1+);
 //! [`protocol::admin::RenewDelegationTokenResponse::error_counts`] is Java
 //! `RenewDelegationTokenResponse.errorCounts` (top-level `errorCode` only,
-//! including `NONE`; Java `Collections.singletonMap`)),
+//! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::admin::RenewDelegationTokenRequest::error_response`] is Java
+//! `RenewDelegationTokenRequest.getErrorResponse` (ExpiryTimestampMs JSON
+//! default `0`; ThrottleTimeMs JSON `0+`; convenience fills `0`)),
 //! ExpireDelegationToken v1–v2 (v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::ExpireDelegationTokenResponse::should_client_throttle`] is Java
 //! `ExpireDelegationTokenResponse.shouldClientThrottle` (v1+);
