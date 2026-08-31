@@ -544,9 +544,10 @@
 //! [`DescribedConsumerGroup::new`]);
 //! [`protocol::admin::ConsumerGroupDescribeResponse::error_counts`] is Java
 //! `ConsumerGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),
-//! ListTransactions v0–v1 (v1 DurationFilter, KIP-994;
+//! ListTransactions v0–v1 (v1 DurationFilter, KIP-994; ThrottleTimeMs is JSON `0+`;
 //! Java `ListTransactionsRequest.Builder.build` rejects a non-negative
-//! DurationFilter on v0),
+//! DurationFilter on v0;
+//! [`protocol::admin::ListTransactionsResponse::new`] fills `0`),
 //! DescribeTransactions v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::encode_describe_transactions_response`] still writes `0`),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId;
@@ -1829,7 +1830,9 @@
 //! [`Admin::list_transactions_timeout`] /
 //! [`Admin::list_transactions_with_duration_timeout`] are Java
 //! `ListTransactionsOptions.timeoutMs` (RPC deadline; ListTransactions
-//! has no TimeoutMs).
+//! has no TimeoutMs). ThrottleTimeMs is JSON `0+`; encode writes the field;
+//! [`protocol::admin::ListTransactionsResponse::new`] fills `0`.
+//! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
 //! [`Admin::list_transactions_all`] is Java `listTransactions()`.
 //! [`TransactionListing::state`] is Java `TransactionListing.state` as
 //! the broker string. [`TransactionState::state`] is Java

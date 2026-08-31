@@ -4542,11 +4542,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     encode_list_transactions_response(
                         &mut body,
                         version,
-                        &ListTransactionsResponse {
-                            error_code: error::NOT_COORDINATOR,
-                            unknown_state_filters: Vec::new(),
-                            transaction_states: Vec::new(),
-                        },
+                        &ListTransactionsResponse::new(
+                            error::NOT_COORDINATOR,
+                            Vec::new(),
+                            Vec::new(),
+                        ),
                     )
                     .unwrap();
                 } else {
@@ -4564,11 +4564,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     encode_list_transactions_response(
                         &mut body,
                         version,
-                        &ListTransactionsResponse {
-                            error_code: 0,
-                            unknown_state_filters: Vec::new(),
-                            transaction_states,
-                        },
+                        &ListTransactionsResponse::new(0, Vec::new(), transaction_states),
                     )
                     .unwrap();
                 }

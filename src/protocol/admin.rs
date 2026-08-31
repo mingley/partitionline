@@ -8016,6 +8016,9 @@ impl fmt::Display for TransactionListing {
 /// at bytes 5–6). Fixture transactional ids only.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListTransactionsResponse {
+    /// ListTransactions `ThrottleTimeMs` (JSON `0+`). First field.
+    /// JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Transaction state filters the broker did not recognize.
@@ -8025,6 +8028,27 @@ pub struct ListTransactionsResponse {
 }
 
 impl ListTransactionsResponse {
+    /// Construct [`Self`].
+    #[must_use]
+    pub fn new(
+        error_code: i16,
+        unknown_state_filters: Vec<String>,
+        transaction_states: Vec<TransactionListing>,
+    ) -> Self {
+        Self {
+            throttle_time_ms: 0,
+            error_code,
+            unknown_state_filters,
+            transaction_states,
+        }
+    }
+
+    /// ListTransactions `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
+    }
+
     /// Kafka error code (`0` is success).
     #[must_use]
     pub fn error_code(&self) -> i16 {
@@ -8100,13 +8124,18 @@ pub fn decode_list_transactions_request<B: Buf>(
 }
 
 /// Encode a ListTransactions v0–v1 response.
+///
+/// ThrottleTimeMs is JSON `0+` (`resp.throttle_time_ms`; JSON default
+/// `0`). v0 and v1 response bodies match. Kafka 4.0 `validVersions` is
+/// `0-1`. This crate speaks 0–1. v2+ is not spoken. Top-level ErrorCode
+/// is at bytes 4–5.
 pub fn encode_list_transactions_response(
     buf: &mut BytesMut,
     version: i16,
     resp: &ListTransactionsResponse,
 ) -> crate::error::Result<()> {
     let _flexible = list_transactions_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, true, Some(resp.unknown_state_filters.len()))?;
     for state in &resp.unknown_state_filters {
@@ -8124,12 +8153,15 @@ pub fn encode_list_transactions_response(
 }
 
 /// Decode a ListTransactions response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire). Top-level ErrorCode
+/// is at bytes 4–5.
 pub fn decode_list_transactions_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ListTransactionsResponse> {
     let _flexible = list_transactions_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let un = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut unknown_state_filters = Vec::with_capacity(un);
@@ -8151,6 +8183,7 @@ pub fn decode_list_transactions_response<B: Buf>(
     }
     buf::skip_tagged_fields(buf)?;
     Ok(ListTransactionsResponse {
+        throttle_time_ms,
         error_code,
         unknown_state_filters,
         transaction_states,
@@ -22388,11 +22421,7 @@ mod tests {
             listing.to_string(),
             "TransactionListing(transactionalId='tx', producerId=1001, transactionState=Ongoing)"
         );
-        let listed = ListTransactionsResponse {
-            error_code: 0,
-            unknown_state_filters: vec!["Nope".into()],
-            transaction_states: vec![listing.clone()],
-        };
+        let listed = ListTransactionsResponse::new(0, vec!["Nope".into()], vec![listing.clone()]);
         assert_eq!(listed.error_code(), 0);
         assert_eq!(listed.unknown_state_filters(), &["Nope".to_string()]);
         assert_eq!(listed.transaction_states(), std::slice::from_ref(&listing));
@@ -23319,6 +23348,59 @@ mod tests {
     }
 
     #[test]
+    fn list_transactions_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 ListTransactionsResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0–v1; first field). Official
+        // Java ListTransactionsRequest.getErrorResponse /
+        // ListTransactionsResponse.throttleTimeMs set / read it.
+        // Encode writes ListTransactionsResponse.throttle_time_ms
+        // (JSON default 0; ListTransactionsResponse::new fills 0).
+        // Empty-TransactionStates v0 == v1 (both flexible; same
+        // response fields). Top-level ErrorCode is at bytes 4–5. This
+        // crate speaks 0–1. This is not DescribeTransactions
+        // ThrottleTimeMs.
+        let zero = ListTransactionsResponse::new(0, Vec::new(), Vec::new());
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut v0 = BytesMut::new();
+        for version in [0, 1] {
+            let mut buf = BytesMut::new();
+            encode_list_transactions_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_list_transactions_response(&mut cur, version).unwrap();
+            assert_eq!(got, with);
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert_eq!(got.throttle_time_ms(), 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "ListTransactions v{version} ThrottleTimeMs leftover-empty"
+            );
+            if version == 0 {
+                v0.extend_from_slice(&buf);
+            }
+        }
+
+        let mut v1 = BytesMut::new();
+        encode_list_transactions_response(&mut v1, 1, &with).unwrap();
+        assert_eq!(
+            &v0[..],
+            &v1[..],
+            "empty-TransactionStates v0 and v1 bodies match (both flexible; same fields)"
+        );
+        let mut zero_v0 = BytesMut::new();
+        encode_list_transactions_response(&mut zero_v0, 0, &zero).unwrap();
+        assert_ne!(
+            &v0[..],
+            &zero_v0[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "ListTransactionsResponse::new still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
     fn list_transactions_v0_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache Kafka 4.0 JSON
@@ -23338,11 +23420,8 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_list_transactions_request(&mut buf, 0, &states, &pids, -1).unwrap();
         assert_eq!(&buf[..], REQ);
-        let resp = ListTransactionsResponse {
-            error_code: crate::error::NOT_COORDINATOR,
-            unknown_state_filters: Vec::new(),
-            transaction_states: Vec::new(),
-        };
+        let resp =
+            ListTransactionsResponse::new(crate::error::NOT_COORDINATOR, Vec::new(), Vec::new());
         buf.clear();
         encode_list_transactions_response(&mut buf, 0, &resp).unwrap();
         assert_eq!(&buf[..], RESP_16);
@@ -23364,15 +23443,15 @@ mod tests {
             "ListTransactions v0 request must be leftover-empty"
         );
 
-        let resp = ListTransactionsResponse {
-            error_code: 0,
-            unknown_state_filters: vec!["UnknownState".into()],
-            transaction_states: vec![TransactionListing {
+        let resp = ListTransactionsResponse::new(
+            0,
+            vec!["UnknownState".into()],
+            vec![TransactionListing {
                 transactional_id: "tx-1".into(),
                 producer_id: 1001,
                 transaction_state: "Ongoing".into(),
             }],
-        };
+        );
         buf.clear();
         encode_list_transactions_response(&mut buf, 0, &resp).unwrap();
         let mut cur = &buf[..];
@@ -23443,11 +23522,8 @@ mod tests {
         );
         encode_list_transactions_request(&mut BytesMut::new(), 1, &states, &pids, 0).unwrap();
 
-        let resp = ListTransactionsResponse {
-            error_code: crate::error::NOT_COORDINATOR,
-            unknown_state_filters: Vec::new(),
-            transaction_states: Vec::new(),
-        };
+        let resp =
+            ListTransactionsResponse::new(crate::error::NOT_COORDINATOR, Vec::new(), Vec::new());
         let mut r0 = BytesMut::new();
         encode_list_transactions_response(&mut r0, 0, &resp).unwrap();
         let mut r1 = BytesMut::new();
@@ -23484,15 +23560,15 @@ mod tests {
             "ListTransactions v1 request must be leftover-empty"
         );
 
-        let resp = ListTransactionsResponse {
-            error_code: 0,
-            unknown_state_filters: vec!["UnknownState".into()],
-            transaction_states: vec![TransactionListing {
+        let resp = ListTransactionsResponse::new(
+            0,
+            vec!["UnknownState".into()],
+            vec![TransactionListing {
                 transactional_id: "tx-1".into(),
                 producer_id: 1001,
                 transaction_state: "Ongoing".into(),
             }],
-        };
+        );
         buf.clear();
         encode_list_transactions_response(&mut buf, 1, &resp).unwrap();
         let mut cur = &buf[..];
@@ -23513,11 +23589,8 @@ mod tests {
         // and an independent kafka-protocol 0.18.0 broker encode.
         // Not copied from DescribeTransactions (16 at bytes 5-6, first
         // result after compact TransactionStates length).
-        let resp = ListTransactionsResponse {
-            error_code: crate::error::NOT_COORDINATOR,
-            unknown_state_filters: Vec::new(),
-            transaction_states: Vec::new(),
-        };
+        let resp =
+            ListTransactionsResponse::new(crate::error::NOT_COORDINATOR, Vec::new(), Vec::new());
         let mut buf = BytesMut::new();
         encode_list_transactions_response(&mut buf, 0, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();
