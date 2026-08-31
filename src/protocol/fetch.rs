@@ -686,6 +686,8 @@ pub struct FetchedTopic {
 }
 
 /// Fetch v4–v11 (classic) or v12–v17 (flexible). LastFetchedEpoch is v12+.
+/// SessionId / SessionEpoch / ForgottenTopicsData are v7+. LogStartOffset
+/// is v5+. CurrentLeaderEpoch is v9+. RackId is v11+.
 #[expect(
     clippy::too_many_arguments,
     reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, and rack together"
@@ -711,20 +713,26 @@ pub fn encode_fetch_request(
     buf.put_i32(min_bytes);
     buf.put_i32(max_bytes);
     buf.put_i8(isolation_level);
-    buf.put_i32(FetchMetadata::LEGACY.session_id());
-    buf.put_i32(FetchMetadata::LEGACY.epoch());
+    if version >= 7 {
+        buf.put_i32(FetchMetadata::LEGACY.session_id());
+        buf.put_i32(FetchMetadata::LEGACY.epoch());
+    }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         put_fetch_topic_identity(buf, version, flexible, &t.topic, &t.topic_id)?;
         buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
-            buf.put_i32(p.current_leader_epoch);
+            if version >= 9 {
+                buf.put_i32(p.current_leader_epoch);
+            }
             buf.put_i64(p.fetch_offset);
             if version >= 12 {
                 buf.put_i32(p.last_fetched_epoch);
             }
-            buf.put_i64(INVALID_LOG_START_OFFSET);
+            if version >= 5 {
+                buf.put_i64(INVALID_LOG_START_OFFSET);
+            }
             buf.put_i32(p.partition_max_bytes);
             if flexible {
                 // v17+ ReplicaDirectoryId is partition tagged field 0.
@@ -736,10 +744,14 @@ pub fn encode_fetch_request(
             buf::put_empty_tagged_fields(buf);
         }
     }
-    buf::put_array_len(buf, flexible, Some(0))?; // forgotten
-                                                 // Fetch v11 RackId is STRING, not nullable (Apache JSON / kafka-protocol
-                                                 // 0.18.0). Kafka 3.9.1 rejects a null rackId. v12 is compact STRING.
-    buf::put_string(buf, flexible, Some(rack_id.unwrap_or("")))?;
+    if version >= 7 {
+        buf::put_array_len(buf, flexible, Some(0))?; // forgotten
+    }
+    if version >= 11 {
+        // Fetch v11 RackId is STRING, not nullable (Apache JSON / kafka-protocol
+        // 0.18.0). Kafka 3.9.1 rejects a null rackId. v12 is compact STRING.
+        buf::put_string(buf, flexible, Some(rack_id.unwrap_or("")))?;
+    }
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
@@ -894,7 +906,9 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
 /// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id)`.
 ///
 /// `last_fetched_epoch` is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]
-/// below v12.
+/// below v12. `current_leader_epoch` is the same below v9. SessionId /
+/// SessionEpoch / ForgottenTopicsData are v7+. LogStartOffset is v5+.
+/// RackId is v11+; below v11 decode fills empty.
 pub fn decode_fetch_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -907,8 +921,10 @@ pub fn decode_fetch_request<B: Buf>(
     let _min_bytes = buf::get_i32(buf)?;
     let max_bytes = buf::get_i32(buf)?;
     let isolation = buf::get_i8(buf)?;
-    let _session_id = buf::get_i32(buf)?;
-    let _session_epoch = buf::get_i32(buf)?;
+    if version >= 7 {
+        let _session_id = buf::get_i32(buf)?;
+        let _session_epoch = buf::get_i32(buf)?;
+    }
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
@@ -917,14 +933,20 @@ pub fn decode_fetch_request<B: Buf>(
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
-            let current_leader_epoch = buf::get_i32(buf)?;
+            let current_leader_epoch = if version >= 9 {
+                buf::get_i32(buf)?
+            } else {
+                RecordBatch::NO_PARTITION_LEADER_EPOCH
+            };
             let fetch_offset = buf::get_i64(buf)?;
             let last_fetched_epoch = if version >= 12 {
                 buf::get_i32(buf)?
             } else {
                 RecordBatch::NO_PARTITION_LEADER_EPOCH
             };
-            let _log_start = buf::get_i64(buf)?;
+            if version >= 5 {
+                let _log_start = buf::get_i64(buf)?;
+            }
             let partition_max_bytes = buf::get_i32(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
@@ -946,22 +968,28 @@ pub fn decode_fetch_request<B: Buf>(
             partitions,
         });
     }
-    let forgotten = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    for _ in 0..forgotten {
-        if version >= 13 {
-            let _id = buf::get_uuid(buf)?;
-        } else {
-            let _t = buf::get_string(buf, flexible)?;
-        }
-        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        for _ in 0..pn {
-            let _p = buf::get_i32(buf)?;
-        }
-        if flexible {
-            buf::skip_tagged_fields(buf)?;
+    if version >= 7 {
+        let forgotten = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        for _ in 0..forgotten {
+            if version >= 13 {
+                let _id = buf::get_uuid(buf)?;
+            } else {
+                let _t = buf::get_string(buf, flexible)?;
+            }
+            let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+            for _ in 0..pn {
+                let _p = buf::get_i32(buf)?;
+            }
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
         }
     }
-    let rack = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let rack = if version >= 11 {
+        buf::get_string(buf, flexible)?.unwrap_or_default()
+    } else {
+        String::new()
+    };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
@@ -972,7 +1000,10 @@ pub fn decode_fetch_request<B: Buf>(
 ///
 /// Top-level ErrorCode is `0` and SessionId is
 /// [`FetchMetadata::INVALID_SESSION_ID`]. Those fields are v7+; below v7
-/// they are omitted.
+/// they are omitted. LogStartOffset is v5+. PreferredReadReplica is v11+.
+/// Below those versions the fields are omitted even when the body is
+/// non-default; decode fills [`FetchedPartition::INVALID_LOG_START_OFFSET`]
+/// / [`FetchedPartition::INVALID_PREFERRED_REPLICA_ID`].
 pub fn encode_fetch_response(
     buf: &mut BytesMut,
     version: i16,
@@ -1016,7 +1047,9 @@ pub fn encode_fetch_response_with_endpoints(
             buf.put_i16(p.error_code);
             buf.put_i64(p.high_watermark);
             buf.put_i64(p.last_stable_offset);
-            buf.put_i64(p.log_start_offset);
+            if version >= 5 {
+                buf.put_i64(p.log_start_offset);
+            }
             buf::put_array_len(buf, flexible, Some(p.aborted_transactions.len()))?;
             for (pid, first) in &p.aborted_transactions {
                 buf.put_i64(*pid);
@@ -1025,7 +1058,9 @@ pub fn encode_fetch_response_with_endpoints(
                     buf::put_empty_tagged_fields(buf);
                 }
             }
-            buf.put_i32(p.preferred_read_replica);
+            if version >= 11 {
+                buf.put_i32(p.preferred_read_replica);
+            }
             let mut recs = BytesMut::new();
             for batch in &p.records {
                 records::encode_record_batch(&mut recs, batch)?;
@@ -1059,6 +1094,9 @@ pub fn encode_fetch_response_with_endpoints(
 /// `(topics, node_endpoints, error_code, session_id)`.
 ///
 /// Below v7 ErrorCode and SessionId are omitted; decode fills `0`.
+/// LogStartOffset is v5+; PreferredReadReplica is v11+; below those
+/// versions decode fills [`FetchedPartition::INVALID_LOG_START_OFFSET`] /
+/// [`FetchedPartition::INVALID_PREFERRED_REPLICA_ID`].
 pub fn decode_fetch_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -1082,7 +1120,11 @@ pub fn decode_fetch_response<B: Buf>(
             let error_code = buf::get_i16(buf)?;
             let high_watermark = buf::get_i64(buf)?;
             let last_stable_offset = buf::get_i64(buf)?;
-            let log_start_offset = buf::get_i64(buf)?;
+            let log_start_offset = if version >= 5 {
+                buf::get_i64(buf)?
+            } else {
+                FetchedPartition::INVALID_LOG_START_OFFSET
+            };
             let aborted_len = buf::get_array_len(buf, flexible)?.unwrap_or(0);
             let mut aborted_transactions = Vec::with_capacity(aborted_len);
             for _ in 0..aborted_len {
@@ -1093,7 +1135,11 @@ pub fn decode_fetch_response<B: Buf>(
                 }
                 aborted_transactions.push((pid, first));
             }
-            let preferred_read_replica = buf::get_i32(buf)?;
+            let preferred_read_replica = if version >= 11 {
+                buf::get_i32(buf)?
+            } else {
+                FetchedPartition::INVALID_PREFERRED_REPLICA_ID
+            };
             let rec_bytes = if flexible {
                 buf::take_compact_bytes(buf)?.unwrap_or_else(Bytes::new)
             } else {
@@ -2261,6 +2307,226 @@ mod tests {
             &v6[..],
             &with[..],
             "v7 adds ErrorCode and SessionId after ThrottleTimeMs"
+        );
+    }
+
+    #[test]
+    fn fetch_json_version_gates_match_java() {
+        let req = [FetchTopic {
+            topic: "t".into(),
+            topic_id: [0; 16],
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: 7,
+                fetch_offset: 3,
+                last_fetched_epoch: -1,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        let mut v8 = BytesMut::new();
+        encode_fetch_request(&mut v8, 8, 10, 1, 1024, 0, &req, Some("az1")).unwrap();
+        let mut v8_default = BytesMut::new();
+        encode_fetch_request(
+            &mut v8_default,
+            8,
+            10,
+            1,
+            1024,
+            0,
+            &[FetchTopic {
+                topic: "t".into(),
+                topic_id: [0; 16],
+                partitions: vec![FetchPartition {
+                    partition: 0,
+                    current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    fetch_offset: 3,
+                    last_fetched_epoch: -1,
+                    partition_max_bytes: 1024,
+                }],
+            }],
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            &v8[..],
+            &v8_default[..],
+            "v8 encode omits CurrentLeaderEpoch and RackId even when the body has values"
+        );
+        let mut cur = v8.as_ref();
+        let (_, _, decoded, rack) = decode_fetch_request(&mut cur, 8).unwrap();
+        assert_eq!(
+            decoded[0].partitions[0].current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert!(rack.is_empty());
+        assert!(cur.is_empty(), "Fetch v8 CurrentLeaderEpoch leftover-empty");
+
+        let mut v9 = BytesMut::new();
+        encode_fetch_request(&mut v9, 9, 10, 1, 1024, 0, &req, Some("az1")).unwrap();
+        let mut cur = v9.as_ref();
+        let (_, _, decoded, rack) = decode_fetch_request(&mut cur, 9).unwrap();
+        assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
+        assert!(rack.is_empty());
+        assert!(cur.is_empty(), "Fetch v9 CurrentLeaderEpoch leftover-empty");
+        assert_ne!(
+            &v8[..],
+            &v9[..],
+            "v9 adds CurrentLeaderEpoch even when RackId is still omitted"
+        );
+
+        let mut v10 = BytesMut::new();
+        encode_fetch_request(&mut v10, 10, 10, 1, 1024, 0, &req, Some("az1")).unwrap();
+        let mut v10_none = BytesMut::new();
+        encode_fetch_request(&mut v10_none, 10, 10, 1, 1024, 0, &req, None).unwrap();
+        assert_eq!(
+            &v10[..],
+            &v10_none[..],
+            "v10 encode omits RackId even when the body has a rack"
+        );
+        let mut cur = v10.as_ref();
+        let (_, _, _, rack) = decode_fetch_request(&mut cur, 10).unwrap();
+        assert!(rack.is_empty());
+        assert!(cur.is_empty(), "Fetch v10 RackId leftover-empty");
+
+        let mut v11 = BytesMut::new();
+        encode_fetch_request(&mut v11, 11, 10, 1, 1024, 0, &req, Some("az1")).unwrap();
+        let mut cur = v11.as_ref();
+        let (_, _, decoded, rack) = decode_fetch_request(&mut cur, 11).unwrap();
+        assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
+        assert_eq!(rack, "az1");
+        assert!(cur.is_empty(), "Fetch v11 RackId leftover-empty");
+        assert_ne!(
+            &v10[..],
+            &v11[..],
+            "v11 adds RackId even when CurrentLeaderEpoch is already present"
+        );
+
+        let mut v4 = BytesMut::new();
+        encode_fetch_request(&mut v4, 4, 10, 1, 1024, 0, &req, Some("az1")).unwrap();
+        let mut v5 = BytesMut::new();
+        encode_fetch_request(&mut v5, 5, 10, 1, 1024, 0, &req, Some("az1")).unwrap();
+        let mut v6 = BytesMut::new();
+        encode_fetch_request(&mut v6, 6, 10, 1, 1024, 0, &req, Some("az1")).unwrap();
+        let mut v7 = BytesMut::new();
+        encode_fetch_request(&mut v7, 7, 10, 1, 1024, 0, &req, Some("az1")).unwrap();
+        let mut cur = v4.as_ref();
+        let (_, _, decoded, _) = decode_fetch_request(&mut cur, 4).unwrap();
+        assert_eq!(
+            decoded[0].partitions[0].current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert!(cur.is_empty(), "Fetch v4 SessionId leftover-empty");
+        assert_ne!(
+            &v4[..],
+            &v5[..],
+            "v5 adds request LogStartOffset even when SessionId is still omitted"
+        );
+        assert_eq!(
+            &v5[..],
+            &v6[..],
+            "v5–v6 Fetch requests omit SessionId / ForgottenTopicsData"
+        );
+        assert_ne!(
+            &v6[..],
+            &v7[..],
+            "v7 adds SessionId / SessionEpoch / ForgottenTopicsData"
+        );
+        let mut cur = v7.as_ref();
+        let (_, _, decoded, _) = decode_fetch_request(&mut cur, 7).unwrap();
+        assert_eq!(
+            decoded[0].partitions[0].current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert!(cur.is_empty(), "Fetch v7 SessionId leftover-empty");
+
+        let part = |log_start: i64, replica: i32| FetchedTopic {
+            topic: "t".into(),
+            topic_id: [0; 16],
+            partitions: vec![FetchedPartition {
+                partition: 0,
+                error_code: 0,
+                high_watermark: 1,
+                last_stable_offset: 1,
+                log_start_offset: log_start,
+                aborted_transactions: Vec::new(),
+                preferred_read_replica: replica,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
+                records: Vec::new(),
+            }],
+        };
+        let with = [part(5, 3)];
+        let defaults = [part(
+            FetchedPartition::INVALID_LOG_START_OFFSET,
+            FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
+        )];
+        let mut v4_resp = BytesMut::new();
+        encode_fetch_response(&mut v4_resp, 4, &with).unwrap();
+        let mut v4_def = BytesMut::new();
+        encode_fetch_response(&mut v4_def, 4, &defaults).unwrap();
+        assert_eq!(
+            &v4_resp[..],
+            &v4_def[..],
+            "v4 encode omits LogStartOffset and PreferredReadReplica even when the body has values"
+        );
+        let mut cur = v4_resp.as_ref();
+        let (decoded, _, _, _) = decode_fetch_response(&mut cur, 4).unwrap();
+        assert_eq!(
+            decoded[0].partitions[0].log_start_offset,
+            FetchedPartition::INVALID_LOG_START_OFFSET
+        );
+        assert_eq!(
+            decoded[0].partitions[0].preferred_read_replica,
+            FetchedPartition::INVALID_PREFERRED_REPLICA_ID
+        );
+        assert!(cur.is_empty(), "Fetch v4 LogStartOffset leftover-empty");
+
+        let mut v5_resp = BytesMut::new();
+        encode_fetch_response(&mut v5_resp, 5, &with).unwrap();
+        let mut cur = v5_resp.as_ref();
+        let (decoded, _, _, _) = decode_fetch_response(&mut cur, 5).unwrap();
+        assert_eq!(decoded[0].partitions[0].log_start_offset, 5);
+        assert_eq!(
+            decoded[0].partitions[0].preferred_read_replica,
+            FetchedPartition::INVALID_PREFERRED_REPLICA_ID
+        );
+        assert!(cur.is_empty(), "Fetch v5 LogStartOffset leftover-empty");
+        assert_ne!(
+            &v4_resp[..],
+            &v5_resp[..],
+            "v5 adds LogStartOffset even when PreferredReadReplica is still omitted"
+        );
+
+        let mut v10_resp = BytesMut::new();
+        encode_fetch_response(&mut v10_resp, 10, &with).unwrap();
+        let mut v10_def = BytesMut::new();
+        encode_fetch_response(
+            &mut v10_def,
+            10,
+            std::slice::from_ref(&part(5, FetchedPartition::INVALID_PREFERRED_REPLICA_ID)),
+        )
+        .unwrap();
+        assert_eq!(
+            &v10_resp[..],
+            &v10_def[..],
+            "v10 encode omits PreferredReadReplica even when the body has a replica"
+        );
+        let mut v11_resp = BytesMut::new();
+        encode_fetch_response(&mut v11_resp, 11, &with).unwrap();
+        let mut cur = v11_resp.as_ref();
+        let (decoded, _, _, _) = decode_fetch_response(&mut cur, 11).unwrap();
+        assert_eq!(decoded[0].partitions[0].log_start_offset, 5);
+        assert_eq!(decoded[0].partitions[0].preferred_read_replica, 3);
+        assert!(
+            cur.is_empty(),
+            "Fetch v11 PreferredReadReplica leftover-empty"
+        );
+        assert_ne!(
+            &v10_resp[..],
+            &v11_resp[..],
+            "v11 adds PreferredReadReplica after LogStartOffset"
         );
     }
 

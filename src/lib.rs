@@ -883,7 +883,12 @@
 //! flexible; v13+ topic IDs, KIP-516; v15 omits untagged ReplicaId, KIP-903;
 //! v16 CurrentLeader / NodeEndpoints, KIP-951; v17 omits ReplicaDirectoryId, KIP-853;
 //! v12+ LastFetchedEpoch from the last consumed batch, KIP-320;
-//! decode below v12 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). v18+
+//! decode below v12 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`];
+//! SessionId / ForgottenTopicsData are v7+; request LogStartOffset is v5+;
+//! CurrentLeaderEpoch is v9+; RackId and response PreferredReadReplica are
+//! v11+; response LogStartOffset is v5+; below those versions encode omits
+//! the field even when the body has a value and decode fills the JSON
+//! default). v18+
 //! is not spoken. [`protocol::fetch::FetchedPartition::INVALID_HIGH_WATERMARK`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_LAST_STABLE_OFFSET`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_LOG_START_OFFSET`] /
