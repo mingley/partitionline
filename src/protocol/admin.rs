@@ -8123,6 +8123,17 @@ impl ListTransactionsResponse {
     pub fn transaction_states(&self) -> &[TransactionListing] {
         &self.transaction_states
     }
+
+    /// Java `ListTransactionsResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `updateErrorCounts` / `AbstractResponse.errorCounts`). Unknown
+    /// state filters and listings are not counted. This is not
+    /// DescribeTransactions `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
 }
 
 /// Encode a ListTransactions v0–v1 request.
@@ -23710,6 +23721,61 @@ mod tests {
             zero.throttle_time_ms, 0,
             "ListTransactionsResponse::new still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn list_transactions_response_error_counts_matches_java() {
+        // Java ListTransactionsResponse.errorCounts:
+        // updateErrorCounts(map, Errors.forCode(data.errorCode())),
+        // including NONE. Official Java ListTransactionsResponse.errorCounts.
+        // Java ListTransactionsResponse has no error() helper. Unknown
+        // state filters and listings are not counted. This is not
+        // DescribeTransactions errorCounts / AllocateProducerIds
+        // errorCounts.
+        assert_eq!(
+            ListTransactionsResponse::new(0, Vec::new(), Vec::new()).error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        let listing = TransactionListing {
+            transactional_id: "tx".into(),
+            producer_id: 1001,
+            transaction_state: "Ongoing".into(),
+        };
+        assert_eq!(
+            ListTransactionsResponse::new(
+                crate::error::NOT_COORDINATOR,
+                vec!["Nope".into()],
+                vec![listing.clone()],
+            )
+            .error_counts(),
+            HashMap::from([(crate::error::NOT_COORDINATOR, 1)])
+        );
+        for version in 0..=1_i16 {
+            let mut resp = BytesMut::new();
+            encode_list_transactions_response(
+                &mut resp,
+                version,
+                &ListTransactionsResponse::new(
+                    crate::error::NOT_COORDINATOR,
+                    vec!["Nope".into()],
+                    vec![listing.clone()],
+                ),
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_list_transactions_response(&mut cur, version).unwrap();
+            assert_eq!(
+                decoded.error_counts(),
+                HashMap::from([(crate::error::NOT_COORDINATOR, 1)]),
+                "ListTransactions v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "ListTransactions v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]
