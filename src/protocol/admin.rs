@@ -2590,7 +2590,10 @@ impl IncrementalAlterConfigsResponse {
     /// [`ApiError::error`] / [`ApiError::message`] (the message is
     /// copied; contrast [`AlterConfigsResourceResult::error`], which
     /// leaves `ErrorMessage` null). Inverse of [`Self::from_response_data`].
-    /// Throttle is unused in this helper (crate encode writes `0`).
+    /// Throttle is unused in this helper
+    /// ([`encode_incremental_alter_configs_resource_results`] still writes
+    /// `0`). Official Java constructor sets `throttleTimeMs` from the
+    /// argument.
     #[must_use]
     pub fn from_errors<'a, I>(results: I) -> Vec<AlterConfigsResourceResult>
     where
@@ -2803,13 +2806,30 @@ pub fn encode_incremental_alter_configs_response(
 }
 
 /// Encode IncrementalAlterConfigs Responses of N.
+///
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`).
 pub fn encode_incremental_alter_configs_resource_results(
     buf: &mut BytesMut,
     version: i16,
     results: &[AlterConfigsResourceResult],
 ) -> crate::error::Result<()> {
+    encode_incremental_alter_configs_resource_results_with_throttle(buf, version, results, 0)
+}
+
+/// Encode IncrementalAlterConfigs v0–v1 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version. v0 is
+/// classic. v1 is flexible. Kafka 4.0 `validVersions` is `0-1`. This
+/// crate speaks 0–1. v2+ is not spoken.
+pub fn encode_incremental_alter_configs_resource_results_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[AlterConfigsResourceResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = incremental_alter_configs_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
         buf.put_i16(r.error_code);
@@ -2828,17 +2848,20 @@ pub fn encode_incremental_alter_configs_resource_results(
 
 /// Decode an IncrementalAlterConfigs response (first resource error).
 pub fn decode_incremental_alter_configs_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
-    let results = decode_incremental_alter_configs_resource_results(buf, version)?;
+    let (results, ..) = decode_incremental_alter_configs_resource_results(buf, version)?;
     Ok(results.first().map(|r| r.error_code).unwrap_or(0))
 }
 
 /// Decode IncrementalAlterConfigs: every resource result.
+///
+/// Returns `(results, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire).
 pub fn decode_incremental_alter_configs_resource_results<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<AlterConfigsResourceResult>> {
+) -> Result<(Vec<AlterConfigsResourceResult>, i32)> {
     let flexible = incremental_alter_configs_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
@@ -2859,7 +2882,7 @@ pub fn decode_incremental_alter_configs_resource_results<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(out)
+    Ok((out, throttle_time_ms))
 }
 
 /// `true` when AlterConfigs `version` is flexible.
@@ -16129,10 +16152,9 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_incremental_alter_configs_resource_results(&mut buf, version, &results).unwrap();
             let mut cur = buf.as_ref();
-            assert_eq!(
-                decode_incremental_alter_configs_resource_results(&mut cur, version).unwrap(),
-                results
-            );
+            let (got, ..) =
+                decode_incremental_alter_configs_resource_results(&mut cur, version).unwrap();
+            assert_eq!(got, results);
             assert!(
                 !cur.has_remaining(),
                 "IncrementalAlterConfigs v{version} from_errors leftover-empty; leftover {} bytes",
@@ -16141,10 +16163,9 @@ mod tests {
             buf.clear();
             encode_incremental_alter_configs_resource_results(&mut buf, version, &empty).unwrap();
             let mut cur = buf.as_ref();
-            assert_eq!(
-                decode_incremental_alter_configs_resource_results(&mut cur, version).unwrap(),
-                empty
-            );
+            let (got, ..) =
+                decode_incremental_alter_configs_resource_results(&mut cur, version).unwrap();
+            assert_eq!(got, empty);
             assert!(
                 !cur.has_remaining(),
                 "IncrementalAlterConfigs v{version} from_errors empty leftover-empty; leftover {} bytes",
@@ -18541,6 +18562,72 @@ mod tests {
     }
 
     #[test]
+    fn incremental_alter_configs_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 IncrementalAlterConfigsResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on spoken v0–v1; first field). Official
+        // Java IncrementalAlterConfigsResponse constructor /
+        // throttleTimeMs / maybeSetThrottleTimeMs set / read it.
+        // IncrementalAlterConfigsRequest.getErrorResponse leaves
+        // ThrottleTimeMs at the JSON default (does not set the
+        // argument). encode_incremental_alter_configs_resource_results
+        // still writes 0. Empty-Responses v0 != v1 (classic vs
+        // compact+tagged). This crate speaks 0–1. This is not
+        // CreatePartitions ThrottleTimeMs.
+        let results: Vec<AlterConfigsResourceResult> = vec![];
+        for version in [0, 1] {
+            let mut buf = BytesMut::new();
+            encode_incremental_alter_configs_resource_results_with_throttle(
+                &mut buf, version, &results, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_incremental_alter_configs_resource_results(&mut cur, version).unwrap();
+            assert_eq!(decoded, results);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "IncrementalAlterConfigs v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_incremental_alter_configs_resource_results_with_throttle(
+            &mut with, 0, &results, 3_600_000,
+        )
+        .unwrap();
+        let mut zero = BytesMut::new();
+        encode_incremental_alter_configs_resource_results_with_throttle(&mut zero, 0, &results, 0)
+            .unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_incremental_alter_configs_resource_results(&mut conv, 0, &results).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_incremental_alter_configs_resource_results still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_incremental_alter_configs_resource_results_with_throttle(
+            &mut v1_with,
+            1,
+            &results,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &v1_with[..],
+            "v1 adds compact arrays/strings plus tagged fields"
+        );
+    }
+
+    #[test]
     fn incremental_alter_configs_not_controller_is_not_at_byte_four() {
         for version in [0i16, 1] {
             let mut buf = BytesMut::new();
@@ -18773,10 +18860,8 @@ mod tests {
         buf.clear();
         encode_incremental_alter_configs_resource_results(&mut buf, 1, &err_results).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_incremental_alter_configs_resource_results(&mut cur, 1).unwrap(),
-            err_results
-        );
+        let (got, ..) = decode_incremental_alter_configs_resource_results(&mut cur, 1).unwrap();
+        assert_eq!(got, err_results);
         assert!(
             !cur.has_remaining(),
             "IncrementalAlterConfigs v1 getErrorResponse leftover-empty; leftover {} bytes",
@@ -18785,10 +18870,8 @@ mod tests {
         buf.clear();
         encode_incremental_alter_configs_resource_results(&mut buf, 0, &err_results).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_incremental_alter_configs_resource_results(&mut cur, 0).unwrap(),
-            err_results
-        );
+        let (got, ..) = decode_incremental_alter_configs_resource_results(&mut cur, 0).unwrap();
+        assert_eq!(got, err_results);
         assert!(
             !cur.has_remaining(),
             "IncrementalAlterConfigs v0 getErrorResponse leftover-empty; leftover {} bytes",
@@ -18802,10 +18885,8 @@ mod tests {
         )
         .unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_incremental_alter_configs_resource_results(&mut cur, 1).unwrap(),
-            vec![broker_err]
-        );
+        let (got, ..) = decode_incremental_alter_configs_resource_results(&mut cur, 1).unwrap();
+        assert_eq!(got, vec![broker_err]);
         assert!(
             !cur.has_remaining(),
             "IncrementalAlterConfigs broker getErrorResponse leftover-empty; leftover {} bytes",
@@ -18814,10 +18895,8 @@ mod tests {
         buf.clear();
         encode_incremental_alter_configs_resource_results(&mut buf, 1, &empty).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_incremental_alter_configs_resource_results(&mut cur, 1).unwrap(),
-            empty
-        );
+        let (got, ..) = decode_incremental_alter_configs_resource_results(&mut cur, 1).unwrap();
+        assert_eq!(got, empty);
         assert!(
             !cur.has_remaining(),
             "IncrementalAlterConfigs empty getErrorResponse leftover-empty; leftover {} bytes",

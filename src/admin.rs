@@ -4515,7 +4515,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let results =
+            let (results, ..) =
                 decode_incremental_alter_configs_resource_results(&mut body.clone(), version)?;
             if results
                 .iter()

@@ -746,7 +746,7 @@
 //! `ErrorMessage` stays the JSON default (null); official Java also
 //! sets the English `Errors.message` string;
 //! [`protocol::admin::encode_create_partitions_response`] still writes `0`),
-//! IncrementalAlterConfigs v0–v1 (v1 flexible; Resources of N;
+//! IncrementalAlterConfigs v0–v1 (v1 flexible; Resources of N; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::IncrementalAlterConfigsResponse::should_client_throttle`] is Java
 //! `IncrementalAlterConfigsResponse.shouldClientThrottle` (v0+);
 //! [`protocol::admin::IncrementalAlterConfigsResponse::error_counts`] is Java
@@ -757,7 +757,8 @@
 //! [`protocol::admin::IncrementalAlterConfigsResponse::from_errors`] is Java
 //! `IncrementalAlterConfigsResponse` constructed from a result map (type
 //! id + name plus [`ApiError`] into Responses; `ErrorMessage` is copied;
-//! throttle unused);
+//! throttle unused;
+//! [`protocol::admin::encode_incremental_alter_configs_resource_results`] still writes `0`;
 //! [`protocol::admin::IncrementalAlterConfigsRequest::from_configs`] is Java
 //! `IncrementalAlterConfigsRequest.Builder` from a resource list and
 //! configs map (missing `Map.get` is [`Error::protocol`]; mapKey first
