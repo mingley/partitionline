@@ -879,9 +879,10 @@
 //! `AddPartitionsToTxnRequest.buildTxnTopicCollection` (group by name;
 //! a later entry for the same topic appends; first-seen topic order;
 //! duplicate pairs kept)), AddOffsetsToTxn v0–v4
-//! (v3+ flexible; v4 TRANSACTION_ABORTABLE;
+//! (v3+ flexible; v4 TRANSACTION_ABORTABLE; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::txn::AddOffsetsToTxnResponse::should_client_throttle`] is Java
-//! `AddOffsetsToTxnResponse.shouldClientThrottle` (v1+)), EndTxn v0–v5
+//! `AddOffsetsToTxnResponse.shouldClientThrottle` (v1+);
+//! [`protocol::txn::encode_add_offsets_to_txn_response`] still writes `0`), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch;
 //! [`protocol::txn::EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
 //! [`protocol::txn::EndTxnRequest::error_response`] is Java

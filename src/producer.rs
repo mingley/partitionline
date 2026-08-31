@@ -1665,10 +1665,13 @@ impl Producer {
                     )
                 },
                 timeout,
-                |body| decode_add_offsets_to_txn_response(&mut { body }, add_offsets_version),
+                |body| {
+                    Ok(decode_add_offsets_to_txn_response(&mut { body }, add_offsets_version)?.0)
+                },
             )
             .await?;
-            let err = decode_add_offsets_to_txn_response(&mut body.clone(), add_offsets_version)?;
+            let (err, ..) =
+                decode_add_offsets_to_txn_response(&mut body.clone(), add_offsets_version)?;
             if err != 0 {
                 return Err(Error::broker(err, "AddOffsetsToTxn"));
             }

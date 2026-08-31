@@ -644,13 +644,32 @@ pub fn decode_add_offsets_to_txn_request<B: Buf>(
 }
 
 /// Encode AddOffsetsToTxn: throttle `0` plus error code.
+///
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`).
 pub fn encode_add_offsets_to_txn_response(
     buf: &mut BytesMut,
     version: i16,
     error: i16,
 ) -> Result<()> {
+    encode_add_offsets_to_txn_response_with_throttle(buf, version, error, 0)
+}
+
+/// Encode AddOffsetsToTxn v0–v4 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
+/// v0–v2 are classic. v3–v4 are flexible. v4 is the same layout
+/// (KIP-890 TRANSACTION_ABORTABLE). Kafka 4.0 `validVersions` is `0-4`.
+/// This crate speaks 0–4. v5+ is not spoken. Top-level ErrorCode is at
+/// bytes 4–5.
+pub fn encode_add_offsets_to_txn_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    error: i16,
+    throttle_time_ms: i32,
+) -> Result<()> {
     let flexible = add_offsets_to_txn_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf.put_i16(error);
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -658,15 +677,18 @@ pub fn encode_add_offsets_to_txn_response(
     Ok(())
 }
 
-/// Decode AddOffsetsToTxn: error code.
-pub fn decode_add_offsets_to_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+/// Decode AddOffsetsToTxn: `(error_code, throttle_time_ms)`.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire). Top-level ErrorCode
+/// is at bytes 4–5.
+pub fn decode_add_offsets_to_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16, i32)> {
     let flexible = add_offsets_to_txn_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let err = buf::get_i16(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(err)
+    Ok((err, throttle_time_ms))
 }
 
 /// `true` when EndTxn `version` is flexible (v3+).
@@ -4279,6 +4301,76 @@ mod tests {
     }
 
     #[test]
+    fn add_offsets_to_txn_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 AddOffsetsToTxnResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0–v4; first field). Official
+        // Java AddOffsetsToTxnRequest.getErrorResponse /
+        // AddOffsetsToTxnResponse.throttleTimeMs set / read it.
+        // encode_add_offsets_to_txn_response still writes the JSON
+        // default 0. KIP-219 only changes shouldClientThrottle (v1+).
+        // Empty-error v0 == v1 == v2 (classic); v3 == v4 (flexible;
+        // TRANSACTION_ABORTABLE same layout). Top-level ErrorCode is at
+        // bytes 4–5. This crate speaks 0–4. This is not
+        // AddPartitionsToTxn ThrottleTimeMs.
+        for version in [0, 1, 2, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_add_offsets_to_txn_response_with_throttle(&mut buf, version, 0, 3_600_000)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_add_offsets_to_txn_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, 0);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "AddOffsetsToTxn v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_add_offsets_to_txn_response_with_throttle(&mut with, 0, 0, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_add_offsets_to_txn_response_with_throttle(&mut zero, 0, 0, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_add_offsets_to_txn_response(&mut conv, 0, 0).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_add_offsets_to_txn_response still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_add_offsets_to_txn_response_with_throttle(&mut v1_with, 1, 0, 3_600_000).unwrap();
+        let mut v2_with = BytesMut::new();
+        encode_add_offsets_to_txn_response_with_throttle(&mut v2_with, 2, 0, 3_600_000).unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "empty-error ThrottleTimeMs bodies: v0 == v1"
+        );
+        assert_eq!(
+            &v1_with[..],
+            &v2_with[..],
+            "empty-error ThrottleTimeMs bodies: v1 == v2"
+        );
+        let mut v3_with = BytesMut::new();
+        encode_add_offsets_to_txn_response_with_throttle(&mut v3_with, 3, 0, 3_600_000).unwrap();
+        assert_ne!(&v2_with[..], &v3_with[..], "v3 adds compact tagged fields");
+        let mut v4_with = BytesMut::new();
+        encode_add_offsets_to_txn_response_with_throttle(&mut v4_with, 4, 0, 3_600_000).unwrap();
+        assert_eq!(
+            &v3_with[..],
+            &v4_with[..],
+            "empty-error ThrottleTimeMs bodies: v3 == v4"
+        );
+    }
+
+    #[test]
     fn add_offsets_to_txn_v3_roundtrip_is_leftover_empty() {
         let mut req = BytesMut::new();
         encode_add_offsets_to_txn_request(&mut req, 3, "tx", 9, 1, "g").unwrap();
@@ -4293,7 +4385,10 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_add_offsets_to_txn_response(&mut resp, 3, 0).unwrap();
         let mut cur = &resp[..];
-        assert_eq!(decode_add_offsets_to_txn_response(&mut cur, 3).unwrap(), 0);
+        assert_eq!(
+            decode_add_offsets_to_txn_response(&mut cur, 3).unwrap().0,
+            0
+        );
         assert!(
             cur.is_empty(),
             "AddOffsetsToTxn v3 response must consume compact tagged fields"
