@@ -197,6 +197,33 @@ impl ApiVersionsRequest {
             || (client_software_name_or_version_ok(software_name)
                 && client_software_name_or_version_ok(software_version))
     }
+
+    /// Java `ApiVersionsRequest.getErrorResponse`.
+    ///
+    /// `UNSUPPORTED_VERSION` (35) fills ApiKeys with Java
+    /// `ApiVersionsResponse.toApiVersion(API_VERSIONS)` (this crate /
+    /// Kafka 4.0: min 0, max 4). Any other error, including `NONE`,
+    /// leaves ApiKeys empty. SupportedFeatures / FinalizedFeatures /
+    /// ZkMigrationReady stay at JSON defaults (omitted / empty /
+    /// false). Throttle is the JSON default (`0`); crate encode omits
+    /// the field on v0. Encode still writes the caller's `api_keys`
+    /// as-is.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> ApiVersionsResponse {
+        ApiVersionsResponse {
+            error_code,
+            api_keys: if error_code == crate::error::UNSUPPORTED_VERSION {
+                vec![ApiVersion {
+                    api_key: API_VERSIONS,
+                    min_version: 0,
+                    max_version: 4,
+                }]
+            } else {
+                Vec::new()
+            },
+            ..Default::default()
+        }
+    }
 }
 
 /// Java `ApiVersionsRequest` `SOFTWARE_NAME_VERSION_PATTERN`.
@@ -2953,6 +2980,78 @@ mod tests {
         assert!(!ApiVersionsRequest::is_valid(3, ".x", "0.1.0"));
         assert!(!ApiVersionsRequest::is_valid(3, "x.", "0.1.0"));
         assert!(!ApiVersionsRequest::is_valid(3, "x_y", "0.1.0"));
+    }
+
+    #[test]
+    fn api_versions_request_error_response_matches_java() {
+        // Java ApiVersionsRequest.getErrorResponse: UNSUPPORTED_VERSION
+        // fills ApiKeys with toApiVersion(API_VERSIONS). Any other error
+        // leaves ApiKeys empty. Encode still writes the caller's
+        // api_keys as-is. Throttle is the JSON default (0).
+        let none = ApiVersionsRequest::error_response(0);
+        assert_eq!(none.error_code, 0);
+        assert!(none.api_keys.is_empty());
+        assert_eq!(none.throttle_time_ms, 0);
+        assert!(none.supported_features.is_empty());
+        assert!(none.finalized_features.is_empty());
+        assert!(none.finalized_features_epoch.is_none());
+        assert!(!none.zk_migration_ready);
+
+        let other = ApiVersionsRequest::error_response(crate::error::INVALID_REQUEST);
+        assert_eq!(other.error_code, crate::error::INVALID_REQUEST);
+        assert!(other.api_keys.is_empty());
+
+        let unsupported = ApiVersionsRequest::error_response(crate::error::UNSUPPORTED_VERSION);
+        assert_eq!(unsupported.error_code, crate::error::UNSUPPORTED_VERSION);
+        assert_eq!(
+            unsupported.api_keys,
+            [ApiVersion {
+                api_key: API_VERSIONS,
+                min_version: 0,
+                max_version: 4,
+            }]
+        );
+        assert_eq!(
+            unsupported.api_version(API_VERSIONS).map(|v| v.max_version),
+            Some(4)
+        );
+
+        for version in [0_i16, 1, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &unsupported).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.error_code, crate::error::UNSUPPORTED_VERSION);
+            assert_eq!(decoded.api_keys, unsupported.api_keys);
+            leftover_empty(
+                &cur,
+                match version {
+                    0 => "ApiVersions v0 Request.getErrorResponse leftover-empty",
+                    1 => "ApiVersions v1 Request.getErrorResponse leftover-empty",
+                    3 => "ApiVersions v3 Request.getErrorResponse leftover-empty",
+                    _ => "ApiVersions v4 Request.getErrorResponse leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+        for version in [0_i16, 1, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &none).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.error_code, 0);
+            assert!(decoded.api_keys.is_empty());
+            leftover_empty(
+                &cur,
+                match version {
+                    0 => "ApiVersions v0 Request.getErrorResponse empty leftover-empty",
+                    1 => "ApiVersions v1 Request.getErrorResponse empty leftover-empty",
+                    3 => "ApiVersions v3 Request.getErrorResponse empty leftover-empty",
+                    _ => "ApiVersions v4 Request.getErrorResponse empty leftover-empty",
+                },
+            )
+            .unwrap();
+        }
     }
 
     #[test]

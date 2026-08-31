@@ -315,6 +315,11 @@
 //! `UNKNOWN` instead),
 //! ApiVersions v0–v4 (v3+ ClientSoftwareName; v4 SupportedFeatures.MinVersion 0; KIP-511 retry;
 //! [`protocol::api::ApiVersionsRequest::is_valid`] is Java `ApiVersionsRequest.isValid`;
+//! [`protocol::api::ApiVersionsRequest::error_response`] is Java
+//! `ApiVersionsRequest.getErrorResponse` (`UNSUPPORTED_VERSION` fills
+//! ApiKeys with `toApiVersion(API_VERSIONS)` min 0 max 4; any other
+//! error leaves ApiKeys empty; encode still writes the caller's
+//! `api_keys` as-is);
 //! [`protocol::api::ApiVersionsResponse::api_version`] /
 //! [`protocol::api::ApiVersionsResponse::UNKNOWN_FINALIZED_FEATURES_EPOCH`] /
 //! [`protocol::api::ApiVersionsResponse::should_client_throttle`] /
