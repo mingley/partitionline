@@ -272,7 +272,10 @@
 //! `HeartbeatRequest.getErrorResponse` (v1+ writes the `throttleTimeMs`
 //! argument; below v1 omits it);
 //! [`protocol::group::HeartbeatResponse::should_client_throttle`] is Java
-//! `HeartbeatResponse.shouldClientThrottle` (v2+)),
+//! `HeartbeatResponse.shouldClientThrottle` (v2+);
+//! [`protocol::group::HeartbeatResponse::error_counts`] is Java
+//! `HeartbeatResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`)),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName;
 //! Request GenerationId is JSON `0+` (decode returns it last; encode already
 //! takes `generation_id`; official Java `SyncGroupRequestData.generationId`;

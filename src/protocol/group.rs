@@ -2039,6 +2039,16 @@ impl HeartbeatResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 2
     }
+
+    /// Java `HeartbeatResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). This is not InitProducerId / EndTxn /
+    /// AddOffsetsToTxn / JoinGroup / SyncGroup `errorCounts`.
+    #[must_use]
+    pub fn error_counts(error_code: i16) -> HashMap<i16, i32> {
+        HashMap::from([(error_code, 1)])
+    }
 }
 
 /// Java `HeartbeatRequest` helpers.
@@ -11451,6 +11461,41 @@ mod tests {
             assert!(
                 cur.is_empty(),
                 "Heartbeat v{version} getErrorResponse leftover-empty"
+            );
+        }
+    }
+
+    #[test]
+    fn heartbeat_response_error_counts_matches_java() {
+        // Java HeartbeatResponse.errorCounts:
+        // Collections.singletonMap(Errors.forCode(data.errorCode()), 1),
+        // including NONE. Official Java HeartbeatResponse.errorCounts.
+        // This is not HeartbeatResponse.error / InitProducerId errorCounts /
+        // EndTxn errorCounts / AddOffsetsToTxn errorCounts / JoinGroup
+        // errorCounts / SyncGroup errorCounts.
+        assert_eq!(
+            HeartbeatResponse::error_counts(0),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            HeartbeatResponse::error_counts(crate::error::REBALANCE_IN_PROGRESS),
+            HashMap::from([(crate::error::REBALANCE_IN_PROGRESS, 1)])
+        );
+        for version in 0..=4_i16 {
+            let mut resp = BytesMut::new();
+            encode_heartbeat_response(&mut resp, version, crate::error::NOT_COORDINATOR).unwrap();
+            let mut cur = resp.as_ref();
+            let (err, ..) = decode_heartbeat_response(&mut cur, version).unwrap();
+            assert_eq!(
+                HeartbeatResponse::error_counts(err),
+                HashMap::from([(crate::error::NOT_COORDINATOR, 1)]),
+                "Heartbeat v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "Heartbeat v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
             );
         }
     }
