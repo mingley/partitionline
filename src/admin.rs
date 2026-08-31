@@ -108,8 +108,8 @@ use crate::protocol::txn::{
 
 pub use crate::protocol::acl::{
     AccessControlEntry, AccessControlEntryFilter, AclBinding, AclBindingFilter, AclCreationResult,
-    AclOperation, AclPatternType, AclPermission, AclResourceType, DeletedAclsFilterResult,
-    ResourcePattern, ResourcePatternFilter,
+    AclOperation, AclPatternType, AclPermission, AclResourceType, DeleteAclsMatchingAcl,
+    DeletedAclsFilterResult, ResourcePattern, ResourcePatternFilter,
 };
 pub use crate::protocol::admin::{
     ActiveProducer, AlterConfig, AlterConfigOp, AlterConfigOpType, AlterConfigsResourceResult,
@@ -12783,7 +12783,10 @@ mod tests {
         let deleted = DeletedAclsFilterResult {
             error_code: 0,
             error_message: None,
-            matching: vec![AclBinding::allow_topic("t", "User:alice")],
+            matching: vec![crate::protocol::acl::DeleteAclsResponse::matching_acl(
+                &AclBinding::allow_topic("t", "User:alice"),
+                &crate::error::ApiError::NONE,
+            )],
         };
         assert_eq!(deleted.error_code(), 0);
         assert!(deleted.error_message().is_none());

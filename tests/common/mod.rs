@@ -26,7 +26,7 @@ use partitionline::group::assign_range_subscribed;
 use partitionline::protocol::acl::{
     decode_create_acls_request, decode_delete_acls_request, decode_describe_acls_request,
     encode_create_acls_response, encode_delete_acls_filter_results, encode_describe_acls_response,
-    AclBinding, AclBindingFilter, AclCreationResult, DeletedAclsFilterResult,
+    AclBinding, AclBindingFilter, AclCreationResult, DeleteAclsResponse, DeletedAclsFilterResult,
 };
 use partitionline::protocol::admin::{
     decode_allocate_producer_ids_request, decode_alter_client_quotas_request,
@@ -4592,7 +4592,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .map(|f| DeletedAclsFilterResult {
                         error_code: 0,
                         error_message: None,
-                        matching: original.iter().filter(|a| f.matches(a)).cloned().collect(),
+                        matching: original
+                            .iter()
+                            .filter(|a| f.matches(a))
+                            .map(|a| DeleteAclsResponse::matching_acl(a, &error::ApiError::NONE))
+                            .collect(),
                     })
                     .collect();
                 st.acls.retain(|a| !filters.iter().any(|f| f.matches(a)));

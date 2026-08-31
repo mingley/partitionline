@@ -1205,8 +1205,8 @@ pub struct DeletedAclsFilterResult {
     pub error_code: i16,
     /// Filter-level error message.
     pub error_message: Option<String>,
-    /// Bindings that matched this filter.
-    pub matching: Vec<AclBinding>,
+    /// Matching ACLs for this filter (Java `MatchingAcls`).
+    pub matching: Vec<DeleteAclsMatchingAcl>,
 }
 
 impl DeletedAclsFilterResult {
@@ -1222,9 +1222,9 @@ impl DeletedAclsFilterResult {
         self.error_message.as_deref()
     }
 
-    /// Bindings that matched this filter (Java `FilterResults.values` bindings).
+    /// Matching ACLs for this filter (Java `MatchingAcls`).
     #[must_use]
-    pub fn matching(&self) -> &[AclBinding] {
+    pub fn matching(&self) -> &[DeleteAclsMatchingAcl] {
         &self.matching
     }
 
@@ -1258,10 +1258,9 @@ impl DeletedAclsFilterResult {
 ///
 /// [`DeleteAclsResponse::matching_acl`] fills these fields from an
 /// [`AclBinding`] and [`ApiError`]. [`DeleteAclsResponse::acl_binding`]
-/// rebuilds the binding and drops the error. Encode of
-/// [`DeletedAclsFilterResult`] still writes [`ApiError::NONE`] on each
-/// matching ACE (crate [`DeletedAclsFilterResult::matching`] is
-/// [`AclBinding`]).
+/// rebuilds the binding and drops the error. Encode writes
+/// [`Self::error_message`]; [`encode_delete_acls_response`] still writes
+/// [`ApiError::NONE`] on each matching ACE.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeleteAclsMatchingAcl {
     /// Matching-ACL error, or `0`.
@@ -1673,7 +1672,7 @@ fn reject_delete_acls_matching_unknown_elements(results: &[DeletedAclsFilterResu
     if results
         .iter()
         .flat_map(|r| r.matching.iter())
-        .any(AclBinding::is_unknown)
+        .any(|m| DeleteAclsResponse::acl_binding(m).is_unknown())
     {
         return Err(Error::protocol(
             "DeleteAclsMatchingAcls contain UNKNOWN elements",
@@ -2161,9 +2160,8 @@ fn put_delete_matching_acl(
     buf: &mut BytesMut,
     version: i16,
     flexible: bool,
-    acl: &AclBinding,
+    matching: &DeleteAclsMatchingAcl,
 ) -> Result<()> {
-    let matching = DeleteAclsResponse::matching_acl(acl, &ApiError::NONE);
     buf.put_i16(matching.error_code);
     buf::put_string(buf, flexible, matching.error_message.as_deref())?;
     buf.put_i8(matching.resource_type);
@@ -2185,9 +2183,9 @@ fn get_delete_matching_acl<B: Buf>(
     buf: &mut B,
     version: i16,
     flexible: bool,
-) -> Result<AclBinding> {
-    let _err = buf::get_i16(buf)?;
-    let _msg = buf::get_string(buf, flexible)?;
+) -> Result<DeleteAclsMatchingAcl> {
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_string(buf, flexible)?;
     let resource_type = buf::get_i8(buf)?;
     let resource_name = buf::get_string(buf, flexible)?.unwrap_or_default();
     let pattern_type = if version >= 1 {
@@ -2202,7 +2200,9 @@ fn get_delete_matching_acl<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(AclBinding {
+    Ok(DeleteAclsMatchingAcl {
+        error_code,
+        error_message,
         resource_type,
         resource_name,
         pattern_type,
@@ -2226,7 +2226,10 @@ pub fn encode_delete_acls_response(
         &[DeletedAclsFilterResult {
             error_code,
             error_message: None,
-            matching: matching.to_vec(),
+            matching: matching
+                .iter()
+                .map(|a| DeleteAclsResponse::matching_acl(a, &ApiError::NONE))
+                .collect(),
         }],
     )
 }
@@ -2234,9 +2237,12 @@ pub fn encode_delete_acls_response(
 /// Encode DeleteAcls FilterResults of N.
 ///
 /// ThrottleTimeMs is the JSON default (`0`) on every spoken version
-/// (JSON `0+`). Java `DeleteAclsResponse.validate` rejects non-LITERAL
-/// matching ACL pattern types on v0 (`UnsupportedVersionException`) and
-/// UNKNOWN resource / pattern / operation / permission on MatchingAcls
+/// (JSON `0+`). Matching ErrorMessage is JSON `0+` (nullable STRING on
+/// each MatchingAcl). [`encode_delete_acls_response`] still writes
+/// [`ApiError::NONE`]. Java `DeleteAclsResponse.validate` rejects
+/// non-LITERAL matching ACL pattern types on v0
+/// (`UnsupportedVersionException`) and UNKNOWN resource / pattern /
+/// operation / permission on MatchingAcls
 /// (`DeleteAclsMatchingAcls contain UNKNOWN elements`).
 pub fn encode_delete_acls_filter_results(
     buf: &mut BytesMut,
@@ -2260,7 +2266,12 @@ pub fn encode_delete_acls_filter_results_with_throttle(
     throttle_time_ms: i32,
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
-    reject_v0_non_literal_acl_patterns(version, results.iter().flat_map(|r| r.matching.iter()))?;
+    let matching_bindings: Vec<AclBinding> = results
+        .iter()
+        .flat_map(|r| r.matching.iter())
+        .map(DeleteAclsResponse::acl_binding)
+        .collect();
+    reject_v0_non_literal_acl_patterns(version, matching_bindings.iter())?;
     reject_delete_acls_matching_unknown_elements(results)?;
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
@@ -3196,6 +3207,139 @@ mod tests {
             &v2_with[..],
             &v3_with[..],
             "empty-FilterResults ThrottleTimeMs bodies: v2 == v3"
+        );
+    }
+
+    #[test]
+    fn delete_acls_matching_error_message_matches_java() {
+        // Kafka 4.0.0 DeleteAclsResponse.json MatchingAcl ErrorMessage is
+        // versions 0+ (nullable STRING on spoken v0–v3; after matching
+        // ErrorCode / before ResourceType). Official Java
+        // DeleteAclsMatchingAcl.errorMessage /
+        // DeleteAclsResponse.matchingAcl / aclBinding set / read it.
+        // encode_delete_acls_response still writes ApiError::NONE (null).
+        // Compact null is 0x00; empty compact STRING is 0x01; classic
+        // null STRING is INT16 -1. This crate speaks 0–3. This is not
+        // DescribeAcls ErrorMessage / CreateAcls result ErrorMessage /
+        // DeleteAcls filter ErrorMessage / ShareFetch ErrorMessage /
+        // ApiError.messageWithFallback.
+        let acl = AclBinding::allow_topic("t", "User:alice");
+        let none = DeleteAclsResponse::matching_acl(&acl, &ApiError::NONE);
+        let with_msg =
+            DeleteAclsResponse::matching_acl(&acl, &ApiError::from_code(0, Some("no".into())));
+        for version in [0, 1, 2, 3] {
+            let results = [DeletedAclsFilterResult {
+                error_code: 0,
+                error_message: None,
+                matching: vec![with_msg.clone()],
+            }];
+            let mut buf = BytesMut::new();
+            encode_delete_acls_filter_results(&mut buf, version, &results).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_delete_acls_filter_results(&mut cur, version).unwrap();
+            assert_eq!(decoded, results);
+            assert_eq!(throttle, 0);
+            assert_eq!(
+                decoded.first().and_then(|r| r.matching.first()),
+                Some(&with_msg)
+            );
+            assert_eq!(
+                decoded
+                    .first()
+                    .and_then(|r| r.matching.first())
+                    .and_then(DeleteAclsMatchingAcl::error_message),
+                Some("no")
+            );
+            assert!(
+                cur.is_empty(),
+                "DeleteAcls v{version} matching ErrorMessage leftover-empty"
+            );
+        }
+
+        let with_results = [DeletedAclsFilterResult {
+            error_code: 0,
+            error_message: None,
+            matching: vec![with_msg.clone()],
+        }];
+        let none_results = [DeletedAclsFilterResult {
+            error_code: 0,
+            error_message: None,
+            matching: vec![none.clone()],
+        }];
+        let mut with = BytesMut::new();
+        encode_delete_acls_filter_results(&mut with, 0, &with_results).unwrap();
+        let mut empty = BytesMut::new();
+        encode_delete_acls_filter_results(&mut empty, 0, &none_results).unwrap();
+        assert_ne!(
+            &with[..],
+            &empty[..],
+            "v0 matching ErrorMessage is not always the JSON default null"
+        );
+        let mut conv = BytesMut::new();
+        encode_delete_acls_response(&mut conv, 0, 0, std::slice::from_ref(&acl)).unwrap();
+        assert_eq!(
+            &conv[..],
+            &empty[..],
+            "encode_delete_acls_response still writes matching ErrorMessage null"
+        );
+
+        let filter_msg = [DeletedAclsFilterResult {
+            error_code: 0,
+            error_message: Some("no".into()),
+            matching: vec![none.clone()],
+        }];
+        let mut filter = BytesMut::new();
+        encode_delete_acls_filter_results(&mut filter, 0, &filter_msg).unwrap();
+        assert_ne!(
+            &with[..],
+            &filter[..],
+            "matching ErrorMessage is not DeleteAcls filter ErrorMessage"
+        );
+
+        let empty_present_acl =
+            DeleteAclsResponse::matching_acl(&acl, &ApiError::from_code(0, Some(String::new())));
+        let empty_present = [DeletedAclsFilterResult {
+            error_code: 0,
+            error_message: None,
+            matching: vec![empty_present_acl.clone()],
+        }];
+        let mut empty_present_buf = BytesMut::new();
+        encode_delete_acls_filter_results(&mut empty_present_buf, 0, &empty_present).unwrap();
+        assert_ne!(
+            &empty_present_buf[..],
+            &empty[..],
+            "empty-but-present matching ErrorMessage is not JSON null"
+        );
+        let mut cur = empty_present_buf.as_ref();
+        let (decoded, ..) = decode_delete_acls_filter_results(&mut cur, 0).unwrap();
+        assert_eq!(
+            decoded
+                .first()
+                .and_then(|r| r.matching.first())
+                .and_then(DeleteAclsMatchingAcl::error_message),
+            Some("")
+        );
+        assert!(
+            cur.is_empty(),
+            "DeleteAcls v0 matching ErrorMessage leftover-empty"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_delete_acls_filter_results(&mut v1_with, 1, &with_results).unwrap();
+        assert_ne!(
+            &with[..],
+            &v1_with[..],
+            "non-empty MatchingAcls add PatternType on v1"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_delete_acls_filter_results(&mut v2_with, 2, &with_results).unwrap();
+        assert_ne!(&v1_with[..], &v2_with[..], "v2 adds compact tagged fields");
+        let mut v3_with = BytesMut::new();
+        encode_delete_acls_filter_results(&mut v3_with, 3, &with_results).unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v3_with[..],
+            "MatchingAcls ErrorMessage bodies: v2 == v3"
         );
     }
 

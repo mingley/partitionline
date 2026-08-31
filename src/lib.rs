@@ -903,7 +903,12 @@
 //! [`protocol::acl::DeleteAclsResponse::acl_binding`] are Java
 //! `matchingAcl` / `aclBinding` ([`protocol::acl::DeleteAclsMatchingAcl`];
 //! unknown resource / pattern / operation / permission codes become
-//! UNKNOWN; encode of [`DeletedAclsFilterResult`] matching ACEs is
+//! UNKNOWN; [`DeletedAclsFilterResult::matching`] is
+//! [`protocol::acl::DeleteAclsMatchingAcl`];
+//! DeleteAcls matching ErrorMessage is JSON `0+` (nullable STRING; not
+//! DescribeAcls ErrorMessage / CreateAcls result ErrorMessage /
+//! DeleteAcls filter ErrorMessage);
+//! [`protocol::acl::encode_delete_acls_response`] still writes
 //! [`ApiError::NONE`]);
 //! [`DeletedAclsFilterResult::error`] / [`DeletedAclsFilterResult::error_results`]
 //! are Java `DeleteAclsRequest.getErrorResponse` (one FilterResult /
@@ -2573,7 +2578,7 @@ pub use admin::{
     ConfigResourceUpdate, ConfigSource, ConfigType, ConsumerGroupAssignment,
     ConsumerGroupDescription, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
     CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
-    DeleteShareGroupOffsetsTopic, DeletedAclsFilterResult, DeletedRecords,
+    DeleteAclsMatchingAcl, DeleteShareGroupOffsetsTopic, DeletedAclsFilterResult, DeletedRecords,
     DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic, DescribableLogDirTopic,
     DescribeClusterBroker, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
     DescribeDelegationTokenResponse, DescribeLogDirsPartition, DescribeLogDirsRequest,
