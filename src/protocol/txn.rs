@@ -1525,6 +1525,75 @@ impl fmt::Display for WritableTxnMarker {
     }
 }
 
+/// Java `WriteTxnMarkersRequest` helpers.
+pub struct WriteTxnMarkersRequest;
+
+impl WriteTxnMarkersRequest {
+    /// Java `WriteTxnMarkersRequest.getErrorResponse`.
+    ///
+    /// One error on every request partition. Inner `HashMap.put` keeps
+    /// the last `(topic, partition)` per marker (duplicate pairs are not
+    /// kept). A later marker overwrites an earlier one for the same
+    /// producer id (Java outer `HashMap.put`). Producer order is
+    /// first-seen (Java outer `HashMap.entrySet` order is unspecified).
+    /// Topic grouping is [`WriteTxnMarkersResponse::from_errors`]
+    /// (append; first-seen topic order). Empty topics are dropped.
+    /// Distinct from [`WritableTxnMarker::result`], which copies the
+    /// request layout (`ArrayList` duplicates and empty topics). The
+    /// Java `throttleTimeMs` argument is unused (no throttle field).
+    #[must_use]
+    pub fn error_response(
+        markers: &[WritableTxnMarker],
+        error_code: i16,
+    ) -> Vec<WritableTxnMarkerResult> {
+        let mut producer_order: Vec<i64> = Vec::new();
+        let mut by_producer: HashMap<i64, Vec<(String, i32)>> = HashMap::new();
+        for marker in markers {
+            let mut partition_order: Vec<(String, i32)> = Vec::new();
+            let mut errors_per_partition: HashMap<(String, i32), i16> = HashMap::new();
+            for topic in &marker.topics {
+                for &partition in &topic.partitions {
+                    let key = (topic.name.clone(), partition);
+                    if errors_per_partition
+                        .insert(key.clone(), error_code)
+                        .is_none()
+                    {
+                        partition_order.push(key);
+                    }
+                }
+            }
+            if by_producer
+                .insert(marker.producer_id, partition_order)
+                .is_none()
+            {
+                producer_order.push(marker.producer_id);
+            }
+        }
+        let owned = producer_order
+            .into_iter()
+            .filter_map(|producer_id| {
+                by_producer.remove(&producer_id).map(|partitions| {
+                    (
+                        producer_id,
+                        partitions
+                            .into_iter()
+                            .map(|(topic, partition)| (topic, partition, error_code))
+                            .collect::<Vec<_>>(),
+                    )
+                })
+            })
+            .collect::<Vec<_>>();
+        WriteTxnMarkersResponse::from_errors(owned.iter().map(|(producer_id, partitions)| {
+            (
+                *producer_id,
+                partitions
+                    .iter()
+                    .map(|(topic, partition, error)| (topic.as_str(), *partition, *error)),
+            )
+        }))
+    }
+}
+
 /// One partition in a WriteTxnMarkers response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WritableTxnMarkerPartitionResult {
@@ -2572,6 +2641,232 @@ mod tests {
         assert!(
             cur.is_empty(),
             "WriteTxnMarkers v1 from_partitions leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn write_txn_markers_get_error_response_matches_java() {
+        // Java WriteTxnMarkersRequest.getErrorResponse: inner HashMap.put
+        // keeps the last (topic, partition) per marker. A later marker
+        // overwrites an earlier one for the same producer id. Empty
+        // topics are dropped. Duplicate pairs are not kept. Topic
+        // grouping is WriteTxnMarkersResponse(Map). Distinct from
+        // WritableTxnMarker.result, which copies the request layout.
+        assert!(WriteTxnMarkersRequest::error_response(
+            &[],
+            crate::error::CLUSTER_AUTHORIZATION_FAILED
+        )
+        .is_empty());
+        let grouped = WritableTxnMarker {
+            producer_id: 1000,
+            producer_epoch: 1,
+            transaction_result: TransactionResult::Commit.id(),
+            topics: vec![
+                WritableTxnMarkerTopic {
+                    name: "a".into(),
+                    partitions: vec![0],
+                },
+                WritableTxnMarkerTopic {
+                    name: "b".into(),
+                    partitions: vec![1],
+                },
+                WritableTxnMarkerTopic {
+                    name: "a".into(),
+                    partitions: vec![2],
+                },
+            ],
+            coordinator_epoch: 3,
+        };
+        let err = WriteTxnMarkersRequest::error_response(
+            std::slice::from_ref(&grouped),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+        );
+        assert_eq!(
+            err,
+            vec![WritableTxnMarkerResult {
+                producer_id: 1000,
+                topics: vec![
+                    WritableTxnMarkerTopicResult {
+                        name: "a".into(),
+                        partitions: vec![
+                            WritableTxnMarkerPartitionResult {
+                                partition_index: 0,
+                                error_code: crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                            },
+                            WritableTxnMarkerPartitionResult {
+                                partition_index: 2,
+                                error_code: crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                            },
+                        ],
+                    },
+                    WritableTxnMarkerTopicResult {
+                        name: "b".into(),
+                        partitions: vec![WritableTxnMarkerPartitionResult {
+                            partition_index: 1,
+                            error_code: crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                        }],
+                    },
+                ],
+            }]
+        );
+        let result_layout = grouped.result(crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(result_layout.topics.len(), 3);
+        assert_eq!(err.first().map(|m| m.topics.len()), Some(2));
+        let dup = WritableTxnMarker {
+            producer_id: 1000,
+            producer_epoch: 0,
+            transaction_result: TransactionResult::Abort.id(),
+            topics: vec![WritableTxnMarkerTopic {
+                name: "t".into(),
+                partitions: vec![0, 0],
+            }],
+            coordinator_epoch: 0,
+        };
+        let dup_err = WriteTxnMarkersRequest::error_response(
+            std::slice::from_ref(&dup),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+        );
+        assert_eq!(
+            dup_err.first().and_then(|m| m.topics.first()),
+            Some(&WritableTxnMarkerTopicResult {
+                name: "t".into(),
+                partitions: vec![WritableTxnMarkerPartitionResult {
+                    partition_index: 0,
+                    error_code: crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                }],
+            })
+        );
+        assert_eq!(
+            dup.result(crate::error::CLUSTER_AUTHORIZATION_FAILED)
+                .topics
+                .first()
+                .map(|t| t.partitions.len()),
+            Some(2)
+        );
+        let empty_topic = WritableTxnMarker {
+            producer_id: 7,
+            producer_epoch: 0,
+            transaction_result: false,
+            topics: vec![
+                WritableTxnMarkerTopic {
+                    name: "empty".into(),
+                    partitions: Vec::new(),
+                },
+                WritableTxnMarkerTopic {
+                    name: "kept".into(),
+                    partitions: vec![4],
+                },
+            ],
+            coordinator_epoch: 0,
+        };
+        let dropped = WriteTxnMarkersRequest::error_response(
+            std::slice::from_ref(&empty_topic),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+        );
+        assert_eq!(
+            dropped
+                .first()
+                .map(|m| m.topics.iter().map(|t| t.name.as_str()).collect::<Vec<_>>()),
+            Some(vec!["kept"])
+        );
+        let empty_marker = WritableTxnMarker {
+            producer_id: 8,
+            producer_epoch: 0,
+            transaction_result: false,
+            topics: Vec::new(),
+            coordinator_epoch: 0,
+        };
+        let kept_empty = WriteTxnMarkersRequest::error_response(
+            std::slice::from_ref(&empty_marker),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+        );
+        assert_eq!(
+            kept_empty,
+            vec![WritableTxnMarkerResult {
+                producer_id: 8,
+                topics: Vec::new(),
+            }]
+        );
+        let overwrite = WriteTxnMarkersRequest::error_response(
+            &[
+                WritableTxnMarker {
+                    producer_id: 1,
+                    producer_epoch: 0,
+                    transaction_result: false,
+                    topics: vec![WritableTxnMarkerTopic {
+                        name: "first".into(),
+                        partitions: vec![0],
+                    }],
+                    coordinator_epoch: 0,
+                },
+                WritableTxnMarker {
+                    producer_id: 2,
+                    producer_epoch: 0,
+                    transaction_result: false,
+                    topics: vec![WritableTxnMarkerTopic {
+                        name: "other".into(),
+                        partitions: vec![1],
+                    }],
+                    coordinator_epoch: 0,
+                },
+                WritableTxnMarker {
+                    producer_id: 1,
+                    producer_epoch: 0,
+                    transaction_result: false,
+                    topics: vec![WritableTxnMarkerTopic {
+                        name: "last".into(),
+                        partitions: vec![9],
+                    }],
+                    coordinator_epoch: 0,
+                },
+            ],
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+        );
+        assert_eq!(
+            overwrite
+                .iter()
+                .map(|m| (
+                    m.producer_id,
+                    m.topics.iter().map(|t| t.name.as_str()).collect::<Vec<_>>()
+                ))
+                .collect::<Vec<_>>(),
+            vec![(1, vec!["last"]), (2, vec!["other"])]
+        );
+        let mut buf = BytesMut::new();
+        encode_write_txn_markers_request(&mut buf, 0, std::slice::from_ref(&grouped)).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_write_txn_markers_request(&mut cur, 0).unwrap();
+        assert_eq!(
+            WriteTxnMarkersRequest::error_response(
+                &decoded,
+                crate::error::CLUSTER_AUTHORIZATION_FAILED
+            ),
+            err
+        );
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v0 getErrorResponse request leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_write_txn_markers_response(&mut buf, 0, &err).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_write_txn_markers_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_write_txn_markers_response(&mut buf, 1, &err).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_write_txn_markers_response(&mut cur, 1).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v1 getErrorResponse leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

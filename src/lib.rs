@@ -1568,6 +1568,10 @@
 //! `WriteTxnMarkersRequest.Builder` one marker (group by name; a later
 //! entry for the same topic appends; first-seen topic order; duplicate
 //! pairs kept).
+//! [`protocol::txn::WriteTxnMarkersRequest::error_response`] is Java
+//! `WriteTxnMarkersRequest.getErrorResponse` (one error on every request
+//! partition; inner `HashMap.put` keeps the last pair per marker; a later
+//! marker overwrites the same producer id; empty topics dropped).
 //! [`protocol::txn::WriteTxnMarkersResponse::error_counts`] is Java
 //! `WriteTxnMarkersResponse.errorCounts` (partition-level codes, including `NONE`);
 //! [`protocol::txn::WriteTxnMarkersResponse::errors_by_producer_id`] is Java
