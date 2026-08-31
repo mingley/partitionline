@@ -10804,6 +10804,85 @@ impl DescribedTopicPartitions {
     }
 }
 
+/// Java `org.apache.kafka.common.TopicPartitionInfo`.
+///
+/// [`Display`] is Java `TopicPartitionInfo.toString`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TopicPartitionInfo {
+    /// Partition index.
+    pub partition: i32,
+    /// Leader node, or `None` when the id is missing from the node map
+    /// (Java `HashMap.get` / null).
+    pub leader: Option<Node>,
+    /// Replica nodes in assignment order.
+    pub replicas: Vec<Node>,
+    /// In-sync replica nodes.
+    pub isr: Vec<Node>,
+    /// Eligible leader replicas (KIP-966).
+    pub elr: Vec<Node>,
+    /// Last known eligible leader replicas.
+    pub last_known_elr: Vec<Node>,
+}
+
+impl TopicPartitionInfo {
+    /// Java `TopicPartitionInfo.partition`.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Java `TopicPartitionInfo.leader` (`None` is Java null).
+    #[must_use]
+    pub fn leader(&self) -> Option<&Node> {
+        self.leader.as_ref()
+    }
+
+    /// Java `TopicPartitionInfo.replicas`.
+    #[must_use]
+    pub fn replicas(&self) -> &[Node] {
+        &self.replicas
+    }
+
+    /// Java `TopicPartitionInfo.isr`.
+    #[must_use]
+    pub fn isr(&self) -> &[Node] {
+        &self.isr
+    }
+
+    /// Java `TopicPartitionInfo.elr`.
+    #[must_use]
+    pub fn elr(&self) -> &[Node] {
+        &self.elr
+    }
+
+    /// Java `TopicPartitionInfo.lastKnownElr`.
+    #[must_use]
+    pub fn last_known_elr(&self) -> &[Node] {
+        &self.last_known_elr
+    }
+}
+
+impl fmt::Display for TopicPartitionInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("(partition=")?;
+        write!(f, "{}", self.partition)?;
+        f.write_str(", leader=")?;
+        match &self.leader {
+            Some(leader) => write!(f, "{leader}")?,
+            None => f.write_str("null")?,
+        }
+        f.write_str(", replicas=")?;
+        write_java_node_list(f, &self.replicas)?;
+        f.write_str(", isr=")?;
+        write_java_node_list(f, &self.isr)?;
+        f.write_str(", elr=")?;
+        write_java_node_list(f, &self.elr)?;
+        f.write_str(", lastKnownElr=")?;
+        write_java_node_list(f, &self.last_known_elr)?;
+        f.write_str(")")
+    }
+}
+
 /// DescribeTopicPartitions (api 75) v0 response body.
 ///
 /// **There is no top-level ErrorCode.** The first ErrorCode is the
@@ -10849,6 +10928,33 @@ impl DescribeTopicPartitionsResponse {
         }
         counts
     }
+
+    /// Java `DescribeTopicPartitionsResponse.partitionToTopicPartitionInfo`.
+    ///
+    /// Leader is [`HashMap::get`] (`None` when the leader id is missing).
+    /// Replica / ISR / ELR / last-known-ELR ids use `getOrDefault` with
+    /// `Node(id, "", -1)` when missing. JSON-default null ELR lists map to
+    /// empty (Java `stream` would NPE).
+    #[must_use]
+    pub fn partition_to_topic_partition_info(
+        partition: &DescribedTopicPartition,
+        nodes: &HashMap<i32, Node>,
+    ) -> TopicPartitionInfo {
+        TopicPartitionInfo {
+            partition: partition.partition_index,
+            leader: nodes.get(&partition.leader_id).cloned(),
+            replicas: map_broker_ids(&partition.replica_nodes, nodes),
+            isr: map_broker_ids(&partition.isr_nodes, nodes),
+            elr: map_broker_ids(
+                partition.eligible_leader_replicas.as_deref().unwrap_or(&[]),
+                nodes,
+            ),
+            last_known_elr: map_broker_ids(
+                partition.last_known_elr.as_deref().unwrap_or(&[]),
+                nodes,
+            ),
+        }
+    }
 }
 
 /// Java `DescribeTopicPartitionsRequest` helpers.
@@ -10876,6 +10982,29 @@ impl DescribeTopicPartitionsRequest {
                 .collect(),
         )
     }
+}
+
+fn node_or_placeholder(nodes: &HashMap<i32, Node>, id: i32) -> Node {
+    nodes
+        .get(&id)
+        .cloned()
+        .unwrap_or_else(|| Node::new(id, "", -1, None, false))
+}
+
+fn map_broker_ids(ids: &[i32], nodes: &HashMap<i32, Node>) -> Vec<Node> {
+    ids.iter()
+        .map(|&id| node_or_placeholder(nodes, id))
+        .collect()
+}
+
+fn write_java_node_list(f: &mut fmt::Formatter<'_>, nodes: &[Node]) -> fmt::Result {
+    for (i, node) in nodes.iter().enumerate() {
+        if i > 0 {
+            f.write_str(", ")?;
+        }
+        write!(f, "{node}")?;
+    }
+    Ok(())
 }
 
 fn put_compact_i32s(buf: &mut BytesMut, items: &[i32]) -> crate::error::Result<()> {
@@ -15207,6 +15336,84 @@ mod tests {
                 (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
             ])
         );
+    }
+
+    #[test]
+    fn describe_topic_partitions_partition_to_topic_partition_info_matches_java() {
+        // Java partitionToTopicPartitionInfo: leader is HashMap.get (null
+        // when missing). Replica / ISR / ELR lists use getOrDefault with
+        // Node(id, "", -1). JSON-default null ELR is empty.
+        let leader = Node::new(1, "host", 9092, Some("r1".into()), false);
+        let nodes = HashMap::from([(1, leader.clone())]);
+        let partition = DescribedTopicPartition {
+            error_code: 0,
+            partition_index: 3,
+            leader_id: 1,
+            leader_epoch: 7,
+            replica_nodes: vec![1, 2],
+            isr_nodes: vec![1],
+            eligible_leader_replicas: None,
+            last_known_elr: Some(vec![2]),
+            offline_replicas: Vec::new(),
+        };
+        let info =
+            DescribeTopicPartitionsResponse::partition_to_topic_partition_info(&partition, &nodes);
+        assert_eq!(info.partition(), 3);
+        assert_eq!(info.leader(), Some(&leader));
+        assert_eq!(info.replicas().len(), 2);
+        assert_eq!(info.replicas().first(), Some(&leader));
+        let placeholder = Node::new(2, "", -1, None, false);
+        assert_eq!(info.replicas().get(1), Some(&placeholder));
+        assert_eq!(info.isr(), std::slice::from_ref(&leader));
+        assert!(info.elr().is_empty(), "null ELR maps to empty");
+        assert_eq!(info.last_known_elr(), std::slice::from_ref(&placeholder));
+        assert_eq!(
+            info.to_string(),
+            "(partition=3, leader=host:9092 (id: 1 rack: r1 isFenced: false), replicas=host:9092 (id: 1 rack: r1 isFenced: false), :-1 (id: 2 rack: null isFenced: false), isr=host:9092 (id: 1 rack: r1 isFenced: false), elr=, lastKnownElr=:-1 (id: 2 rack: null isFenced: false))"
+        );
+        let missing_leader = DescribedTopicPartition {
+            leader_id: 9,
+            ..partition.clone()
+        };
+        let no_leader = DescribeTopicPartitionsResponse::partition_to_topic_partition_info(
+            &missing_leader,
+            &nodes,
+        );
+        assert_eq!(no_leader.leader(), None);
+        assert!(
+            no_leader
+                .to_string()
+                .starts_with("(partition=3, leader=null, replicas="),
+            "{}",
+            no_leader
+        );
+        let resp = DescribeTopicPartitionsResponse::new(vec![DescribedTopicPartitions {
+            error_code: 0,
+            name: Some("t".into()),
+            topic_id: [0; 16],
+            is_internal: false,
+            partitions: vec![partition],
+            topic_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        }]);
+        let mut buf = BytesMut::new();
+        encode_describe_topic_partitions_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_describe_topic_partitions_response(&mut cur).unwrap();
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTopicPartitions partitionToTopicPartitionInfo leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let decoded_part = decoded
+            .topics
+            .first()
+            .and_then(|topic| topic.partitions.first())
+            .expect("one partition");
+        let decoded_info = DescribeTopicPartitionsResponse::partition_to_topic_partition_info(
+            decoded_part,
+            &nodes,
+        );
+        assert_eq!(decoded_info, info);
     }
 
     #[test]

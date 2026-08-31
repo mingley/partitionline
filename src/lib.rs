@@ -1656,6 +1656,10 @@
 //! partition-level codes, including `NONE`);
 //! [`protocol::admin::DescribeTopicPartitionsResponse::should_client_throttle`]
 //! is Java `DescribeTopicPartitionsResponse.shouldClientThrottle` (always);
+//! [`protocol::admin::DescribeTopicPartitionsResponse::partition_to_topic_partition_info`]
+//! is Java `DescribeTopicPartitionsResponse.partitionToTopicPartitionInfo`
+//! (leader `HashMap.get`; replica lists `getOrDefault` `Node(id, "", -1)`);
+//! [`TopicPartitionInfo`] is Java `TopicPartitionInfo`;
 //! [`protocol::admin::DescribeTopicPartitionsRequest::error_response`] is Java
 //! `DescribeTopicPartitionsRequest.getErrorResponse` (one topic per request
 //! name; `isInternal` false; empty partitions; request Cursor / limit are
@@ -1957,22 +1961,22 @@ pub use admin::{
     RenewDelegationTokenRequest, RenewDelegationTokenResponse, ReplicaLogDirInfo, ResourcePattern,
     ResourcePatternFilter, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
     ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange, TopicCollection,
-    TopicDescription, TopicListing, TopicPartitionCursor, TopicPartitionReplica,
-    TransactionListing, TransactionState, TransactionTopic, UnregisterBrokerResponse, UpgradeType,
-    UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialResult,
-    UserScramCredentialUpsertion, Uuid, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER,
-    CONFIG_RESOURCE_BROKER_LOGGER, CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP,
-    CONFIG_RESOURCE_TOPIC, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_BROKER,
-    CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER, CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS,
-    CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER, CONFIG_SOURCE_DYNAMIC_GROUP, CONFIG_SOURCE_DYNAMIC_TOPIC,
-    CONFIG_SOURCE_STATIC_BROKER, CONFIG_SOURCE_UNKNOWN, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS,
-    CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD,
-    CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON,
-    ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS, INVALID_OFFSET_LAG, QUOTA_MATCH_ANY,
-    QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN,
-    UNKNOWN_VOLUME_BYTES, UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE,
-    UPGRADE_TYPE_UPGRADE,
+    TopicDescription, TopicListing, TopicPartitionCursor, TopicPartitionInfo,
+    TopicPartitionReplica, TransactionListing, TransactionState, TransactionTopic,
+    UnregisterBrokerResponse, UpgradeType, UserScramCredentialAlteration,
+    UserScramCredentialDeletion, UserScramCredentialResult, UserScramCredentialUpsertion, Uuid,
+    ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT,
+    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
+    CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC,
+    CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_BROKER, CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER,
+    CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS, CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER,
+    CONFIG_SOURCE_DYNAMIC_GROUP, CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_SOURCE_STATIC_BROKER,
+    CONFIG_SOURCE_UNKNOWN, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE,
+    CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT,
+    CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON, ENDPOINT_TYPE_BROKERS,
+    ENDPOINT_TYPE_CONTROLLERS, INVALID_OFFSET_LAG, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT,
+    QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UNKNOWN_VOLUME_BYTES,
+    UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
 };
 pub use config::{
     Acks, AutoOffsetReset, Endpoint, IsolationLevel, ListenerName, Sasl, SecurityProtocol,
