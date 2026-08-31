@@ -32,6 +32,9 @@
 //! [`protocol::api::ProduceRequest::partition_sizes`] is Java
 //! `ProduceRequest.partitionSizes` (`(topic, partition)` to encoded
 //! records size; a later pair adds).
+//! [`protocol::api::ProduceRequest::error_response`] is Java
+//! `ProduceRequest.getErrorResponse` (`acks` `0` is `None`; unique
+//! `partitionSizes` keys otherwise).
 //! InitProducerId is v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId;
 //! first init [`RecordBatch::NO_PRODUCER_ID`] /
 //! [`RecordBatch::NO_PRODUCER_EPOCH`], epoch-bump resume sends the last
@@ -698,6 +701,9 @@
 //! `ProduceResponse.PartitionResponse(Errors)`.
 //! [`protocol::api::ProduceTopicData::error_result`] is Java
 //! `ProduceRequest.getErrorResponse` (one topic).
+//! [`protocol::api::ProduceRequest::error_response`] is Java
+//! `ProduceRequest.getErrorResponse` (`acks` `0` is `None`; unique
+//! `partitionSizes` keys otherwise).
 //! [`protocol::api::ProduceResponse::should_client_throttle`] is Java
 //! `ProduceResponse.shouldClientThrottle` (v6+).
 //! [`protocol::api::ProduceResponse::error_counts`] is Java

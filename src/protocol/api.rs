@@ -1792,6 +1792,47 @@ impl ProduceRequest {
         }
         Ok(sizes)
     }
+
+    /// Java `ProduceRequest.getErrorResponse`.
+    ///
+    /// `acks` `0` is `None` (Java returns null). Otherwise one
+    /// [`ProducePartitionResponse::partition_response`] per unique
+    /// `(topic, partition)` in `topics` (`partitionSizes` HashMap keys;
+    /// a later duplicate pair is omitted). Contrast
+    /// [`ProduceTopicData::error_result`], which keeps every request
+    /// partition. Order is first-seen (Java `HashMap.forEach` order is
+    /// unspecified). Official Java also copies `ApiError.message` onto
+    /// `ErrorMessage`; crate encode writes the JSON default (null) on
+    /// v8+. Throttle is unused (crate encode writes `0`).
+    #[must_use]
+    pub fn error_response(
+        acks: i16,
+        topics: &[ProduceTopicData],
+        error_code: i16,
+    ) -> Option<Vec<ProducePartitionResponse>> {
+        if acks == 0 {
+            return None;
+        }
+        let mut order: Vec<(String, i32)> = Vec::new();
+        let mut seen: HashSet<(String, i32)> = HashSet::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let key = (topic.topic.clone(), partition.index);
+                if !seen.insert(key.clone()) {
+                    continue;
+                }
+                order.push(key);
+            }
+        }
+        Some(
+            order
+                .into_iter()
+                .map(|(topic, partition)| {
+                    ProducePartitionResponse::partition_response(topic, partition, error_code)
+                })
+                .collect(),
+        )
+    }
 }
 
 /// Java `ProduceResponse` helpers.
@@ -2289,6 +2330,115 @@ mod tests {
             ProduceRequest::partition_sizes(&decoded).unwrap(),
             ProduceRequest::partition_sizes(&dup).unwrap()
         );
+    }
+
+    #[test]
+    fn produce_error_response_matches_java() {
+        // Java ProduceRequest.getErrorResponse: acks 0 is null;
+        // otherwise partitionSizes keys (unique TP) through
+        // PartitionResponse(Errors).
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let batch = RecordBatch::from_records(vec![rec]);
+        let dup = [
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![ProducePartitionData {
+                    index: 0,
+                    records: batch.clone(),
+                }],
+            },
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![
+                    ProducePartitionData {
+                        index: 0,
+                        records: batch.clone(),
+                    },
+                    ProducePartitionData {
+                        index: 1,
+                        records: batch,
+                    },
+                ],
+            },
+        ];
+        assert!(
+            ProduceRequest::error_response(0, &dup, crate::error::CORRUPT_MESSAGE).is_none(),
+            "acks 0 is Java null"
+        );
+        assert!(ProduceRequest::error_response(0, &[], 0).is_none());
+        let empty = ProduceRequest::error_response(1, &[], crate::error::CORRUPT_MESSAGE)
+            .expect("acks 1 empty is empty Topics");
+        assert!(empty.is_empty());
+        let parts =
+            ProduceRequest::error_response(1, &dup, crate::error::UNKNOWN_TOPIC_OR_PARTITION)
+                .expect("acks 1");
+        assert_eq!(
+            parts,
+            vec![
+                ProducePartitionResponse::partition_response(
+                    "a",
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                ),
+                ProducePartitionResponse::partition_response(
+                    "a",
+                    1,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                ),
+            ]
+        );
+        assert_eq!(
+            parts.len(),
+            2,
+            "duplicate (topic, partition) is one partitionSizes key"
+        );
+        let per_request: Vec<_> = dup.iter().flat_map(|t| t.error_result(0)).collect();
+        assert_eq!(per_request.len(), 3, "error_result keeps every partition");
+        leftover_empty_produce_error_response(3, &parts, &empty);
+        leftover_empty_produce_error_response(9, &parts, &empty);
+    }
+
+    fn leftover_empty_produce_error_response(
+        version: i16,
+        parts: &[ProducePartitionResponse],
+        empty: &[ProducePartitionResponse],
+    ) {
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, version, parts).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+        assert!(endpoints.is_empty());
+        assert_eq!(decoded, parts);
+        leftover_empty(
+            &cur,
+            match version {
+                3 => "Produce v3 getErrorResponse from partitionSizes",
+                9 => "Produce v9 getErrorResponse from partitionSizes",
+                _ => "Produce getErrorResponse from partitionSizes",
+            },
+        )
+        .unwrap();
+        buf.clear();
+        encode_produce_response(&mut buf, version, empty).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+        assert!(endpoints.is_empty());
+        assert_eq!(decoded, empty);
+        leftover_empty(
+            &cur,
+            match version {
+                3 => "Produce v3 getErrorResponse from partitionSizes empty",
+                9 => "Produce v9 getErrorResponse from partitionSizes empty",
+                _ => "Produce getErrorResponse from partitionSizes empty",
+            },
+        )
+        .unwrap();
     }
 
     #[test]
