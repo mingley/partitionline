@@ -816,6 +816,12 @@
 //! `ProduceResponse.toData` Responses (group by name in first-seen order;
 //! a later partition for the same topic appends, including after another
 //! topic; duplicates are kept).
+//! [`protocol::api::ProduceRecordError`] is Java
+//! `ProduceResponse.RecordError` (`Display` is `RecordError.toString`:
+//! `message=null` when the message is `None`; otherwise the text is
+//! single-quoted; duplicate `batchIndex` values are kept). Produce v8+
+//! round-trips `RecordErrors` / `ErrorMessage`; below v8 decode fills
+//! empty / null.
 //! Produce decode below v5 fills
 //! that sentinel; Java `PartitionResponse(Errors)` writes it for
 //! `baseOffset` / `logStartOffset`. Omitted Produce v10+ CurrentLeader fills

@@ -57,7 +57,8 @@ pub use api::{
     encode_metadata_response, encode_produce_request, encode_produce_response,
     negotiate_api_versions, ApiVersion, ApiVersionsResponse, Broker, FinalizedFeatureKey,
     MetadataRequestTopic, MetadataResponse, NodeEndpoint, PartitionMetadata, ProducePartitionData,
-    ProducePartitionResponse, ProduceTopicData, SupportedFeatureKey, TopicMetadata,
+    ProducePartitionResponse, ProduceRecordError, ProduceTopicData, SupportedFeatureKey,
+    TopicMetadata,
 };
 pub use api_keys::{
     pick_version, API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, FETCH,

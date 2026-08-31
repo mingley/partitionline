@@ -1776,8 +1776,8 @@ impl ProduceTopicData {
     /// Maps each request partition through
     /// [`ProducePartitionResponse::partition_response`]. Java returns null
     /// when `acks` is 0 (whole request). `recordErrors` is the empty array
-    /// and `errorMessage` is null (JSON defaults; encode writes those on
-    /// v8+). Throttle on the response is the JSON default (`0`).
+    /// and `errorMessage` is null (JSON defaults). Throttle on the
+    /// response is the JSON default (`0`).
     #[must_use]
     pub fn error_result(&self, error_code: i16) -> Vec<ProducePartitionResponse> {
         self.partitions
@@ -1802,14 +1802,72 @@ pub struct ProducePartitionData {
     pub records: RecordBatch,
 }
 
+/// One record that caused a Produce batch to be dropped (KIP-467).
+///
+/// Java `ProduceResponse.RecordError`. [`Display`] is Java
+/// `RecordError.toString` (`message=null` when [`Self::message`] is `None`;
+/// otherwise the text is single-quoted). Duplicate `batchIndex` values are
+/// kept (`ArrayList`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProduceRecordError {
+    /// Batch index of the rejected record (Java `RecordError.batchIndex`).
+    pub batch_index: i32,
+    /// Per-record error text (Java `RecordError.message`; `None` is null).
+    pub message: Option<String>,
+}
+
+impl ProduceRecordError {
+    /// Java `ProduceResponse.RecordError(int, String)`.
+    ///
+    /// `None` is Java `null`. The one-argument Java constructor is this
+    /// with `message` `None`.
+    #[must_use]
+    pub fn new(batch_index: i32, message: Option<String>) -> Self {
+        Self {
+            batch_index,
+            message,
+        }
+    }
+
+    /// Java `RecordError.batchIndex`.
+    #[must_use]
+    pub fn batch_index(&self) -> i32 {
+        self.batch_index
+    }
+
+    /// Java `RecordError.message` (`None` is Java `null`).
+    #[must_use]
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_deref()
+    }
+}
+
+impl fmt::Display for ProduceRecordError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("RecordError(batchIndex=")?;
+        write!(f, "{}", self.batch_index)?;
+        f.write_str(", message=")?;
+        match self.message.as_deref() {
+            None => f.write_str("null")?,
+            Some(message) => {
+                f.write_str("'")?;
+                f.write_str(message)?;
+                f.write_str("'")?;
+            }
+        }
+        f.write_str(")")
+    }
+}
+
 /// One partition in a Produce response.
 ///
 /// [`Self::INVALID_OFFSET`] is Java `ProduceResponse.INVALID_OFFSET`.
 /// [`Self::partition_response`] is Java `ProduceResponse.PartitionResponse(Errors)`
 /// (`baseOffset` / `logStartOffset` [`Self::INVALID_OFFSET`], `logAppendTime`
-/// [`RecordBatch::NO_TIMESTAMP`]). Decode below v2 fills
-/// [`RecordBatch::NO_TIMESTAMP`]; decode below v5 fills
-/// [`Self::INVALID_OFFSET`]. Omitted v10+ CurrentLeader fills
+/// [`RecordBatch::NO_TIMESTAMP`], empty `recordErrors`, null `errorMessage`).
+/// Decode below v2 fills [`RecordBatch::NO_TIMESTAMP`]; decode below v5 fills
+/// [`Self::INVALID_OFFSET`]. Decode below v8 fills empty `recordErrors` and
+/// null `errorMessage`. Omitted v10+ CurrentLeader fills
 /// [`MetadataResponse::NO_LEADER_ID`] /
 /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] (JSON defaults).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1832,6 +1890,12 @@ pub struct ProducePartitionResponse {
     /// Produce v10+ CurrentLeader `LeaderEpoch`, or
     /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] when omitted (JSON default).
     pub current_leader_epoch: i32,
+    /// Produce v8+ `RecordErrors` (Java `PartitionResponse.recordErrors`).
+    /// Empty below v8 and when the broker sends none. Duplicates are kept.
+    pub record_errors: Vec<ProduceRecordError>,
+    /// Produce v8+ `ErrorMessage` (Java `PartitionResponse.errorMessage`).
+    /// `None` is Java `null` (JSON default; omitted below v8).
+    pub error_message: Option<String>,
 }
 
 impl ProducePartitionResponse {
@@ -1843,8 +1907,9 @@ impl ProducePartitionResponse {
     /// Sets [`Self::INVALID_OFFSET`] for `baseOffset` / `logStartOffset` and
     /// [`RecordBatch::NO_TIMESTAMP`] for `logAppendTime`. CurrentLeader is
     /// the Apache JSON default ([`MetadataResponse::NO_LEADER_ID`] /
-    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). Java `PartitionResponse`
-    /// has no topic name; this type does, so callers pass it.
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). `recordErrors` is empty
+    /// and `errorMessage` is null. Java `PartitionResponse` has no topic
+    /// name; this type does, so callers pass it.
     #[must_use]
     pub fn partition_response(topic: impl Into<String>, partition: i32, error_code: i16) -> Self {
         Self {
@@ -1856,6 +1921,8 @@ impl ProducePartitionResponse {
             log_start_offset: Self::INVALID_OFFSET,
             current_leader_id: MetadataResponse::NO_LEADER_ID,
             current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            record_errors: Vec::new(),
+            error_message: None,
         }
     }
 }
@@ -1919,8 +1986,8 @@ impl ProduceRequest {
     /// [`ProduceTopicData::error_result`], which keeps every request
     /// partition. Order is first-seen (Java `HashMap.forEach` order is
     /// unspecified). Official Java also copies `ApiError.message` onto
-    /// `ErrorMessage`; crate encode writes the JSON default (null) on
-    /// v8+. Throttle is unused (crate encode writes `0`).
+    /// `ErrorMessage`; this helper leaves `errorMessage` null and
+    /// `recordErrors` empty. Throttle is unused (crate encode writes `0`).
     #[must_use]
     pub fn error_response(
         acks: i16,
@@ -2005,10 +2072,10 @@ impl ProduceResponse {
     /// topic appends (Java `find` then `partitionResponses().add`),
     /// including when another topic sits in between. Duplicate partitions
     /// for the same pair are kept (`ArrayList`). Topic order is first-seen.
-    /// Official Java also copies `errorMessage`, `recordErrors`, and
-    /// `lastOffset`; this crate does not store those (encode writes JSON
-    /// defaults). Throttle and NodeEndpoints stay with crate encode (`0` /
-    /// empty).
+    /// `errorMessage` and `recordErrors` on each body are cloned with the
+    /// partition (Java copies them in `toData`). Java `lastOffset` is not
+    /// a ProduceResponse field and is not stored. Throttle and
+    /// NodeEndpoints stay with crate encode (`0` / empty).
     #[must_use]
     pub fn to_data(
         partitions: &[ProducePartitionResponse],
@@ -2192,6 +2259,44 @@ pub fn decode_produce_request<B: Buf>(
     Ok((transactional_id, acks, timeout_ms, topics))
 }
 
+/// Produce v8+ `RecordErrors` (`BatchIndexAndErrorMessage`). Flexible
+/// versions write empty tagged fields on each nested struct.
+fn encode_produce_record_errors(
+    buf: &mut BytesMut,
+    flexible: bool,
+    errors: &[ProduceRecordError],
+) -> Result<()> {
+    buf::put_array_len(buf, flexible, Some(errors.len()))?;
+    for err in errors {
+        buf.put_i32(err.batch_index);
+        buf::put_string(buf, flexible, err.message.as_deref())?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    Ok(())
+}
+
+fn decode_produce_record_errors<B: Buf>(
+    buf: &mut B,
+    flexible: bool,
+) -> Result<Vec<ProduceRecordError>> {
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut errors = Vec::with_capacity(n);
+    for _ in 0..n {
+        let batch_index = buf::get_i32(buf)?;
+        let message = buf::get_string(buf, flexible)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        errors.push(ProduceRecordError {
+            batch_index,
+            message,
+        });
+    }
+    Ok(errors)
+}
+
 /// Encode Produce: one response per partition (mock broker).
 pub fn encode_produce_response(
     buf: &mut BytesMut,
@@ -2237,8 +2342,8 @@ pub fn encode_produce_response_with_endpoints(
                 buf.put_i64(p.log_start_offset);
             }
             if version >= 8 {
-                buf::put_array_len(buf, flexible, Some(0))?;
-                buf::put_string(buf, flexible, None)?;
+                encode_produce_record_errors(buf, flexible, &p.record_errors)?;
+                buf::put_string(buf, flexible, p.error_message.as_deref())?;
             }
             if flexible {
                 encode_produce_partition_tags(
@@ -2295,17 +2400,14 @@ pub fn decode_produce_response<B: Buf>(
             } else {
                 ProducePartitionResponse::INVALID_OFFSET
             };
-            if version >= 8 {
-                let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-                for _ in 0..n {
-                    let _idx = buf::get_i32(buf)?;
-                    let _msg = buf::get_string(buf, flexible)?;
-                    if flexible {
-                        buf::skip_tagged_fields(buf)?;
-                    }
-                }
-                let _err_msg = buf::get_string(buf, flexible)?;
-            }
+            let (record_errors, error_message) = if version >= 8 {
+                (
+                    decode_produce_record_errors(buf, flexible)?,
+                    buf::get_string(buf, flexible)?,
+                )
+            } else {
+                (Vec::new(), None)
+            };
             let (current_leader_id, current_leader_epoch) = if flexible {
                 decode_produce_partition_tags(buf, version)?
             } else {
@@ -2323,6 +2425,8 @@ pub fn decode_produce_response<B: Buf>(
                 log_start_offset,
                 current_leader_id,
                 current_leader_epoch,
+                record_errors,
+                error_message,
             });
         }
         if flexible {
@@ -2783,6 +2887,8 @@ mod tests {
             none.current_leader_epoch,
             RecordBatch::NO_PARTITION_LEADER_EPOCH
         );
+        assert!(none.record_errors.is_empty());
+        assert!(none.error_message.is_none());
         let unknown = ProducePartitionResponse::partition_response(
             "missing",
             3,
@@ -2849,6 +2955,8 @@ mod tests {
             log_start_offset: 99,
             current_leader_id: -1,
             current_leader_epoch: -1,
+            record_errors: Vec::new(),
+            error_message: None,
         }];
         let mut buf = BytesMut::new();
         encode_produce_response(&mut buf, 3, &parts).unwrap();
@@ -2865,6 +2973,117 @@ mod tests {
             "Produce v3 omits LogStartOffset; decode fills INVALID_OFFSET"
         );
         assert_eq!(ProducePartitionResponse::INVALID_OFFSET, -1);
+        assert_eq!(part.current_leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(
+            part.current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert!(
+            part.record_errors.is_empty(),
+            "Produce v3 omits RecordErrors; decode fills empty"
+        );
+        assert!(
+            part.error_message.is_none(),
+            "Produce v3 omits ErrorMessage; decode fills null"
+        );
+    }
+
+    #[test]
+    fn produce_record_error_matches_java() {
+        assert_eq!(
+            ProduceRecordError::new(1, None).to_string(),
+            "RecordError(batchIndex=1, message=null)"
+        );
+        assert_eq!(
+            ProduceRecordError::new(0, Some(String::new())).to_string(),
+            "RecordError(batchIndex=0, message='')"
+        );
+        let quoted = ProduceRecordError::new(4, Some("oops".into()));
+        assert_eq!(quoted.batch_index(), 4);
+        assert_eq!(quoted.message(), Some("oops"));
+        assert_eq!(
+            quoted.to_string(),
+            "RecordError(batchIndex=4, message='oops')"
+        );
+
+        let empty = ProducePartitionResponse::partition_response("t", 0, 8);
+        assert!(empty.record_errors.is_empty());
+        assert!(empty.error_message.is_none());
+        for version in [8, 9] {
+            let mut buf = BytesMut::new();
+            encode_produce_response(&mut buf, version, std::slice::from_ref(&empty)).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+            assert!(endpoints.is_empty());
+            assert_eq!(decoded, std::slice::from_ref(&empty));
+            leftover_empty(
+                &cur,
+                if version == 8 {
+                    "Produce v8 RecordErrors empty leftover-empty"
+                } else {
+                    "Produce v9 RecordErrors empty leftover-empty"
+                },
+            )
+            .unwrap();
+        }
+
+        let mut with_errors =
+            ProducePartitionResponse::partition_response("t", 1, crate::error::INVALID_RECORD);
+        with_errors.record_errors = vec![
+            ProduceRecordError::new(0, None),
+            ProduceRecordError::new(0, Some("dup".into())),
+            ProduceRecordError::new(2, Some("bad".into())),
+        ];
+        with_errors.error_message = Some("batch dropped".into());
+        for version in [8, 9] {
+            let mut buf = BytesMut::new();
+            encode_produce_response(&mut buf, version, std::slice::from_ref(&with_errors)).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+            assert!(endpoints.is_empty());
+            assert_eq!(decoded, std::slice::from_ref(&with_errors));
+            leftover_empty(
+                &cur,
+                if version == 8 {
+                    "Produce v8 RecordErrors leftover-empty"
+                } else {
+                    "Produce v9 RecordErrors leftover-empty"
+                },
+            )
+            .unwrap();
+        }
+
+        with_errors.current_leader_id = 2;
+        with_errors.current_leader_epoch = 7;
+        for version in [10, 12] {
+            let mut buf = BytesMut::new();
+            encode_produce_response(&mut buf, version, std::slice::from_ref(&with_errors)).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+            assert!(endpoints.is_empty());
+            assert_eq!(decoded, std::slice::from_ref(&with_errors));
+            leftover_empty(
+                &cur,
+                if version == 10 {
+                    "Produce v10 RecordErrors CurrentLeader leftover-empty"
+                } else {
+                    "Produce v12 RecordErrors CurrentLeader leftover-empty"
+                },
+            )
+            .unwrap();
+        }
+
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 3, std::slice::from_ref(&with_errors)).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, _) = decode_produce_response(&mut cur, 3).unwrap();
+        leftover_empty(&cur, "Produce v3 RecordErrors leftover-empty").unwrap();
+        let part = decoded.first().expect("one partition");
+        assert!(
+            part.record_errors.is_empty(),
+            "Produce v3 omits RecordErrors even when the body has them"
+        );
+        assert!(part.error_message.is_none());
         assert_eq!(part.current_leader_id, MetadataResponse::NO_LEADER_ID);
         assert_eq!(
             part.current_leader_epoch,
@@ -3542,6 +3761,8 @@ mod tests {
             log_start_offset: 0,
             current_leader_id: -1,
             current_leader_epoch: -1,
+            record_errors: Vec::new(),
+            error_message: None,
         }];
         let mut buf = BytesMut::new();
         encode_produce_response(&mut buf, 9, &parts).unwrap();
@@ -3591,6 +3812,8 @@ mod tests {
             log_start_offset: 0,
             current_leader_id: 2,
             current_leader_epoch: 7,
+            record_errors: Vec::new(),
+            error_message: None,
         }];
         let mut buf = BytesMut::new();
         encode_produce_response(&mut buf, 11, &parts).unwrap();
@@ -3627,6 +3850,8 @@ mod tests {
             log_start_offset: 0,
             current_leader_id: 3,
             current_leader_epoch: 1,
+            record_errors: Vec::new(),
+            error_message: None,
         }];
         let endpoints = [NodeEndpoint {
             node_id: 3,

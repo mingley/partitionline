@@ -4937,6 +4937,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 log_start_offset: 0,
                                 current_leader_id: -1,
                                 current_leader_epoch: -1,
+                                record_errors: Vec::new(),
+                                error_message: None,
                             });
                         } else {
                             let (current_leader_id, current_leader_epoch) =
@@ -4950,6 +4952,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 log_start_offset: 0,
                                 current_leader_id,
                                 current_leader_epoch,
+                                record_errors: Vec::new(),
+                                error_message: None,
                             });
                         }
                     }
