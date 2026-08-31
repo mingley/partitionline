@@ -326,6 +326,40 @@ impl ListOffsetsRequest {
         }
         duplicates
     }
+
+    /// Java `ListOffsetsRequest.toListOffsetsTopics`.
+    ///
+    /// Groups `(topic, partition body)` by name. A later entry for the
+    /// same topic appends (Java `HashMap.computeIfAbsent` then
+    /// `partitions().add`). Topic order is first-seen (Java
+    /// `HashMap.values` order is unspecified). The Java map key is
+    /// `TopicPartition`; grouping uses only the name. The partition index
+    /// on the body is kept as-is.
+    #[must_use]
+    pub fn to_list_offsets_topics<'a, I>(timestamps_to_search: I) -> Vec<ListOffsetsTopicRequest>
+    where
+        I: IntoIterator<Item = (&'a str, ListOffsetsPartitionRequest)>,
+    {
+        let mut order: Vec<String> = Vec::new();
+        let mut by_topic: HashMap<String, Vec<ListOffsetsPartitionRequest>> = HashMap::new();
+        for (topic, partition) in timestamps_to_search {
+            by_topic
+                .entry(topic.to_string())
+                .or_insert_with(|| {
+                    order.push(topic.to_string());
+                    Vec::new()
+                })
+                .push(partition);
+        }
+        order
+            .into_iter()
+            .filter_map(|name| {
+                by_topic
+                    .remove(&name)
+                    .map(|partitions| ListOffsetsTopicRequest { name, partitions })
+            })
+            .collect()
+    }
 }
 
 /// Java `ListOffsetsResponse` helpers.
@@ -1120,6 +1154,73 @@ mod tests {
         assert!(
             cur.is_empty(),
             "ListOffsets v6 duplicatePartitions leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn list_offsets_to_list_offsets_topics_matches_java() {
+        // Java ListOffsetsRequest.toListOffsetsTopics: HashMap.computeIfAbsent
+        // by topic name, then partitions().add. Empty map is empty. A later
+        // entry for the same name appends even when another topic sits
+        // between (unlike Fetch toMessage consecutive matchingTopic).
+        assert!(
+            ListOffsetsRequest::to_list_offsets_topics(std::iter::empty::<(
+                &str,
+                ListOffsetsPartitionRequest
+            )>())
+            .is_empty()
+        );
+        let epoch = RecordBatch::NO_PARTITION_LEADER_EPOCH;
+        let a0 = ListOffsetsPartitionRequest::new(0, epoch, -1);
+        let a1 = ListOffsetsPartitionRequest::new(1, epoch, -2);
+        let b0 = ListOffsetsPartitionRequest::new(0, epoch, -1);
+        let grouped = ListOffsetsRequest::to_list_offsets_topics([
+            ("a", a0.clone()),
+            ("b", b0.clone()),
+            ("a", a1.clone()),
+        ]);
+        assert_eq!(
+            grouped,
+            vec![
+                ListOffsetsTopicRequest::new("a", vec![a0, a1]),
+                ListOffsetsTopicRequest::new("b", vec![b0]),
+            ]
+        );
+        let mut buf = BytesMut::new();
+        encode_list_offsets_topics_request(&mut buf, 1, 0, &grouped, 0).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_list_offsets_topics_request(&mut cur, 1).unwrap().1;
+        assert_eq!(decoded, grouped);
+        assert_eq!(
+            ListOffsetsRequest::to_list_offsets_topics([
+                ("a", ListOffsetsPartitionRequest::new(0, epoch, -1)),
+                ("b", ListOffsetsPartitionRequest::new(0, epoch, -1)),
+                ("a", ListOffsetsPartitionRequest::new(1, epoch, -2)),
+            ]),
+            decoded
+        );
+        assert!(
+            cur.is_empty(),
+            "ListOffsets v1 toListOffsetsTopics leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let epoch4 = 4;
+        let with_epoch = ListOffsetsRequest::to_list_offsets_topics([
+            ("t", ListOffsetsPartitionRequest::new(3, epoch4, -3)),
+            ("t", ListOffsetsPartitionRequest::new(5, epoch4, -1)),
+        ]);
+        buf.clear();
+        encode_list_offsets_topics_request(&mut buf, 6, 0, &with_epoch, 0).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_list_offsets_topics_request(&mut cur, 6).unwrap().1;
+        assert_eq!(decoded, with_epoch);
+        let first = decoded.first().expect("one topic");
+        let part = first.partitions.first().expect("one partition");
+        assert_eq!(part.current_leader_epoch, epoch4);
+        assert!(
+            cur.is_empty(),
+            "ListOffsets v6 toListOffsetsTopics leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

@@ -1354,7 +1354,10 @@
 //! `ListOffsetsRequest.getErrorResponse` (partition body / one topic);
 //! [`protocol::offsets::ListOffsetsRequest::duplicate_partitions`] is Java
 //! `ListOffsetsRequest.duplicatePartitions` (`(topic, partition)` pairs
-//! that appear more than once).
+//! that appear more than once);
+//! [`protocol::offsets::ListOffsetsRequest::to_list_offsets_topics`] is Java
+//! `ListOffsetsRequest.toListOffsetsTopics` (group by name; a later
+//! entry for the same topic appends; first-seen topic order).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]
