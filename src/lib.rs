@@ -117,6 +117,10 @@
 //! `OffsetCommitResponse.shouldClientThrottle` (v4+);
 //! [`protocol::group::OffsetCommitResponse::error_counts`] is Java
 //! `OffsetCommitResponse.errorCounts` (partition-level codes, including `NONE`);
+//! [`protocol::group::OffsetCommitResponse::merge`] is Java
+//! `OffsetCommitResponse.Builder.merge` (replace when current Topics are
+//! empty; otherwise append topics / partitions; overlapping partitions are
+//! not checked);
 //! [`protocol::group::OffsetTopic::error_result`] /
 //! [`protocol::group::OffsetTopic::error_results`] /
 //! [`protocol::group::OffsetCommitResponsePartition::error`] are Java
