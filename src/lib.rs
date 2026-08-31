@@ -437,7 +437,11 @@
 //! [`DescribedShareGroup::new`]);
 //! [`protocol::admin::ShareGroupDescribeResponse::error_counts`] is Java
 //! `ShareGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),
-//! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs;
+//! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs
+//! JSON `1+` after ErrorMessage;
+//! [`protocol::share::encode_share_fetch_response_with_acquisition_lock_timeout`]
+//! round-trips a non-zero value; [`protocol::share::encode_share_fetch_response`]
+//! still writes 15000; v0 omits even when non-zero and decode fills 0;
 //! ForgottenTopicsData is JSON `0+`;
 //! [`protocol::share::encode_share_fetch_request_with_forgotten`] round-trips
 //! the list; [`protocol::share::encode_share_fetch_request`] still writes empty;
@@ -469,7 +473,7 @@
 //! round-trips NodeEndpoints (JSON `0+` untagged compact array;
 //! [`protocol::share::encode_share_fetch_response`] still writes empty;
 //! not Fetch v16 tagged field 0).
-//! v1 AcquisitionLockTimeoutMs is 15000. Top-level ErrorCode stays 0
+//! Top-level ErrorCode stays 0
 //! (crate encode). ThrottleTimeMs is JSON `0+` (on the wire for every
 //! spoken version); round-trips a non-zero value;
 //! [`protocol::share::encode_share_fetch_response_with_throttle`] writes

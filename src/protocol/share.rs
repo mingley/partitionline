@@ -355,8 +355,10 @@ pub struct AcquiredRange {
 /// fields (JSON default 0/0), empty Records, empty AcquiredRecords.
 /// NodeEndpoints stay empty on [`encode_share_fetch_response`];
 /// [`encode_share_fetch_response_with_endpoints`] writes a non-empty list.
-/// v1 AcquisitionLockTimeoutMs is 15000. Top-level ErrorCode stays 0
-/// (crate encode). ThrottleTimeMs is JSON `0+`
+/// v1 AcquisitionLockTimeoutMs is JSON `1+`
+/// ([`encode_share_fetch_response_with_acquisition_lock_timeout`];
+/// [`encode_share_fetch_response`] still writes 15000). Top-level
+/// ErrorCode stays 0 (crate encode). ThrottleTimeMs is JSON `0+`
 /// ([`encode_share_fetch_response_with_throttle`];
 /// [`encode_share_fetch_response`] still writes `0`).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -402,7 +404,9 @@ impl ShareFetchedPartition {
     /// AcquiredRecords. NodeEndpoints stay empty on
     /// [`encode_share_fetch_response`];
     /// [`encode_share_fetch_response_with_endpoints`] writes a non-empty
-    /// list. v1 AcquisitionLockTimeoutMs is 15000. Top-level
+    /// list. v1 AcquisitionLockTimeoutMs is JSON `1+`
+    /// ([`encode_share_fetch_response_with_acquisition_lock_timeout`];
+    /// [`encode_share_fetch_response`] still writes 15000). Top-level
     /// ErrorCode stays 0 (crate encode). ThrottleTimeMs is JSON `0+`
     /// ([`encode_share_fetch_response_with_throttle`];
     /// [`encode_share_fetch_response`] still writes `0`).
@@ -1107,7 +1111,9 @@ fn decode_leader<B: Buf>(buf: &mut B) -> Result<(i32, i32)> {
 /// ([`encode_share_fetch_response_with_throttle`]; this helper still
 /// writes `0`). Top-level ErrorMessage is JSON `0+` (nullable compact
 /// STRING; [`encode_share_fetch_response_with_error_message`]; this helper
-/// still writes null).
+/// still writes null). AcquisitionLockTimeoutMs is JSON `1+`
+/// ([`encode_share_fetch_response_with_acquisition_lock_timeout`]; this
+/// helper still writes 15000 on v1).
 pub fn encode_share_fetch_response(
     buf: &mut BytesMut,
     version: i16,
@@ -1139,7 +1145,7 @@ pub fn encode_share_fetch_response_with_endpoints(
     topics: &[ShareFetchedTopic],
     endpoints: &[NodeEndpoint],
 ) -> crate::error::Result<()> {
-    encode_share_fetch_response_full(buf, version, topics, endpoints, 0, None)
+    encode_share_fetch_response_full(buf, version, topics, endpoints, 0, None, 15_000)
 }
 
 /// Encode ShareFetch v0–v1 with ThrottleTimeMs.
@@ -1155,7 +1161,7 @@ pub fn encode_share_fetch_response_with_throttle(
     topics: &[ShareFetchedTopic],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
-    encode_share_fetch_response_full(buf, version, topics, &[], throttle_time_ms, None)
+    encode_share_fetch_response_full(buf, version, topics, &[], throttle_time_ms, None, 15_000)
 }
 
 /// Encode ShareFetch v0–v1 with top-level ErrorMessage.
@@ -1173,7 +1179,35 @@ pub fn encode_share_fetch_response_with_error_message(
     topics: &[ShareFetchedTopic],
     error_message: Option<&str>,
 ) -> crate::error::Result<()> {
-    encode_share_fetch_response_full(buf, version, topics, &[], 0, error_message)
+    encode_share_fetch_response_full(buf, version, topics, &[], 0, error_message, 15_000)
+}
+
+/// Encode ShareFetch v0–v1 with AcquisitionLockTimeoutMs.
+///
+/// AcquisitionLockTimeoutMs is JSON `1+` (INT32 after ErrorMessage).
+/// Kafka 4.1.0 JSON has no default; generated Java int32 default is `0`.
+/// Official Java `ShareFetchResponse.of` / `toMessage` / `sizeOf` take
+/// `acquisitionLockTimeout` as an argument (not a named constant).
+/// [`encode_share_fetch_response`] still writes 15000 on v1. v0 omits
+/// the field even when the body is non-zero; decode fills `0`.
+/// ThrottleTimeMs stays `0`, ErrorMessage stays null, and NodeEndpoints
+/// stay empty. Error-path encode still writes `0` (Java `of` last
+/// argument). This is not ThrottleTimeMs and not ShareAcknowledge.
+pub fn encode_share_fetch_response_with_acquisition_lock_timeout(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[ShareFetchedTopic],
+    acquisition_lock_timeout_ms: i32,
+) -> crate::error::Result<()> {
+    encode_share_fetch_response_full(
+        buf,
+        version,
+        topics,
+        &[],
+        0,
+        None,
+        acquisition_lock_timeout_ms,
+    )
 }
 
 fn encode_share_fetch_response_full(
@@ -1183,13 +1217,14 @@ fn encode_share_fetch_response_full(
     endpoints: &[NodeEndpoint],
     throttle_time_ms: i32,
     error_message: Option<&str>,
+    acquisition_lock_timeout_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = share_fetch_flexible(version)?;
     buf.put_i32(throttle_time_ms);
     buf.put_i16(0);
     buf::put_string(buf, flexible, error_message)?;
     if version >= 1 {
-        buf.put_i32(15_000);
+        buf.put_i32(acquisition_lock_timeout_ms);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -1232,15 +1267,18 @@ fn encode_share_fetch_response_full(
 }
 
 /// Decode a ShareFetch response (`version` 0–1):
-/// `(topics, node_endpoints, throttle_time_ms, error_message)`.
+/// `(topics, node_endpoints, throttle_time_ms, error_message,
+/// acquisition_lock_timeout_ms)`.
 ///
 /// NodeEndpoints is JSON `0+` (untagged compact array). ThrottleTimeMs is
 /// JSON `0+` (always on the wire). Top-level ErrorMessage is JSON `0+`
-/// (nullable compact STRING). Decode currently fails on a non-zero
-/// top-level ErrorCode and does not return it.
+/// (nullable compact STRING). AcquisitionLockTimeoutMs is JSON `1+`
+/// (INT32 after ErrorMessage). v0 omits it; decode fills `0`. Decode
+/// currently fails on a non-zero top-level ErrorCode and does not return
+/// it.
 #[expect(
     clippy::type_complexity,
-    reason = "ShareFetch response decode returns topics, node endpoints, throttle, and top-level ErrorMessage together"
+    reason = "ShareFetch response decode returns topics, node endpoints, throttle, ErrorMessage, and AcquisitionLockTimeoutMs together"
 )]
 pub fn decode_share_fetch_response<B: Buf>(
     buf: &mut B,
@@ -1250,6 +1288,7 @@ pub fn decode_share_fetch_response<B: Buf>(
     Vec<NodeEndpoint>,
     i32,
     Option<String>,
+    i32,
 )> {
     let flexible = share_fetch_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
@@ -1258,9 +1297,7 @@ pub fn decode_share_fetch_response<B: Buf>(
     if err != 0 {
         return Err(crate::error::Error::broker(err, "ShareFetch"));
     }
-    if version >= 1 {
-        let _lock = buf::get_i32(buf)?;
-    }
+    let acquisition_lock_timeout_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
@@ -1327,7 +1364,13 @@ pub fn decode_share_fetch_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((topics, endpoints, throttle_time_ms, error_message))
+    Ok((
+        topics,
+        endpoints,
+        throttle_time_ms,
+        error_message,
+        acquisition_lock_timeout_ms,
+    ))
 }
 
 fn share_acknowledge_flexible(version: i16) -> Result<bool> {
@@ -3008,7 +3051,7 @@ mod tests {
             encode_share_fetch_response_with_error_message(&mut buf, version, &topics, Some("e"))
                 .unwrap();
             let mut cur = buf.as_ref();
-            let (got, endpoints, throttle, msg) =
+            let (got, endpoints, throttle, msg, ..) =
                 decode_share_fetch_response(&mut cur, version).unwrap();
             assert_eq!(got, topics);
             assert!(endpoints.is_empty());
@@ -3054,7 +3097,7 @@ mod tests {
             "empty-but-present top-level ErrorMessage is not JSON null"
         );
         let mut cur = empty_present.as_ref();
-        let (got, .., msg) = decode_share_fetch_response(&mut cur, 0).unwrap();
+        let (got, .., msg, _) = decode_share_fetch_response(&mut cur, 0).unwrap();
         assert_eq!(got, topics);
         assert_eq!(msg.as_deref(), Some(""));
         assert!(
@@ -3069,6 +3112,160 @@ mod tests {
             &with[..],
             &v1_with[..],
             "v0 and v1 top-level ErrorMessage share compact layout; v1 still adds AcquisitionLockTimeoutMs"
+        );
+    }
+
+    #[test]
+    fn share_fetch_response_acquisition_lock_timeout_ms_matches_java() {
+        // Kafka 4.1 ShareFetchResponse.json AcquisitionLockTimeoutMs is
+        // versions 1+ (INT32 after ErrorMessage). Kafka 4.1.0 JSON has no
+        // default; generated Java int32 default is 0. Official Java
+        // ShareFetchResponse.of / toMessage / sizeOf take
+        // acquisitionLockTimeout as an argument (not a named constant).
+        // encode_share_fetch_response still writes 15000 on v1. v0 omits
+        // even when the body is non-zero and decode fills 0. Error-path
+        // encode still writes 0 (Java of last argument). Decode currently
+        // fails on a non-zero top-level ErrorCode. This crate speaks 0–1.
+        // This is not ThrottleTimeMs / top-level ErrorMessage /
+        // ShareAcknowledge.
+        let topics = vec![ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchedPartition {
+                partition: 0,
+                error_code: 6,
+                error_message: None,
+                acknowledge_error_code: 0,
+                acknowledge_error_message: None,
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+                records: Vec::new(),
+                acquired: Vec::new(),
+            }],
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_response_with_acquisition_lock_timeout(
+                &mut buf, version, &topics, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (got, endpoints, throttle, msg, lock) =
+                decode_share_fetch_response(&mut cur, version).unwrap();
+            assert_eq!(got, topics);
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle, 0);
+            assert_eq!(msg, None);
+            if version >= 1 {
+                assert_eq!(lock, 3_600_000);
+            } else {
+                assert_eq!(
+                    lock, 0,
+                    "ShareFetch v{version} omits AcquisitionLockTimeoutMs even when the body has a non-zero value"
+                );
+            }
+            assert!(
+                cur.is_empty(),
+                "ShareFetch v{version} AcquisitionLockTimeoutMs leftover-empty"
+            );
+        }
+
+        let mut v0_with = BytesMut::new();
+        encode_share_fetch_response_with_acquisition_lock_timeout(
+            &mut v0_with,
+            0,
+            &topics,
+            3_600_000,
+        )
+        .unwrap();
+        let mut v0_zero = BytesMut::new();
+        encode_share_fetch_response_with_acquisition_lock_timeout(&mut v0_zero, 0, &topics, 0)
+            .unwrap();
+        assert_eq!(
+            &v0_with[..],
+            &v0_zero[..],
+            "v0 omits AcquisitionLockTimeoutMs even when the body has a non-zero value"
+        );
+        let mut conv_v0 = BytesMut::new();
+        encode_share_fetch_response(&mut conv_v0, 0, &topics).unwrap();
+        assert_eq!(
+            &conv_v0[..],
+            &v0_zero[..],
+            "encode_share_fetch_response v0 has no AcquisitionLockTimeoutMs"
+        );
+
+        let mut with = BytesMut::new();
+        encode_share_fetch_response_with_acquisition_lock_timeout(&mut with, 1, &topics, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_share_fetch_response_with_acquisition_lock_timeout(&mut zero, 1, &topics, 0)
+            .unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v1 AcquisitionLockTimeoutMs is not always the generated Java default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_share_fetch_response(&mut conv, 1, &topics).unwrap();
+        let mut fifteen = BytesMut::new();
+        encode_share_fetch_response_with_acquisition_lock_timeout(&mut fifteen, 1, &topics, 15_000)
+            .unwrap();
+        assert_eq!(
+            &conv[..],
+            &fifteen[..],
+            "encode_share_fetch_response still writes AcquisitionLockTimeoutMs 15000"
+        );
+        assert_ne!(
+            &conv[..],
+            &with[..],
+            "encode_share_fetch_response still writes 15000, not the helper value"
+        );
+        let mut endpoints_fifteen = BytesMut::new();
+        encode_share_fetch_response_with_endpoints(&mut endpoints_fifteen, 1, &topics, &[])
+            .unwrap();
+        assert_eq!(
+            &endpoints_fifteen[..],
+            &fifteen[..],
+            "encode_share_fetch_response_with_endpoints still writes AcquisitionLockTimeoutMs 15000"
+        );
+        let mut throttle_zero = BytesMut::new();
+        encode_share_fetch_response_with_throttle(&mut throttle_zero, 1, &topics, 0).unwrap();
+        assert_eq!(
+            &throttle_zero[..],
+            &fifteen[..],
+            "encode_share_fetch_response_with_throttle still writes AcquisitionLockTimeoutMs 15000"
+        );
+
+        let mut throttle_same = BytesMut::new();
+        encode_share_fetch_response_with_throttle(&mut throttle_same, 1, &topics, 3_600_000)
+            .unwrap();
+        assert_ne!(
+            &with[..],
+            &throttle_same[..],
+            "AcquisitionLockTimeoutMs is not ThrottleTimeMs"
+        );
+        assert_eq!(
+            &with[..4],
+            &0i32.to_be_bytes(),
+            "ShareFetch success-path ThrottleTimeMs stays 0 on this helper"
+        );
+        assert_eq!(
+            &with[4..6],
+            &0i16.to_be_bytes(),
+            "ShareFetch success-path ErrorCode stays 0"
+        );
+        assert_eq!(
+            with[6], 0,
+            "ShareFetch success-path ErrorMessage stays null (compact)"
+        );
+        assert_eq!(
+            &with[7..11],
+            &3_600_000i32.to_be_bytes(),
+            "ShareFetch v1 AcquisitionLockTimeoutMs is after ErrorMessage"
+        );
+        assert_ne!(
+            &v0_with[..],
+            &with[..],
+            "v1 adds AcquisitionLockTimeoutMs after ErrorMessage"
         );
     }
 
