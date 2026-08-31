@@ -230,6 +230,12 @@
 //! below v3 is `UnsupportedVersionException`; encode still omits);
 //! v3+ round-trips GroupInstanceId; below v3 encode omits it even when
 //! the body has an instance id and decode fills `None`;
+//! v1+ round-trips ThrottleTimeMs; below v1 encode omits it even when
+//! the body has a non-zero value and decode fills `0`;
+//! [`protocol::group::encode_heartbeat_response`] still writes `0`;
+//! [`protocol::group::HeartbeatRequest::error_response`] is Java
+//! `HeartbeatRequest.getErrorResponse` (v1+ writes the `throttleTimeMs`
+//! argument; below v1 omits it);
 //! [`protocol::group::HeartbeatResponse::should_client_throttle`] is Java
 //! `HeartbeatResponse.shouldClientThrottle` (v2+)),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName;

@@ -2298,7 +2298,7 @@ impl ConsumerGroup {
                             .await;
                         match res {
                             Ok(body) => {
-                                if let Ok(err) =
+                                if let Ok((err, ..)) =
                                     decode_heartbeat_response(&mut body.clone(), version)
                                 {
                                     if error::coordinator_retriable(err) {

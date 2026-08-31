@@ -1771,6 +1771,20 @@ impl HeartbeatRequest {
         }
         Ok(())
     }
+
+    /// Java `HeartbeatRequest.getErrorResponse`.
+    ///
+    /// ThrottleTimeMs is written on v1+ from `throttle_time_ms`. Below v1
+    /// the field is omitted even when that value is non-zero. Decode fills
+    /// `0`.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        encode_heartbeat_response_with_throttle(buf, version, error_code, throttle_time_ms)
+    }
 }
 
 /// Encode Heartbeat v0–v4.
@@ -1830,9 +1844,22 @@ pub fn encode_heartbeat_response(
     version: i16,
     error_code: i16,
 ) -> crate::error::Result<()> {
+    encode_heartbeat_response_with_throttle(buf, version, error_code, 0)
+}
+
+/// Encode Heartbeat v0–v4 with ThrottleTimeMs.
+///
+/// Below v1 ThrottleTimeMs is omitted even when the body has a non-zero
+/// value. Decode fills `0`. v4 is flexible.
+pub fn encode_heartbeat_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = heartbeat_flexible(version)?;
     if version >= 1 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     buf.put_i16(error_code);
     if flexible {
@@ -1841,17 +1868,17 @@ pub fn encode_heartbeat_response(
     Ok(())
 }
 
-/// Decode Heartbeat: error code. Throttle is v1+.
-pub fn decode_heartbeat_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+/// Decode Heartbeat: `(error_code, throttle_time_ms)`.
+///
+/// Below v1 ThrottleTimeMs is omitted; decode fills `0`.
+pub fn decode_heartbeat_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16, i32)> {
     let flexible = heartbeat_flexible(version)?;
-    if version >= 1 {
-        let _throttle = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let err = buf::get_i16(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(err)
+    Ok((err, throttle_time_ms))
 }
 
 /// Encode LeaveGroup v0 (group id + one member id).
@@ -9447,10 +9474,10 @@ mod tests {
         assert_ne!(v0.as_ref(), v1.as_ref(), "v1 response adds ThrottleTimeMs");
         assert_eq!(v1.as_ref(), v2.as_ref(), "v1 and v2 response bodies match");
         let mut cur = v0.as_ref();
-        assert_eq!(decode_heartbeat_response(&mut cur, 0).unwrap(), 0);
+        assert_eq!(decode_heartbeat_response(&mut cur, 0).unwrap().0, 0);
         assert!(cur.is_empty(), "v0 response leftover-empty");
         let mut cur = v1.as_ref();
-        assert_eq!(decode_heartbeat_response(&mut cur, 1).unwrap(), 0);
+        assert_eq!(decode_heartbeat_response(&mut cur, 1).unwrap().0, 0);
         assert!(cur.is_empty(), "v1 response leftover-empty");
 
         v0.clear();
@@ -9481,7 +9508,7 @@ mod tests {
         buf.clear();
         encode_heartbeat_response(&mut buf, 3, 0).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_heartbeat_response(&mut cur, 3).unwrap(), 0);
+        assert_eq!(decode_heartbeat_response(&mut cur, 3).unwrap().0, 0);
         assert!(cur.is_empty(), "v3 response leftover {} bytes", cur.len());
     }
 
@@ -9501,7 +9528,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_heartbeat_response(&mut resp, 4, 0).unwrap();
         let mut cur = &resp[..];
-        assert_eq!(decode_heartbeat_response(&mut cur, 4).unwrap(), 0);
+        assert_eq!(decode_heartbeat_response(&mut cur, 4).unwrap().0, 0);
         assert!(
             cur.is_empty(),
             "v4 response must consume tagged fields; leftover {} bytes",
@@ -9686,6 +9713,88 @@ mod tests {
             &none[..],
             "empty GroupInstanceId is still present (Java != null)"
         );
+    }
+
+    #[test]
+    fn heartbeat_throttle_time_ms_matches_java() {
+        for version in [1_i16, 2, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_heartbeat_response_with_throttle(&mut buf, version, 16, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (err, throttle) = decode_heartbeat_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "Heartbeat v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        encode_heartbeat_response_with_throttle(&mut buf, 0, 16, 3_600_000).unwrap();
+        let mut cur = buf.as_ref();
+        let (err, throttle) = decode_heartbeat_response(&mut cur, 0).unwrap();
+        assert_eq!(err, 16);
+        assert!(cur.is_empty(), "Heartbeat v0 ThrottleTimeMs leftover-empty");
+        assert_eq!(
+            throttle, 0,
+            "Heartbeat v0 omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+
+        let mut with = BytesMut::new();
+        encode_heartbeat_response_with_throttle(&mut with, 1, 16, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_heartbeat_response_with_throttle(&mut zero, 1, 16, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_heartbeat_response(&mut conv, 1, 16).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_heartbeat_response still writes ThrottleTimeMs 0"
+        );
+        let mut v0_with = BytesMut::new();
+        encode_heartbeat_response_with_throttle(&mut v0_with, 0, 16, 3_600_000).unwrap();
+        let mut v0_zero = BytesMut::new();
+        encode_heartbeat_response_with_throttle(&mut v0_zero, 0, 16, 0).unwrap();
+        assert_eq!(
+            &v0_with[..],
+            &v0_zero[..],
+            "v0 encode omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+        assert_ne!(
+            &v0_with[..],
+            &with[..],
+            "v1 adds ThrottleTimeMs before ErrorCode"
+        );
+
+        for version in [0_i16, 1, 4] {
+            let mut expected = BytesMut::new();
+            encode_heartbeat_response_with_throttle(&mut expected, version, 16, 3_600_000).unwrap();
+            let mut got = BytesMut::new();
+            HeartbeatRequest::error_response(&mut got, version, 16, 3_600_000).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "Heartbeat v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (err, throttle) = decode_heartbeat_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            if version >= 1 {
+                assert_eq!(throttle, 3_600_000);
+            } else {
+                assert_eq!(throttle, 0);
+            }
+            assert!(
+                cur.is_empty(),
+                "Heartbeat v{version} getErrorResponse leftover-empty"
+            );
+        }
     }
 
     fn sync_req(assignments: &[(String, Vec<u8>)]) -> SyncGroupRequest<'_> {
