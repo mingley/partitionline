@@ -505,9 +505,15 @@
 //! [`protocol::share::encode_share_acknowledge_topics_response`] still
 //! writes empty; v0 and v1 bodies match; not Fetch v16 tagged field 0).
 //! Top-level ErrorCode stays 0 (crate encode
-//! of this factory). Throttle is the JSON default (`0`). Official Java
-//! `ShareAcknowledgeRequest.getErrorResponse` writes only the top-level
-//! ErrorCode (empty Responses);
+//! of this factory). ThrottleTimeMs is JSON `0+` (on the wire for every
+//! spoken version); round-trips a non-zero value; v0 and v1 bodies match;
+//! [`protocol::share::encode_share_acknowledge_topics_response_with_throttle`]
+//! writes it; [`protocol::share::encode_share_acknowledge_topics_response`]
+//! still writes `0`. Official Java
+//! `ShareAcknowledgeRequest.getErrorResponse` writes ThrottleTimeMs plus
+//! the top-level ErrorCode (empty Responses);
+//! [`protocol::share::encode_share_acknowledge_response`] still writes
+//! ThrottleTimeMs `0`;
 //! [`protocol::share::ShareAcknowledgeResponse::error_counts`] is Java
 //! `ShareAcknowledgeResponse.errorCounts` (top-level `errorCode` plus each
 //! partition-level code, including `NONE`);

@@ -535,10 +535,12 @@ impl ShareFetchResponse {
 /// [`encode_share_acknowledge_topics_response`];
 /// [`encode_share_acknowledge_topics_response_with_endpoints`] writes a
 /// non-empty list.
-/// Top-level ErrorCode stays 0 (crate encode of this factory). Throttle
-/// is the JSON default (`0`). Official Java
-/// `ShareAcknowledgeRequest.getErrorResponse` writes only the top-level
-/// ErrorCode (empty Responses).
+/// Top-level ErrorCode stays 0 (crate encode of this factory). ThrottleTimeMs
+/// is JSON `0+` ([`encode_share_acknowledge_topics_response_with_throttle`];
+/// [`encode_share_acknowledge_topics_response`] still writes `0`). Official
+/// Java `ShareAcknowledgeRequest.getErrorResponse` writes ThrottleTimeMs
+/// plus the top-level ErrorCode (empty Responses); crate
+/// [`encode_share_acknowledge_response`] still writes ThrottleTimeMs `0`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareAcknowledgeResponsePartition {
     /// Partition index.
@@ -568,7 +570,9 @@ impl ShareAcknowledgeResponsePartition {
     /// [`encode_share_acknowledge_topics_response`];
     /// [`encode_share_acknowledge_topics_response_with_endpoints`] writes
     /// a non-empty list. Top-level ErrorCode stays 0 (crate encode
-    /// of this factory). Throttle is the JSON default (`0`).
+    /// of this factory). ThrottleTimeMs is JSON `0+`
+    /// ([`encode_share_acknowledge_topics_response_with_throttle`];
+    /// [`encode_share_acknowledge_topics_response`] still writes `0`).
     #[must_use]
     pub fn partition_response(partition: i32, error_code: i16) -> Self {
         Self {
@@ -1489,8 +1493,9 @@ pub fn decode_share_acknowledge_request<B: Buf>(
 /// Encode a ShareAcknowledge response (`version` 0–1): throttle `0` plus
 /// top-level error code and empty Responses.
 ///
-/// Official Java `ShareAcknowledgeRequest.getErrorResponse` writes only
-/// the top-level ErrorCode (empty Responses). For partition bodies, use
+/// Official Java `ShareAcknowledgeRequest.getErrorResponse` writes
+/// ThrottleTimeMs plus the top-level ErrorCode (empty Responses). This
+/// helper still writes ThrottleTimeMs `0`. For partition bodies, use
 /// [`encode_share_acknowledge_topics_response`] with
 /// [`ShareAcknowledgeResponsePartition::partition_response`].
 pub fn encode_share_acknowledge_response(
@@ -1504,7 +1509,8 @@ pub fn encode_share_acknowledge_response(
 /// Encode a ShareAcknowledge response (`version` 0–1) with topic/partition
 /// bodies.
 ///
-/// Throttle is the JSON default (`0`). Top-level ErrorMessage is null.
+/// ThrottleTimeMs is JSON `0+` ([`encode_share_acknowledge_topics_response_with_throttle`];
+/// this helper still writes `0`). Top-level ErrorMessage is null.
 /// Each partition is PartitionIndex and ErrorCode; ErrorMessage is taken
 /// from the partition fields (JSON default null) and CurrentLeader is
 /// taken from the partition fields (JSON default id 0 epoch 0).
@@ -1536,7 +1542,9 @@ pub fn encode_share_acknowledge_topics_response(
 /// tagged field 0. CurrentLeader is JSON `0+` (untagged nested
 /// `LeaderIdAndEpoch` from each partition, not Fetch v12+ tagged field 1).
 /// Partition ErrorMessage is JSON `0+` (nullable compact STRING from each
-/// partition, not the top-level ErrorMessage).
+/// partition, not the top-level ErrorMessage). ThrottleTimeMs is JSON `0+`
+/// ([`encode_share_acknowledge_topics_response_with_throttle`]; this
+/// helper still writes `0`).
 pub fn encode_share_acknowledge_topics_response_with_endpoints(
     buf: &mut BytesMut,
     version: i16,
@@ -1544,8 +1552,45 @@ pub fn encode_share_acknowledge_topics_response_with_endpoints(
     topics: &[ShareAcknowledgeResponseTopic],
     endpoints: &[NodeEndpoint],
 ) -> crate::error::Result<()> {
+    encode_share_acknowledge_topics_response_full(buf, version, error_code, topics, endpoints, 0)
+}
+
+/// Encode ShareAcknowledge v0–v1 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
+/// [`encode_share_acknowledge_topics_response`] still writes `0`.
+/// NodeEndpoints stay empty on this helper
+/// ([`encode_share_acknowledge_topics_response_with_endpoints`] writes a
+/// non-empty list and still writes ThrottleTimeMs `0`). v0 and v1 bodies
+/// match. This is not the top-level ErrorMessage and not ShareFetch
+/// ThrottleTimeMs (ShareFetch v1 still adds AcquisitionLockTimeoutMs).
+pub fn encode_share_acknowledge_topics_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    topics: &[ShareAcknowledgeResponseTopic],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    encode_share_acknowledge_topics_response_full(
+        buf,
+        version,
+        error_code,
+        topics,
+        &[],
+        throttle_time_ms,
+    )
+}
+
+fn encode_share_acknowledge_topics_response_full(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    topics: &[ShareAcknowledgeResponseTopic],
+    endpoints: &[NodeEndpoint],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = share_acknowledge_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
     buf::put_string(buf, flexible, None)?;
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
@@ -1583,10 +1628,10 @@ pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B, version: i16) -> R
 }
 
 /// Decode a ShareAcknowledge response (`version` 0–1):
-/// `(error_code, topics, node_endpoints)`.
+/// `(error_code, topics, node_endpoints, throttle_time_ms)`.
 ///
 /// Does not fail on a non-zero top-level or partition ErrorCode; callers
-/// decide. Throttle is ignored (crate encode writes `0`). Top-level
+/// decide. ThrottleTimeMs is JSON `0+` (always on the wire). Top-level
 /// ErrorMessage is not stored. Partition ErrorMessage is JSON `0+`
 /// (nullable compact STRING). CurrentLeader is JSON `0+` (untagged nested
 /// `LeaderIdAndEpoch`). NodeEndpoints is JSON `0+` (untagged
@@ -1594,9 +1639,14 @@ pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B, version: i16) -> R
 pub fn decode_share_acknowledge_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(i16, Vec<ShareAcknowledgeResponseTopic>, Vec<NodeEndpoint>)> {
+) -> Result<(
+    i16,
+    Vec<ShareAcknowledgeResponseTopic>,
+    Vec<NodeEndpoint>,
+    i32,
+)> {
     let flexible = share_acknowledge_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let _msg = buf::get_string(buf, flexible)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -1633,7 +1683,7 @@ pub fn decode_share_acknowledge_topics_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((error_code, topics, endpoints))
+    Ok((error_code, topics, endpoints, throttle_time_ms))
 }
 
 #[cfg(test)]
@@ -2858,7 +2908,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (top, got, eps) =
+            let (top, got, eps, ..) =
                 decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
             assert_eq!(top, 0);
             assert_eq!(got, topics);
@@ -3095,6 +3145,105 @@ mod tests {
             &with[..],
             &v1_with[..],
             "v0 and v1 ErrorMessage layout match; ShareAcknowledge has no AcquisitionLockTimeoutMs"
+        );
+    }
+
+    #[test]
+    fn share_acknowledge_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 / 4.1 ShareAcknowledgeResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on every spoken version; ignorable). Official
+        // Java ShareAcknowledgeRequest.getErrorResponse /
+        // ShareAcknowledgeResponse.of / toMessage set it;
+        // ShareAcknowledgeResponse.throttleTimeMs reads it.
+        // encode_share_acknowledge_topics_response still writes the JSON
+        // default 0. v0 and v1 bodies match. This is not the top-level
+        // ErrorMessage and not ShareFetch ThrottleTimeMs (ShareFetch v1
+        // still adds AcquisitionLockTimeoutMs).
+        let topics = vec![ShareAcknowledgeResponseTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareAcknowledgeResponsePartition {
+                partition: 0,
+                error_code: 6,
+                error_message: None,
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+            }],
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_acknowledge_topics_response_with_throttle(
+                &mut buf, version, 0, &topics, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (top, got, endpoints, throttle) =
+                decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
+            assert_eq!(top, 0);
+            assert_eq!(got, topics);
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "ShareAcknowledge v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_throttle(&mut with, 0, 0, &topics, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_throttle(&mut zero, 0, 0, &topics, 0)
+            .unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_share_acknowledge_topics_response(&mut conv, 0, 0, &topics).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_share_acknowledge_topics_response still writes ThrottleTimeMs 0"
+        );
+        let mut endpoints_zero = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_endpoints(
+            &mut endpoints_zero,
+            0,
+            0,
+            &topics,
+            &[],
+        )
+        .unwrap();
+        assert_eq!(
+            &endpoints_zero[..],
+            &zero[..],
+            "encode_share_acknowledge_topics_response_with_endpoints still writes ThrottleTimeMs 0"
+        );
+        let mut error_enc = BytesMut::new();
+        encode_share_acknowledge_response(&mut error_enc, 0, 0).unwrap();
+        let mut empty_topics = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_throttle(&mut empty_topics, 0, 0, &[], 0)
+            .unwrap();
+        assert_eq!(
+            &error_enc[..],
+            &empty_topics[..],
+            "encode_share_acknowledge_response still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_throttle(
+            &mut v1_with,
+            1,
+            0,
+            &topics,
+            3_600_000,
+        )
+        .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 both write ThrottleTimeMs (JSON 0+); ShareAcknowledge has no AcquisitionLockTimeoutMs"
         );
     }
 
