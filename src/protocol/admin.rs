@@ -12700,6 +12700,28 @@ impl ListConfigResourcesRequest {
     pub fn error_response(error_code: i16) -> ListConfigResourcesResponse {
         ListConfigResourcesResponse::new(error_code, Vec::new())
     }
+
+    /// Java `ListConfigResourcesRequest.supportedResourceTypes`.
+    ///
+    /// v0 is `CLIENT_METRICS` only. v1 is `TOPIC`, `BROKER`,
+    /// `BROKER_LOGGER`, `CLIENT_METRICS`, and `GROUP`. `UNKNOWN` is not
+    /// included. Java branches on `version() == 0`. This crate speaks
+    /// 0–1. This is not [`Self::error_response`] / Builder `build` /
+    /// DescribeConfigs resource types.
+    #[must_use]
+    pub fn supported_resource_types(version: i16) -> BTreeSet<i8> {
+        if version == 0 {
+            BTreeSet::from([RESOURCE_CLIENT_METRICS])
+        } else {
+            BTreeSet::from([
+                RESOURCE_TOPIC,
+                RESOURCE_BROKER,
+                RESOURCE_BROKER_LOGGER,
+                RESOURCE_CLIENT_METRICS,
+                RESOURCE_GROUP,
+            ])
+        }
+    }
 }
 
 /// Reject ListConfigResources versions this crate does not speak.
@@ -16494,7 +16516,7 @@ pub fn decode_describe_delegation_token_response<B: Buf>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
+    use std::collections::{BTreeSet, HashMap};
 
     #[test]
     fn create_topics_request_no_partition_sentinels_match_java() {
@@ -27699,6 +27721,36 @@ mod tests {
             &conv[..],
             &zero_buf[..],
             "error_response still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn list_config_resources_request_supported_resource_types_matches_java() {
+        // Java 4.1.0 ListConfigResourcesRequest.supportedResourceTypes:
+        // version() == 0 is CLIENT_METRICS only; otherwise TOPIC, BROKER,
+        // BROKER_LOGGER, CLIENT_METRICS, and GROUP. Official Java
+        // ListConfigResourcesRequest.supportedResourceTypes (4.1.0;
+        // 4.0.0 404 as the current name). UNKNOWN is not included. This
+        // crate speaks 0-1. This is not getErrorResponse / Builder.build
+        // / DescribeConfigs resource types.
+        assert_eq!(
+            ListConfigResourcesRequest::supported_resource_types(0),
+            BTreeSet::from([RESOURCE_CLIENT_METRICS])
+        );
+        assert_eq!(
+            ListConfigResourcesRequest::supported_resource_types(1),
+            BTreeSet::from([
+                RESOURCE_TOPIC,
+                RESOURCE_BROKER,
+                RESOURCE_BROKER_LOGGER,
+                RESOURCE_CLIENT_METRICS,
+                RESOURCE_GROUP,
+            ])
+        );
+        assert_ne!(
+            ListConfigResourcesRequest::supported_resource_types(0),
+            ListConfigResourcesRequest::supported_resource_types(1),
+            "v0 CLIENT_METRICS-only is not the v1 set"
         );
     }
 
