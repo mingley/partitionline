@@ -1500,6 +1500,17 @@ impl DescribeAclsResponse {
         HashMap::from([(error_code, 1)])
     }
 
+    /// Java `DescribeAclsResponse.error`.
+    ///
+    /// `ApiError(Errors.forCode(errorCode), errorMessage)`. Unknown codes
+    /// become [`crate::error::UNKNOWN_SERVER_ERROR`]. This is not
+    /// [`Self::error_counts`] / CreateAcls result `error` / DeleteAcls
+    /// filter `error`.
+    #[must_use]
+    pub fn error(error_code: i16, error_message: Option<String>) -> ApiError {
+        ApiError::from_code(error_code, error_message)
+    }
+
     /// Java `DescribeAclsResponse.aclsResources`.
     ///
     /// Groups bindings that share a [`ResourcePattern`]. Duplicate ACEs
@@ -2981,6 +2992,73 @@ mod tests {
             assert!(
                 cur.is_empty(),
                 "DescribeAcls v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+    }
+
+    #[test]
+    fn describe_acls_response_error_matches_java() {
+        // Java DescribeAclsResponse.error:
+        // new ApiError(Errors.forCode(data.errorCode()), data.errorMessage()).
+        // Official Java DescribeAclsResponse.error. Unknown codes become
+        // UNKNOWN_SERVER_ERROR (Java Errors.forCode). This is not
+        // errorCounts / CreateAcls result error / DeleteAcls filter error.
+        assert_eq!(
+            DescribeAclsResponse::error(0, None),
+            ApiError::NONE,
+            "NONE plus null message is ApiError.NONE"
+        );
+        assert_eq!(
+            DescribeAclsResponse::error(crate::error::SECURITY_DISABLED, Some("no".into())),
+            ApiError::from_code(crate::error::SECURITY_DISABLED, Some("no".into()))
+        );
+        assert_eq!(
+            DescribeAclsResponse::error(999, None).error(),
+            crate::error::UNKNOWN_SERVER_ERROR,
+            "unknown ErrorCode is Java Errors.forCode UNKNOWN_SERVER_ERROR"
+        );
+        let acls: Vec<AclBinding> = vec![];
+        for version in 0..=3_i16 {
+            let mut resp = BytesMut::new();
+            encode_describe_acls_response_with_error_code(
+                &mut resp,
+                version,
+                &acls,
+                crate::error::SECURITY_DISABLED,
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let (.., msg, err) = decode_describe_acls_response(&mut cur, version).unwrap();
+            assert_eq!(
+                DescribeAclsResponse::error(err, msg),
+                ApiError::from_code(crate::error::SECURITY_DISABLED, None),
+                "DescribeAcls v{version} error must wrap the decoded ErrorCode"
+            );
+            assert!(
+                cur.is_empty(),
+                "DescribeAcls v{version} error leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+
+            let mut msg_body = BytesMut::new();
+            encode_describe_acls_response_with_error_message(
+                &mut msg_body,
+                version,
+                &acls,
+                Some("no"),
+            )
+            .unwrap();
+            let mut cur = &msg_body[..];
+            let (.., msg, err) = decode_describe_acls_response(&mut cur, version).unwrap();
+            assert_eq!(
+                DescribeAclsResponse::error(err, msg),
+                ApiError::from_code(0, Some("no".into())),
+                "DescribeAcls v{version} error must wrap the decoded ErrorMessage"
+            );
+            assert!(
+                cur.is_empty(),
+                "DescribeAcls v{version} error ErrorMessage leftover-empty; leftover {} bytes",
                 cur.len()
             );
         }

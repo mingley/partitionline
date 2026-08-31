@@ -917,6 +917,9 @@
 //! [`protocol::acl::DescribeAclsResponse::error_counts`] is Java
 //! `DescribeAclsResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::acl::DescribeAclsResponse::error`] is Java
+//! `DescribeAclsResponse.error` (`ApiError` from top-level ErrorCode
+//! and ErrorMessage; unknown codes become `UNKNOWN_SERVER_ERROR`);
 //! [`AclCreationResult::error`] / [`AclCreationResult::error_results`] are Java
 //! `CreateAclsRequest.getErrorResponse` (one result / `nCopies`). Request
 //! bindings are not copied; `ErrorMessage` stays the JSON default (null);
