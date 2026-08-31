@@ -1201,6 +1201,21 @@ pub struct WritableTxnMarker {
 }
 
 impl WritableTxnMarker {
+    /// Java `WriteTxnMarkersRequest.TxnMarkerEntry.partitions`.
+    ///
+    /// Each `(topic, partition)` in request order. Duplicate pairs are
+    /// kept (Java `ArrayList`).
+    #[must_use]
+    pub fn partitions(&self) -> Vec<(String, i32)> {
+        let mut partitions = Vec::new();
+        for topic in &self.topics {
+            for &partition in &topic.partitions {
+                partitions.push((topic.name.clone(), partition));
+            }
+        }
+        partitions
+    }
+
     /// Per-partition result with the same layout and `error_code`.
     #[must_use]
     pub fn result(&self, error_code: i16) -> WritableTxnMarkerResult {
@@ -1834,6 +1849,74 @@ mod tests {
         assert!(
             cur.is_empty(),
             "WriteTxnMarkers v1 errorsByProducerId leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn writable_txn_marker_partitions_matches_java() {
+        // Java WriteTxnMarkersRequest.TxnMarkerEntry.partitions /
+        // WriteTxnMarkersRequest.markers inner flatten: each
+        // (topic, partition) in request order. Duplicates are kept
+        // (ArrayList).
+        let empty = WritableTxnMarker {
+            producer_id: 1,
+            producer_epoch: 0,
+            transaction_result: TransactionResult::Abort.id(),
+            topics: vec![],
+            coordinator_epoch: 0,
+        };
+        assert!(empty.partitions().is_empty());
+        let marker = WritableTxnMarker {
+            producer_id: 1000,
+            producer_epoch: 1,
+            transaction_result: TransactionResult::Commit.id(),
+            topics: vec![
+                WritableTxnMarkerTopic {
+                    name: "a".into(),
+                    partitions: vec![0, 1],
+                },
+                WritableTxnMarkerTopic {
+                    name: "b".into(),
+                    partitions: vec![2],
+                },
+                WritableTxnMarkerTopic {
+                    name: "a".into(),
+                    partitions: vec![0],
+                },
+            ],
+            coordinator_epoch: 3,
+        };
+        assert_eq!(
+            marker.partitions(),
+            vec![
+                ("a".into(), 0),
+                ("a".into(), 1),
+                ("b".into(), 2),
+                ("a".into(), 0),
+            ]
+        );
+        let markers = std::slice::from_ref(&marker);
+        let mut buf = BytesMut::new();
+        encode_write_txn_markers_request(&mut buf, 0, markers).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_write_txn_markers_request(&mut cur, 0).unwrap();
+        assert_eq!(decoded, vec![marker.clone()]);
+        assert_eq!(decoded[0].partitions(), marker.partitions());
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v0 partitions leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_write_txn_markers_request(&mut buf, 1, markers).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_write_txn_markers_request(&mut cur, 1).unwrap();
+        assert_eq!(decoded, vec![marker.clone()]);
+        assert_eq!(decoded[0].partitions(), marker.partitions());
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v1 partitions leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

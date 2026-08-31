@@ -1479,7 +1479,10 @@
 //! [`TransactionResult::Abort`]). [`AbortTransactionSpec`]
 //! `Display` is Java `AbortTransactionSpec.toString`.
 //! [`protocol::txn::WritableTxnMarker`] `Display` is Java
-//! `WriteTxnMarkersRequest.TxnMarkerEntry.toString`.
+//! `WriteTxnMarkersRequest.TxnMarkerEntry.toString`;
+//! [`protocol::txn::WritableTxnMarker::partitions`] is Java
+//! `WriteTxnMarkersRequest.TxnMarkerEntry.partitions` (flatten of nested
+//! topics; duplicates kept).
 //! [`protocol::txn::WriteTxnMarkersResponse::error_counts`] is Java
 //! `WriteTxnMarkersResponse.errorCounts` (partition-level codes, including `NONE`);
 //! [`protocol::txn::WriteTxnMarkersResponse::errors_by_producer_id`] is Java
