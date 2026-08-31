@@ -1380,6 +1380,8 @@
 //! [`ClusterDescription::nodes`] / [`ClusterDescription::controller`] are Java
 //! `DescribeClusterResult.nodes` / `controller` ([`Node`] is Java
 //! `org.apache.kafka.common.Node`, an alias of [`DescribeClusterBroker`]).
+//! [`protocol::admin::DescribeClusterResponse::nodes`] is Java
+//! `DescribeClusterResponse.nodes` (duplicate broker id is [`Error::protocol`]).
 //! [`ClusterDescription::cluster_resource`] is Java `ClusterResource` from the
 //! DescribeCluster cluster id ([`ClusterResource`] `Display` is
 //! `ClusterResource.toString`; missing id prints `null`).

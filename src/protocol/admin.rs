@@ -3516,6 +3516,31 @@ impl ClusterDescription {
     }
 }
 
+/// Java `DescribeClusterResponse` helpers.
+pub struct DescribeClusterResponse;
+
+impl DescribeClusterResponse {
+    /// Java `DescribeClusterResponse.nodes`.
+    ///
+    /// Brokers keyed by id (Java `Collectors.toMap(Node::id)`). A
+    /// duplicate broker id is [`Error::protocol`] (Java
+    /// `IllegalStateException`). Unlike
+    /// [`super::api::MetadataResponse::brokers_by_id`], this does not
+    /// overwrite.
+    pub fn nodes(brokers: &[DescribeClusterBroker]) -> Result<HashMap<i32, Node>> {
+        let mut nodes = HashMap::with_capacity(brokers.len());
+        for broker in brokers {
+            let id = broker.id();
+            if nodes.insert(id, broker.clone()).is_some() {
+                return Err(Error::protocol(format!(
+                    "duplicate broker id {id} in DescribeClusterResponse"
+                )));
+            }
+        }
+        Ok(nodes)
+    }
+}
+
 /// Check that DescribeCluster `version` is spoken (0–2).
 ///
 /// Flexible from v0. v1 adds EndpointType (KIP-919). v2 adds
@@ -17540,6 +17565,81 @@ mod tests {
         assert!(
             encode_describe_cluster_response(&mut BytesMut::new(), 3, &desc).is_err(),
             "DescribeCluster v3+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn describe_cluster_response_nodes_matches_java() {
+        // Java DescribeClusterResponse.nodes: Collectors.toMap(Node::id)
+        // with no merge. Duplicate broker ids are IllegalStateException.
+        assert!(DescribeClusterResponse::nodes(&[]).unwrap().is_empty());
+        let a = DescribeClusterBroker::new(1, "h1", 9092, None, false);
+        let b = DescribeClusterBroker::new(2, "h2", 9093, Some("r".into()), true);
+        assert_eq!(
+            DescribeClusterResponse::nodes(std::slice::from_ref(&a)).unwrap(),
+            HashMap::from([(1, a.clone())])
+        );
+        assert_eq!(
+            DescribeClusterResponse::nodes(&[a.clone(), b.clone()]).unwrap(),
+            HashMap::from([(1, a.clone()), (2, b.clone())])
+        );
+        let dup = [
+            a.clone(),
+            DescribeClusterBroker::new(1, "other", 1, None, false),
+        ];
+        let err = DescribeClusterResponse::nodes(&dup).unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "duplicate broker id is Java IllegalStateException"
+        );
+        let v0 = ClusterDescription {
+            error_code: 0,
+            error_message: None,
+            cluster_id: Some("c".into()),
+            controller_id: 1,
+            endpoint_type: ENDPOINT_TYPE_BROKERS,
+            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+            brokers: vec![
+                DescribeClusterBroker::new(1, "h1", 9092, None, false),
+                DescribeClusterBroker::new(2, "h2", 9093, Some("r".into()), false),
+            ],
+        };
+        let mut buf = BytesMut::new();
+        encode_describe_cluster_response(&mut buf, 0, &v0).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_describe_cluster_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, v0);
+        assert_eq!(
+            DescribeClusterResponse::nodes(&decoded.brokers).unwrap(),
+            DescribeClusterResponse::nodes(&v0.brokers).unwrap()
+        );
+        assert!(
+            cur.is_empty(),
+            "DescribeCluster v0 nodes leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let v2 = ClusterDescription {
+            error_code: 0,
+            error_message: None,
+            cluster_id: Some("c".into()),
+            controller_id: 2,
+            endpoint_type: ENDPOINT_TYPE_BROKERS,
+            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+            brokers: vec![a.clone(), b.clone()],
+        };
+        buf.clear();
+        encode_describe_cluster_response(&mut buf, 2, &v2).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_describe_cluster_response(&mut cur, 2).unwrap();
+        assert_eq!(decoded, v2);
+        assert_eq!(
+            DescribeClusterResponse::nodes(&decoded.brokers).unwrap(),
+            HashMap::from([(1, a), (2, b)])
+        );
+        assert!(
+            cur.is_empty(),
+            "DescribeCluster v2 nodes leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
