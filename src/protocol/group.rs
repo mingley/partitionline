@@ -2804,6 +2804,27 @@ impl OffsetFetchRequest {
         groups.iter().map(|group| group.group_id.clone()).collect()
     }
 
+    /// Java `OffsetFetchRequest.groups`.
+    ///
+    /// v8+ is `groups` as-is (including empty; member id / epoch kept).
+    /// Below v8 is always a singleton from the first group's GroupId and
+    /// Topics (member id null / epoch `-1`). Empty input below v8 is a
+    /// singleton with empty GroupId and null Topics (JSON defaults). Extra
+    /// groups below v8 are dropped (Java reads old GroupId / Topics, not
+    /// Groups). Distinct from [`Self::group_ids`], which keeps every id.
+    #[must_use]
+    pub fn groups(version: i16, groups: &[OffsetFetchGroup]) -> Vec<OffsetFetchGroup> {
+        if version >= 8 {
+            groups.to_vec()
+        } else {
+            let (group_id, topics) = match groups.first() {
+                Some(group) => (group.group_id.clone(), group.topics.clone()),
+                None => (String::new(), None),
+            };
+            vec![OffsetFetchGroup::new(group_id, topics)]
+        }
+    }
+
     /// Java `OffsetFetchRequest.partitions`.
     ///
     /// `None` Topics is `None` (every committed partition). Otherwise each
@@ -8090,6 +8111,90 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "OffsetFetch v{version} Builder.build empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn offset_fetch_request_groups_matches_java() {
+        // Java OffsetFetchRequest.groups: v8+ is data.groups() as-is.
+        // Below v8 is always a singleton from old GroupId / Topics (member
+        // id null / epoch -1). Empty Groups below v8 is still that
+        // singleton. Extra groups below v8 are dropped.
+        assert!(OffsetFetchRequest::groups(8, &[]).is_empty());
+        let empty_v7 = OffsetFetchRequest::groups(7, &[]);
+        assert_eq!(empty_v7, vec![OffsetFetchGroup::new("", None)]);
+        assert_eq!(OffsetFetchRequest::group_ids(&[]).len(), 0);
+
+        let first = OffsetFetchGroup {
+            group_id: "g".into(),
+            member_id: Some("m1".into()),
+            member_epoch: 3,
+            topics: Some(offset_fetch_one_topic()),
+        };
+        let second = OffsetFetchGroup::new("h", None);
+        let two = vec![first.clone(), second.clone()];
+        let v8 = OffsetFetchRequest::groups(8, &two);
+        assert_eq!(v8, two);
+        assert_eq!(v8.first().and_then(|g| g.member_id.as_deref()), Some("m1"));
+        let v7 = OffsetFetchRequest::groups(7, &two);
+        assert_eq!(v7.len(), 1);
+        let v7_one = v7.first().expect("v7 singleton");
+        assert_eq!(v7_one.group_id, "g");
+        assert_eq!(v7_one.member_id, None);
+        assert_eq!(v7_one.member_epoch, -1);
+        assert_eq!(v7_one.topics, Some(offset_fetch_one_topic()));
+        assert_eq!(OffsetFetchRequest::group_ids(&two).len(), 2);
+
+        let req = offset_fetch_one_topic();
+        for version in [7_i16, 8] {
+            let grouped = OffsetFetchRequest::groups(
+                version,
+                std::slice::from_ref(&OffsetFetchGroup::new("g", Some(req.clone()))),
+            );
+            assert_eq!(grouped.len(), 1);
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_request(&mut buf, version, "g", None, -1, false, Some(&req))
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (_gid, decoded, stable) = decode_offset_fetch_request(&mut cur, version).unwrap();
+            assert!(!stable);
+            assert_eq!(decoded.as_deref(), Some(req.as_slice()));
+            assert!(
+                !cur.has_remaining(),
+                "OffsetFetch v{version} groups leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [8_i16, 9] {
+            let grouped = OffsetFetchRequest::groups(version, &[]);
+            assert!(grouped.is_empty());
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_request(&mut buf, version, &[], false).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, stable) = decode_offset_fetch_groups_request(&mut cur, version).unwrap();
+            assert!(!stable);
+            assert!(decoded.is_empty());
+            assert!(
+                !cur.has_remaining(),
+                "OffsetFetch v{version} groups empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [2_i16, 7] {
+            let grouped = OffsetFetchRequest::groups(version, &[]);
+            assert_eq!(grouped, vec![OffsetFetchGroup::new("", None)]);
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_request(&mut buf, version, "", None, -1, false, None).unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, decoded, stable) = decode_offset_fetch_request(&mut cur, version).unwrap();
+            assert!(!stable);
+            assert_eq!(gid, "");
+            assert_eq!(decoded, None);
+            assert!(
+                !cur.has_remaining(),
+                "OffsetFetch v{version} groups singleton leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }

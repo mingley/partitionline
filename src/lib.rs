@@ -156,6 +156,10 @@
 //! `None` Topics is `None`; a later group overwrites);
 //! [`protocol::group::OffsetFetchRequest::group_ids`] is Java
 //! `OffsetFetchRequest.groupIds` (request order; duplicate ids kept);
+//! [`protocol::group::OffsetFetchRequest::groups`] is Java
+//! `OffsetFetchRequest.groups` (v8+ as-is; below v8 a singleton from the
+//! first group's GroupId / Topics; empty input below v8 is still a
+//! singleton; extra groups below v8 are dropped);
 //! [`protocol::group::OffsetFetchRequest::partitions`] is Java
 //! `OffsetFetchRequest.partitions` (`None` Topics is `None`; otherwise
 //! each `(topic, partition)` in request order);
