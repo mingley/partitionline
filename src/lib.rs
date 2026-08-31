@@ -1551,7 +1551,11 @@
 //! `WriteTxnMarkersRequest.TxnMarkerEntry.toString`;
 //! [`protocol::txn::WritableTxnMarker::partitions`] is Java
 //! `WriteTxnMarkersRequest.TxnMarkerEntry.partitions` (flatten of nested
-//! topics; duplicates kept).
+//! topics; duplicates kept);
+//! [`protocol::txn::WritableTxnMarker::from_partitions`] is Java
+//! `WriteTxnMarkersRequest.Builder` one marker (group by name; a later
+//! entry for the same topic appends; first-seen topic order; duplicate
+//! pairs kept).
 //! [`protocol::txn::WriteTxnMarkersResponse::error_counts`] is Java
 //! `WriteTxnMarkersResponse.errorCounts` (partition-level codes, including `NONE`);
 //! [`protocol::txn::WriteTxnMarkersResponse::errors_by_producer_id`] is Java
