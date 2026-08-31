@@ -7169,7 +7169,7 @@ impl Admin {
             )
             .await
         }?;
-        let resp = decode_list_offsets_topics_response(&mut body.clone(), version)?;
+        let (resp, ..) = decode_list_offsets_topics_response(&mut body.clone(), version)?;
         let mut by_key: HashMap<(String, i32), VecDeque<ListOffsetsResponsePartition>> =
             HashMap::new();
         for t in resp {

@@ -394,6 +394,32 @@ impl ListOffsetsRequest {
             0
         }
     }
+
+    /// Java `ListOffsetsRequest.getErrorResponse`.
+    ///
+    /// Topics copy names and partition indexes with `error_code` (Java
+    /// copies `partitionIndex` and sets `UNKNOWN_OFFSET` /
+    /// `UNKNOWN_TIMESTAMP`). ThrottleTimeMs is written on v2+ from
+    /// `throttle_time_ms`. Below v2 the field is omitted even when that
+    /// value is non-zero. Decode fills `0`.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        topics: &[ListOffsetsTopicRequest],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        let responses: Vec<_> = topics
+            .iter()
+            .map(|topic| topic.error_result(error_code))
+            .collect();
+        encode_list_offsets_topics_response_with_throttle(
+            buf,
+            version,
+            &responses,
+            throttle_time_ms,
+        )
+    }
 }
 
 /// Java `ListOffsetsResponse` helpers.
@@ -637,14 +663,29 @@ pub fn encode_list_offsets_response(
 }
 
 /// Encode ListOffsets with one or more topics (v1–v5 classic, v6–v10 flexible).
+///
+/// Throttle is the JSON default (`0`) on v2+.
 pub fn encode_list_offsets_topics_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[ListOffsetsTopicResponse],
 ) -> crate::error::Result<()> {
+    encode_list_offsets_topics_response_with_throttle(buf, version, topics, 0)
+}
+
+/// Encode ListOffsets v1–v10 with ThrottleTimeMs.
+///
+/// Below v2 ThrottleTimeMs is omitted even when the body has a non-zero
+/// value. Decode fills `0`. v4+ writes LeaderEpoch. v6+ is flexible.
+pub fn encode_list_offsets_topics_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[ListOffsetsTopicResponse],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = list_offsets_flexible(version)?;
     if version >= 2 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -681,7 +722,7 @@ pub fn decode_list_offsets_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ListOffsetsPartition> {
-    let topics = decode_list_offsets_topics_response(buf, version)?;
+    let (topics, ..) = decode_list_offsets_topics_response(buf, version)?;
     let t = topics
         .first()
         .ok_or_else(|| Error::protocol("empty ListOffsets response topics"))?;
@@ -701,14 +742,15 @@ pub fn decode_list_offsets_response<B: Buf>(
 }
 
 /// Decode ListOffsets topics (v1–v5 classic, v6–v10 flexible). Partition errors stay on the row.
+///
+/// Returns `(topics, throttle_time_ms)`. Below v2 ThrottleTimeMs is
+/// omitted; decode fills `0`.
 pub fn decode_list_offsets_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<ListOffsetsTopicResponse>> {
+) -> Result<(Vec<ListOffsetsTopicResponse>, i32)> {
     let flexible = list_offsets_flexible(version)?;
-    if version >= 2 {
-        let _throttle = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
@@ -744,7 +786,7 @@ pub fn decode_list_offsets_topics_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(topics)
+    Ok((topics, throttle_time_ms))
 }
 
 #[cfg(test)]
@@ -823,7 +865,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_list_offsets_topics_response(&mut buf, 6, std::slice::from_ref(&result)).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_list_offsets_topics_response(&mut cur, 6).unwrap();
+        let (decoded, ..) = decode_list_offsets_topics_response(&mut cur, 6).unwrap();
         assert_eq!(decoded, vec![result]);
         assert!(
             cur.is_empty(),
@@ -1026,7 +1068,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_list_offsets_topics_response(&mut resp, 4, &resp_topics).unwrap();
         let mut cur = &resp[..];
-        let got = decode_list_offsets_topics_response(&mut cur, 4).unwrap();
+        let (got, ..) = decode_list_offsets_topics_response(&mut cur, 4).unwrap();
         assert_eq!(got, resp_topics);
         assert!(
             cur.is_empty(),
@@ -1337,6 +1379,106 @@ mod tests {
         leftover_for_consumer(8, 0, &[]);
         leftover_for_consumer(9, 1, &topics);
         leftover_for_consumer(9, 1, &[]);
+    }
+
+    #[test]
+    fn list_offsets_throttle_time_ms_matches_java() {
+        let topics = [ListOffsetsTopicRequest::new(
+            "t",
+            vec![ListOffsetsPartitionRequest::new(0, 1, EARLIEST_TIMESTAMP)],
+        )];
+        let err = topics
+            .iter()
+            .map(|topic| topic.error_result(16))
+            .collect::<Vec<_>>();
+        for version in [2_i16, 3, 4, 6, 7, 10] {
+            let mut buf = BytesMut::new();
+            ListOffsetsRequest::error_response(&mut buf, version, &topics, 16, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_list_offsets_topics_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "ListOffsets v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        ListOffsetsRequest::error_response(&mut buf, 1, &topics, 16, 3_600_000).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_list_offsets_topics_response(&mut cur, 1).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "ListOffsets v1 ThrottleTimeMs leftover-empty"
+        );
+        assert_eq!(
+            throttle, 0,
+            "ListOffsets v1 omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+
+        let mut with = BytesMut::new();
+        encode_list_offsets_topics_response_with_throttle(&mut with, 2, &err, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_list_offsets_topics_response_with_throttle(&mut zero, 2, &err, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v2 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_list_offsets_topics_response(&mut conv, 2, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_list_offsets_topics_response still writes ThrottleTimeMs 0"
+        );
+        let mut v1_with = BytesMut::new();
+        encode_list_offsets_topics_response_with_throttle(&mut v1_with, 1, &err, 3_600_000)
+            .unwrap();
+        let mut v1_zero = BytesMut::new();
+        encode_list_offsets_topics_response_with_throttle(&mut v1_zero, 1, &err, 0).unwrap();
+        assert_eq!(
+            &v1_with[..],
+            &v1_zero[..],
+            "v1 encode omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+        assert_ne!(
+            &v1_with[..],
+            &with[..],
+            "v2 adds ThrottleTimeMs before Topics"
+        );
+
+        for version in [1_i16, 2, 4, 6, 10] {
+            let mut expected = BytesMut::new();
+            encode_list_offsets_topics_response_with_throttle(
+                &mut expected,
+                version,
+                &err,
+                3_600_000,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            ListOffsetsRequest::error_response(&mut got, version, &topics, 16, 3_600_000).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "ListOffsets v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (_, throttle) = decode_list_offsets_topics_response(&mut cur, version).unwrap();
+            if version >= 2 {
+                assert_eq!(throttle, 3_600_000);
+            } else {
+                assert_eq!(throttle, 0);
+            }
+            assert!(
+                cur.is_empty(),
+                "ListOffsets v{version} getErrorResponse leftover-empty"
+            );
+        }
     }
 
     fn leftover_for_consumer(version: i16, isolation: i8, topics: &[ListOffsetsTopicRequest]) {

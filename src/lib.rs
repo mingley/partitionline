@@ -1642,6 +1642,13 @@
 //! [`protocol::offsets::ListOffsetsResponsePartition::error`] /
 //! [`protocol::offsets::ListOffsetsTopicRequest::error_result`] are Java
 //! `ListOffsetsRequest.getErrorResponse` (partition body / one topic);
+//! [`protocol::offsets::ListOffsetsRequest::error_response`] is Java
+//! `ListOffsetsRequest.getErrorResponse` (copies names and partition
+//! indexes with `UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP`; v2+ writes the
+//! `throttleTimeMs` argument; below v2 omits it);
+//! v2+ round-trips ThrottleTimeMs; below v2 encode omits it even when
+//! the body has a non-zero value and decode fills `0`;
+//! [`protocol::offsets::encode_list_offsets_topics_response`] still writes `0`;
 //! [`protocol::offsets::ListOffsetsRequest::duplicate_partitions`] is Java
 //! `ListOffsetsRequest.duplicatePartitions` (`(topic, partition)` pairs
 //! that appear more than once);
