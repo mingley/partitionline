@@ -714,7 +714,7 @@
 //! ExpireDelegationToken v1–v2 (v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::ExpireDelegationTokenResponse::should_client_throttle`] is Java
 //! `ExpireDelegationTokenResponse.shouldClientThrottle` (v1+)),
-//! DescribeDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 TokenRequester;
+//! DescribeDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 TokenRequester; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::DescribeDelegationTokenResponse::should_client_throttle`] is Java
 //! `DescribeDelegationTokenResponse.shouldClientThrottle` (v1+);
 //! [`DescribeDelegationTokenRequest::owners_list_empty`] is Java

@@ -15544,19 +15544,28 @@ impl fmt::Debug for DescribedDelegationToken {
 ///
 /// **ErrorCode is top-level**, first field — not after throttle and
 /// not a first-token field. Official JSON places `Tokens` next and
-/// `ThrottleTimeMs` last. Empty Tokens is not a first-token ErrorCode.
+/// `ThrottleTimeMs` last (`0+` INT32; encode writes
+/// [`Self::throttle_time_ms`]; [`Self::new`] fills `0`). Empty Tokens is
+/// not a first-token ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeDelegationTokenResponse {
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Delegation tokens.
     pub tokens: Vec<DescribedDelegationToken>,
+    /// DescribeDelegationToken `ThrottleTimeMs` (JSON `0+`). Last field
+    /// after `Tokens`. JSON default is `0`.
+    pub throttle_time_ms: i32,
 }
 
 impl DescribeDelegationTokenResponse {
     /// Construct [`Self`].
     pub fn new(error_code: i16, tokens: Vec<DescribedDelegationToken>) -> Self {
-        Self { error_code, tokens }
+        Self {
+            error_code,
+            tokens,
+            throttle_time_ms: 0,
+        }
     }
 
     /// Java `DescribeDelegationTokenResponse.shouldClientThrottle`.
@@ -15575,6 +15584,12 @@ impl DescribeDelegationTokenResponse {
     #[must_use]
     pub fn tokens(&self) -> &[DescribedDelegationToken] {
         &self.tokens
+    }
+
+    /// DescribeDelegationToken `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 }
 
@@ -15733,7 +15748,7 @@ pub fn encode_describe_delegation_token_response(
             buf::put_empty_tagged_fields(buf);
         }
     }
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
@@ -15794,11 +15809,15 @@ pub fn decode_describe_delegation_token_response<B: Buf>(
             renewers,
         });
     }
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(DescribeDelegationTokenResponse { error_code, tokens })
+    Ok(DescribeDelegationTokenResponse {
+        error_code,
+        tokens,
+        throttle_time_ms,
+    })
 }
 
 #[cfg(test)]
@@ -29017,6 +29036,69 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "v2 request must be leftover-empty; a later-version field would leave leftover"
+        );
+    }
+
+    #[test]
+    fn describe_delegation_token_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 DescribeDelegationTokenResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on spoken v1–v3; last field after Tokens).
+        // Kafka 4.0 removed v0. Official Java
+        // DescribeDelegationTokenRequest.getErrorResponse /
+        // DescribeDelegationTokenResponse.throttleTimeMs set / read it.
+        // Encode writes DescribeDelegationTokenResponse.throttle_time_ms
+        // (JSON default 0; DescribeDelegationTokenResponse::new fills 0).
+        // KIP-219 only changes shouldClientThrottle (v1+). ErrorCode is
+        // first (bytes 0–1). Empty-Tokens v1 != v2 (classic vs
+        // compact+tagged); empty-Tokens v2 == v3 (TokenRequester is
+        // per-token). This crate speaks 1–3. This is not
+        // ExpireDelegationToken ThrottleTimeMs.
+        let zero = DescribeDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            vec![],
+        );
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        for version in [1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_describe_delegation_token_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_describe_delegation_token_response(&mut cur, version).unwrap();
+            assert_eq!(got, with);
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert_eq!(got.throttle_time_ms(), 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DescribeDelegationToken v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with_v1 = BytesMut::new();
+        encode_describe_delegation_token_response(&mut with_v1, 1, &with).unwrap();
+        let mut zero_v1 = BytesMut::new();
+        encode_describe_delegation_token_response(&mut zero_v1, 1, &zero).unwrap();
+        assert_ne!(
+            &with_v1[..],
+            &zero_v1[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut with_v2 = BytesMut::new();
+        encode_describe_delegation_token_response(&mut with_v2, 2, &with).unwrap();
+        assert_ne!(
+            &with_v1[..],
+            &with_v2[..],
+            "v2 adds compact arrays/strings plus tagged fields"
+        );
+        let mut with_v3 = BytesMut::new();
+        encode_describe_delegation_token_response(&mut with_v3, 3, &with).unwrap();
+        assert_eq!(
+            &with_v2[..],
+            &with_v3[..],
+            "empty-Tokens ThrottleTimeMs bodies: v2 == v3"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "DescribeDelegationTokenResponse::new still fills ThrottleTimeMs 0"
         );
     }
 
