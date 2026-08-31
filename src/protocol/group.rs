@@ -1659,12 +1659,27 @@ pub fn decode_sync_group_request<B: Buf>(
 }
 
 /// Encode SyncGroup v0–v5. Throttle is `0` on v1+. ProtocolType /
-/// ProtocolName are v5+ (null here).
+/// ProtocolName are the JSON default (`null`) on v5+.
 pub fn encode_sync_group_response(
     buf: &mut BytesMut,
     version: i16,
     error_code: i16,
     assignment: &[u8],
+) -> crate::error::Result<()> {
+    encode_sync_group_response_with_protocol(buf, version, error_code, assignment, None, None)
+}
+
+/// Encode SyncGroup v0–v5 with ProtocolType / ProtocolName.
+///
+/// Below v5 those fields are omitted even when the body has values.
+/// Decode fills `None`. v5 is flexible.
+pub fn encode_sync_group_response_with_protocol(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    assignment: &[u8],
+    protocol_type: Option<&str>,
+    protocol_name: Option<&str>,
 ) -> crate::error::Result<()> {
     let flexible = sync_group_flexible(version)?;
     if version >= 1 {
@@ -1672,8 +1687,8 @@ pub fn encode_sync_group_response(
     }
     buf.put_i16(error_code);
     if version >= 5 {
-        buf::put_string(buf, true, None)?;
-        buf::put_string(buf, true, None)?;
+        buf::put_string(buf, true, protocol_type)?;
+        buf::put_string(buf, true, protocol_name)?;
     }
     buf::put_bytes(buf, flexible, Some(assignment))?;
     if flexible {
@@ -1682,22 +1697,33 @@ pub fn encode_sync_group_response(
     Ok(())
 }
 
-/// Decode SyncGroup: `(error_code, assignment)`. Throttle is v1+.
-pub fn decode_sync_group_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16, Vec<u8>)> {
+/// Decode SyncGroup: `(error_code, assignment, protocol_type, protocol_name)`.
+///
+/// Throttle is v1+. Below v5 ProtocolType / ProtocolName are omitted;
+/// decode fills `None`.
+#[expect(
+    clippy::type_complexity,
+    reason = "SyncGroup decode returns error, assignment, protocol type, and protocol name together"
+)]
+pub fn decode_sync_group_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(i16, Vec<u8>, Option<String>, Option<String>)> {
     let flexible = sync_group_flexible(version)?;
     if version >= 1 {
         let _throttle = buf::get_i32(buf)?;
     }
     let error = buf::get_i16(buf)?;
-    if version >= 5 {
-        let _ptype = buf::get_string(buf, true)?;
-        let _pname = buf::get_string(buf, true)?;
-    }
+    let (ptype, pname) = if version >= 5 {
+        (buf::get_string(buf, true)?, buf::get_string(buf, true)?)
+    } else {
+        (None, None)
+    };
     let assignment = buf::get_bytes(buf, flexible)?.unwrap_or_default();
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((error, assignment))
+    Ok((error, assignment, ptype, pname))
 }
 
 /// `true` when Heartbeat `version` is flexible (v4+).
@@ -9726,11 +9752,11 @@ mod tests {
         assert_ne!(v0.as_ref(), v1.as_ref(), "v1 response adds ThrottleTimeMs");
         assert_eq!(v1.as_ref(), v2.as_ref(), "v1 and v2 response bodies match");
         let mut cur = v0.as_ref();
-        let (err, asg) = decode_sync_group_response(&mut cur, 0).unwrap();
+        let (err, asg, ..) = decode_sync_group_response(&mut cur, 0).unwrap();
         assert_eq!((err, asg.as_slice()), (0, &[][..]));
         assert!(cur.is_empty(), "v0 response leftover-empty");
         let mut cur = v1.as_ref();
-        let (err, asg) = decode_sync_group_response(&mut cur, 1).unwrap();
+        let (err, asg, ..) = decode_sync_group_response(&mut cur, 1).unwrap();
         assert_eq!((err, asg.as_slice()), (0, &[][..]));
         assert!(cur.is_empty(), "v1 response leftover-empty");
 
@@ -9764,7 +9790,7 @@ mod tests {
         buf.clear();
         encode_sync_group_response(&mut buf, 3, 0, &[1, 2, 3]).unwrap();
         let mut cur = &buf[..];
-        let (err, asg) = decode_sync_group_response(&mut cur, 3).unwrap();
+        let (err, asg, ..) = decode_sync_group_response(&mut cur, 3).unwrap();
         assert_eq!((err, asg.as_slice()), (0, &[1, 2, 3][..]));
         assert!(cur.is_empty(), "v3 response leftover {} bytes", cur.len());
     }
@@ -9787,7 +9813,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_sync_group_response(&mut resp, 4, 0, &[1, 2, 3]).unwrap();
         let mut cur = &resp[..];
-        let (err, asg) = decode_sync_group_response(&mut cur, 4).unwrap();
+        let (err, asg, ..) = decode_sync_group_response(&mut cur, 4).unwrap();
         assert_eq!((err, asg.as_slice()), (0, &[1, 2, 3][..]));
         assert!(
             cur.is_empty(),
@@ -9814,7 +9840,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_sync_group_response(&mut resp, 5, 0, &[1, 2, 3]).unwrap();
         let mut cur = &resp[..];
-        let (err, asg) = decode_sync_group_response(&mut cur, 5).unwrap();
+        let (err, asg, ..) = decode_sync_group_response(&mut cur, 5).unwrap();
         assert_eq!((err, asg.as_slice()), (0, &[1, 2, 3][..]));
         assert!(
             cur.is_empty(),
@@ -10004,6 +10030,148 @@ mod tests {
     }
 
     #[test]
+    fn sync_group_response_protocol_type_name_matches_java() {
+        let assignment = b"asg";
+        let mut buf = BytesMut::new();
+        encode_sync_group_response_with_protocol(
+            &mut buf,
+            5,
+            0,
+            assignment,
+            Some("consumer"),
+            Some("range"),
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (err, asg, ptype, pname) = decode_sync_group_response(&mut cur, 5).unwrap();
+        assert_eq!(err, 0);
+        assert_eq!(asg, assignment);
+        assert_eq!(ptype.as_deref(), Some("consumer"));
+        assert_eq!(pname.as_deref(), Some("range"));
+        assert!(
+            cur.is_empty(),
+            "SyncGroup v5 response ProtocolType leftover-empty"
+        );
+
+        let mut buf = BytesMut::new();
+        encode_sync_group_response_with_protocol(
+            &mut buf,
+            4,
+            0,
+            assignment,
+            Some("consumer"),
+            Some("range"),
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (_, asg, ptype, pname) = decode_sync_group_response(&mut cur, 4).unwrap();
+        assert_eq!(asg, assignment);
+        assert!(
+            cur.is_empty(),
+            "SyncGroup v4 response ProtocolType leftover-empty"
+        );
+        assert_eq!(
+            (ptype, pname),
+            (None, None),
+            "SyncGroup v4 omits response ProtocolType / ProtocolName even when the body has values"
+        );
+
+        let mut buf = BytesMut::new();
+        encode_sync_group_response_with_protocol(
+            &mut buf,
+            0,
+            0,
+            assignment,
+            Some("consumer"),
+            Some("range"),
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (_, _, ptype, pname) = decode_sync_group_response(&mut cur, 0).unwrap();
+        assert!(
+            cur.is_empty(),
+            "SyncGroup v0 response ProtocolType leftover-empty"
+        );
+        assert_eq!(
+            (ptype, pname),
+            (None, None),
+            "SyncGroup v0 omits response ProtocolType / ProtocolName even when the body has values"
+        );
+
+        let mut with = BytesMut::new();
+        encode_sync_group_response_with_protocol(
+            &mut with,
+            5,
+            0,
+            assignment,
+            Some("consumer"),
+            Some("range"),
+        )
+        .unwrap();
+        let mut none = BytesMut::new();
+        encode_sync_group_response_with_protocol(&mut none, 5, 0, assignment, None, None).unwrap();
+        assert_ne!(
+            &with[..],
+            &none[..],
+            "v5 response ProtocolType / ProtocolName are not always the JSON default null"
+        );
+        let mut conv = BytesMut::new();
+        encode_sync_group_response(&mut conv, 5, 0, assignment).unwrap();
+        assert_eq!(
+            &conv[..],
+            &none[..],
+            "encode_sync_group_response still writes null ProtocolType / ProtocolName"
+        );
+        let mut v4_with = BytesMut::new();
+        encode_sync_group_response_with_protocol(
+            &mut v4_with,
+            4,
+            0,
+            assignment,
+            Some("consumer"),
+            Some("range"),
+        )
+        .unwrap();
+        let mut v4_none = BytesMut::new();
+        encode_sync_group_response_with_protocol(&mut v4_none, 4, 0, assignment, None, None)
+            .unwrap();
+        assert_eq!(
+            &v4_with[..],
+            &v4_none[..],
+            "v4 encode omits response ProtocolType / ProtocolName even when the body has values"
+        );
+        assert_ne!(
+            &v4_with[..],
+            &with[..],
+            "v5 adds response ProtocolType / ProtocolName after ErrorCode"
+        );
+
+        let mut empty_buf = BytesMut::new();
+        encode_sync_group_response_with_protocol(
+            &mut empty_buf,
+            5,
+            0,
+            assignment,
+            Some(""),
+            Some(""),
+        )
+        .unwrap();
+        let mut cur = empty_buf.as_ref();
+        let (_, _, ptype, pname) = decode_sync_group_response(&mut cur, 5).unwrap();
+        assert_eq!(ptype.as_deref(), Some(""));
+        assert_eq!(pname.as_deref(), Some(""));
+        assert!(
+            cur.is_empty(),
+            "SyncGroup v5 empty response ProtocolType leftover-empty"
+        );
+        assert_ne!(
+            &empty_buf[..],
+            &none[..],
+            "empty response ProtocolType / ProtocolName are still present (Java != null)"
+        );
+    }
+
+    #[test]
     fn sync_group_v4_request_matches_compact_layout() {
         // Compact "g", generation 7, compact "m1", null instance, empty
         // assignments, tagged. v4 has no ProtocolType / ProtocolName.
@@ -10096,7 +10264,7 @@ mod tests {
                 assert_eq!(&got[..], V5);
             }
             let mut cur = &got[..];
-            let (err, assignment) = decode_sync_group_response(&mut cur, version).unwrap();
+            let (err, assignment, ..) = decode_sync_group_response(&mut cur, version).unwrap();
             assert_eq!(err, 16);
             assert!(assignment.is_empty(), "v{version} assignment must be empty");
             assert!(

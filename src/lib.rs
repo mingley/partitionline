@@ -248,6 +248,9 @@
 //! [`protocol::group::SyncGroupRequest::build`] is Java
 //! `SyncGroupRequest.Builder.build` (a present `group.instance.id`
 //! below v3 is `UnsupportedVersionException`; encode still omits);
+//! v5+ response round-trips ProtocolType / ProtocolName; below v5 encode
+//! omits them even when the body has values and decode fills `None`;
+//! [`protocol::group::encode_sync_group_response`] still writes null;
 //! [`protocol::group::SyncGroupResponse::should_client_throttle`] is Java
 //! `SyncGroupResponse.shouldClientThrottle` (v2+)),
 //! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment;

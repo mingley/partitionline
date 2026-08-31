@@ -1964,7 +1964,7 @@ impl ConsumerGroup {
             timeout,
         )
         .await?;
-        let (err, assignment) = decode_sync_group_response(&mut body.clone(), version)?;
+        let (err, assignment, ..) = decode_sync_group_response(&mut body.clone(), version)?;
         if err != 0 {
             return Err(Error::broker(err, "SyncGroup"));
         }
