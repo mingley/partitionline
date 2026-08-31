@@ -2091,6 +2091,23 @@ impl ProduceRequest {
         Ok(())
     }
 
+    /// Java `ProduceRequest.Builder.build`.
+    ///
+    /// Calls [`Self::validate_records`] for each partition's records
+    /// (crate partitions hold one [`RecordBatch`]). Empty Topics is
+    /// success. Official Java skips a partition when `records` is not
+    /// `instanceof Records`. This crate speaks 3–12. This is not
+    /// [`Self::validate_records`] / [`Self::partition_sizes`] /
+    /// [`Self::error_response`] / [`Self::has_transactional_records`].
+    pub fn build(version: i16, topics: &[ProduceTopicData]) -> Result<()> {
+        for topic in topics {
+            for partition in &topic.partitions {
+                Self::validate_records(version, std::slice::from_ref(&partition.records))?;
+            }
+        }
+        Ok(())
+    }
+
     /// Java `ProduceRequest.partitionSizes`.
     ///
     /// Each `(topic, partition)` maps to the encoded size of that
@@ -2815,6 +2832,90 @@ mod tests {
         )
         .unwrap();
         assert!(decoded_empty.is_empty());
+    }
+
+    #[test]
+    fn produce_request_build_matches_java() {
+        // Java 4.0 ProduceRequest.Builder.build: validateRecords each
+        // partition. Empty Topics is success. Official Java
+        // ProduceRequest.Builder.build. Encode still rejects zstd as an
+        // unspoken codec. This crate speaks 3-12. This is not
+        // validateRecords / partitionSizes / getErrorResponse /
+        // hasTransactionalRecords.
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let none = RecordBatch::from_records(vec![rec]);
+        let mut zstd = none.clone();
+        zstd.attributes = (zstd.attributes & !0x07) | 4;
+        let ok = [ProduceTopicData {
+            topic: "t".into(),
+            partitions: vec![
+                ProducePartitionData {
+                    index: 0,
+                    records: none.clone(),
+                },
+                ProducePartitionData {
+                    index: 1,
+                    records: none.clone().with_compression(Compression::Gzip),
+                },
+            ],
+        }];
+        let zstd_topics = [ProduceTopicData {
+            topic: "t".into(),
+            partitions: vec![ProducePartitionData {
+                index: 0,
+                records: zstd,
+            }],
+        }];
+        for version in 3..=12_i16 {
+            ProduceRequest::build(version, &[]).unwrap();
+            ProduceRequest::build(version, &ok).unwrap();
+            if version < 7 {
+                let zstd_err = ProduceRequest::build(version, &zstd_topics).unwrap_err();
+                assert!(
+                    matches!(zstd_err, Error::Unsupported(_)),
+                    "zstd below v7 is Java UnsupportedCompressionTypeException, got {zstd_err}"
+                );
+                assert!(
+                    zstd_err
+                        .to_string()
+                        .contains("are not allowed to use ZStandard compression"),
+                    "got {zstd_err}"
+                );
+            } else {
+                ProduceRequest::build(version, &zstd_topics).unwrap();
+            }
+        }
+        leftover_empty_produce_build(3, &ok);
+        leftover_empty_produce_build(9, &ok);
+        leftover_empty_produce_build(3, &[]);
+        leftover_empty_produce_build(9, &[]);
+    }
+
+    fn leftover_empty_produce_build(version: i16, topics: &[ProduceTopicData]) {
+        ProduceRequest::build(version, topics).unwrap();
+        let mut buf = BytesMut::new();
+        encode_produce_request(&mut buf, version, None, 1, 0, topics).unwrap();
+        let mut cur = buf.as_ref();
+        let (.., decoded) = decode_produce_request(&mut cur, version).unwrap();
+        leftover_empty(
+            &cur,
+            match (version, topics.is_empty()) {
+                (3, false) => "Produce v3 Builder.build leftover-empty",
+                (9, false) => "Produce v9 Builder.build leftover-empty",
+                (3, true) => "Produce v3 Builder.build empty leftover-empty",
+                (9, true) => "Produce v9 Builder.build empty leftover-empty",
+                (_, false) => "Produce Builder.build leftover-empty",
+                (_, true) => "Produce Builder.build empty leftover-empty",
+            },
+        )
+        .unwrap();
+        assert_eq!(decoded.len(), topics.len());
     }
 
     #[test]

@@ -38,6 +38,9 @@
 //! magic other than v2, is `InvalidRecordException`; `version` below 7
 //! with ZSTD is `UnsupportedCompressionTypeException`; this crate's
 //! [`RecordBatch::magic`] is always v2; zstd is not spoken as a codec).
+//! [`protocol::api::ProduceRequest::build`] is Java
+//! `ProduceRequest.Builder.build` (validates each partition's records;
+//! empty Topics is success).
 //! [`protocol::api::ProduceRequest::partition_sizes`] is Java
 //! `ProduceRequest.partitionSizes` (`(topic, partition)` to encoded
 //! records size; a later pair adds).
@@ -1271,6 +1274,9 @@
 //! magic other than v2, is `InvalidRecordException`; `version` below 7
 //! with ZSTD is `UnsupportedCompressionTypeException`; this crate's
 //! [`RecordBatch::magic`] is always v2; zstd is not spoken as a codec).
+//! [`protocol::api::ProduceRequest::build`] is Java
+//! `ProduceRequest.Builder.build` (validates each partition's records;
+//! empty Topics is success).
 //! [`protocol::api::ProduceRequest::error_response`] is Java
 //! `ProduceRequest.getErrorResponse` (`acks` `0` is `None`; unique
 //! `partitionSizes` keys otherwise; official Java sets `throttleTimeMs`
