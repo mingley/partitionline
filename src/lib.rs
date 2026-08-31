@@ -519,6 +519,9 @@
 //! [`protocol::share::ShareGroupHeartbeatResponse::error_counts`] is Java
 //! `ShareGroupHeartbeatResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::share::ShareGroupHeartbeatRequest::error_response`] is Java
+//! `ShareGroupHeartbeatRequest.getErrorResponse` (ThrottleTimeMs from the
+//! argument; other fields JSON defaults);
 //! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`]
 //! are Java `ShareGroupHeartbeatRequest` join/leave epochs),

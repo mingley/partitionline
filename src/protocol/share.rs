@@ -62,6 +62,28 @@ impl ShareGroupHeartbeatRequest {
     pub const LEAVE_GROUP_MEMBER_EPOCH: i32 = -1;
     /// Java `ShareGroupHeartbeatRequest.JOIN_GROUP_MEMBER_EPOCH`.
     pub const JOIN_GROUP_MEMBER_EPOCH: i32 = 0;
+
+    /// Java `ShareGroupHeartbeatRequest.getErrorResponse`.
+    ///
+    /// ThrottleTimeMs is `throttle_time_ms`. ErrorCode is `error_code`.
+    /// Other fields stay at JSON defaults (ErrorMessage / MemberId null,
+    /// MemberEpoch `0`, HeartbeatIntervalMs `0`, Assignment null). Encode
+    /// still writes the struct fields independently. This crate speaks
+    /// 0–1. This is not [`ShareGroupHeartbeatResponse::error_counts`] /
+    /// ShareFetch / ShareAcknowledge / ConsumerGroupHeartbeat
+    /// getErrorResponse.
+    #[must_use]
+    pub fn error_response(error_code: i16, throttle_time_ms: i32) -> ShareGroupHeartbeatResponse {
+        ShareGroupHeartbeatResponse {
+            throttle_time_ms,
+            error_code,
+            error_message: None,
+            member_id: None,
+            member_epoch: 0,
+            heartbeat_interval_ms: 0,
+            assignment: None,
+        }
+    }
 }
 
 /// ShareGroupHeartbeat response.
@@ -2307,6 +2329,68 @@ mod tests {
             &with_buf[..],
             &v1_with[..],
             "v0 and v1 both write ThrottleTimeMs (JSON 0+); ShareGroupHeartbeat has no AcquisitionLockTimeoutMs"
+        );
+    }
+
+    #[test]
+    fn share_group_heartbeat_request_error_response_matches_java() {
+        // Java 4.0 ShareGroupHeartbeatRequest.getErrorResponse: ThrottleTimeMs
+        // from the argument, ErrorCode from the exception, other fields at
+        // JSON defaults. Official Java
+        // ShareGroupHeartbeatRequest.getErrorResponse. Encode still writes
+        // the struct fields independently. This crate speaks 0-1. This is
+        // not errorCounts / ShareFetch / ShareAcknowledge /
+        // ConsumerGroupHeartbeat getErrorResponse.
+        let err = ShareGroupHeartbeatRequest::error_response(16, 3_600_000);
+        assert_eq!(err.throttle_time_ms, 3_600_000);
+        assert_eq!(err.error_code, 16);
+        assert!(err.error_message.is_none());
+        assert!(err.member_id.is_none());
+        assert_eq!(err.member_epoch, 0);
+        assert_eq!(err.heartbeat_interval_ms, 0);
+        assert!(err.assignment.is_none());
+        assert_eq!(
+            ShareGroupHeartbeatRequest::error_response(0, 0),
+            ShareGroupHeartbeatResponse {
+                throttle_time_ms: 0,
+                error_code: 0,
+                error_message: None,
+                member_id: None,
+                member_epoch: 0,
+                heartbeat_interval_ms: 0,
+                assignment: None,
+            }
+        );
+        leftover_share_group_heartbeat_error_response(0, &err);
+        leftover_share_group_heartbeat_error_response(
+            0,
+            &ShareGroupHeartbeatRequest::error_response(0, 0),
+        );
+        leftover_share_group_heartbeat_error_response(1, &err);
+        leftover_share_group_heartbeat_error_response(
+            1,
+            &ShareGroupHeartbeatRequest::error_response(0, 0),
+        );
+    }
+
+    fn leftover_share_group_heartbeat_error_response(
+        version: i16,
+        resp: &ShareGroupHeartbeatResponse,
+    ) {
+        let mut buf = BytesMut::new();
+        encode_share_group_heartbeat_response(&mut buf, version, resp).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_share_group_heartbeat_response(&mut cur, version).unwrap();
+        assert_eq!(got, *resp);
+        let empty = if resp.error_code == 0 && resp.throttle_time_ms == 0 {
+            "empty "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "ShareGroupHeartbeat v{version} getErrorResponse {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
