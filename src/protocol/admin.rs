@@ -1435,6 +1435,31 @@ impl DeleteTopicsRequest {
                 .collect()
         }
     }
+
+    /// Java `DeleteTopicsRequest.Builder.build`.
+    ///
+    /// v6+ with a non-empty TopicNames list **replaces** Topics with one
+    /// `DeleteTopicState` per name (TopicId zeros). An empty TopicNames
+    /// list leaves Topics as-is, including id-only deletes. A list of
+    /// empty strings is still present (`!isEmpty()`) and replaces Topics.
+    /// Below v6 Topics is not rewritten. Encode still has separate name
+    /// and state paths; this is the Builder rewrite. Distinct from
+    /// [`Self::topics`], which reads the version-appropriate field.
+    #[must_use]
+    pub fn build(
+        version: i16,
+        topic_names: &[String],
+        topics: &[DeleteTopicState],
+    ) -> Vec<DeleteTopicState> {
+        if version >= 6 && !topic_names.is_empty() {
+            topic_names
+                .iter()
+                .map(|name| DeleteTopicState::by_name(name.clone()))
+                .collect()
+        } else {
+            topics.to_vec()
+        }
+    }
 }
 
 /// DeleteTopics v0–6 (classic through v3; flexible from v4).
@@ -17199,6 +17224,90 @@ mod tests {
             "DeleteTopics v6 topics id leftover-empty; leftover {} bytes",
             cur.remaining()
         );
+    }
+
+    #[test]
+    fn delete_topics_request_build_matches_java() {
+        // Java DeleteTopicsRequest.Builder.build: v6+ non-empty TopicNames
+        // replaces Topics (TopicId zeros). Empty TopicNames leaves Topics
+        // as-is. A list of empty strings is still present. Below v6 Topics
+        // is not rewritten. Encode still has separate name and state paths.
+        let mut id = [0u8; 16];
+        id[0] = b't';
+        let by_id = DeleteTopicState::by_id(id);
+        let names = vec!["t".into(), "t".into()];
+        let empty_names: Vec<String> = Vec::new();
+        let empty_string_names = vec![String::new()];
+
+        assert_eq!(
+            DeleteTopicsRequest::build(6, &names, std::slice::from_ref(&by_id)),
+            vec![
+                DeleteTopicState::by_name("t"),
+                DeleteTopicState::by_name("t"),
+            ],
+            "v6+ non-empty TopicNames replaces Topics, including wiping TopicId"
+        );
+        assert_eq!(
+            DeleteTopicsRequest::build(6, &empty_names, std::slice::from_ref(&by_id)),
+            vec![by_id.clone()],
+            "v6+ empty TopicNames leaves Topics as-is"
+        );
+        assert_eq!(
+            DeleteTopicsRequest::build(6, &empty_string_names, std::slice::from_ref(&by_id)),
+            vec![DeleteTopicState::by_name("")],
+            "a list of empty strings is still present"
+        );
+        assert_eq!(
+            DeleteTopicsRequest::build(5, &names, std::slice::from_ref(&by_id)),
+            vec![by_id.clone()],
+            "below v6 Topics is not rewritten"
+        );
+        assert!(DeleteTopicsRequest::build(6, &empty_names, &[]).is_empty());
+        assert_ne!(
+            DeleteTopicsRequest::build(6, &names, std::slice::from_ref(&by_id)),
+            DeleteTopicsRequest::topics(6, std::slice::from_ref(&by_id)),
+            "Builder.build rewrites from TopicNames; topics() reads Topics"
+        );
+
+        let built = DeleteTopicsRequest::build(6, &names, std::slice::from_ref(&by_id));
+        let mut buf = BytesMut::new();
+        encode_delete_topics_states_request(&mut buf, 6, &built, 5_000).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, timeout) = decode_delete_topics_states_request(&mut cur, 6).unwrap();
+        assert_eq!(timeout, 5_000);
+        assert_eq!(decoded, built);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v6 Builder.build leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        let mut id_buf = BytesMut::new();
+        encode_delete_topics_states_request(&mut id_buf, 6, std::slice::from_ref(&by_id), 5_000)
+            .unwrap();
+        let mut cur = id_buf.as_ref();
+        let (decoded, _) = decode_delete_topics_states_request(&mut cur, 6).unwrap();
+        assert_eq!(decoded, vec![by_id.clone()]);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v6 Builder.build id leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        for version in [5_i16, 6] {
+            let built = DeleteTopicsRequest::build(version, &empty_names, &[]);
+            assert!(built.is_empty());
+            let mut buf = BytesMut::new();
+            encode_delete_topics_states_request(&mut buf, version, &built, 5_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, timeout) =
+                decode_delete_topics_states_request(&mut cur, version).unwrap();
+            assert_eq!(timeout, 5_000);
+            assert!(decoded.is_empty());
+            assert!(
+                !cur.has_remaining(),
+                "DeleteTopics v{version} Builder.build empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]

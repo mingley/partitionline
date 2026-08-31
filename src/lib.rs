@@ -432,7 +432,12 @@
 //! below v6; v6+ names include null when deleting by TopicId; below v6
 //! id-only entries are omitted from `topicNames`; `topics` below v6 keeps
 //! named entries with TopicId zeros and drops id-only; v6+ `topics` is
-//! as-is)),
+//! as-is);
+//! [`protocol::admin::DeleteTopicsRequest::build`] is Java
+//! `DeleteTopicsRequest.Builder.build` (v6+ non-empty TopicNames replaces
+//! Topics; empty TopicNames leaves Topics as-is, including id-only; a
+//! list of empty strings is still present; below v6 Topics is not
+//! rewritten; encode still has separate name and state paths)),
 //! DescribeGroups v0–v6 (v3 IncludeAuthorizedOperations; v4 GroupInstanceId; v5 flexible; v6 ErrorMessage; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_STATE`] /
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE`] /
