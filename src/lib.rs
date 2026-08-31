@@ -2189,6 +2189,10 @@
 //! `ListOffsetsRequest.Builder.forConsumer` (else-if first match:
 //! tiered v9, earliest-local v8, max-timestamp v7, `READ_COMMITTED`
 //! v2, timestamp v1; all false is `0`).
+//! [`protocol::offsets::ListOffsetsRequest::for_replica`] is Java
+//! `ListOffsetsRequest.Builder.forReplica` (oldest allowed version `0`;
+//! latest is the argument; ReplicaId is the argument; isolation
+//! `READ_UNCOMMITTED`).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]

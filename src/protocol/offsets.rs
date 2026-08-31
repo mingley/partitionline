@@ -372,6 +372,7 @@ impl ListOffsetsRequest {
     /// this module does not import [`crate::IsolationLevel`]. ReplicaId
     /// is always [`CONSUMER_REPLICA_ID`]. The two-argument Java
     /// `forConsumer` is this call with the last three flags `false`.
+    /// This is not [`Self::for_replica`].
     #[must_use]
     pub const fn for_consumer(
         require_timestamp: bool,
@@ -393,6 +394,21 @@ impl ListOffsetsRequest {
         } else {
             0
         }
+    }
+
+    /// Java `ListOffsetsRequest.Builder.forReplica`.
+    ///
+    /// Oldest allowed version is `0` (Java still uses `0` even though
+    /// Kafka 4.0 `validVersions` is `1-10`; this crate speaks 1–10).
+    /// Latest is `allowed_version`. ReplicaId is the argument. Isolation
+    /// is `READ_UNCOMMITTED` (`0`) so this module does not import
+    /// [`crate::IsolationLevel`]. Encode still writes ReplicaId
+    /// independently of this Builder range. This is not
+    /// [`Self::for_consumer`] / [`Self::error_response`] / replicaId
+    /// encode / Fetch `forReplica`.
+    #[must_use]
+    pub const fn for_replica(allowed_version: i16, replica_id: i32) -> (i16, i16, i32, i8) {
+        (0, allowed_version, replica_id, 0)
     }
 
     /// Java `ListOffsetsRequest.getErrorResponse`.
@@ -1576,6 +1592,79 @@ mod tests {
         assert!(
             cur.is_empty(),
             "ListOffsets v{version} Builder.forConsumer {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn list_offsets_request_for_replica_matches_java() {
+        // Java 4.0 ListOffsetsRequest.Builder.forReplica: oldest allowed
+        // version is 0 even though Kafka 4.0 validVersions is 1-10;
+        // latest is allowedVersion; ReplicaId is the argument; isolation
+        // is READ_UNCOMMITTED (0). Official Java
+        // ListOffsetsRequest.Builder.forReplica. Encode still writes
+        // ReplicaId independently. This crate speaks 1-10. This is not
+        // forConsumer / getErrorResponse / replicaId encode / Fetch
+        // forReplica.
+        let (oldest, latest, replica_id, isolation) = ListOffsetsRequest::for_replica(10, 7);
+        assert_eq!(oldest, 0);
+        assert_eq!(latest, 10);
+        assert_eq!(replica_id, 7);
+        assert_eq!(isolation, 0, "Java IsolationLevel.READ_UNCOMMITTED");
+        assert_eq!(
+            ListOffsetsRequest::for_replica(1, CONSUMER_REPLICA_ID),
+            (0, 1, CONSUMER_REPLICA_ID, 0)
+        );
+        let epoch = RecordBatch::NO_PARTITION_LEADER_EPOCH;
+        let topics = [ListOffsetsTopicRequest::new(
+            "t",
+            vec![ListOffsetsPartitionRequest::new(
+                0,
+                epoch,
+                EARLIEST_TIMESTAMP,
+            )],
+        )];
+        leftover_for_replica(1, replica_id, isolation, &topics);
+        leftover_for_replica(1, replica_id, isolation, &[]);
+        leftover_for_replica(6, replica_id, isolation, &topics);
+        leftover_for_replica(6, replica_id, isolation, &[]);
+        leftover_for_replica(10, replica_id, isolation, &topics);
+        leftover_for_replica(10, replica_id, isolation, &[]);
+    }
+
+    fn leftover_for_replica(
+        version: i16,
+        replica_id: i32,
+        isolation: i8,
+        topics: &[ListOffsetsTopicRequest],
+    ) {
+        let mut buf = BytesMut::new();
+        encode_list_offsets_topics_request_with_replica_id(
+            &mut buf, version, isolation, topics, 0, replica_id,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded_isolation, decoded, timeout, got_replica) =
+            decode_list_offsets_topics_request(&mut cur, version).unwrap();
+        assert_eq!(got_replica, replica_id);
+        if version >= 2 {
+            assert_eq!(decoded_isolation, isolation);
+        } else {
+            assert_eq!(decoded_isolation, 0);
+        }
+        assert_eq!(decoded.as_slice(), topics);
+        if version >= 10 {
+            assert_eq!(timeout, Some(0), "v10 TimeoutMs JSON default is 0");
+        } else {
+            assert!(
+                timeout.is_none(),
+                "forReplica does not set TimeoutMs below v10"
+            );
+        }
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "ListOffsets v{version} Builder.forReplica {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }
