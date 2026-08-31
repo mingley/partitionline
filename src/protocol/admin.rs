@@ -5663,6 +5663,8 @@ impl fmt::Display for ClientQuotaFilter {
 /// Components and Strict (Java `ofEntity` / `ofDefaultEntity` /
 /// `ofEntityType`, then `containsOnly` or `contains`). Unknown
 /// MatchType is [`Error::protocol`] (`Unexpected match type: …`).
+/// [`Self::from_filter`] is Java `DescribeClientQuotasRequest.Builder`
+/// from a filter (MatchType from [`ClientQuotaFilterComponent::matched`]).
 pub struct DescribeClientQuotasRequest;
 
 impl DescribeClientQuotasRequest {
@@ -5707,6 +5709,33 @@ impl DescribeClientQuotasRequest {
         } else {
             ClientQuotaFilter::contains(out)
         })
+    }
+
+    /// Java `DescribeClientQuotasRequest.Builder` from a
+    /// [`ClientQuotaFilter`].
+    ///
+    /// MatchType / Match come from [`ClientQuotaFilterComponent::matched`]
+    /// (Java `match()`: present is exact, empty Optional is default,
+    /// `None` is specified). Leftover Match on default/specified is
+    /// null. Unknown crate MatchType follows specified (Java has no
+    /// MatchType on the filter component). Duplicate components are
+    /// kept (`ArrayList.add`). Inverse of [`Self::filter`] for factory
+    /// components. `Strict` is [`ClientQuotaFilter::strict`].
+    #[must_use]
+    pub fn from_filter(filter: &ClientQuotaFilter) -> (Vec<ClientQuotaFilterComponent>, bool) {
+        let components = filter
+            .components()
+            .iter()
+            .map(|c| {
+                let (match_type, match_value) = match c.matched() {
+                    Some(Some(name)) => (Self::MATCH_TYPE_EXACT, Some(name.to_string())),
+                    Some(None) => (Self::MATCH_TYPE_DEFAULT, None),
+                    None => (Self::MATCH_TYPE_SPECIFIED, None),
+                };
+                ClientQuotaFilterComponent::new(c.entity_type.clone(), match_type, match_value)
+            })
+            .collect();
+        (components, filter.strict())
     }
 }
 
@@ -19866,6 +19895,88 @@ mod tests {
             err.to_string().contains("Unexpected match type: 99"),
             "Java IllegalArgumentException message: {err}"
         );
+    }
+
+    #[test]
+    fn describe_client_quotas_from_filter_matches_java() {
+        // Java DescribeClientQuotasRequest.Builder(ClientQuotaFilter):
+        // match() present → EXACT, empty Optional → DEFAULT, null →
+        // SPECIFIED; leftover Match on default/specified is null.
+        let (empty, empty_strict) =
+            DescribeClientQuotasRequest::from_filter(&ClientQuotaFilter::all());
+        assert!(empty.is_empty());
+        assert!(!empty_strict);
+
+        let exact = ClientQuotaFilterComponent::of_entity(ClientQuotaEntity::USER, "alice");
+        let default = ClientQuotaFilterComponent::of_default_entity(ClientQuotaEntity::CLIENT_ID);
+        let specified = ClientQuotaFilterComponent::of_entity_type(ClientQuotaEntity::IP);
+        let (factory, strict) =
+            DescribeClientQuotasRequest::from_filter(&ClientQuotaFilter::contains_only([
+                exact.clone(),
+                default.clone(),
+                specified.clone(),
+            ]));
+        assert!(strict);
+        assert_eq!(
+            factory,
+            vec![exact.clone(), default.clone(), specified.clone()]
+        );
+
+        let leftover_default = ClientQuotaFilterComponent::new(
+            ClientQuotaEntity::CLIENT_ID,
+            DescribeClientQuotasRequest::MATCH_TYPE_DEFAULT,
+            Some("ignored".into()),
+        );
+        let leftover_specified = ClientQuotaFilterComponent::new(
+            ClientQuotaEntity::IP,
+            DescribeClientQuotasRequest::MATCH_TYPE_SPECIFIED,
+            Some("ignored".into()),
+        );
+        let unknown = ClientQuotaFilterComponent::new("user", 99, Some("x".into()));
+        let (rewritten, loose) =
+            DescribeClientQuotasRequest::from_filter(&ClientQuotaFilter::contains([
+                leftover_default,
+                leftover_specified,
+                unknown,
+                exact.clone(),
+            ]));
+        assert!(!loose);
+        assert_eq!(
+            rewritten,
+            vec![
+                default,
+                specified,
+                ClientQuotaFilterComponent::of_entity_type("user"),
+                exact,
+            ]
+        );
+
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_describe_client_quotas_request(&mut buf, version, &rewritten, loose).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, decoded_strict) =
+                decode_describe_client_quotas_request(&mut cur, version).unwrap();
+            assert_eq!(decoded, rewritten);
+            assert_eq!(decoded_strict, loose);
+            assert!(
+                !cur.has_remaining(),
+                "DescribeClientQuotas v{version} from_filter leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            buf.clear();
+            encode_describe_client_quotas_request(&mut buf, version, &empty, empty_strict).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, decoded_strict) =
+                decode_describe_client_quotas_request(&mut cur, version).unwrap();
+            assert_eq!(decoded, empty);
+            assert_eq!(decoded_strict, empty_strict);
+            assert!(
+                !cur.has_remaining(),
+                "DescribeClientQuotas v{version} from_filter empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]

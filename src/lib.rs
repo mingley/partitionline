@@ -433,6 +433,10 @@
 //! `DescribeClientQuotasRequest.filter` (`ofEntity` / `ofDefaultEntity` /
 //! `ofEntityType`, then `containsOnly` or `contains`; unknown MatchType
 //! is [`Error::protocol`]);
+//! [`protocol::admin::DescribeClientQuotasRequest::from_filter`] is Java
+//! `DescribeClientQuotasRequest.Builder` from a filter (MatchType from
+//! [`ClientQuotaFilterComponent::matched`]; leftover Match on
+//! default/specified is null);
 //! [`protocol::admin::DescribeClientQuotasResponse::error`] is Java
 //! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
 //! empty). `ErrorMessage` stays the JSON default (null); official Java
@@ -1670,6 +1674,10 @@
 //! [`protocol::admin::DescribeClientQuotasRequest::filter`] is Java
 //! `DescribeClientQuotasRequest.filter` (unknown MatchType is
 //! [`Error::protocol`]).
+//! [`protocol::admin::DescribeClientQuotasRequest::from_filter`] is Java
+//! `DescribeClientQuotasRequest.Builder` from a filter (MatchType from
+//! [`ClientQuotaFilterComponent::matched`]; leftover Match on
+//! default/specified is null).
 //! [`protocol::admin::DescribeClientQuotasResponse::error`] is Java
 //! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
 //! empty).
