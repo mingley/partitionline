@@ -636,6 +636,35 @@ impl TxnOffsetCommitResponse {
         }
         counts
     }
+
+    /// Java `TxnOffsetCommitResponse.Builder.merge`.
+    ///
+    /// If `current` has no topics, the result is `new_topics`. Otherwise
+    /// new topics are appended and partitions of an existing topic are
+    /// appended to that topic. Java does not check for overlapping
+    /// partitions. Topic order is first-seen.
+    #[must_use]
+    pub fn merge(
+        current: &[TxnOffsetCommitResponseTopic],
+        new_topics: &[TxnOffsetCommitResponseTopic],
+    ) -> Vec<TxnOffsetCommitResponseTopic> {
+        if current.is_empty() {
+            return new_topics.to_vec();
+        }
+        let mut out = current.to_vec();
+        for new_topic in new_topics {
+            if let Some(i) = out.iter().position(|t| t.topic == new_topic.topic) {
+                if let Some(existing) = out.get_mut(i) {
+                    existing
+                        .partitions
+                        .extend(new_topic.partitions.iter().cloned());
+                }
+            } else {
+                out.push(new_topic.clone());
+            }
+        }
+        out
+    }
 }
 
 /// One partition in TxnOffsetCommit v0–5.
@@ -1460,6 +1489,131 @@ mod tests {
                 (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
                 (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
             ])
+        );
+    }
+
+    #[test]
+    fn txn_offset_commit_response_merge_matches_java() {
+        // Java TxnOffsetCommitResponse.Builder.merge: replace when current
+        // Topics are empty. Otherwise append topics / partitions (no
+        // overlap check). There is no top-level ErrorCode replacement.
+        let t1 = TxnOffsetCommitResponseTopic {
+            topic: "t1".into(),
+            partitions: vec![TxnOffsetCommitResponsePartition::error(0, 0)],
+        };
+        let t1_extra = TxnOffsetCommitResponseTopic {
+            topic: "t1".into(),
+            partitions: vec![TxnOffsetCommitResponsePartition::error(
+                1,
+                crate::error::NOT_LEADER_OR_FOLLOWER,
+            )],
+        };
+        let t2 = TxnOffsetCommitResponseTopic {
+            topic: "t2".into(),
+            partitions: vec![TxnOffsetCommitResponsePartition::error(
+                0,
+                crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            )],
+        };
+        let current = vec![t1.clone()];
+        let merged_same = TxnOffsetCommitResponse::merge(&current, std::slice::from_ref(&t1_extra));
+        assert_eq!(
+            merged_same,
+            vec![TxnOffsetCommitResponseTopic {
+                topic: "t1".into(),
+                partitions: vec![
+                    TxnOffsetCommitResponsePartition::error(0, 0),
+                    TxnOffsetCommitResponsePartition::error(
+                        1,
+                        crate::error::NOT_LEADER_OR_FOLLOWER
+                    ),
+                ],
+            }]
+        );
+        for version in [0_i16, 1, 3] {
+            let mut got = BytesMut::new();
+            encode_txn_offset_commit_topics_response(&mut got, version, &merged_same).unwrap();
+            let mut cur = &got[..];
+            let decoded = decode_txn_offset_commit_topics_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, merged_same, "v{version} same-topic merge decode");
+            assert!(
+                cur.is_empty(),
+                "TxnOffsetCommit v{version} merge same-topic leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+
+        let merged_new = TxnOffsetCommitResponse::merge(&current, std::slice::from_ref(&t2));
+        assert_eq!(merged_new, vec![t1.clone(), t2.clone()]);
+        let mut got = BytesMut::new();
+        encode_txn_offset_commit_topics_response(&mut got, 3, &merged_new).unwrap();
+        let mut cur = &got[..];
+        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
+        assert_eq!(decoded, merged_new);
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v3 merge new-topic leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let from_empty = TxnOffsetCommitResponse::merge(&[], &current);
+        assert_eq!(from_empty, current, "empty current Topics takes new Topics");
+        got.clear();
+        encode_txn_offset_commit_topics_response(&mut got, 0, &from_empty).unwrap();
+        let mut cur = &got[..];
+        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, current);
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v0 merge empty-current leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let empty_both = TxnOffsetCommitResponse::merge(&[], &[]);
+        assert!(empty_both.is_empty());
+        got.clear();
+        encode_txn_offset_commit_topics_response(&mut got, 1, &empty_both).unwrap();
+        let mut cur = &got[..];
+        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 1).unwrap();
+        assert!(decoded.is_empty());
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v1 merge empty leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let grouped = TxnOffsetCommitResponse::merge(&current, &[t2, t1_extra]);
+        assert_eq!(
+            grouped,
+            vec![
+                TxnOffsetCommitResponseTopic {
+                    topic: "t1".into(),
+                    partitions: vec![
+                        TxnOffsetCommitResponsePartition::error(0, 0),
+                        TxnOffsetCommitResponsePartition::error(
+                            1,
+                            crate::error::NOT_LEADER_OR_FOLLOWER
+                        ),
+                    ],
+                },
+                TxnOffsetCommitResponseTopic {
+                    topic: "t2".into(),
+                    partitions: vec![TxnOffsetCommitResponsePartition::error(
+                        0,
+                        crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                    )],
+                },
+            ]
+        );
+        got.clear();
+        encode_txn_offset_commit_topics_response(&mut got, 3, &grouped).unwrap();
+        let mut cur = &got[..];
+        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v3 merge grouped leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
