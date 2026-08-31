@@ -789,6 +789,10 @@
 //! [`Producer::client_instance_id`] is Java `clientInstanceId` (KIP-714;
 //! returns [`Uuid`]).
 //! [`Producer::client_instance_id_timeout`] is Java `clientInstanceId(Duration)`.
+//! [`RecordMetadata::new`] is Java
+//! `RecordMetadata(TopicPartition, long, int, long, int, int)` (`baseOffset`
+//! [`RecordMetadata::INVALID_OFFSET`] keeps offset `-1` and ignores
+//! `batchIndex`; otherwise offset is `baseOffset + batchIndex`).
 //! [`RecordMetadata::timestamp`] / [`RecordMetadata::has_timestamp`] /
 //! [`RecordMetadata::serialized_key_size`] / [`RecordMetadata::serialized_value_size`]
 //! match Java `RecordMetadata`. [`RecordMetadata::UNKNOWN_PARTITION`] is Java

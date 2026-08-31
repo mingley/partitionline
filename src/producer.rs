@@ -564,8 +564,11 @@ impl fmt::Display for ProduceRecord {
 
 /// Broker acknowledgement for a produced record.
 ///
-/// Java `RecordMetadata`. [`Self::has_offset`] is Java `hasOffset` (`offset` is
-/// not [`Self::INVALID_OFFSET`]).
+/// Java `RecordMetadata`. [`Self::new`] is Java
+/// `RecordMetadata(TopicPartition, long, int, long, int, int)` (`baseOffset`
+/// [`Self::INVALID_OFFSET`] keeps offset `-1` and ignores `batchIndex`).
+/// [`Self::has_offset`] is Java `hasOffset` (`offset` is not
+/// [`Self::INVALID_OFFSET`]).
 /// [`Self::has_timestamp`] is Java `hasTimestamp` (`timestamp` is not
 /// [`RecordBatch::NO_TIMESTAMP`]). [`Self::serialized_key_size`] /
 /// [`Self::serialized_value_size`] are `-1` when the key or value is null.
@@ -593,6 +596,36 @@ impl RecordMetadata {
     /// Java `ProduceResponse.INVALID_OFFSET`. Same sentinel as
     /// [`crate::protocol::api::ProducePartitionResponse::INVALID_OFFSET`].
     pub const INVALID_OFFSET: i64 = crate::protocol::api::ProducePartitionResponse::INVALID_OFFSET;
+
+    /// Java `RecordMetadata(TopicPartition, long, int, long, int, int)`.
+    ///
+    /// Offset is `base_offset + batch_index` unless `base_offset` is
+    /// [`Self::INVALID_OFFSET`] (`-1`), in which case the index is ignored
+    /// (Java `baseOffset == -1 ? baseOffset : baseOffset + batchIndex`).
+    #[must_use]
+    pub fn new(
+        topic_partition: impl Into<crate::TopicPartition>,
+        base_offset: i64,
+        batch_index: i32,
+        timestamp: i64,
+        serialized_key_size: i32,
+        serialized_value_size: i32,
+    ) -> Self {
+        let tp = topic_partition.into();
+        let offset = if base_offset == Self::INVALID_OFFSET {
+            base_offset
+        } else {
+            base_offset + i64::from(batch_index)
+        };
+        Self {
+            topic: tp.topic,
+            partition: tp.partition,
+            offset,
+            timestamp,
+            serialized_key_size,
+            serialized_value_size,
+        }
+    }
 
     /// Java `RecordMetadata.topic`.
     #[must_use]
@@ -2753,10 +2786,12 @@ impl Worker {
                     self.shared.note_acked(&topic, n);
                     for (i, p) in pendings.into_iter().enumerate() {
                         self.shared.note_ack_latency(&topic, p.queued_at);
+                        let batch_index = i32::try_from(i).unwrap_or(i32::MAX);
                         let md = record_metadata(
                             &topic,
                             part,
-                            r.base_offset + i64::try_from(i).unwrap_or(0),
+                            r.base_offset,
+                            batch_index,
                             &p.rec,
                             r.log_append_time_ms,
                         );
@@ -3185,6 +3220,7 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
                 &topic,
                 part,
                 RecordMetadata::INVALID_OFFSET,
+                0,
                 &p.rec,
                 RecordBatch::NO_TIMESTAMP,
             );
@@ -3258,7 +3294,8 @@ fn serialized_bytes_size(bytes: Option<&Bytes>) -> i32 {
 fn record_metadata(
     topic: &str,
     partition: i32,
-    offset: i64,
+    base_offset: i64,
+    batch_index: i32,
     rec: &ProduceRecord,
     log_append_time_ms: i64,
 ) -> RecordMetadata {
@@ -3267,14 +3304,14 @@ fn record_metadata(
     } else {
         rec.timestamp.unwrap_or_else(now_ms)
     };
-    RecordMetadata {
-        topic: topic.to_string(),
-        partition,
-        offset,
+    RecordMetadata::new(
+        crate::TopicPartition::new(topic, partition),
+        base_offset,
+        batch_index,
         timestamp,
-        serialized_key_size: serialized_bytes_size(rec.key.as_ref()),
-        serialized_value_size: serialized_bytes_size(rec.value.as_ref()),
-    }
+        serialized_bytes_size(rec.key.as_ref()),
+        serialized_bytes_size(rec.value.as_ref()),
+    )
 }
 
 #[cfg(test)]
@@ -3325,6 +3362,43 @@ mod tests {
             ProduceRecord::to("t").to_string(),
             "ProducerRecord(topic=t, partition=null, headers=RecordHeaders(headers = [], isReadOnly = false), key=null, value=null, timestamp=null)"
         );
+    }
+
+    #[test]
+    fn record_metadata_constructor_matches_java() {
+        let tp = crate::TopicPartition::new("events", 2);
+        let md = RecordMetadata::new(&tp, 10, 3, 1_700_000_000_000, 3, 5);
+        assert_eq!(md.topic(), "events");
+        assert_eq!(md.partition(), 2);
+        assert_eq!(md.offset(), 13);
+        assert!(md.has_offset());
+        assert_eq!(md.timestamp(), 1_700_000_000_000);
+        assert_eq!(md.serialized_key_size(), 3);
+        assert_eq!(md.serialized_value_size(), 5);
+        assert_eq!(md.to_string(), "events-2@13");
+
+        let first = RecordMetadata::new(&tp, 10, 0, 1, -1, 4);
+        assert_eq!(first.offset(), 10);
+        assert_eq!(first.serialized_key_size(), -1);
+
+        let unknown = RecordMetadata::new(
+            &tp,
+            RecordMetadata::INVALID_OFFSET,
+            7,
+            RecordBatch::NO_TIMESTAMP,
+            -1,
+            -1,
+        );
+        assert_eq!(unknown.offset(), RecordMetadata::INVALID_OFFSET);
+        assert!(!unknown.has_offset());
+        assert!(!unknown.has_timestamp());
+        assert_eq!(unknown.to_string(), "events-2@-1");
+
+        let subtracted = RecordMetadata::new(&tp, 10, -1, 0, 0, 0);
+        assert_eq!(subtracted.offset(), 9);
+
+        let zero_base = RecordMetadata::new(&tp, 0, 4, 0, 0, 0);
+        assert_eq!(zero_base.offset(), 4);
     }
 
     #[test]
