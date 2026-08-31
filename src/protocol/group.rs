@@ -4382,8 +4382,10 @@ impl OffsetDeleteRequest {
     /// Java `OffsetDeleteRequest.getErrorResponse`.
     ///
     /// Writes only the top-level ErrorCode. Topics stay empty (request
-    /// partitions are not copied). Throttle is the JSON default (`0`).
-    /// ErrorCode is encoded before throttle.
+    /// partitions are not copied). Throttle is the JSON default (`0`);
+    /// official Java `getErrorResponse` sets `throttleTimeMs` from the
+    /// argument. ErrorCode is encoded before throttle. Crate convenience
+    /// encode still writes `0`.
     pub fn error_response(buf: &mut BytesMut, error_code: i16) -> crate::error::Result<()> {
         encode_offset_delete_response(buf, error_code, &[])
     }
@@ -4516,13 +4518,33 @@ pub fn decode_offset_delete_request<B: Buf>(
 }
 
 /// Encode OffsetDelete (error code before throttle).
+///
+/// ThrottleTimeMs is the JSON default (`0`) on the spoken version
+/// (JSON `0+`, second field). ErrorCode is first.
 pub fn encode_offset_delete_response(
     buf: &mut BytesMut,
     error_code: i16,
     results: &[OffsetDeleteResult],
 ) -> crate::error::Result<()> {
+    encode_offset_delete_response_with_throttle(buf, error_code, results, 0)
+}
+
+/// Encode OffsetDelete v0 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+` (INT32, ignorable) but **after** ErrorCode
+/// (not first). Classic only (`flexibleVersions: "none"`). Kafka 4.0
+/// `validVersions` is `"0"`. This crate speaks 0. v1+ is not spoken.
+/// Official Java `getErrorResponse` sets `throttleTimeMs` from the
+/// argument. Empty-Topics only one version. Top-level ErrorCode is at
+/// bytes 0–1 (throttle occupies bytes 2–5).
+pub fn encode_offset_delete_response_with_throttle(
+    buf: &mut BytesMut,
+    error_code: i16,
+    results: &[OffsetDeleteResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     buf.put_i16(error_code);
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     let mut by_topic: std::collections::HashMap<String, Vec<(i32, i16)>> =
         std::collections::HashMap::new();
     let mut order: Vec<String> = Vec::new();
@@ -4550,12 +4572,15 @@ pub fn encode_offset_delete_response(
     Ok(())
 }
 
-/// Decode OffsetDelete: `(error_code, results)`.
+/// Decode OffsetDelete: `(error_code, results, throttle_time_ms)`.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire) after ErrorCode.
+/// Top-level ErrorCode is at bytes 0–1.
 pub fn decode_offset_delete_response<B: Buf>(
     buf: &mut B,
-) -> Result<(i16, Vec<OffsetDeleteResult>)> {
+) -> Result<(i16, Vec<OffsetDeleteResult>, i32)> {
     let error_code = buf::get_i16(buf)?;
-    let _throttle = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
     let mut out = Vec::new();
     for _ in 0..n {
@@ -4571,7 +4596,7 @@ pub fn decode_offset_delete_response<B: Buf>(
             });
         }
     }
-    Ok((error_code, out))
+    Ok((error_code, out, throttle_time_ms))
 }
 
 /// ConsumerProtocol subscription at [`ConsumerProtocol::HIGHEST_SUPPORTED_VERSION`]
@@ -11478,6 +11503,58 @@ mod tests {
     }
 
     #[test]
+    fn offset_delete_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 OffsetDeleteResponse.json ThrottleTimeMs is versions
+        // 0+ (INT32 on spoken v0; second field; ignorable). ErrorCode is
+        // first (bytes 0–1); throttle occupies bytes 2–5. Official Java
+        // OffsetDeleteRequest.getErrorResponse /
+        // OffsetDeleteResponse.throttleTimeMs set / read it.
+        // encode_offset_delete_response still writes the JSON default 0.
+        // shouldClientThrottle is already v0+. Empty-Topics only one
+        // version. This crate speaks 0. This is not JoinGroup /
+        // FindCoordinator ThrottleTimeMs.
+        let results: Vec<OffsetDeleteResult> = vec![];
+        let mut buf = BytesMut::new();
+        encode_offset_delete_response_with_throttle(&mut buf, 0, &results, 3_600_000).unwrap();
+        let mut cur = buf.as_ref();
+        let (err, decoded, throttle) = decode_offset_delete_response(&mut cur).unwrap();
+        assert_eq!(err, 0);
+        assert_eq!(decoded, results);
+        assert_eq!(throttle, 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "OffsetDelete v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with = BytesMut::new();
+        encode_offset_delete_response_with_throttle(&mut with, 0, &results, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_offset_delete_response_with_throttle(&mut zero, 0, &results, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_offset_delete_response(&mut conv, 0, &results).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_offset_delete_response still writes ThrottleTimeMs 0"
+        );
+        assert_eq!(
+            &with[0..2],
+            &[0, 0],
+            "v0 top-level ErrorCode is at bytes 0-1"
+        );
+        assert_eq!(
+            &with[2..6],
+            &3_600_000_i32.to_be_bytes(),
+            "v0 ThrottleTimeMs occupies bytes 2-5"
+        );
+    }
+
+    #[test]
     fn offset_delete_v0_roundtrip_is_leftover_empty() {
         let topics = vec![OffsetDeleteTopic::new("t", vec![0, 1])];
         let mut buf = BytesMut::new();
@@ -11498,7 +11575,7 @@ mod tests {
         buf.clear();
         encode_offset_delete_response(&mut buf, 0, &results).unwrap();
         let mut cur = &buf[..];
-        let (err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        let (err, decoded, ..) = decode_offset_delete_response(&mut cur).unwrap();
         assert_eq!(err, 0);
         assert_eq!(decoded, results);
         assert!(
@@ -11524,7 +11601,7 @@ mod tests {
         buf.clear();
         encode_offset_delete_response(&mut buf, 0, &part_err).unwrap();
         let mut cur = buf.as_ref();
-        let (top, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        let (top, decoded, ..) = decode_offset_delete_response(&mut cur).unwrap();
         assert_eq!(top, 0);
         assert_eq!(decoded, part_err);
         assert!(
@@ -11546,7 +11623,7 @@ mod tests {
             "error is at bytes 0-1; throttle occupies bytes 2-5"
         );
         let mut cur = &buf[..];
-        let (err, results) = decode_offset_delete_response(&mut cur).unwrap();
+        let (err, results, ..) = decode_offset_delete_response(&mut cur).unwrap();
         assert_eq!(err, crate::error::NOT_COORDINATOR);
         assert!(results.is_empty());
         assert!(
@@ -11570,7 +11647,7 @@ mod tests {
             "OffsetDelete getErrorResponse must match empty-Topics encode"
         );
         let mut cur = &got[..];
-        let (err, results) = decode_offset_delete_response(&mut cur).unwrap();
+        let (err, results, ..) = decode_offset_delete_response(&mut cur).unwrap();
         assert_eq!(err, 16);
         assert!(results.is_empty(), "getErrorResponse Topics must be empty");
         assert!(
@@ -11604,7 +11681,7 @@ mod tests {
         let mut got = BytesMut::new();
         encode_offset_delete_response(&mut got, err, &merged).unwrap();
         let mut cur = &got[..];
-        let (decoded_err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        let (decoded_err, decoded, ..) = decode_offset_delete_response(&mut cur).unwrap();
         assert_eq!(decoded_err, 0);
         assert_eq!(decoded, merged);
         assert!(
@@ -11620,7 +11697,7 @@ mod tests {
         got.clear();
         encode_offset_delete_response(&mut got, err, &merged).unwrap();
         let mut cur = &got[..];
-        let (decoded_err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        let (decoded_err, decoded, ..) = decode_offset_delete_response(&mut cur).unwrap();
         assert_eq!(decoded_err, 0);
         assert_eq!(decoded, merged);
         assert!(
@@ -11646,7 +11723,7 @@ mod tests {
             "non-NONE merge must match empty-Topics getErrorResponse"
         );
         let mut cur = &got[..];
-        let (decoded_err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        let (decoded_err, decoded, ..) = decode_offset_delete_response(&mut cur).unwrap();
         assert_eq!(decoded_err, crate::error::NOT_COORDINATOR);
         assert!(decoded.is_empty());
         assert!(
@@ -11662,7 +11739,7 @@ mod tests {
         got.clear();
         encode_offset_delete_response(&mut got, err, &from_empty).unwrap();
         let mut cur = &got[..];
-        let (decoded_err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        let (decoded_err, decoded, ..) = decode_offset_delete_response(&mut cur).unwrap();
         assert_eq!(decoded_err, 0);
         assert_eq!(decoded, current);
         assert!(
@@ -11685,7 +11762,7 @@ mod tests {
         got.clear();
         encode_offset_delete_response(&mut got, err, &grouped).unwrap();
         let mut cur = &got[..];
-        let (decoded_err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        let (decoded_err, decoded, ..) = decode_offset_delete_response(&mut cur).unwrap();
         assert_eq!(decoded_err, 0);
         assert_eq!(decoded, grouped);
         assert!(

@@ -2009,7 +2009,11 @@
 //! partition / one topic). Official Java
 //! [`protocol::group::OffsetDeleteRequest::error_response`] is Java
 //! `OffsetDeleteRequest.getErrorResponse` (top-level ErrorCode only;
-//! empty Topics).
+//! empty Topics; ThrottleTimeMs is JSON `0+` after ErrorCode;
+//! [`protocol::group::encode_offset_delete_response_with_throttle`];
+//! encode previously always wrote `0` and decode discarded; convenience
+//! encode still writes `0`; official Java `getErrorResponse` sets
+//! `throttleTimeMs` from the argument).
 //! [`protocol::group::OffsetDeleteResponse::error_counts`] is Java
 //! `OffsetDeleteResponse.errorCounts` (top-level `errorCode` plus each
 //! partition-level code, including `NONE`);

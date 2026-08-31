@@ -7764,7 +7764,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (top, results) = decode_offset_delete_response(&mut body.clone())?;
+            let (top, results, ..) = decode_offset_delete_response(&mut body.clone())?;
             if error::coordinator_retriable(top) {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
