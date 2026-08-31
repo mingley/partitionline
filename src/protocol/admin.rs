@@ -11698,6 +11698,8 @@ impl fmt::Display for TopicPartitionInfo {
 /// partition is present and is later in the body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeTopicPartitionsResponse {
+    /// DescribeTopicPartitions `ThrottleTimeMs` (JSON `0+`). JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Topics in this request or response.
     pub topics: Vec<DescribedTopicPartitions>,
     /// Cursor for the next page, when truncated.
@@ -11708,6 +11710,7 @@ impl DescribeTopicPartitionsResponse {
     /// Construct [`Self`].
     pub fn new(topics: Vec<DescribedTopicPartitions>) -> Self {
         Self {
+            throttle_time_ms: 0,
             topics,
             next_cursor: None,
         }
@@ -11775,7 +11778,8 @@ impl DescribeTopicPartitionsRequest {
     /// empty. Topic ids are zeros and authorized operations are
     /// [`AUTHORIZED_OPERATIONS_OMITTED`] (JSON defaults). Request names are
     /// copied. Request `ResponsePartitionLimit` / `Cursor` are not copied.
-    /// Throttle is the JSON default (`0`; crate encode writes `0`).
+    /// ThrottleTimeMs is JSON `0+` (JSON default `0`;
+    /// [`DescribeTopicPartitionsResponse::new`] fills `0`).
     /// `NextCursor` is omitted.
     #[must_use]
     pub fn error_response<I>(topic_names: I, error_code: i16) -> DescribeTopicPartitionsResponse
@@ -11959,11 +11963,14 @@ pub fn decode_describe_topic_partitions_request<B: Buf>(
 }
 
 /// Encode a DescribeTopicPartitions response.
+///
+/// ThrottleTimeMs is JSON `0+` (from [`DescribeTopicPartitionsResponse::throttle_time_ms`];
+/// JSON default `0`).
 pub fn encode_describe_topic_partitions_response(
     buf: &mut BytesMut,
     resp: &DescribeTopicPartitionsResponse,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf::put_array_len(buf, true, Some(resp.topics.len()))?;
     for t in &resp.topics {
         buf.put_i16(t.error_code);
@@ -11992,10 +11999,12 @@ pub fn encode_describe_topic_partitions_response(
 }
 
 /// Decode a DescribeTopicPartitions response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire).
 pub fn decode_describe_topic_partitions_response<B: Buf>(
     buf: &mut B,
 ) -> Result<DescribeTopicPartitionsResponse> {
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
@@ -12042,6 +12051,7 @@ pub fn decode_describe_topic_partitions_response<B: Buf>(
     let next_cursor = get_nullable_cursor(buf)?;
     buf::skip_tagged_fields(buf)?;
     Ok(DescribeTopicPartitionsResponse {
+        throttle_time_ms,
         topics,
         next_cursor,
     })
@@ -25133,6 +25143,7 @@ mod tests {
         );
 
         let resp = DescribeTopicPartitionsResponse {
+            throttle_time_ms: 0,
             topics: vec![DescribedTopicPartitions {
                 error_code: 0,
                 name: Some("t".into()),
@@ -25266,6 +25277,50 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DescribeTopicPartitions v0 first-partition body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_topic_partitions_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 DescribeTopicPartitionsResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on the spoken v0; ignorable). Official
+        // Java DescribeTopicPartitionsRequest.getErrorResponse /
+        // DescribeTopicPartitionsResponse.prepareResponse /
+        // DescribeTopicPartitionsResponse.throttleTimeMs set / read it.
+        // Encode writes DescribeTopicPartitionsResponse.throttle_time_ms
+        // (JSON default 0; DescribeTopicPartitionsResponse::new and
+        // DescribeTopicPartitionsRequest::error_response fill 0). This
+        // crate speaks v0 only. This is not ListConfigResources
+        // ThrottleTimeMs.
+        let zero = DescribeTopicPartitionsRequest::error_response(
+            ["t"],
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+        );
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut buf = BytesMut::new();
+        encode_describe_topic_partitions_response(&mut buf, &with).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_describe_topic_partitions_response(&mut cur).unwrap();
+        assert_eq!(got, with);
+        assert_eq!(got.throttle_time_ms, 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "DescribeTopicPartitions v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with_buf = BytesMut::new();
+        encode_describe_topic_partitions_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_describe_topic_partitions_response(&mut zero_buf, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "DescribeTopicPartitionsRequest::error_response still fills ThrottleTimeMs 0"
         );
     }
 

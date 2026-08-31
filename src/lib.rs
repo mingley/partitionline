@@ -2133,6 +2133,7 @@
 //! partition-level codes, including `NONE`);
 //! [`protocol::admin::DescribeTopicPartitionsResponse::should_client_throttle`]
 //! is Java `DescribeTopicPartitionsResponse.shouldClientThrottle` (always);
+//! ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::DescribeTopicPartitionsResponse::partition_to_topic_partition_info`]
 //! is Java `DescribeTopicPartitionsResponse.partitionToTopicPartitionInfo`
 //! (leader `HashMap.get`; replica lists `getOrDefault` `Node(id, "", -1)`);
