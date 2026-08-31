@@ -6136,6 +6136,55 @@ impl AlterClientQuotasResponse {
     }
 }
 
+/// Java `AlterClientQuotasRequest` helpers.
+pub struct AlterClientQuotasRequest;
+
+impl AlterClientQuotasRequest {
+    /// Java `AlterClientQuotasRequest.entries`.
+    ///
+    /// Rebuilds each request entry. Duplicate `EntityType` in one
+    /// entity: later `HashMap.put` wins. Entity order is first-seen
+    /// (Java `HashMap` iteration is unspecified). Ops keep caller
+    /// order (`ArrayList.add`). A remove op ignores leftover `Value`
+    /// (Java `Op` value is null). Duplicate entries are kept.
+    #[must_use]
+    pub fn entries(entries: &[ClientQuotaAlteration]) -> Vec<ClientQuotaAlteration> {
+        entries
+            .iter()
+            .map(|entry| {
+                let mut order: Vec<String> = Vec::new();
+                let mut by_type: HashMap<String, Option<String>> = HashMap::new();
+                for ent in &entry.entity {
+                    if !by_type.contains_key(&ent.entity_type) {
+                        order.push(ent.entity_type.clone());
+                    }
+                    let _prev = by_type.insert(ent.entity_type.clone(), ent.name.clone());
+                }
+                let entity = order
+                    .into_iter()
+                    .filter_map(|entity_type| {
+                        by_type
+                            .remove(&entity_type)
+                            .map(|name| ClientQuotaEntity::new(entity_type, name))
+                    })
+                    .collect();
+                let ops = entry
+                    .ops
+                    .iter()
+                    .map(|op| {
+                        if op.remove {
+                            ClientQuotaOp::remove(op.key.clone())
+                        } else {
+                            ClientQuotaOp::set(op.key.clone(), op.value)
+                        }
+                    })
+                    .collect();
+                ClientQuotaAlteration::new(entity, ops)
+            })
+            .collect()
+    }
+}
+
 /// AlterClientQuotas v0–1 (classic at v0; flexible from v1; KIP-546 / KIP-599).
 ///
 /// Official Apache JSON (`apiKey: 49`, `validVersions: "0-1"`,
@@ -16172,6 +16221,76 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "AlterClientQuotas v{version} fromQuotaEntities empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn alter_client_quotas_request_entries_matches_java() {
+        // Java AlterClientQuotasRequest.entries: HashMap.put last-wins on
+        // EntityType, ArrayList ops, remove → null Op value.
+        assert!(AlterClientQuotasRequest::entries(&[]).is_empty());
+        let leftover_remove = ClientQuotaOp {
+            key: "producer_byte_rate".into(),
+            value: 99.0,
+            remove: true,
+        };
+        let first_user = ClientQuotaEntity::new(ClientQuotaEntity::USER, Some("alice".into()));
+        let later_user = ClientQuotaEntity::new(ClientQuotaEntity::USER, Some("bob".into()));
+        let client = ClientQuotaEntity::new(ClientQuotaEntity::CLIENT_ID, Some("app".into()));
+        let default_user = ClientQuotaEntity::new(ClientQuotaEntity::USER, None);
+        let set = ClientQuotaOp::set("producer_byte_rate", 1024.0);
+        let later_set = ClientQuotaOp::set("producer_byte_rate", 2048.0);
+        let raw = vec![
+            ClientQuotaAlteration::new(
+                vec![first_user, client.clone(), later_user.clone()],
+                vec![set.clone(), leftover_remove, later_set.clone()],
+            ),
+            ClientQuotaAlteration::new(
+                vec![default_user.clone()],
+                vec![ClientQuotaOp::remove("k")],
+            ),
+        ];
+        let entries = AlterClientQuotasRequest::entries(&raw);
+        assert_eq!(
+            entries,
+            vec![
+                ClientQuotaAlteration::new(
+                    vec![later_user, client],
+                    vec![set, ClientQuotaOp::remove("producer_byte_rate"), later_set],
+                ),
+                ClientQuotaAlteration::new(vec![default_user], vec![ClientQuotaOp::remove("k")]),
+            ]
+        );
+        assert_eq!(
+            entries.first().map(|e| e.ops.len()),
+            Some(3),
+            "duplicate Op keys are kept"
+        );
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_alter_client_quotas_request(&mut buf, version, &entries, false).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, validate_only) =
+                decode_alter_client_quotas_request(&mut cur, version).unwrap();
+            assert_eq!(decoded, entries);
+            assert!(!validate_only);
+            assert!(
+                !cur.has_remaining(),
+                "AlterClientQuotas v{version} entries leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            buf.clear();
+            encode_alter_client_quotas_request(&mut buf, version, &[], false).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, validate_only) =
+                decode_alter_client_quotas_request(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert!(!validate_only);
+            assert!(
+                !cur.has_remaining(),
+                "AlterClientQuotas v{version} entries empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }

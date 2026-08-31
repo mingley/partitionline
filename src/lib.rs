@@ -450,7 +450,10 @@
 //! `AlterClientQuotasResponse.errorCounts` (per-entry codes, including `NONE`);
 //! [`protocol::admin::AlterClientQuotasResponse::from_quota_entities`] is Java
 //! `AlterClientQuotasResponse.fromQuotaEntities` (type/name pairs plus
-//! [`ApiError`] into `Entries`; `ErrorMessage` is copied; throttle unused)),
+//! [`ApiError`] into `Entries`; `ErrorMessage` is copied; throttle unused);
+//! [`protocol::admin::AlterClientQuotasRequest::entries`] is Java
+//! `AlterClientQuotasRequest.entries` (duplicate EntityType last-wins;
+//! leftover Value on remove is ignored)),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes),
 //! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible;
 //! [`protocol::admin::AlterReplicaLogDirsResponse::should_client_throttle`] is Java
@@ -1696,6 +1699,9 @@
 //! [`protocol::admin::AlterClientQuotasResponse::from_quota_entities`] is Java
 //! `AlterClientQuotasResponse.fromQuotaEntities` (type/name pairs plus
 //! [`ApiError`] into `Entries`; `ErrorMessage` is copied; throttle unused).
+//! [`protocol::admin::AlterClientQuotasRequest::entries`] is Java
+//! `AlterClientQuotasRequest.entries` (duplicate EntityType last-wins;
+//! leftover Value on remove is ignored).
 //! [`Admin::alter_user_scram_credentials_with`] is Java
 //! `alterUserScramCredentials(List)` ([`UserScramCredentialAlteration`]).
 //! [`AlterUserScramCredentialsResult::error`] /
