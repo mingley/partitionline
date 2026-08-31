@@ -8206,6 +8206,9 @@ pub fn decode_list_transactions_response<B: Buf>(
 /// 5–6). Fixture broker id only; not a live KRaft unregistration.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnregisterBrokerResponse {
+    /// UnregisterBroker `ThrottleTimeMs` (JSON `0+`). First field.
+    /// JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Broker error message, when present.
@@ -8216,9 +8219,16 @@ impl UnregisterBrokerResponse {
     /// Construct [`Self`].
     pub fn new(error_code: i16, error_message: Option<String>) -> Self {
         Self {
+            throttle_time_ms: 0,
             error_code,
             error_message,
         }
+    }
+
+    /// UnregisterBroker `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Kafka error code (`0` is success).
@@ -8271,11 +8281,15 @@ pub fn decode_unregister_broker_request<B: Buf>(buf: &mut B) -> Result<i32> {
 }
 
 /// Encode an UnregisterBroker response.
+///
+/// ThrottleTimeMs is JSON `0+` (`resp.throttle_time_ms`; JSON default
+/// `0`). Kafka 4.0 `validVersions` is `"0"`. This crate speaks v0 only.
+/// Top-level ErrorCode is at bytes 4–5.
 pub fn encode_unregister_broker_response(
     buf: &mut BytesMut,
     resp: &UnregisterBrokerResponse,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
     buf::put_empty_tagged_fields(buf);
@@ -8283,12 +8297,16 @@ pub fn encode_unregister_broker_response(
 }
 
 /// Decode an UnregisterBroker response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire). Top-level ErrorCode
+/// is at bytes 4–5.
 pub fn decode_unregister_broker_response<B: Buf>(buf: &mut B) -> Result<UnregisterBrokerResponse> {
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
     buf::skip_tagged_fields(buf)?;
     Ok(UnregisterBrokerResponse {
+        throttle_time_ms,
         error_code,
         error_message,
     })
@@ -23856,6 +23874,47 @@ mod tests {
     }
 
     #[test]
+    fn unregister_broker_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 UnregisterBrokerResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0; first field). Official Java
+        // UnregisterBrokerRequest.getErrorResponse /
+        // UnregisterBrokerResponse.throttleTimeMs set / read it.
+        // Encode writes UnregisterBrokerResponse.throttle_time_ms
+        // (JSON default 0; UnregisterBrokerResponse::new fills 0).
+        // Empty-ErrorMessage only one version. Top-level ErrorCode is
+        // at bytes 4–5. This crate speaks v0 only. This is not
+        // ListTransactions ThrottleTimeMs.
+        let zero = UnregisterBrokerResponse::new(0, None);
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut buf = BytesMut::new();
+        encode_unregister_broker_response(&mut buf, &with).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_unregister_broker_response(&mut cur).unwrap();
+        assert_eq!(got, with);
+        assert_eq!(got.throttle_time_ms, 3_600_000);
+        assert_eq!(got.throttle_time_ms(), 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "UnregisterBroker v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with_buf = BytesMut::new();
+        encode_unregister_broker_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_unregister_broker_response(&mut zero_buf, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "UnregisterBrokerResponse::new still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
     fn unregister_broker_v0_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 64
@@ -23893,10 +23952,7 @@ mod tests {
             "UnregisterBroker v0 request must be leftover-empty"
         );
 
-        let resp = UnregisterBrokerResponse {
-            error_code: 0,
-            error_message: None,
-        };
+        let resp = UnregisterBrokerResponse::new(0, None);
         buf.clear();
         encode_unregister_broker_response(&mut buf, &resp).unwrap();
         let mut cur = &buf[..];
@@ -23917,10 +23973,10 @@ mod tests {
         // DescribeTransactions (first-result code at bytes 5-6), or
         // DescribeUserScramCredentials (same offset, Results after the
         // INT16 + ErrorMessage).
-        let resp = UnregisterBrokerResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: Some("Not controller".into()),
-        };
+        let resp = UnregisterBrokerResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+        );
         let mut buf = BytesMut::new();
         encode_unregister_broker_response(&mut buf, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();

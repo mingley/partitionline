@@ -679,6 +679,8 @@
 //! `AlterClientQuotasRequest.entries` (duplicate EntityType last-wins;
 //! leftover Value on remove is ignored)),
 //! AllocateProducerIds v0 (ThrottleTimeMs is JSON `0+`),
+//! UnregisterBroker v0 (ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::UnregisterBrokerResponse::new`] fills `0`),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes; ThrottleTimeMs is JSON `0+`),
 //! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`),
 //! PushTelemetry v0 (ThrottleTimeMs is JSON `0+`),
@@ -2116,6 +2118,9 @@
 //! not `NONE`; success is an empty map).
 //! [`UnregisterBrokerResponse::should_client_throttle`] is Java
 //! `UnregisterBrokerResponse.shouldClientThrottle` (always).
+//! ThrottleTimeMs is JSON `0+`; encode writes the field;
+//! [`protocol::admin::UnregisterBrokerResponse::new`] fills `0`.
+//! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
 //! [`Admin::allocate_producer_ids_timeout`] is the crate-first
 //! AllocateProducerIds (api 67) RPC deadline; Java `Admin` has no
 //! `allocateProducerIds`. ThrottleTimeMs is JSON `0+`; encode writes the field;

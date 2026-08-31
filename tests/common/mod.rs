@@ -4362,10 +4362,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     // on the wrong node.
                     encode_unregister_broker_response(
                         &mut body,
-                        &UnregisterBrokerResponse {
-                            error_code: error::NOT_CONTROLLER,
-                            error_message: Some("Not controller".into()),
-                        },
+                        &UnregisterBrokerResponse::new(
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                        ),
                     )
                     .unwrap();
                 } else {
@@ -4374,10 +4374,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     let _ = st.unregistered_brokers.insert(broker_id);
                     encode_unregister_broker_response(
                         &mut body,
-                        &UnregisterBrokerResponse {
-                            error_code: 0,
-                            error_message: None,
-                        },
+                        &UnregisterBrokerResponse::new(0, None),
                     )
                     .unwrap();
                 }
