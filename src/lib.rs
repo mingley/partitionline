@@ -360,6 +360,10 @@
 //! [`protocol::share::ShareFetchResponse::response_data`] is Java
 //! `ShareFetchResponse.responseData` (looks up `topic_id`; skips a missing
 //! name; a later partition overwrites);
+//! [`protocol::share::ShareFetchRequest::forgotten_topics`] is Java
+//! `ShareFetchRequest.forgottenTopics` (looks up `topic_id` and keeps a
+//! missing name as `None`; duplicates are kept; encode still writes empty
+//! ForgottenTopicsData);
 //! [`protocol::share::ShareFetchResponse::to_message`] is Java
 //! `ShareFetchResponse.toMessage` Responses (group by `topic_id` in
 //! first-seen order; key partition overwrites the body);

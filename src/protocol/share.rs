@@ -104,6 +104,46 @@ pub struct ShareFetchTopic {
     pub partitions: Vec<ShareFetchPartition>,
 }
 
+/// One forgotten topic in a ShareFetch request (session increment).
+///
+/// Java `ShareFetchRequestData.ForgottenTopic`. Encode still writes an
+/// empty ForgottenTopicsData array; this type is the in-memory list
+/// [`ShareFetchRequest::forgotten_topics`] reads.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShareForgottenTopic {
+    /// Topic id (UUID).
+    pub topic_id: [u8; 16],
+    /// Partitions to forget.
+    pub partitions: Vec<i32>,
+}
+
+/// Java `ShareFetchRequest` helpers.
+pub struct ShareFetchRequest;
+
+impl ShareFetchRequest {
+    /// Java `ShareFetchRequest.forgottenTopics`.
+    ///
+    /// Looks up each topic id in `topic_names` (`None` when missing; Java
+    /// still inserts that `TopicIdPartition`). Duplicate partitions are
+    /// kept (`ArrayList`). Encode still writes an empty ForgottenTopicsData
+    /// array. Unlike [`ShareFetchResponse::response_data`], a missing name
+    /// is not skipped.
+    #[must_use]
+    pub fn forgotten_topics(
+        forgotten: &[ShareForgottenTopic],
+        topic_names: &HashMap<[u8; 16], String>,
+    ) -> Vec<([u8; 16], Option<String>, i32)> {
+        let mut to_forget = Vec::new();
+        for topic in forgotten {
+            let name = topic_names.get(&topic.topic_id).cloned();
+            for partition in &topic.partitions {
+                to_forget.push((topic.topic_id, name.clone(), *partition));
+            }
+        }
+        to_forget
+    }
+}
+
 /// Acquired offset range in a ShareFetch response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AcquiredRange {
@@ -1930,6 +1970,83 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "ShareFetch v{version} responseData leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn share_fetch_request_forgotten_topics_matches_java() {
+        // Java ShareFetchRequest.forgottenTopics: look up topicId in
+        // topicNames and still insert when the name is null. ArrayList
+        // keeps duplicate partitions. responseData skips a missing name.
+        let topic_id = [1u8; 16];
+        let forgotten = vec![
+            ShareForgottenTopic {
+                topic_id,
+                partitions: vec![0, 1],
+            },
+            ShareForgottenTopic {
+                topic_id,
+                partitions: vec![0],
+            },
+        ];
+        let empty_names = HashMap::new();
+        assert!(ShareFetchRequest::forgotten_topics(&[], &empty_names).is_empty());
+        let unresolved = ShareFetchRequest::forgotten_topics(&forgotten, &empty_names);
+        assert_eq!(
+            unresolved,
+            vec![
+                (topic_id, None, 0),
+                (topic_id, None, 1),
+                (topic_id, None, 0),
+            ],
+            "missing name is still inserted"
+        );
+        let names = HashMap::from([(topic_id, "t".into())]);
+        assert_eq!(
+            ShareFetchRequest::forgotten_topics(&forgotten, &names),
+            vec![
+                (topic_id, Some("t".into()), 0),
+                (topic_id, Some("t".into()), 1),
+                (topic_id, Some("t".into()), 0),
+            ]
+        );
+
+        let fetch = vec![ShareFetchTopic {
+            topic_id,
+            partitions: vec![ShareFetchPartition {
+                partition: 0,
+                acknowledgements: vec![],
+            }],
+        }];
+        for version in [0_i16, 1] {
+            let got = ShareFetchRequest::forgotten_topics(&forgotten, &names);
+            assert_eq!(got.len(), 3);
+            let mut buf = BytesMut::new();
+            encode_share_fetch_request(&mut buf, version, "sg", "m1", 0, 10, 1, 1024, 16, &fetch)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (_gid, _mid, _epoch, _max, _decoded) =
+                decode_share_fetch_request(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "ShareFetch v{version} forgottenTopics leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [0_i16, 1] {
+            let got = ShareFetchRequest::forgotten_topics(&[], &empty_names);
+            assert!(got.is_empty());
+            let mut buf = BytesMut::new();
+            encode_share_fetch_request(&mut buf, version, "sg", "m1", 0, 10, 1, 1024, 16, &fetch)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (_gid, _mid, _epoch, _max, _decoded) =
+                decode_share_fetch_request(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "ShareFetch v{version} forgottenTopics empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }
