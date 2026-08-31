@@ -1291,7 +1291,7 @@ pub fn encode_txn_offset_commit_request(
     Ok(())
 }
 
-/// Decode TxnOffsetCommit: `(transactional_id, group_id, member, topics, producer_id)`.
+/// Decode TxnOffsetCommit: `(transactional_id, group_id, member, topics, producer_id, producer_epoch)`.
 ///
 /// Decode below v2 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] for
 /// omitted `CommittedLeaderEpoch`.
@@ -1304,12 +1304,13 @@ pub fn decode_txn_offset_commit_request<B: Buf>(
     TxnOffsetCommitMember,
     Vec<TxnOffsetTopic>,
     i64,
+    i16,
 )> {
     let flexible = txn_offset_commit_flexible(version)?;
     let tid = buf::get_string(buf, flexible)?.unwrap_or_default();
     let gid = buf::get_string(buf, flexible)?.unwrap_or_default();
     let producer_id = buf::get_i64(buf)?;
-    let _epoch = buf::get_i16(buf)?;
+    let producer_epoch = buf::get_i16(buf)?;
     let member = if version >= 3 {
         let generation_id = buf::get_i32(buf)?;
         let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -1355,7 +1356,7 @@ pub fn decode_txn_offset_commit_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((tid, gid, member, topics, producer_id))
+    Ok((tid, gid, member, topics, producer_id, producer_epoch))
 }
 
 /// Encode TxnOffsetCommit: one error code applied to every partition.
@@ -3835,7 +3836,7 @@ mod tests {
             encode_txn_offset_commit_request(&mut buf, version, "tx", "g", 9, 1, &member, &topics)
                 .unwrap();
             let mut cur = buf.as_ref();
-            let (tid, gid, got_member, got, producer_id) =
+            let (tid, gid, got_member, got, producer_id, ..) =
                 decode_txn_offset_commit_request(&mut cur, version).unwrap();
             assert_eq!((tid.as_str(), gid.as_str()), ("tx", "g"));
             assert_eq!(got_member, member);
@@ -3857,14 +3858,16 @@ mod tests {
             "v0 ProducerId is not always the same INT64"
         );
         let mut cur = nine.as_ref();
-        let (.., producer_id) = decode_txn_offset_commit_request(&mut cur, 0).unwrap();
+        let (_tid, _gid, _member, _topics, producer_id, ..) =
+            decode_txn_offset_commit_request(&mut cur, 0).unwrap();
         assert_eq!(producer_id, 9);
         assert!(
             cur.is_empty(),
             "TxnOffsetCommit v0 ProducerId leftover-empty"
         );
         let mut cur = ten.as_ref();
-        let (.., producer_id) = decode_txn_offset_commit_request(&mut cur, 0).unwrap();
+        let (_tid, _gid, _member, _topics, producer_id, ..) =
+            decode_txn_offset_commit_request(&mut cur, 0).unwrap();
         assert_eq!(producer_id, 10);
         assert_eq!(
             nine.get(7..15),
@@ -3895,6 +3898,98 @@ mod tests {
         let mut v5 = BytesMut::new();
         encode_txn_offset_commit_request(&mut v5, 5, "tx", "g", 9, 1, &member, &topics).unwrap();
         assert_eq!(&v4[..], &v5[..], "empty-Topics ProducerId bodies: v4 == v5");
+    }
+
+    #[test]
+    fn txn_offset_commit_request_producer_epoch_matches_java() {
+        // Kafka 4.0.0 TxnOffsetCommitRequest.json ProducerEpoch is versions
+        // 0+ (INT16 after ProducerId / before GenerationId). Official Java
+        // TxnOffsetCommitRequestData.producerEpoch. Encode already writes
+        // producer_epoch. Decode previously discarded it. Kafka 4.0
+        // validVersions is 0-5. This crate speaks 0–5. This is not
+        // ProducerId / AddOffsetsToTxn ProducerEpoch / EndTxn response
+        // ProducerEpoch / InitProducerId / AddPartitionsToTxn ProducerEpoch /
+        // WriteTxnMarkers ProducerEpoch.
+        let member = TxnOffsetCommitMember::unknown();
+        let topics: [TxnOffsetTopic; 0] = [];
+        for version in [0_i16, 1, 2, 3, 4, 5] {
+            let mut buf = BytesMut::new();
+            encode_txn_offset_commit_request(&mut buf, version, "tx", "g", 9, 1, &member, &topics)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (tid, gid, got_member, got, producer_id, producer_epoch) =
+                decode_txn_offset_commit_request(&mut cur, version).unwrap();
+            assert_eq!((tid.as_str(), gid.as_str()), ("tx", "g"));
+            assert_eq!(got_member, member);
+            assert!(got.is_empty());
+            assert_eq!(producer_id, 9);
+            assert_eq!(producer_epoch, 1);
+            assert!(
+                cur.is_empty(),
+                "TxnOffsetCommit v{version} ProducerEpoch leftover-empty"
+            );
+        }
+
+        let mut one = BytesMut::new();
+        encode_txn_offset_commit_request(&mut one, 0, "tx", "g", 9, 1, &member, &topics).unwrap();
+        let mut two = BytesMut::new();
+        encode_txn_offset_commit_request(&mut two, 0, "tx", "g", 9, 2, &member, &topics).unwrap();
+        assert_ne!(
+            &one[..],
+            &two[..],
+            "v0 ProducerEpoch is not always the same INT16"
+        );
+        let mut cur = one.as_ref();
+        let (.., producer_epoch) = decode_txn_offset_commit_request(&mut cur, 0).unwrap();
+        assert_eq!(producer_epoch, 1);
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v0 ProducerEpoch leftover-empty"
+        );
+        let mut cur = two.as_ref();
+        let (.., producer_epoch) = decode_txn_offset_commit_request(&mut cur, 0).unwrap();
+        assert_eq!(producer_epoch, 2);
+        assert_eq!(
+            one.get(15..17),
+            Some([0, 1].as_slice()),
+            "v0 classic ProducerEpoch follows TransactionalId STRING tx, GroupId STRING g, and ProducerId"
+        );
+
+        let mut v1 = BytesMut::new();
+        encode_txn_offset_commit_request(&mut v1, 1, "tx", "g", 9, 1, &member, &topics).unwrap();
+        assert_eq!(
+            &one[..],
+            &v1[..],
+            "empty-Topics ProducerEpoch bodies: v0 == v1"
+        );
+        let mut v2 = BytesMut::new();
+        encode_txn_offset_commit_request(&mut v2, 2, "tx", "g", 9, 1, &member, &topics).unwrap();
+        assert_eq!(
+            &v1[..],
+            &v2[..],
+            "empty-Topics ProducerEpoch bodies: v1 == v2"
+        );
+        let mut v3 = BytesMut::new();
+        encode_txn_offset_commit_request(&mut v3, 3, "tx", "g", 9, 1, &member, &topics).unwrap();
+        assert_ne!(
+            &v2[..],
+            &v3[..],
+            "v3 adds GenerationId / MemberId / GroupInstanceId and compact tagged fields"
+        );
+        let mut v4 = BytesMut::new();
+        encode_txn_offset_commit_request(&mut v4, 4, "tx", "g", 9, 1, &member, &topics).unwrap();
+        assert_eq!(
+            &v3[..],
+            &v4[..],
+            "empty-Topics ProducerEpoch bodies: v3 == v4"
+        );
+        let mut v5 = BytesMut::new();
+        encode_txn_offset_commit_request(&mut v5, 5, "tx", "g", 9, 1, &member, &topics).unwrap();
+        assert_eq!(
+            &v4[..],
+            &v5[..],
+            "empty-Topics ProducerEpoch bodies: v4 == v5"
+        );
     }
 
     #[test]

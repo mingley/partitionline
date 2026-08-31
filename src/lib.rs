@@ -982,10 +982,14 @@
 //! [`TransactionResult`] is Java `TransactionResult` (`ABORT` / `COMMIT`)),
 //! and TxnOffsetCommit v0–v5
 //! (v3+ flexible; GenerationId / MemberId / GroupInstanceId;
-//! request ProducerId is JSON `0+` (decode returns it last; encode already
+//! request ProducerId is JSON `0+` (decode returns it; encode already
 //! takes `producer_id`; official Java `TxnOffsetCommitRequestData.producerId`;
 //! not AddOffsetsToTxn ProducerId / EndTxn response ProducerId / InitProducerId /
 //! AddPartitionsToTxn ProducerId / WriteTxnMarkers ProducerId / ProducerEpoch);
+//! request ProducerEpoch is JSON `0+` (decode returns it last; encode already
+//! takes `producer_epoch`; official Java `TxnOffsetCommitRequestData.producerEpoch`;
+//! not AddOffsetsToTxn ProducerEpoch / EndTxn response ProducerEpoch / InitProducerId /
+//! AddPartitionsToTxn ProducerEpoch / WriteTxnMarkers ProducerEpoch / ProducerId);
 //! decode below v2 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`];
 //! v5 skips AddOffsetsToTxn, KIP-890 Part 2;
 //! [`protocol::txn::TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
