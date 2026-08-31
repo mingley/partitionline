@@ -39,6 +39,13 @@ pub struct ConsumerGroupHeartbeatRequest {
     pub subscribed_topic_names: Option<Vec<String>>,
     /// Subscribed topic regex (`None` means unchanged). v1+ (KIP-848).
     pub subscribed_topic_regex: Option<String>,
+    /// Server-side assignor (JSON `0+`).
+    ///
+    /// `None` if unused or unchanged since the last heartbeat (JSON
+    /// default null). Official Java
+    /// `ConsumerGroupHeartbeatRequestData.serverAssignor`. Kafka
+    /// `group.remote.assignor`.
+    pub server_assignor: Option<String>,
     /// Owned partitions (`None` means unchanged).
     pub topic_partitions: Option<Vec<TopicPartitions>>,
 }
@@ -146,7 +153,7 @@ pub fn encode_consumer_group_heartbeat_request(
     if version >= 1 {
         buf::put_compact_string(buf, req.subscribed_topic_regex.as_deref())?;
     }
-    buf::put_compact_string(buf, None)?; // server_assignor
+    buf::put_compact_string(buf, req.server_assignor.as_deref())?;
     encode_topic_partitions(buf, req.topic_partitions.as_deref())?;
     buf::put_empty_tagged_fields(buf);
     Ok(())
@@ -182,7 +189,7 @@ pub fn decode_consumer_group_heartbeat_request<B: Buf>(
     } else {
         None
     };
-    let _assignor = buf::get_compact_string(buf)?;
+    let server_assignor = buf::get_compact_string(buf)?;
     let topic_partitions = decode_topic_partitions(buf)?;
     buf::skip_tagged_fields(buf)?;
     Ok(ConsumerGroupHeartbeatRequest {
@@ -194,6 +201,7 @@ pub fn decode_consumer_group_heartbeat_request<B: Buf>(
         rebalance_timeout_ms,
         subscribed_topic_names,
         subscribed_topic_regex,
+        server_assignor,
         topic_partitions,
     })
 }
@@ -318,6 +326,7 @@ mod tests {
             rebalance_timeout_ms: 45_000,
             subscribed_topic_names: Some(vec!["t".into()]),
             subscribed_topic_regex: None,
+            server_assignor: None,
             topic_partitions: None,
         }
     }
@@ -364,6 +373,7 @@ mod tests {
             rebalance_timeout_ms: 45_000,
             subscribed_topic_names: None,
             subscribed_topic_regex: None,
+            server_assignor: None,
             topic_partitions: None,
         };
         let mut buf = BytesMut::new();
@@ -387,6 +397,7 @@ mod tests {
             rebalance_timeout_ms: 45_000,
             subscribed_topic_names: None,
             subscribed_topic_regex: None,
+            server_assignor: None,
             topic_partitions: None,
         };
         let mut buf = BytesMut::new();
@@ -452,6 +463,7 @@ mod tests {
             rebalance_timeout_ms: 45_000,
             subscribed_topic_names: Some(vec!["t".into()]),
             subscribed_topic_regex: None,
+            server_assignor: None,
             topic_partitions: None,
         };
         let mut buf = BytesMut::new();
@@ -528,6 +540,7 @@ mod tests {
             rebalance_timeout_ms: 45_000,
             subscribed_topic_names: None,
             subscribed_topic_regex: Some("t.*".into()),
+            server_assignor: None,
             topic_partitions: None,
         };
         let mut buf = BytesMut::new();
@@ -609,6 +622,44 @@ mod tests {
             got.rebalance_timeout_ms,
             ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS
         );
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_request_server_assignor_matches_java() {
+        // Kafka 4.0 ConsumerGroupHeartbeatRequest.json ServerAssignor is
+        // versions 0+ (nullable STRING after SubscribedTopicRegex on v1 /
+        // after SubscribedTopicNames on v0; default null). Official Java
+        // ConsumerGroupHeartbeatRequestData.serverAssignor reads it. Encode
+        // previously always wrote null; decode discarded it. This crate
+        // speaks 0–1. This is not RebalanceTimeoutMs / RackId /
+        // SubscribedTopicRegex / TopicPartitions.
+        let mut req = join_req();
+        req.server_assignor = Some("uniform".into());
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_consumer_group_heartbeat_request(&mut buf, version, &req).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_consumer_group_heartbeat_request(&mut cur, version).unwrap();
+            assert_eq!(got.server_assignor.as_deref(), Some("uniform"));
+            assert_eq!(got, req);
+            assert!(
+                cur.is_empty(),
+                "ConsumerGroupHeartbeat request v{version} ServerAssignor leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut with, 0, &req).unwrap();
+        let none = join_req();
+        let mut omitted = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut omitted, 0, &none).unwrap();
+        assert_ne!(
+            &with[..],
+            &omitted[..],
+            "v0 ServerAssignor is not always null"
+        );
+        let got = decode_consumer_group_heartbeat_request(&mut omitted.as_ref(), 0).unwrap();
+        assert_eq!(got.server_assignor, None);
     }
 
     #[test]

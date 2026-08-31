@@ -1761,6 +1761,7 @@ impl ConsumerGroup {
                 rebalance_timeout_ms: ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS,
                 subscribed_topic_names: None,
                 subscribed_topic_regex: None,
+                server_assignor: None,
                 topic_partitions: None,
             };
             let body = coord_roundtrip(
@@ -2009,6 +2010,7 @@ impl ConsumerGroup {
             },
             subscribed_topic_names: Some(self.topics.clone()),
             subscribed_topic_regex: None,
+            server_assignor: None,
             topic_partitions: None,
         };
         let body = coord_roundtrip(
@@ -2197,6 +2199,7 @@ impl ConsumerGroup {
                                 ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS,
                             subscribed_topic_names: None,
                             subscribed_topic_regex: None,
+                            server_assignor: None,
                             topic_partitions,
                         };
                         let res = c
@@ -2371,6 +2374,7 @@ async fn leave_if_max_poll(
                         ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS,
                     subscribed_topic_names: None,
                     subscribed_topic_regex: None,
+                    server_assignor: None,
                     topic_partitions: None,
                 };
                 drop(

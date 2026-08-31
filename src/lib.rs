@@ -427,6 +427,8 @@
 //! RebalanceTimeoutMs is JSON `0+` (decode returns it; encode writes
 //! `rebalance_timeout_ms`; JSON default `-1` means unchanged; join sends
 //! `max.poll.interval.ms`);
+//! ServerAssignor is JSON `0+` (decode returns it; encode writes
+//! `server_assignor`; JSON default null means unused or unchanged);
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH`] /
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`] /
