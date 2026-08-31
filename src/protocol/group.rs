@@ -1030,7 +1030,9 @@ impl JoinGroupRequest<'_> {
     /// Generation is [`Self::UNKNOWN_GENERATION_ID`]. Protocol name is
     /// [`Self::UNKNOWN_PROTOCOL_NAME`] (encode writes null on v7+). Leader
     /// and member id are [`Self::UNKNOWN_MEMBER_ID`]. Members is empty.
-    /// ProtocolType stays the JSON default (`null`) on v7+. Throttle is
+    /// ProtocolType stays the JSON default (`null`) on v7+. SkipAssignment
+    /// stays the JSON default (`false`) on v9+; official Java
+    /// `getErrorResponse` does not set it. Throttle is
     /// the JSON default (`0`); official Java `getErrorResponse` sets
     /// `throttleTimeMs` from the argument. Crate convenience encode
     /// still writes `0`.
@@ -1477,6 +1479,7 @@ pub fn encode_join_group_response_with_protocol_type(
         members,
         protocol_type,
         0,
+        false,
     )
 }
 
@@ -1490,7 +1493,9 @@ pub fn encode_join_group_response_with_protocol_type(
 /// v9 SkipAssignment. Kafka 4.0 `validVersions` is `2-9` (v0–v1
 /// removed). This crate speaks 2–9. v0–v1 and v10+ are not spoken.
 /// Official Java `getErrorResponse` sets `throttleTimeMs` from the
-/// argument. ProtocolType stays the JSON default (`null`). Top-level
+/// argument. ProtocolType stays the JSON default (`null`). SkipAssignment
+/// stays the JSON default (`false`)
+/// ([`encode_join_group_response_with_skip_assignment`]). Top-level
 /// ErrorCode is at bytes 4–5.
 #[expect(
     clippy::too_many_arguments,
@@ -1518,12 +1523,50 @@ pub fn encode_join_group_response_with_throttle(
         members,
         None,
         throttle_time_ms,
+        false,
+    )
+}
+
+/// Encode JoinGroup v2–v9 with SkipAssignment (JSON `9+`).
+///
+/// Official Java `JoinGroupResponseData.skipAssignment`. Below v9 the
+/// flag is omitted even when true; decode fills `false`.
+/// [`encode_join_group_response`] still writes `false`. ProtocolType
+/// stays null. ThrottleTimeMs stays `0`. This is not member
+/// GroupInstanceId / ProtocolType / ThrottleTimeMs.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "JoinGroup response fields match the Apache JSON layout plus SkipAssignment"
+)]
+pub fn encode_join_group_response_with_skip_assignment(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    generation_id: i32,
+    protocol_name: &str,
+    leader: &str,
+    member_id: &str,
+    members: &[JoinMember],
+    skip_assignment: bool,
+) -> crate::error::Result<()> {
+    encode_join_group_response_fields(
+        buf,
+        version,
+        error_code,
+        generation_id,
+        protocol_name,
+        leader,
+        member_id,
+        members,
+        None,
+        0,
+        skip_assignment,
     )
 }
 
 #[expect(
     clippy::too_many_arguments,
-    reason = "JoinGroup response fields match the Apache JSON layout plus ProtocolType and ThrottleTimeMs"
+    reason = "JoinGroup response fields match the Apache JSON layout plus ProtocolType, ThrottleTimeMs, and SkipAssignment"
 )]
 fn encode_join_group_response_fields(
     buf: &mut BytesMut,
@@ -1536,6 +1579,7 @@ fn encode_join_group_response_fields(
     members: &[JoinMember],
     protocol_type: Option<&str>,
     throttle_time_ms: i32,
+    skip_assignment: bool,
 ) -> crate::error::Result<()> {
     let flexible = join_group_flexible(version)?;
     buf.put_i32(throttle_time_ms);
@@ -1552,7 +1596,7 @@ fn encode_join_group_response_fields(
     buf::put_string(buf, flexible, protocol_name)?;
     buf::put_string(buf, flexible, Some(leader))?;
     if JoinGroupRequest::supports_skipping_assignment(version) {
-        buf.put_u8(0);
+        buf.put_u8(u8::from(skip_assignment));
     }
     buf::put_string(buf, flexible, Some(member_id))?;
     buf::put_array_len(buf, flexible, Some(members.len()))?;
@@ -7861,6 +7905,107 @@ mod tests {
             &buf[..],
             &v7[..],
             "JoinGroup v9 response must include SkipAssignment"
+        );
+    }
+
+    #[test]
+    fn join_group_response_skip_assignment_matches_java() {
+        // Kafka 4.0.0 JoinGroupResponse.json SkipAssignment is versions
+        // 9+ (BOOL after Leader / before MemberId; default false).
+        // Official Java JoinGroupResponseData.skipAssignment. Encode
+        // previously always wrote false. Decode already returns it.
+        // Kafka 4.0 validVersions is 2-9 (v0–v1 removed). This crate
+        // speaks 2–9. This is not member GroupInstanceId / ProtocolType /
+        // ThrottleTimeMs / JoinGroupRequest.supportsSkippingAssignment.
+        let members: [JoinMember; 0] = [];
+        let mut buf = BytesMut::new();
+        encode_join_group_response_with_skip_assignment(
+            &mut buf, 9, 0, 7, "range", "l", "m1", &members, true,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (err, gen, proto, leader, mid, skip, got, ..) =
+            decode_join_group_response(&mut cur, 9).unwrap();
+        assert_eq!(
+            (
+                err,
+                gen,
+                proto.as_str(),
+                leader.as_str(),
+                mid.as_str(),
+                skip
+            ),
+            (0, 7, "range", "l", "m1", true)
+        );
+        assert!(got.is_empty());
+        assert!(cur.is_empty(), "JoinGroup v9 SkipAssignment leftover-empty");
+
+        for version in [2_i16, 3, 4, 5, 6, 7, 8] {
+            let mut buf = BytesMut::new();
+            encode_join_group_response_with_skip_assignment(
+                &mut buf, version, 0, 7, "range", "l", "m1", &members, true,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (_, _, _, _, _, skip, ..) = decode_join_group_response(&mut cur, version).unwrap();
+            assert!(
+                !skip,
+                "JoinGroup v{version} omits SkipAssignment even when true"
+            );
+            assert!(
+                cur.is_empty(),
+                "JoinGroup v{version} SkipAssignment leftover-empty"
+            );
+            let mut omit = BytesMut::new();
+            encode_join_group_response(&mut omit, version, 0, 7, "range", "l", "m1", &members)
+                .unwrap();
+            assert_eq!(
+                &buf[..],
+                &omit[..],
+                "JoinGroup v{version} encode omits SkipAssignment even when true"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_join_group_response_with_skip_assignment(
+            &mut with, 9, 0, 7, "range", "l", "m1", &members, true,
+        )
+        .unwrap();
+        let mut none = BytesMut::new();
+        encode_join_group_response(&mut none, 9, 0, 7, "range", "l", "m1", &members).unwrap();
+        assert_ne!(
+            &with[..],
+            &none[..],
+            "v9 SkipAssignment is not always the JSON default false"
+        );
+        assert_eq!(
+            with.get(19..20),
+            Some([1].as_slice()),
+            "v9 compact SkipAssignment follows Leader compact STRING l"
+        );
+        assert_eq!(
+            none.get(19..20),
+            Some([0].as_slice()),
+            "encode_join_group_response still writes false SkipAssignment"
+        );
+
+        let mut v8_with = BytesMut::new();
+        encode_join_group_response_with_skip_assignment(
+            &mut v8_with,
+            8,
+            0,
+            7,
+            "range",
+            "l",
+            "m1",
+            &members,
+            true,
+        )
+        .unwrap();
+        assert_ne!(
+            &v8_with[..],
+            &with[..],
+            "v9 adds SkipAssignment after Leader"
         );
     }
 

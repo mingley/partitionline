@@ -291,7 +291,11 @@
 //! omits them even when the body has values and decode fills `None`;
 //! [`protocol::group::SyncGroupResponse::should_client_throttle`] is Java
 //! `SyncGroupResponse.shouldClientThrottle` (v2+)),
-//! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment;
+//! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment
+//! JSON `9+` ([`protocol::group::encode_join_group_response_with_skip_assignment`];
+//! encode previously always wrote `false`; below v9 omit even when true and
+//! decode fills `false`; convenience encode still writes `false`; official Java
+//! `JoinGroupResponseData.skipAssignment`);
 //! SessionTimeoutMs is JSON `0+` (decode returns it; encode already takes
 //! `session_timeout_ms`);
 //! RebalanceTimeoutMs is JSON `1+` (spoken v2–v9 always on the wire; decode
