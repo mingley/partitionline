@@ -2659,6 +2659,25 @@ impl OffsetFetchRequest {
         group_ids_to_partitions
     }
 
+    /// Java `OffsetFetchRequest.groupIdsToTopics`.
+    ///
+    /// Each group id maps to that group's Topics list as-is. `None`
+    /// Topics is `None` (every committed partition). `Some` empty is an
+    /// empty list, not all partitions. A later group overwrites an
+    /// earlier one for the same id (Java `HashMap.put`). Distinct from
+    /// [`Self::group_ids_to_partitions`], which flattens to
+    /// `(topic, partition)` pairs.
+    #[must_use]
+    pub fn group_ids_to_topics(
+        groups: &[OffsetFetchGroup],
+    ) -> HashMap<String, Option<Vec<OffsetFetchTopic>>> {
+        let mut group_ids_to_topics = HashMap::new();
+        for group in groups {
+            let _prev = group_ids_to_topics.insert(group.group_id.clone(), group.topics.clone());
+        }
+        group_ids_to_topics
+    }
+
     /// Java `OffsetFetchRequest.partitions`.
     ///
     /// `None` Topics is `None` (every committed partition). Otherwise each
@@ -7259,6 +7278,99 @@ mod tests {
         assert!(
             cur.is_empty(),
             "OffsetFetch v9 groupIdsToPartitions leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_fetch_group_ids_to_topics_matches_java() {
+        // Java OffsetFetchRequest.groupIdsToTopics: each group id maps
+        // to that group's Topics list as-is. Null Topics is null. Empty
+        // Topics is empty, not all partitions. Later groups overwrite
+        // the same id (HashMap.put). Distinct from groupIdsToPartitions,
+        // which flattens.
+        assert!(OffsetFetchRequest::group_ids_to_topics(&[]).is_empty());
+        let all = OffsetFetchGroup::new("all", None);
+        let empty = OffsetFetchGroup::new("empty", Some(Vec::new()));
+        let one = OffsetFetchGroup::new("g", Some(offset_fetch_one_topic()));
+        assert_eq!(
+            OffsetFetchRequest::group_ids_to_topics(&[all, empty, one]),
+            HashMap::from([
+                ("all".into(), None),
+                ("empty".into(), Some(Vec::new())),
+                ("g".into(), Some(offset_fetch_one_topic())),
+            ])
+        );
+        let first = OffsetFetchGroup::new("g", Some(offset_fetch_one_topic()));
+        let second = OffsetFetchGroup::new(
+            "g",
+            Some(vec![OffsetFetchTopic {
+                topic: "b".into(),
+                partitions: vec![1, 2],
+            }]),
+        );
+        let other = OffsetFetchGroup::new(
+            "h",
+            Some(vec![OffsetFetchTopic {
+                topic: "c".into(),
+                partitions: vec![3],
+            }]),
+        );
+        let two = vec![first, second, other];
+        assert_eq!(
+            OffsetFetchRequest::group_ids_to_topics(&two),
+            HashMap::from([
+                (
+                    "g".into(),
+                    Some(vec![OffsetFetchTopic {
+                        topic: "b".into(),
+                        partitions: vec![1, 2],
+                    }])
+                ),
+                (
+                    "h".into(),
+                    Some(vec![OffsetFetchTopic {
+                        topic: "c".into(),
+                        partitions: vec![3],
+                    }])
+                ),
+            ])
+        );
+        assert_eq!(
+            OffsetFetchRequest::group_ids_to_partitions(&two)
+                .get("g")
+                .cloned()
+                .flatten(),
+            Some(vec![("b".into(), 1), ("b".into(), 2)])
+        );
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_groups_request(&mut buf, 8, &two, false).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, stable) = decode_offset_fetch_groups_request(&mut cur, 8).unwrap();
+        assert!(!stable);
+        assert_eq!(decoded, two);
+        assert_eq!(
+            OffsetFetchRequest::group_ids_to_topics(&decoded),
+            OffsetFetchRequest::group_ids_to_topics(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v8 groupIdsToTopics leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_offset_fetch_groups_request(&mut buf, 9, &two, false).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, stable) = decode_offset_fetch_groups_request(&mut cur, 9).unwrap();
+        assert!(!stable);
+        assert_eq!(decoded, two);
+        assert_eq!(
+            OffsetFetchRequest::group_ids_to_topics(&decoded),
+            OffsetFetchRequest::group_ids_to_topics(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v9 groupIdsToTopics leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

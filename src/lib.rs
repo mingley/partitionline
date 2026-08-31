@@ -145,6 +145,9 @@
 //! `OffsetFetchRequest.groupIdsToPartitions` (group id to
 //! `(topic, partition)` list; `None` Topics is `None`; a later group
 //! overwrites);
+//! [`protocol::group::OffsetFetchRequest::group_ids_to_topics`] is Java
+//! `OffsetFetchRequest.groupIdsToTopics` (group id to Topics as-is;
+//! `None` Topics is `None`; a later group overwrites);
 //! [`protocol::group::OffsetFetchRequest::partitions`] is Java
 //! `OffsetFetchRequest.partitions` (`None` Topics is `None`; otherwise
 //! each `(topic, partition)` in request order);
