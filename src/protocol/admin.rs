@@ -14358,6 +14358,21 @@ impl DescribeLogDirsRequest {
     pub fn is_all_topic_partitions(&self) -> bool {
         self.topics.is_none()
     }
+
+    /// Java `DescribeLogDirsRequest.getErrorResponse`.
+    ///
+    /// Sets the top-level `ErrorCode`. Results stay empty (JSON
+    /// default). Request Topics are not copied. ThrottleTimeMs is JSON
+    /// `0+` (JSON default `0`; [`DescribeLogDirsResponse::new`] fills
+    /// `0`). Official Java `getErrorResponse` sets `throttleTimeMs` from
+    /// the argument. Encode omits ErrorCode below v3 (KIP-784; decode
+    /// fills `0`). This is not [`Self::is_all_topic_partitions`] /
+    /// [`DescribeLogDirsResponse::error_counts`] / AssignReplicasToDirs
+    /// `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> DescribeLogDirsResponse {
+        DescribeLogDirsResponse::new(error_code, Vec::new())
+    }
 }
 
 /// Java `DescribeLogDirsResponse.UNKNOWN_VOLUME_BYTES` (`-1`).
@@ -29571,6 +29586,93 @@ mod tests {
         assert_eq!(
             zero.throttle_time_ms, 0,
             "DescribeLogDirsResponse::new still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn describe_log_dirs_request_error_response_matches_java() {
+        // Java 4.0 DescribeLogDirsRequest.getErrorResponse:
+        // Errors.forException then setErrorCode / setThrottleTimeMs.
+        // Results stay empty. Request Topics are not copied. Official
+        // Java DescribeLogDirsRequest.getErrorResponse. Official Java
+        // sets throttleTimeMs from the argument;
+        // DescribeLogDirsResponse::new fills 0. Encode omits ErrorCode
+        // below v3 (KIP-784; decode fills 0). This crate speaks 1-4. v5
+        // is a named STATUS hole. This is not isAllTopicPartitions /
+        // errorCounts / AssignReplicasToDirs getErrorResponse.
+        let req =
+            DescribeLogDirsRequest::new(Some(vec![DescribableLogDirTopic::new("t", vec![0])]));
+        assert!(
+            req.topics.as_ref().is_some_and(|topics| !topics.is_empty()),
+            "fixture request must have Topics so we can prove they are not copied"
+        );
+        assert_eq!(
+            DescribeLogDirsRequest::error_response(0),
+            DescribeLogDirsResponse::new(0, Vec::new())
+        );
+        let err = DescribeLogDirsRequest::error_response(crate::error::INVALID_REQUEST);
+        assert_eq!(
+            err,
+            DescribeLogDirsResponse::new(crate::error::INVALID_REQUEST, Vec::new())
+        );
+        assert!(
+            err.results.is_empty(),
+            "getErrorResponse must not copy Topics into Results"
+        );
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "DescribeLogDirsResponse::new still fills ThrottleTimeMs 0"
+        );
+        let mut v3_buf = BytesMut::new();
+        encode_describe_log_dirs_response(&mut v3_buf, 3, &err).unwrap();
+        let mut v4_buf = BytesMut::new();
+        encode_describe_log_dirs_response(&mut v4_buf, 4, &err).unwrap();
+        assert_eq!(
+            &v3_buf[..],
+            &v4_buf[..],
+            "empty-Results v3 and v4 bodies match"
+        );
+        let mut v1_buf = BytesMut::new();
+        encode_describe_log_dirs_response(&mut v1_buf, 1, &err).unwrap();
+        let mut v2_buf = BytesMut::new();
+        encode_describe_log_dirs_response(&mut v2_buf, 2, &err).unwrap();
+        assert_ne!(&v1_buf[..], &v2_buf[..], "v1 classic vs v2 compact");
+        assert_ne!(&v2_buf[..], &v3_buf[..], "v3 adds top-level ErrorCode");
+        for version in 1..=4_i16 {
+            let mut resp = BytesMut::new();
+            encode_describe_log_dirs_response(&mut resp, version, &err).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_describe_log_dirs_response(&mut cur, version).unwrap();
+            if version >= 3 {
+                assert_eq!(decoded, err);
+            } else {
+                assert_eq!(decoded.error_code, 0, "v1–v2 omit top-level ErrorCode");
+                assert!(decoded.results.is_empty());
+                assert_eq!(decoded.throttle_time_ms, 0);
+            }
+            assert!(
+                cur.is_empty(),
+                "DescribeLogDirs v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_describe_log_dirs_response(&mut with_buf, 3, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_describe_log_dirs_response(&mut zero_buf, 3, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v3 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_describe_log_dirs_response(&mut conv, 3, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
         );
     }
 

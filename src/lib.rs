@@ -863,7 +863,10 @@
 //! `DescribeLogDirsResponse.errorCounts` (top-level `errorCode` plus each
 //! directory-level code, including `NONE`);
 //! [`DescribeLogDirsRequest::is_all_topic_partitions`] is Java
-//! `DescribeLogDirsRequest.isAllTopicPartitions`),
+//! `DescribeLogDirsRequest.isAllTopicPartitions`;
+//! [`protocol::admin::DescribeLogDirsRequest::error_response`] is Java
+//! `DescribeLogDirsRequest.getErrorResponse` (empty Results; ThrottleTimeMs
+//! JSON `0+`; convenience fills `0`; ErrorCode is v3+)),
 //! CreateDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 owner/requester; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::CreateDelegationTokenResponse::should_client_throttle`] is Java
 //! `CreateDelegationTokenResponse.shouldClientThrottle` (v1+);
