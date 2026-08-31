@@ -11198,6 +11198,44 @@ impl DescribedShareGroupOffsets {
     }
 }
 
+/// Java `DescribeShareGroupOffsetsResponse` helpers.
+pub struct DescribeShareGroupOffsetsResponse;
+
+impl DescribeShareGroupOffsetsResponse {
+    /// Java `DescribeShareGroupOffsetsResponse.errorCounts`.
+    ///
+    /// Counts group-level codes only when they are not `NONE`, last-wins
+    /// on duplicate `groupId` (Java `HashMap.put`). Every partition
+    /// `errorCode` is counted, including `NONE`. There is no top-level
+    /// `errorCode`. Java `DescribeShareGroupOffsetsResponse` has no
+    /// `error()` helper. This is not AlterShareGroupOffsets /
+    /// DeleteShareGroupOffsets / ShareGroupDescribe / OffsetFetch
+    /// `errorCounts`.
+    #[must_use]
+    pub fn error_counts(groups: &[DescribedShareGroupOffsets]) -> HashMap<i16, i32> {
+        let mut group_level = HashMap::new();
+        for group in groups {
+            if group.error_code != 0 {
+                let _ = group_level.insert(group.group_id.as_str(), group.error_code);
+            }
+        }
+        let mut counts = HashMap::new();
+        for code in group_level.values() {
+            let count = counts.entry(*code).or_insert(0);
+            *count += 1;
+        }
+        for group in groups {
+            for topic in &group.topics {
+                for partition in &topic.partitions {
+                    let count = counts.entry(partition.error_code).or_insert(0);
+                    *count += 1;
+                }
+            }
+        }
+        counts
+    }
+}
+
 /// DescribeShareGroupOffsets v0 (flexible from v0; KIP-932).
 ///
 /// Official Apache JSON (`apiKey: 90`, request `listeners: ["broker"]`,
@@ -26515,6 +26553,142 @@ mod tests {
             &conv[..],
             &zero[..],
             "encode_describe_share_group_offsets_response still writes ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn describe_share_group_offsets_response_error_counts_matches_java() {
+        // Java 4.1.0 DescribeShareGroupOffsetsResponse.errorCounts:
+        // groupLevelErrors is filled only when group.errorCode() != NONE
+        // (HashMap.put last-wins on groupId), then every partition
+        // errorCode including NONE. Official Java
+        // DescribeShareGroupOffsetsResponse.errorCounts (4.1.0; 4.0.0
+        // 404 as the current name). There is no top-level errorCode.
+        // Java DescribeShareGroupOffsetsResponse has no error() helper.
+        // This crate speaks 0. This is not AlterShareGroupOffsets
+        // errorCounts / DeleteShareGroupOffsets errorCounts /
+        // ShareGroupDescribe errorCounts / OffsetFetch errorCounts.
+        assert!(DescribeShareGroupOffsetsResponse::error_counts(&[]).is_empty());
+        assert!(
+            DescribeShareGroupOffsetsResponse::error_counts(&[DescribedShareGroupOffsets::new(
+                "ok", 0
+            )])
+            .is_empty(),
+            "group-level NONE with no partitions is not counted"
+        );
+        assert_eq!(
+            DescribeShareGroupOffsetsResponse::error_counts(&[DescribedShareGroupOffsets::new(
+                "gone",
+                crate::error::GROUP_ID_NOT_FOUND
+            )]),
+            HashMap::from([(crate::error::GROUP_ID_NOT_FOUND, 1)])
+        );
+        let none_part = DescribedShareGroupOffsets {
+            group_id: "ok".into(),
+            topics: vec![DescribedShareGroupOffsetsTopic {
+                topic_name: "t".into(),
+                topic_id: [1u8; 16],
+                partitions: vec![DescribedShareGroupOffsetsPartition {
+                    partition_index: 0,
+                    start_offset: -1,
+                    leader_epoch: -1,
+                    error_code: 0,
+                    error_message: None,
+                }],
+            }],
+            error_code: 0,
+            error_message: None,
+        };
+        assert_eq!(
+            DescribeShareGroupOffsetsResponse::error_counts(std::slice::from_ref(&none_part)),
+            HashMap::from([(0, 1)]),
+            "partition NONE is counted even when the group-level code is NONE"
+        );
+        let gone_with_part = DescribedShareGroupOffsets {
+            group_id: "gone".into(),
+            topics: vec![DescribedShareGroupOffsetsTopic {
+                topic_name: "t".into(),
+                topic_id: [2u8; 16],
+                partitions: vec![DescribedShareGroupOffsetsPartition {
+                    partition_index: 0,
+                    start_offset: -1,
+                    leader_epoch: -1,
+                    error_code: 0,
+                    error_message: None,
+                }],
+            }],
+            error_code: crate::error::GROUP_ID_NOT_FOUND,
+            error_message: None,
+        };
+        assert_eq!(
+            DescribeShareGroupOffsetsResponse::error_counts(std::slice::from_ref(&gone_with_part)),
+            HashMap::from([(crate::error::GROUP_ID_NOT_FOUND, 1), (0, 1)])
+        );
+        let last_wins = vec![
+            DescribedShareGroupOffsets {
+                group_id: "g".into(),
+                topics: vec![DescribedShareGroupOffsetsTopic {
+                    topic_name: "a".into(),
+                    topic_id: [3u8; 16],
+                    partitions: vec![DescribedShareGroupOffsetsPartition {
+                        partition_index: 0,
+                        start_offset: -1,
+                        leader_epoch: -1,
+                        error_code: 0,
+                        error_message: None,
+                    }],
+                }],
+                error_code: crate::error::GROUP_ID_NOT_FOUND,
+                error_message: None,
+            },
+            DescribedShareGroupOffsets {
+                group_id: "g".into(),
+                topics: vec![DescribedShareGroupOffsetsTopic {
+                    topic_name: "b".into(),
+                    topic_id: [4u8; 16],
+                    partitions: vec![DescribedShareGroupOffsetsPartition {
+                        partition_index: 1,
+                        start_offset: -1,
+                        leader_epoch: -1,
+                        error_code: 0,
+                        error_message: None,
+                    }],
+                }],
+                error_code: crate::error::NOT_COORDINATOR,
+                error_message: None,
+            },
+        ];
+        assert_eq!(
+            DescribeShareGroupOffsetsResponse::error_counts(&last_wins),
+            HashMap::from([(crate::error::NOT_COORDINATOR, 1), (0, 2)]),
+            "duplicate groupId last-wins the group-level code; every partition is counted"
+        );
+        let none_does_not_overwrite = vec![
+            DescribedShareGroupOffsets::new("g", crate::error::GROUP_ID_NOT_FOUND),
+            DescribedShareGroupOffsets::new("g", 0),
+        ];
+        assert_eq!(
+            DescribeShareGroupOffsetsResponse::error_counts(&none_does_not_overwrite),
+            HashMap::from([(crate::error::GROUP_ID_NOT_FOUND, 1)]),
+            "group-level NONE does not HashMap.put, so the earlier non-NONE stays"
+        );
+        let mut resp = BytesMut::new();
+        encode_describe_share_group_offsets_response(
+            &mut resp,
+            std::slice::from_ref(&gone_with_part),
+        )
+        .unwrap();
+        let mut cur = &resp[..];
+        let (decoded, ..) = decode_describe_share_group_offsets_response(&mut cur).unwrap();
+        assert_eq!(
+            DescribeShareGroupOffsetsResponse::error_counts(&decoded),
+            HashMap::from([(crate::error::GROUP_ID_NOT_FOUND, 1), (0, 1)]),
+            "DescribeShareGroupOffsets v0 errorCounts must count group-level non-NONE plus partitions"
+        );
+        assert!(
+            cur.is_empty(),
+            "DescribeShareGroupOffsets v0 errorCounts leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 

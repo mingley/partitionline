@@ -2222,6 +2222,10 @@
 //! [`DeletedShareGroupOffsets::error_counts`] is Java
 //! `DeleteShareGroupOffsetsResponse.errorCounts` (top-level `errorCode`
 //! plus each topic-level code, including `NONE`);
+//! [`protocol::admin::DescribeShareGroupOffsetsResponse::error_counts`] is Java
+//! `DescribeShareGroupOffsetsResponse.errorCounts` (group-level non-`NONE`
+//! last-wins on `groupId`, plus every partition code including `NONE`;
+//! there is no top-level `errorCode`);
 //! [`Admin::describe_share_group_offsets_timeout`] /
 //! [`Admin::list_share_group_offsets_timeout`] are Java
 //! `ListShareGroupOffsetsOptions.timeoutMs` (RPC deadline;
