@@ -808,7 +808,10 @@
 //! `DescribeClusterResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`)),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes; ThrottleTimeMs is JSON `0+`),
-//! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`),
+//! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::GetTelemetrySubscriptionsResponse::error_counts`] is Java
+//! `GetTelemetrySubscriptionsResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`)),
 //! PushTelemetry v0 (ThrottleTimeMs is JSON `0+`),
 //! AssignReplicasToDirs v0 (ThrottleTimeMs is JSON `0+`),
 //! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;

@@ -12787,6 +12787,19 @@ impl GetTelemetrySubscriptionsResponse {
         self.error_code
     }
 
+    /// Java `GetTelemetrySubscriptionsResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `updateErrorCounts` / `AbstractResponse.errorCounts`).
+    /// ClientInstanceId, compression types, and requested metrics are
+    /// not counted. Java `error()` is `Errors.forCode` only (identity
+    /// on i16; not mapped). This is not PushTelemetry /
+    /// ListConfigResources `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
+
     /// Subscription generation.
     #[must_use]
     pub fn subscription_id(&self) -> i32 {
@@ -27369,6 +27382,61 @@ mod tests {
         assert_eq!(
             zero.throttle_time_ms, 0,
             "GetTelemetrySubscriptionsResponse::new still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn get_telemetry_subscriptions_response_error_counts_matches_java() {
+        // Java GetTelemetrySubscriptionsResponse.errorCounts:
+        // updateErrorCounts(map, Errors.forCode(data.errorCode())),
+        // including NONE (same singleton as AbstractResponse.errorCounts).
+        // Official Java GetTelemetrySubscriptionsResponse.errorCounts.
+        // Java error() is Errors.forCode only (identity on i16; not
+        // mapped). ClientInstanceId / compression types / requested
+        // metrics are not counted. This is not PushTelemetry
+        // errorCounts / ListConfigResources errorCounts.
+        let none = GetTelemetrySubscriptionsResponse::new(
+            0,
+            [0x11; 16],
+            1,
+            vec![1],
+            1000,
+            100,
+            true,
+            vec!["m".into()],
+        );
+        assert_eq!(
+            none.error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        let full = GetTelemetrySubscriptionsResponse::new(
+            crate::error::UNKNOWN_SUBSCRIPTION_ID,
+            [0x11; 16],
+            1,
+            vec![1],
+            1000,
+            100,
+            true,
+            vec!["m".into()],
+        );
+        assert_eq!(
+            full.error_counts(),
+            HashMap::from([(crate::error::UNKNOWN_SUBSCRIPTION_ID, 1)])
+        );
+        let mut resp = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut resp, &full).unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_get_telemetry_subscriptions_response(&mut cur).unwrap();
+        assert_eq!(
+            decoded.error_counts(),
+            HashMap::from([(crate::error::UNKNOWN_SUBSCRIPTION_ID, 1)]),
+            "GetTelemetrySubscriptions v0 errorCounts must count the decoded code"
+        );
+        assert!(
+            cur.is_empty(),
+            "GetTelemetrySubscriptions v0 errorCounts leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
