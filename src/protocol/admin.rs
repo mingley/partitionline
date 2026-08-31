@@ -16082,6 +16082,18 @@ impl DescribeDelegationTokenResponse {
         version >= 1
     }
 
+    /// Java `DescribeDelegationTokenResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `errorCounts(error())` / `Collections.singletonMap`). Tokens
+    /// are not counted (no per-token `errorCode`). Java `error()` is
+    /// `Errors.forCode` only (identity on i16; not mapped). This is
+    /// not Create / Renew / ExpireDelegationToken `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
+
     /// Kafka error code (`0` is success).
     #[must_use]
     pub fn error_code(&self) -> i16 {
@@ -30850,6 +30862,60 @@ mod tests {
             zero.throttle_time_ms, 0,
             "DescribeDelegationTokenResponse::new still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn describe_delegation_token_response_error_counts_matches_java() {
+        // Java DescribeDelegationTokenResponse.errorCounts:
+        // errorCounts(error()), including NONE
+        // (AbstractResponse.errorCounts is Collections.singletonMap).
+        // Official Java DescribeDelegationTokenResponse.errorCounts.
+        // Java error() is Errors.forCode only (identity on i16; not
+        // mapped). Tokens are not counted (no per-token errorCode).
+        // This is not CreateDelegationToken errorCounts /
+        // RenewDelegationToken errorCounts / ExpireDelegationToken
+        // errorCounts.
+        let tokens = vec![DescribedDelegationToken::new(
+            "User",
+            "alice",
+            "User",
+            "bob",
+            1,
+            2,
+            3,
+            "tid",
+            vec![0xab, 0xcd],
+            vec![DescribedDelegationTokenRenewer::new("User", "r")],
+        )];
+        assert_eq!(
+            DescribeDelegationTokenResponse::new(0, tokens.clone()).error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        let full = DescribeDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_OWNER_MISMATCH,
+            tokens,
+        );
+        assert_eq!(
+            full.error_counts(),
+            HashMap::from([(crate::error::DELEGATION_TOKEN_OWNER_MISMATCH, 1)])
+        );
+        for version in 1..=3_i16 {
+            let mut resp = BytesMut::new();
+            encode_describe_delegation_token_response(&mut resp, version, &full).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_describe_delegation_token_response(&mut cur, version).unwrap();
+            assert_eq!(
+                decoded.error_counts(),
+                HashMap::from([(crate::error::DELEGATION_TOKEN_OWNER_MISMATCH, 1)]),
+                "DescribeDelegationToken v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "DescribeDelegationToken v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]
