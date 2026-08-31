@@ -2936,6 +2936,21 @@ impl OffsetCommitRequest {
         }
         offsets
     }
+
+    /// Java `OffsetCommitRequest.Builder.build`.
+    ///
+    /// A present `group.instance.id` below v7 is
+    /// `UnsupportedVersionException` (Java `!= null`, so empty is still
+    /// present). Encode still omits the field on those versions; this is
+    /// the Builder check.
+    pub fn build(version: i16, group_instance_id: Option<&str>) -> Result<()> {
+        if group_instance_id.is_some() && version < 7 {
+            return Err(Error::Unsupported(format!(
+                "The broker offset commit protocol version {version} does not support usage of config group.instance.id."
+            )));
+        }
+        Ok(())
+    }
 }
 
 /// Java `OffsetCommitResponse` helpers.
@@ -6973,6 +6988,76 @@ mod tests {
             "OffsetCommit v8 offsets leftover-empty; leftover {} bytes",
             cur.remaining()
         );
+    }
+
+    #[test]
+    fn offset_commit_request_build_matches_java() {
+        OffsetCommitRequest::build(6, None).unwrap();
+        OffsetCommitRequest::build(7, None).unwrap();
+        OffsetCommitRequest::build(7, Some("i")).unwrap();
+        OffsetCommitRequest::build(7, Some("")).unwrap();
+        OffsetCommitRequest::build(8, Some("i")).unwrap();
+        let v6 = OffsetCommitRequest::build(6, Some("i")).unwrap_err();
+        assert!(
+            matches!(v6, Error::Unsupported(_)),
+            "v6 with group.instance.id is Java UnsupportedVersionException, got {v6}"
+        );
+        assert!(
+            v6.to_string()
+                .contains("does not support usage of config group.instance.id"),
+            "got {v6}"
+        );
+        let empty = OffsetCommitRequest::build(2, Some("")).unwrap_err();
+        assert!(
+            matches!(empty, Error::Unsupported(_)),
+            "empty group.instance.id is still present (Java != null), got {empty}"
+        );
+        encode_offset_commit_request(
+            &mut BytesMut::new(),
+            2,
+            "g",
+            7,
+            "m1",
+            Some("ignored"),
+            &offset_commit_topics(),
+        )
+        .unwrap();
+        assert!(
+            OffsetCommitRequest::build(2, Some("ignored")).is_err(),
+            "encode omits group.instance.id below v7; Builder.build rejects it"
+        );
+
+        let topics = vec![OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetPartition::new(0, 3), OffsetPartition::new(2, 9)],
+        }];
+        for (version, instance) in [(7_i16, Some("i")), (8, Some("i"))] {
+            OffsetCommitRequest::build(version, instance).unwrap();
+            let mut buf = BytesMut::new();
+            encode_offset_commit_request(&mut buf, version, "g", 7, "m1", instance, &topics)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_offset_commit_request(&mut cur, version).unwrap().2;
+            assert_eq!(decoded, topics);
+            assert!(
+                !cur.has_remaining(),
+                "OffsetCommit v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [2_i16, 6, 7, 8] {
+            OffsetCommitRequest::build(version, None).unwrap();
+            let mut buf = BytesMut::new();
+            encode_offset_commit_request(&mut buf, version, "g", 7, "m1", None, &topics).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_offset_commit_request(&mut cur, version).unwrap().2;
+            assert_eq!(decoded, topics);
+            assert!(
+                !cur.has_remaining(),
+                "OffsetCommit v{version} Builder.build empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]
