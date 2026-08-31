@@ -11884,6 +11884,26 @@ impl DeletedShareGroupOffsets {
     pub fn topics(&self) -> &[DeletedShareGroupOffsetsTopic] {
         &self.topics
     }
+
+    /// Java `DeleteShareGroupOffsetsResponse.errorCounts`.
+    ///
+    /// Counts the top-level `errorCode` (including `NONE`) plus each
+    /// topic-level code (including `NONE`). There is no partition
+    /// `errorCode`. Java `DeleteShareGroupOffsetsResponse` has no
+    /// `error()` helper. This is not AlterShareGroupOffsets /
+    /// DescribeShareGroupOffsets / OffsetDelete / DeleteTopics
+    /// `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        let count = counts.entry(self.error_code).or_insert(0);
+        *count += 1;
+        for topic in &self.topics {
+            let count = counts.entry(topic.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
 }
 
 /// DeleteShareGroupOffsets v0 (flexible from v0; KIP-932).
@@ -26987,6 +27007,69 @@ mod tests {
             zero.throttle_time_ms(),
             0,
             "DeletedShareGroupOffsets::new still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn delete_share_group_offsets_response_error_counts_matches_java() {
+        // Java 4.1.0 DeleteShareGroupOffsetsResponse.errorCounts:
+        // updateErrorCounts(map, Errors.forCode(data.errorCode())) then
+        // each topic errorCode, including NONE. Official Java
+        // DeleteShareGroupOffsetsResponse.errorCounts (4.1.0; 4.0.0 404
+        // as the current name). There is no partition errorCode. Java
+        // DeleteShareGroupOffsetsResponse has no error() helper. This
+        // crate speaks 0. This is not AlterShareGroupOffsets
+        // errorCounts / DescribeShareGroupOffsets errorCounts /
+        // OffsetDelete errorCounts / DeleteTopics errorCounts.
+        assert_eq!(
+            DeletedShareGroupOffsets::new(0).error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        let full = DeletedShareGroupOffsets {
+            throttle_time_ms: 0,
+            error_code: crate::error::NOT_COORDINATOR,
+            error_message: None,
+            topics: vec![
+                DeletedShareGroupOffsetsTopic {
+                    topic_name: "ok".into(),
+                    topic_id: [7u8; 16],
+                    error_code: 0,
+                    error_message: None,
+                },
+                DeletedShareGroupOffsetsTopic {
+                    topic_name: "gone".into(),
+                    topic_id: [8u8; 16],
+                    error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                    error_message: None,
+                },
+            ],
+        };
+        assert_eq!(
+            full.error_counts(),
+            HashMap::from([
+                (crate::error::NOT_COORDINATOR, 1),
+                (0, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
+        let mut resp = BytesMut::new();
+        encode_delete_share_group_offsets_response(&mut resp, &full).unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_delete_share_group_offsets_response(&mut cur).unwrap();
+        assert_eq!(
+            decoded.error_counts(),
+            HashMap::from([
+                (crate::error::NOT_COORDINATOR, 1),
+                (0, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ]),
+            "DeleteShareGroupOffsets v0 errorCounts must count top-level plus topics"
+        );
+        assert!(
+            cur.is_empty(),
+            "DeleteShareGroupOffsets v0 errorCounts leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 

@@ -2219,6 +2219,9 @@
 //! [`AlteredShareGroupOffsets::error_counts`] is Java
 //! `AlterShareGroupOffsetsResponse.errorCounts` (top-level `errorCode`
 //! plus each partition-level code, including `NONE`);
+//! [`DeletedShareGroupOffsets::error_counts`] is Java
+//! `DeleteShareGroupOffsetsResponse.errorCounts` (top-level `errorCode`
+//! plus each topic-level code, including `NONE`);
 //! [`Admin::describe_share_group_offsets_timeout`] /
 //! [`Admin::list_share_group_offsets_timeout`] are Java
 //! `ListShareGroupOffsetsOptions.timeoutMs` (RPC deadline;
