@@ -4045,6 +4045,42 @@ impl DescribeClusterResponse {
     }
 }
 
+/// Java `DescribeClusterRequest` helpers.
+pub struct DescribeClusterRequest;
+
+impl DescribeClusterRequest {
+    /// Java `DescribeClusterRequest.getErrorResponse`.
+    ///
+    /// Sets the top-level `ErrorCode`. Official Java also calls
+    /// `setErrorMessage` from `ApiError.fromThrowable` (`null` when the
+    /// exception uses the generic `Errors.message`, or
+    /// `UNKNOWN_SERVER_ERROR`); this crate fills the JSON default
+    /// (`null`). Brokers stay empty. ClusterId stays the JSON default
+    /// (empty string). ControllerId stays `-1`. EndpointType stays
+    /// [`ENDPOINT_TYPE_BROKERS`] (JSON default `1`; v0 omits it and
+    /// decode fills this). ClusterAuthorizedOperations stays
+    /// [`AUTHORIZED_OPERATIONS_OMITTED`]. Request
+    /// IncludeClusterAuthorizedOperations / EndpointType /
+    /// IncludeFencedBrokers are not copied. ThrottleTimeMs is JSON `0+`
+    /// (JSON default `0`; [`ClusterDescription::new`] fills `0`).
+    /// Official Java `getErrorResponse` does **not** set
+    /// `throttleTimeMs` from the argument. This is not
+    /// [`DescribeClusterResponse::error_counts`] / UnregisterBroker
+    /// `getErrorResponse` / AllocateProducerIds `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> ClusterDescription {
+        ClusterDescription::new(
+            error_code,
+            None,
+            Some(String::new()),
+            -1,
+            ENDPOINT_TYPE_BROKERS,
+            AUTHORIZED_OPERATIONS_OMITTED,
+            Vec::new(),
+        )
+    }
+}
+
 /// Check that DescribeCluster `version` is spoken (0–2).
 ///
 /// Flexible from v0. v1 adds EndpointType (KIP-919). v2 adds
@@ -21185,6 +21221,119 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[test]
+    fn describe_cluster_request_error_response_matches_java() {
+        // Java 4.0 DescribeClusterRequest.getErrorResponse:
+        // ApiError.fromThrowable then setErrorCode / setErrorMessage.
+        // Does not set throttleTimeMs (JSON default 0). Brokers stay
+        // empty. ClusterId / ControllerId / EndpointType /
+        // ClusterAuthorizedOperations stay JSON defaults. Request
+        // IncludeClusterAuthorizedOperations / EndpointType /
+        // IncludeFencedBrokers are not copied. Official Java
+        // DescribeClusterRequest.getErrorResponse.
+        // ApiError.fromThrowable fills a null message when the
+        // exception uses the generic Errors.message (or
+        // UNKNOWN_SERVER_ERROR); this crate fills the JSON default
+        // null. ClusterDescription::new fills throttle 0, matching
+        // official Java. This crate speaks 0-2. Empty-Brokers v0 !=
+        // v1 (EndpointType); v1 == v2 (IsFenced only on broker
+        // entries). Top-level ErrorCode is at bytes 4-5. This is not
+        // errorCounts / UnregisterBroker getErrorResponse /
+        // AllocateProducerIds getErrorResponse.
+        assert_eq!(
+            DescribeClusterRequest::error_response(0),
+            ClusterDescription::new(
+                0,
+                None,
+                Some(String::new()),
+                -1,
+                ENDPOINT_TYPE_BROKERS,
+                AUTHORIZED_OPERATIONS_OMITTED,
+                Vec::new(),
+            )
+        );
+        let err = DescribeClusterRequest::error_response(crate::error::INVALID_REQUEST);
+        assert_eq!(
+            err,
+            ClusterDescription::new(
+                crate::error::INVALID_REQUEST,
+                None,
+                Some(String::new()),
+                -1,
+                ENDPOINT_TYPE_BROKERS,
+                AUTHORIZED_OPERATIONS_OMITTED,
+                Vec::new(),
+            )
+        );
+        assert_eq!(
+            err.error_message, None,
+            "getErrorResponse must not invent ErrorMessage"
+        );
+        assert!(
+            err.brokers.is_empty(),
+            "getErrorResponse must not invent Brokers"
+        );
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "ClusterDescription::new still fills ThrottleTimeMs 0"
+        );
+        let mut v0 = BytesMut::new();
+        let mut v1 = BytesMut::new();
+        for version in 0..=2_i16 {
+            let mut buf = BytesMut::new();
+            encode_describe_cluster_response(&mut buf, version, &err).unwrap();
+            assert_eq!(
+                &buf[4..6],
+                crate::error::INVALID_REQUEST.to_be_bytes(),
+                "DescribeCluster v{version} ErrorCode is at bytes 4-5"
+            );
+            let mut cur = buf.as_ref();
+            let decoded = decode_describe_cluster_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert!(
+                cur.is_empty(),
+                "DescribeCluster v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+            if version == 0 {
+                v0.extend_from_slice(&buf);
+            }
+            if version == 1 {
+                v1.extend_from_slice(&buf);
+            }
+        }
+        let mut v2 = BytesMut::new();
+        encode_describe_cluster_response(&mut v2, 2, &err).unwrap();
+        assert_ne!(
+            &v0[..],
+            &v1[..],
+            "empty-Brokers v0 and v1 bodies differ (v1 EndpointType)"
+        );
+        assert_eq!(
+            &v1[..],
+            &v2[..],
+            "empty-Brokers v1 and v2 bodies match (IsFenced only on broker entries)"
+        );
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_describe_cluster_response(&mut with_buf, 0, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_describe_cluster_response(&mut zero_buf, 0, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_describe_cluster_response(&mut conv, 0, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
+        );
     }
 
     #[test]

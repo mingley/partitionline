@@ -813,7 +813,12 @@
 //! [`protocol::admin::ClusterDescription::new`] fills `0`;
 //! [`protocol::admin::DescribeClusterResponse::error_counts`] is Java
 //! `DescribeClusterResponse.errorCounts` (top-level `errorCode` only,
-//! including `NONE`; Java `Collections.singletonMap`)),
+//! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::admin::DescribeClusterRequest::error_response`] is Java
+//! `DescribeClusterRequest.getErrorResponse` (empty Brokers; ClusterId /
+//! ControllerId / EndpointType / ClusterAuthorizedOperations JSON defaults;
+//! ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`; convenience fills `0`;
+//! official Java does not set `throttleTimeMs` from the argument)),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::ListConfigResourcesResponse::error_counts`] is Java
 //! `ListConfigResourcesResponse.errorCounts` (top-level `errorCode` only,
@@ -2150,6 +2155,10 @@
 //! ThrottleTimeMs is JSON `0+`; encode writes the field;
 //! [`protocol::admin::ClusterDescription::new`] fills `0`.
 //! Official Java `getErrorResponse` leaves throttle at the JSON default.
+//! [`protocol::admin::DescribeClusterRequest::error_response`] is Java
+//! `DescribeClusterRequest.getErrorResponse` (empty Brokers; ClusterId /
+//! ControllerId / EndpointType / ClusterAuthorizedOperations JSON defaults;
+//! ErrorMessage JSON-null; request flags are not copied).
 //! [`ClusterDescription::nodes`] / [`ClusterDescription::controller`] are Java
 //! `DescribeClusterResult.nodes` / `controller` ([`Node`] is Java
 //! `org.apache.kafka.common.Node`, an alias of [`DescribeClusterBroker`]).
