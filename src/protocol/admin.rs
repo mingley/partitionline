@@ -5764,9 +5764,14 @@ impl fmt::Display for DescribeUserScramCredentialsResult {
 /// throttle. Not a first-result field (AlterUserScramCredentials puts
 /// 41 after compact User at bytes 11–12). Fixture users only.
 /// [`Self::error`] is Java
-/// `DescribeUserScramCredentialsRequest.getErrorResponse`.
+/// `DescribeUserScramCredentialsRequest.getErrorResponse`. ThrottleTimeMs
+/// is JSON `0+` ([`Self::throttle_time_ms`]; [`Self::new`] /
+/// [`Self::error`] fill `0`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeUserScramCredentialsResponse {
+    /// DescribeUserScramCredentials `ThrottleTimeMs` (JSON `0+`). First
+    /// field. JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Broker error message, when present.
@@ -5776,22 +5781,45 @@ pub struct DescribeUserScramCredentialsResponse {
 }
 
 impl DescribeUserScramCredentialsResponse {
+    /// Construct [`Self`].
+    #[must_use]
+    pub fn new(
+        error_code: i16,
+        error_message: Option<String>,
+        results: Vec<DescribeUserScramCredentialsResult>,
+    ) -> Self {
+        Self {
+            throttle_time_ms: 0,
+            error_code,
+            error_message,
+            results,
+        }
+    }
+
     /// Java `DescribeUserScramCredentialsRequest.getErrorResponse`.
     ///
     /// Sets top-level `ErrorCode` and `nCopies` of
     /// [`DescribeUserScramCredentialsResult::error`]. Request user names
     /// are not copied (`User` stays empty). `ErrorMessage` is the JSON
     /// default (null); official Java also sets the English
-    /// `Errors.message` string. Throttle is the JSON default (`0`).
-    /// Java NPEs when request `Users` is null; pass `n = 0` for empty
-    /// Users.
+    /// `Errors.message` string. Throttle is the JSON default (`0`) from
+    /// [`Self::new`]; official Java also sets `throttleTimeMs` from the
+    /// argument. [`encode_describe_user_scram_credentials_response`]
+    /// writes `resp.throttle_time_ms`. Java NPEs when request `Users` is
+    /// null; pass `n = 0` for empty Users.
     #[must_use]
     pub fn error(error_code: i16, n: usize) -> Self {
-        Self {
+        Self::new(
             error_code,
-            error_message: None,
-            results: DescribeUserScramCredentialsResult::error_results(n, error_code),
-        }
+            None,
+            DescribeUserScramCredentialsResult::error_results(n, error_code),
+        )
+    }
+
+    /// DescribeUserScramCredentials `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Kafka error code (`0` is success).
@@ -5875,7 +5903,7 @@ pub fn encode_describe_user_scram_credentials_response(
     buf: &mut BytesMut,
     resp: &DescribeUserScramCredentialsResponse,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
     buf::put_array_len(buf, true, Some(resp.results.len()))?;
@@ -5899,7 +5927,7 @@ pub fn encode_describe_user_scram_credentials_response(
 pub fn decode_describe_user_scram_credentials_response<B: Buf>(
     buf: &mut B,
 ) -> Result<DescribeUserScramCredentialsResponse> {
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
@@ -5929,6 +5957,7 @@ pub fn decode_describe_user_scram_credentials_response<B: Buf>(
     }
     buf::skip_tagged_fields(buf)?;
     Ok(DescribeUserScramCredentialsResponse {
+        throttle_time_ms,
         error_code,
         error_message,
         results,
@@ -16704,15 +16733,15 @@ mod tests {
             top_only.error_counts().is_empty(),
             "Java counts results only, not the top-level errorCode"
         );
-        let counts = DescribeUserScramCredentialsResponse {
-            error_code: 0,
-            error_message: None,
-            results: vec![
+        let counts = DescribeUserScramCredentialsResponse::new(
+            0,
+            None,
+            vec![
                 DescribeUserScramCredentialsResult::error(0),
                 DescribeUserScramCredentialsResult::error(crate::error::RESOURCE_NOT_FOUND),
                 DescribeUserScramCredentialsResult::error(0),
             ],
-        }
+        )
         .error_counts();
         assert_eq!(
             counts,
@@ -23213,6 +23242,56 @@ mod tests {
     }
 
     #[test]
+    fn describe_user_scram_credentials_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 DescribeUserScramCredentialsResponse.json
+        // ThrottleTimeMs is versions 0+ (INT32 on spoken v0; first
+        // field). Official Java
+        // DescribeUserScramCredentialsRequest.getErrorResponse /
+        // DescribeUserScramCredentialsResponse.throttleTimeMs set / read
+        // it. Encode writes
+        // DescribeUserScramCredentialsResponse.throttle_time_ms (JSON
+        // default 0; DescribeUserScramCredentialsResponse::new /
+        // DescribeUserScramCredentialsResponse::error fill 0).
+        // shouldClientThrottle is always true. Empty-Results only one
+        // version. Top-level ErrorCode is at bytes 4–5. This crate
+        // speaks v0 only. This is not AlterUserScramCredentials
+        // ThrottleTimeMs.
+        let zero = DescribeUserScramCredentialsResponse::new(0, None, vec![]);
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut buf = BytesMut::new();
+        encode_describe_user_scram_credentials_response(&mut buf, &with).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_describe_user_scram_credentials_response(&mut cur).unwrap();
+        assert_eq!(got, with);
+        assert_eq!(got.throttle_time_ms, 3_600_000);
+        assert_eq!(got.throttle_time_ms(), 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "DescribeUserScramCredentials v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with_buf = BytesMut::new();
+        encode_describe_user_scram_credentials_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_describe_user_scram_credentials_response(&mut zero_buf, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "DescribeUserScramCredentialsResponse::new still fills ThrottleTimeMs 0"
+        );
+        let err = DescribeUserScramCredentialsResponse::error(crate::error::NOT_CONTROLLER, 0);
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "DescribeUserScramCredentialsResponse::error still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
     fn describe_user_scram_credentials_v0_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 50
@@ -23229,11 +23308,11 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_describe_user_scram_credentials_request(&mut buf, Some(&users)).unwrap();
         assert_eq!(&buf[..], REQ);
-        let resp = DescribeUserScramCredentialsResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: Some("Not controller".into()),
-            results: Vec::new(),
-        };
+        let resp = DescribeUserScramCredentialsResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+            Vec::new(),
+        );
         buf.clear();
         encode_describe_user_scram_credentials_response(&mut buf, &resp).unwrap();
         assert_eq!(&buf[..], RESP_41);
@@ -23266,10 +23345,10 @@ mod tests {
             "DescribeUserScramCredentials v0 null Users request must be leftover-empty"
         );
 
-        let resp = DescribeUserScramCredentialsResponse {
-            error_code: 0,
-            error_message: None,
-            results: vec![DescribeUserScramCredentialsResult {
+        let resp = DescribeUserScramCredentialsResponse::new(
+            0,
+            None,
+            vec![DescribeUserScramCredentialsResult {
                 user: "alice".into(),
                 error_code: 0,
                 error_message: None,
@@ -23278,7 +23357,7 @@ mod tests {
                     iterations: 4096,
                 }],
             }],
-        };
+        );
         buf.clear();
         encode_describe_user_scram_credentials_response(&mut buf, &resp).unwrap();
         let mut cur = &buf[..];
@@ -23300,11 +23379,11 @@ mod tests {
         // Not copied from AlterUserScramCredentials (41 after compact
         // User at 11-12) or ListTransactions (same byte offset, different
         // fields after the INT16).
-        let resp = DescribeUserScramCredentialsResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: Some("Not controller".into()),
-            results: Vec::new(),
-        };
+        let resp = DescribeUserScramCredentialsResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+            Vec::new(),
+        );
         let mut buf = BytesMut::new();
         encode_describe_user_scram_credentials_response(&mut buf, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();

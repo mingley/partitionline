@@ -1333,7 +1333,9 @@
 //! `nCopies` / top-level plus Results). Request user names are not
 //! copied (`User` stays the JSON default, empty). `ErrorMessage` stays
 //! the JSON default (null); official Java also sets the English
-//! `Errors.message` string. Throttle is the JSON default (`0`).
+//! `Errors.message` string. ThrottleTimeMs is JSON `0+`; encode writes
+//! the field; [`protocol::admin::DescribeUserScramCredentialsResponse::new`] fills `0`.
+//! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
 //! [`protocol::admin::DescribeUserScramCredentialsResponse::error_counts`] /
 //! [`protocol::admin::DescribeUserScramCredentialsResponse::should_client_throttle`]
 //! are Java `DescribeUserScramCredentialsResponse.errorCounts` (per-user

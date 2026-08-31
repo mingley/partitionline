@@ -4305,11 +4305,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     // on the wrong node.
                     encode_describe_user_scram_credentials_response(
                         &mut body,
-                        &DescribeUserScramCredentialsResponse {
-                            error_code: error::NOT_CONTROLLER,
-                            error_message: Some("Not controller".into()),
-                            results: Vec::new(),
-                        },
+                        &DescribeUserScramCredentialsResponse::new(
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                            Vec::new(),
+                        ),
                     )
                     .unwrap();
                 } else {
@@ -4347,11 +4347,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .collect();
                     encode_describe_user_scram_credentials_response(
                         &mut body,
-                        &DescribeUserScramCredentialsResponse {
-                            error_code: 0,
-                            error_message: None,
-                            results,
-                        },
+                        &DescribeUserScramCredentialsResponse::new(0, None, results),
                     )
                     .unwrap();
                 }
