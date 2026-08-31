@@ -4395,14 +4395,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_describe_client_quotas_response(
                     &mut body,
                     version,
-                    &DescribeClientQuotasResponse {
-                        error_code: 0,
-                        error_message: None,
-                        entries: Some(vec![ClientQuotaEntry::new(
+                    &DescribeClientQuotasResponse::new(
+                        0,
+                        None,
+                        Some(vec![ClientQuotaEntry::new(
                             vec![ClientQuotaEntity::new("user", Some("alice".into()))],
                             vec![ClientQuotaValue::new("producer_byte_rate", 1024.0)],
                         )]),
-                    },
+                    ),
                 )
                 .unwrap();
             }

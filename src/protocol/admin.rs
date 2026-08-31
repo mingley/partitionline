@@ -6325,6 +6325,9 @@ impl ClientQuotaEntry {
 /// `DescribeClientQuotasResponse.fromQuotaEntities`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DescribeClientQuotasResponse {
+    /// DescribeClientQuotas `ThrottleTimeMs` (JSON `0+`). First field.
+    /// JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Broker error message, when present.
@@ -6334,19 +6337,33 @@ pub struct DescribeClientQuotasResponse {
 }
 
 impl DescribeClientQuotasResponse {
+    /// Construct [`Self`].
+    #[must_use]
+    pub fn new(
+        error_code: i16,
+        error_message: Option<String>,
+        entries: Option<Vec<ClientQuotaEntry>>,
+    ) -> Self {
+        Self {
+            throttle_time_ms: 0,
+            error_code,
+            error_message,
+            entries,
+        }
+    }
+
     /// Java `DescribeClientQuotasRequest.getErrorResponse`.
     ///
     /// Sets `ErrorCode`. `ErrorMessage` is the JSON default (null);
     /// official Java also sets the English `Errors.message` string.
     /// `Entries` is null (not an empty array). Throttle is the JSON
-    /// default (`0`).
+    /// default (`0`) from [`Self::new`]; official Java also sets
+    /// `throttleTimeMs` from the argument.
+    /// [`encode_describe_client_quotas_response`] writes
+    /// `resp.throttle_time_ms`.
     #[must_use]
     pub fn error(error_code: i16) -> Self {
-        Self {
-            error_code,
-            error_message: None,
-            entries: None,
-        }
+        Self::new(error_code, None, None)
     }
 
     /// Java `DescribeClientQuotasResponse.fromQuotaEntities`.
@@ -6380,11 +6397,13 @@ impl DescribeClientQuotasResponse {
                     .collect(),
             })
             .collect();
-        Self {
-            error_code: 0,
-            error_message: None,
-            entries: Some(entries),
-        }
+        Self::new(0, None, Some(entries))
+    }
+
+    /// DescribeClientQuotas `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Kafka error code (`0` is success).
@@ -6965,13 +6984,17 @@ pub fn decode_describe_client_quotas_request<B: Buf>(
 }
 
 /// Encode a DescribeClientQuotas response (v0–1).
+///
+/// ThrottleTimeMs is JSON `0+` (`resp.throttle_time_ms`; JSON default
+/// `0`). v0 is classic. v1 is flexible. Kafka 4.0 `validVersions` is
+/// `0-1`. This crate speaks 0–1. v2+ is not spoken.
 pub fn encode_describe_client_quotas_response(
     buf: &mut BytesMut,
     version: i16,
     resp: &DescribeClientQuotasResponse,
 ) -> crate::error::Result<()> {
     let flexible = describe_client_quotas_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_string(buf, flexible, resp.error_message.as_deref())?;
     match &resp.entries {
@@ -7008,12 +7031,15 @@ pub fn encode_describe_client_quotas_response(
 }
 
 /// Decode a DescribeClientQuotas response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire). Top-level ErrorCode
+/// is at bytes 4–5.
 pub fn decode_describe_client_quotas_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<DescribeClientQuotasResponse> {
     let flexible = describe_client_quotas_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_string(buf, flexible)?;
     let entries = match buf::get_array_len(buf, flexible)? {
@@ -7053,6 +7079,7 @@ pub fn decode_describe_client_quotas_response<B: Buf>(
         buf::skip_tagged_fields(buf)?;
     }
     Ok(DescribeClientQuotasResponse {
+        throttle_time_ms,
         error_code,
         error_message,
         entries,
@@ -22583,6 +22610,72 @@ mod tests {
     }
 
     #[test]
+    fn describe_client_quotas_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 DescribeClientQuotasResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on spoken v0–v1; first field). Official
+        // Java DescribeClientQuotasRequest.getErrorResponse /
+        // DescribeClientQuotasResponse.fromQuotaEntities /
+        // DescribeClientQuotasResponse.throttleTimeMs set / read it.
+        // Encode writes DescribeClientQuotasResponse.throttle_time_ms
+        // (JSON default 0; DescribeClientQuotasResponse::new /
+        // DescribeClientQuotasResponse::error fill 0). fromQuotaEntities
+        // also sets it; crate from_quota_entities leaves throttle unused.
+        // Empty-Entries v0 != v1 (classic vs compact+tagged). Top-level
+        // ErrorCode is at bytes 4–5. This crate speaks 0–1. This is not
+        // AlterClientQuotas ThrottleTimeMs.
+        let zero = DescribeClientQuotasResponse::new(0, None, Some(Vec::new()));
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        for version in [0, 1] {
+            let mut buf = BytesMut::new();
+            encode_describe_client_quotas_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_describe_client_quotas_response(&mut cur, version).unwrap();
+            assert_eq!(got, with);
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert_eq!(got.throttle_time_ms(), 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DescribeClientQuotas v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with_v0 = BytesMut::new();
+        encode_describe_client_quotas_response(&mut with_v0, 0, &with).unwrap();
+        let mut with_v1 = BytesMut::new();
+        encode_describe_client_quotas_response(&mut with_v1, 1, &with).unwrap();
+        assert_ne!(
+            &with_v0[..],
+            &with_v1[..],
+            "v1 adds compact arrays/strings plus tagged fields"
+        );
+        let mut zero_v0 = BytesMut::new();
+        encode_describe_client_quotas_response(&mut zero_v0, 0, &zero).unwrap();
+        assert_ne!(
+            &with_v0[..],
+            &zero_v0[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "DescribeClientQuotasResponse::new still fills ThrottleTimeMs 0"
+        );
+        let err = DescribeClientQuotasResponse::error(crate::error::NOT_CONTROLLER);
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "DescribeClientQuotasResponse::error still fills ThrottleTimeMs 0"
+        );
+        let from_entities = DescribeClientQuotasResponse::from_quota_entities(std::iter::empty::<(
+            Vec<(&str, Option<&str>)>,
+            Vec<(&str, f64)>,
+        )>());
+        assert_eq!(
+            from_entities.throttle_time_ms, 0,
+            "DescribeClientQuotasResponse::from_quota_entities still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
     fn describe_client_quotas_v1_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 48
@@ -22605,11 +22698,11 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_describe_client_quotas_request(&mut buf, 1, &components, false).unwrap();
         assert_eq!(&buf[..], REQ);
-        let resp = DescribeClientQuotasResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: Some("Not controller".into()),
-            entries: None,
-        };
+        let resp = DescribeClientQuotasResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+            None,
+        );
         buf.clear();
         encode_describe_client_quotas_response(&mut buf, 1, &resp).unwrap();
         assert_eq!(&buf[..], RESP_ERR);
@@ -22632,14 +22725,14 @@ mod tests {
             "DescribeClientQuotas v1 request must be leftover-empty"
         );
 
-        let resp = DescribeClientQuotasResponse {
-            error_code: 0,
-            error_message: None,
-            entries: Some(vec![ClientQuotaEntry::new(
+        let resp = DescribeClientQuotasResponse::new(
+            0,
+            None,
+            Some(vec![ClientQuotaEntry::new(
                 vec![ClientQuotaEntity::new("user", Some("alice".into()))],
                 vec![ClientQuotaValue::new("producer_byte_rate", 1024.0)],
             )]),
-        };
+        );
         buf.clear();
         encode_describe_client_quotas_response(&mut buf, 1, &resp).unwrap();
         let mut cur = &buf[..];
@@ -22662,11 +22755,11 @@ mod tests {
         // Do not assume bytes 4-5 from UnregisterBroker /
         // AllocateProducerIds (same offset, different fields after) or
         // AlterClientQuotas (first-entry code at bytes 5-6).
-        let resp = DescribeClientQuotasResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: Some("Not controller".into()),
-            entries: None,
-        };
+        let resp = DescribeClientQuotasResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+            None,
+        );
         let mut buf = BytesMut::new();
         encode_describe_client_quotas_response(&mut buf, 1, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();
@@ -22708,11 +22801,11 @@ mod tests {
             QUOTA_MATCH_EXACT,
             Some("alice".into()),
         )];
-        let resp = DescribeClientQuotasResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: Some("Not controller".into()),
-            entries: None,
-        };
+        let resp = DescribeClientQuotasResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+            None,
+        );
         let mut buf = BytesMut::new();
         encode_describe_client_quotas_request(&mut buf, 0, &components, false).unwrap();
         assert_eq!(&buf[..], REQ_V0);
@@ -22751,11 +22844,11 @@ mod tests {
         assert_eq!(err.error_code(), crate::error::CLUSTER_AUTHORIZATION_FAILED);
         assert!(err.error_message().is_none());
         assert!(err.entries().is_none());
-        let empty_entries = DescribeClientQuotasResponse {
-            error_code: crate::error::CLUSTER_AUTHORIZATION_FAILED,
-            error_message: None,
-            entries: Some(Vec::new()),
-        };
+        let empty_entries = DescribeClientQuotasResponse::new(
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            None,
+            Some(Vec::new()),
+        );
         assert_ne!(
             err, empty_entries,
             "getErrorResponse Entries must be null, not empty"
@@ -22835,10 +22928,10 @@ mod tests {
         ]);
         assert_eq!(
             resp,
-            DescribeClientQuotasResponse {
-                error_code: 0,
-                error_message: None,
-                entries: Some(vec![
+            DescribeClientQuotasResponse::new(
+                0,
+                None,
+                Some(vec![
                     ClientQuotaEntry::new(
                         vec![alice, app, bob],
                         vec![producer.clone(), consumer, duplicate],
@@ -22846,7 +22939,7 @@ mod tests {
                     ClientQuotaEntry::new(vec![default_user], Vec::new()),
                     ClientQuotaEntry::new(vec![ip], vec![producer]),
                 ]),
-            }
+            )
         );
         for version in [0_i16, 1] {
             let mut buf = BytesMut::new();

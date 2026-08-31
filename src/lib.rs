@@ -643,7 +643,7 @@
 //! [`protocol::admin::DeleteGroupsRequest::error_result_collection`] is Java
 //! `DeleteGroupsRequest.getErrorResultCollection` (each id through
 //! [`DeletableGroupResult::new`])),
-//! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible;
+//! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::DescribeClientQuotasRequest::MATCH_TYPE_EXACT`] /
 //! [`protocol::admin::DescribeClientQuotasRequest::MATCH_TYPE_DEFAULT`] /
 //! [`protocol::admin::DescribeClientQuotasRequest::MATCH_TYPE_SPECIFIED`]
@@ -659,8 +659,8 @@
 //! [`protocol::admin::DescribeClientQuotasResponse::error`] is Java
 //! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
 //! empty). `ErrorMessage` stays the JSON default (null); official Java
-//! also sets the English `Errors.message` string. Throttle is the JSON
-//! default (`0`);
+//! also sets the English `Errors.message` string. ThrottleTimeMs is JSON `0+`;
+//! encode writes the field; [`protocol::admin::DescribeClientQuotasResponse::new`] fills `0`;
 //! [`protocol::admin::DescribeClientQuotasResponse::from_quota_entities`] is Java
 //! `DescribeClientQuotasResponse.fromQuotaEntities` (type/name pairs
 //! plus values into `Entries`; `ErrorCode` `0`; `ErrorMessage` null;
@@ -2052,7 +2052,9 @@
 //! default/specified is null).
 //! [`protocol::admin::DescribeClientQuotasResponse::error`] is Java
 //! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
-//! empty).
+//! empty). ThrottleTimeMs is JSON `0+`; encode writes the field;
+//! [`protocol::admin::DescribeClientQuotasResponse::new`] fills `0`.
+//! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
 //! [`protocol::admin::DescribeClientQuotasResponse::from_quota_entities`] is Java
 //! `DescribeClientQuotasResponse.fromQuotaEntities` (type/name pairs
 //! plus values into `Entries`; `ErrorCode` `0`; `ErrorMessage` null;
