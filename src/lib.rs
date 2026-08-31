@@ -856,7 +856,9 @@
 //! including `NONE`; Java `Collections.singletonMap`);
 //! [`protocol::admin::PushTelemetryRequest::error_response`] is Java
 //! `PushTelemetryRequest.getErrorResponse` (ThrottleTimeMs JSON `0+`;
-//! convenience fills `0`)),
+//! convenience fills `0`);
+//! [`protocol::admin::PushTelemetryRequest::metrics_content_type`] is Java
+//! `PushTelemetryRequest.metricsContentType` (`OTLP`)),
 //! AssignReplicasToDirs v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::AssignReplicasToDirsRequest::error_response`] is Java
 //! `AssignReplicasToDirsRequest.getErrorResponse` (empty Directories;

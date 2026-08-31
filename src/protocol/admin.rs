@@ -13412,6 +13412,16 @@ impl PushTelemetryRequest {
         &self.metrics
     }
 
+    /// Java `PushTelemetryRequest.metricsContentType`.
+    ///
+    /// Currently always `"OTLP"` (KIP-714; the request has no
+    /// content-type field). This is not [`Self::error_response`] /
+    /// `metricsData`.
+    #[must_use]
+    pub const fn metrics_content_type(&self) -> &'static str {
+        "OTLP"
+    }
+
     /// Java `PushTelemetryRequest.getErrorResponse`.
     ///
     /// Sets the top-level `ErrorCode`. Request ClientInstanceId /
@@ -29451,6 +29461,29 @@ mod tests {
             &conv[..],
             &zero_buf[..],
             "error_response still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn push_telemetry_request_metrics_content_type_matches_java() {
+        // Java 4.0 PushTelemetryRequest.metricsContentType returns
+        // "OTLP" (KIP-714; the request has no content-type field).
+        // Official Java PushTelemetryRequest.metricsContentType.
+        // Java metricsData (decompress via CompressionType.forId) is
+        // not mapped. This crate speaks 0. This is not getErrorResponse
+        // / errorCounts.
+        let req = PushTelemetryRequest::new([0x11; 16], 1, false, 0, Vec::new());
+        assert_eq!(req.metrics_content_type(), "OTLP");
+        let mut buf = BytesMut::new();
+        encode_push_telemetry_request(&mut buf, &req).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_push_telemetry_request(&mut cur).unwrap();
+        assert_eq!(decoded, req);
+        assert_eq!(decoded.metrics_content_type(), "OTLP");
+        assert!(
+            cur.is_empty(),
+            "PushTelemetry v0 metricsContentType leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
