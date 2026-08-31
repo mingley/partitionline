@@ -257,6 +257,10 @@
 //! [`protocol::group::HeartbeatResponse::should_client_throttle`] is Java
 //! `HeartbeatResponse.shouldClientThrottle` (v2+)),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName;
+//! Request GenerationId is JSON `0+` (decode returns it last; encode already
+//! takes `generation_id`; official Java `SyncGroupRequestData.generationId`;
+//! not OffsetCommit GenerationId / Heartbeat GenerationId / JoinGroup
+//! response GenerationId);
 //! v3+ round-trips GroupInstanceId; below v3 encode omits it even when
 //! the body has an instance id and decode fills `None`;
 //! v5+ round-trips ProtocolType / ProtocolName; below v5 encode omits

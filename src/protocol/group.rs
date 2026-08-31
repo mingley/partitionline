@@ -1763,7 +1763,8 @@ impl SyncGroupResponse {
 /// even when the body has an instance id; decode fills `None`. v4
 /// flexible. v5 ProtocolType / ProtocolName (KIP-559). Below v5 those
 /// fields are omitted even when the body has values; decode fills `None`.
-/// This crate speaks 0–5. v6+ is not spoken.
+/// GenerationId is JSON `0+` (INT32 after GroupId; decode returns it
+/// last). This crate speaks 0–5. v6+ is not spoken.
 pub fn encode_sync_group_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1794,15 +1795,16 @@ pub fn encode_sync_group_request(
     Ok(())
 }
 
+/// Decode SyncGroup: `(group_id, member_id, assignments, group_instance_id,
+/// protocol_type, protocol_name, generation_id)`.
+///
+/// GenerationId is JSON `0+` (always on the wire; last). Below v3
+/// GroupInstanceId is omitted; decode fills `None`. Below v5 ProtocolType
+/// / ProtocolName are omitted; decode fills `None`.
 #[expect(
     clippy::type_complexity,
-    reason = "SyncGroup assignment list is (member_id, bytes) pairs"
+    reason = "SyncGroup decode is group, member, assignments, instance, protocol type, protocol name, generation"
 )]
-/// Decode SyncGroup: `(group_id, member_id, assignments, group_instance_id,
-/// protocol_type, protocol_name)`.
-///
-/// Below v3 GroupInstanceId is omitted; decode fills `None`. Below v5
-/// ProtocolType / ProtocolName are omitted; decode fills `None`.
 pub fn decode_sync_group_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -1813,10 +1815,11 @@ pub fn decode_sync_group_request<B: Buf>(
     Option<String>,
     Option<String>,
     Option<String>,
+    i32,
 )> {
     let flexible = sync_group_flexible(version)?;
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
-    let _gen = buf::get_i32(buf)?;
+    let generation_id = buf::get_i32(buf)?;
     let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let inst = if version >= 3 {
         buf::get_string(buf, flexible)?
@@ -1841,7 +1844,15 @@ pub fn decode_sync_group_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((group_id, member_id, assignments, inst, ptype, pname))
+    Ok((
+        group_id,
+        member_id,
+        assignments,
+        inst,
+        ptype,
+        pname,
+        generation_id,
+    ))
 }
 
 /// Encode SyncGroup v0–v5. Throttle is `0` on v1+. ProtocolType /
@@ -11275,13 +11286,92 @@ mod tests {
     }
 
     #[test]
+    fn sync_group_generation_id_matches_java() {
+        // Kafka 4.0.0 SyncGroupRequest.json GenerationId is versions 0+
+        // (INT32 after GroupId / before MemberId on spoken v0–v5). Official
+        // Java SyncGroupRequestData.generationId. Encode already writes
+        // generation_id. Decode previously discarded it. This crate
+        // speaks 0–5. This is not OffsetCommit GenerationId / Heartbeat
+        // GenerationId / JoinGroup response GenerationId / GroupInstanceId.
+        let empty: [(String, Vec<u8>); 0] = [];
+        for version in [0_i16, 1, 2, 3, 4, 5] {
+            let req = sync_req(&empty);
+            let mut buf = BytesMut::new();
+            encode_sync_group_request(&mut buf, version, &req).unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, mid, got, .., gen) = decode_sync_group_request(&mut cur, version).unwrap();
+            assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
+            assert!(got.is_empty());
+            assert_eq!(gen, 7);
+            assert!(
+                cur.is_empty(),
+                "SyncGroup v{version} GenerationId leftover-empty"
+            );
+        }
+
+        let mut with = sync_req(&empty);
+        with.generation_id = 7;
+        let mut other = sync_req(&empty);
+        other.generation_id = 1;
+        let mut seven = BytesMut::new();
+        encode_sync_group_request(&mut seven, 0, &with).unwrap();
+        let mut one = BytesMut::new();
+        encode_sync_group_request(&mut one, 0, &other).unwrap();
+        assert_ne!(
+            &seven[..],
+            &one[..],
+            "v0 GenerationId is not always the same INT32"
+        );
+        let mut cur = seven.as_ref();
+        let (.., gen) = decode_sync_group_request(&mut cur, 0).unwrap();
+        assert_eq!(gen, 7);
+        assert!(cur.is_empty(), "SyncGroup v0 GenerationId leftover-empty");
+        let mut cur = one.as_ref();
+        let (.., gen) = decode_sync_group_request(&mut cur, 0).unwrap();
+        assert_eq!(gen, 1);
+        assert_eq!(
+            seven.get(3..7),
+            Some([0, 0, 0, 7].as_slice()),
+            "v0 classic GenerationId follows GroupId STRING g"
+        );
+
+        let mut v1 = BytesMut::new();
+        encode_sync_group_request(&mut v1, 1, &with).unwrap();
+        assert_eq!(
+            &seven[..],
+            &v1[..],
+            "empty-Assignments GenerationId bodies: v0 == v1"
+        );
+        let mut v2 = BytesMut::new();
+        encode_sync_group_request(&mut v2, 2, &with).unwrap();
+        assert_eq!(
+            &v1[..],
+            &v2[..],
+            "empty-Assignments GenerationId bodies: v1 == v2"
+        );
+        let mut v3 = BytesMut::new();
+        encode_sync_group_request(&mut v3, 3, &with).unwrap();
+        assert_ne!(&v2[..], &v3[..], "v3 adds GroupInstanceId after MemberId");
+        let mut v4 = BytesMut::new();
+        encode_sync_group_request(&mut v4, 4, &with).unwrap();
+        assert_ne!(&v3[..], &v4[..], "v4 adds compact tagged fields");
+        let mut v5 = BytesMut::new();
+        encode_sync_group_request(&mut v5, 5, &with).unwrap();
+        assert_ne!(
+            &v4[..],
+            &v5[..],
+            "v5 adds ProtocolType / ProtocolName after GroupInstanceId"
+        );
+    }
+
+    #[test]
     fn sync_group_protocol_type_name_matches_java() {
         let empty: [(String, Vec<u8>); 0] = [];
         let req = sync_req(&empty);
         let mut buf = BytesMut::new();
         encode_sync_group_request(&mut buf, 5, &req).unwrap();
         let mut cur = buf.as_ref();
-        let (gid, mid, got, _, ptype, pname) = decode_sync_group_request(&mut cur, 5).unwrap();
+        let (gid, mid, got, _, ptype, pname, ..) = decode_sync_group_request(&mut cur, 5).unwrap();
         assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
         assert!(got.is_empty());
         assert_eq!(ptype.as_deref(), Some("consumer"));
@@ -11291,7 +11381,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_sync_group_request(&mut buf, 4, &req).unwrap();
         let mut cur = buf.as_ref();
-        let (_, _, _, _, ptype, pname) = decode_sync_group_request(&mut cur, 4).unwrap();
+        let (_, _, _, _, ptype, pname, ..) = decode_sync_group_request(&mut cur, 4).unwrap();
         assert!(cur.is_empty(), "SyncGroup v4 ProtocolType leftover-empty");
         assert_eq!(
             (ptype, pname),
@@ -11302,7 +11392,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_sync_group_request(&mut buf, 0, &req).unwrap();
         let mut cur = buf.as_ref();
-        let (_, _, _, _, ptype, pname) = decode_sync_group_request(&mut cur, 0).unwrap();
+        let (_, _, _, _, ptype, pname, ..) = decode_sync_group_request(&mut cur, 0).unwrap();
         assert!(cur.is_empty(), "SyncGroup v0 ProtocolType leftover-empty");
         assert_eq!(
             (ptype, pname),
@@ -11343,7 +11433,7 @@ mod tests {
         let mut empty_buf = BytesMut::new();
         encode_sync_group_request(&mut empty_buf, 5, &empty_proto).unwrap();
         let mut cur = empty_buf.as_ref();
-        let (_, _, _, _, ptype, pname) = decode_sync_group_request(&mut cur, 5).unwrap();
+        let (_, _, _, _, ptype, pname, ..) = decode_sync_group_request(&mut cur, 5).unwrap();
         assert_eq!(ptype.as_deref(), Some(""));
         assert_eq!(pname.as_deref(), Some(""));
         assert!(
