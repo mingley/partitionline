@@ -311,6 +311,25 @@ impl AddPartitionsToTxnRequest {
             })
             .collect()
     }
+
+    /// Java `AddPartitionsToTxnRequest.LAST_CLIENT_VERSION`.
+    ///
+    /// Latest version [`Self::for_client`] will negotiate. Broker
+    /// verification requests start at v4 and are not spoken.
+    pub const LAST_CLIENT_VERSION: i16 = 3;
+
+    /// Java `AddPartitionsToTxnRequest.Builder.forClient`.
+    ///
+    /// Oldest allowed version is 0 (Java
+    /// `ApiKeys.ADD_PARTITIONS_TO_TXN.oldestVersion()` on Kafka 4.0).
+    /// Latest is [`Self::LAST_CLIENT_VERSION`]. Topics are
+    /// [`Self::from_partitions`]. This crate speaks 0–3. v4+
+    /// (`forBroker`) is not spoken. This is not [`Self::partitions`] /
+    /// [`Self::from_partitions`] / getErrorResponse / `forBroker`.
+    #[must_use]
+    pub const fn for_client() -> (i16, i16) {
+        (0, Self::LAST_CLIENT_VERSION)
+    }
 }
 
 /// Java `AddPartitionsToTxnResponse` helpers.
@@ -5021,6 +5040,40 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AddPartitionsToTxn v3 from_partitions leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+    }
+
+    #[test]
+    fn add_partitions_to_txn_request_for_client_matches_java() {
+        // Java 4.0 AddPartitionsToTxnRequest.Builder.forClient: oldest
+        // allowed version is ApiKeys.ADD_PARTITIONS_TO_TXN.oldestVersion
+        // (0); latest is LAST_CLIENT_VERSION (3). Official Java
+        // AddPartitionsToTxnRequest.Builder.forClient. Topics are
+        // buildTxnTopicCollection. v4+ forBroker is not spoken. This
+        // crate speaks 0-3. This is not getPartitions /
+        // buildTxnTopicCollection / getErrorResponse / forBroker.
+        assert_eq!(AddPartitionsToTxnRequest::LAST_CLIENT_VERSION, 3);
+        let (oldest, latest) = AddPartitionsToTxnRequest::for_client();
+        assert_eq!(oldest, 0);
+        assert_eq!(latest, AddPartitionsToTxnRequest::LAST_CLIENT_VERSION);
+        let topics = AddPartitionsToTxnRequest::from_partitions([("t", 0), ("t", 1)]);
+        leftover_for_client(oldest, &topics);
+        leftover_for_client(latest, &topics);
+        leftover_for_client(oldest, &[]);
+        leftover_for_client(latest, &[]);
+    }
+
+    fn leftover_for_client(version: i16, topics: &[TxnPartitionsTopic]) {
+        let mut buf = BytesMut::new();
+        encode_add_partitions_to_txn_request(&mut buf, version, "tx", 9, 1, topics).unwrap();
+        let mut cur = buf.as_ref();
+        let (.., decoded) = decode_add_partitions_to_txn_request(&mut cur, version).unwrap();
+        assert_eq!(decoded, topics);
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            !cur.has_remaining(),
+            "AddPartitionsToTxn v{version} Builder.forClient {empty}leftover-empty; leftover {} bytes",
             cur.remaining()
         );
     }
