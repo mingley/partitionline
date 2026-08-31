@@ -1163,6 +1163,9 @@
 //! ThrottleTimeMs is JSON `0+`;
 //! [`protocol::txn::encode_end_txn_response`] still writes `0`;
 //! [`protocol::txn::EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
+//! [`protocol::txn::EndTxnRequest::build`] is Java
+//! `EndTxnRequest.Builder.build` (`!isTransactionV2Enabled` caps the
+//! version at `LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`);
 //! [`protocol::txn::EndTxnRequest::error_response`] is Java
 //! `EndTxnRequest.getErrorResponse` ([`RecordBatch::NO_PRODUCER_ID`] /
 //! [`RecordBatch::NO_PRODUCER_EPOCH`] on v5+);

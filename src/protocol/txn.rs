@@ -41,6 +41,21 @@ impl EndTxnRequest {
             RecordBatch::NO_PRODUCER_EPOCH,
         )
     }
+
+    /// Java `EndTxnRequest.Builder.build`.
+    ///
+    /// `!isTransactionV2Enabled` caps the returned version at
+    /// [`Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]. This crate
+    /// speaks 0–5. This is not [`Self::error_response`] / TxnOffsetCommit
+    /// `Builder.build` / [`TransactionResult`].
+    #[must_use]
+    pub fn build(version: i16, is_transaction_v2_enabled: bool) -> i16 {
+        if is_transaction_v2_enabled {
+            version
+        } else {
+            version.min(Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2)
+        }
+    }
 }
 
 /// Java `EndTxnResponse` helpers.
@@ -3403,6 +3418,53 @@ mod tests {
             &v4_with[..],
             &v5_with[..],
             "v5 adds ProducerId / ProducerEpoch"
+        );
+    }
+
+    #[test]
+    fn end_txn_request_build_matches_java() {
+        // Java 4.0 EndTxnRequest.Builder.build: !isTransactionV2Enabled
+        // caps the version at LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2.
+        // Official Java EndTxnRequest.Builder.build. This crate speaks
+        // 0-5. This is not getErrorResponse / TxnOffsetCommit
+        // Builder.build / TransactionResult.
+        assert_eq!(EndTxnRequest::build(0, true), 0);
+        assert_eq!(EndTxnRequest::build(0, false), 0);
+        assert_eq!(EndTxnRequest::build(3, true), 3);
+        assert_eq!(EndTxnRequest::build(4, false), 4);
+        assert_eq!(EndTxnRequest::build(5, true), 5);
+        assert_eq!(
+            EndTxnRequest::build(5, false),
+            EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2,
+            "v5 without transaction V2 is capped at 4"
+        );
+
+        for version in 0..=5_i16 {
+            let built = EndTxnRequest::build(version, true);
+            assert_eq!(built, version);
+            let mut buf = BytesMut::new();
+            encode_end_txn_request(&mut buf, built, "tx", 9, 1, TransactionResult::Commit.id())
+                .unwrap();
+            let mut cur = &buf[..];
+            let _decoded = decode_end_txn_request(&mut cur, built).unwrap();
+            assert!(
+                cur.is_empty(),
+                "EndTxn v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let capped = EndTxnRequest::build(5, false);
+        assert_eq!(capped, 4);
+        let mut buf = BytesMut::new();
+        encode_end_txn_request(&mut buf, capped, "tx", 9, 1, TransactionResult::Abort.id())
+            .unwrap();
+        let mut cur = &buf[..];
+        let (.., committed) = decode_end_txn_request(&mut cur, capped).unwrap();
+        assert!(!committed);
+        assert!(
+            cur.is_empty(),
+            "EndTxn v{capped} Builder.build empty leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
