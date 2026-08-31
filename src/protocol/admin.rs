@@ -7657,6 +7657,27 @@ impl AllocateProducerIdsResponse {
     }
 }
 
+/// Java `AllocateProducerIdsRequest` helpers.
+pub struct AllocateProducerIdsRequest;
+
+impl AllocateProducerIdsRequest {
+    /// Java `AllocateProducerIdsRequest.getErrorResponse`.
+    ///
+    /// Sets the top-level `ErrorCode`. ProducerIdStart / ProducerIdLen
+    /// stay the JSON default (`0`). Request BrokerId / BrokerEpoch are
+    /// not copied. ThrottleTimeMs is JSON `0+` (JSON default `0`;
+    /// [`AllocateProducerIdsResponse::new`] fills `0`). Official Java
+    /// `getErrorResponse` sets `throttleTimeMs` from the argument.
+    /// Java `error()` is `Errors.forCode` only (identity on i16; not
+    /// mapped). This is not [`AllocateProducerIdsResponse::error_counts`] /
+    /// DescribeDelegationToken `getErrorResponse` / UnregisterBroker
+    /// `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> AllocateProducerIdsResponse {
+        AllocateProducerIdsResponse::new(error_code, 0, 0)
+    }
+}
+
 /// AllocateProducerIds v0 (flexible from v0; KIP-730).
 ///
 /// Official Apache JSON (`apiKey: 67`, `validVersions: "0"`,
@@ -23941,6 +23962,70 @@ mod tests {
             cur.is_empty(),
             "AllocateProducerIds v0 errorCounts leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn allocate_producer_ids_request_error_response_matches_java() {
+        // Java 4.0 AllocateProducerIdsRequest.getErrorResponse:
+        // Errors.forException then setErrorCode / setThrottleTimeMs.
+        // ProducerIdStart / ProducerIdLen stay the JSON default (0).
+        // Request BrokerId / BrokerEpoch are not copied. Official Java
+        // AllocateProducerIdsRequest.getErrorResponse. Official Java
+        // sets throttleTimeMs from the argument;
+        // AllocateProducerIdsResponse::new fills 0. Java error() is
+        // Errors.forCode only (identity on i16; not mapped). This crate
+        // speaks 0. This is not errorCounts / DescribeDelegationToken
+        // getErrorResponse / UnregisterBroker getErrorResponse.
+        assert_eq!(
+            AllocateProducerIdsRequest::error_response(0),
+            AllocateProducerIdsResponse::new(0, 0, 0)
+        );
+        let err =
+            AllocateProducerIdsRequest::error_response(crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(
+            err,
+            AllocateProducerIdsResponse::new(crate::error::CLUSTER_AUTHORIZATION_FAILED, 0, 0)
+        );
+        assert_eq!(
+            err.producer_id_start, 0,
+            "getErrorResponse must not invent ProducerIdStart"
+        );
+        assert_eq!(
+            err.producer_id_len, 0,
+            "getErrorResponse must not invent ProducerIdLen"
+        );
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "AllocateProducerIdsResponse::new still fills ThrottleTimeMs 0"
+        );
+        let mut resp = BytesMut::new();
+        encode_allocate_producer_ids_response(&mut resp, &err).unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_allocate_producer_ids_response(&mut cur).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "AllocateProducerIds v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_allocate_producer_ids_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_allocate_producer_ids_response(&mut zero_buf, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_allocate_producer_ids_response(&mut conv, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
         );
     }
 

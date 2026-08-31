@@ -799,7 +799,11 @@
 //! AllocateProducerIds v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::AllocateProducerIdsResponse::error_counts`] is Java
 //! `AllocateProducerIdsResponse.errorCounts` (top-level `errorCode` only,
-//! including `NONE`; Java `Collections.singletonMap`)),
+//! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::admin::AllocateProducerIdsRequest::error_response`] is Java
+//! `AllocateProducerIdsRequest.getErrorResponse` (ProducerIdStart /
+//! ProducerIdLen JSON default `0`; ThrottleTimeMs JSON `0+`; convenience
+//! fills `0`)),
 //! UnregisterBroker v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::UnregisterBrokerResponse::new`] fills `0`),
 //! DescribeCluster v0–v2 (v1 EndpointType, v2 IsFenced; ThrottleTimeMs is JSON `0+`;
