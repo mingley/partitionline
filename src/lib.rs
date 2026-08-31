@@ -1526,6 +1526,9 @@
 //! `OffsetsForLeaderEpochRequest.Builder.forConsumer` (ReplicaId
 //! [`protocol::epoch::CONSUMER_REPLICA_ID`]; oldest allowed version 3;
 //! latest 4).
+//! [`protocol::epoch::OffsetsForLeaderEpochRequest::for_follower`] is Java
+//! `OffsetsForLeaderEpochRequest.Builder.forFollower` (ReplicaId is the
+//! argument; oldest and latest allowed versions are both 4).
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] are Java
 //! `OffsetsForLeaderEpochResponse.UNDEFINED_EPOCH` / `UNDEFINED_EPOCH_OFFSET`.
