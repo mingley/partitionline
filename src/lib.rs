@@ -165,6 +165,10 @@
 //! `OffsetFetchResponse.partitionDataMap` (v1–v7 ignore `group_id`; v8+
 //! first matching group; missing group is [`Error::protocol`]; a later
 //! partition overwrites);
+//! [`protocol::group::OffsetFetchResponse::from_partition_data`] is Java
+//! `OffsetFetchResponse` constructor from a partition map (group by name;
+//! a later entry for the same topic appends; first-seen topic order;
+//! duplicate pairs kept);
 //! [`protocol::group::OffsetFetchResponse::from_groups`] is Java
 //! `OffsetFetchResponse` constructor from a group list (v8+ as-is; below
 //! v8 exactly one group; v1 rewrites partitions when the group has an
@@ -890,6 +894,10 @@
 //! `OffsetFetchResponse.partitionDataMap` (v1–v7 ignore `group_id`; v8+
 //! first matching group; missing group is [`Error::protocol`]; a later
 //! partition overwrites).
+//! [`protocol::group::OffsetFetchResponse::from_partition_data`] is Java
+//! `OffsetFetchResponse` constructor from a partition map (group by name;
+//! a later entry for the same topic appends; first-seen topic order;
+//! duplicate pairs kept).
 //! [`protocol::group::OffsetFetchResponse::from_groups`] is Java
 //! `OffsetFetchResponse` constructor from a group list (v8+ as-is; below
 //! v8 exactly one group; v1 rewrites partitions when the group has an

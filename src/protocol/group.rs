@@ -2442,6 +2442,44 @@ impl OffsetFetchResponse {
         ))
     }
 
+    /// Java `OffsetFetchResponse(Errors, Map)` / `(int, Errors, Map)` Topics.
+    ///
+    /// Groups `(topic, PartitionData)` by name. A later entry for the
+    /// same topic appends (Java `HashMap.getOrDefault` then
+    /// `partitions().add`). Topic order is first-seen (Java
+    /// `HashMap.values` order is unspecified). The Java map key is
+    /// `TopicPartition`; grouping uses only the name. Duplicate
+    /// partitions for the same pair are kept (`ArrayList`). Inverse of
+    /// [`Self::partition_data_map`] flatten (v1–v7 `data.topics()`).
+    /// Throttle and the top-level error are not part of this helper
+    /// (crate encode writes throttle `0` on v3+; v2 has no throttle
+    /// field).
+    #[must_use]
+    pub fn from_partition_data<'a, I>(response_data: I) -> Vec<FetchedOffsetTopic>
+    where
+        I: IntoIterator<Item = (&'a str, FetchedOffset)>,
+    {
+        let mut order: Vec<String> = Vec::new();
+        let mut by_topic: HashMap<String, Vec<FetchedOffset>> = HashMap::new();
+        for (topic, partition) in response_data {
+            by_topic
+                .entry(topic.to_string())
+                .or_insert_with(|| {
+                    order.push(topic.to_string());
+                    Vec::new()
+                })
+                .push(partition);
+        }
+        order
+            .into_iter()
+            .filter_map(|topic| {
+                by_topic
+                    .remove(&topic)
+                    .map(|partitions| FetchedOffsetTopic { topic, partitions })
+            })
+            .collect()
+    }
+
     /// Java `OffsetFetchResponse` constructor from a group list and version.
     ///
     /// v8+ returns `groups` as-is. Below v8 Java requires exactly one
@@ -4935,6 +4973,86 @@ mod tests {
         assert!(
             cur.is_empty(),
             "OffsetFetch v8 partitionDataMap leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_fetch_response_from_partition_data_matches_java() {
+        // Java OffsetFetchResponse(Errors, Map) / (int, Errors, Map):
+        // HashMap.getOrDefault by topic name, then partitions().add.
+        // Empty map is empty Topics. A later entry for the same name
+        // appends even when another topic sits between. Duplicate
+        // partitions for the same pair are kept (ArrayList).
+        assert!(OffsetFetchResponse::from_partition_data(
+            std::iter::empty::<(&str, FetchedOffset)>()
+        )
+        .is_empty());
+        let a0 = FetchedOffset {
+            partition: 0,
+            offset: 5,
+            leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            metadata: "m".into(),
+            error_code: 0,
+        };
+        let b2 = FetchedOffset::new(2, 7, 0);
+        let a1 = FetchedOffset::error(1, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        let grouped = OffsetFetchResponse::from_partition_data([
+            ("a", a0.clone()),
+            ("b", b2.clone()),
+            ("a", a1.clone()),
+        ]);
+        assert_eq!(
+            grouped,
+            vec![
+                FetchedOffsetTopic {
+                    topic: "a".into(),
+                    partitions: vec![a0, a1],
+                },
+                FetchedOffsetTopic {
+                    topic: "b".into(),
+                    partitions: vec![b2],
+                },
+            ]
+        );
+        let dup = OffsetFetchResponse::from_partition_data([
+            ("t", FetchedOffset::new(0, 1, 0)),
+            ("t", FetchedOffset::new(0, 2, 0)),
+        ]);
+        assert_eq!(
+            dup,
+            vec![FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![FetchedOffset::new(0, 1, 0), FetchedOffset::new(0, 2, 0)],
+            }]
+        );
+        let groups = [OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics: grouped.clone(),
+            error_code: 0,
+        }];
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_groups_response(&mut buf, 2, &groups).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
+        assert_eq!(decoded, groups);
+        assert_eq!(
+            decoded.first().map(|g| g.topics.as_slice()),
+            Some(grouped.as_slice())
+        );
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v2 from_partition_data leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_offset_fetch_groups_response(&mut buf, 6, &groups).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 6).unwrap();
+        assert_eq!(decoded, groups);
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v6 from_partition_data leftover-empty; leftover {} bytes",
             cur.len()
         );
     }
