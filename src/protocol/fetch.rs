@@ -63,8 +63,10 @@ pub fn describe_replica_id(replica_id: i32) -> String {
 /// Java `FetchRequest.replicaId()` (instance).
 ///
 /// Below v15 this is the untagged ReplicaId. v15+ is ReplicaState.ReplicaId
-/// (KIP-903). Encode still writes [`CONSUMER_REPLICA_ID`] through v14 and
-/// omits ReplicaState for consumers.
+/// (KIP-903). [`encode_fetch_request`] still writes [`CONSUMER_REPLICA_ID`]
+/// through v14 and omits ReplicaState for consumers.
+/// [`encode_fetch_request_with_replica_id`] writes the untagged field on
+/// v4–v14.
 #[must_use]
 pub const fn replica_id(version: i16, replica_id: i32, replica_state_replica_id: i32) -> i32 {
     if version < 15 {
@@ -742,7 +744,8 @@ pub struct FetchedTopic {
 /// SessionId / SessionEpoch / ForgottenTopicsData are v7+. LogStartOffset
 /// is JSON `5+` (encode writes [`FetchPartition::log_start_offset`]).
 /// CurrentLeaderEpoch is v9+. RackId is v11+. Session is
-/// [`FetchMetadata::LEGACY`]. MaxWaitMs is JSON `0+` (decode returns it).
+/// [`FetchMetadata::LEGACY`]. ReplicaId is JSON `0-14` (still
+/// [`CONSUMER_REPLICA_ID`]). MaxWaitMs is JSON `0+` (decode returns it).
 /// MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`).
 #[expect(
     clippy::too_many_arguments,
@@ -829,12 +832,83 @@ pub fn encode_fetch_request_with_forgotten(
     session: FetchMetadata,
     forgotten: &[ForgottenTopic],
 ) -> crate::error::Result<()> {
+    encode_fetch_request_body(
+        buf,
+        version,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        isolation_level,
+        topics,
+        rack_id,
+        session,
+        forgotten,
+        CONSUMER_REPLICA_ID,
+    )
+}
+
+/// Encode Fetch v4–v17 with ReplicaId.
+///
+/// ReplicaId is JSON `0-14` (untagged INT32; default `-1`). Official Java
+/// `FetchRequestData.replicaId` / `FetchRequest.replicaId()`. v15+ omits
+/// the untagged field even when `replica_id` is not [`CONSUMER_REPLICA_ID`]
+/// (ReplicaState tagged field 1 is not written). Decode fills
+/// [`CONSUMER_REPLICA_ID`]. [`encode_fetch_request`] still writes
+/// [`CONSUMER_REPLICA_ID`]. This is not ReplicaState / ListOffsets ReplicaId
+/// / OffsetForLeaderEpoch ReplicaId.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, and replica id together"
+)]
+pub fn encode_fetch_request_with_replica_id(
+    buf: &mut BytesMut,
+    version: i16,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    isolation_level: i8,
+    topics: &[FetchTopic],
+    rack_id: Option<&str>,
+    replica_id: i32,
+) -> crate::error::Result<()> {
+    encode_fetch_request_body(
+        buf,
+        version,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        isolation_level,
+        topics,
+        rack_id,
+        FetchMetadata::LEGACY,
+        &[],
+        replica_id,
+    )
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, session, forgotten, and replica id together"
+)]
+fn encode_fetch_request_body(
+    buf: &mut BytesMut,
+    version: i16,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    isolation_level: i8,
+    topics: &[FetchTopic],
+    rack_id: Option<&str>,
+    session: FetchMetadata,
+    forgotten: &[ForgottenTopic],
+    replica_id: i32,
+) -> crate::error::Result<()> {
     let flexible = fetch_flexible(version)?;
     // ReplicaId is untagged only through v14. v15+ uses ReplicaState tagged
     // field 1 (KIP-903). Consumers omit it (ReplicaId / ReplicaEpoch default
     // -1 / -1).
     if version <= 14 {
-        buf.put_i32(CONSUMER_REPLICA_ID);
+        buf.put_i32(replica_id);
     }
     buf.put_i32(max_wait_ms);
     buf.put_i32(min_bytes);
@@ -1080,7 +1154,7 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
 }
 
 /// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id, session,
-/// forgotten, max_wait_ms, min_bytes)`.
+/// forgotten, max_wait_ms, min_bytes, replica_id)`.
 ///
 /// `last_fetched_epoch` is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]
 /// below v12. `current_leader_epoch` is the same below v9. SessionId /
@@ -1092,10 +1166,13 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
 /// below v11 decode fills empty. MaxWaitMs is JSON `0+` (INT32 after ReplicaId
 /// on v4–v14; first untagged field on v15+; official Java
 /// `FetchRequest.maxWait`). MinBytes is JSON `0+` (INT32 after MaxWaitMs;
-/// official Java `FetchRequest.minBytes`).
+/// official Java `FetchRequest.minBytes`). ReplicaId is JSON `0-14`
+/// (untagged INT32; official Java `FetchRequestData.replicaId` /
+/// `FetchRequest.replicaId()`; v15+ omitted; decode fills
+/// [`CONSUMER_REPLICA_ID`]).
 #[expect(
     clippy::type_complexity,
-    reason = "Fetch request decode returns isolation, max bytes, topics, rack, session, forgotten, max wait, and min bytes together"
+    reason = "Fetch request decode returns isolation, max bytes, topics, rack, session, forgotten, max wait, min bytes, and replica id together"
 )]
 pub fn decode_fetch_request<B: Buf>(
     buf: &mut B,
@@ -1109,11 +1186,14 @@ pub fn decode_fetch_request<B: Buf>(
     Vec<ForgottenTopic>,
     i32,
     i32,
+    i32,
 )> {
     let flexible = fetch_flexible(version)?;
-    if version <= 14 {
-        let _replica = buf::get_i32(buf)?;
-    }
+    let replica_id = if version <= 14 {
+        buf::get_i32(buf)?
+    } else {
+        CONSUMER_REPLICA_ID
+    };
     let max_wait_ms = buf::get_i32(buf)?;
     let min_bytes = buf::get_i32(buf)?;
     let max_bytes = buf::get_i32(buf)?;
@@ -1207,6 +1287,7 @@ pub fn decode_fetch_request<B: Buf>(
         forgotten_out,
         max_wait_ms,
         min_bytes,
+        replica_id,
     ))
 }
 
@@ -1774,6 +1855,56 @@ mod tests {
                 cur.remaining()
             );
         }
+
+        // Kafka 4.0 FetchRequest.json ReplicaId is versions 0-14 (untagged
+        // INT32; default -1). Official Java FetchRequestData.replicaId /
+        // FetchRequest.replicaId() read it. Encode previously always wrote
+        // CONSUMER_REPLICA_ID; decode discarded it. v15+ omits the untagged
+        // field even when non-default (ReplicaState tagged field 1 is not
+        // written). This crate speaks 4–17. This is not ReplicaState /
+        // ListOffsets ReplicaId / OffsetForLeaderEpoch ReplicaId.
+        for version in [4_i16, 11, 12, 14, 15, 17] {
+            let mut buf = BytesMut::new();
+            encode_fetch_request_with_replica_id(
+                &mut buf, version, 10, 1, 1024, 0, &topics, None, 7,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (.., replica) = decode_fetch_request(&mut cur, version).unwrap();
+            if version <= 14 {
+                assert_eq!(replica, 7);
+            } else {
+                assert_eq!(replica, CONSUMER_REPLICA_ID);
+            }
+            assert!(
+                cur.is_empty(),
+                "Fetch request v{version} ReplicaId leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_fetch_request_with_replica_id(&mut with, 4, 10, 1, 1024, 0, &topics, None, 7)
+            .unwrap();
+        let mut consumer = BytesMut::new();
+        encode_fetch_request(&mut consumer, 4, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_ne!(
+            &with[..],
+            &consumer[..],
+            "v4 ReplicaId is not always CONSUMER_REPLICA_ID"
+        );
+        let (.., replica) = decode_fetch_request(&mut consumer.as_ref(), 4).unwrap();
+        assert_eq!(replica, CONSUMER_REPLICA_ID);
+
+        let mut v15_with = BytesMut::new();
+        encode_fetch_request_with_replica_id(&mut v15_with, 15, 10, 1, 1024, 0, &topics, None, 7)
+            .unwrap();
+        let mut v15_consumer = BytesMut::new();
+        encode_fetch_request(&mut v15_consumer, 15, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_eq!(
+            &v15_with[..],
+            &v15_consumer[..],
+            "v15+ omits untagged ReplicaId even when the body is non-default"
+        );
     }
 
     #[test]
@@ -1824,7 +1955,7 @@ mod tests {
         encode_fetch_request(&mut ten, 4, 10, 1, 1024, 0, &topics, None).unwrap();
         assert_ne!(&with[..], &ten[..], "v4 MaxWaitMs is not always 10");
         let mut cur = ten.as_ref();
-        let (.., max_wait, _) = decode_fetch_request(&mut cur, 4).unwrap();
+        let (.., max_wait, _, _) = decode_fetch_request(&mut cur, 4).unwrap();
         assert_eq!(max_wait, 10);
 
         let mut v15 = BytesMut::new();
@@ -1859,7 +1990,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_fetch_request(&mut buf, version, 10, 3_600_000, 1024, 0, &topics, None).unwrap();
             let mut cur = buf.as_ref();
-            let (iso, max_bytes, got, rack, session, forgotten, max_wait, min_bytes) =
+            let (iso, max_bytes, got, rack, session, forgotten, max_wait, min_bytes, ..) =
                 decode_fetch_request(&mut cur, version).unwrap();
             assert_eq!(iso, 0);
             assert_eq!(max_bytes, 1024);
@@ -1885,7 +2016,7 @@ mod tests {
         encode_fetch_request(&mut one, 4, 10, 1, 1024, 0, &topics, None).unwrap();
         assert_ne!(&with[..], &one[..], "v4 MinBytes is not always 1");
         let mut cur = one.as_ref();
-        let (.., min_bytes) = decode_fetch_request(&mut cur, 4).unwrap();
+        let (.., min_bytes, _) = decode_fetch_request(&mut cur, 4).unwrap();
         assert_eq!(min_bytes, 1);
 
         let mut v15 = BytesMut::new();
@@ -3331,7 +3462,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., forgotten, _, _) = decode_fetch_request(&mut cur, version).unwrap();
+            let (.., forgotten, _, _, _) = decode_fetch_request(&mut cur, version).unwrap();
             assert_eq!(forgotten.as_slice(), named.as_slice());
             assert!(
                 cur.is_empty(),
@@ -3354,7 +3485,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., forgotten, _, _) = decode_fetch_request(&mut cur, version).unwrap();
+            let (.., forgotten, _, _, _) = decode_fetch_request(&mut cur, version).unwrap();
             assert_eq!(forgotten.as_slice(), by_id.as_slice());
             assert!(
                 cur.is_empty(),
@@ -3378,7 +3509,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., forgotten, _, _) = decode_fetch_request(&mut cur, version).unwrap();
+            let (.., forgotten, _, _, _) = decode_fetch_request(&mut cur, version).unwrap();
             assert!(
                 forgotten.is_empty(),
                 "Fetch v{version} omits ForgottenTopicsData even when the body is non-empty"

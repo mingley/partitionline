@@ -1111,6 +1111,11 @@
 //! fills empty; v13+ uses TopicId;
 //! MaxWaitMs is JSON `0+` (decode returns it; encode already takes `max_wait_ms`);
 //! MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`);
+//! request ReplicaId is JSON `0-14` (decode returns it last;
+//! [`protocol::fetch::encode_fetch_request_with_replica_id`]; convenience encode
+//! still writes [`protocol::fetch::CONSUMER_REPLICA_ID`]; v15+ omit even when
+//! non-default and decode fills [`protocol::fetch::CONSUMER_REPLICA_ID`]; not
+//! ReplicaState tagged field 1);
 //! request LogStartOffset is JSON `5+` (encode writes the partition field;
 //! below v5 omit even when non-default and decode fills
 //! [`protocol::fetch::INVALID_LOG_START_OFFSET`]; official Java
@@ -1219,7 +1224,8 @@
 //! [`protocol::fetch::replica_id`] / [`protocol::fetch::replica_id_from_data`]
 //! are Java `FetchRequest.replicaId()` / `replicaId(FetchRequestData)` (below
 //! v15 untagged ReplicaId; v15+ ReplicaState; static uses untagged when it
-//! is not `-1`; encode still writes [`protocol::fetch::CONSUMER_REPLICA_ID`]).
+//! is not `-1`; [`protocol::fetch::encode_fetch_request`] still writes
+//! [`protocol::fetch::CONSUMER_REPLICA_ID`]).
 //! [`protocol::fetch::FetchMetadata`] is Java `FetchMetadata`
 //! (v7+ round-trips SessionId / SessionEpoch, including a non-LEGACY
 //! value; below v7 encode omits them even when the body is non-LEGACY
