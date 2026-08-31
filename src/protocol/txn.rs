@@ -251,6 +251,39 @@ impl AddPartitionsToTxnRequest {
         }
         partitions
     }
+
+    /// Java `AddPartitionsToTxnRequest.buildTxnTopicCollection`.
+    ///
+    /// Groups `(topic, partition)` by name. A later entry for the same
+    /// topic appends (Java `HashMap.compute` then `List.add`). Topic
+    /// order is first-seen (Java `HashMap.entrySet` order is
+    /// unspecified). Duplicate partitions for the same pair are kept
+    /// (`ArrayList` of `Partitions`).
+    #[must_use]
+    pub fn from_partitions<'a, I>(partitions: I) -> Vec<TxnPartitionsTopic>
+    where
+        I: IntoIterator<Item = (&'a str, i32)>,
+    {
+        let mut order: Vec<String> = Vec::new();
+        let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+        for (topic, partition) in partitions {
+            by_topic
+                .entry(topic.to_string())
+                .or_insert_with(|| {
+                    order.push(topic.to_string());
+                    Vec::new()
+                })
+                .push(partition);
+        }
+        order
+            .into_iter()
+            .filter_map(|topic| {
+                by_topic
+                    .remove(&topic)
+                    .map(|partitions| TxnPartitionsTopic { topic, partitions })
+            })
+            .collect()
+    }
 }
 
 /// Java `AddPartitionsToTxnResponse` helpers.
@@ -3775,6 +3808,61 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AddPartitionsToTxn v3 getPartitions leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+    }
+
+    #[test]
+    fn add_partitions_to_txn_from_partitions_matches_java() {
+        // Java AddPartitionsToTxnRequest.buildTxnTopicCollection:
+        // HashMap.compute by topic name, then List.add. Empty list is
+        // empty Topics. A later entry for the same name appends even
+        // when another topic sits between. Duplicate partitions for
+        // the same pair are kept (ArrayList of Partitions).
+        assert!(
+            AddPartitionsToTxnRequest::from_partitions(std::iter::empty::<(&str, i32)>())
+                .is_empty()
+        );
+        let grouped = AddPartitionsToTxnRequest::from_partitions([("a", 0), ("b", 1), ("a", 2)]);
+        assert_eq!(
+            grouped,
+            vec![
+                TxnPartitionsTopic {
+                    topic: "a".into(),
+                    partitions: vec![0, 2],
+                },
+                TxnPartitionsTopic {
+                    topic: "b".into(),
+                    partitions: vec![1],
+                },
+            ]
+        );
+        let dup = AddPartitionsToTxnRequest::from_partitions([("t", 0), ("t", 0)]);
+        assert_eq!(
+            dup,
+            vec![TxnPartitionsTopic {
+                topic: "t".into(),
+                partitions: vec![0, 0],
+            }]
+        );
+        let mut buf = BytesMut::new();
+        encode_add_partitions_to_txn_request(&mut buf, 0, "tx", 9, 1, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_add_partitions_to_txn_request(&mut cur, 0).unwrap().3;
+        assert_eq!(decoded, grouped);
+        assert!(
+            !cur.has_remaining(),
+            "AddPartitionsToTxn v0 from_partitions leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_add_partitions_to_txn_request(&mut buf, 3, "tx", 9, 1, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_add_partitions_to_txn_request(&mut cur, 3).unwrap().3;
+        assert_eq!(decoded, grouped);
+        assert!(
+            !cur.has_remaining(),
+            "AddPartitionsToTxn v3 from_partitions leftover-empty; leftover {} bytes",
             cur.remaining()
         );
     }

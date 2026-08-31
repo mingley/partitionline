@@ -575,7 +575,11 @@
 //! JSON default (`0`);
 //! [`protocol::txn::AddPartitionsToTxnRequest::partitions`] is Java
 //! `AddPartitionsToTxnRequest.getPartitions` (each `(topic, partition)`
-//! in request order)), AddOffsetsToTxn v0–v4
+//! in request order);
+//! [`protocol::txn::AddPartitionsToTxnRequest::from_partitions`] is Java
+//! `AddPartitionsToTxnRequest.buildTxnTopicCollection` (group by name;
+//! a later entry for the same topic appends; first-seen topic order;
+//! duplicate pairs kept)), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE;
 //! [`protocol::txn::AddOffsetsToTxnResponse::should_client_throttle`] is Java
 //! `AddOffsetsToTxnResponse.shouldClientThrottle` (v1+)), EndTxn v0–v5
