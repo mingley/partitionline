@@ -858,7 +858,10 @@
 //! `PushTelemetryRequest.getErrorResponse` (ThrottleTimeMs JSON `0+`;
 //! convenience fills `0`);
 //! [`protocol::admin::PushTelemetryRequest::metrics_content_type`] is Java
-//! `PushTelemetryRequest.metricsContentType` (`OTLP`)),
+//! `PushTelemetryRequest.metricsContentType` (`OTLP`);
+//! [`protocol::admin::PushTelemetryRequest::metrics_data`] is Java
+//! `PushTelemetryRequest.metricsData` (`NONE` returns stored bytes; gzip /
+//! snappy / lz4 decompress; zstd is not spoken)),
 //! AssignReplicasToDirs v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::AssignReplicasToDirsRequest::error_response`] is Java
 //! `AssignReplicasToDirsRequest.getErrorResponse` (empty Directories;

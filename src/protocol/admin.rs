@@ -9,6 +9,7 @@ use std::fmt;
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
+use super::records::Compression;
 use crate::error::{ApiError, Error, Result};
 
 /// Kafka SCRAM mechanism id (KIP-554 / `ScramMechanism`).
@@ -13416,10 +13417,33 @@ impl PushTelemetryRequest {
     ///
     /// Currently always `"OTLP"` (KIP-714; the request has no
     /// content-type field). This is not [`Self::error_response`] /
-    /// `metricsData`.
+    /// [`Self::metrics_data`].
     #[must_use]
     pub const fn metrics_content_type(&self) -> &'static str {
         "OTLP"
+    }
+
+    /// Java `PushTelemetryRequest.metricsData`.
+    ///
+    /// `CompressionType.NONE` returns the stored metrics bytes. gzip /
+    /// snappy / lz4 decompress via the record codecs (Java
+    /// `ClientTelemetryUtils.decompress`). Unknown ids are Java
+    /// `IllegalArgumentException` (`Unknown compression type id: {id}`).
+    /// zstd (`4`) is not spoken (Java `CompressionType.forId` returns
+    /// `ZSTD`). Decompress failures are Java
+    /// `KafkaException("Failed to decompress metrics data")`. This is
+    /// not [`Self::metrics_content_type`] / [`Self::error_response`].
+    pub fn metrics_data(&self) -> Result<Vec<u8>> {
+        let id = i32::from(self.compression_type);
+        match Compression::from_id(id) {
+            Some(Compression::None) => Ok(self.metrics.clone()),
+            Some(codec) => codec
+                .codec_decompress(&self.metrics)
+                .map_err(|_| Error::protocol("Failed to decompress metrics data")),
+            None => Err(Error::protocol(format!(
+                "Unknown compression type id: {id}"
+            ))),
+        }
     }
 
     /// Java `PushTelemetryRequest.getErrorResponse`.
@@ -29469,9 +29493,8 @@ mod tests {
         // Java 4.0 PushTelemetryRequest.metricsContentType returns
         // "OTLP" (KIP-714; the request has no content-type field).
         // Official Java PushTelemetryRequest.metricsContentType.
-        // Java metricsData (decompress via CompressionType.forId) is
-        // not mapped. This crate speaks 0. This is not getErrorResponse
-        // / errorCounts.
+        // This crate speaks 0. This is not getErrorResponse / errorCounts
+        // / metricsData.
         let req = PushTelemetryRequest::new([0x11; 16], 1, false, 0, Vec::new());
         assert_eq!(req.metrics_content_type(), "OTLP");
         let mut buf = BytesMut::new();
@@ -29484,6 +29507,81 @@ mod tests {
             cur.is_empty(),
             "PushTelemetry v0 metricsContentType leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn push_telemetry_request_metrics_data_matches_java() {
+        // Java 4.0 PushTelemetryRequest.metricsData: CompressionType.forId
+        // then NONE returns data.metrics(), else
+        // ClientTelemetryUtils.decompress. Official Java
+        // PushTelemetryRequest.metricsData. Unknown ids are
+        // IllegalArgumentException ("Unknown compression type id: {id}").
+        // zstd (4) is not spoken. This crate speaks 0. This is not
+        // metricsContentType / getErrorResponse / errorCounts.
+        let none = PushTelemetryRequest::new([0x11; 16], 1, false, 0, b"m".to_vec());
+        assert_eq!(none.metrics_data().unwrap(), b"m");
+        let mut buf = BytesMut::new();
+        encode_push_telemetry_request(&mut buf, &none).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_push_telemetry_request(&mut cur).unwrap();
+        assert_eq!(decoded, none);
+        assert_eq!(decoded.metrics_data().unwrap(), b"m");
+        assert!(
+            cur.is_empty(),
+            "PushTelemetry v0 metricsData leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        for codec in [
+            crate::protocol::records::Compression::Gzip,
+            crate::protocol::records::Compression::Snappy,
+            crate::protocol::records::Compression::Lz4,
+        ] {
+            let compressed = codec.codec_compress(b"m").unwrap();
+            let req =
+                PushTelemetryRequest::new([0x11; 16], 1, false, codec.id(), compressed.clone());
+            assert_eq!(req.metrics_data().unwrap(), b"m");
+            buf.clear();
+            encode_push_telemetry_request(&mut buf, &req).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_push_telemetry_request(&mut cur).unwrap();
+            assert_eq!(decoded.metrics(), compressed);
+            assert_eq!(decoded.metrics_data().unwrap(), b"m");
+            assert!(
+                cur.is_empty(),
+                "PushTelemetry v0 metricsData leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+
+        let unknown = PushTelemetryRequest::new([0x11; 16], 1, false, 99, b"m".to_vec());
+        let err = unknown.metrics_data().unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "unknown CompressionType.forId is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("Unknown compression type id: 99"),
+            "got {err}"
+        );
+        let zstd = PushTelemetryRequest::new([0x11; 16], 1, false, 4, b"m".to_vec());
+        let zstd_err = zstd.metrics_data().unwrap_err();
+        assert!(
+            matches!(zstd_err, Error::Protocol(_)),
+            "zstd is not spoken; Java CompressionType.forId returns ZSTD, got {zstd_err}"
+        );
+        let bad = PushTelemetryRequest::new([0x11; 16], 1, false, 1, b"not-gzip".to_vec());
+        let bad_err = bad.metrics_data().unwrap_err();
+        assert!(
+            matches!(bad_err, Error::Protocol(_)),
+            "decompress failure is Java KafkaException, got {bad_err}"
+        );
+        assert!(
+            bad_err
+                .to_string()
+                .contains("Failed to decompress metrics data"),
+            "got {bad_err}"
         );
     }
 

@@ -297,6 +297,27 @@ impl Compression {
             other => Err(other.levels_unsupported()),
         }
     }
+
+    /// Compress a payload the way record batches / PushTelemetry do.
+    #[cfg(test)]
+    pub(crate) fn codec_compress(self, src: &[u8]) -> Result<Vec<u8>> {
+        match self {
+            Self::None => Ok(src.to_vec()),
+            Self::Gzip => gzip_compress(src),
+            Self::Snappy => snappy_compress(src),
+            Self::Lz4 => lz4_compress(src),
+        }
+    }
+
+    /// Decompress a payload the way record batches / PushTelemetry do.
+    pub(crate) fn codec_decompress(self, src: &[u8]) -> Result<Vec<u8>> {
+        match self {
+            Self::None => Ok(src.to_vec()),
+            Self::Gzip => gzip_decompress(src),
+            Self::Snappy => snappy_decompress(src),
+            Self::Lz4 => lz4_decompress(src),
+        }
+    }
 }
 
 impl fmt::Display for Compression {
