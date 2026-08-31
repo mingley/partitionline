@@ -982,6 +982,7 @@ impl ShareGroup {
                         .into_iter()
                         .map(|p| ShareFetchPartition {
                             partition: p,
+                            partition_max_bytes: 1_048_576,
                             acknowledgements: Vec::new(),
                         })
                         .collect(),

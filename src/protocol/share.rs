@@ -87,10 +87,19 @@ pub struct AcknowledgementBatch {
 }
 
 /// One partition in a ShareFetch request.
+///
+/// [`Self::partition_max_bytes`] is Java `PartitionMaxBytes` (v0). v1
+/// omits the field (decode fills `0`). Encode writes this value on v0,
+/// not the request-level MaxBytes. [`ShareFetchRequest::for_consumer`]
+/// fills it from `fetchSize` (or `0` for ack-only partitions when the
+/// share session is closing).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareFetchPartition {
     /// Partition index.
     pub partition: i32,
+    /// Java `ShareFetchRequestData.FetchPartition.partitionMaxBytes` (v0).
+    /// v1 omits the field; decode fills `0`.
+    pub partition_max_bytes: i32,
     /// Acknowledgements piggybacked on this fetch.
     pub acknowledgements: Vec<AcknowledgementBatch>,
 }
@@ -186,6 +195,133 @@ impl ShareFetchRequest {
             }
         }
         out
+    }
+
+    /// Java `ShareFetchRequest.shareFetchData`.
+    ///
+    /// Looks up each topic id in `topic_names` (`None` when missing; Java
+    /// still inserts that `TopicIdPartition`). Values are
+    /// `PartitionMaxBytes` (Java `SharePartitionData.maxBytes`). A later
+    /// partition overwrites the same triple (Java `LinkedHashMap.put`).
+    /// Unlike [`ShareFetchResponse::response_data`], a missing name is
+    /// not skipped. Distinct from [`Self::forgotten_topics`], which
+    /// keeps duplicate partitions (`ArrayList`).
+    #[must_use]
+    pub fn share_fetch_data(
+        topics: &[ShareFetchTopic],
+        topic_names: &HashMap<[u8; 16], String>,
+    ) -> HashMap<([u8; 16], Option<String>, i32), i32> {
+        let mut share_fetch_data = HashMap::new();
+        for topic in topics {
+            let name = topic_names.get(&topic.topic_id).cloned();
+            for partition in &topic.partitions {
+                let _prev = share_fetch_data.insert(
+                    (topic.topic_id, name.clone(), partition.partition),
+                    partition.partition_max_bytes,
+                );
+            }
+        }
+        share_fetch_data
+    }
+
+    /// Java `ShareFetchRequest.Builder.forConsumer` Topics.
+    ///
+    /// Groups send partitions and piggybacked acknowledgements by topic
+    /// id (Java `HashMap`; first-seen id order — `HashMap.forEach`
+    /// order is unspecified). A later partition for the same id appends
+    /// in first-seen partition order. Duplicate `(id, partition)` on
+    /// send **replaces** the partition body (Java `HashMap.put`, last
+    /// wins). An acknowledgement for an existing partition replaces the
+    /// batches (`setAcknowledgementBatches`) and keeps that partition's
+    /// `PartitionMaxBytes`. An acknowledgement-only partition uses
+    /// `fetch_size`, or `0` when `is_closing_share_session` (Java
+    /// `ShareRequestMetadata.isFinalEpoch`). Closing skips the send
+    /// list. Empty is empty Topics. Topic name is not used (Java
+    /// `TopicIdPartition.topicId` / `partition` only). GroupId,
+    /// MemberId, ShareSessionEpoch, MaxWaitMs / MinBytes / MaxBytes,
+    /// and ForgottenTopicsData stay with the encode caller.
+    /// [`Self::update_forgotten_data`] is the forget-list half.
+    /// Encode writes each partition's `partition_max_bytes` on v0.
+    /// Distinct from [`ShareAcknowledgeRequest::for_consumer`], which
+    /// has no send list or `PartitionMaxBytes`, and from
+    /// [`ShareFetchResponse::to_message`], which groups response bodies.
+    #[must_use]
+    pub fn for_consumer<S, A>(
+        is_closing_share_session: bool,
+        fetch_size: i32,
+        send: S,
+        acknowledgements: A,
+    ) -> Vec<ShareFetchTopic>
+    where
+        S: IntoIterator<Item = ([u8; 16], i32)>,
+        A: IntoIterator<Item = ([u8; 16], i32, Vec<AcknowledgementBatch>)>,
+    {
+        let ack_only_partition_max_bytes = if is_closing_share_session {
+            0
+        } else {
+            fetch_size
+        };
+        let mut topic_order = Vec::new();
+        let mut by_id = HashMap::new();
+        if is_closing_share_session {
+            drop(send);
+        } else {
+            for (topic_id, partition) in send {
+                let (part_order, part_map) = by_id.entry(topic_id).or_insert_with(|| {
+                    topic_order.push(topic_id);
+                    (Vec::new(), HashMap::new())
+                });
+                if part_map
+                    .insert(
+                        partition,
+                        ShareFetchPartition {
+                            partition,
+                            partition_max_bytes: fetch_size,
+                            acknowledgements: Vec::new(),
+                        },
+                    )
+                    .is_none()
+                {
+                    part_order.push(partition);
+                }
+            }
+        }
+        for (topic_id, partition, batches) in acknowledgements {
+            let (part_order, part_map) = by_id.entry(topic_id).or_insert_with(|| {
+                topic_order.push(topic_id);
+                (Vec::new(), HashMap::new())
+            });
+            if let Some(existing) = part_map.get_mut(&partition) {
+                existing.acknowledgements = batches;
+            } else {
+                part_order.push(partition);
+                let _prev = part_map.insert(
+                    partition,
+                    ShareFetchPartition {
+                        partition,
+                        partition_max_bytes: ack_only_partition_max_bytes,
+                        acknowledgements: batches,
+                    },
+                );
+            }
+        }
+        let mut topics = Vec::with_capacity(topic_order.len());
+        for topic_id in topic_order {
+            let Some((part_order, mut part_map)) = by_id.remove(&topic_id) else {
+                continue;
+            };
+            let mut partitions = Vec::with_capacity(part_order.len());
+            for partition in part_order {
+                if let Some(part) = part_map.remove(&partition) {
+                    partitions.push(part);
+                }
+            }
+            topics.push(ShareFetchTopic {
+                topic_id,
+                partitions,
+            });
+        }
+        topics
     }
 }
 
@@ -671,7 +807,10 @@ fn decode_ack_batches<B: Buf>(buf: &mut B) -> Result<Vec<AcknowledgementBatch>> 
 /// `flexibleVersions: "0+"`, `latestVersionUnstable: true`) and Kafka
 /// 4.1 JSON (`validVersions: "1"` — v0 removed). This crate speaks 0–1.
 /// v1 adds MaxRecords / BatchSize after MaxBytes and omits
-/// PartitionMaxBytes (v0 only). v2+ is not spoken.
+/// PartitionMaxBytes (v0 only). v0 PartitionMaxBytes is each partition's
+/// [`ShareFetchPartition::partition_max_bytes`] (Java
+/// `Builder.forConsumer` `fetchSize`, not request-level MaxBytes).
+/// v2+ is not spoken.
 pub fn encode_share_fetch_request(
     buf: &mut BytesMut,
     version: i16,
@@ -702,7 +841,7 @@ pub fn encode_share_fetch_request(
         for p in &t.partitions {
             buf.put_i32(p.partition);
             if version == 0 {
-                buf.put_i32(max_bytes);
+                buf.put_i32(p.partition_max_bytes);
             }
             encode_ack_batches(buf, &p.acknowledgements)?;
             if flexible {
@@ -724,7 +863,8 @@ pub fn encode_share_fetch_request(
 ///
 /// Returns `(group_id, member_id, epoch, max_records, topics)`.
 /// `max_records` is the v1 MaxRecords field; v0 omits it and decode
-/// fills `0`.
+/// fills `0`. `partition_max_bytes` is the v0 PartitionMaxBytes field;
+/// v1 omits it and decode fills `0`.
 pub fn decode_share_fetch_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -751,15 +891,14 @@ pub fn decode_share_fetch_request<B: Buf>(
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
-            if version == 0 {
-                let _partition_max_bytes = buf::get_i32(buf)?;
-            }
+            let partition_max_bytes = if version == 0 { buf::get_i32(buf)? } else { 0 };
             let acknowledgements = decode_ack_batches(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
             partitions.push(ShareFetchPartition {
                 partition,
+                partition_max_bytes,
                 acknowledgements,
             });
         }
@@ -1443,6 +1582,7 @@ mod tests {
             topic_id: [0u8; 16],
             partitions: vec![ShareFetchPartition {
                 partition: 0,
+                partition_max_bytes: 1024,
                 acknowledgements: vec![],
             }],
         }];
@@ -1456,6 +1596,10 @@ mod tests {
             ("sg", "m1", 0, 16)
         );
         assert_eq!(got[0].partitions[0].partition, 0);
+        assert_eq!(
+            got[0].partitions[0].partition_max_bytes, 0,
+            "v1 omits PartitionMaxBytes; decode fills 0"
+        );
         assert!(!cur.has_remaining(), "v1 request leftover-empty");
 
         buf.clear();
@@ -1623,6 +1767,7 @@ mod tests {
             topic_id: [0u8; 16],
             partitions: vec![ShareFetchPartition {
                 partition: 0,
+                partition_max_bytes: 1024,
                 acknowledgements: vec![],
             }],
         }];
@@ -1645,6 +1790,10 @@ mod tests {
             "v0 omits MaxRecords; decode fills 0"
         );
         assert_eq!(got[0].partitions[0].partition, 0);
+        assert_eq!(
+            got[0].partitions[0].partition_max_bytes, 1024,
+            "v0 stores PartitionMaxBytes"
+        );
         assert!(!cur.has_remaining(), "v0 request leftover-empty");
         let err = encode_share_fetch_request(
             &mut BytesMut::new(),
@@ -2212,6 +2361,7 @@ mod tests {
             topic_id,
             partitions: vec![ShareFetchPartition {
                 partition: 0,
+                partition_max_bytes: 1024,
                 acknowledgements: vec![],
             }],
         }];
@@ -2302,6 +2452,7 @@ mod tests {
             topic_id: id_a,
             partitions: vec![ShareFetchPartition {
                 partition: 0,
+                partition_max_bytes: 1024,
                 acknowledgements: vec![],
             }],
         }];
@@ -2335,6 +2486,264 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn share_fetch_request_for_consumer_matches_java() {
+        // Java ShareFetchRequest.Builder.forConsumer: HashMap by topicId,
+        // inner HashMap by partitionIndex. Send last-wins the partition
+        // body. Acks replace batches on an existing partition and keep
+        // PartitionMaxBytes. Closing skips send; ack-only max bytes is 0.
+        // Empty is empty Topics. Intervening ids still merge. Topic name
+        // is not used.
+        assert!(ShareFetchRequest::for_consumer(
+            false,
+            1024,
+            std::iter::empty::<([u8; 16], i32)>(),
+            std::iter::empty::<([u8; 16], i32, Vec<AcknowledgementBatch>)>(),
+        )
+        .is_empty());
+        let a = [1u8; 16];
+        let b = [2u8; 16];
+        let b0 = AcknowledgementBatch {
+            first_offset: 0,
+            last_offset: 1,
+            types: vec![ACK_ACCEPT],
+        };
+        let b1 = AcknowledgementBatch {
+            first_offset: 2,
+            last_offset: 3,
+            types: vec![ACK_RELEASE],
+        };
+        let grouped = ShareFetchRequest::for_consumer(
+            false,
+            1024,
+            [(a, 0), (b, 1), (a, 2)],
+            std::iter::empty::<([u8; 16], i32, Vec<AcknowledgementBatch>)>(),
+        );
+        assert_eq!(
+            grouped,
+            vec![
+                ShareFetchTopic {
+                    topic_id: a,
+                    partitions: vec![
+                        ShareFetchPartition {
+                            partition: 0,
+                            partition_max_bytes: 1024,
+                            acknowledgements: vec![],
+                        },
+                        ShareFetchPartition {
+                            partition: 2,
+                            partition_max_bytes: 1024,
+                            acknowledgements: vec![],
+                        },
+                    ],
+                },
+                ShareFetchTopic {
+                    topic_id: b,
+                    partitions: vec![ShareFetchPartition {
+                        partition: 1,
+                        partition_max_bytes: 1024,
+                        acknowledgements: vec![],
+                    }],
+                },
+            ]
+        );
+        let last_wins = ShareFetchRequest::for_consumer(
+            false,
+            2048,
+            [(a, 0), (a, 0)],
+            std::iter::empty::<([u8; 16], i32, Vec<AcknowledgementBatch>)>(),
+        );
+        assert_eq!(
+            last_wins,
+            vec![ShareFetchTopic {
+                topic_id: a,
+                partitions: vec![ShareFetchPartition {
+                    partition: 0,
+                    partition_max_bytes: 2048,
+                    acknowledgements: vec![],
+                }],
+            }]
+        );
+        let with_acks = ShareFetchRequest::for_consumer(
+            false,
+            1024,
+            [(a, 0)],
+            [(a, 0, vec![b0.clone()]), (a, 1, vec![b1.clone()])],
+        );
+        assert_eq!(
+            with_acks,
+            vec![ShareFetchTopic {
+                topic_id: a,
+                partitions: vec![
+                    ShareFetchPartition {
+                        partition: 0,
+                        partition_max_bytes: 1024,
+                        acknowledgements: vec![b0.clone()],
+                    },
+                    ShareFetchPartition {
+                        partition: 1,
+                        partition_max_bytes: 1024,
+                        acknowledgements: vec![b1.clone()],
+                    },
+                ],
+            }]
+        );
+        let ack_last_wins = ShareFetchRequest::for_consumer(
+            false,
+            1024,
+            [(a, 0)],
+            [(a, 0, vec![b0.clone()]), (a, 0, vec![b1.clone()])],
+        );
+        assert_eq!(
+            ack_last_wins
+                .first()
+                .and_then(|topic| topic.partitions.first())
+                .map(|part| part.acknowledgements.as_slice()),
+            Some(std::slice::from_ref(&b1))
+        );
+        let closing = ShareFetchRequest::for_consumer(
+            true,
+            1024,
+            [(a, 0), (b, 1)],
+            [(a, 0, vec![b0.clone()])],
+        );
+        assert_eq!(
+            closing,
+            vec![ShareFetchTopic {
+                topic_id: a,
+                partitions: vec![ShareFetchPartition {
+                    partition: 0,
+                    partition_max_bytes: 0,
+                    acknowledgements: vec![b0],
+                }],
+            }],
+            "closing skips send; ack-only PartitionMaxBytes is 0"
+        );
+        leftover_share_fetch_for_consumer(0, &grouped);
+        leftover_share_fetch_for_consumer(0, &[]);
+        leftover_share_fetch_for_consumer(1, &grouped);
+        leftover_share_fetch_for_consumer(1, &[]);
+    }
+
+    fn leftover_share_fetch_for_consumer(version: i16, topics: &[ShareFetchTopic]) {
+        let mut buf = BytesMut::new();
+        encode_share_fetch_request(&mut buf, version, "g", "m", 1, 10, 1, 1024, 16, topics)
+            .unwrap();
+        let mut cur = buf.as_ref();
+        let (gid, mid, epoch, _max, decoded) =
+            decode_share_fetch_request(&mut cur, version).unwrap();
+        assert_eq!(gid, "g");
+        assert_eq!(mid, "m");
+        assert_eq!(epoch, 1);
+        if version == 0 {
+            assert_eq!(decoded.as_slice(), topics);
+        } else {
+            let zeroed: Vec<ShareFetchTopic> = topics
+                .iter()
+                .map(|topic| ShareFetchTopic {
+                    topic_id: topic.topic_id,
+                    partitions: topic
+                        .partitions
+                        .iter()
+                        .map(|part| ShareFetchPartition {
+                            partition: part.partition,
+                            partition_max_bytes: 0,
+                            acknowledgements: part.acknowledgements.clone(),
+                        })
+                        .collect(),
+                })
+                .collect();
+            assert_eq!(decoded, zeroed);
+        }
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            !cur.has_remaining(),
+            "ShareFetch v{version} Builder.forConsumer {empty}leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+    }
+
+    #[test]
+    fn share_fetch_request_share_fetch_data_matches_java() {
+        // Java ShareFetchRequest.shareFetchData: LinkedHashMap by
+        // TopicIdPartition. Missing name is still inserted (null). Last
+        // partition overwrites. Values are PartitionMaxBytes.
+        assert!(ShareFetchRequest::share_fetch_data(&[], &HashMap::new()).is_empty());
+        let a = [1u8; 16];
+        let b = [2u8; 16];
+        let topics = vec![
+            ShareFetchTopic {
+                topic_id: a,
+                partitions: vec![
+                    ShareFetchPartition {
+                        partition: 0,
+                        partition_max_bytes: 1024,
+                        acknowledgements: vec![],
+                    },
+                    ShareFetchPartition {
+                        partition: 0,
+                        partition_max_bytes: 2048,
+                        acknowledgements: vec![],
+                    },
+                    ShareFetchPartition {
+                        partition: 1,
+                        partition_max_bytes: 512,
+                        acknowledgements: vec![],
+                    },
+                ],
+            },
+            ShareFetchTopic {
+                topic_id: b,
+                partitions: vec![ShareFetchPartition {
+                    partition: 2,
+                    partition_max_bytes: 256,
+                    acknowledgements: vec![],
+                }],
+            },
+        ];
+        let empty_names = HashMap::new();
+        let unresolved = ShareFetchRequest::share_fetch_data(&topics, &empty_names);
+        assert_eq!(
+            unresolved,
+            HashMap::from([
+                ((a, None, 0), 2048),
+                ((a, None, 1), 512),
+                ((b, None, 2), 256),
+            ]),
+            "missing name is still inserted; later partition overwrites"
+        );
+        let names = HashMap::from([(a, "t".into()), (b, "u".into())]);
+        assert_eq!(
+            ShareFetchRequest::share_fetch_data(&topics, &names),
+            HashMap::from([
+                ((a, Some("t".into()), 0), 2048),
+                ((a, Some("t".into()), 1), 512),
+                ((b, Some("u".into()), 2), 256),
+            ])
+        );
+        leftover_share_fetch_share_fetch_data(0, &topics);
+        leftover_share_fetch_share_fetch_data(0, &[]);
+        leftover_share_fetch_share_fetch_data(1, &topics);
+        leftover_share_fetch_share_fetch_data(1, &[]);
+    }
+
+    fn leftover_share_fetch_share_fetch_data(version: i16, topics: &[ShareFetchTopic]) {
+        let mut buf = BytesMut::new();
+        encode_share_fetch_request(&mut buf, version, "g", "m", 1, 10, 1, 1024, 16, topics)
+            .unwrap();
+        let mut cur = buf.as_ref();
+        let (_gid, _mid, _epoch, _max, decoded) =
+            decode_share_fetch_request(&mut cur, version).unwrap();
+        let names = HashMap::new();
+        let _got = ShareFetchRequest::share_fetch_data(&decoded, &names);
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            !cur.has_remaining(),
+            "ShareFetch v{version} shareFetchData {empty}leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
     }
 
     #[test]

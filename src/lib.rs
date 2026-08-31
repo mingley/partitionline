@@ -393,6 +393,15 @@
 //! first-seen id order; later partitions append; grouped entries are
 //! appended to the existing list, including a second entry for the same
 //! id; encode still writes empty ForgottenTopicsData);
+//! [`protocol::share::ShareFetchRequest::share_fetch_data`] is Java
+//! `ShareFetchRequest.shareFetchData` (looks up `topic_id` and keeps a
+//! missing name as `None`; values are `PartitionMaxBytes`; a later
+//! partition overwrites);
+//! [`protocol::share::ShareFetchRequest::for_consumer`] is Java
+//! `ShareFetchRequest.Builder.forConsumer` Topics (group by topic id;
+//! first-seen id and partition order; send last-wins the partition body;
+//! acks replace batches on an existing partition; closing skips send and
+//! zeros ack-only `PartitionMaxBytes`);
 //! [`protocol::share::ShareFetchResponse::to_message`] is Java
 //! `ShareFetchResponse.toMessage` Responses (group by `topic_id` in
 //! first-seen order; key partition overwrites the body);
