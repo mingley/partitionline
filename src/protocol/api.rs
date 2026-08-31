@@ -1116,6 +1116,9 @@ pub struct MetadataResponse {
     pub controller_id: i32,
     /// Topics.
     pub topics: Vec<TopicMetadata>,
+    /// Cluster authorized operations (JSON `8-10`; default
+    /// [`Self::AUTHORIZED_OPERATIONS_OMITTED`]).
+    pub cluster_authorized_operations: i32,
     /// Top-level error (v13+). `0` on v1–v12.
     pub error_code: i16,
 }
@@ -1227,6 +1230,12 @@ impl MetadataResponse {
             .iter()
             .find(|topic| topic.name.as_deref() == Some(topic_name))
             .map(|topic| topic.topic_authorized_operations)
+    }
+
+    /// Java `MetadataResponse.clusterAuthorizedOperations`.
+    #[must_use]
+    pub fn cluster_authorized_operations(&self) -> i32 {
+        self.cluster_authorized_operations
     }
 
     /// Java `MetadataResponse.brokersById`.
@@ -1376,7 +1385,9 @@ impl MetadataRequest {
     /// duplicate names are kept). Brokers / ClusterId stay empty;
     /// ControllerId is [`MetadataResponse::NO_CONTROLLER_ID`]. Top-level
     /// ErrorCode (Metadata v13) is the same `error_code`. Throttle is the
-    /// JSON default (`0`). Distinct from [`MetadataRequestTopic::error_result`],
+    /// JSON default (`0`). ClusterAuthorizedOperations stays the JSON
+    /// default ([`MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED`]). Distinct
+    /// from [`MetadataRequestTopic::error_result`],
     /// which is one topic. Java constructs
     /// `new MetadataResponse(data, true)`, so `hasReliableLeaderEpochs` is
     /// true even below Metadata v9; this crate does not store that flag on
@@ -1397,6 +1408,7 @@ impl MetadataRequest {
                 .iter()
                 .map(|topic| topic.error_result(error_code))
                 .collect(),
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             error_code,
         }
     }
@@ -1686,9 +1698,11 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
             topic_authorized_operations,
         });
     }
-    if (8..=10).contains(&version) {
-        let _cluster_authorized = buf::get_i32(buf)?;
-    }
+    let cluster_authorized_operations = if (8..=10).contains(&version) {
+        buf::get_i32(buf)?
+    } else {
+        MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+    };
     let error_code = if version >= 13 { buf::get_i16(buf)? } else { 0 };
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -1699,6 +1713,7 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
         cluster_id,
         controller_id,
         topics,
+        cluster_authorized_operations,
         error_code,
     })
 }
@@ -1766,7 +1781,7 @@ pub fn encode_metadata_response(
         }
     }
     if (8..=10).contains(&version) {
-        buf.put_i32(MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED);
+        buf.put_i32(resp.cluster_authorized_operations);
     }
     if version >= 13 {
         buf.put_i16(resp.error_code);
@@ -4081,6 +4096,7 @@ mod tests {
                 }],
                 topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             error_code: 0,
         };
         let mut buf = BytesMut::new();
@@ -4111,6 +4127,7 @@ mod tests {
             cluster_id: None,
             controller_id: MetadataResponse::NO_CONTROLLER_ID,
             topics: Vec::new(),
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
         };
         assert_eq!(resp.controller_id, MetadataResponse::NO_CONTROLLER_ID);
@@ -4217,6 +4234,7 @@ mod tests {
                 cluster_id: None,
                 controller_id: MetadataResponse::NO_CONTROLLER_ID,
                 topics,
+                cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
                 error_code: 0,
             }
         }
@@ -4374,6 +4392,7 @@ mod tests {
                 ),
                 topic(0, None, vec![0], 7),
             ],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             error_code: crate::error::TOPIC_AUTHORIZATION_FAILED,
         };
         assert_eq!(
@@ -4403,6 +4422,7 @@ mod tests {
             cluster_id: None,
             controller_id: 1,
             topics: Vec::new(),
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             error_code: 0,
         };
         assert_eq!(resp.brokers_by_id(), HashMap::from([(1, a), (3, b)]));
@@ -4412,6 +4432,7 @@ mod tests {
             cluster_id: None,
             controller_id: MetadataResponse::NO_CONTROLLER_ID,
             topics: Vec::new(),
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             error_code: 0,
         };
         assert!(empty.brokers_by_id().is_empty());
@@ -4445,6 +4466,7 @@ mod tests {
                 }],
                 topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             error_code: 0,
         };
         let mut buf = BytesMut::new();
@@ -4618,6 +4640,7 @@ mod tests {
             cluster_id: None,
             controller_id: MetadataResponse::NO_CONTROLLER_ID,
             topics: vec![named_err, id_err],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
         };
         let mut buf = BytesMut::new();
@@ -4642,12 +4665,17 @@ mod tests {
         // Topics (not all-topics). Each topic is error_result (null Name
         // becomes empty; duplicates are kept). Brokers stay empty.
         // Top-level ErrorCode is the same code. Throttle is the JSON
-        // default (0). Java new MetadataResponse(data, true) forces
-        // hasReliableLeaderEpochs true even below v9.
+        // default (0). ClusterAuthorizedOperations stays the JSON default
+        // (AUTHORIZED_OPERATIONS_OMITTED). Java new MetadataResponse(data,
+        // true) forces hasReliableLeaderEpochs true even below v9.
         let code = crate::error::UNKNOWN_TOPIC_OR_PARTITION;
         let none = MetadataRequest::error_response(None, code);
         assert_eq!(none.error_code, code);
         assert_eq!(none.throttle_time_ms, 0);
+        assert_eq!(
+            none.cluster_authorized_operations(),
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
         assert!(none.brokers.is_empty());
         assert!(none.cluster_id.is_none());
         assert_eq!(none.controller_id, MetadataResponse::NO_CONTROLLER_ID);
@@ -4678,6 +4706,130 @@ mod tests {
         leftover_metadata_error_response(13, None);
     }
 
+    #[test]
+    fn metadata_response_cluster_authorized_operations_matches_java() {
+        // Kafka 4.0.0 MetadataResponse.json ClusterAuthorizedOperations is
+        // versions 8-10 (INT32 after Topics / before ErrorCode; default
+        // AUTHORIZED_OPERATIONS_OMITTED / i32::MIN). Official Java
+        // MetadataResponse.clusterAuthorizedOperations /
+        // MetadataResponseData.clusterAuthorizedOperations. Encode
+        // previously always wrote AUTHORIZED_OPERATIONS_OMITTED. Decode
+        // previously discarded it. Kafka 4.0 validVersions is 0-13. This
+        // crate speaks 1–13. This is not TopicAuthorizedOperations /
+        // DescribeCluster cluster_authorized_operations /
+        // IncludeTopicAuthorizedOperations.
+        fn empty(ops: i32) -> MetadataResponse {
+            MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: Vec::new(),
+                cluster_id: None,
+                controller_id: MetadataResponse::NO_CONTROLLER_ID,
+                topics: Vec::new(),
+                cluster_authorized_operations: ops,
+                error_code: 0,
+            }
+        }
+        let with = empty(1);
+        let omitted = empty(MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED);
+        assert_eq!(with.cluster_authorized_operations(), 1);
+        assert_eq!(
+            omitted.cluster_authorized_operations(),
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert_eq!(
+            MetadataRequest::error_response(None, 0).cluster_authorized_operations(),
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            "Java MetadataRequest.getErrorResponse does not set ClusterAuthorizedOperations"
+        );
+
+        for version in [8_i16, 9, 10] {
+            let mut buf = BytesMut::new();
+            encode_metadata_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_metadata_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.cluster_authorized_operations(), 1);
+            assert_eq!(decoded, with);
+            assert!(
+                cur.is_empty(),
+                "Metadata v{version} ClusterAuthorizedOperations leftover-empty"
+            );
+        }
+
+        for version in [1_i16, 2, 3, 4, 5, 6, 7, 11, 12, 13] {
+            let mut buf = BytesMut::new();
+            encode_metadata_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_metadata_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, omitted);
+            assert_eq!(
+                decoded.cluster_authorized_operations(),
+                MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                "Metadata v{version} omits ClusterAuthorizedOperations even when the body is non-default"
+            );
+            assert!(
+                cur.is_empty(),
+                "Metadata v{version} ClusterAuthorizedOperations leftover-empty"
+            );
+            let mut omit_buf = BytesMut::new();
+            encode_metadata_response(&mut omit_buf, version, &omitted).unwrap();
+            assert_eq!(
+                &buf[..],
+                &omit_buf[..],
+                "Metadata v{version} encode omits ClusterAuthorizedOperations even when the body is non-default"
+            );
+        }
+
+        let mut v8_with = BytesMut::new();
+        encode_metadata_response(&mut v8_with, 8, &with).unwrap();
+        let mut v8_omit = BytesMut::new();
+        encode_metadata_response(&mut v8_omit, 8, &omitted).unwrap();
+        assert_ne!(
+            &v8_with[..],
+            &v8_omit[..],
+            "v8 ClusterAuthorizedOperations is not always the JSON default AUTHORIZED_OPERATIONS_OMITTED"
+        );
+        assert_eq!(
+            v8_with.get(18..22),
+            Some([0, 0, 0, 1].as_slice()),
+            "v8 classic ClusterAuthorizedOperations follows empty Topics"
+        );
+        assert_eq!(
+            v8_omit.get(18..22),
+            Some([0x80, 0, 0, 0].as_slice()),
+            "v8 classic ClusterAuthorizedOperations JSON default is AUTHORIZED_OPERATIONS_OMITTED"
+        );
+
+        let mut v7_with = BytesMut::new();
+        encode_metadata_response(&mut v7_with, 7, &with).unwrap();
+        assert_ne!(
+            &v7_with[..],
+            &v8_with[..],
+            "v8 adds ClusterAuthorizedOperations after Topics"
+        );
+
+        let mut v9_with = BytesMut::new();
+        encode_metadata_response(&mut v9_with, 9, &with).unwrap();
+        assert_ne!(
+            &v8_with[..],
+            &v9_with[..],
+            "v9 adds compact arrays/strings and tagged fields"
+        );
+        let mut v10_with = BytesMut::new();
+        encode_metadata_response(&mut v10_with, 10, &with).unwrap();
+        assert_eq!(
+            &v9_with[..],
+            &v10_with[..],
+            "empty-Topics ClusterAuthorizedOperations bodies: v9 == v10"
+        );
+        let mut v11_with = BytesMut::new();
+        encode_metadata_response(&mut v11_with, 11, &with).unwrap();
+        assert_ne!(
+            &v10_with[..],
+            &v11_with[..],
+            "v11 drops ClusterAuthorizedOperations"
+        );
+    }
+
     fn leftover_metadata_error_response(version: i16, topics: Option<&[MetadataRequestTopic]>) {
         let resp =
             MetadataRequest::error_response(topics, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
@@ -4700,6 +4852,10 @@ mod tests {
         assert_eq!(decoded.topics, resp.topics);
         assert!(decoded.brokers.is_empty());
         assert_eq!(decoded.controller_id, MetadataResponse::NO_CONTROLLER_ID);
+        assert_eq!(
+            decoded.cluster_authorized_operations(),
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
         if version >= 13 {
             assert_eq!(decoded.error_code, resp.error_code);
         } else {

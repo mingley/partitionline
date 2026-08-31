@@ -1017,6 +1017,7 @@ fn metadata_for(
                 )
             })
             .collect(),
+        cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
         error_code: 0,
     }
 }
@@ -1063,6 +1064,7 @@ fn metadata_for_ids(
         cluster_id: Some("mock".into()),
         controller_id,
         topics,
+        cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
         error_code: 0,
     }
 }

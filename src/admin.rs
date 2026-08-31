@@ -13317,6 +13317,7 @@ mod tests {
                     topic_authorized_operations: i32::MIN,
                 },
             ],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             error_code: 0,
         };
         let listed = topic_listings_from(&md, true);
