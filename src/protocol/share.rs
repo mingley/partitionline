@@ -1221,7 +1221,10 @@ fn decode_leader<B: Buf>(buf: &mut B) -> Result<(i32, i32)> {
 /// ([`encode_share_fetch_response_with_acquisition_lock_timeout`]; this
 /// helper still writes 15000 on v1). Top-level ErrorCode is JSON `0+`
 /// ([`encode_share_fetch_response_with_error_code`]; this helper still
-/// writes `0`).
+/// writes `0`). Records is JSON `records` (Kafka 4.0 `nullableVersions`
+/// `0+`; Kafka 4.1 `nullableVersions` `0` only). This helper always
+/// writes empty as compact non-null (Java `toMessage` /
+/// `MemoryRecords.EMPTY`), not null.
 pub fn encode_share_fetch_response(
     buf: &mut BytesMut,
     version: i16,
@@ -1409,7 +1412,12 @@ fn encode_share_fetch_response_full(
 /// (nullable compact STRING). AcquisitionLockTimeoutMs is JSON `1+`
 /// (INT32 after ErrorMessage). v0 omits it; decode fills `0`. ErrorCode
 /// is JSON `0+` (INT16 after ThrottleTimeMs). Decode does not fail on a
-/// non-zero top-level ErrorCode; callers decide.
+/// non-zero top-level ErrorCode; callers decide. Records is JSON
+/// `records`. Kafka 4.0 `nullableVersions` is `0+`; Kafka 4.1
+/// `nullableVersions` is `0` only (v1 not nullable). Compact null is
+/// empty on v0 (Java `recordsOrFail` / `MemoryRecords.EMPTY`). v1 null
+/// is [`Error::protocol`] (Java generated `non-nullable field records
+/// was serialized as null`). Encode still writes empty, not null.
 #[expect(
     clippy::type_complexity,
     reason = "ShareFetch response decode returns topics, node endpoints, throttle, ErrorMessage, AcquisitionLockTimeoutMs, and ErrorCode together"
@@ -1443,10 +1451,19 @@ pub fn decode_share_fetch_response<B: Buf>(
             let acknowledge_error_code = buf::get_i16(buf)?;
             let acknowledge_error_message = buf::get_string(buf, flexible)?;
             let (current_leader_id, current_leader_epoch) = decode_leader(buf)?;
-            let rec_bytes = if flexible {
-                buf::take_compact_bytes(buf)?.unwrap_or_else(Bytes::new)
+            let rec_opt = if flexible {
+                buf::take_compact_bytes(buf)?
             } else {
-                buf::take_classic_bytes(buf)?.unwrap_or_else(Bytes::new)
+                buf::take_classic_bytes(buf)?
+            };
+            let rec_bytes = match rec_opt {
+                Some(b) => b,
+                None if version == 0 => Bytes::new(),
+                None => {
+                    return Err(Error::protocol(
+                        "non-nullable field records was serialized as null",
+                    ));
+                }
             };
             let records = if rec_bytes.is_empty() {
                 Vec::new()
@@ -3623,6 +3640,94 @@ mod tests {
                 "v{version} decoded recordsSize must match"
             );
         }
+    }
+
+    fn share_fetch_records_byte_index(buf: &[u8], version: i16) -> usize {
+        let total = buf.len();
+        let mut cur = buf;
+        let _throttle = buf::get_i32(&mut cur).unwrap();
+        let _error = buf::get_i16(&mut cur).unwrap();
+        let _msg = buf::get_string(&mut cur, true).unwrap();
+        if version >= 1 {
+            let _lock = buf::get_i32(&mut cur).unwrap();
+        }
+        let n = buf::get_array_len(&mut cur, true).unwrap().unwrap_or(0);
+        assert_eq!(n, 1, "one topic");
+        let _id = buf::get_uuid(&mut cur).unwrap();
+        let pn = buf::get_array_len(&mut cur, true).unwrap().unwrap_or(0);
+        assert_eq!(pn, 1, "one partition");
+        let _partition = buf::get_i32(&mut cur).unwrap();
+        let _p_err = buf::get_i16(&mut cur).unwrap();
+        let _p_msg = buf::get_string(&mut cur, true).unwrap();
+        let _ack = buf::get_i16(&mut cur).unwrap();
+        let _ack_msg = buf::get_string(&mut cur, true).unwrap();
+        let _leader = decode_leader(&mut cur).unwrap();
+        total - cur.len()
+    }
+
+    #[test]
+    fn share_fetch_response_records_nullable_versions_matches_java() {
+        // Kafka 4.0.0 ShareFetchResponse.json Records nullableVersions is
+        // 0+. Kafka 4.1.0 nullableVersions is 0 only (v1 not nullable).
+        // Official Java toMessage / of convert null to MemoryRecords.EMPTY.
+        // parse does not. Generated decoder throws RuntimeException
+        // "non-nullable field records was serialized as null" on v1.
+        // recordsOrFail maps null to EMPTY. encode_share_fetch_response
+        // still writes empty (compact 0x01), not null (0x00). This is
+        // not Fetch Records (Fetch nullableVersions is 0+ and encode
+        // writes null when empty).
+        let topics = vec![ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchedPartition::partition_response(0, 0)],
+        }];
+        for version in [0_i16, 1] {
+            let mut empty = BytesMut::new();
+            encode_share_fetch_response(&mut empty, version, &topics).unwrap();
+            let at = share_fetch_records_byte_index(&empty, version);
+            assert_eq!(
+                empty[at], 0x01,
+                "encode_share_fetch_response still writes empty Records not null"
+            );
+            let mut null_recs = empty.clone();
+            null_recs[at] = 0x00;
+            assert_ne!(
+                &empty[..],
+                &null_recs[..],
+                "ShareFetch v{version} compact null Records is not empty"
+            );
+            if version == 0 {
+                let mut cur = null_recs.as_ref();
+                let (decoded, ..) = decode_share_fetch_response(&mut cur, version).unwrap();
+                let got = decoded
+                    .first()
+                    .and_then(|t| t.partitions.first())
+                    .expect("one partition");
+                assert!(got.records.is_empty(), "v0 null Records is empty");
+                assert_eq!(got.records_size().unwrap(), 0);
+                assert!(
+                    cur.is_empty(),
+                    "ShareFetch v{version} Records nullableVersions leftover-empty"
+                );
+            } else {
+                let mut cur = null_recs.as_ref();
+                let err = decode_share_fetch_response(&mut cur, version).unwrap_err();
+                assert!(
+                    err.to_string()
+                        .contains("non-nullable field records was serialized as null"),
+                    "v1 null Records is protocol, got {err}"
+                );
+            }
+        }
+
+        let mut v0 = BytesMut::new();
+        encode_share_fetch_response(&mut v0, 0, &topics).unwrap();
+        let mut v1 = BytesMut::new();
+        encode_share_fetch_response(&mut v1, 1, &topics).unwrap();
+        assert_ne!(
+            &v0[..],
+            &v1[..],
+            "v0 and v1 both write empty Records not null; v1 still adds AcquisitionLockTimeoutMs"
+        );
     }
 
     #[test]

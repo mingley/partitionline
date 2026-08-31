@@ -445,6 +445,8 @@
 //! MaxWaitMs is JSON `0+` (decode returns it; encode already takes `max_wait_ms`);
 //! MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`);
 //! MaxBytes is JSON `0+` (decode returns it; encode already takes `max_bytes`; JSON default `0x7fffffff`);
+//! Records is JSON `records` (Kafka 4.0 `nullableVersions` `0+`; Kafka 4.1 `nullableVersions` `0` only;
+//! decode accepts compact null as empty on v0; v1 null is [`Error::protocol`]; encode still writes `MemoryRecords.EMPTY` not null);
 //! AcquisitionLockTimeoutMs
 //! JSON `1+` after ErrorMessage;
 //! [`protocol::share::encode_share_fetch_response_with_acquisition_lock_timeout`]
