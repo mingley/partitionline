@@ -911,6 +911,11 @@
 //! `aclsResources` / `aclBindings` (group by [`ResourcePattern`]);
 //! DescribeAcls ThrottleTimeMs is JSON `0+`;
 //! [`protocol::acl::encode_describe_acls_response`] still writes `0`;
+//! DescribeAcls ErrorCode is JSON `0+` (INT16 after ThrottleTimeMs;
+//! [`protocol::acl::encode_describe_acls_response_with_error_code`];
+//! encode previously always wrote `0` and decode did not return it;
+//! convenience encode still writes `0`; not CreateAcls result ErrorCode /
+//! DeleteAcls filter ErrorCode / DeleteAcls matching ErrorCode);
 //! DescribeAcls ErrorMessage is JSON `0+` (nullable STRING; not
 //! CreateAcls result ErrorMessage / DeleteAcls filter ErrorMessage /
 //! DeleteAcls matching ErrorMessage);

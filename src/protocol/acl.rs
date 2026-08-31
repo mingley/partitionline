@@ -1893,8 +1893,10 @@ pub fn decode_describe_acls_request<B: Buf>(buf: &mut B, version: i16) -> Result
 /// Encode DescribeAcls with matching bindings.
 ///
 /// ThrottleTimeMs is the JSON default (`0`) on every spoken version
-/// (JSON `0+`). Top-level ErrorCode is `0`; ErrorMessage is the JSON
-/// default (null). Java `DescribeAclsResponse.aclsResources` groups
+/// (JSON `0+`). Top-level ErrorCode is `0`
+/// ([`encode_describe_acls_response_with_error_code`]; this helper still
+/// writes `0`). ErrorMessage is the JSON default (null). Java
+/// `DescribeAclsResponse.aclsResources` groups
 /// bindings that share a [`ResourcePattern`] (one resource, several
 /// ACEs). Java `DescribeAclsResponse.validate` rejects non-LITERAL
 /// pattern types on v0 (`UnsupportedVersionException`) and UNKNOWN
@@ -1917,14 +1919,15 @@ pub fn encode_describe_acls_response(
 /// is not spoken. Top-level ErrorCode is at bytes 4–5. ErrorMessage
 /// stays the JSON default (null)
 /// ([`encode_describe_acls_response_with_error_message`]; this helper
-/// still writes null).
+/// still writes null). ErrorCode stays `0`
+/// ([`encode_describe_acls_response_with_error_code`]).
 pub fn encode_describe_acls_response_with_throttle(
     buf: &mut BytesMut,
     version: i16,
     acls: &[AclBinding],
     throttle_time_ms: i32,
 ) -> Result<()> {
-    encode_describe_acls_response_body(buf, version, acls, throttle_time_ms, None)
+    encode_describe_acls_response_body(buf, version, acls, throttle_time_ms, None, 0)
 }
 
 /// Encode DescribeAcls v0–v3 with top-level ErrorMessage.
@@ -1941,7 +1944,26 @@ pub fn encode_describe_acls_response_with_error_message(
     acls: &[AclBinding],
     error_message: Option<&str>,
 ) -> Result<()> {
-    encode_describe_acls_response_body(buf, version, acls, 0, error_message)
+    encode_describe_acls_response_body(buf, version, acls, 0, error_message, 0)
+}
+
+/// Encode DescribeAcls v0–v3 with top-level ErrorCode.
+///
+/// ErrorCode is JSON `0+` (INT16 after ThrottleTimeMs / before
+/// ErrorMessage). Official Java `DescribeAclsResponse.error` /
+/// `DescribeAclsResponseData.errorCode` /
+/// `DescribeAclsRequest.getErrorResponse` set / read it.
+/// [`encode_describe_acls_response`] still writes `0`. ThrottleTimeMs
+/// stays `0`. ErrorMessage stays null. This is not CreateAcls result
+/// ErrorCode, not DeleteAcls filter ErrorCode, not DeleteAcls matching
+/// ErrorCode, and not Metadata ErrorCode.
+pub fn encode_describe_acls_response_with_error_code(
+    buf: &mut BytesMut,
+    version: i16,
+    acls: &[AclBinding],
+    error_code: i16,
+) -> Result<()> {
+    encode_describe_acls_response_body(buf, version, acls, 0, None, error_code)
 }
 
 fn encode_describe_acls_response_body(
@@ -1950,13 +1972,14 @@ fn encode_describe_acls_response_body(
     acls: &[AclBinding],
     throttle_time_ms: i32,
     error_message: Option<&str>,
+    error_code: i16,
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
     reject_v0_non_literal_acl_patterns(version, acls.iter())?;
     reject_describe_acls_response_unknown_elements(acls)?;
     let resources = DescribeAclsResponse::acls_resources(acls);
     buf.put_i32(throttle_time_ms);
-    buf.put_i16(0);
+    buf.put_i16(error_code);
     buf::put_string(buf, flexible, error_message)?;
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
     for resource in &resources {
@@ -1987,15 +2010,17 @@ fn encode_describe_acls_response_body(
 
 /// Decode DescribeAcls bindings. Top-level error returns an empty list.
 ///
-/// Returns `(bindings, throttle_time_ms, error_message)`. ThrottleTimeMs
-/// is JSON `0+` (always on the wire). ErrorMessage is JSON `0+` (nullable
-/// STRING; last). Top-level ErrorCode is at bytes 4–5. Flattens grouped
-/// resources with [`DescribeAclsResponse::acl_bindings`]
+/// Returns `(bindings, throttle_time_ms, error_message, error_code)`.
+/// ThrottleTimeMs is JSON `0+` (always on the wire). ErrorMessage is
+/// JSON `0+` (nullable STRING). ErrorCode is JSON `0+` (INT16 after
+/// ThrottleTimeMs / before ErrorMessage; last). Top-level ErrorCode is
+/// at bytes 4–5. Flattens grouped resources with
+/// [`DescribeAclsResponse::acl_bindings`]
 /// (Java `DescribeAclsResponse.aclBindings`).
 pub fn decode_describe_acls_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Vec<AclBinding>, i32, Option<String>)> {
+) -> Result<(Vec<AclBinding>, i32, Option<String>, i16)> {
     let flexible = acl_api_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let err = buf::get_i16(buf)?;
@@ -2041,12 +2066,13 @@ pub fn decode_describe_acls_response<B: Buf>(
         buf::skip_tagged_fields(buf)?;
     }
     if err != 0 {
-        return Ok((Vec::new(), throttle_time_ms, error_message));
+        return Ok((Vec::new(), throttle_time_ms, error_message, err));
     }
     Ok((
         DescribeAclsResponse::acl_bindings(&resources),
         throttle_time_ms,
         error_message,
+        err,
     ))
 }
 
@@ -2701,7 +2727,7 @@ mod tests {
             encode_describe_acls_response_with_error_message(&mut buf, version, &bound, Some("no"))
                 .unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, throttle, msg) =
+            let (decoded, throttle, msg, ..) =
                 decode_describe_acls_response(&mut cur, version).unwrap();
             assert_eq!(decoded, bound);
             assert_eq!(throttle, 0);
@@ -2756,7 +2782,7 @@ mod tests {
             "empty-but-present ErrorMessage is not JSON null"
         );
         let mut cur = empty_present.as_ref();
-        let (decoded, .., msg) = decode_describe_acls_response(&mut cur, 0).unwrap();
+        let (decoded, _, msg, ..) = decode_describe_acls_response(&mut cur, 0).unwrap();
         assert!(decoded.is_empty());
         assert_eq!(msg.as_deref(), Some(""));
         assert!(
@@ -2816,16 +2842,96 @@ mod tests {
         patched.extend_from_slice(&code);
         patched.extend_from_slice(err_body.get(6..).expect("after ErrorCode"));
         let mut cur = patched.as_ref();
-        let (decoded, throttle, msg) = decode_describe_acls_response(&mut cur, 0).unwrap();
+        let (decoded, throttle, msg, error_code) =
+            decode_describe_acls_response(&mut cur, 0).unwrap();
         assert!(
             decoded.is_empty(),
             "non-zero ErrorCode still empty bindings"
         );
         assert_eq!(throttle, 0);
         assert_eq!(msg.as_deref(), Some("no"));
+        assert_eq!(error_code, crate::error::SECURITY_DISABLED);
         assert!(
             cur.is_empty(),
             "DescribeAcls v0 ErrorMessage leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_acls_response_error_code_matches_java() {
+        // Kafka 4.0.0 DescribeAclsResponse.json ErrorCode is versions 0+
+        // (INT16 after ThrottleTimeMs / before ErrorMessage). Official
+        // Java DescribeAclsResponse.error / DescribeAclsResponseData.errorCode
+        // / DescribeAclsRequest.getErrorResponse set / read it
+        // (getErrorResponse sets errorCode from ApiError.fromThrowable).
+        // Encode previously always wrote 0. Decode previously read it
+        // without returning it. encode_describe_acls_response still writes
+        // the JSON default 0. Empty-Resources v0 == v1 (classic); v2 == v3
+        // (flexible). Top-level ErrorCode is at bytes 4–5. This crate
+        // speaks 0–3. This is not CreateAcls result ErrorCode / DeleteAcls
+        // filter ErrorCode / DeleteAcls matching ErrorCode / Metadata
+        // ErrorCode.
+        let acls: Vec<AclBinding> = vec![];
+        let code = crate::error::SECURITY_DISABLED;
+        for version in [0_i16, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_describe_acls_response_with_error_code(&mut buf, version, &acls, code).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle, msg, error_code) =
+                decode_describe_acls_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert_eq!(throttle, 0);
+            assert_eq!(msg, None);
+            assert_eq!(error_code, code);
+            assert!(
+                cur.is_empty(),
+                "DescribeAcls v{version} ErrorCode leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_describe_acls_response_with_error_code(&mut with, 0, &acls, code).unwrap();
+        let mut zero = BytesMut::new();
+        encode_describe_acls_response_with_error_code(&mut zero, 0, &acls, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ErrorCode is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_describe_acls_response(&mut conv, 0, &acls).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_describe_acls_response still writes ErrorCode 0"
+        );
+        assert_eq!(
+            with.get(4..6),
+            Some(code.to_be_bytes().as_slice()),
+            "v0 classic ErrorCode follows ThrottleTimeMs"
+        );
+        assert_eq!(
+            zero.get(4..6),
+            Some([0, 0].as_slice()),
+            "v0 classic ErrorCode JSON default is 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_describe_acls_response_with_error_code(&mut v1_with, 1, &acls, code).unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "empty-Resources ErrorCode bodies: v0 == v1"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_describe_acls_response_with_error_code(&mut v2_with, 2, &acls, code).unwrap();
+        assert_ne!(&v1_with[..], &v2_with[..], "v2 adds compact tagged fields");
+        let mut v3_with = BytesMut::new();
+        encode_describe_acls_response_with_error_code(&mut v3_with, 3, &acls, code).unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v3_with[..],
+            "empty-Resources ErrorCode bodies: v2 == v3"
         );
     }
 
