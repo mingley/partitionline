@@ -499,7 +499,10 @@ impl ShareFetchResponse {
 /// [`Self::partition_response`] is Java `ShareAcknowledgeResponse.partitionResponse`
 /// (`PartitionIndex` and `ErrorCode`). Official Java leaves ErrorMessage
 /// and CurrentLeader at JSON defaults (null / 0/0). Crate encode writes
-/// ErrorMessage null, CurrentLeader id 0 epoch 0, empty NodeEndpoints.
+/// ErrorMessage null, CurrentLeader id 0 epoch 0. NodeEndpoints stay
+/// empty on [`encode_share_acknowledge_topics_response`];
+/// [`encode_share_acknowledge_topics_response_with_endpoints`] writes a
+/// non-empty list.
 /// Top-level ErrorCode stays 0 (crate encode of this factory). Throttle
 /// is the JSON default (`0`). Official Java
 /// `ShareAcknowledgeRequest.getErrorResponse` writes only the top-level
@@ -518,7 +521,10 @@ impl ShareAcknowledgeResponsePartition {
     /// Sets `PartitionIndex` and `ErrorCode`. Official Java leaves
     /// ErrorMessage and CurrentLeader at JSON defaults (null / 0/0).
     /// Crate encode writes ErrorMessage null, CurrentLeader id 0 epoch
-    /// 0, empty NodeEndpoints. Top-level ErrorCode stays 0 (crate encode
+    /// 0. NodeEndpoints stay empty on
+    /// [`encode_share_acknowledge_topics_response`];
+    /// [`encode_share_acknowledge_topics_response_with_endpoints`] writes
+    /// a non-empty list. Top-level ErrorCode stays 0 (crate encode
     /// of this factory). Throttle is the JSON default (`0`).
     #[must_use]
     pub fn partition_response(partition: i32, error_code: i16) -> Self {
@@ -569,9 +575,11 @@ impl ShareAcknowledgeResponse {
     /// `setPartitionIndex` copies the key partition onto each body.
     /// Topics are grouped by id in first-seen order (Java
     /// `LinkedHashMap`). A later entry for an already-seen topic is
-    /// appended, including when another topic sits in between. Throttle,
-    /// top-level error, and NodeEndpoints stay with crate encode (`0` /
-    /// empty).
+    /// appended, including when another topic sits in between. Throttle
+    /// and top-level error stay with crate encode (`0`). NodeEndpoints
+    /// stay empty on [`encode_share_acknowledge_topics_response`];
+    /// [`encode_share_acknowledge_topics_response_with_endpoints`] writes
+    /// a non-empty list.
     #[must_use]
     pub fn to_message(
         entries: &[([u8; 16], i32, ShareAcknowledgeResponsePartition)],
@@ -1405,13 +1413,34 @@ pub fn encode_share_acknowledge_response(
 /// Throttle is the JSON default (`0`). Top-level ErrorMessage is null.
 /// Each partition is PartitionIndex and ErrorCode; ErrorMessage is null
 /// and CurrentLeader is JSON default id 0 epoch 0. NodeEndpoints stay
-/// empty. [`ShareAcknowledgeResponsePartition::partition_response`] is
+/// empty ([`encode_share_acknowledge_topics_response_with_endpoints`]
+/// writes a non-empty list). NodeEndpoints is JSON `0+` (untagged compact
+/// array, not Fetch v16 tagged field 0).
+/// [`ShareAcknowledgeResponsePartition::partition_response`] is
 /// Java `ShareAcknowledgeResponse.partitionResponse`.
 pub fn encode_share_acknowledge_topics_response(
     buf: &mut BytesMut,
     version: i16,
     error_code: i16,
     topics: &[ShareAcknowledgeResponseTopic],
+) -> crate::error::Result<()> {
+    encode_share_acknowledge_topics_response_with_endpoints(buf, version, error_code, topics, &[])
+}
+
+/// Encode ShareAcknowledge plus NodeEndpoints.
+///
+/// NodeEndpoints is JSON `0+` (on the wire for every spoken version).
+/// Inner layout matches Produce / Fetch / ShareFetch (`NodeId` INT32 +
+/// `Host` compact STRING + `Port` INT32 + `Rack` compact nullable STRING +
+/// nested tagged fields). [`encode_share_acknowledge_topics_response`]
+/// still writes empty. v0 and v1 bodies match. This is not Fetch v16
+/// tagged field 0.
+pub fn encode_share_acknowledge_topics_response_with_endpoints(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    topics: &[ShareAcknowledgeResponseTopic],
+    endpoints: &[NodeEndpoint],
 ) -> crate::error::Result<()> {
     let flexible = share_acknowledge_flexible(version)?;
     buf.put_i32(0);
@@ -1434,7 +1463,7 @@ pub fn encode_share_acknowledge_topics_response(
             buf::put_empty_tagged_fields(buf);
         }
     }
-    buf::put_array_len(buf, flexible, Some(0))?;
+    super::api::put_compact_node_endpoints(buf, endpoints)?;
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
@@ -1447,20 +1476,21 @@ pub fn encode_share_acknowledge_topics_response(
 /// bodies are decoded and discarded. For those, use
 /// [`decode_share_acknowledge_topics_response`].
 pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
-    let (error_code, _topics) = decode_share_acknowledge_topics_response(buf, version)?;
+    let (error_code, ..) = decode_share_acknowledge_topics_response(buf, version)?;
     Ok(error_code)
 }
 
-/// Decode a ShareAcknowledge response (`version` 0–1): top-level ErrorCode
-/// and topic/partition bodies.
+/// Decode a ShareAcknowledge response (`version` 0–1):
+/// `(error_code, topics, node_endpoints)`.
 ///
 /// Does not fail on a non-zero top-level or partition ErrorCode; callers
 /// decide. Throttle is ignored (crate encode writes `0`). ErrorMessage
-/// and CurrentLeader are not stored.
+/// and CurrentLeader are not stored. NodeEndpoints is JSON `0+` (untagged
+/// compact array).
 pub fn decode_share_acknowledge_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(i16, Vec<ShareAcknowledgeResponseTopic>)> {
+) -> Result<(i16, Vec<ShareAcknowledgeResponseTopic>, Vec<NodeEndpoint>)> {
     let flexible = share_acknowledge_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -1492,20 +1522,11 @@ pub fn decode_share_acknowledge_topics_response<B: Buf>(
             partitions,
         });
     }
-    let nodes = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    for _ in 0..nodes {
-        let _id = buf::get_i32(buf)?;
-        let _h = buf::get_string(buf, flexible)?;
-        let _p = buf::get_i32(buf)?;
-        let _r = buf::get_string(buf, flexible)?;
-        if flexible {
-            buf::skip_tagged_fields(buf)?;
-        }
-    }
+    let endpoints = super::api::get_compact_node_endpoints(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((error_code, topics))
+    Ok((error_code, topics, endpoints))
 }
 
 #[cfg(test)]
@@ -2139,7 +2160,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_share_acknowledge_topics_response(&mut buf, version, 0, &topics).unwrap();
             let mut cur = buf.as_ref();
-            let (top, decoded) =
+            let (top, decoded, ..) =
                 decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
             assert_eq!(top, 0);
             assert_eq!(decoded, topics);
@@ -2165,7 +2186,7 @@ mod tests {
                 "empty Responses matches getErrorResponse encode"
             );
             let mut cur = via_topics.as_ref();
-            let (top, decoded) =
+            let (top, decoded, ..) =
                 decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
             assert_eq!(top, 0);
             assert_eq!(decoded, empty);
@@ -2175,6 +2196,81 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn share_acknowledge_response_node_endpoints_matches_java() {
+        // Kafka 4.0.0 / 4.1 ShareAcknowledgeResponse.json NodeEndpoints
+        // is versions 0+ (untagged compact array on every spoken version).
+        // v0 and v1 bodies match. Inner layout matches Produce / Fetch /
+        // ShareFetch NodeEndpoint. This is not Fetch v16 tagged field 0.
+        // encode_share_acknowledge_topics_response still writes empty.
+        let topics = vec![ShareAcknowledgeResponseTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareAcknowledgeResponsePartition {
+                partition: 0,
+                error_code: 6,
+            }],
+        }];
+        let endpoints = [crate::protocol::api::NodeEndpoint {
+            node_id: 3,
+            host: "h".into(),
+            port: 1,
+            rack: Some("r".into()),
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_acknowledge_topics_response_with_endpoints(
+                &mut buf, version, 0, &topics, &endpoints,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (top, got, eps) =
+                decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
+            assert_eq!(top, 0);
+            assert_eq!(got, topics);
+            assert_eq!(eps, endpoints);
+            assert!(
+                cur.is_empty(),
+                "ShareAcknowledge v{version} NodeEndpoints leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_endpoints(
+            &mut with, 0, 0, &topics, &endpoints,
+        )
+        .unwrap();
+        let mut empty = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_endpoints(&mut empty, 0, 0, &topics, &[])
+            .unwrap();
+        assert_ne!(
+            &with[..],
+            &empty[..],
+            "ShareAcknowledge NodeEndpoints is not always empty"
+        );
+        let mut conv = BytesMut::new();
+        encode_share_acknowledge_topics_response(&mut conv, 0, 0, &topics).unwrap();
+        assert_eq!(
+            &conv[..],
+            &empty[..],
+            "encode_share_acknowledge_topics_response still writes empty NodeEndpoints"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_endpoints(
+            &mut v1_with,
+            1,
+            0,
+            &topics,
+            &endpoints,
+        )
+        .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 ShareAcknowledge NodeEndpoints layout match; do not confuse with ShareFetch AcquisitionLockTimeoutMs"
+        );
     }
 
     #[test]
@@ -2279,7 +2375,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_share_acknowledge_topics_response(&mut buf, version, 0, &grouped).unwrap();
             let mut cur = buf.as_ref();
-            let (top, decoded) =
+            let (top, decoded, ..) =
                 decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
             assert_eq!(top, 0);
             assert_eq!(decoded, grouped);
