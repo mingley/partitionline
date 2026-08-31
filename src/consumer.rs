@@ -2461,7 +2461,7 @@ impl Consumer {
         out: &mut Vec<FetchedRecord>,
         fenced: &mut Vec<(String, i32)>,
     ) -> Result<FetchRetry> {
-        let (fetched, endpoints) = decode_fetch_response(body, self.fetch_version)?;
+        let (fetched, endpoints, ..) = decode_fetch_response(body, self.fetch_version)?;
         self.cluster.apply_node_endpoints(&endpoints);
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;

@@ -396,8 +396,10 @@ impl FetchRequest {
     /// Below v13 each request topic is [`FetchTopic::error_result`]. v13+
     /// Responses is empty (top-level error only; unlike `error_result`,
     /// which still keeps a topic with empty partitions). Throttle is the
-    /// JSON default (`0`). Encode still writes top-level `ErrorCode` `0`
-    /// and `SessionId` [`FetchMetadata::INVALID_SESSION_ID`].
+    /// JSON default (`0`). [`encode_fetch_response`] writes top-level
+    /// `ErrorCode` `0` and `SessionId` [`FetchMetadata::INVALID_SESSION_ID`].
+    /// Those fields are v7+; below v7 encode omits them even when the body
+    /// is non-zero and decode fills `0`.
     #[must_use]
     pub fn error_response(
         version: i16,
@@ -619,8 +621,8 @@ impl FetchResponse {
     /// Java `FetchResponse.errorCounts`.
     ///
     /// Counts the top-level `errorCode` (including `NONE`) plus each
-    /// partition-level code (including `NONE`). Crate decode currently
-    /// discards the top-level code; crate encode writes `0`.
+    /// partition-level code (including `NONE`). Decode returns the
+    /// top-level code; [`encode_fetch_response`] writes `0`.
     #[must_use]
     pub fn error_counts(error_code: i16, topics: &[FetchedTopic]) -> HashMap<i16, i32> {
         let mut counts = HashMap::new();
@@ -967,25 +969,44 @@ pub fn decode_fetch_request<B: Buf>(
 }
 
 /// Encode a Fetch v4–v11 (classic) or v12–v17 (flexible) response.
+///
+/// Top-level ErrorCode is `0` and SessionId is
+/// [`FetchMetadata::INVALID_SESSION_ID`]. Those fields are v7+; below v7
+/// they are omitted.
 pub fn encode_fetch_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[FetchedTopic],
 ) -> Result<()> {
-    encode_fetch_response_with_endpoints(buf, version, topics, &[])
+    encode_fetch_response_with_endpoints(
+        buf,
+        version,
+        topics,
+        0,
+        FetchMetadata::INVALID_SESSION_ID,
+        &[],
+    )
 }
 
-/// Encode Fetch plus top-level NodeEndpoints (v16+ tagged field 0).
+/// Encode Fetch plus top-level ErrorCode, SessionId, and NodeEndpoints
+/// (v16+ tagged field 0).
+///
+/// ErrorCode and SessionId are v7+. Below v7 they are omitted even when
+/// the body is non-zero; decode fills `0`.
 pub fn encode_fetch_response_with_endpoints(
     buf: &mut BytesMut,
     version: i16,
     topics: &[FetchedTopic],
+    error_code: i16,
+    session_id: i32,
     endpoints: &[super::api::NodeEndpoint],
 ) -> Result<()> {
     let flexible = fetch_flexible(version)?;
     buf.put_i32(0); // throttle
-    buf.put_i16(0); // top-level error
-    buf.put_i32(FetchMetadata::INVALID_SESSION_ID);
+    if version >= 7 {
+        buf.put_i16(error_code);
+        buf.put_i32(session_id);
+    }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         put_fetch_topic_identity(buf, version, flexible, &t.topic, &t.topic_id)?;
@@ -1034,15 +1055,22 @@ pub fn encode_fetch_response_with_endpoints(
     Ok(())
 }
 
-/// Decode a Fetch v4–v11 (classic) or v12–v17 (flexible) response.
+/// Decode a Fetch v4–v11 (classic) or v12–v17 (flexible) response:
+/// `(topics, node_endpoints, error_code, session_id)`.
+///
+/// Below v7 ErrorCode and SessionId are omitted; decode fills `0`.
 pub fn decode_fetch_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Vec<FetchedTopic>, Vec<super::api::NodeEndpoint>)> {
+) -> Result<(Vec<FetchedTopic>, Vec<super::api::NodeEndpoint>, i16, i32)> {
     let flexible = fetch_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
-    let _error = buf::get_i16(buf)?;
-    let _session = buf::get_i32(buf)?;
+    let error_code = if version >= 7 { buf::get_i16(buf)? } else { 0 };
+    let session_id = if version >= 7 {
+        buf::get_i32(buf)?
+    } else {
+        FetchMetadata::INVALID_SESSION_ID
+    };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
@@ -1117,7 +1145,7 @@ pub fn decode_fetch_response<B: Buf>(
     } else {
         Vec::new()
     };
-    Ok((topics, endpoints))
+    Ok((topics, endpoints, error_code, session_id))
 }
 
 #[cfg(test)]
@@ -1222,7 +1250,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 12, std::slice::from_ref(&v12)).unwrap();
         let mut cur = buf.as_ref();
-        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 12).unwrap();
+        let (decoded, _endpoints, ..) = decode_fetch_response(&mut cur, 12).unwrap();
         assert!(
             !cur.has_remaining(),
             "Fetch getErrorResponse v12 leftover-empty; leftover {} bytes",
@@ -1235,7 +1263,7 @@ mod tests {
         let mut v13_buf = BytesMut::new();
         encode_fetch_response(&mut v13_buf, 13, std::slice::from_ref(&v13)).unwrap();
         let mut cur = v13_buf.as_ref();
-        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 13).unwrap();
+        let (decoded, _endpoints, ..) = decode_fetch_response(&mut cur, 13).unwrap();
         assert!(
             !cur.has_remaining(),
             "Fetch getErrorResponse v13 leftover-empty; leftover {} bytes",
@@ -1286,7 +1314,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_fetch_response(&mut buf, version, &topics).unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, _endpoints) = decode_fetch_response(&mut cur, version).unwrap();
+            let (decoded, _endpoints, ..) = decode_fetch_response(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} recordsSize leftover-empty; leftover {} bytes",
@@ -1474,7 +1502,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 11, &named).unwrap();
         let mut cur = buf.as_ref();
-        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 11).unwrap();
+        let (decoded, _endpoints, ..) = decode_fetch_response(&mut cur, 11).unwrap();
         assert!(
             cur.is_empty(),
             "Fetch v11 responseData leftover-empty; leftover {} bytes",
@@ -1489,7 +1517,7 @@ mod tests {
         buf.clear();
         encode_fetch_response(&mut buf, 13, &id_topics).unwrap();
         let mut cur = buf.as_ref();
-        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 13).unwrap();
+        let (decoded, _endpoints, ..) = decode_fetch_response(&mut cur, 13).unwrap();
         assert!(
             cur.is_empty(),
             "Fetch v13 responseData leftover-empty; leftover {} bytes",
@@ -1610,7 +1638,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 11, &by_name).unwrap();
         let mut cur = buf.as_ref();
-        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 11).unwrap();
+        let (decoded, _endpoints, ..) = decode_fetch_response(&mut cur, 11).unwrap();
         assert!(
             cur.is_empty(),
             "Fetch v11 toMessage leftover-empty; leftover {} bytes",
@@ -1622,7 +1650,7 @@ mod tests {
         buf.clear();
         encode_fetch_response(&mut buf, 13, &grouped).unwrap();
         let mut cur = buf.as_ref();
-        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 13).unwrap();
+        let (decoded, _endpoints, ..) = decode_fetch_response(&mut cur, 13).unwrap();
         assert!(
             cur.is_empty(),
             "Fetch v13 toMessage leftover-empty; leftover {} bytes",
@@ -2105,11 +2133,22 @@ mod tests {
                 FetchRequest::error_response(version, std::slice::from_ref(&topic), err);
             assert_eq!(responses.len(), 1);
             let mut buf = BytesMut::new();
-            encode_fetch_response(&mut buf, version, &responses).unwrap();
+            encode_fetch_response_with_endpoints(
+                &mut buf,
+                version,
+                &responses,
+                err,
+                FetchMetadata::INVALID_SESSION_ID,
+                &[],
+            )
+            .unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, _endpoints) = decode_fetch_response(&mut cur, version).unwrap();
+            let (decoded, _endpoints, error_code, session) =
+                decode_fetch_response(&mut cur, version).unwrap();
             assert_eq!(decoded.len(), 1);
             assert_eq!(decoded.first().map(|t| t.partitions.len()), Some(2));
+            assert_eq!(error_code, err);
+            assert_eq!(session, FetchMetadata::INVALID_SESSION_ID);
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} Request.getErrorResponse leftover-empty; leftover {} bytes",
@@ -2121,16 +2160,108 @@ mod tests {
                 FetchRequest::error_response(version, std::slice::from_ref(&topic), err);
             assert!(responses.is_empty());
             let mut buf = BytesMut::new();
-            encode_fetch_response(&mut buf, version, &responses).unwrap();
+            encode_fetch_response_with_endpoints(
+                &mut buf,
+                version,
+                &responses,
+                err,
+                FetchMetadata::INVALID_SESSION_ID,
+                &[],
+            )
+            .unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, _endpoints) = decode_fetch_response(&mut cur, version).unwrap();
+            let (decoded, _endpoints, error_code, session) =
+                decode_fetch_response(&mut cur, version).unwrap();
             assert!(decoded.is_empty());
+            assert_eq!(error_code, err);
+            assert_eq!(session, FetchMetadata::INVALID_SESSION_ID);
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} Request.getErrorResponse empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn fetch_error_code_session_id_matches_java() {
+        let err = crate::error::FETCH_SESSION_ID_NOT_FOUND;
+        let session = 9;
+        for version in [7_i16, 11, 12, 17] {
+            let mut buf = BytesMut::new();
+            encode_fetch_response_with_endpoints(&mut buf, version, &[], err, session, &[])
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, error_code, session_id) =
+                decode_fetch_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert!(endpoints.is_empty());
+            assert_eq!(error_code, err);
+            assert_eq!(session_id, session);
+            assert!(cur.is_empty(), "Fetch v{version} ErrorCode leftover-empty");
+        }
+
+        let mut buf = BytesMut::new();
+        encode_fetch_response_with_endpoints(&mut buf, 4, &[], err, session, &[]).unwrap();
+        let mut cur = buf.as_ref();
+        let (_, _, error_code, session_id) = decode_fetch_response(&mut cur, 4).unwrap();
+        assert!(cur.is_empty(), "Fetch v4 ErrorCode leftover-empty");
+        assert_eq!(
+            error_code, 0,
+            "Fetch v4 omits ErrorCode even when the body has a non-zero value"
+        );
+        assert_eq!(
+            session_id,
+            FetchMetadata::INVALID_SESSION_ID,
+            "Fetch v4 omits SessionId even when the body has a non-zero value"
+        );
+
+        let mut with = BytesMut::new();
+        encode_fetch_response_with_endpoints(&mut with, 7, &[], err, session, &[]).unwrap();
+        let mut zero = BytesMut::new();
+        encode_fetch_response_with_endpoints(
+            &mut zero,
+            7,
+            &[],
+            0,
+            FetchMetadata::INVALID_SESSION_ID,
+            &[],
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v7 ErrorCode / SessionId are not always the JSON default 0"
+        );
+        let mut v4_nonzero = BytesMut::new();
+        encode_fetch_response_with_endpoints(&mut v4_nonzero, 4, &[], err, session, &[]).unwrap();
+        let mut v4_zero = BytesMut::new();
+        encode_fetch_response_with_endpoints(
+            &mut v4_zero,
+            4,
+            &[],
+            0,
+            FetchMetadata::INVALID_SESSION_ID,
+            &[],
+        )
+        .unwrap();
+        assert_eq!(
+            &v4_nonzero[..],
+            &v4_zero[..],
+            "v4 encode omits ErrorCode / SessionId even when the body has a non-zero value"
+        );
+        let mut v6 = BytesMut::new();
+        encode_fetch_response_with_endpoints(&mut v6, 6, &[], err, session, &[]).unwrap();
+        assert_eq!(
+            &v4_nonzero[..],
+            &v6[..],
+            "v4–v6 Fetch responses omit ErrorCode / SessionId"
+        );
+        assert_ne!(
+            &v6[..],
+            &with[..],
+            "v7 adds ErrorCode and SessionId after ThrottleTimeMs"
+        );
     }
 
     #[test]
@@ -2288,7 +2419,7 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 11, &topics).unwrap();
-        let (decoded, _endpoints) = decode_fetch_response(&mut &buf[..], 11).unwrap();
+        let (decoded, _endpoints, ..) = decode_fetch_response(&mut &buf[..], 11).unwrap();
         assert_eq!(decoded[0].topic, "t");
         assert_eq!(
             decoded[0].partitions[0].records[0].records[0]
@@ -2331,7 +2462,7 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 11, &topics).unwrap();
-        let (decoded, _endpoints) = decode_fetch_response(&mut &buf[..], 11).unwrap();
+        let (decoded, _endpoints, ..) = decode_fetch_response(&mut &buf[..], 11).unwrap();
         assert_eq!(
             decoded[0].partitions[0].aborted_transactions,
             vec![(1000, 1)]
@@ -2361,7 +2492,7 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 11, &topics).unwrap();
-        let (decoded, _endpoints) = decode_fetch_response(&mut &buf[..], 11).unwrap();
+        let (decoded, _endpoints, ..) = decode_fetch_response(&mut &buf[..], 11).unwrap();
         assert_eq!(
             decoded[0].partitions[0].error_code,
             crate::error::OFFSET_OUT_OF_RANGE
@@ -2400,7 +2531,7 @@ mod tests {
         body.put_i32(-1);
         body.put_i32(-1);
         crate::protocol::buf::put_classic_bytes(&mut body, Some(&recs)).unwrap();
-        let (decoded, _endpoints) = decode_fetch_response(&mut &body[..], 11).unwrap();
+        let (decoded, _endpoints, ..) = decode_fetch_response(&mut &body[..], 11).unwrap();
         assert_eq!(decoded[0].partitions[0].records.len(), 2);
         assert_eq!(
             decoded[0].partitions[0].records[0].records[0]
@@ -2448,7 +2579,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 11, &topics).unwrap();
         let frozen = buf.freeze();
-        let (decoded, _endpoints) = decode_fetch_response(&mut frozen.clone(), 11).unwrap();
+        let (decoded, _endpoints, ..) = decode_fetch_response(&mut frozen.clone(), 11).unwrap();
         let got = &decoded[0].partitions[0].records[0].records[0];
         assert_eq!(got.offset, 20);
         assert_eq!(got.value.as_deref(), Some(&b"view-me"[..]));
@@ -2517,7 +2648,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_fetch_response(&mut resp, 12, &topics).unwrap();
         let mut cur = &resp[..];
-        let (got, _endpoints) = decode_fetch_response(&mut cur, 12).unwrap();
+        let (got, _endpoints, ..) = decode_fetch_response(&mut cur, 12).unwrap();
         assert_eq!(got[0].topic, "t");
         assert_eq!(
             got[0].partitions[0].records[0].records[0].value.as_deref(),
@@ -2631,7 +2762,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_fetch_response(&mut resp, 14, &topics).unwrap();
         let mut cur = &resp[..];
-        let (got, _endpoints) = decode_fetch_response(&mut cur, 14).unwrap();
+        let (got, _endpoints, ..) = decode_fetch_response(&mut cur, 14).unwrap();
         assert!(got[0].topic.is_empty());
         assert_eq!(got[0].topic_id, SAMPLE_TOPIC_ID);
         assert_eq!(
@@ -2770,7 +2901,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_fetch_response(&mut resp, 15, &topics).unwrap();
         let mut cur = &resp[..];
-        let (got, _endpoints) = decode_fetch_response(&mut cur, 15).unwrap();
+        let (got, _endpoints, ..) = decode_fetch_response(&mut cur, 15).unwrap();
         assert!(got[0].topic.is_empty());
         assert_eq!(got[0].topic_id, SAMPLE_TOPIC_ID);
         assert_eq!(
@@ -2883,7 +3014,7 @@ mod tests {
             "Fetch v16 empty CurrentLeader / NodeEndpoints must match v15"
         );
         let mut cur = &resp16[..];
-        let (got, endpoints) = decode_fetch_response(&mut cur, 16).unwrap();
+        let (got, endpoints, ..) = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].topic_id, SAMPLE_TOPIC_ID);
         assert_eq!(
             got[0].partitions[0].current_leader_id,
@@ -2940,7 +3071,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 16, &topics).unwrap();
         let mut cur = &buf[..];
-        let (got, endpoints) = decode_fetch_response(&mut cur, 16).unwrap();
+        let (got, endpoints, ..) = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].partitions[0].current_leader_id, 2);
         assert_eq!(got[0].partitions[0].current_leader_epoch, 7);
         assert_eq!(
@@ -3005,7 +3136,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 16, &topics).unwrap();
         let mut cur = &buf[..];
-        let (got, endpoints) = decode_fetch_response(&mut cur, 16).unwrap();
+        let (got, endpoints, ..) = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].partitions[0].diverging_epoch, 3);
         assert_eq!(got[0].partitions[0].diverging_end_offset, 12);
         assert_eq!(got[0].partitions[0].diverging_epoch(), Some((3, 12)));
@@ -3071,9 +3202,17 @@ mod tests {
             rack: None,
         }];
         let mut buf = BytesMut::new();
-        encode_fetch_response_with_endpoints(&mut buf, 16, &topics, &endpoints).unwrap();
+        encode_fetch_response_with_endpoints(
+            &mut buf,
+            16,
+            &topics,
+            0,
+            FetchMetadata::INVALID_SESSION_ID,
+            &endpoints,
+        )
+        .unwrap();
         let mut cur = &buf[..];
-        let (got, eps) = decode_fetch_response(&mut cur, 16).unwrap();
+        let (got, eps, ..) = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].partitions[0].current_leader_id, 3);
         assert_eq!(eps, endpoints);
         assert!(
@@ -3088,7 +3227,15 @@ mod tests {
             "NodeEndpoints tagged field 0 must not equal empty tags"
         );
         let mut v15 = BytesMut::new();
-        encode_fetch_response_with_endpoints(&mut v15, 15, &topics, &endpoints).unwrap();
+        encode_fetch_response_with_endpoints(
+            &mut v15,
+            15,
+            &topics,
+            0,
+            FetchMetadata::INVALID_SESSION_ID,
+            &endpoints,
+        )
+        .unwrap();
         let mut empty = BytesMut::new();
         encode_fetch_response(&mut empty, 15, &topics).unwrap();
         assert_eq!(&v15[..], &empty[..], "Fetch v15 must omit NodeEndpoints");
@@ -3152,7 +3299,7 @@ mod tests {
             "Fetch v17 response layout must match v16"
         );
         let mut cur = &resp17[..];
-        let (got, endpoints) = decode_fetch_response(&mut cur, 17).unwrap();
+        let (got, endpoints, ..) = decode_fetch_response(&mut cur, 17).unwrap();
         assert_eq!(got[0].topic_id, SAMPLE_TOPIC_ID);
         assert!(endpoints.is_empty());
         assert_eq!(

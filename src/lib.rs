@@ -896,7 +896,9 @@
 //! [`protocol::fetch::FetchRequest::error_response`] is Java
 //! `FetchRequest.getErrorResponse` (below v13 each topic through
 //! [`protocol::fetch::FetchTopic::error_result`]; v13+ Responses is empty;
-//! encode still writes top-level `ErrorCode` 0 / `SessionId` 0).
+//! [`protocol::fetch::encode_fetch_response`] writes top-level `ErrorCode` 0 /
+//! `SessionId` 0; v7+ round-trips those fields; below v7 encode omits them
+//! even when the body is non-zero and decode fills `0`).
 //! [`protocol::fetch::FetchRequest::fetch_data`] is Java
 //! `FetchRequest.fetchData` (v4–v12 use the topic name; v13+ looks up
 //! `topic_id` and keeps a missing name as `None`; a later partition
@@ -932,8 +934,8 @@
 //! `topic_id` and skips a missing name; a later partition overwrites).
 //! [`protocol::fetch::FetchResponse::error_counts`] is Java
 //! `FetchResponse.errorCounts` (top-level `errorCode` plus each
-//! partition-level code, including `NONE`). Crate decode currently
-//! discards the top-level code; crate encode writes `0`.
+//! partition-level code, including `NONE`). Decode returns the top-level
+//! code; [`protocol::fetch::encode_fetch_response`] writes `0`.
 //! [`protocol::fetch::FetchResponse::to_message`] is Java
 //! `FetchResponse.toMessage` Responses (consecutive `matchingTopic`:
 //! non-zero `topic_id` matches by id, else by name; key partition

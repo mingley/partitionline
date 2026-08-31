@@ -5202,6 +5202,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     &mut body,
                     header.api_version,
                     &topics,
+                    0,
+                    0,
                     &endpoints,
                 )
                 .unwrap();
