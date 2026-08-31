@@ -13054,6 +13054,19 @@ impl PushTelemetryResponse {
     pub fn error_code(&self) -> i16 {
         self.error_code
     }
+
+    /// Java `PushTelemetryResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `updateErrorCounts` / `AbstractResponse.errorCounts`). The
+    /// response has no metrics array. Java `error()` is
+    /// `Errors.forCode` only (identity on i16; not mapped). This is
+    /// not GetTelemetrySubscriptions / ListConfigResources
+    /// `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
 }
 
 /// PushTelemetry v0 (flexible from v0; KIP-714).
@@ -27645,6 +27658,42 @@ mod tests {
         assert_eq!(
             zero.throttle_time_ms, 0,
             "PushTelemetryResponse::new still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn push_telemetry_response_error_counts_matches_java() {
+        // Java PushTelemetryResponse.errorCounts:
+        // updateErrorCounts(map, Errors.forCode(data.errorCode())),
+        // including NONE (same singleton as AbstractResponse.errorCounts).
+        // Official Java PushTelemetryResponse.errorCounts. Java error()
+        // is Errors.forCode only (identity on i16; not mapped). The
+        // response has no metrics array. This is not
+        // GetTelemetrySubscriptions errorCounts / ListConfigResources
+        // errorCounts.
+        assert_eq!(
+            PushTelemetryResponse::new(0).error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        let full = PushTelemetryResponse::new(crate::error::TELEMETRY_TOO_LARGE);
+        assert_eq!(
+            full.error_counts(),
+            HashMap::from([(crate::error::TELEMETRY_TOO_LARGE, 1)])
+        );
+        let mut resp = BytesMut::new();
+        encode_push_telemetry_response(&mut resp, &full).unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_push_telemetry_response(&mut cur).unwrap();
+        assert_eq!(
+            decoded.error_counts(),
+            HashMap::from([(crate::error::TELEMETRY_TOO_LARGE, 1)]),
+            "PushTelemetry v0 errorCounts must count the decoded code"
+        );
+        assert!(
+            cur.is_empty(),
+            "PushTelemetry v0 errorCounts leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 

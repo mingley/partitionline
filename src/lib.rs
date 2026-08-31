@@ -812,7 +812,10 @@
 //! [`protocol::admin::GetTelemetrySubscriptionsResponse::error_counts`] is Java
 //! `GetTelemetrySubscriptionsResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`)),
-//! PushTelemetry v0 (ThrottleTimeMs is JSON `0+`),
+//! PushTelemetry v0 (ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::PushTelemetryResponse::error_counts`] is Java
+//! `PushTelemetryResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`)),
 //! AssignReplicasToDirs v0 (ThrottleTimeMs is JSON `0+`),
 //! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::AlterReplicaLogDirsResponse::should_client_throttle`] is Java
