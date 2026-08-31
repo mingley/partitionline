@@ -326,6 +326,48 @@ impl AddPartitionsToTxnResponse {
         }
         errors_map
     }
+
+    /// Java `AddPartitionsToTxnResponse.topicCollectionForErrors` /
+    /// `resultForTransaction` topic results.
+    ///
+    /// Groups `(topic, partition, error)` by name. A later entry for the
+    /// same topic appends (Java `HashMap.getOrDefault` then collection
+    /// `add`). A later partition with the same index is ignored (Java
+    /// `AddPartitionsToTxnPartitionResultCollection` mapKey
+    /// `PartitionIndex`; `ImplicitLinkedHashCollection.add` keeps the
+    /// first). Topic order is first-seen (Java `HashMap.entrySet` order
+    /// is unspecified). This crate does not speak v4+
+    /// `resultsByTransaction`, so the transactional id wrapper is not
+    /// part of this helper.
+    #[must_use]
+    pub fn from_errors<'a, I>(errors: I) -> Vec<AddPartitionsToTxnTopicResult>
+    where
+        I: IntoIterator<Item = (&'a str, i32, i16)>,
+    {
+        let mut order: Vec<String> = Vec::new();
+        let mut by_topic: HashMap<String, Vec<AddPartitionsToTxnPartitionResult>> = HashMap::new();
+        for (topic, partition, error_code) in errors {
+            let partitions = by_topic.entry(topic.to_string()).or_insert_with(|| {
+                order.push(topic.to_string());
+                Vec::new()
+            });
+            if partitions.iter().any(|p| p.partition == partition) {
+                continue;
+            }
+            partitions.push(AddPartitionsToTxnPartitionResult {
+                partition,
+                error_code,
+            });
+        }
+        order
+            .into_iter()
+            .filter_map(|topic| {
+                by_topic
+                    .remove(&topic)
+                    .map(|partitions| AddPartitionsToTxnTopicResult { topic, partitions })
+            })
+            .collect()
+    }
 }
 
 /// Encode AddPartitionsToTxn v0–v2 (classic) or v3 (flexible).
@@ -2467,6 +2509,78 @@ mod tests {
         assert!(
             cur.is_empty(),
             "AddPartitionsToTxn v3 errors leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn add_partitions_to_txn_response_from_errors_matches_java() {
+        // Java AddPartitionsToTxnResponse.topicCollectionForErrors:
+        // HashMap.getOrDefault by topic name, then collection add.
+        // Empty map is empty. A later entry for the same name appends
+        // even when another topic sits between. A later partition with
+        // the same index is ignored (mapKey PartitionIndex;
+        // ImplicitLinkedHashCollection.add keeps the first).
+        assert!(
+            AddPartitionsToTxnResponse::from_errors(std::iter::empty::<(&str, i32, i16)>())
+                .is_empty()
+        );
+        let grouped = AddPartitionsToTxnResponse::from_errors([
+            ("a", 0, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            ("b", 0, crate::error::NOT_LEADER_OR_FOLLOWER),
+            ("a", 1, 0i16),
+        ]);
+        assert_eq!(
+            grouped,
+            vec![
+                AddPartitionsToTxnTopicResult {
+                    topic: "a".into(),
+                    partitions: vec![
+                        AddPartitionsToTxnPartitionResult::error(
+                            0,
+                            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                        ),
+                        AddPartitionsToTxnPartitionResult::error(1, 0),
+                    ],
+                },
+                AddPartitionsToTxnTopicResult {
+                    topic: "b".into(),
+                    partitions: vec![AddPartitionsToTxnPartitionResult::error(
+                        0,
+                        crate::error::NOT_LEADER_OR_FOLLOWER,
+                    )],
+                },
+            ]
+        );
+        let dup = AddPartitionsToTxnResponse::from_errors([
+            ("t", 0, 0i16),
+            ("t", 0, crate::error::NOT_LEADER_OR_FOLLOWER),
+        ]);
+        assert_eq!(
+            dup,
+            vec![AddPartitionsToTxnTopicResult {
+                topic: "t".into(),
+                partitions: vec![AddPartitionsToTxnPartitionResult::error(0, 0)],
+            }]
+        );
+        let mut buf = BytesMut::new();
+        encode_add_partitions_to_txn_topics_response(&mut buf, 0, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_add_partitions_to_txn_topics_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "AddPartitionsToTxn v0 from_errors leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_add_partitions_to_txn_topics_response(&mut buf, 3, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_add_partitions_to_txn_topics_response(&mut cur, 3).unwrap();
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "AddPartitionsToTxn v3 from_errors leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

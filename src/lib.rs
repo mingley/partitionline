@@ -562,6 +562,10 @@
 //! `errorsForTransaction` (v0–v3 key
 //! [`protocol::txn::AddPartitionsToTxnResponse::V3_AND_BELOW_TXN_ID`]; a later
 //! partition overwrites);
+//! [`protocol::txn::AddPartitionsToTxnResponse::from_errors`] is Java
+//! `AddPartitionsToTxnResponse.topicCollectionForErrors` / topic results
+//! of `resultForTransaction` (group by name; a later entry for the same
+//! topic appends; a later partition with the same index is ignored);
 //! [`protocol::txn::TxnPartitionsTopic::error_result`] /
 //! [`protocol::txn::TxnPartitionsTopic::error_results`] /
 //! [`protocol::txn::AddPartitionsToTxnPartitionResult::error`] are Java
