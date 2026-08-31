@@ -5023,6 +5023,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 current_leader_epoch: -1,
                                 diverging_epoch: epoch,
                                 diverging_end_offset: end_offset,
+                                snapshot_end_offset: -1,
+                                snapshot_epoch: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -5043,6 +5045,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 current_leader_epoch,
                                 diverging_epoch: -1,
                                 diverging_end_offset: -1,
+                                snapshot_end_offset: -1,
+                                snapshot_epoch: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -5064,6 +5068,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                     current_leader_epoch: -1,
                                     diverging_epoch: -1,
                                     diverging_end_offset: -1,
+                                    snapshot_end_offset: -1,
+                                    snapshot_epoch: -1,
                                     records: Vec::new(),
                                 });
                                 continue;
@@ -5088,6 +5094,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 current_leader_epoch: -1,
                                 diverging_epoch: -1,
                                 diverging_end_offset: -1,
+                                snapshot_end_offset: -1,
+                                snapshot_epoch: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -5106,6 +5114,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 current_leader_epoch: -1,
                                 diverging_epoch: -1,
                                 diverging_end_offset: -1,
+                                snapshot_end_offset: -1,
+                                snapshot_epoch: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -5183,6 +5193,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             current_leader_epoch: -1,
                             diverging_epoch: -1,
                             diverging_end_offset: -1,
+                            snapshot_end_offset: -1,
+                            snapshot_epoch: -1,
                             records: batches,
                         });
                     }

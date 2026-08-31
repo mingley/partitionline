@@ -457,11 +457,15 @@ fn add_to_forgotten_topic_map<'a, I>(
 /// [`Self::preferred_read_replica()`] / [`Self::is_preferred_replica`] /
 /// [`Self::diverging_epoch()`] / [`Self::is_diverging_epoch`] are Java
 /// `FetchResponse.preferredReadReplica` / `isPreferredReplica` /
-/// `divergingEpoch` / `isDivergingEpoch`. Omitted v12+
+/// `divergingEpoch` / `isDivergingEpoch`. [`Self::snapshot_id()`] /
+/// [`Self::is_snapshot_id`] are the JSON `SnapshotId` tagged field
+/// (Apache `FetchResponse.java` has no `snapshotId` helper). Omitted v12+
 /// CurrentLeader fills [`MetadataResponse::NO_LEADER_ID`] /
 /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; omitted DivergingEpoch fills
 /// [`EpochEndOffset::UNDEFINED_EPOCH`] /
-/// [`EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] (JSON defaults).
+/// [`EpochEndOffset::UNDEFINED_EPOCH_OFFSET`]; omitted SnapshotId fills
+/// the same offset / epoch defaults (JSON `-1` / `-1`). This is not the
+/// FetchSnapshot API and does not start those RPCs.
 #[derive(Debug, Clone)]
 pub struct FetchedPartition {
     /// Partition index.
@@ -490,6 +494,13 @@ pub struct FetchedPartition {
     /// Fetch v12+ DivergingEpoch `EndOffset` (tagged field 0), or
     /// [`EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] when omitted (JSON default).
     pub diverging_end_offset: i64,
+    /// Fetch v12+ SnapshotId `EndOffset` (tagged field 2), or
+    /// [`EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] when omitted (JSON default).
+    /// JSON field order is EndOffset then Epoch (the reverse of DivergingEpoch).
+    pub snapshot_end_offset: i64,
+    /// Fetch v12+ SnapshotId `Epoch` (tagged field 2), or
+    /// [`EpochEndOffset::UNDEFINED_EPOCH`] when omitted (JSON default).
+    pub snapshot_epoch: i32,
     /// Record batches for this partition.
     pub records: Vec<RecordBatch>,
 }
@@ -509,7 +520,7 @@ impl FetchedPartition {
     /// Sets [`Self::INVALID_HIGH_WATERMARK`] and empty records. Other
     /// fields are Apache JSON defaults (`LastStableOffset` /
     /// `LogStartOffset` / `PreferredReadReplica` / omitted
-    /// `CurrentLeader` / omitted `DivergingEpoch`).
+    /// `CurrentLeader` / omitted `DivergingEpoch` / omitted `SnapshotId`).
     #[must_use]
     pub fn partition_response(partition: i32, error_code: i16) -> Self {
         Self {
@@ -524,6 +535,8 @@ impl FetchedPartition {
             current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             diverging_epoch: EpochEndOffset::UNDEFINED_EPOCH,
             diverging_end_offset: EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+            snapshot_end_offset: EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+            snapshot_epoch: EpochEndOffset::UNDEFINED_EPOCH,
             records: Vec::new(),
         }
     }
@@ -555,6 +568,27 @@ impl FetchedPartition {
     #[must_use]
     pub fn is_diverging_epoch(&self) -> bool {
         self.diverging_epoch().is_some()
+    }
+
+    /// JSON `SnapshotId` tagged field 2 (`None` when both fields are the
+    /// JSON defaults). Apache `FetchResponse.java` has no `snapshotId`
+    /// helper (generated `FetchResponseData.PartitionData` only).
+    ///
+    /// The pair is `(end_offset, epoch)` matching JSON field order
+    /// (`EndOffset` INT64 then `Epoch` INT32; the reverse of
+    /// [`Self::diverging_epoch()`]). This is not the FetchSnapshot API
+    /// and does not start those RPCs.
+    #[must_use]
+    pub fn snapshot_id(&self) -> Option<(i64, i32)> {
+        (self.snapshot_end_offset != EpochEndOffset::UNDEFINED_EPOCH_OFFSET
+            || self.snapshot_epoch != EpochEndOffset::UNDEFINED_EPOCH)
+            .then_some((self.snapshot_end_offset, self.snapshot_epoch))
+    }
+
+    /// JSON `SnapshotId` tagged field 2 is present (not both JSON defaults).
+    #[must_use]
+    pub fn is_snapshot_id(&self) -> bool {
+        self.snapshot_id().is_some()
     }
 
     /// Java `FetchResponse.recordsSize`.
@@ -858,10 +892,14 @@ pub fn encode_fetch_request_with_forgotten(
 /// consumers omit it). v16 is the same request as v15 (KIP-951). v17 is
 /// the same consumer request as v16 (ReplicaDirectoryId tagged field 0 is
 /// follower-only and omitted). This crate speaks 4–17. Partition
-/// CurrentLeader tagged field 1 and DivergingEpoch tagged field 0 are
-/// decoded (v12+). Top-level NodeEndpoints tagged field 0 is decoded at
-/// v16+ so unknown CurrentLeader brokers can be inserted before apply.
-/// v18+ (KIP-1166 HighWatermark) is not spoken.
+/// CurrentLeader tagged field 1, DivergingEpoch tagged field 0, and
+/// SnapshotId tagged field 2 (`EndOffset` INT64 then `Epoch` INT32) are
+/// decoded (v12+). Below v12 SnapshotId is omitted even when the body is
+/// non-default; decode fills [`EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] /
+/// [`EpochEndOffset::UNDEFINED_EPOCH`]. This is not the FetchSnapshot API
+/// and does not start those RPCs. Top-level NodeEndpoints tagged field 0
+/// is decoded at v16+ so unknown CurrentLeader brokers can be inserted
+/// before apply. v18+ (KIP-1166 HighWatermark) is not spoken.
 fn fetch_flexible(version: i16) -> Result<bool> {
     match version {
         4..=11 => Ok(false),
@@ -944,12 +982,37 @@ fn decode_current_leader(value: &Bytes) -> Result<(i32, i32)> {
     Ok((leader_id, leader_epoch))
 }
 
+/// SnapshotId inside Fetch partition tagged field 2 (13 bytes when
+/// present: INT64 EndOffset + INT32 Epoch + empty nested tagged fields).
+/// JSON field order is the reverse of DivergingEpoch (tag 0: Epoch then
+/// EndOffset).
+fn encode_snapshot_id(end_offset: i64, epoch: i32) -> Bytes {
+    let mut inner = BytesMut::new();
+    inner.put_i64(end_offset);
+    inner.put_i32(epoch);
+    buf::put_empty_tagged_fields(&mut inner);
+    inner.freeze()
+}
+
+fn decode_snapshot_id(value: &Bytes) -> Result<(i64, i32)> {
+    let mut cur = value.as_ref();
+    let end_offset = buf::get_i64(&mut cur)?;
+    let epoch = buf::get_i32(&mut cur)?;
+    buf::skip_tagged_fields(&mut cur)?;
+    if !cur.is_empty() {
+        return Err(Error::protocol("SnapshotId leftover bytes"));
+    }
+    Ok((end_offset, epoch))
+}
+
 fn encode_fetch_partition_tags(
     buf: &mut BytesMut,
     diverging_epoch: i32,
     diverging_end_offset: i64,
     current_leader_id: i32,
     current_leader_epoch: i32,
+    snapshot_end_offset: i64,
+    snapshot_epoch: i32,
 ) -> Result<()> {
     let mut fields: Vec<(u32, Bytes)> = Vec::new();
     if diverging_epoch >= 0 {
@@ -964,6 +1027,11 @@ fn encode_fetch_partition_tags(
             encode_current_leader(current_leader_id, current_leader_epoch),
         ));
     }
+    if snapshot_end_offset != EpochEndOffset::UNDEFINED_EPOCH_OFFSET
+        || snapshot_epoch != EpochEndOffset::UNDEFINED_EPOCH
+    {
+        fields.push((2, encode_snapshot_id(snapshot_end_offset, snapshot_epoch)));
+    }
     if fields.is_empty() {
         buf::put_empty_tagged_fields(buf);
         Ok(())
@@ -972,16 +1040,19 @@ fn encode_fetch_partition_tags(
     }
 }
 
-fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i32)> {
+fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i32, i64, i32)> {
     let tags = buf::get_tagged_fields(buf)?;
     let mut diverging_epoch = EpochEndOffset::UNDEFINED_EPOCH;
     let mut diverging_end_offset = EpochEndOffset::UNDEFINED_EPOCH_OFFSET;
     let mut current_leader_id = MetadataResponse::NO_LEADER_ID;
     let mut current_leader_epoch = RecordBatch::NO_PARTITION_LEADER_EPOCH;
+    let mut snapshot_end_offset = EpochEndOffset::UNDEFINED_EPOCH_OFFSET;
+    let mut snapshot_epoch = EpochEndOffset::UNDEFINED_EPOCH;
     for (tag, value) in tags {
         match tag {
             0 => (diverging_epoch, diverging_end_offset) = decode_diverging_epoch(&value)?,
             1 => (current_leader_id, current_leader_epoch) = decode_current_leader(&value)?,
+            2 => (snapshot_end_offset, snapshot_epoch) = decode_snapshot_id(&value)?,
             _ => {}
         }
     }
@@ -990,6 +1061,8 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
         diverging_end_offset,
         current_leader_id,
         current_leader_epoch,
+        snapshot_end_offset,
+        snapshot_epoch,
     ))
 }
 
@@ -1111,7 +1184,11 @@ pub fn decode_fetch_request<B: Buf>(
 /// they are omitted. LogStartOffset is v5+. PreferredReadReplica is v11+.
 /// Below those versions the fields are omitted even when the body is
 /// non-default; decode fills [`FetchedPartition::INVALID_LOG_START_OFFSET`]
-/// / [`FetchedPartition::INVALID_PREFERRED_REPLICA_ID`].
+/// / [`FetchedPartition::INVALID_PREFERRED_REPLICA_ID`]. SnapshotId tagged
+/// field 2 is v12+; below v12 it is omitted even when the body is
+/// non-default; decode fills [`EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] /
+/// [`EpochEndOffset::UNDEFINED_EPOCH`]. This is not the FetchSnapshot API
+/// and does not start those RPCs.
 pub fn encode_fetch_response(
     buf: &mut BytesMut,
     version: i16,
@@ -1185,6 +1262,8 @@ pub fn encode_fetch_response_with_endpoints(
                     p.diverging_end_offset,
                     p.current_leader_id,
                     p.current_leader_epoch,
+                    p.snapshot_end_offset,
+                    p.snapshot_epoch,
                 )?;
             }
         }
@@ -1204,7 +1283,10 @@ pub fn encode_fetch_response_with_endpoints(
 /// Below v7 ErrorCode and SessionId are omitted; decode fills `0`.
 /// LogStartOffset is v5+; PreferredReadReplica is v11+; below those
 /// versions decode fills [`FetchedPartition::INVALID_LOG_START_OFFSET`] /
-/// [`FetchedPartition::INVALID_PREFERRED_REPLICA_ID`].
+/// [`FetchedPartition::INVALID_PREFERRED_REPLICA_ID`]. SnapshotId tagged
+/// field 2 is v12+; below v12 decode fills
+/// [`EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] /
+/// [`EpochEndOffset::UNDEFINED_EPOCH`].
 pub fn decode_fetch_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -1259,17 +1341,25 @@ pub fn decode_fetch_response<B: Buf>(
                 let mut rec_buf = rec_bytes;
                 records::decode_record_batches(&mut rec_buf)?
             };
-            let (diverging_epoch, diverging_end_offset, current_leader_id, current_leader_epoch) =
-                if flexible {
-                    decode_fetch_partition_tags(buf)?
-                } else {
-                    (
-                        EpochEndOffset::UNDEFINED_EPOCH,
-                        EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
-                        MetadataResponse::NO_LEADER_ID,
-                        RecordBatch::NO_PARTITION_LEADER_EPOCH,
-                    )
-                };
+            let (
+                diverging_epoch,
+                diverging_end_offset,
+                current_leader_id,
+                current_leader_epoch,
+                snapshot_end_offset,
+                snapshot_epoch,
+            ) = if flexible {
+                decode_fetch_partition_tags(buf)?
+            } else {
+                (
+                    EpochEndOffset::UNDEFINED_EPOCH,
+                    EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+                    MetadataResponse::NO_LEADER_ID,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+                    EpochEndOffset::UNDEFINED_EPOCH,
+                )
+            };
             partitions.push(FetchedPartition {
                 partition,
                 error_code,
@@ -1282,6 +1372,8 @@ pub fn decode_fetch_response<B: Buf>(
                 current_leader_epoch,
                 diverging_epoch,
                 diverging_end_offset,
+                snapshot_end_offset,
+                snapshot_epoch,
                 records,
             });
         }
@@ -1348,11 +1440,18 @@ mod tests {
             none.diverging_end_offset,
             EpochEndOffset::UNDEFINED_EPOCH_OFFSET
         );
+        assert_eq!(
+            none.snapshot_end_offset,
+            EpochEndOffset::UNDEFINED_EPOCH_OFFSET
+        );
+        assert_eq!(none.snapshot_epoch, EpochEndOffset::UNDEFINED_EPOCH);
         assert!(none.records.is_empty());
         assert_eq!(none.preferred_read_replica(), None);
         assert!(!none.is_preferred_replica());
         assert_eq!(none.diverging_epoch(), None);
         assert!(!none.is_diverging_epoch());
+        assert_eq!(none.snapshot_id(), None);
+        assert!(!none.is_snapshot_id());
         assert_eq!(none.records_size().unwrap(), 0);
         let unknown =
             FetchedPartition::partition_response(3, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
@@ -1433,6 +1532,10 @@ mod tests {
         pref.diverging_end_offset = 12;
         assert_eq!(pref.diverging_epoch(), Some((3, 12)));
         assert!(pref.is_diverging_epoch());
+        pref.snapshot_end_offset = 20;
+        pref.snapshot_epoch = 3;
+        assert_eq!(pref.snapshot_id(), Some((20, 3)));
+        assert!(pref.is_snapshot_id());
     }
 
     #[test]
@@ -2562,6 +2665,8 @@ mod tests {
                 current_leader_epoch: -1,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: Vec::new(),
             }],
         };
@@ -3109,6 +3214,8 @@ mod tests {
                 current_leader_epoch: -1,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -3152,6 +3259,8 @@ mod tests {
                 current_leader_epoch: -1,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![batch],
             }],
         }];
@@ -3182,6 +3291,8 @@ mod tests {
                 current_leader_epoch: -1,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![],
             }],
         }];
@@ -3268,6 +3379,8 @@ mod tests {
                 current_leader_epoch: -1,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![batch],
             }],
         }];
@@ -3337,6 +3450,8 @@ mod tests {
                 current_leader_epoch: -1,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -3451,6 +3566,8 @@ mod tests {
                 current_leader_epoch: -1,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -3590,6 +3707,8 @@ mod tests {
                 current_leader_epoch: -1,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -3696,6 +3815,8 @@ mod tests {
                 current_leader_epoch: -1,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -3759,6 +3880,8 @@ mod tests {
                 current_leader_epoch: 7,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         };
@@ -3824,6 +3947,8 @@ mod tests {
                 current_leader_epoch: -1,
                 diverging_epoch: 3,
                 diverging_end_offset: 12,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         };
@@ -3864,6 +3989,156 @@ mod tests {
     }
 
     #[test]
+    fn fetch_response_snapshot_id_matches_java() {
+        // Kafka 4.0.0 FetchResponse.json SnapshotId is partition tagged
+        // field 2 on v12+ (`taggedVersions: "12+"`). Nested order is
+        // EndOffset INT64 then Epoch INT32 (the reverse of DivergingEpoch
+        // tag 0). Apache FetchResponse.java has no snapshotId helper.
+        // This is not the FetchSnapshot API and does not start those RPCs.
+        let snapshot_topic = |end_offset: i64, epoch: i32| FetchedTopic {
+            topic: "t".into(),
+            topic_id: SAMPLE_TOPIC_ID,
+            partitions: vec![FetchedPartition {
+                partition: 0,
+                error_code: 0,
+                high_watermark: 0,
+                last_stable_offset: 0,
+                log_start_offset: 0,
+                aborted_transactions: Vec::new(),
+                preferred_read_replica: -1,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
+                snapshot_end_offset: end_offset,
+                snapshot_epoch: epoch,
+                records: Vec::new(),
+            }],
+        };
+        let with = [snapshot_topic(20, 3)];
+        let omitted = [snapshot_topic(
+            EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+            EpochEndOffset::UNDEFINED_EPOCH,
+        )];
+        let diverging = {
+            let mut topic = snapshot_topic(
+                EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+                EpochEndOffset::UNDEFINED_EPOCH,
+            );
+            topic.partitions[0].diverging_epoch = 3;
+            topic.partitions[0].diverging_end_offset = 20;
+            [topic]
+        };
+
+        for version in [12_i16, 13, 15, 16, 17] {
+            let mut buf = BytesMut::new();
+            encode_fetch_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let (got, endpoints, ..) = decode_fetch_response(&mut cur, version).unwrap();
+            let part = got
+                .first()
+                .and_then(|t| t.partitions.first())
+                .expect("one partition");
+            assert_eq!(part.snapshot_end_offset, 20);
+            assert_eq!(part.snapshot_epoch, 3);
+            assert_eq!(part.snapshot_id(), Some((20, 3)));
+            assert!(part.is_snapshot_id());
+            assert_eq!(part.diverging_epoch, EpochEndOffset::UNDEFINED_EPOCH);
+            assert_eq!(
+                part.diverging_end_offset,
+                EpochEndOffset::UNDEFINED_EPOCH_OFFSET
+            );
+            assert_eq!(part.current_leader_id, MetadataResponse::NO_LEADER_ID);
+            assert!(!part.is_diverging_epoch());
+            assert!(endpoints.is_empty());
+            assert!(cur.is_empty(), "Fetch v{version} SnapshotId leftover-empty");
+        }
+
+        for version in [4_i16, 5, 6, 7, 8, 11] {
+            let mut buf = BytesMut::new();
+            encode_fetch_response(&mut buf, version, &with).unwrap();
+            let mut omitted_buf = BytesMut::new();
+            encode_fetch_response(&mut omitted_buf, version, &omitted).unwrap();
+            assert_eq!(
+                &buf[..],
+                &omitted_buf[..],
+                "Fetch v{version} omits SnapshotId even when the body is non-default"
+            );
+            let mut cur = buf.as_ref();
+            let (got, ..) = decode_fetch_response(&mut cur, version).unwrap();
+            let part = got
+                .first()
+                .and_then(|t| t.partitions.first())
+                .expect("one partition");
+            assert_eq!(
+                part.snapshot_end_offset,
+                EpochEndOffset::UNDEFINED_EPOCH_OFFSET
+            );
+            assert_eq!(part.snapshot_epoch, EpochEndOffset::UNDEFINED_EPOCH);
+            assert_eq!(part.snapshot_id(), None);
+            assert!(!part.is_snapshot_id());
+            assert!(cur.is_empty(), "Fetch v{version} SnapshotId leftover-empty");
+        }
+
+        let mut v12_with = BytesMut::new();
+        encode_fetch_response(&mut v12_with, 12, &with).unwrap();
+        let mut v12_omitted = BytesMut::new();
+        encode_fetch_response(&mut v12_omitted, 12, &omitted).unwrap();
+        assert_ne!(
+            &v12_with[..],
+            &v12_omitted[..],
+            "v12 SnapshotId tagged field 2 is not always omitted"
+        );
+        let mut v11_with = BytesMut::new();
+        encode_fetch_response(&mut v11_with, 11, &with).unwrap();
+        let mut v11_omitted = BytesMut::new();
+        encode_fetch_response(&mut v11_omitted, 11, &omitted).unwrap();
+        assert_eq!(
+            &v11_with[..],
+            &v11_omitted[..],
+            "v11 encode omits SnapshotId even when the body is non-default"
+        );
+        assert_ne!(
+            &v11_with[..],
+            &v12_with[..],
+            "v12 adds SnapshotId tagged field 2; do not confuse with v11 PreferredReadReplica"
+        );
+
+        let mut v15 = BytesMut::new();
+        encode_fetch_response(&mut v15, 15, &with).unwrap();
+        let mut v16 = BytesMut::new();
+        encode_fetch_response(&mut v16, 16, &with).unwrap();
+        assert_eq!(
+            &v15[..],
+            &v16[..],
+            "Fetch v12+ SnapshotId layout is unchanged at v16"
+        );
+
+        let mut snap = BytesMut::new();
+        encode_fetch_response(&mut snap, 16, &with).unwrap();
+        let mut div = BytesMut::new();
+        encode_fetch_response(&mut div, 16, &diverging).unwrap();
+        assert_ne!(
+            &snap[..],
+            &div[..],
+            "SnapshotId tag 2 is EndOffset then Epoch; DivergingEpoch tag 0 is Epoch then EndOffset"
+        );
+        let mut leader = BytesMut::new();
+        let mut with_leader = snapshot_topic(
+            EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+            EpochEndOffset::UNDEFINED_EPOCH,
+        );
+        with_leader.partitions[0].current_leader_id = 2;
+        with_leader.partitions[0].current_leader_epoch = 7;
+        encode_fetch_response(&mut leader, 16, std::slice::from_ref(&with_leader)).unwrap();
+        assert_ne!(
+            &snap[..],
+            &leader[..],
+            "SnapshotId tagged field 2 must not equal CurrentLeader tagged field 1"
+        );
+    }
+
+    #[test]
     fn fetch_v16_node_endpoints_tagged_is_leftover_empty() {
         let rec = Record {
             offset: 0,
@@ -3887,6 +4162,8 @@ mod tests {
                 current_leader_epoch: 1,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -3981,6 +4258,8 @@ mod tests {
                 current_leader_epoch: -1,
                 diverging_epoch: -1,
                 diverging_end_offset: -1,
+                snapshot_end_offset: -1,
+                snapshot_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];

@@ -978,7 +978,12 @@
 //! CurrentLeaderEpoch is v9+; RackId and response PreferredReadReplica are
 //! v11+; response LogStartOffset is v5+; below those versions encode omits
 //! the field even when the body has a value and decode fills the JSON
-//! default). v18+
+//! default; response SnapshotId tagged field 2 is v12+ (`EndOffset`
+//! INT64 then `Epoch` INT32; the reverse of DivergingEpoch); below v12
+//! encode omits it even when the body is non-default and decode fills
+//! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] /
+//! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`]; this is not the
+//! FetchSnapshot API and does not start those RPCs). v18+
 //! is not spoken. [`protocol::fetch::FetchedPartition::INVALID_HIGH_WATERMARK`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_LAST_STABLE_OFFSET`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_LOG_START_OFFSET`] /
@@ -1022,6 +1027,12 @@
 //! `FetchResponse.preferredReadReplica` / `isPreferredReplica` /
 //! `divergingEpoch` / `isDivergingEpoch` (`None` is empty `Optional`;
 //! epoch `< 0` is empty);
+//! [`protocol::fetch::FetchedPartition::snapshot_id()`] /
+//! [`protocol::fetch::FetchedPartition::is_snapshot_id`] are JSON
+//! `SnapshotId` tagged field 2 (`None` when both fields are the JSON
+//! defaults; the pair is `(end_offset, epoch)`; Apache
+//! `FetchResponse.java` has no `snapshotId` helper; this is not the
+//! FetchSnapshot API);
 //! [`protocol::fetch::FetchedPartition::records_size`] is Java
 //! `FetchResponse.recordsSize` (`0` when records are empty);
 //! [`protocol::fetch::FetchResponse::should_client_throttle`] is Java
@@ -1046,7 +1057,10 @@
 //! v12+ CurrentLeader fills [`protocol::api::MetadataResponse::NO_LEADER_ID`] /
 //! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; omitted DivergingEpoch fills
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /
-//! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`].
+//! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`]; omitted
+//! SnapshotId fills
+//! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] /
+//! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`].
 //! [`protocol::fetch::CONSUMER_REPLICA_ID`] is Java
 //! `FetchRequest.CONSUMER_REPLICA_ID` (written through v14).
 //! [`protocol::offsets::CONSUMER_REPLICA_ID`] /
