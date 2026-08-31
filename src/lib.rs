@@ -920,7 +920,8 @@
 //! [`protocol::txn::TxnOffsetCommitResponsePartition::error`] are Java
 //! `TxnOffsetCommitRequest.getErrorResponse` / `getErrorResponseTopics`
 //! (one topic / Topics / partition body). Nested body is PartitionIndex
-//! and ErrorCode. Throttle is the JSON default (`0`);
+//! and ErrorCode. ThrottleTimeMs is JSON `0+`;
+//! [`protocol::txn::encode_txn_offset_commit_topics_response`] still writes `0`;
 //! [`protocol::txn::TxnOffsetCommitMember::unknown`] /
 //! [`protocol::txn::TxnOffsetCommitMember::group_metadata_set`] are Java
 //! `TxnOffsetCommitRequest.Builder` without group metadata /

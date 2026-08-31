@@ -1355,7 +1355,8 @@ pub fn decode_txn_offset_commit_request<B: Buf>(
 /// Encode TxnOffsetCommit: one error code applied to every partition.
 ///
 /// Applies `error` on every request partition via
-/// [`TxnOffsetTopic::error_results`]. Throttle is the JSON default (`0`).
+/// [`TxnOffsetTopic::error_results`]. ThrottleTimeMs is the JSON
+/// default (`0`) on every spoken version (JSON `0+`).
 pub fn encode_txn_offset_commit_response(
     buf: &mut BytesMut,
     version: i16,
@@ -1371,15 +1372,31 @@ pub fn encode_txn_offset_commit_response(
 
 /// Encode TxnOffsetCommit v0–5 from response Topics.
 ///
-/// Throttle is the JSON default (`0`) on every spoken version. Nested
-/// body is PartitionIndex + ErrorCode.
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`). Nested body is PartitionIndex + ErrorCode.
 pub fn encode_txn_offset_commit_topics_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[TxnOffsetCommitResponseTopic],
 ) -> Result<()> {
+    encode_txn_offset_commit_topics_response_with_throttle(buf, version, topics, 0)
+}
+
+/// Encode TxnOffsetCommit v0–v5 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
+/// v0–v2 are classic. v3–v5 are flexible. v4 is the same layout
+/// (KIP-890 TRANSACTION_ABORTABLE). v5 is the same layout (KIP-890
+/// Part 2). Kafka 4.0 `validVersions` is `0-5`. This crate speaks 0–5.
+/// v6+ is not spoken. There is no top-level ErrorCode.
+pub fn encode_txn_offset_commit_topics_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[TxnOffsetCommitResponseTopic],
+    throttle_time_ms: i32,
+) -> Result<()> {
     let flexible = txn_offset_commit_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         buf::put_string(buf, flexible, Some(&t.topic))?;
@@ -1403,7 +1420,7 @@ pub fn encode_txn_offset_commit_topics_response(
 
 /// Decode TxnOffsetCommit: first non-zero partition error, or `0`.
 pub fn decode_txn_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
-    let topics = decode_txn_offset_commit_topics_response(buf, version)?;
+    let (topics, ..) = decode_txn_offset_commit_topics_response(buf, version)?;
     let mut first_err = 0i16;
     for t in &topics {
         for p in &t.partitions {
@@ -1416,12 +1433,15 @@ pub fn decode_txn_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> R
 }
 
 /// Decode TxnOffsetCommit: every response topic.
+///
+/// Returns `(topics, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire). There is no top-level ErrorCode.
 pub fn decode_txn_offset_commit_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<TxnOffsetCommitResponseTopic>> {
+) -> Result<(Vec<TxnOffsetCommitResponseTopic>, i32)> {
     let flexible = txn_offset_commit_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
@@ -1447,7 +1467,7 @@ pub fn decode_txn_offset_commit_topics_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(topics)
+    Ok((topics, throttle_time_ms))
 }
 
 /// One topic in a WriteTxnMarkers marker (api 27 v0–1).
@@ -2064,7 +2084,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_txn_offset_commit_topics_response(&mut buf, 0, &two).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 0).unwrap();
+        let (decoded, ..) = decode_txn_offset_commit_topics_response(&mut cur, 0).unwrap();
         assert_eq!(decoded, two);
         assert_eq!(
             TxnOffsetCommitResponse::errors(&decoded),
@@ -2078,7 +2098,7 @@ mod tests {
         buf.clear();
         encode_txn_offset_commit_topics_response(&mut buf, 3, &two).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
+        let (decoded, ..) = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
         assert_eq!(decoded, two);
         assert_eq!(
             TxnOffsetCommitResponse::errors(&decoded),
@@ -2148,7 +2168,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_txn_offset_commit_topics_response(&mut buf, 0, &grouped).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 0).unwrap();
+        let (decoded, ..) = decode_txn_offset_commit_topics_response(&mut cur, 0).unwrap();
         assert_eq!(decoded, grouped);
         assert!(
             cur.is_empty(),
@@ -2158,7 +2178,7 @@ mod tests {
         buf.clear();
         encode_txn_offset_commit_topics_response(&mut buf, 3, &grouped).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
+        let (decoded, ..) = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
         assert_eq!(decoded, grouped);
         assert!(
             cur.is_empty(),
@@ -2209,7 +2229,8 @@ mod tests {
             let mut got = BytesMut::new();
             encode_txn_offset_commit_topics_response(&mut got, version, &merged_same).unwrap();
             let mut cur = &got[..];
-            let decoded = decode_txn_offset_commit_topics_response(&mut cur, version).unwrap();
+            let (decoded, ..) =
+                decode_txn_offset_commit_topics_response(&mut cur, version).unwrap();
             assert_eq!(decoded, merged_same, "v{version} same-topic merge decode");
             assert!(
                 cur.is_empty(),
@@ -2223,7 +2244,7 @@ mod tests {
         let mut got = BytesMut::new();
         encode_txn_offset_commit_topics_response(&mut got, 3, &merged_new).unwrap();
         let mut cur = &got[..];
-        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
+        let (decoded, ..) = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
         assert_eq!(decoded, merged_new);
         assert!(
             cur.is_empty(),
@@ -2236,7 +2257,7 @@ mod tests {
         got.clear();
         encode_txn_offset_commit_topics_response(&mut got, 0, &from_empty).unwrap();
         let mut cur = &got[..];
-        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 0).unwrap();
+        let (decoded, ..) = decode_txn_offset_commit_topics_response(&mut cur, 0).unwrap();
         assert_eq!(decoded, current);
         assert!(
             cur.is_empty(),
@@ -2249,7 +2270,7 @@ mod tests {
         got.clear();
         encode_txn_offset_commit_topics_response(&mut got, 1, &empty_both).unwrap();
         let mut cur = &got[..];
-        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 1).unwrap();
+        let (decoded, ..) = decode_txn_offset_commit_topics_response(&mut cur, 1).unwrap();
         assert!(decoded.is_empty());
         assert!(
             cur.is_empty(),
@@ -2283,7 +2304,7 @@ mod tests {
         got.clear();
         encode_txn_offset_commit_topics_response(&mut got, 3, &grouped).unwrap();
         let mut cur = &got[..];
-        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
+        let (decoded, ..) = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
         assert_eq!(decoded, grouped);
         assert!(
             cur.is_empty(),
@@ -3706,6 +3727,92 @@ mod tests {
     }
 
     #[test]
+    fn txn_offset_commit_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 TxnOffsetCommitResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0–v5; first field). Official
+        // Java TxnOffsetCommitRequest.getErrorResponse /
+        // TxnOffsetCommitResponse.throttleTimeMs set / read it.
+        // encode_txn_offset_commit_topics_response still writes the
+        // JSON default 0. KIP-219 only changes shouldClientThrottle
+        // (v1+). Empty-Topics v0 == v1 == v2 (classic); v3 == v4 == v5
+        // (flexible; TRANSACTION_ABORTABLE / KIP-890 Part 2 same
+        // layout). There is no top-level ErrorCode. This crate speaks
+        // 0–5. This is not EndTxn ThrottleTimeMs.
+        let topics: Vec<TxnOffsetCommitResponseTopic> = vec![];
+        for version in [0, 1, 2, 3, 4, 5] {
+            let mut buf = BytesMut::new();
+            encode_txn_offset_commit_topics_response_with_throttle(
+                &mut buf, version, &topics, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_txn_offset_commit_topics_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, topics);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "TxnOffsetCommit v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_txn_offset_commit_topics_response_with_throttle(&mut with, 0, &topics, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_txn_offset_commit_topics_response_with_throttle(&mut zero, 0, &topics, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_txn_offset_commit_topics_response(&mut conv, 0, &topics).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_txn_offset_commit_topics_response still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_txn_offset_commit_topics_response_with_throttle(&mut v1_with, 1, &topics, 3_600_000)
+            .unwrap();
+        let mut v2_with = BytesMut::new();
+        encode_txn_offset_commit_topics_response_with_throttle(&mut v2_with, 2, &topics, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "empty-Topics ThrottleTimeMs bodies: v0 == v1"
+        );
+        assert_eq!(
+            &v1_with[..],
+            &v2_with[..],
+            "empty-Topics ThrottleTimeMs bodies: v1 == v2"
+        );
+        let mut v3_with = BytesMut::new();
+        encode_txn_offset_commit_topics_response_with_throttle(&mut v3_with, 3, &topics, 3_600_000)
+            .unwrap();
+        assert_ne!(&v2_with[..], &v3_with[..], "v3 adds compact tagged fields");
+        let mut v4_with = BytesMut::new();
+        encode_txn_offset_commit_topics_response_with_throttle(&mut v4_with, 4, &topics, 3_600_000)
+            .unwrap();
+        let mut v5_with = BytesMut::new();
+        encode_txn_offset_commit_topics_response_with_throttle(&mut v5_with, 5, &topics, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &v3_with[..],
+            &v4_with[..],
+            "empty-Topics ThrottleTimeMs bodies: v3 == v4"
+        );
+        assert_eq!(
+            &v4_with[..],
+            &v5_with[..],
+            "empty-Topics ThrottleTimeMs bodies: v4 == v5"
+        );
+    }
+
+    #[test]
     fn txn_offset_commit_v3_roundtrip_is_leftover_empty() {
         let member = TxnOffsetCommitMember {
             generation_id: 7,
@@ -3880,7 +3987,9 @@ mod tests {
             encode_txn_offset_commit_topics_response(&mut buf, version, &err).unwrap();
             let mut cur = buf.as_ref();
             assert_eq!(
-                decode_txn_offset_commit_topics_response(&mut cur, version).unwrap(),
+                decode_txn_offset_commit_topics_response(&mut cur, version)
+                    .unwrap()
+                    .0,
                 err
             );
             assert!(
@@ -3900,7 +4009,9 @@ mod tests {
             encode_txn_offset_commit_topics_response(&mut buf, version, &empty).unwrap();
             let mut cur = buf.as_ref();
             assert_eq!(
-                decode_txn_offset_commit_topics_response(&mut cur, version).unwrap(),
+                decode_txn_offset_commit_topics_response(&mut cur, version)
+                    .unwrap()
+                    .0,
                 empty
             );
             assert!(
