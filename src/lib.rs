@@ -519,7 +519,11 @@
 //! [`protocol::admin::IncrementalAlterConfigsResponse::from_errors`] is Java
 //! `IncrementalAlterConfigsResponse` constructed from a result map (type
 //! id + name plus [`ApiError`] into Responses; `ErrorMessage` is copied;
-//! throttle unused)),
+//! throttle unused);
+//! [`protocol::admin::IncrementalAlterConfigsRequest::from_configs`] is Java
+//! `IncrementalAlterConfigsRequest.Builder` from a resource list and
+//! configs map (missing `Map.get` is [`Error::protocol`]; mapKey first
+//! stays; extra map entries omitted)),
 //! AlterConfigs v0–v2 (v2 flexible; Resources of N;
 //! [`protocol::admin::AlterConfigsResponse::should_client_throttle`] is Java
 //! `AlterConfigsResponse.shouldClientThrottle` (v1+);
@@ -1293,6 +1297,10 @@
 //! `IncrementalAlterConfigsResponse` constructed from a result map (type
 //! id + name plus [`ApiError`] into Responses; `ErrorMessage` is copied;
 //! throttle unused).
+//! [`protocol::admin::IncrementalAlterConfigsRequest::from_configs`] is Java
+//! `IncrementalAlterConfigsRequest.Builder` from a resource list and
+//! configs map (missing `Map.get` is [`Error::protocol`]; mapKey first
+//! stays; extra map entries omitted).
 //! [`AlterConfig::append`] / [`AlterConfig::subtract`] are Java
 //! `AlterConfigOp.OpType.APPEND` / `SUBTRACT` (LIST configs).
 //! [`AlterConfig::from_entry`] is Java `AlterConfigOp(ConfigEntry, OpType)`

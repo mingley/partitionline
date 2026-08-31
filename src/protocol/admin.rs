@@ -2401,6 +2401,72 @@ impl IncrementalAlterConfigsResponse {
     }
 }
 
+/// Java `IncrementalAlterConfigsRequest` helpers.
+pub struct IncrementalAlterConfigsRequest;
+
+impl IncrementalAlterConfigsRequest {
+    /// Java `IncrementalAlterConfigsRequest.Builder` from a resource list
+    /// and configs map.
+    ///
+    /// Iterates `resources`. Ops come from `configs` keyed by
+    /// `(type, name)`. A resource missing from `configs` is
+    /// [`Error::protocol`] (Java `NullPointerException` on `Map.get`).
+    /// A configs entry whose resource is not in `resources` is omitted.
+    /// Duplicate `(type, name)` in `resources`: later `Resources.add` is
+    /// ignored (Java mapKey `ResourceType`+`ResourceName`; first stays).
+    /// Duplicate `(name, op)` ops: later `AlterableConfigCollection.add`
+    /// is ignored (mapKey `Name`+`ConfigOperation`; first stays). Same
+    /// name with a different op is kept. `ValidateOnly` is not part of
+    /// this helper.
+    pub fn from_configs<'a, I>(
+        resources: I,
+        configs: &HashMap<(i8, String), Vec<AlterConfig>>,
+    ) -> Result<Vec<AlterableResource>>
+    where
+        I: IntoIterator<Item = (i8, &'a str)>,
+    {
+        let mut order: Vec<(i8, String)> = Vec::new();
+        let mut by_resource: HashMap<(i8, String), Vec<AlterConfig>> = HashMap::new();
+        for (resource_type, name) in resources {
+            let key = (resource_type, name.to_string());
+            let Some(ops) = configs.get(&key) else {
+                return Err(Error::protocol(format!(
+                    "no IncrementalAlterConfigs ops for resource type {resource_type} name {name}"
+                )));
+            };
+            if by_resource.contains_key(&key) {
+                continue;
+            }
+            let mut op_order: Vec<(String, i8)> = Vec::new();
+            let mut by_op: HashMap<(String, i8), AlterConfig> = HashMap::new();
+            for op in ops {
+                let op_key = (op.name.clone(), op.op);
+                if by_op.contains_key(&op_key) {
+                    continue;
+                }
+                op_order.push(op_key.clone());
+                let _prev = by_op.insert(op_key, op.clone());
+            }
+            let deduped = op_order
+                .into_iter()
+                .filter_map(|op_key| by_op.remove(&op_key))
+                .collect();
+            order.push(key.clone());
+            let _prev = by_resource.insert(key, deduped);
+        }
+        Ok(order
+            .into_iter()
+            .filter_map(|key| {
+                by_resource.remove(&key).map(|configs| AlterableResource {
+                    resource_type: key.0,
+                    name: key.1,
+                    configs,
+                })
+            })
+            .collect())
+    }
+}
+
 /// IncrementalAlterConfigs v0–1 (classic at v0; flexible from v1).
 pub fn encode_incremental_alter_configs_request(
     buf: &mut BytesMut,
@@ -15259,6 +15325,113 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "IncrementalAlterConfigs v{version} from_errors empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn incremental_alter_configs_from_configs_matches_java() {
+        // Java IncrementalAlterConfigsRequest.Builder(resources, configs):
+        // iterate resources, Map.get ops (NPE if missing), Resources.add
+        // mapKey type+name first stays, AlterableConfigCollection.add
+        // mapKey name+op first stays.
+        let empty = IncrementalAlterConfigsRequest::from_configs(
+            std::iter::empty::<(i8, &str)>(),
+            &HashMap::new(),
+        )
+        .unwrap();
+        assert!(empty.is_empty());
+        let unused = HashMap::from([(
+            (RESOURCE_BROKER, "1".into()),
+            vec![AlterConfig::set("k", "v")],
+        )]);
+        assert!(
+            IncrementalAlterConfigsRequest::from_configs(std::iter::empty::<(i8, &str)>(), &unused)
+                .unwrap()
+                .is_empty(),
+            "configs entry not in resources is omitted"
+        );
+        let missing =
+            IncrementalAlterConfigsRequest::from_configs([(RESOURCE_TOPIC, "t")], &HashMap::new())
+                .unwrap_err();
+        assert!(
+            matches!(missing, Error::Protocol(_)),
+            "missing configs.get is Java NullPointerException, got {missing}"
+        );
+
+        let first_set = AlterConfig::set("retention.ms", "1");
+        let later_set = AlterConfig::set("retention.ms", "2");
+        let delete = AlterConfig::delete("retention.ms");
+        let append = AlterConfig::append("cleanup.policy", "compact");
+        let broker = AlterConfig::set("num.network.threads", "8");
+        let configs = HashMap::from([
+            (
+                (RESOURCE_TOPIC, "t".into()),
+                vec![first_set.clone(), later_set, delete.clone(), append.clone()],
+            ),
+            ((RESOURCE_BROKER, "1".into()), vec![broker.clone()]),
+            (
+                (RESOURCE_TOPIC, "other".into()),
+                vec![AlterConfig::set("x", "y")],
+            ),
+        ]);
+        let resources = IncrementalAlterConfigsRequest::from_configs(
+            [
+                (RESOURCE_TOPIC, "t"),
+                (RESOURCE_BROKER, "1"),
+                (RESOURCE_TOPIC, "t"),
+            ],
+            &configs,
+        )
+        .unwrap();
+        assert_eq!(
+            resources,
+            vec![
+                AlterableResource {
+                    resource_type: RESOURCE_TOPIC,
+                    name: "t".into(),
+                    configs: vec![first_set, delete, append],
+                },
+                AlterableResource {
+                    resource_type: RESOURCE_BROKER,
+                    name: "1".into(),
+                    configs: vec![broker],
+                },
+            ]
+        );
+        assert_eq!(
+            resources.len(),
+            2,
+            "duplicate resource and extra map entry omitted"
+        );
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_incremental_alter_configs_resources_request(
+                &mut buf, version, &resources, false,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, validate_only) =
+                decode_incremental_alter_configs_resources_request(&mut cur, version).unwrap();
+            assert_eq!(decoded, resources);
+            assert!(!validate_only);
+            assert!(
+                !cur.has_remaining(),
+                "IncrementalAlterConfigs v{version} from_configs leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            buf.clear();
+            encode_incremental_alter_configs_resources_request(&mut buf, version, &empty, false)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, validate_only) =
+                decode_incremental_alter_configs_resources_request(&mut cur, version).unwrap();
+            assert_eq!(decoded, empty);
+            assert!(!validate_only);
+            assert!(
+                !cur.has_remaining(),
+                "IncrementalAlterConfigs v{version} from_configs empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }
