@@ -1350,6 +1350,9 @@
 //! [`DescribeProducersPartition::error`] /
 //! [`protocol::admin::DescribeProducersTopicRequest::error_result`] are Java
 //! `DescribeProducersRequest.getErrorResponse` (partition body / one topic).
+//! ThrottleTimeMs is JSON `0+`; encode writes the field;
+//! [`protocol::admin::DescribeProducersResponse::new`] fills `0`.
+//! Official Java `getErrorResponse` does not set `throttleTimeMs` (JSON default `0`).
 //! [`protocol::admin::DescribeProducersResponse::error_counts`] is Java
 //! `DescribeProducersResponse.errorCounts` (partition-level codes, including `NONE`).
 //! [`OngoingReassignment`] `Display`
@@ -1770,7 +1773,9 @@
 //! [`Admin::describe_producers_timeout`] /
 //! [`Admin::describe_producers_for_timeout`] are Java
 //! `DescribeProducersOptions.timeoutMs` (RPC deadline; DescribeProducers
-//! has no TimeoutMs).
+//! has no TimeoutMs). ThrottleTimeMs is JSON `0+`; encode writes the field;
+//! [`protocol::admin::DescribeProducersResponse::new`] fills `0`.
+//! Official Java `getErrorResponse` does not set `throttleTimeMs` (JSON default `0`).
 //! [`ActiveProducer`] getters match Java `ProducerState`
 //! (`coordinatorEpoch` / `currentTransactionStartOffset` are `None` when
 //! the wire value is negative).

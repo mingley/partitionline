@@ -7297,6 +7297,9 @@ impl DescribeProducersTopic {
 /// after throttle; the first-partition code is later in the body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeProducersResponse {
+    /// DescribeProducers `ThrottleTimeMs` (JSON `0+`). First field.
+    /// JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Topics in this request or response.
     pub topics: Vec<DescribeProducersTopic>,
 }
@@ -7305,7 +7308,16 @@ impl DescribeProducersResponse {
     /// Construct [`Self`].
     #[must_use]
     pub fn new(topics: Vec<DescribeProducersTopic>) -> Self {
-        Self { topics }
+        Self {
+            throttle_time_ms: 0,
+            topics,
+        }
+    }
+
+    /// DescribeProducers `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Per-topic producer state.
@@ -7346,8 +7358,10 @@ pub struct DescribeProducersTopicRequest {
 impl DescribeProducersTopicRequest {
     /// Java `DescribeProducersRequest.getErrorResponse` one topic.
     ///
-    /// Each partition is [`DescribeProducersPartition::error`]. Throttle on
-    /// the response is the JSON default (`0`).
+    /// Each partition is [`DescribeProducersPartition::error`]. Throttle is
+    /// the JSON default (`0`) from [`DescribeProducersResponse::new`];
+    /// official Java also leaves `throttleTimeMs` at the JSON default
+    /// (does not set the argument).
     #[must_use]
     pub fn error_result(&self, error_code: i16) -> DescribeProducersTopic {
         DescribeProducersTopic::new(
@@ -7447,11 +7461,15 @@ pub fn decode_describe_producers_topics_request<B: Buf>(
 }
 
 /// Encode a DescribeProducers response.
+///
+/// ThrottleTimeMs is JSON `0+` (`resp.throttle_time_ms`; JSON default
+/// `0`). Kafka 4.0 `validVersions` is `"0"`. This crate speaks 0. v1+
+/// is not spoken. There is no top-level ErrorCode.
 pub fn encode_describe_producers_response(
     buf: &mut BytesMut,
     resp: &DescribeProducersResponse,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf::put_array_len(buf, true, Some(resp.topics.len()))?;
     for topic in &resp.topics {
         buf::put_compact_string(buf, Some(&topic.name))?;
@@ -7479,10 +7497,13 @@ pub fn encode_describe_producers_response(
 }
 
 /// Decode a DescribeProducers response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire). There is no
+/// top-level ErrorCode.
 pub fn decode_describe_producers_response<B: Buf>(
     buf: &mut B,
 ) -> Result<DescribeProducersResponse> {
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
@@ -7524,7 +7545,10 @@ pub fn decode_describe_producers_response<B: Buf>(
         topics.push(DescribeProducersTopic { name, partitions });
     }
     buf::skip_tagged_fields(buf)?;
-    Ok(DescribeProducersResponse { topics })
+    Ok(DescribeProducersResponse {
+        throttle_time_ms,
+        topics,
+    })
 }
 
 /// AllocateProducerIds v0 response (top-level error after throttle).
@@ -23731,6 +23755,48 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "UnregisterBroker v0 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_producers_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 DescribeProducersResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0; first field). Official Java
+        // DescribeProducersResponse.throttleTimeMs /
+        // maybeSetThrottleTimeMs set / read it.
+        // DescribeProducersRequest.getErrorResponse leaves ThrottleTimeMs
+        // at the JSON default (does not set the argument). Encode writes
+        // DescribeProducersResponse.throttle_time_ms (JSON default 0;
+        // DescribeProducersResponse::new fills 0). Empty-topics only one
+        // version. There is no top-level ErrorCode. This crate speaks v0
+        // only. This is not DescribeClientQuotas ThrottleTimeMs.
+        let zero = DescribeProducersResponse::new(vec![]);
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut buf = BytesMut::new();
+        encode_describe_producers_response(&mut buf, &with).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_describe_producers_response(&mut cur).unwrap();
+        assert_eq!(got, with);
+        assert_eq!(got.throttle_time_ms, 3_600_000);
+        assert_eq!(got.throttle_time_ms(), 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "DescribeProducers v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with_buf = BytesMut::new();
+        encode_describe_producers_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_describe_producers_response(&mut zero_buf, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "DescribeProducersResponse::new still fills ThrottleTimeMs 0"
         );
     }
 
