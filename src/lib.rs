@@ -853,7 +853,10 @@
 //! including `NONE`; Java `Collections.singletonMap`)),
 //! ExpireDelegationToken v1–v2 (v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::ExpireDelegationTokenResponse::should_client_throttle`] is Java
-//! `ExpireDelegationTokenResponse.shouldClientThrottle` (v1+)),
+//! `ExpireDelegationTokenResponse.shouldClientThrottle` (v1+);
+//! [`protocol::admin::ExpireDelegationTokenResponse::error_counts`] is Java
+//! `ExpireDelegationTokenResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`)),
 //! DescribeDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 TokenRequester; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::DescribeDelegationTokenResponse::should_client_throttle`] is Java
 //! `DescribeDelegationTokenResponse.shouldClientThrottle` (v1+);
