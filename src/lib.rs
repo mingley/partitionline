@@ -593,6 +593,9 @@
 //! `ShareFetchRequest.getErrorResponse` ThrottleTimeMs (empty Responses;
 //! v1 AcquisitionLockTimeoutMs stays `0`;
 //! [`protocol::share::encode_share_fetch_error`] still writes `0`);
+//! [`protocol::share::ShareFetchRequest::error_response`] is Java
+//! `ShareFetchRequest.getErrorResponse` (empty Responses; ThrottleTimeMs
+//! from the argument; v1 AcquisitionLockTimeoutMs stays `0`);
 //! top-level ErrorMessage is JSON `0+` (nullable compact STRING; not
 //! partition ErrorMessage);
 //! [`protocol::share::encode_share_fetch_response_with_error_message`]

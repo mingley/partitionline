@@ -348,6 +348,26 @@ impl ShareFetchRequest {
         }
         topics
     }
+
+    /// Java `ShareFetchRequest.getErrorResponse`.
+    ///
+    /// Empty Responses. ThrottleTimeMs is `throttle_time_ms` (JSON `0+`).
+    /// Top-level ErrorCode is `error_code`. v1 AcquisitionLockTimeoutMs
+    /// stays `0` (Java `ShareFetchResponse.of` last argument), not the
+    /// success-path 15000. Official Java sets `throttleTimeMs` from the
+    /// argument. [`encode_share_fetch_error`] still writes `0`. This crate
+    /// speaks 0–1. This is not
+    /// [`encode_share_fetch_response_with_throttle`] /
+    /// [`encode_share_fetch_response_with_error_code`] /
+    /// ShareAcknowledge getErrorResponse.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        encode_share_fetch_error_with_throttle(buf, version, error_code, throttle_time_ms)
+    }
 }
 
 /// Acquired offset range in a ShareFetch response.
@@ -2648,6 +2668,62 @@ mod tests {
             &with[..],
             &v1_with[..],
             "v1 error adds AcquisitionLockTimeoutMs 0 after ErrorMessage"
+        );
+    }
+
+    #[test]
+    fn share_fetch_request_error_response_matches_java() {
+        // Java 4.1 ShareFetchRequest.getErrorResponse: empty Responses,
+        // ThrottleTimeMs from the argument, top-level ErrorCode from the
+        // exception, AcquisitionLockTimeoutMs 0 (Java of last argument).
+        // Official Java ShareFetchRequest.getErrorResponse.
+        // encode_share_fetch_error still writes ThrottleTimeMs 0. This
+        // crate speaks 0-1. This is not success-path throttle / ErrorCode
+        // helpers / ShareAcknowledge getErrorResponse.
+        let err = crate::error::INVALID_SHARE_SESSION_EPOCH;
+        leftover_share_fetch_error_response(0, err, 3_600_000);
+        leftover_share_fetch_error_response(0, 0, 0);
+        leftover_share_fetch_error_response(1, err, 3_600_000);
+        leftover_share_fetch_error_response(1, 0, 0);
+        let mut named = BytesMut::new();
+        ShareFetchRequest::error_response(&mut named, 0, err, 0).unwrap();
+        let mut conv = BytesMut::new();
+        encode_share_fetch_error(&mut conv, 0, err).unwrap();
+        assert_eq!(
+            &named[..],
+            &conv[..],
+            "encode_share_fetch_error still writes ThrottleTimeMs 0"
+        );
+        let mut with = BytesMut::new();
+        ShareFetchRequest::error_response(&mut with, 0, err, 3_600_000).unwrap();
+        assert_ne!(
+            &with[..],
+            &conv[..],
+            "getErrorResponse ThrottleTimeMs is not always the JSON default 0"
+        );
+    }
+
+    fn leftover_share_fetch_error_response(version: i16, error_code: i16, throttle_time_ms: i32) {
+        let mut buf = BytesMut::new();
+        ShareFetchRequest::error_response(&mut buf, version, error_code, throttle_time_ms).unwrap();
+        let mut cur = buf.as_ref();
+        let (topics, endpoints, got_throttle, error_message, lock, got_error) =
+            decode_share_fetch_response(&mut cur, version).unwrap();
+        assert_eq!(got_error, error_code);
+        assert!(topics.is_empty());
+        assert!(endpoints.is_empty());
+        assert_eq!(got_throttle, throttle_time_ms);
+        assert!(error_message.is_none());
+        assert_eq!(lock, 0, "Java ShareFetchResponse.of last argument is 0");
+        let empty = if error_code == 0 && throttle_time_ms == 0 {
+            "empty "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "ShareFetch v{version} getErrorResponse {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
