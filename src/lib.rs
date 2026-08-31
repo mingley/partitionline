@@ -893,6 +893,12 @@
 //! `aclsResources` / `aclBindings` (group by [`ResourcePattern`]);
 //! DescribeAcls ThrottleTimeMs is JSON `0+`;
 //! [`protocol::acl::encode_describe_acls_response`] still writes `0`;
+//! DescribeAcls ErrorMessage is JSON `0+` (nullable STRING; not
+//! CreateAcls result ErrorMessage / DeleteAcls filter ErrorMessage /
+//! DeleteAcls matching ErrorMessage);
+//! [`protocol::acl::encode_describe_acls_response_with_error_message`]
+//! writes it; [`protocol::acl::encode_describe_acls_response`] still
+//! writes null;
 //! [`protocol::acl::DeleteAclsResponse::matching_acl`] /
 //! [`protocol::acl::DeleteAclsResponse::acl_binding`] are Java
 //! `matchingAcl` / `aclBinding` ([`protocol::acl::DeleteAclsMatchingAcl`];

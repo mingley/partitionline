@@ -1915,12 +1915,42 @@ pub fn encode_describe_acls_response(
 /// v0–v1 are classic. v2–v3 are flexible. v1 adds PatternType on each
 /// resource. v3 is the same layout (user resource type). Kafka 4.0
 /// `validVersions` is `1-3` (v0 removed). This crate speaks 0–3. v4+
-/// is not spoken. Top-level ErrorCode is at bytes 4–5.
+/// is not spoken. Top-level ErrorCode is at bytes 4–5. ErrorMessage
+/// stays the JSON default (null)
+/// ([`encode_describe_acls_response_with_error_message`]; this helper
+/// still writes null).
 pub fn encode_describe_acls_response_with_throttle(
     buf: &mut BytesMut,
     version: i16,
     acls: &[AclBinding],
     throttle_time_ms: i32,
+) -> Result<()> {
+    encode_describe_acls_response_body(buf, version, acls, throttle_time_ms, None)
+}
+
+/// Encode DescribeAcls v0–v3 with top-level ErrorMessage.
+///
+/// ErrorMessage is JSON `0+` (nullable STRING on every spoken version).
+/// JSON default is null. [`encode_describe_acls_response`] still writes
+/// null. ThrottleTimeMs stays `0`. This helper still writes ErrorCode
+/// `0`. This is not CreateAcls result ErrorMessage, not DeleteAcls
+/// filter ErrorMessage, not DeleteAcls matching ErrorMessage, and not
+/// ShareFetch ErrorMessage.
+pub fn encode_describe_acls_response_with_error_message(
+    buf: &mut BytesMut,
+    version: i16,
+    acls: &[AclBinding],
+    error_message: Option<&str>,
+) -> Result<()> {
+    encode_describe_acls_response_body(buf, version, acls, 0, error_message)
+}
+
+fn encode_describe_acls_response_body(
+    buf: &mut BytesMut,
+    version: i16,
+    acls: &[AclBinding],
+    throttle_time_ms: i32,
+    error_message: Option<&str>,
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
     reject_v0_non_literal_acl_patterns(version, acls.iter())?;
@@ -1928,7 +1958,7 @@ pub fn encode_describe_acls_response_with_throttle(
     let resources = DescribeAclsResponse::acls_resources(acls);
     buf.put_i32(throttle_time_ms);
     buf.put_i16(0);
-    buf::put_string(buf, flexible, None)?;
+    buf::put_string(buf, flexible, error_message)?;
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
     for resource in &resources {
         buf.put_i8(resource.resource_type);
@@ -1958,18 +1988,19 @@ pub fn encode_describe_acls_response_with_throttle(
 
 /// Decode DescribeAcls bindings. Top-level error returns an empty list.
 ///
-/// Returns `(bindings, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
-/// (always on the wire). Top-level ErrorCode is at bytes 4–5. Flattens
-/// grouped resources with [`DescribeAclsResponse::acl_bindings`]
+/// Returns `(bindings, throttle_time_ms, error_message)`. ThrottleTimeMs
+/// is JSON `0+` (always on the wire). ErrorMessage is JSON `0+` (nullable
+/// STRING; last). Top-level ErrorCode is at bytes 4–5. Flattens grouped
+/// resources with [`DescribeAclsResponse::acl_bindings`]
 /// (Java `DescribeAclsResponse.aclBindings`).
 pub fn decode_describe_acls_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Vec<AclBinding>, i32)> {
+) -> Result<(Vec<AclBinding>, i32, Option<String>)> {
     let flexible = acl_api_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let err = buf::get_i16(buf)?;
-    let _msg = buf::get_string(buf, flexible)?;
+    let error_message = buf::get_string(buf, flexible)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut resources = Vec::new();
     for _ in 0..n {
@@ -2011,11 +2042,12 @@ pub fn decode_describe_acls_response<B: Buf>(
         buf::skip_tagged_fields(buf)?;
     }
     if err != 0 {
-        return Ok((Vec::new(), throttle_time_ms));
+        return Ok((Vec::new(), throttle_time_ms, error_message));
     }
     Ok((
         DescribeAclsResponse::acl_bindings(&resources),
         throttle_time_ms,
+        error_message,
     ))
 }
 
@@ -2591,7 +2623,7 @@ mod tests {
             encode_describe_acls_response_with_throttle(&mut buf, version, &acls, 3_600_000)
                 .unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, throttle) = decode_describe_acls_response(&mut cur, version).unwrap();
+            let (decoded, throttle, ..) = decode_describe_acls_response(&mut cur, version).unwrap();
             assert!(decoded.is_empty());
             assert_eq!(throttle, 3_600_000);
             assert!(
@@ -2633,6 +2665,156 @@ mod tests {
             &v2_with[..],
             &v3_with[..],
             "empty-Resources ThrottleTimeMs bodies: v2 == v3"
+        );
+    }
+
+    #[test]
+    fn describe_acls_response_error_message_matches_java() {
+        // Kafka 4.0.0 DescribeAclsResponse.json ErrorMessage is versions
+        // 0+ (nullable STRING on spoken v0–v3; after ErrorCode / before
+        // Resources). Official Java DescribeAclsResponseData.errorMessage /
+        // DescribeAclsResponse.error() / DescribeAclsRequest.getErrorResponse
+        // set / read it (getErrorResponse sets errorMessage from
+        // ApiError.fromThrowable). encode_describe_acls_response still
+        // writes the JSON default null. Empty-Resources v0 == v1
+        // (classic); v2 == v3 (flexible). Compact null is 0x00; empty
+        // compact STRING is 0x01; classic null STRING is INT16 -1. This
+        // crate speaks 0–3. This is not CreateAcls result ErrorMessage /
+        // DeleteAcls filter ErrorMessage / DeleteAcls matching
+        // ErrorMessage / ShareFetch ErrorMessage /
+        // ApiError.messageWithFallback.
+        let acls: Vec<AclBinding> = vec![];
+        let bound = vec![AclBinding::allow_topic("t", "User:alice")];
+        for version in [0, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_describe_acls_response_with_error_message(&mut buf, version, &bound, Some("no"))
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle, msg) =
+                decode_describe_acls_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, bound);
+            assert_eq!(throttle, 0);
+            assert_eq!(msg.as_deref(), Some("no"));
+            assert!(
+                cur.is_empty(),
+                "DescribeAcls v{version} ErrorMessage leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_describe_acls_response_with_error_message(&mut with, 0, &acls, Some("no")).unwrap();
+        let mut empty = BytesMut::new();
+        encode_describe_acls_response_with_error_message(&mut empty, 0, &acls, None).unwrap();
+        assert_ne!(
+            &with[..],
+            &empty[..],
+            "v0 ErrorMessage is not always the JSON default null"
+        );
+        let mut conv = BytesMut::new();
+        encode_describe_acls_response(&mut conv, 0, &acls).unwrap();
+        assert_eq!(
+            &conv[..],
+            &empty[..],
+            "encode_describe_acls_response still writes ErrorMessage null"
+        );
+        let mut throttled = BytesMut::new();
+        encode_describe_acls_response_with_throttle(&mut throttled, 0, &acls, 0).unwrap();
+        assert_eq!(
+            &throttled[..],
+            &empty[..],
+            "encode_describe_acls_response_with_throttle still writes ErrorMessage null"
+        );
+
+        assert_eq!(
+            with.get(6..10),
+            Some([0, 2, b'n', b'o'].as_slice()),
+            "v0 classic ErrorMessage is INT16 length plus bytes"
+        );
+        assert_eq!(
+            empty.get(6..8),
+            Some([0xff, 0xff].as_slice()),
+            "v0 classic null ErrorMessage is INT16 -1"
+        );
+
+        let mut empty_present = BytesMut::new();
+        encode_describe_acls_response_with_error_message(&mut empty_present, 0, &acls, Some(""))
+            .unwrap();
+        assert_ne!(
+            &empty_present[..],
+            &empty[..],
+            "empty-but-present ErrorMessage is not JSON null"
+        );
+        let mut cur = empty_present.as_ref();
+        let (decoded, .., msg) = decode_describe_acls_response(&mut cur, 0).unwrap();
+        assert!(decoded.is_empty());
+        assert_eq!(msg.as_deref(), Some(""));
+        assert!(
+            cur.is_empty(),
+            "DescribeAcls v0 ErrorMessage leftover-empty"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_describe_acls_response_with_error_message(&mut v1_with, 1, &acls, Some("no"))
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "empty-Resources ErrorMessage bodies: v0 == v1"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_describe_acls_response_with_error_message(&mut v2_with, 2, &acls, Some("no"))
+            .unwrap();
+        assert_ne!(&v1_with[..], &v2_with[..], "v2 adds compact tagged fields");
+        assert_eq!(
+            v2_with.get(6..9),
+            Some([3, b'n', b'o'].as_slice()),
+            "v2 compact ErrorMessage is unsigned varint n+1 plus bytes"
+        );
+        let mut v2_null = BytesMut::new();
+        encode_describe_acls_response_with_error_message(&mut v2_null, 2, &acls, None).unwrap();
+        assert_eq!(
+            v2_null.get(6),
+            Some(&0x00),
+            "v2 compact null ErrorMessage is 0x00"
+        );
+        let mut v2_empty_present = BytesMut::new();
+        encode_describe_acls_response_with_error_message(&mut v2_empty_present, 2, &acls, Some(""))
+            .unwrap();
+        assert_eq!(
+            v2_empty_present.get(6),
+            Some(&0x01),
+            "v2 empty compact STRING ErrorMessage is 0x01"
+        );
+        let mut v3_with = BytesMut::new();
+        encode_describe_acls_response_with_error_message(&mut v3_with, 3, &acls, Some("no"))
+            .unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v3_with[..],
+            "empty-Resources ErrorMessage bodies: v2 == v3"
+        );
+
+        // Non-zero ErrorCode still returns empty bindings and keeps the
+        // message (do not drop ErrorMessage on the error-path return).
+        let mut err_body = BytesMut::new();
+        encode_describe_acls_response_with_error_message(&mut err_body, 0, &bound, Some("no"))
+            .unwrap();
+        let code = crate::error::SECURITY_DISABLED.to_be_bytes();
+        let mut patched = BytesMut::new();
+        patched.extend_from_slice(err_body.get(..4).expect("throttle"));
+        patched.extend_from_slice(&code);
+        patched.extend_from_slice(err_body.get(6..).expect("after ErrorCode"));
+        let mut cur = patched.as_ref();
+        let (decoded, throttle, msg) = decode_describe_acls_response(&mut cur, 0).unwrap();
+        assert!(
+            decoded.is_empty(),
+            "non-zero ErrorCode still empty bindings"
+        );
+        assert_eq!(throttle, 0);
+        assert_eq!(msg.as_deref(), Some("no"));
+        assert!(
+            cur.is_empty(),
+            "DescribeAcls v0 ErrorMessage leftover-empty"
         );
     }
 
