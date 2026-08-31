@@ -841,7 +841,10 @@
 //! only; v1 `TOPIC` / `BROKER` / `BROKER_LOGGER` / `CLIENT_METRICS` / `GROUP`);
 //! [`protocol::admin::ListConfigResourcesRequest::build`] is Java
 //! `ListConfigResourcesRequest.Builder.build` (v0 ResourceTypes must be
-//! exactly `CLIENT_METRICS`; encode still omits the field on v0)),
+//! exactly `CLIENT_METRICS`; encode still omits the field on v0);
+//! [`protocol::admin::ListConfigResourcesResponse::config_resources`] is Java
+//! `ListConfigResourcesResponse.configResources` (`ConfigResource` via
+//! `Type.forId`; unknown ids are UNKNOWN)),
 //! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::GetTelemetrySubscriptionsResponse::error_counts`] is Java
 //! `GetTelemetrySubscriptionsResponse.errorCounts` (top-level `errorCode` only,

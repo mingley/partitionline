@@ -1628,6 +1628,25 @@ impl crate::protocol::admin::DescribeConfigsResponse {
     }
 }
 
+impl crate::protocol::admin::ListConfigResourcesResponse {
+    /// Java `ListConfigResourcesResponse.configResources`.
+    ///
+    /// Each entry is [`ConfigResource`] via `Type.forId` then
+    /// `ConfigResource(Type, name)`. Unknown type ids become `UNKNOWN`
+    /// (`0`). `keys` stays `None`. Official Java
+    /// `ListConfigResourcesResponse.configResources` (4.1.0; 4.0.0 404
+    /// as the current name). This crate speaks 0–1. This is not
+    /// [`Self::error`] / [`Self::error_counts`] /
+    /// [`ListedConfigResource::to_config_resource`] (keeps the wire id).
+    #[must_use]
+    pub fn config_resources(&self) -> Vec<ConfigResource> {
+        self.config_resources
+            .iter()
+            .map(|r| config_resource_from_response(r.resource_type, r.resource_name.clone()))
+            .collect()
+    }
+}
+
 impl ListedConfigResource {
     /// Java `ConfigResource.name` (`listConfigResources` item).
     #[must_use]
@@ -11889,7 +11908,11 @@ fn replica_log_dir_info_from(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::admin::CreatedTopicConfig;
+    use crate::protocol::admin::{
+        decode_list_config_resources_response, encode_list_config_resources_response,
+        CreatedTopicConfig, ListConfigResourcesResponse,
+    };
+    use bytes::BytesMut;
 
     #[test]
     fn records_to_delete_before_offset_converts_to_i64() {
@@ -11905,6 +11928,100 @@ mod tests {
             )
             .offset(),
             crate::protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK
+        );
+    }
+
+    #[test]
+    fn list_config_resources_response_config_resources_matches_java() {
+        // Java 4.1.0 ListConfigResourcesResponse.configResources maps
+        // each ConfigResource (Type.forId, resourceName). Unknown ids
+        // are UNKNOWN (0). Official Java
+        // ListConfigResourcesResponse.configResources (4.1.0; 4.0.0 404
+        // as the current name). ListedConfigResource::to_config_resource
+        // keeps the wire id. This crate speaks 0-1. This is not error()
+        // / errorCounts / getErrorResponse / supportedResourceTypes /
+        // Builder.build.
+        assert!(ListConfigResourcesResponse::new(0, Vec::new())
+            .config_resources()
+            .is_empty());
+        let full = ListConfigResourcesResponse::new(
+            crate::error::INVALID_REQUEST,
+            vec![
+                ListedConfigResource::new("t", CONFIG_RESOURCE_TOPIC),
+                ListedConfigResource::new("1", CONFIG_RESOURCE_BROKER),
+                ListedConfigResource::new("r", CONFIG_RESOURCE_CLIENT_METRICS),
+                ListedConfigResource::new("g", CONFIG_RESOURCE_GROUP),
+                ListedConfigResource::new("x", 99),
+            ],
+        );
+        assert_eq!(
+            full.config_resources(),
+            vec![
+                ConfigResource::topic("t"),
+                ConfigResource::broker(1),
+                ConfigResource::of(ConfigResourceType::ClientMetrics, "r"),
+                ConfigResource::group("g"),
+                ConfigResource {
+                    resource_type: 0,
+                    name: "x".into(),
+                    keys: None,
+                },
+            ]
+        );
+        assert!(full.config_resources().iter().all(|r| r.keys.is_none()));
+        assert_eq!(
+            ListedConfigResource::new("x", 99)
+                .to_config_resource()
+                .resource_type,
+            99,
+            "to_config_resource keeps the wire id; configResources uses Type.forId"
+        );
+
+        let metrics = ListConfigResourcesResponse::new(
+            0,
+            vec![ListedConfigResource::new(
+                "r",
+                CONFIG_RESOURCE_CLIENT_METRICS,
+            )],
+        );
+        for version in 0..=1_i16 {
+            let mut buf = BytesMut::new();
+            encode_list_config_resources_response(&mut buf, version, &metrics).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_list_config_resources_response(&mut cur, version).unwrap();
+            assert_eq!(
+                decoded.config_resources(),
+                vec![ConfigResource::of(ConfigResourceType::ClientMetrics, "r")],
+                "ListConfigResources v{version} configResources must convert the decoded listing"
+            );
+            assert!(
+                cur.is_empty(),
+                "ListConfigResources v{version} configResources leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+
+        let unknown = ListConfigResourcesResponse::new(0, vec![ListedConfigResource::new("x", 99)]);
+        let mut v1 = BytesMut::new();
+        encode_list_config_resources_response(&mut v1, 1, &unknown).unwrap();
+        let mut cur = v1.as_ref();
+        let decoded = decode_list_config_resources_response(&mut cur, 1).unwrap();
+        assert_eq!(
+            decoded.config_resources.first().map(|r| r.resource_type),
+            Some(99)
+        );
+        assert_eq!(
+            decoded.config_resources(),
+            vec![ConfigResource {
+                resource_type: 0,
+                name: "x".into(),
+                keys: None,
+            }]
+        );
+        assert!(
+            cur.is_empty(),
+            "ListConfigResources v1 configResources leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
