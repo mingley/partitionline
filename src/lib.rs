@@ -1876,8 +1876,10 @@
 //! the top-level error is NONE; otherwise Results stay empty (Java
 //! getErrorResponse passes `Collections.emptySet`). `ErrorMessage` stays
 //! the JSON default (null); official Java also sets the English
-//! `Errors.message` string. Throttle is the JSON default (`0`). v2 omits
-//! Results on the wire.
+//! `Errors.message` string. ThrottleTimeMs is JSON `0+`; encode writes
+//! the field; [`protocol::admin::UpdateFeaturesResponse::new`] fills `0`.
+//! Official Java `createWithErrors` / `getErrorResponse` set
+//! `throttleTimeMs` from the argument. v2 omits Results on the wire.
 //! [`protocol::admin::UpdateFeaturesResponse::error_counts`] is Java
 //! `UpdateFeaturesResponse.errorCounts` (top-level `errorCode` plus each
 //! per-feature code, including `NONE`).

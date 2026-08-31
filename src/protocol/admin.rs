@@ -5011,9 +5011,14 @@ impl UpdatableFeatureResult {
 /// v2 omits per-feature Results.
 /// [`Self::create_with_errors`] / [`Self::error`] are Java
 /// `UpdateFeaturesResponse.createWithErrors` /
-/// `UpdateFeaturesRequest.getErrorResponse`.
+/// `UpdateFeaturesRequest.getErrorResponse`. ThrottleTimeMs is JSON
+/// `0+` ([`Self::throttle_time_ms`]; [`Self::new`] /
+/// [`Self::create_with_errors`] / [`Self::error`] fill `0`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateFeaturesResponse {
+    /// UpdateFeatures `ThrottleTimeMs` (JSON `0+`). First field. JSON
+    /// default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Broker error message, when present.
@@ -5023,6 +5028,21 @@ pub struct UpdateFeaturesResponse {
 }
 
 impl UpdateFeaturesResponse {
+    /// Construct [`Self`].
+    #[must_use]
+    pub fn new(
+        error_code: i16,
+        error_message: Option<String>,
+        results: Vec<UpdatableFeatureResult>,
+    ) -> Self {
+        Self {
+            throttle_time_ms: 0,
+            error_code,
+            error_message,
+            results,
+        }
+    }
+
     /// Java `UpdateFeaturesResponse.createWithErrors`.
     ///
     /// Results are filled only when `error_code` is 0 (Java
@@ -5031,18 +5051,20 @@ impl UpdateFeaturesResponse {
     /// empty (Java `UpdateFeaturesRequest.getErrorResponse` passes
     /// `Collections.emptySet`). Top-level `ErrorMessage` is the JSON
     /// default (null); official Java also sets the English
-    /// `Errors.message` string. Throttle is the JSON default (`0`).
-    /// v2 omits Results on the wire.
+    /// `Errors.message` string. Throttle is the JSON default (`0`) from
+    /// [`Self::new`]; official Java also sets `throttleTimeMs` from the
+    /// argument. [`encode_update_features_response`] writes
+    /// `resp.throttle_time_ms`. v2 omits Results on the wire.
     #[must_use]
     pub fn create_with_errors<I>(error_code: i16, updates: I) -> Self
     where
         I: IntoIterator,
         I::Item: Into<String>,
     {
-        Self {
+        Self::new(
             error_code,
-            error_message: None,
-            results: if error_code == crate::error::NONE {
+            None,
+            if error_code == crate::error::NONE {
                 updates
                     .into_iter()
                     .map(|name| UpdatableFeatureResult::error(name, error_code))
@@ -5050,7 +5072,7 @@ impl UpdateFeaturesResponse {
             } else {
                 Vec::new()
             },
-        }
+        )
     }
 
     /// Java `UpdateFeaturesRequest.getErrorResponse`.
@@ -5060,6 +5082,12 @@ impl UpdateFeaturesResponse {
     #[must_use]
     pub fn error(error_code: i16) -> Self {
         Self::create_with_errors(error_code, std::iter::empty::<String>())
+    }
+
+    /// UpdateFeatures `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Kafka error code (`0` is success).
@@ -5287,7 +5315,7 @@ pub fn encode_update_features_response(
     resp: &UpdateFeaturesResponse,
 ) -> crate::error::Result<()> {
     let _ = update_features_spoken(version)?;
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
     if version < 2 {
@@ -5311,7 +5339,7 @@ pub fn decode_update_features_response<B: Buf>(
     version: i16,
 ) -> Result<UpdateFeaturesResponse> {
     let _ = update_features_spoken(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
     let mut results = Vec::new();
@@ -5332,6 +5360,7 @@ pub fn decode_update_features_response<B: Buf>(
     }
     buf::skip_tagged_fields(buf)?;
     Ok(UpdateFeaturesResponse {
+        throttle_time_ms,
         error_code,
         error_message,
         results,
@@ -16611,15 +16640,15 @@ mod tests {
     fn update_features_response_error_counts_matches_java() {
         let empty = UpdateFeaturesResponse::error(0);
         assert_eq!(empty.error_counts(), HashMap::from([(0, 1)]));
-        let counts = UpdateFeaturesResponse {
-            error_code: 0,
-            error_message: None,
-            results: vec![
+        let counts = UpdateFeaturesResponse::new(
+            0,
+            None,
+            vec![
                 UpdatableFeatureResult::error("ok", 0),
                 UpdatableFeatureResult::error("bad", crate::error::FEATURE_UPDATE_FAILED),
                 UpdatableFeatureResult::error("ok2", 0),
             ],
-        }
+        )
         .error_counts();
         assert_eq!(
             counts,
@@ -16638,11 +16667,11 @@ mod tests {
             UpdateFeaturesResponse::error(0).top_level_error(),
             crate::error::ApiError::NONE
         );
-        let with_msg = UpdateFeaturesResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: Some("no".into()),
-            results: Vec::new(),
-        };
+        let with_msg = UpdateFeaturesResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some("no".into()),
+            Vec::new(),
+        );
         assert_eq!(
             with_msg.top_level_error().to_string(),
             "ApiError(error=NOT_CONTROLLER, message=no)"
@@ -20547,6 +20576,78 @@ mod tests {
     }
 
     #[test]
+    fn update_features_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 UpdateFeaturesResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0–v2; first field). Official
+        // Java UpdateFeaturesRequest.getErrorResponse /
+        // UpdateFeaturesResponse.createWithErrors /
+        // UpdateFeaturesResponse.throttleTimeMs set / read it.
+        // Encode writes UpdateFeaturesResponse.throttle_time_ms
+        // (JSON default 0; UpdateFeaturesResponse::new /
+        // UpdateFeaturesResponse::error / create_with_errors fill 0).
+        // Results are v0–v1; v2 omits them. Empty-Results v0 == v1; v2
+        // differs. This crate speaks 0–2. This is not
+        // ListPartitionReassignments ThrottleTimeMs.
+        let zero = UpdateFeaturesResponse::new(0, None, vec![]);
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut v0 = BytesMut::new();
+        for version in [0, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_update_features_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_update_features_response(&mut cur, version).unwrap();
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert_eq!(got.throttle_time_ms(), 3_600_000);
+            assert_eq!(got.error_code, 0);
+            assert!(got.results.is_empty());
+            assert!(
+                cur.is_empty(),
+                "UpdateFeatures v{version} ThrottleTimeMs leftover-empty"
+            );
+            if version == 0 {
+                v0.extend_from_slice(&buf);
+            }
+        }
+
+        let mut v1 = BytesMut::new();
+        encode_update_features_response(&mut v1, 1, &with).unwrap();
+        assert_eq!(
+            &v0[..],
+            &v1[..],
+            "empty-Results v0 and v1 bodies match (both flexible; Results present)"
+        );
+        let mut v2 = BytesMut::new();
+        encode_update_features_response(&mut v2, 2, &with).unwrap();
+        assert_ne!(
+            &v1[..],
+            &v2[..],
+            "v2 omits Results (empty compact array vs tagged-only)"
+        );
+        let mut zero_v0 = BytesMut::new();
+        encode_update_features_response(&mut zero_v0, 0, &zero).unwrap();
+        assert_ne!(
+            &v0[..],
+            &zero_v0[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "UpdateFeaturesResponse::new still fills ThrottleTimeMs 0"
+        );
+        let err = UpdateFeaturesResponse::error(crate::error::NOT_CONTROLLER);
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "UpdateFeaturesResponse::error still fills ThrottleTimeMs 0"
+        );
+        let created = UpdateFeaturesResponse::create_with_errors(crate::error::NONE, ["f"]);
+        assert_eq!(
+            created.throttle_time_ms, 0,
+            "UpdateFeaturesResponse::create_with_errors still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
     fn update_features_v0_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client+broker).
         // Apache JSON: timeout INT32, compact FeatureUpdates
@@ -20570,11 +20671,11 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_update_features_request(&mut buf, 0, 10_000, &updates, false).unwrap();
         assert_eq!(&buf[..], REQ);
-        let resp = UpdateFeaturesResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: Some("Not controller".into()),
-            results: Vec::new(),
-        };
+        let resp = UpdateFeaturesResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+            Vec::new(),
+        );
         buf.clear();
         encode_update_features_response(&mut buf, 0, &resp).unwrap();
         assert_eq!(&buf[..], RESP_41);
@@ -20598,10 +20699,10 @@ mod tests {
             "UpdateFeatures v0 request must be leftover-empty"
         );
 
-        let resp = UpdateFeaturesResponse {
-            error_code: 0,
-            error_message: None,
-            results: vec![
+        let resp = UpdateFeaturesResponse::new(
+            0,
+            None,
+            vec![
                 UpdatableFeatureResult {
                     name: "metadata.version".into(),
                     error_code: 0,
@@ -20613,7 +20714,7 @@ mod tests {
                     error_message: None,
                 },
             ],
-        };
+        );
         buf.clear();
         encode_update_features_response(&mut buf, 0, &resp).unwrap();
         let mut cur = &buf[..];
@@ -20629,11 +20730,11 @@ mod tests {
         // Official v0 body: throttle_time_ms INT32, then error_code INT16.
         // Verified from Apache UpdateFeaturesResponse.json and
         // kafka-protocol 0.18.0 (not copied from List/Alter).
-        let resp = UpdateFeaturesResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: Some("Not controller".into()),
-            results: Vec::new(),
-        };
+        let resp = UpdateFeaturesResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+            Vec::new(),
+        );
         let mut buf = BytesMut::new();
         encode_update_features_response(&mut buf, 0, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();
@@ -20696,15 +20797,15 @@ mod tests {
             "UpdateFeatures v3+ is not spoken"
         );
 
-        let resp = UpdateFeaturesResponse {
-            error_code: 0,
-            error_message: None,
-            results: vec![UpdatableFeatureResult {
+        let resp = UpdateFeaturesResponse::new(
+            0,
+            None,
+            vec![UpdatableFeatureResult {
                 name: "f".into(),
                 error_code: 0,
                 error_message: None,
             }],
-        };
+        );
         // v2 omits Results: throttle 0, error 0, null message, tagged.
         const RESP_V2: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         buf.clear();

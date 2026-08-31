@@ -4212,11 +4212,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     encode_update_features_response(
                         &mut body,
                         version,
-                        &UpdateFeaturesResponse {
-                            error_code: error::NOT_CONTROLLER,
-                            error_message: Some("Not controller".into()),
-                            results: Vec::new(),
-                        },
+                        &UpdateFeaturesResponse::new(
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                            Vec::new(),
+                        ),
                     )
                     .unwrap();
                 } else {
@@ -4238,11 +4238,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     encode_update_features_response(
                         &mut body,
                         version,
-                        &UpdateFeaturesResponse {
-                            error_code: 0,
-                            error_message: None,
-                            results,
-                        },
+                        &UpdateFeaturesResponse::new(0, None, results),
                     )
                     .unwrap();
                 }
