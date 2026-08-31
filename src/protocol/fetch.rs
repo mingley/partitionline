@@ -212,6 +212,14 @@ pub struct FetchPartition {
     /// Epoch of the last fetched record (v12+), or
     /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub last_fetched_epoch: i32,
+    /// Earliest available offset of the follower replica (v5+).
+    ///
+    /// JSON `5+` INT64 after LastFetchedEpoch. Only used when the request
+    /// is sent by a follower. Consumers send [`INVALID_LOG_START_OFFSET`].
+    /// Below v5 encode omits the field even when the body is non-default;
+    /// decode fills [`INVALID_LOG_START_OFFSET`]. Official Java
+    /// `FetchRequest.PartitionData.logStartOffset`.
+    pub log_start_offset: i64,
     /// Max bytes for this partition.
     pub partition_max_bytes: i32,
 }
@@ -281,7 +289,8 @@ impl FetchRequest {
     /// `topic_names` (`None` when missing; Java still inserts that
     /// `TopicIdPartition`). A later partition overwrites the same
     /// `(topic_id, name, partition)` (Java `LinkedHashMap.put`).
-    /// `logStartOffset` stays [`INVALID_LOG_START_OFFSET`] (crate encode).
+    /// Each partition keeps [`FetchPartition::log_start_offset`] (official
+    /// Java `FetchRequest.PartitionData.logStartOffset`).
     #[must_use]
     pub fn fetch_data(
         version: i16,
@@ -731,7 +740,8 @@ pub struct FetchedTopic {
 
 /// Fetch v4–v11 (classic) or v12–v17 (flexible). LastFetchedEpoch is v12+.
 /// SessionId / SessionEpoch / ForgottenTopicsData are v7+. LogStartOffset
-/// is v5+. CurrentLeaderEpoch is v9+. RackId is v11+. Session is
+/// is JSON `5+` (encode writes [`FetchPartition::log_start_offset`]).
+/// CurrentLeaderEpoch is v9+. RackId is v11+. Session is
 /// [`FetchMetadata::LEGACY`]. MaxWaitMs is JSON `0+` (decode returns it).
 /// MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`).
 #[expect(
@@ -848,7 +858,7 @@ pub fn encode_fetch_request_with_forgotten(
                 buf.put_i32(p.last_fetched_epoch);
             }
             if version >= 5 {
-                buf.put_i64(INVALID_LOG_START_OFFSET);
+                buf.put_i64(p.log_start_offset);
             }
             buf.put_i32(p.partition_max_bytes);
             if flexible {
@@ -1076,8 +1086,10 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
 /// below v12. `current_leader_epoch` is the same below v9. SessionId /
 /// SessionEpoch / ForgottenTopicsData are v7+. Below v7 SessionId /
 /// SessionEpoch are omitted; decode fills [`FetchMetadata::LEGACY`] and
-/// an empty forgotten list. LogStartOffset is v5+. RackId is v11+; below
-/// v11 decode fills empty. MaxWaitMs is JSON `0+` (INT32 after ReplicaId
+/// an empty forgotten list. LogStartOffset is JSON `5+` (INT64 after
+/// LastFetchedEpoch; official Java `FetchRequest.PartitionData.logStartOffset`;
+/// below v5 decode fills [`INVALID_LOG_START_OFFSET`]). RackId is v11+;
+/// below v11 decode fills empty. MaxWaitMs is JSON `0+` (INT32 after ReplicaId
 /// on v4–v14; first untagged field on v15+; official Java
 /// `FetchRequest.maxWait`). MinBytes is JSON `0+` (INT32 after MaxWaitMs;
 /// official Java `FetchRequest.minBytes`).
@@ -1130,9 +1142,11 @@ pub fn decode_fetch_request<B: Buf>(
             } else {
                 RecordBatch::NO_PARTITION_LEADER_EPOCH
             };
-            if version >= 5 {
-                let _log_start = buf::get_i64(buf)?;
-            }
+            let log_start_offset = if version >= 5 {
+                buf::get_i64(buf)?
+            } else {
+                INVALID_LOG_START_OFFSET
+            };
             let partition_max_bytes = buf::get_i32(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
@@ -1142,6 +1156,7 @@ pub fn decode_fetch_request<B: Buf>(
                 current_leader_epoch,
                 fetch_offset,
                 last_fetched_epoch,
+                log_start_offset,
                 partition_max_bytes,
             });
         }
@@ -1541,6 +1556,7 @@ mod tests {
                     current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     fetch_offset: 0,
                     last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    log_start_offset: INVALID_LOG_START_OFFSET,
                     partition_max_bytes: 1,
                 },
                 FetchPartition {
@@ -1548,6 +1564,7 @@ mod tests {
                     current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     fetch_offset: 1,
                     last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    log_start_offset: INVALID_LOG_START_OFFSET,
                     partition_max_bytes: 1,
                 },
             ],
@@ -1725,6 +1742,7 @@ mod tests {
                 current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 fetch_offset: 0,
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -1773,6 +1791,7 @@ mod tests {
                 current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 fetch_offset: 0,
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -1832,6 +1851,7 @@ mod tests {
                 current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 fetch_offset: 0,
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -1874,6 +1894,91 @@ mod tests {
             &with[..],
             &v15[..],
             "v4 and v15 both write MinBytes (JSON 0+); v15 omits untagged ReplicaId"
+        );
+    }
+
+    #[test]
+    fn fetch_request_log_start_offset_matches_java() {
+        // Kafka 4.0 FetchRequest.json partition LogStartOffset is versions
+        // 5+ (INT64 after LastFetchedEpoch; default -1; ignorable). Official
+        // Java FetchRequest.PartitionData.logStartOffset / Builder.build
+        // setLogStartOffset. Encode previously hardcoded
+        // INVALID_LOG_START_OFFSET; decode discarded it. This crate speaks
+        // 4–17. This is not response LogStartOffset / Produce LogStartOffset
+        // / ReplicaId.
+        let topics = vec![FetchTopic {
+            topic: "t".into(),
+            topic_id: [7u8; 16],
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 0,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: 42,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        for version in [4_i16, 5, 11, 12, 15, 17] {
+            let mut buf = BytesMut::new();
+            encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &topics, None).unwrap();
+            let mut cur = buf.as_ref();
+            let (iso, max_bytes, got, rack, session, forgotten, ..) =
+                decode_fetch_request(&mut cur, version).unwrap();
+            assert_eq!(iso, 0);
+            assert_eq!(max_bytes, 1024);
+            assert_eq!(got.len(), 1);
+            assert!(forgotten.is_empty());
+            let part = got
+                .first()
+                .and_then(|t| t.partitions.first())
+                .expect("fetch partition");
+            if version >= 5 {
+                assert_eq!(part.log_start_offset, 42);
+            } else {
+                assert_eq!(part.log_start_offset, INVALID_LOG_START_OFFSET);
+            }
+            if version >= 11 {
+                assert!(rack.is_empty());
+            }
+            if version >= 7 {
+                assert_eq!(session, FetchMetadata::LEGACY);
+            }
+            assert!(
+                cur.is_empty(),
+                "Fetch request v{version} LogStartOffset leftover-empty"
+            );
+        }
+
+        let mut omitted = topics.clone();
+        omitted
+            .first_mut()
+            .and_then(|t| t.partitions.first_mut())
+            .expect("fetch partition")
+            .log_start_offset = INVALID_LOG_START_OFFSET;
+
+        let mut v4_with = BytesMut::new();
+        encode_fetch_request(&mut v4_with, 4, 10, 1, 1024, 0, &topics, None).unwrap();
+        let mut v4_omit = BytesMut::new();
+        encode_fetch_request(&mut v4_omit, 4, 10, 1, 1024, 0, &omitted, None).unwrap();
+        assert_eq!(
+            &v4_with[..],
+            &v4_omit[..],
+            "v4 encode omits LogStartOffset even when the body is non-default"
+        );
+
+        let mut v5_with = BytesMut::new();
+        encode_fetch_request(&mut v5_with, 5, 10, 1, 1024, 0, &topics, None).unwrap();
+        let mut v5_omit = BytesMut::new();
+        encode_fetch_request(&mut v5_omit, 5, 10, 1, 1024, 0, &omitted, None).unwrap();
+        assert_ne!(
+            &v5_with[..],
+            &v5_omit[..],
+            "v5 LogStartOffset is not always INVALID_LOG_START_OFFSET"
+        );
+        assert_ne!(
+            &v4_with[..],
+            &v5_with[..],
+            "v5 adds request LogStartOffset even when SessionId is still omitted"
         );
     }
 
@@ -2126,6 +2231,7 @@ mod tests {
                 current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 fetch_offset,
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }
         }
@@ -2279,6 +2385,7 @@ mod tests {
                 current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 fetch_offset: 10,
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -2384,6 +2491,7 @@ mod tests {
                 current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 fetch_offset: 10,
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -2437,6 +2545,7 @@ mod tests {
             current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             fetch_offset: 10,
             last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            log_start_offset: INVALID_LOG_START_OFFSET,
             partition_max_bytes: 1024,
         };
         let p1 = FetchPartition {
@@ -2444,6 +2553,7 @@ mod tests {
             current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             fetch_offset: 11,
             last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            log_start_offset: INVALID_LOG_START_OFFSET,
             partition_max_bytes: 1024,
         };
         let p2 = FetchPartition {
@@ -2451,6 +2561,7 @@ mod tests {
             current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             fetch_offset: 12,
             last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            log_start_offset: INVALID_LOG_START_OFFSET,
             partition_max_bytes: 1024,
         };
         let p0_dup = FetchPartition {
@@ -2458,6 +2569,7 @@ mod tests {
             current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             fetch_offset: 99,
             last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            log_start_offset: INVALID_LOG_START_OFFSET,
             partition_max_bytes: 1,
         };
 
@@ -2544,6 +2656,7 @@ mod tests {
                     current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     fetch_offset: 0,
                     last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    log_start_offset: INVALID_LOG_START_OFFSET,
                     partition_max_bytes: 1,
                 },
                 FetchPartition {
@@ -2551,6 +2664,7 @@ mod tests {
                     current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     fetch_offset: 1,
                     last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    log_start_offset: INVALID_LOG_START_OFFSET,
                     partition_max_bytes: 1,
                 },
             ],
@@ -2818,6 +2932,7 @@ mod tests {
                 current_leader_epoch: 7,
                 fetch_offset: 3,
                 last_fetched_epoch: -1,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -2839,6 +2954,7 @@ mod tests {
                     current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     fetch_offset: 3,
                     last_fetched_epoch: -1,
+                    log_start_offset: INVALID_LOG_START_OFFSET,
                     partition_max_bytes: 1024,
                 }],
             }],
@@ -3082,6 +3198,7 @@ mod tests {
                 current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 fetch_offset: 3,
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -3402,6 +3519,7 @@ mod tests {
                 current_leader_epoch: 7,
                 fetch_offset: 3,
                 last_fetched_epoch: -1,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -3444,6 +3562,7 @@ mod tests {
                 current_leader_epoch: -1,
                 fetch_offset: 0,
                 last_fetched_epoch: -1,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -3467,6 +3586,7 @@ mod tests {
                 current_leader_epoch: -1,
                 fetch_offset: 0,
                 last_fetched_epoch: -1,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -3697,6 +3817,7 @@ mod tests {
                 current_leader_epoch: 7,
                 fetch_offset: 3,
                 last_fetched_epoch: 4,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -3784,6 +3905,7 @@ mod tests {
                 current_leader_epoch: 0,
                 fetch_offset: 0,
                 last_fetched_epoch: -1,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -3806,6 +3928,7 @@ mod tests {
                 current_leader_epoch: 7,
                 fetch_offset: 3,
                 last_fetched_epoch: -1,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }
@@ -3907,6 +4030,7 @@ mod tests {
                 current_leader_epoch: 0,
                 fetch_offset: 0,
                 last_fetched_epoch: -1,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -4038,6 +4162,7 @@ mod tests {
                 current_leader_epoch: 0,
                 fetch_offset: 0,
                 last_fetched_epoch: -1,
+                log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
             }],
         }];

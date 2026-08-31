@@ -28,6 +28,7 @@ use crate::protocol::epoch::{
 };
 use crate::protocol::fetch::{
     decode_fetch_response, encode_fetch_request, FetchPartition, FetchTopic,
+    INVALID_LOG_START_OFFSET,
 };
 use crate::protocol::group::Topic;
 use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets_request};
@@ -2267,6 +2268,7 @@ impl Consumer {
                                 current_leader_epoch: self.cluster.leader_epoch(topic, *part),
                                 fetch_offset: *offset,
                                 last_fetched_epoch: self.last_fetched_epoch(topic, *part),
+                                log_start_offset: INVALID_LOG_START_OFFSET,
                                 partition_max_bytes: self.cfg.max_partition_fetch_bytes,
                             });
                     }

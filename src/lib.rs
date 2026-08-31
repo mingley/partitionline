@@ -1097,7 +1097,10 @@
 //! fills empty; v13+ uses TopicId;
 //! MaxWaitMs is JSON `0+` (decode returns it; encode already takes `max_wait_ms`);
 //! MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`);
-//! request LogStartOffset is v5+;
+//! request LogStartOffset is JSON `5+` (encode writes the partition field;
+//! below v5 omit even when non-default and decode fills
+//! [`protocol::fetch::INVALID_LOG_START_OFFSET`]; official Java
+//! `FetchRequest.PartitionData.logStartOffset`);
 //! CurrentLeaderEpoch is v9+; RackId and response PreferredReadReplica are
 //! v11+; response LogStartOffset is v5+; below those versions encode omits
 //! the field even when the body has a value and decode fills the JSON
