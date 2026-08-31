@@ -663,6 +663,27 @@ impl AddOffsetsToTxnResponse {
     }
 }
 
+/// Java `AddOffsetsToTxnRequest` helpers.
+pub struct AddOffsetsToTxnRequest;
+
+impl AddOffsetsToTxnRequest {
+    /// Java `AddOffsetsToTxnRequest.getErrorResponse`.
+    ///
+    /// ThrottleTimeMs is `throttle_time_ms` on every spoken version
+    /// (JSON `0+`). ErrorCode is `error_code`. Convenience encode still
+    /// writes throttle `0`. This crate speaks 0–4. This is not
+    /// [`AddOffsetsToTxnResponse::error_counts`] / EndTxn /
+    /// AddPartitionsToTxn getErrorResponse.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> Result<()> {
+        encode_add_offsets_to_txn_response_with_throttle(buf, version, error_code, throttle_time_ms)
+    }
+}
+
 /// Encode AddOffsetsToTxn v0–v2 (classic) or v3–v4 (flexible).
 pub fn encode_add_offsets_to_txn_request(
     buf: &mut BytesMut,
@@ -5145,6 +5166,62 @@ mod tests {
             &v3_with[..],
             &v4_with[..],
             "empty-error ThrottleTimeMs bodies: v3 == v4"
+        );
+    }
+
+    #[test]
+    fn add_offsets_to_txn_request_error_response_matches_java() {
+        // Java 4.0 AddOffsetsToTxnRequest.getErrorResponse: ThrottleTimeMs
+        // from the argument, ErrorCode from the exception. Official Java
+        // AddOffsetsToTxnRequest.getErrorResponse. Convenience encode
+        // still writes ThrottleTimeMs 0. This crate speaks 0-4. This is
+        // not errorCounts / EndTxn / AddPartitionsToTxn getErrorResponse.
+        leftover_add_offsets_to_txn_error_response(0, 16, 3_600_000);
+        leftover_add_offsets_to_txn_error_response(0, 0, 0);
+        leftover_add_offsets_to_txn_error_response(2, 16, 3_600_000);
+        leftover_add_offsets_to_txn_error_response(3, 16, 3_600_000);
+        leftover_add_offsets_to_txn_error_response(4, 16, 3_600_000);
+        leftover_add_offsets_to_txn_error_response(4, 0, 0);
+
+        let mut expected = BytesMut::new();
+        encode_add_offsets_to_txn_response_with_throttle(&mut expected, 0, 16, 3_600_000).unwrap();
+        let mut got = BytesMut::new();
+        AddOffsetsToTxnRequest::error_response(&mut got, 0, 16, 3_600_000).unwrap();
+        assert_eq!(
+            &got[..],
+            &expected[..],
+            "AddOffsetsToTxn v0 getErrorResponse must match with_throttle encode"
+        );
+        let mut conv = BytesMut::new();
+        encode_add_offsets_to_txn_response(&mut conv, 0, 16).unwrap();
+        assert_ne!(
+            &got[..],
+            &conv[..],
+            "getErrorResponse writes ThrottleTimeMs from the argument, not convenience 0"
+        );
+    }
+
+    fn leftover_add_offsets_to_txn_error_response(
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) {
+        let mut buf = BytesMut::new();
+        AddOffsetsToTxnRequest::error_response(&mut buf, version, error_code, throttle_time_ms)
+            .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_add_offsets_to_txn_response(&mut cur, version).unwrap();
+        assert_eq!(decoded, error_code);
+        assert_eq!(throttle, throttle_time_ms);
+        let empty = if error_code == 0 && throttle_time_ms == 0 {
+            "empty "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "AddOffsetsToTxn v{version} getErrorResponse {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
