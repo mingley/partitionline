@@ -13822,6 +13822,8 @@ impl DescribeLogDirsResult {
 /// first-directory ErrorCode. There is no first-partition ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeLogDirsResponse {
+    /// DescribeLogDirs `ThrottleTimeMs` (JSON `0+`). JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Per-item results.
@@ -13837,9 +13839,16 @@ impl DescribeLogDirsResponse {
     /// Construct [`Self`].
     pub fn new(error_code: i16, results: Vec<DescribeLogDirsResult>) -> Self {
         Self {
+            throttle_time_ms: 0,
             error_code,
             results,
         }
+    }
+
+    /// DescribeLogDirs `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Java `DescribeLogDirsResponse.shouldClientThrottle`.
@@ -14009,13 +14018,17 @@ pub fn decode_describe_log_dirs_request<B: Buf>(
 
 /// Encode a DescribeLogDirs response (v1–4). Top-level ErrorCode is
 /// v3+. TotalBytes / UsableBytes are v4+.
+///
+/// ThrottleTimeMs is JSON `0+` (from [`DescribeLogDirsResponse::throttle_time_ms`];
+/// JSON default `0`). KIP-219 only changes
+/// [`DescribeLogDirsResponse::should_client_throttle`] (v1+).
 pub fn encode_describe_log_dirs_response(
     buf: &mut BytesMut,
     version: i16,
     resp: &DescribeLogDirsResponse,
 ) -> crate::error::Result<()> {
     let flexible = describe_log_dirs_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     if version >= 3 {
         buf.put_i16(resp.error_code);
     }
@@ -14055,12 +14068,14 @@ pub fn encode_describe_log_dirs_response(
 }
 
 /// Decode a DescribeLogDirs response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire for spoken v1–v4).
 pub fn decode_describe_log_dirs_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<DescribeLogDirsResponse> {
     let flexible = describe_log_dirs_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = if version >= 3 { buf::get_i16(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut results = Vec::with_capacity(n);
@@ -14113,6 +14128,7 @@ pub fn decode_describe_log_dirs_response<B: Buf>(
         buf::skip_tagged_fields(buf)?;
     }
     Ok(DescribeLogDirsResponse {
+        throttle_time_ms,
         error_code,
         results,
     })
@@ -26783,6 +26799,72 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterReplicaLogDirs v2 one-partition body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_log_dirs_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 DescribeLogDirsResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v1–v4). Kafka 4.0 removed v0.
+        // Official Java DescribeLogDirsRequest.getErrorResponse /
+        // DescribeLogDirsResponse.throttleTimeMs set / read it. Encode
+        // writes DescribeLogDirsResponse.throttle_time_ms (JSON default
+        // 0; DescribeLogDirsResponse::new fills 0). KIP-219 only
+        // changes shouldClientThrottle (v1+). Empty-result v3 == v4
+        // (TotalBytes / UsableBytes are per-result). This crate speaks
+        // 1–4. v5 is a named STATUS hole. This is not AlterReplicaLogDirs
+        // ThrottleTimeMs.
+        let zero = DescribeLogDirsResponse::new(crate::error::CLUSTER_AUTHORIZATION_FAILED, vec![]);
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        for version in [1, 2, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_describe_log_dirs_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_describe_log_dirs_response(&mut cur, version).unwrap();
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert_eq!(got.throttle_time_ms(), 3_600_000);
+            if version >= 3 {
+                assert_eq!(got, with);
+            } else {
+                assert_eq!(got.error_code, 0, "v1–v2 omit top-level ErrorCode");
+                assert_eq!(got.results, with.results);
+            }
+            assert!(
+                cur.is_empty(),
+                "DescribeLogDirs v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with_v1 = BytesMut::new();
+        encode_describe_log_dirs_response(&mut with_v1, 1, &with).unwrap();
+        let mut zero_v1 = BytesMut::new();
+        encode_describe_log_dirs_response(&mut zero_v1, 1, &zero).unwrap();
+        assert_ne!(
+            &with_v1[..],
+            &zero_v1[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut with_v2 = BytesMut::new();
+        encode_describe_log_dirs_response(&mut with_v2, 2, &with).unwrap();
+        assert_ne!(
+            &with_v1[..],
+            &with_v2[..],
+            "v2 adds compact arrays/strings plus tagged fields"
+        );
+        let mut with_v3 = BytesMut::new();
+        encode_describe_log_dirs_response(&mut with_v3, 3, &with).unwrap();
+        assert_ne!(&with_v2[..], &with_v3[..], "v3 adds top-level ErrorCode");
+        let mut with_v4 = BytesMut::new();
+        encode_describe_log_dirs_response(&mut with_v4, 4, &with).unwrap();
+        assert_eq!(
+            &with_v3[..],
+            &with_v4[..],
+            "empty-result ThrottleTimeMs bodies: v3 == v4"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "DescribeLogDirsResponse::new still fills ThrottleTimeMs 0"
         );
     }
 
