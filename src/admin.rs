@@ -7674,7 +7674,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        decode_delete_acls_filter_results(&mut body.clone(), version)
+        let (results, ..) = decode_delete_acls_filter_results(&mut body.clone(), version)?;
+        Ok(results)
     }
 
     /// Delete committed offsets for `group_id` (OffsetDelete api 47).

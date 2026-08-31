@@ -1233,8 +1233,9 @@ impl DeletedAclsFilterResult {
     /// Sets `ErrorCode`. `ErrorMessage` is the JSON default (null);
     /// official Java also sets the English `Errors.message` string.
     /// MatchingAcls stay the JSON default (empty); request filter
-    /// fields are not copied. Throttle on the response is the JSON
-    /// default (`0`).
+    /// fields are not copied. ThrottleTimeMs is JSON `0+`; convenience
+    /// encode still writes `0`. Official Java `getErrorResponse` sets
+    /// `throttleTimeMs` from the argument.
     #[must_use]
     pub fn error(error_code: i16) -> Self {
         Self {
@@ -2200,19 +2201,36 @@ pub fn encode_delete_acls_response(
 
 /// Encode DeleteAcls FilterResults of N.
 ///
-/// Java `DeleteAclsResponse.validate` rejects non-LITERAL matching ACL
-/// pattern types on v0 (`UnsupportedVersionException`) and UNKNOWN
-/// resource / pattern / operation / permission on MatchingAcls
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`). Java `DeleteAclsResponse.validate` rejects non-LITERAL
+/// matching ACL pattern types on v0 (`UnsupportedVersionException`) and
+/// UNKNOWN resource / pattern / operation / permission on MatchingAcls
 /// (`DeleteAclsMatchingAcls contain UNKNOWN elements`).
 pub fn encode_delete_acls_filter_results(
     buf: &mut BytesMut,
     version: i16,
     results: &[DeletedAclsFilterResult],
 ) -> Result<()> {
+    encode_delete_acls_filter_results_with_throttle(buf, version, results, 0)
+}
+
+/// Encode DeleteAcls v0–v3 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
+/// v0–v1 are classic. v2–v3 are flexible. v1 adds PatternType on each
+/// matching ACL. v3 is the same layout (user resource type). Kafka 4.0
+/// `validVersions` is `1-3` (v0 removed). This crate speaks 0–3. v4+
+/// is not spoken. There is no top-level ErrorCode.
+pub fn encode_delete_acls_filter_results_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[DeletedAclsFilterResult],
+    throttle_time_ms: i32,
+) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
     reject_v0_non_literal_acl_patterns(version, results.iter().flat_map(|r| r.matching.iter()))?;
     reject_delete_acls_matching_unknown_elements(results)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
         buf.put_i16(r.error_code);
@@ -2233,17 +2251,20 @@ pub fn encode_delete_acls_filter_results(
 
 /// Decode DeleteAcls: first filter error code.
 pub fn decode_delete_acls_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
-    let results = decode_delete_acls_filter_results(buf, version)?;
+    let (results, ..) = decode_delete_acls_filter_results(buf, version)?;
     Ok(results.first().map(|r| r.error_code).unwrap_or(0))
 }
 
 /// Decode DeleteAcls: every FilterResult.
+///
+/// Returns `(results, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire). There is no top-level ErrorCode.
 pub fn decode_delete_acls_filter_results<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<DeletedAclsFilterResult>> {
+) -> Result<(Vec<DeletedAclsFilterResult>, i32)> {
     let flexible = acl_api_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
@@ -2266,7 +2287,7 @@ pub fn decode_delete_acls_filter_results<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(out)
+    Ok((out, throttle_time_ms))
 }
 
 #[cfg(test)]
@@ -2931,6 +2952,72 @@ mod tests {
     }
 
     #[test]
+    fn delete_acls_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 DeleteAclsResponse.json ThrottleTimeMs is versions
+        // 0+ (INT32 on spoken v0–v3; first field). Official Java
+        // DeleteAclsRequest.getErrorResponse /
+        // DeleteAclsResponse.throttleTimeMs set / read it.
+        // encode_delete_acls_filter_results still writes the JSON
+        // default 0. KIP-219 only changes shouldClientThrottle (v1+).
+        // Empty-FilterResults v0 == v1 (classic; PatternType is on each
+        // matching ACL); v2 == v3 (flexible; user resource type is the
+        // same layout). There is no top-level ErrorCode. This crate
+        // speaks 0–3. This is not DescribeAcls ThrottleTimeMs.
+        let results: Vec<DeletedAclsFilterResult> = vec![];
+        for version in [0, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_delete_acls_filter_results_with_throttle(&mut buf, version, &results, 3_600_000)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_delete_acls_filter_results(&mut cur, version).unwrap();
+            assert_eq!(decoded, results);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DeleteAcls v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_delete_acls_filter_results_with_throttle(&mut with, 0, &results, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_delete_acls_filter_results_with_throttle(&mut zero, 0, &results, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_delete_acls_filter_results(&mut conv, 0, &results).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_delete_acls_filter_results still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_delete_acls_filter_results_with_throttle(&mut v1_with, 1, &results, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "empty-FilterResults ThrottleTimeMs bodies: v0 == v1"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_delete_acls_filter_results_with_throttle(&mut v2_with, 2, &results, 3_600_000)
+            .unwrap();
+        assert_ne!(&v1_with[..], &v2_with[..], "v2 adds compact tagged fields");
+        let mut v3_with = BytesMut::new();
+        encode_delete_acls_filter_results_with_throttle(&mut v3_with, 3, &results, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v3_with[..],
+            "empty-FilterResults ThrottleTimeMs bodies: v2 == v3"
+        );
+    }
+
+    #[test]
     fn delete_acls_v2_filters_of_two_matches_independent_encode() {
         // Compact array of 2: topic-any + topic name "t" principal "U".
         const REQ: &[u8] = &[
@@ -2974,7 +3061,10 @@ mod tests {
         buf.clear();
         encode_delete_acls_filter_results(&mut buf, 2, &err).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(decode_delete_acls_filter_results(&mut cur, 2).unwrap(), err);
+        assert_eq!(
+            decode_delete_acls_filter_results(&mut cur, 2).unwrap().0,
+            err
+        );
         assert!(
             !cur.has_remaining(),
             "DeleteAcls v2 getErrorResponse leftover-empty; leftover {} bytes",
@@ -2983,7 +3073,10 @@ mod tests {
         buf.clear();
         encode_delete_acls_filter_results(&mut buf, 3, &err).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(decode_delete_acls_filter_results(&mut cur, 3).unwrap(), err);
+        assert_eq!(
+            decode_delete_acls_filter_results(&mut cur, 3).unwrap().0,
+            err
+        );
         assert!(
             !cur.has_remaining(),
             "DeleteAcls v3 getErrorResponse leftover-empty; leftover {} bytes",
@@ -2992,7 +3085,10 @@ mod tests {
         buf.clear();
         encode_delete_acls_filter_results(&mut buf, 1, &err).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(decode_delete_acls_filter_results(&mut cur, 1).unwrap(), err);
+        assert_eq!(
+            decode_delete_acls_filter_results(&mut cur, 1).unwrap().0,
+            err
+        );
         assert!(
             !cur.has_remaining(),
             "DeleteAcls v1 getErrorResponse leftover-empty; leftover {} bytes",
@@ -3001,7 +3097,10 @@ mod tests {
         buf.clear();
         encode_delete_acls_filter_results(&mut buf, 0, &err).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(decode_delete_acls_filter_results(&mut cur, 0).unwrap(), err);
+        assert_eq!(
+            decode_delete_acls_filter_results(&mut cur, 0).unwrap().0,
+            err
+        );
         assert!(
             !cur.has_remaining(),
             "DeleteAcls v0 getErrorResponse leftover-empty; leftover {} bytes",
@@ -3014,7 +3113,7 @@ mod tests {
         encode_delete_acls_filter_results(&mut buf, 2, &empty).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_delete_acls_filter_results(&mut cur, 2).unwrap(),
+            decode_delete_acls_filter_results(&mut cur, 2).unwrap().0,
             empty
         );
         assert!(
