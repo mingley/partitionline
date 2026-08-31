@@ -12090,6 +12090,27 @@ impl DeletedShareGroupOffsets {
     }
 }
 
+/// Java `DeleteShareGroupOffsetsRequest` helpers.
+pub struct DeleteShareGroupOffsetsRequest;
+
+impl DeleteShareGroupOffsetsRequest {
+    /// Java `DeleteShareGroupOffsetsRequest.getErrorResponse`.
+    ///
+    /// Sets the top-level `ErrorCode`. Responses stay empty. Request
+    /// GroupId / Topics are not copied. `ErrorMessage` stays the JSON
+    /// default (`null`). Official Java also sets the English
+    /// `Errors.message` string. ThrottleTimeMs is JSON `0+` (JSON
+    /// default `0`; [`DeletedShareGroupOffsets::new`] fills `0`).
+    /// Official Java `getErrorResponse` sets `throttleTimeMs` from the
+    /// argument. This is not [`DeletedShareGroupOffsets::error_counts`]
+    /// / `getErrorDeleteResponseData` / AlterShareGroupOffsets
+    /// `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> DeletedShareGroupOffsets {
+        DeletedShareGroupOffsets::new(error_code)
+    }
+}
+
 /// DeleteShareGroupOffsets v0 (flexible from v0; KIP-932).
 ///
 /// Official Apache JSON (`apiKey: 92`, request `listeners: ["broker"]`,
@@ -28082,6 +28103,79 @@ mod tests {
             cur.is_empty(),
             "DeleteShareGroupOffsets v0 errorCounts leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn delete_share_group_offsets_request_error_response_matches_java() {
+        // Java 4.1.0 DeleteShareGroupOffsetsRequest.getErrorResponse:
+        // Errors.forException then getErrorResponse(throttleTimeMs,
+        // error) which setErrorCode / setThrottleTimeMs /
+        // setErrorMessage(error.message()). Responses stay empty.
+        // Request GroupId / Topics are not copied. Official Java
+        // DeleteShareGroupOffsetsRequest.getErrorResponse (4.1.0; 4.0.0
+        // 404 as the current name). Official Java sets throttleTimeMs
+        // from the argument; DeletedShareGroupOffsets::new fills 0.
+        // Official Java also sets the English Errors.message; this
+        // crate fills the JSON default null. Overloads
+        // getErrorResponse(int, short, String) /
+        // getErrorDeleteResponseData are not mapped. This crate
+        // speaks 0. Top-level ErrorCode is at bytes 4-5. This is not
+        // errorCounts / AlterShareGroupOffsets getErrorResponse /
+        // DescribeShareGroupOffsets getErrorResponse.
+        assert_eq!(
+            DeleteShareGroupOffsetsRequest::error_response(0),
+            DeletedShareGroupOffsets::new(0)
+        );
+        let err = DeleteShareGroupOffsetsRequest::error_response(crate::error::INVALID_REQUEST);
+        assert_eq!(
+            err,
+            DeletedShareGroupOffsets::new(crate::error::INVALID_REQUEST)
+        );
+        assert_eq!(
+            err.error_message, None,
+            "getErrorResponse must not invent ErrorMessage"
+        );
+        assert!(
+            err.topics.is_empty(),
+            "getErrorResponse must not invent Responses"
+        );
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "DeletedShareGroupOffsets::new still fills ThrottleTimeMs 0"
+        );
+        let mut resp = BytesMut::new();
+        encode_delete_share_group_offsets_response(&mut resp, &err).unwrap();
+        assert_eq!(
+            &resp[4..6],
+            crate::error::INVALID_REQUEST.to_be_bytes(),
+            "DeleteShareGroupOffsets v0 ErrorCode is at bytes 4-5"
+        );
+        let mut cur = &resp[..];
+        let decoded = decode_delete_share_group_offsets_response(&mut cur).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "DeleteShareGroupOffsets v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_delete_share_group_offsets_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_delete_share_group_offsets_response(&mut zero_buf, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_delete_share_group_offsets_response(&mut conv, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
         );
     }
 
