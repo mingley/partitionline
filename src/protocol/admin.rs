@@ -16662,6 +16662,17 @@ impl DescribeDelegationTokenResponse {
         &self.tokens
     }
 
+    /// Java `DescribeDelegationTokenResponse.hasError`.
+    ///
+    /// `error() != NONE`. Java `error()` is `Errors.forCode` only
+    /// (identity on i16; not mapped). This is not [`Self::error_counts`]
+    /// / [`Self::tokens`] / getErrorResponse / Create / Renew /
+    /// ExpireDelegationToken `hasError`.
+    #[must_use]
+    pub const fn has_error(&self) -> bool {
+        self.error_code != 0
+    }
+
     /// DescribeDelegationToken `ThrottleTimeMs` (JSON `0+`).
     #[must_use]
     pub fn throttle_time_ms(&self) -> i32 {
@@ -33262,6 +33273,56 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[test]
+    fn describe_delegation_token_response_has_error_matches_java() {
+        // Java 4.0 DescribeDelegationTokenResponse.hasError is
+        // error() != Errors.NONE. Official Java
+        // DescribeDelegationTokenResponse.hasError. Java error() is
+        // Errors.forCode only (identity on i16; not mapped). Java
+        // tokens() (DelegationToken / TokenInformation / KafkaPrincipal)
+        // is not mapped. This crate speaks 1-3. This is not errorCounts
+        // / getErrorResponse / tokens / CreateDelegationToken hasError /
+        // RenewDelegationToken hasError / ExpireDelegationToken hasError.
+        assert!(
+            !DescribeDelegationTokenResponse::new(0, Vec::new()).has_error(),
+            "NONE is not hasError"
+        );
+        let full = DescribeDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_AUTHORIZATION_FAILED,
+            Vec::new(),
+        );
+        assert!(full.has_error());
+        for version in 1..=3_i16 {
+            let mut resp = BytesMut::new();
+            encode_describe_delegation_token_response(&mut resp, version, &full).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_describe_delegation_token_response(&mut cur, version).unwrap();
+            assert!(
+                decoded.has_error(),
+                "DescribeDelegationToken v{version} hasError must follow the decoded ErrorCode"
+            );
+            assert!(
+                cur.is_empty(),
+                "DescribeDelegationToken v{version} hasError leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut none_buf = BytesMut::new();
+        encode_describe_delegation_token_response(
+            &mut none_buf,
+            1,
+            &DescribeDelegationTokenResponse::new(0, Vec::new()),
+        )
+        .unwrap();
+        let mut err_buf = BytesMut::new();
+        encode_describe_delegation_token_response(&mut err_buf, 1, &full).unwrap();
+        assert_ne!(
+            &none_buf[..],
+            &err_buf[..],
+            "v1 ErrorCode is not always NONE"
+        );
     }
 
     #[test]

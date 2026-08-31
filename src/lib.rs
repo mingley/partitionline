@@ -937,7 +937,9 @@
 //! `None` is every visible token);
 //! [`protocol::admin::DescribeDelegationTokenRequest::error_response`] is Java
 //! `DescribeDelegationTokenRequest.getErrorResponse` (empty Tokens;
-//! ThrottleTimeMs JSON `0+`; convenience fills `0`)),
+//! ThrottleTimeMs JSON `0+`; convenience fills `0`);
+//! [`protocol::admin::DescribeDelegationTokenResponse::has_error`] is Java
+//! `DescribeDelegationTokenResponse.hasError` (`error() != NONE`)),
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible;
 //! [`protocol::admin::DescribeConfigsResponse::should_client_throttle`] is Java
 //! `DescribeConfigsResponse.shouldClientThrottle` (v2+);
