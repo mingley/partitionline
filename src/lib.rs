@@ -54,8 +54,8 @@
 //! transactional id.
 //! [`protocol::idem::InitProducerIdResponse::should_client_throttle`] is Java
 //! `InitProducerIdResponse.shouldClientThrottle` (v1+).
-//! Metadata negotiates v1–v13 (v9+ flexible; v8–v10 ClusterAuthorizedOperations;
-//! v13 top-level ErrorCode;
+//! Metadata negotiates v1–v13 (v9+ flexible; v8–v10 ClusterAuthorizedOperations
+//! and IncludeClusterAuthorizedOperations; v13 top-level ErrorCode;
 //! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_by_id_with`];
 //! v12+ TopicId on [`Admin::describe_topics_by_id`]).
 //! [`protocol::api::MetadataResponse::NO_CONTROLLER_ID`] /

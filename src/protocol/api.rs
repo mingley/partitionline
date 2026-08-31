@@ -1430,8 +1430,11 @@ pub fn encode_metadata_request(
 /// Encode Metadata with `IncludeTopicAuthorizedOperations` (v8+).
 ///
 /// Below v8 the flag is omitted. Cluster authorized operations stay
-/// unset (`false` on v8–v10). Name-based: v10+ sends TopicId zero.
-/// For TopicId describes, use [`encode_metadata_request_topics`].
+/// unset (`false` on v8–v10); use
+/// [`encode_metadata_request_topics_with_include_cluster_authorized_operations`]
+/// for a non-default `IncludeClusterAuthorizedOperations`. Name-based: v10+
+/// sends TopicId zero. For TopicId describes, use
+/// [`encode_metadata_request_topics`].
 pub fn encode_metadata_request_with(
     buf: &mut BytesMut,
     version: i16,
@@ -1457,12 +1460,41 @@ pub fn encode_metadata_request_with(
 /// Java `MetadataRequest.Builder.build` rejects versions older than 1,
 /// `allowAutoTopicCreation` false below v4, and a null Name or non-zero
 /// TopicId below v12.
+///
+/// `IncludeClusterAuthorizedOperations` is false (JSON default). Use
+/// [`encode_metadata_request_topics_with_include_cluster_authorized_operations`]
+/// for v8–v10.
 pub fn encode_metadata_request_topics(
     buf: &mut BytesMut,
     version: i16,
     topics: Option<&[MetadataRequestTopic]>,
     allow_auto: bool,
     include_topic_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    encode_metadata_request_topics_with_include_cluster_authorized_operations(
+        buf,
+        version,
+        topics,
+        allow_auto,
+        include_topic_authorized_operations,
+        false,
+    )
+}
+
+/// Encode Metadata with `IncludeClusterAuthorizedOperations` (JSON `8-10`).
+///
+/// Official Java `MetadataRequestData.includeClusterAuthorizedOperations`.
+/// Below v8 and above v10 the flag is omitted even when true; decode fills
+/// `false`. [`encode_metadata_request_topics`] still writes `false`. This is
+/// not IncludeTopicAuthorizedOperations / ClusterAuthorizedOperations /
+/// DescribeCluster `cluster_authorized_operations`.
+pub fn encode_metadata_request_topics_with_include_cluster_authorized_operations(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[MetadataRequestTopic]>,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
+    include_cluster_authorized_operations: bool,
 ) -> crate::error::Result<()> {
     if version < 1 {
         return Err(Error::Unsupported(
@@ -1509,7 +1541,7 @@ pub fn encode_metadata_request_topics(
         buf.put_u8(u8::from(allow_auto));
     }
     if (8..=10).contains(&version) {
-        buf.put_u8(0);
+        buf.put_u8(u8::from(include_cluster_authorized_operations));
     }
     if version >= 8 {
         buf.put_u8(u8::from(include_topic_authorized_operations));
@@ -1521,25 +1553,34 @@ pub fn encode_metadata_request_topics(
 }
 
 /// Decode Metadata request: topic names (`None` is all topics),
-/// `allow.auto.create.topics`, and `IncludeTopicAuthorizedOperations`.
+/// `allow.auto.create.topics`, `IncludeTopicAuthorizedOperations`, and
+/// `IncludeClusterAuthorizedOperations` (last; `false` outside v8–v10).
 ///
 /// v10+ Topics entries with a null Name are skipped (id-based describes).
 /// See [`decode_metadata_request_topics`] for every Topics entry.
 pub fn decode_metadata_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Option<Vec<String>>, bool, bool)> {
-    let (topics, allow_auto, include_topic_authorized) =
+) -> Result<(Option<Vec<String>>, bool, bool, bool)> {
+    let (topics, allow_auto, include_topic_authorized, include_cluster_authorized) =
         decode_metadata_request_topics(buf, version)?;
     let names = topics.map(|ts| ts.into_iter().filter_map(|t| t.name).collect());
-    Ok((names, allow_auto, include_topic_authorized))
+    Ok((
+        names,
+        allow_auto,
+        include_topic_authorized,
+        include_cluster_authorized,
+    ))
 }
 
 /// Decode Metadata: every topic (Name and/or TopicId) plus flags.
+///
+/// The last flag is `IncludeClusterAuthorizedOperations` (JSON `8-10`;
+/// `false` outside that range).
 pub fn decode_metadata_request_topics<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Option<Vec<MetadataRequestTopic>>, bool, bool)> {
+) -> Result<(Option<Vec<MetadataRequestTopic>>, bool, bool, bool)> {
     let flexible = version >= 9;
     let topics = match buf::get_array_len(buf, flexible)? {
         None => None,
@@ -1566,10 +1607,12 @@ pub fn decode_metadata_request_topics<B: Buf>(
     } else {
         false
     };
-    if (8..=10).contains(&version) {
+    let include_cluster_authorized = if (8..=10).contains(&version) {
         buf::need(buf, 1)?;
-        let _include_cluster = buf.get_u8();
-    }
+        buf.get_u8() != 0
+    } else {
+        false
+    };
     let include_topic_authorized = if version >= 8 {
         buf::need(buf, 1)?;
         buf.get_u8() != 0
@@ -1579,7 +1622,12 @@ pub fn decode_metadata_request_topics<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((topics, allow_auto, include_topic_authorized))
+    Ok((
+        topics,
+        allow_auto,
+        include_topic_authorized,
+        include_cluster_authorized,
+    ))
 }
 
 fn get_int32_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Vec<i32>> {
@@ -4491,31 +4539,196 @@ mod tests {
         let topics = ["orders".to_string(), "payments".to_string()];
         let mut buf = BytesMut::new();
         encode_metadata_request(&mut buf, 12, Some(&topics), true).unwrap();
-        let (got, allow, include_topic) = decode_metadata_request(&mut &buf[..], 12).unwrap();
+        let (got, allow, include_topic, include_cluster) =
+            decode_metadata_request(&mut &buf[..], 12).unwrap();
         assert_eq!(got.as_deref(), Some(topics.as_slice()));
         assert!(allow);
         assert!(
             !include_topic,
             "encode_metadata_request must leave IncludeTopicAuthorizedOperations unset"
         );
+        assert!(
+            !include_cluster,
+            "encode_metadata_request must leave IncludeClusterAuthorizedOperations unset"
+        );
 
         let mut all = BytesMut::new();
         encode_metadata_request(&mut all, 12, None, false).unwrap();
-        let (got, allow, include_topic) = decode_metadata_request(&mut &all[..], 12).unwrap();
+        let (got, allow, include_topic, include_cluster) =
+            decode_metadata_request(&mut &all[..], 12).unwrap();
         assert!(got.is_none());
         assert!(!allow);
         assert!(!include_topic);
+        assert!(!include_cluster);
 
         let mut with = BytesMut::new();
         encode_metadata_request_with(&mut with, 12, Some(&topics), false, true).unwrap();
-        let (got, allow, include_topic) = decode_metadata_request(&mut &with[..], 12).unwrap();
+        let (got, allow, include_topic, include_cluster) =
+            decode_metadata_request(&mut &with[..], 12).unwrap();
         assert_eq!(got.as_deref(), Some(topics.as_slice()));
         assert!(!allow);
         assert!(include_topic);
+        assert!(!include_cluster);
         assert_ne!(
             &buf[..],
             &with[..],
             "IncludeTopicAuthorizedOperations true must not match the default request"
+        );
+    }
+
+    #[test]
+    fn metadata_request_include_cluster_authorized_operations_matches_java() {
+        // Kafka 4.0.0 MetadataRequest.json IncludeClusterAuthorizedOperations
+        // is versions 8-10 (BOOL after AllowAutoTopicCreation / before
+        // IncludeTopicAuthorizedOperations). Official Java
+        // MetadataRequestData.includeClusterAuthorizedOperations. Encode
+        // previously always wrote false. Decode previously discarded it.
+        // Kafka 4.0 validVersions is 0-13. This crate speaks 1–13. This is
+        // not IncludeTopicAuthorizedOperations / ClusterAuthorizedOperations
+        // / DescribeCluster cluster_authorized_operations.
+        let empty: [MetadataRequestTopic; 0] = [];
+        for version in [8_i16, 9, 10] {
+            let mut buf = BytesMut::new();
+            encode_metadata_request_topics_with_include_cluster_authorized_operations(
+                &mut buf,
+                version,
+                Some(&empty),
+                true,
+                false,
+                true,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (got, allow, include_topic, include_cluster) =
+                decode_metadata_request_topics(&mut cur, version).unwrap();
+            assert_eq!(got, Some(Vec::new()));
+            assert!(allow);
+            assert!(!include_topic);
+            assert!(include_cluster);
+            assert!(
+                cur.is_empty(),
+                "Metadata v{version} IncludeClusterAuthorizedOperations leftover-empty"
+            );
+        }
+
+        for version in [1_i16, 2, 3, 4, 5, 6, 7, 11, 12, 13] {
+            let mut buf = BytesMut::new();
+            encode_metadata_request_topics_with_include_cluster_authorized_operations(
+                &mut buf,
+                version,
+                Some(&empty),
+                true,
+                false,
+                true,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (.., include_cluster) = decode_metadata_request_topics(&mut cur, version).unwrap();
+            assert!(
+                !include_cluster,
+                "Metadata v{version} omits IncludeClusterAuthorizedOperations even when true"
+            );
+            assert!(
+                cur.is_empty(),
+                "Metadata v{version} IncludeClusterAuthorizedOperations leftover-empty"
+            );
+            let mut omit = BytesMut::new();
+            encode_metadata_request_topics(&mut omit, version, Some(&empty), true, false).unwrap();
+            assert_eq!(
+                &buf[..],
+                &omit[..],
+                "Metadata v{version} encode omits IncludeClusterAuthorizedOperations even when true"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_metadata_request_topics_with_include_cluster_authorized_operations(
+            &mut with,
+            8,
+            Some(&empty),
+            true,
+            false,
+            true,
+        )
+        .unwrap();
+        let mut none = BytesMut::new();
+        encode_metadata_request_topics(&mut none, 8, Some(&empty), true, false).unwrap();
+        assert_ne!(
+            &with[..],
+            &none[..],
+            "v8 IncludeClusterAuthorizedOperations is not always false"
+        );
+        assert_eq!(
+            with.get(5..6),
+            Some([1].as_slice()),
+            "v8 classic IncludeClusterAuthorizedOperations follows empty Topics and AllowAutoTopicCreation"
+        );
+        assert_eq!(
+            none.get(5..6),
+            Some([0].as_slice()),
+            "encode_metadata_request_topics still writes false IncludeClusterAuthorizedOperations"
+        );
+
+        let mut v7_with = BytesMut::new();
+        encode_metadata_request_topics_with_include_cluster_authorized_operations(
+            &mut v7_with,
+            7,
+            Some(&empty),
+            true,
+            false,
+            true,
+        )
+        .unwrap();
+        assert_ne!(
+            &v7_with[..],
+            &with[..],
+            "v8 adds IncludeClusterAuthorizedOperations after AllowAutoTopicCreation"
+        );
+
+        let mut v9_with = BytesMut::new();
+        encode_metadata_request_topics_with_include_cluster_authorized_operations(
+            &mut v9_with,
+            9,
+            Some(&empty),
+            true,
+            false,
+            true,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &v9_with[..],
+            "v9 adds compact arrays/strings and tagged fields"
+        );
+        let mut v10_with = BytesMut::new();
+        encode_metadata_request_topics_with_include_cluster_authorized_operations(
+            &mut v10_with,
+            10,
+            Some(&empty),
+            true,
+            false,
+            true,
+        )
+        .unwrap();
+        assert_eq!(
+            &v9_with[..],
+            &v10_with[..],
+            "empty-Topics IncludeClusterAuthorizedOperations bodies: v9 == v10"
+        );
+        let mut v11_with = BytesMut::new();
+        encode_metadata_request_topics_with_include_cluster_authorized_operations(
+            &mut v11_with,
+            11,
+            Some(&empty),
+            true,
+            false,
+            true,
+        )
+        .unwrap();
+        assert_ne!(
+            &v10_with[..],
+            &v11_with[..],
+            "v11 drops IncludeClusterAuthorizedOperations"
         );
     }
 
@@ -4535,14 +4748,16 @@ mod tests {
         encode_metadata_request_topics(&mut buf, 12, Some(&topics), false, false).unwrap();
         assert_eq!(&buf[..], V12_ID);
         let mut cur = &buf[..];
-        let (got, allow, include_topic) = decode_metadata_request_topics(&mut cur, 12).unwrap();
+        let (got, allow, include_topic, include_cluster) =
+            decode_metadata_request_topics(&mut cur, 12).unwrap();
         leftover_empty(&cur, "Metadata v12 TopicId request leftover").unwrap();
         let got = got.expect("Topics array");
         assert_eq!(got.as_slice(), topics.as_slice());
         assert!(!allow);
         assert!(!include_topic);
+        assert!(!include_cluster);
         let mut cur = &buf[..];
-        let (names_only, _, _) = decode_metadata_request(&mut cur, 12).unwrap();
+        let (names_only, ..) = decode_metadata_request(&mut cur, 12).unwrap();
         leftover_empty(&cur, "Metadata v12 TopicId names-only leftover").unwrap();
         assert_eq!(
             names_only.as_deref(),

@@ -3444,7 +3444,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             METADATA => {
                 let mut st = state.lock();
                 st.metadata_calls = st.metadata_calls.saturating_add(1);
-                let (topics, allow, include_topic) =
+                let (topics, allow, include_topic, ..) =
                     decode_metadata_request_topics(&mut frame.clone(), header.api_version).unwrap();
                 st.last_metadata_allow_auto = Some(allow);
                 st.last_metadata_version = Some(header.api_version);
