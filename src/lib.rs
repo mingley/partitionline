@@ -698,7 +698,7 @@
 //! directory-level code, including `NONE`);
 //! [`DescribeLogDirsRequest::is_all_topic_partitions`] is Java
 //! `DescribeLogDirsRequest.isAllTopicPartitions`),
-//! CreateDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 owner/requester;
+//! CreateDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 owner/requester; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::CreateDelegationTokenResponse::should_client_throttle`] is Java
 //! `CreateDelegationTokenResponse.shouldClientThrottle` (v1+);
 //! [`CreateDelegationTokenResponse::error`] /
@@ -706,7 +706,8 @@
 //! `CreateDelegationTokenRequest.getErrorResponse` /
 //! `CreateDelegationTokenResponse.prepareResponse` (`KafkaPrincipal.ANONYMOUS`
 //! owner and requester; timestamps `-1`; empty TokenId / Hmac).
-//! TokenRequester fields are v3+; throttle stays the JSON default (`0`)),
+//! TokenRequester fields are v3+; encode writes
+//! [`CreateDelegationTokenResponse::throttle_time_ms`]; `::new` fills `0`),
 //! RenewDelegationToken v1–v2 (v1 classic; v2 flexible;
 //! [`protocol::admin::RenewDelegationTokenResponse::should_client_throttle`] is Java
 //! `RenewDelegationTokenResponse.shouldClientThrottle` (v1+)),

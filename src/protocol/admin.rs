@@ -14315,7 +14315,8 @@ impl CreateDelegationTokenRequest {
 ///
 /// Java `DelegationToken` plus `TokenInformation` (no `renewers` on
 /// create). **ErrorCode is top-level**, first field — not after throttle.
-/// Official JSON places `ThrottleTimeMs` last. This is a single token,
+/// Official JSON places `ThrottleTimeMs` last (`0+` INT32; encode writes
+/// [`Self::throttle_time_ms`]; [`Self::new`] fills `0`). This is a single token,
 /// not a token array: there is no first-token ErrorCode and no
 /// first-renewer ErrorCode (renewers are request-only).
 ///
@@ -14349,14 +14350,17 @@ pub struct CreateDelegationTokenResponse {
     pub token_id: String,
     /// Token HMAC bytes.
     pub hmac: Vec<u8>,
+    /// CreateDelegationToken `ThrottleTimeMs` (JSON `0+`). Last field
+    /// after `Hmac`. JSON default is `0`.
+    pub throttle_time_ms: i32,
 }
 
 impl CreateDelegationTokenResponse {
+    /// Construct [`Self`].
     #[expect(
         clippy::too_many_arguments,
         reason = "wire type follows the Kafka spec field-for-field"
     )]
-    /// Construct [`Self`].
     pub fn new(
         error_code: i16,
         principal_type: impl Into<String>,
@@ -14380,6 +14384,7 @@ impl CreateDelegationTokenResponse {
             max_timestamp_ms,
             token_id: token_id.into(),
             hmac,
+            throttle_time_ms: 0,
         }
     }
 
@@ -14395,9 +14400,10 @@ impl CreateDelegationTokenResponse {
     /// Sets ErrorCode, owner PrincipalType / PrincipalName, timestamps
     /// `-1`, empty TokenId, and empty Hmac. TokenRequester fields are
     /// copied from `requester` on v3+; below v3 they stay the JSON
-    /// default (empty). Throttle is the JSON default (`0`); official
-    /// Java also sets `throttleTimeMs` from the argument.
-    /// [`encode_create_delegation_token_response`] writes throttle `0`.
+    /// default (empty). Throttle is the JSON default (`0`) from
+    /// [`Self::new`]; official Java also sets `throttleTimeMs` from
+    /// the argument. [`encode_create_delegation_token_response`]
+    /// writes `resp.throttle_time_ms`.
     #[must_use]
     pub fn prepare_response(
         version: i16,
@@ -14517,6 +14523,12 @@ impl CreateDelegationTokenResponse {
     pub fn hmac_as_base64_string(&self) -> String {
         encode_hmac_as_base64(&self.hmac)
     }
+
+    /// CreateDelegationToken `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
+    }
 }
 
 impl fmt::Debug for CreateDelegationTokenResponse {
@@ -14538,6 +14550,7 @@ impl fmt::Debug for CreateDelegationTokenResponse {
             .field("max_timestamp_ms", &self.max_timestamp_ms)
             .field("token_id", &self.token_id)
             .field("hmac", &"[*******]")
+            .field("throttle_time_ms", &self.throttle_time_ms)
             .finish()
     }
 }
@@ -14691,7 +14704,7 @@ pub fn encode_create_delegation_token_response(
     buf.put_i64(resp.max_timestamp_ms);
     buf::put_string(buf, flexible, Some(&resp.token_id))?;
     buf::put_bytes(buf, flexible, Some(&resp.hmac))?;
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
@@ -14720,7 +14733,7 @@ pub fn decode_create_delegation_token_response<B: Buf>(
     let max_timestamp_ms = buf::get_i64(buf)?;
     let token_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let hmac = buf::get_bytes(buf, flexible)?.unwrap_or_default();
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
@@ -14735,6 +14748,7 @@ pub fn decode_create_delegation_token_response<B: Buf>(
         max_timestamp_ms,
         token_id,
         hmac,
+        throttle_time_ms,
     })
 }
 
@@ -27324,6 +27338,76 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "v4 body must be leftover-empty; a later-version directory field would leave leftover"
+        );
+    }
+
+    #[test]
+    fn create_delegation_token_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 CreateDelegationTokenResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on spoken v1–v3; last field after Hmac).
+        // Kafka 4.0 removed v0. Official Java
+        // CreateDelegationTokenRequest.getErrorResponse /
+        // CreateDelegationTokenResponse.throttleTimeMs set / read it.
+        // Encode writes CreateDelegationTokenResponse.throttle_time_ms
+        // (JSON default 0; CreateDelegationTokenResponse::new fills 0).
+        // KIP-219 only changes shouldClientThrottle (v1+). ErrorCode is
+        // first (bytes 0–1). Empty-token v1 != v2 (classic vs
+        // compact+tagged); v2 != v3 (requester strings). This crate
+        // speaks 1–3. This is not DescribeLogDirs ThrottleTimeMs.
+        let zero = CreateDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "",
+            "",
+            "",
+            "",
+            0,
+            0,
+            0,
+            "",
+            vec![],
+        );
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        for version in [1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_create_delegation_token_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_create_delegation_token_response(&mut cur, version).unwrap();
+            assert_eq!(got, with);
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert_eq!(got.throttle_time_ms(), 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "CreateDelegationToken v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with_v1 = BytesMut::new();
+        encode_create_delegation_token_response(&mut with_v1, 1, &with).unwrap();
+        let mut zero_v1 = BytesMut::new();
+        encode_create_delegation_token_response(&mut zero_v1, 1, &zero).unwrap();
+        assert_ne!(
+            &with_v1[..],
+            &zero_v1[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut with_v2 = BytesMut::new();
+        encode_create_delegation_token_response(&mut with_v2, 2, &with).unwrap();
+        assert_ne!(
+            &with_v1[..],
+            &with_v2[..],
+            "v2 adds compact arrays/strings plus tagged fields"
+        );
+        let mut with_v3 = BytesMut::new();
+        encode_create_delegation_token_response(&mut with_v3, 3, &with).unwrap();
+        assert_ne!(
+            &with_v2[..],
+            &with_v3[..],
+            "v3 adds TokenRequester principal strings"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "CreateDelegationTokenResponse::new still fills ThrottleTimeMs 0"
         );
     }
 
