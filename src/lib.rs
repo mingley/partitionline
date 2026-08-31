@@ -763,6 +763,9 @@
 //! [`protocol::admin::DeleteGroupsRequest::error_result_collection`] is Java
 //! `DeleteGroupsRequest.getErrorResultCollection` (each id through
 //! [`DeletableGroupResult::new`]);
+//! [`protocol::admin::DeleteGroupsRequest::error_response`] is Java
+//! `DeleteGroupsRequest.getErrorResponse` (copies group ids; ThrottleTimeMs
+//! JSON `0+`; convenience encode still writes `0`);
 //! [`protocol::admin::encode_delete_groups_response`] still writes `0`),
 //! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::DescribeClientQuotasRequest::MATCH_TYPE_EXACT`] /
@@ -2247,6 +2250,9 @@
 //! `DeleteConsumerGroupsOptions` / `DeleteShareGroupsOptions.timeoutMs`
 //! (RPC deadline; DeleteGroups has no TimeoutMs). ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::encode_delete_groups_response`] still writes `0`.
+//! [`protocol::admin::DeleteGroupsRequest::error_response`] is Java
+//! `DeleteGroupsRequest.getErrorResponse` (copies group ids through
+//! [`protocol::admin::DeleteGroupsRequest::error_result_collection`]).
 //! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
 //! [`Admin::describe_share_groups`] is Java `describeShareGroups`
 //! (ShareGroupDescribe v0–v1; FindCoordinator v4+ CoordinatorKeys of N).

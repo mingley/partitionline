@@ -10303,6 +10303,33 @@ impl DeleteGroupsRequest {
             .map(|id| DeletableGroupResult::new(id, error_code))
             .collect()
     }
+
+    /// Java `DeleteGroupsRequest.getErrorResponse`.
+    ///
+    /// Groups copy ids through [`Self::error_result_collection`].
+    /// ThrottleTimeMs is JSON `0+` (written on every spoken version from
+    /// `throttle_time_ms`). Convenience encode still writes `0`. Official
+    /// Java `getErrorResponse` sets `throttleTimeMs` from the argument.
+    /// This is not [`DeleteGroupsResponse::error_counts`] / ListGroups
+    /// `getErrorResponse` / DescribeGroups `getErrorResponse`.
+    pub fn error_response<I>(
+        buf: &mut BytesMut,
+        version: i16,
+        group_ids: I,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        encode_delete_groups_response_with_throttle(
+            buf,
+            version,
+            &Self::error_result_collection(group_ids, error_code),
+            throttle_time_ms,
+        )
+    }
 }
 
 /// `true` when DeleteGroups `version` is flexible.
@@ -26652,6 +26679,93 @@ mod tests {
             &v1_with[..],
             &v2_with[..],
             "v2 adds compact arrays/strings plus tagged fields"
+        );
+    }
+
+    #[test]
+    fn delete_groups_request_error_response_matches_java() {
+        // Java 4.0 DeleteGroupsRequest.getErrorResponse:
+        // getErrorResultCollection(data.groupsNames(), Errors.forException)
+        // then setThrottleTimeMs. Copies group ids. There is no top-level
+        // ErrorCode. Official Java DeleteGroupsRequest.getErrorResponse.
+        // Official Java sets throttleTimeMs from the argument; convenience
+        // encode still writes 0. ThrottleTimeMs is JSON 0+ (on v0 too).
+        // Empty-Results v0 == v1; v2 is compact. This crate speaks 0-2.
+        // This is not errorCounts / error_result_collection leftover /
+        // ListGroups getErrorResponse / DescribeGroups getErrorResponse.
+        let err = crate::error::INVALID_REQUEST;
+        let empty = DeleteGroupsRequest::error_result_collection(Vec::<String>::new(), err);
+        assert!(empty.is_empty(), "empty request copies no groups");
+        let one = DeleteGroupsRequest::error_result_collection(["g"], err);
+        let two = DeleteGroupsRequest::error_result_collection(["g", "g2"], err);
+        let mut v0 = BytesMut::new();
+        let mut v1 = BytesMut::new();
+        for version in 0..=2_i16 {
+            for groups in [&empty, &one, &two] {
+                let ids: Vec<String> = groups.iter().map(|g| g.group_id.clone()).collect();
+                let mut buf = BytesMut::new();
+                DeleteGroupsRequest::error_response(&mut buf, version, ids, err, 0).unwrap();
+                let mut expected = BytesMut::new();
+                encode_delete_groups_response(&mut expected, version, groups).unwrap();
+                assert_eq!(
+                    &buf[..],
+                    &expected[..],
+                    "DeleteGroups v{version} getErrorResponse must match convenience encode"
+                );
+                let mut cur = buf.as_ref();
+                let (decoded, throttle) = decode_delete_groups_response(&mut cur, version).unwrap();
+                assert_eq!(decoded, *groups);
+                assert_eq!(throttle, 0);
+                assert!(
+                    cur.is_empty(),
+                    "DeleteGroups v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                    cur.len()
+                );
+            }
+            let mut buf = BytesMut::new();
+            DeleteGroupsRequest::error_response(&mut buf, version, ["g"], err, 0).unwrap();
+            if version == 0 {
+                v0.extend_from_slice(&buf);
+            }
+            if version == 1 {
+                v1.extend_from_slice(&buf);
+            }
+        }
+        let mut v2 = BytesMut::new();
+        DeleteGroupsRequest::error_response(&mut v2, 2, ["g"], err, 0).unwrap();
+        assert_eq!(
+            &v0[..],
+            &v1[..],
+            "empty-Results getErrorResponse v0 and v1 bodies match (both classic)"
+        );
+        assert_ne!(
+            &v1[..],
+            &v2[..],
+            "v2 adds compact arrays/strings plus tagged fields"
+        );
+        let mut with = BytesMut::new();
+        DeleteGroupsRequest::error_response(&mut with, 0, ["g"], err, 3_600_000).unwrap();
+        let mut expected_with = BytesMut::new();
+        encode_delete_groups_response_with_throttle(&mut expected_with, 0, &one, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &expected_with[..],
+            "getErrorResponse must write the throttleTimeMs argument"
+        );
+        let mut zero = BytesMut::new();
+        DeleteGroupsRequest::error_response(&mut zero, 0, ["g"], err, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_delete_groups_response(&mut conv, 0, &one).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "error_response convenience encode still writes ThrottleTimeMs 0"
         );
     }
 
