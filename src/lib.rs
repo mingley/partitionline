@@ -33,6 +33,11 @@
 //! [`protocol::api::ProduceRequest::has_transactional_records`] is Java
 //! `RequestUtils.hasTransactionalRecords` (first batch of each partition
 //! only).
+//! [`protocol::api::ProduceRequest::validate_records`] is Java
+//! `ProduceRequest.validateRecords` (empty or more than one batch, or
+//! magic other than v2, is `InvalidRecordException`; `version` below 7
+//! with ZSTD is `UnsupportedCompressionTypeException`; this crate's
+//! [`RecordBatch::magic`] is always v2; zstd is not spoken as a codec).
 //! [`protocol::api::ProduceRequest::partition_sizes`] is Java
 //! `ProduceRequest.partitionSizes` (`(topic, partition)` to encoded
 //! records size; a later pair adds).
@@ -1261,6 +1266,11 @@
 //! `ProduceResponse.PartitionResponse(Errors)`.
 //! [`protocol::api::ProduceTopicData::error_result`] is Java
 //! `ProduceRequest.getErrorResponse` (one topic).
+//! [`protocol::api::ProduceRequest::validate_records`] is Java
+//! `ProduceRequest.validateRecords` (empty or more than one batch, or
+//! magic other than v2, is `InvalidRecordException`; `version` below 7
+//! with ZSTD is `UnsupportedCompressionTypeException`; this crate's
+//! [`RecordBatch::magic`] is always v2; zstd is not spoken as a codec).
 //! [`protocol::api::ProduceRequest::error_response`] is Java
 //! `ProduceRequest.getErrorResponse` (`acks` `0` is `None`; unique
 //! `partitionSizes` keys otherwise; official Java sets `throttleTimeMs`

@@ -2050,6 +2050,47 @@ impl ProduceRequest {
         })
     }
 
+    /// Java `ProduceRequest.validateRecords`.
+    ///
+    /// Empty `batches` is `InvalidRecordException`. Magic other than
+    /// [`RecordBatch::MAGIC_VALUE_V2`] is `InvalidRecordException`.
+    /// `version` below 7 with ZSTD (Java `CompressionType.ZSTD` id `4`)
+    /// is `UnsupportedCompressionTypeException`. More than one batch is
+    /// `InvalidRecordException`. Official Java skips this when
+    /// `baseRecords` is not `instanceof Records`. This crate's
+    /// [`RecordBatch::magic`] is always
+    /// [`RecordBatch::MAGIC_VALUE_V2`]. zstd is not spoken as a codec;
+    /// this helper still rejects the attribute bits below v7. Encode
+    /// still rejects zstd (`Compression::from_attributes`). This crate
+    /// speaks 3–12. This is not [`Self::has_transactional_records`] /
+    /// [`Self::partition_sizes`] / [`Self::error_response`] /
+    /// `Builder.build`.
+    pub fn validate_records(version: i16, batches: &[RecordBatch]) -> Result<()> {
+        let mut iter = batches.iter();
+        let Some(entry) = iter.next() else {
+            return Err(Error::protocol(format!(
+                "Produce requests with version {version} must have at least one record batch per partition"
+            )));
+        };
+        if entry.magic() != RecordBatch::MAGIC_VALUE_V2 {
+            return Err(Error::protocol(format!(
+                "Produce requests with version {version} are only allowed to contain record batches with magic version 2"
+            )));
+        }
+        // Java `CompressionType.ZSTD.id` (`4`). Not a spoken codec.
+        if version < 7 && entry.attributes & 0x07 == 4 {
+            return Err(Error::Unsupported(format!(
+                "Produce requests with version {version} are not allowed to use ZStandard compression"
+            )));
+        }
+        if iter.next().is_some() {
+            return Err(Error::protocol(format!(
+                "Produce requests with version {version} are only allowed to contain exactly one record batch per partition"
+            )));
+        }
+        Ok(())
+    }
+
     /// Java `ProduceRequest.partitionSizes`.
     ///
     /// Each `(topic, partition)` maps to the encoded size of that
@@ -2578,7 +2619,7 @@ pub fn decode_produce_response<B: Buf>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::records::Record;
+    use crate::protocol::records::{Compression, Record};
     use bytes::Bytes;
     use std::collections::{HashMap, HashSet};
 
@@ -2650,6 +2691,130 @@ mod tests {
             &[][..],
             std::slice::from_ref(&tx)
         ]));
+    }
+
+    #[test]
+    fn produce_request_validate_records_matches_java() {
+        // Java 4.0 ProduceRequest.validateRecords: empty or more than one
+        // batch, or magic other than v2, is InvalidRecordException;
+        // version below 7 with ZSTD is UnsupportedCompressionTypeException.
+        // Official Java ProduceRequest.validateRecords. This crate's
+        // RecordBatch.magic is always v2. zstd is not spoken as a codec;
+        // encode still rejects zstd via Compression::from_attributes.
+        // This crate speaks 3-12. This is not hasTransactionalRecords /
+        // partitionSizes / getErrorResponse / Builder.build.
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let none = RecordBatch::from_records(vec![rec.clone()]);
+        let gzip = none.clone().with_compression(Compression::Gzip);
+        let snappy = none.clone().with_compression(Compression::Snappy);
+        let lz4 = none.clone().with_compression(Compression::Lz4);
+        let mut zstd = none.clone();
+        zstd.attributes = (zstd.attributes & !0x07) | 4;
+        let two = [none.clone(), gzip.clone()];
+        let two_zstd = [zstd.clone(), zstd.clone()];
+        for version in 3..=12_i16 {
+            let empty = ProduceRequest::validate_records(version, &[]).unwrap_err();
+            assert!(
+                matches!(empty, Error::Protocol(_)),
+                "empty batches is Java InvalidRecordException, got {empty}"
+            );
+            assert!(
+                empty
+                    .to_string()
+                    .contains("must have at least one record batch per partition"),
+                "got {empty}"
+            );
+            let many = ProduceRequest::validate_records(version, &two).unwrap_err();
+            assert!(
+                matches!(many, Error::Protocol(_)),
+                "two batches is Java InvalidRecordException, got {many}"
+            );
+            assert!(
+                many.to_string()
+                    .contains("exactly one record batch per partition"),
+                "got {many}"
+            );
+            ProduceRequest::validate_records(version, std::slice::from_ref(&none)).unwrap();
+            ProduceRequest::validate_records(version, std::slice::from_ref(&gzip)).unwrap();
+            ProduceRequest::validate_records(version, std::slice::from_ref(&snappy)).unwrap();
+            ProduceRequest::validate_records(version, std::slice::from_ref(&lz4)).unwrap();
+            assert_eq!(none.magic(), RecordBatch::MAGIC_VALUE_V2);
+            if version < 7 {
+                let zstd_err =
+                    ProduceRequest::validate_records(version, std::slice::from_ref(&zstd))
+                        .unwrap_err();
+                assert!(
+                    matches!(zstd_err, Error::Unsupported(_)),
+                    "zstd below v7 is Java UnsupportedCompressionTypeException, got {zstd_err}"
+                );
+                assert!(
+                    zstd_err
+                        .to_string()
+                        .contains("are not allowed to use ZStandard compression"),
+                    "got {zstd_err}"
+                );
+                let zstd_first = ProduceRequest::validate_records(version, &two_zstd).unwrap_err();
+                assert!(
+                    matches!(zstd_first, Error::Unsupported(_)),
+                    "zstd is checked before the exactly-one-batch rule, got {zstd_first}"
+                );
+            } else {
+                ProduceRequest::validate_records(version, std::slice::from_ref(&zstd)).unwrap();
+            }
+        }
+        leftover_empty_produce_validate_records(3, &none);
+        leftover_empty_produce_validate_records(9, &none);
+        leftover_empty_produce_validate_records(3, &gzip);
+        leftover_empty_produce_validate_records(9, &gzip);
+    }
+
+    fn leftover_empty_produce_validate_records(version: i16, batch: &RecordBatch) {
+        ProduceRequest::validate_records(version, std::slice::from_ref(batch)).unwrap();
+        let topics = [ProduceTopicData {
+            topic: "t".into(),
+            partitions: vec![ProducePartitionData {
+                index: 0,
+                records: batch.clone(),
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_produce_request(&mut buf, version, None, 1, 0, &topics).unwrap();
+        let mut cur = buf.as_ref();
+        let (.., decoded_topics) = decode_produce_request(&mut cur, version).unwrap();
+        leftover_empty(
+            &cur,
+            match version {
+                3 => "Produce v3 validateRecords leftover-empty",
+                9 => "Produce v9 validateRecords leftover-empty",
+                _ => "Produce validateRecords leftover-empty",
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            decoded_topics.len(),
+            1,
+            "v{version} validateRecords encode kept one topic"
+        );
+        buf.clear();
+        encode_produce_request(&mut buf, version, None, 1, 0, &[]).unwrap();
+        let mut cur = buf.as_ref();
+        let (.., decoded_empty) = decode_produce_request(&mut cur, version).unwrap();
+        leftover_empty(
+            &cur,
+            match version {
+                3 => "Produce v3 validateRecords empty leftover-empty",
+                9 => "Produce v9 validateRecords empty leftover-empty",
+                _ => "Produce validateRecords empty leftover-empty",
+            },
+        )
+        .unwrap();
+        assert!(decoded_empty.is_empty());
     }
 
     #[test]
