@@ -1808,6 +1808,8 @@
 //! [`DescribeProducersPartition::error`] /
 //! [`protocol::admin::DescribeProducersTopicRequest::error_result`] are Java
 //! `DescribeProducersRequest.getErrorResponse` (partition body / one topic).
+//! [`protocol::admin::DescribeProducersRequest::add_topic`] is Java
+//! `DescribeProducersRequest.Builder.addTopic` (empty PartitionIndexes);
 //! ThrottleTimeMs is JSON `0+`; encode writes the field;
 //! [`protocol::admin::DescribeProducersResponse::new`] fills `0`.
 //! Official Java `getErrorResponse` does not set `throttleTimeMs` (JSON default `0`).

@@ -7517,6 +7517,28 @@ impl DescribeProducersTopicRequest {
     }
 }
 
+/// Java `DescribeProducersRequest` helpers.
+///
+/// [`Self::add_topic`] is Java `DescribeProducersRequest.Builder.addTopic`.
+pub struct DescribeProducersRequest;
+
+impl DescribeProducersRequest {
+    /// Java `DescribeProducersRequest.Builder.addTopic`.
+    ///
+    /// A Topics entry with `Name` and empty `PartitionIndexes` (JSON
+    /// default empty array). Java also appends the entry to `data.topics()`
+    /// and returns it so the caller can add indexes. Encode still writes
+    /// the Topics list independently. This crate speaks 0. This is not
+    /// [`DescribeProducersTopicRequest::error_result`].
+    #[must_use]
+    pub fn add_topic(name: impl Into<String>) -> DescribeProducersTopicRequest {
+        DescribeProducersTopicRequest {
+            name: name.into(),
+            partition_indexes: Vec::new(),
+        }
+    }
+}
+
 /// DescribeProducers v0 (flexible from v0; KIP-360).
 ///
 /// Official Apache JSON (`apiKey: 61`, `validVersions: "0"`,
@@ -26075,6 +26097,70 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DescribeProducers v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_producers_request_add_topic_matches_java() {
+        // Java 4.0 DescribeProducersRequest.Builder.addTopic: new
+        // TopicRequest with Name and JSON-default empty PartitionIndexes,
+        // appended to Topics, returned so the caller can add indexes.
+        // Official Java DescribeProducersRequest.Builder.addTopic. Encode
+        // still writes independently. This crate speaks 0. This is not
+        // getErrorResponse.
+        let empty_name = DescribeProducersRequest::add_topic("");
+        assert_eq!(empty_name.name, "");
+        assert!(
+            empty_name.partition_indexes.is_empty(),
+            "addTopic PartitionIndexes is the JSON default empty array"
+        );
+        leftover_describe_producers_add_topic(std::slice::from_ref(&empty_name));
+
+        let named = DescribeProducersRequest::add_topic("t");
+        assert_eq!(named.name, "t");
+        assert!(named.partition_indexes.is_empty());
+        leftover_describe_producers_add_topic(std::slice::from_ref(&named));
+
+        leftover_describe_producers_add_topic(&[]);
+
+        let two = [
+            DescribeProducersRequest::add_topic("t"),
+            DescribeProducersRequest::add_topic("t2"),
+        ];
+        leftover_describe_producers_add_topic(&two);
+
+        let dup = [
+            DescribeProducersRequest::add_topic("t"),
+            DescribeProducersRequest::add_topic("t"),
+        ];
+        leftover_describe_producers_add_topic(&dup);
+
+        let mut with_parts = DescribeProducersRequest::add_topic("t");
+        with_parts.partition_indexes.push(0);
+        with_parts.partition_indexes.push(1);
+        leftover_describe_producers_add_topic(std::slice::from_ref(&with_parts));
+    }
+
+    fn leftover_describe_producers_add_topic(topics: &[DescribeProducersTopicRequest]) {
+        let built: Vec<DescribeProducersTopicRequest> = topics
+            .iter()
+            .map(|topic| {
+                let mut added = DescribeProducersRequest::add_topic(topic.name.clone());
+                added.partition_indexes.clone_from(&topic.partition_indexes);
+                added
+            })
+            .collect();
+        assert_eq!(built, topics);
+        let mut buf = BytesMut::new();
+        encode_describe_producers_topics_request(&mut buf, &built).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_describe_producers_topics_request(&mut cur).unwrap();
+        assert_eq!(got, built);
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "DescribeProducers v0 Builder.addTopic {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
