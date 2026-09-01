@@ -2098,7 +2098,11 @@ impl fmt::Display for ProduceRecordError {
 /// [`Self::partition_response_with_offsets`] is Java
 /// `ProduceResponse.PartitionResponse(Errors, long, long, long)` (empty
 /// `recordErrors`, null `errorMessage`; Java `lastOffset` stays
-/// [`Self::INVALID_OFFSET`] and is not stored). Decode below v2 fills
+/// [`Self::INVALID_OFFSET`] and is not stored).
+/// [`Self::partition_response_with_message`] is Java
+/// `ProduceResponse.PartitionResponse(Errors, String)` (same sentinels as
+/// [`Self::partition_response`]; empty `recordErrors`; Java `lastOffset`
+/// stays [`Self::INVALID_OFFSET`] and is not stored). Decode below v2 fills
 /// [`RecordBatch::NO_TIMESTAMP`]; decode below v5 fills
 /// [`Self::INVALID_OFFSET`]. Decode below v8 fills empty `recordErrors` and
 /// null `errorMessage`. Omitted v10+ CurrentLeader fills
@@ -2190,6 +2194,32 @@ impl ProducePartitionResponse {
             record_errors: Vec::new(),
             error_message: None,
         }
+    }
+
+    /// Java `ProduceResponse.PartitionResponse(Errors, String)`.
+    ///
+    /// Same `baseOffset` / `logAppendTime` / `logStartOffset` sentinels as
+    /// [`Self::partition_response`]. Java `lastOffset` stays
+    /// [`Self::INVALID_OFFSET`] and is not a ProduceResponse field.
+    /// `recordErrors` is empty. `errorMessage` is the argument (`None` is
+    /// Java `null`). CurrentLeader is the Apache JSON default
+    /// ([`MetadataResponse::NO_LEADER_ID`] /
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). Encode below v8 omits
+    /// `errorMessage`; decode fills `None`. Encode still writes
+    /// independently. This crate speaks 3–12. This is not
+    /// [`Self::partition_response`] /
+    /// [`Self::partition_response_with_offsets`] /
+    /// [`ProduceResponse::to_data`] / [`ProduceRequest::error_response`].
+    #[must_use]
+    pub fn partition_response_with_message(
+        topic: impl Into<String>,
+        partition: i32,
+        error_code: i16,
+        error_message: Option<String>,
+    ) -> Self {
+        let mut part = Self::partition_response(topic, partition, error_code);
+        part.error_message = error_message;
+        part
     }
 }
 
@@ -3779,6 +3809,121 @@ mod tests {
                 (12, false) => "Produce v12 PartitionResponse.offsets leftover-empty",
                 (12, true) => "Produce v12 PartitionResponse.offsets empty leftover-empty",
                 _ => "Produce PartitionResponse.offsets leftover-empty",
+            },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn produce_partition_response_with_message_matches_java() {
+        // Java 4.0 ProduceResponse.PartitionResponse(Errors, String):
+        // INVALID_OFFSET / NO_TIMESTAMP / INVALID_OFFSET; recordErrors
+        // empty; errorMessage from the argument; lastOffset stays
+        // INVALID_OFFSET (not a ProduceResponse field). Official Java
+        // ProduceResponse.PartitionResponse(Errors, String). This crate
+        // speaks 3–12. This is not PartitionResponse(Errors) /
+        // PartitionResponse(Errors, long, long, long) / toData /
+        // getErrorResponse.
+        assert_eq!(
+            ProducePartitionResponse::partition_response("t", 0, 0),
+            ProducePartitionResponse::partition_response_with_message("t", 0, 0, None)
+        );
+        let empty_msg = ProducePartitionResponse::partition_response_with_message(
+            "t",
+            0,
+            0,
+            Some(String::new()),
+        );
+        assert_eq!(empty_msg.error_message.as_deref(), Some(""));
+        assert_ne!(
+            empty_msg,
+            ProducePartitionResponse::partition_response("t", 0, 0)
+        );
+        let with = ProducePartitionResponse::partition_response_with_message(
+            "t",
+            1,
+            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            Some("unknown topic".into()),
+        );
+        assert_eq!(with.topic, "t");
+        assert_eq!(with.partition, 1);
+        assert_eq!(with.error_code, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(with.base_offset, ProducePartitionResponse::INVALID_OFFSET);
+        assert_eq!(with.log_append_time_ms, RecordBatch::NO_TIMESTAMP);
+        assert_eq!(
+            with.log_start_offset,
+            ProducePartitionResponse::INVALID_OFFSET
+        );
+        assert_eq!(with.current_leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(
+            with.current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert!(with.record_errors.is_empty());
+        assert_eq!(with.error_message.as_deref(), Some("unknown topic"));
+        leftover_produce_partition_response_with_message(3, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_message(3, &[]);
+        leftover_produce_partition_response_with_message(5, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_message(5, &[]);
+        leftover_produce_partition_response_with_message(8, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_message(8, &[]);
+        leftover_produce_partition_response_with_message(12, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_message(12, &[]);
+    }
+
+    fn leftover_produce_partition_response_with_message(
+        version: i16,
+        parts: &[ProducePartitionResponse],
+    ) {
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, version, parts).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, endpoints, throttle) = decode_produce_response(&mut cur, version).unwrap();
+        assert!(endpoints.is_empty());
+        assert_eq!(throttle, 0);
+        if version >= 8 {
+            assert_eq!(decoded, parts);
+        } else {
+            assert_eq!(decoded.len(), parts.len());
+            for (got, want) in decoded.iter().zip(parts) {
+                assert_eq!(got.topic, want.topic);
+                assert_eq!(got.partition, want.partition);
+                assert_eq!(got.error_code, want.error_code);
+                assert_eq!(got.base_offset, want.base_offset);
+                assert_eq!(got.log_append_time_ms, want.log_append_time_ms);
+                if version < 5 {
+                    assert_eq!(
+                        got.log_start_offset,
+                        ProducePartitionResponse::INVALID_OFFSET,
+                        "Produce v{version} omits LogStartOffset; decode fills INVALID_OFFSET"
+                    );
+                } else {
+                    assert_eq!(got.log_start_offset, want.log_start_offset);
+                }
+                assert_eq!(got.current_leader_id, MetadataResponse::NO_LEADER_ID);
+                assert_eq!(
+                    got.current_leader_epoch,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH
+                );
+                assert!(got.record_errors.is_empty());
+                assert!(
+                    got.error_message.is_none(),
+                    "Produce v{version} omits ErrorMessage; decode fills null"
+                );
+            }
+        }
+        leftover_empty(
+            &cur,
+            match (version, parts.is_empty()) {
+                (3, false) => "Produce v3 PartitionResponse.errorMessage leftover-empty",
+                (3, true) => "Produce v3 PartitionResponse.errorMessage empty leftover-empty",
+                (5, false) => "Produce v5 PartitionResponse.errorMessage leftover-empty",
+                (5, true) => "Produce v5 PartitionResponse.errorMessage empty leftover-empty",
+                (8, false) => "Produce v8 PartitionResponse.errorMessage leftover-empty",
+                (8, true) => "Produce v8 PartitionResponse.errorMessage empty leftover-empty",
+                (12, false) => "Produce v12 PartitionResponse.errorMessage leftover-empty",
+                (12, true) => "Produce v12 PartitionResponse.errorMessage empty leftover-empty",
+                _ => "Produce PartitionResponse.errorMessage leftover-empty",
             },
         )
         .unwrap();

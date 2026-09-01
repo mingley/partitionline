@@ -1336,6 +1336,10 @@
 //! [`protocol::api::ProducePartitionResponse::partition_response_with_offsets`] is Java
 //! `ProduceResponse.PartitionResponse(Errors, long, long, long)` (empty
 //! `recordErrors`; null `errorMessage`; Java `lastOffset` is not stored).
+//! [`protocol::api::ProducePartitionResponse::partition_response_with_message`] is Java
+//! `ProduceResponse.PartitionResponse(Errors, String)` (same offset
+//! sentinels as `PartitionResponse(Errors)`; empty `recordErrors`; Java
+//! `lastOffset` is not stored).
 //! [`protocol::api::ProduceTopicData::error_result`] is Java
 //! `ProduceRequest.getErrorResponse` (one topic).
 //! [`protocol::api::ProduceRequest::validate_records`] is Java
