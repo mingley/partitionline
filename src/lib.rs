@@ -1118,7 +1118,12 @@
 //! [`protocol::admin::IncrementalAlterConfigsRequest::from_configs`] is Java
 //! `IncrementalAlterConfigsRequest.Builder` from a resource list and
 //! configs map (missing `Map.get` is [`Error::protocol`]; mapKey first
-//! stays; extra map entries omitted)),
+//! stays; extra map entries omitted);
+//! [`protocol::admin::IncrementalAlterConfigsRequest::error_response`] is Java
+//! `IncrementalAlterConfigsRequest.getErrorResponse` (copies names / types;
+//! `ErrorMessage` stays JSON-null; ThrottleTimeMs stays the JSON default,
+//! Java does not set the argument);
+//! [`protocol::admin::encode_incremental_alter_configs_resource_results`] still writes `0`),
 //! AlterConfigs v0–v2 (v2 flexible; Resources of N;
 //! [`protocol::admin::AlterConfigsResponse::should_client_throttle`] is Java
 //! `AlterConfigsResponse.shouldClientThrottle` (v1+);
@@ -2206,6 +2211,10 @@
 //! `IncrementalAlterConfigsRequest.Builder` from a resource list and
 //! configs map (missing `Map.get` is [`Error::protocol`]; mapKey first
 //! stays; extra map entries omitted).
+//! [`protocol::admin::IncrementalAlterConfigsRequest::error_response`] is Java
+//! `IncrementalAlterConfigsRequest.getErrorResponse` (copies names / types;
+//! `ErrorMessage` stays JSON-null; ThrottleTimeMs stays the JSON default,
+//! Java does not set the argument).
 //! [`AlterConfig::append`] / [`AlterConfig::subtract`] are Java
 //! `AlterConfigOp.OpType.APPEND` / `SUBTRACT` (LIST configs).
 //! [`AlterConfig::from_entry`] is Java `AlterConfigOp(ConfigEntry, OpType)`

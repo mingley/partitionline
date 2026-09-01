@@ -2742,6 +2742,27 @@ impl IncrementalAlterConfigsRequest {
             })
             .collect())
     }
+
+    /// Java `IncrementalAlterConfigsRequest.getErrorResponse`.
+    ///
+    /// Copies each resource name and type through
+    /// [`AlterableResource::error_result`]. `ErrorMessage` stays the JSON
+    /// default (null); official Java also sets the English
+    /// `Errors.message` string. Request configs are not copied.
+    /// ThrottleTimeMs stays the JSON default (`0`); official Java does
+    /// not set `ThrottleTimeMs` from the argument. Convenience encode
+    /// still writes `0`. This crate speaks 0–1. This is not
+    /// [`Self::from_configs`] / [`AlterableResource::error_result`]
+    /// leftover / [`IncrementalAlterConfigsResponse::from_errors`].
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        resources: &[AlterableResource],
+        error_code: i16,
+    ) -> crate::error::Result<()> {
+        let results = AlterConfigsResourceResult::error_results(resources, error_code);
+        encode_incremental_alter_configs_resource_results(buf, version, &results)
+    }
 }
 
 /// IncrementalAlterConfigs v0–1 (classic at v0; flexible from v1).
@@ -20371,6 +20392,106 @@ mod tests {
             &v1_with[..],
             "v1 adds compact arrays/strings plus tagged fields"
         );
+    }
+
+    #[test]
+    fn incremental_alter_configs_request_error_response_matches_java() {
+        // Java 4.0 IncrementalAlterConfigsRequest.getErrorResponse copies
+        // ResourceName / ResourceType and leaves ThrottleTimeMs at the
+        // JSON default (does not set the argument). Official Java
+        // IncrementalAlterConfigsRequest.getErrorResponse. Convenience
+        // encode still writes ThrottleTimeMs 0. This crate speaks 0–1.
+        // This is not from_configs leftover / error_result leftover /
+        // from_errors leftover / ThrottleTimeMs leftover.
+        let resources = [
+            AlterableResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "a".into(),
+                configs: vec![AlterConfig::set("k", "1")],
+            },
+            AlterableResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "b".into(),
+                configs: vec![AlterConfig::set("k", "2")],
+            },
+        ];
+        let err =
+            AlterConfigsResourceResult::error_results(&resources, crate::error::NOT_COORDINATOR);
+        assert_eq!(err.len(), 2);
+        assert!(err.iter().all(|r| r.error_message.is_none()));
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            IncrementalAlterConfigsRequest::error_response(
+                &mut buf,
+                version,
+                &resources,
+                crate::error::NOT_COORDINATOR,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_incremental_alter_configs_resource_results(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(throttle, 0);
+            leftover_incremental_alter_configs_error_response(version, false, cur);
+        }
+
+        for version in [0_i16, 1] {
+            let mut expected = BytesMut::new();
+            encode_incremental_alter_configs_resource_results(&mut expected, version, &err)
+                .unwrap();
+            let mut got = BytesMut::new();
+            IncrementalAlterConfigsRequest::error_response(
+                &mut got,
+                version,
+                &resources,
+                crate::error::NOT_COORDINATOR,
+            )
+            .unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "IncrementalAlterConfigs v{version} getErrorResponse must match throttle-0 encode"
+            );
+            let mut with = BytesMut::new();
+            encode_incremental_alter_configs_resource_results_with_throttle(
+                &mut with, version, &err, 3_600_000,
+            )
+            .unwrap();
+            assert_ne!(
+                &got[..],
+                &with[..],
+                "getErrorResponse must not write the throttleTimeMs argument"
+            );
+        }
+
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            IncrementalAlterConfigsRequest::error_response(
+                &mut buf,
+                version,
+                &[],
+                crate::error::NOT_COORDINATOR,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_incremental_alter_configs_resource_results(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert_eq!(throttle, 0);
+            leftover_incremental_alter_configs_error_response(version, true, cur);
+        }
+    }
+
+    fn leftover_incremental_alter_configs_error_response(version: i16, empty: bool, cur: &[u8]) {
+        let msg = match (version, empty) {
+            (0, false) => "IncrementalAlterConfigs v0 Request.getErrorResponse leftover-empty",
+            (1, false) => "IncrementalAlterConfigs v1 Request.getErrorResponse leftover-empty",
+            (0, true) => "IncrementalAlterConfigs v0 empty Request.getErrorResponse leftover-empty",
+            (1, true) => "IncrementalAlterConfigs v1 empty Request.getErrorResponse leftover-empty",
+            _ => "IncrementalAlterConfigs Request.getErrorResponse leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]
