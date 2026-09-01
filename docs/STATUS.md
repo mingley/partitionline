@@ -1,14 +1,26 @@
-# STATUS
+# Status
 
-Suite HOLD stands. This file records holes. It does not lift them.
+As of 2026-09-01: no GitHub issues. Tracking for missing work is this
+file and [gaps.md](gaps.md).
 
-| Hole | Status |
+## Benches
+
+| Item | State |
 |---|---|
-| Fetch writeup | **Recorded** 2026-08-28 on this-VM (Apache Kafka 3.9.1 KRaft + rust-rdkafka 0.39.0). **Unsigned** until Kernel Integrity signs. Not Lab A. Not a signed vs-C win. |
-| Latency | **Recorded** 2026-08-28 on this-VM (Apache Kafka 3.9.1 KRaft + rust-rdkafka 0.39.0 produce-ack). **Unsigned** until Kernel Integrity signs. Not Lab A. Not a signed vs-C win. Not a Suite HOLD lift. |
-| e2e | First mock-broker protocol-client e2e landed in #80 (`tests/e2e.rs`). Mock only. |
+| Produce vs librdkafka 2.15.0 C | Lab A, signed in-tree (HW equals records sent) |
+| Fetch vs C 2.15.0 | Lab A historical table only. This-VM 2026-08-28 is vs rust-rdkafka 0.39.0 and **unsigned** |
+| Produce-ack latency vs C 2.15.0 | not run. This-VM 2026-08-28 vs rust-rdkafka 0.39.0 is **unsigned** and not a win (p50 62 µs vs 58 µs) |
 
-Named gaps stay closed: ElectLeaders (43), DescribeLogDirs v5, DescribeQuorum (55), Add/Remove/UpdateRaftVoter (80–82).
-
-This slice is latency writeup only. It is not a Suite HOLD lift. It is not a win.
 Numbers and reproduce steps: [benchmark.md](benchmark.md).
+
+## e2e
+
+`tests/e2e.rs` is produce + classic JoinGroup + fetch against the
+**in-tree mock broker**. CI does not start Kafka. A live broker on
+`127.0.0.1:9092` can trip `admin_against_kafka_if_present`
+(`AllocateProducerIds` advertised as unsupported on KRaft).
+
+## Closed APIs
+
+ElectLeaders (43), DescribeLogDirs v5, DescribeQuorum (55), raft voters
+(80–82). Full list: [gaps.md](gaps.md).
