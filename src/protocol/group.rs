@@ -4778,12 +4778,18 @@ impl OffsetDeleteRequest {
     /// Java `OffsetDeleteRequest.getErrorResponse`.
     ///
     /// Writes only the top-level ErrorCode. Topics stay empty (request
-    /// partitions are not copied). Throttle is the JSON default (`0`);
-    /// official Java `getErrorResponse` sets `throttleTimeMs` from the
-    /// argument. ErrorCode is encoded before throttle. Crate convenience
-    /// encode still writes `0`.
-    pub fn error_response(buf: &mut BytesMut, error_code: i16) -> crate::error::Result<()> {
-        encode_offset_delete_response(buf, error_code, &[])
+    /// partitions are not copied). ThrottleTimeMs is written on spoken
+    /// v0 from `throttle_time_ms` (Java always calls
+    /// `setThrottleTimeMs`; ErrorCode is encoded before throttle).
+    /// Convenience encode still writes `0`. This crate speaks 0. This
+    /// is not [`OffsetDeleteTopic::error_result`] leftover /
+    /// [`OffsetDeleteResponse::merge`] leftover / ThrottleTimeMs leftover.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        encode_offset_delete_response_with_throttle(buf, error_code, &[], throttle_time_ms)
     }
 }
 
@@ -13479,7 +13485,7 @@ mod tests {
         let mut expected = BytesMut::new();
         encode_offset_delete_response(&mut expected, 16, &[]).unwrap();
         let mut got = BytesMut::new();
-        OffsetDeleteRequest::error_response(&mut got, 16).unwrap();
+        OffsetDeleteRequest::error_response(&mut got, 16, 0).unwrap();
         assert_eq!(
             &got[..],
             &expected[..],
@@ -13501,6 +13507,62 @@ mod tests {
             &got[..],
             &with_topics[..],
             "getErrorResponse must not copy request partitions"
+        );
+    }
+
+    #[test]
+    fn offset_delete_request_error_response_matches_java() {
+        // Java 4.0 OffsetDeleteRequest.getErrorResponse writes only the
+        // top-level ErrorCode (Topics stay empty) and ThrottleTimeMs from
+        // the argument. ErrorCode is before throttle. Official Java
+        // OffsetDeleteRequest.getErrorResponse. Convenience encode still
+        // writes ThrottleTimeMs 0. This crate speaks 0. This is not
+        // addPartition leftover / addPartitions leftover / merge leftover
+        // / ThrottleTimeMs leftover / empty-Topics leftover.
+        let code = crate::error::NOT_COORDINATOR;
+        let mut buf = BytesMut::new();
+        OffsetDeleteRequest::error_response(&mut buf, code, 3_600_000).unwrap();
+        let mut cur = buf.as_ref();
+        let (err, results, throttle) = decode_offset_delete_response(&mut cur).unwrap();
+        assert_eq!(err, code);
+        assert!(results.is_empty(), "getErrorResponse Topics must be empty");
+        assert_eq!(throttle, 3_600_000);
+        leftover_offset_delete_error_response(cur);
+
+        let mut expected = BytesMut::new();
+        encode_offset_delete_response_with_throttle(&mut expected, code, &[], 3_600_000).unwrap();
+        assert_eq!(&buf[..], &expected[..]);
+
+        let mut conv = BytesMut::new();
+        encode_offset_delete_response(&mut conv, code, &[]).unwrap();
+        assert_ne!(
+            &buf[..],
+            &conv[..],
+            "OffsetDelete Request.getErrorResponse must write the throttleTimeMs argument"
+        );
+        let copied = OffsetDeleteTopic::new("t", vec![0, 1]).error_result(code);
+        let mut with_topics = BytesMut::new();
+        encode_offset_delete_response_with_throttle(&mut with_topics, code, &copied, 3_600_000)
+            .unwrap();
+        assert_ne!(
+            &buf[..],
+            &with_topics[..],
+            "getErrorResponse must not copy request partitions"
+        );
+        let mut zero = BytesMut::new();
+        OffsetDeleteRequest::error_response(&mut zero, code, 0).unwrap();
+        assert_eq!(
+            &zero[..],
+            &conv[..],
+            "OffsetDelete Request.getErrorResponse throttle 0 matches convenience encode"
+        );
+    }
+
+    fn leftover_offset_delete_error_response(cur: &[u8]) {
+        assert!(
+            cur.is_empty(),
+            "OffsetDelete v0 Request.getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
@@ -13555,7 +13617,8 @@ mod tests {
         got.clear();
         encode_offset_delete_response(&mut got, err, &replaced).unwrap();
         let mut expected = BytesMut::new();
-        OffsetDeleteRequest::error_response(&mut expected, crate::error::NOT_COORDINATOR).unwrap();
+        OffsetDeleteRequest::error_response(&mut expected, crate::error::NOT_COORDINATOR, 0)
+            .unwrap();
         assert_eq!(
             &got[..],
             &expected[..],
