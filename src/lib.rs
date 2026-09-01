@@ -1381,6 +1381,10 @@
 //! `TxnOffsetCommitResponse` constructor from an errors map (group by
 //! topic name; a later entry for the same topic appends; first-seen
 //! topic order);
+//! [`protocol::txn::TxnOffsetCommitResponse::encode_from_errors`] is Java
+//! `TxnOffsetCommitResponse(int, Map)` encode (Topics are `from_errors`;
+//! every spoken version writes the `requestThrottleMs` argument;
+//! convenience encode still writes `0`);
 //! [`protocol::txn::TxnOffsetCommitResponse::add_partition`] is Java
 //! `TxnOffsetCommitResponse.Builder.addPartition` (find or create the
 //! topic by name; append the partition; duplicates are kept;
