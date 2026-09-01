@@ -94,6 +94,10 @@
 //! ListOffsets, or OffsetsForLeaderEpoch; the client cache fills missing
 //! partition leaders with `NO_LEADER_ID` and missing epochs with
 //! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
+//! [`protocol::api::PartitionMetadata::new`] is Java
+//! `MetadataResponse.PartitionMetadata` (`partitionIndex` instead of
+//! `TopicPartition`; `Optional.empty` leader / epoch are `NO_LEADER_ID` /
+//! `NO_PARTITION_LEADER_EPOCH`).
 //! [`protocol::api::PartitionMetadata::without_leader_epoch`] is Java
 //! `MetadataResponse.PartitionMetadata.withoutLeaderEpoch`.
 //! [`protocol::api::TopicMetadata`] `Display` is Java

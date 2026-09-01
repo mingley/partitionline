@@ -957,6 +957,10 @@ pub(crate) fn decode_top_level_node_endpoints<B: Buf>(
 
 /// One partition in a Metadata response.
 ///
+/// [`Self::new`] is Java `MetadataResponse.PartitionMetadata` (Java
+/// `TopicPartition` is not stored; callers pass `partitionIndex`.
+/// `Optional.empty` leader is [`MetadataResponse::NO_LEADER_ID`];
+/// `Optional.empty` epoch is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
 /// [`Self::without_leader_epoch`] is Java
 /// `MetadataResponse.PartitionMetadata.withoutLeaderEpoch`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -978,6 +982,40 @@ pub struct PartitionMetadata {
 }
 
 impl PartitionMetadata {
+    /// Java `MetadataResponse.PartitionMetadata`.
+    ///
+    /// Java takes `TopicPartition`; this type stores `partitionIndex` only
+    /// (topic name lives on [`TopicMetadata`]). `leaderId` /
+    /// `leaderEpoch` `None` is Java `Optional.empty`
+    /// ([`MetadataResponse::NO_LEADER_ID`] /
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). Encode below v5 omits
+    /// `offlineReplicas`; decode fills empty. Encode below v7 omits
+    /// `leaderEpoch`; decode fills
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]. Encode still writes
+    /// independently. This crate speaks 1–13. This is not
+    /// [`Self::without_leader_epoch`] / [`TopicMetadata::new`] /
+    /// [`MetadataResponse::errors`].
+    #[must_use]
+    pub fn new(
+        error_code: i16,
+        partition_index: i32,
+        leader_id: Option<i32>,
+        leader_epoch: Option<i32>,
+        replica_nodes: Vec<i32>,
+        isr_nodes: Vec<i32>,
+        offline_replicas: Vec<i32>,
+    ) -> Self {
+        Self {
+            error_code,
+            partition_index,
+            leader_id: leader_id.unwrap_or(MetadataResponse::NO_LEADER_ID),
+            leader_epoch: leader_epoch.unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH),
+            replica_nodes,
+            isr_nodes,
+            offline_replicas,
+        }
+    }
+
     /// Java `MetadataResponse.PartitionMetadata.withoutLeaderEpoch`.
     ///
     /// Sets [`Self::leader_epoch`] to [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]
@@ -5957,6 +5995,124 @@ mod tests {
                 (13, false) => "Metadata v13 TopicMetadata.topicId leftover-empty",
                 (13, true) => "Metadata v13 TopicMetadata.topicId empty leftover-empty",
                 _ => "Metadata TopicMetadata.topicId leftover-empty",
+            },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn metadata_response_partition_metadata_matches_java() {
+        // Java 4.0 MetadataResponse.PartitionMetadata(Errors,
+        // TopicPartition, Optional leaderId, Optional leaderEpoch, List
+        // replicaIds, List inSyncReplicaIds, List offlineReplicaIds).
+        // Official Java MetadataResponse.PartitionMetadata. This crate
+        // speaks 1–13. This is not withoutLeaderEpoch / TopicMetadata /
+        // toPartitionInfo / errors.
+        let none = PartitionMetadata::new(0, 0, None, None, Vec::new(), Vec::new(), Vec::new());
+        assert_eq!(none.error_code, 0);
+        assert_eq!(none.partition_index, 0);
+        assert_eq!(none.leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(none.leader_epoch, RecordBatch::NO_PARTITION_LEADER_EPOCH);
+        assert!(none.replica_nodes.is_empty());
+        assert!(none.isr_nodes.is_empty());
+        assert!(none.offline_replicas.is_empty());
+        let with = PartitionMetadata::new(0, 1, Some(2), Some(8), vec![2, 3], vec![2], vec![3]);
+        assert_eq!(with.partition_index, 1);
+        assert_eq!(with.leader_id, 2);
+        assert_eq!(with.leader_epoch, 8);
+        assert_eq!(with.replica_nodes, vec![2, 3]);
+        assert_eq!(with.isr_nodes, vec![2]);
+        assert_eq!(with.offline_replicas, vec![3]);
+        assert_eq!(
+            with.without_leader_epoch(),
+            PartitionMetadata::new(0, 1, Some(2), None, vec![2, 3], vec![2], vec![3],)
+        );
+        leftover_metadata_partition_metadata(1, std::slice::from_ref(&with));
+        leftover_metadata_partition_metadata(1, &[]);
+        leftover_metadata_partition_metadata(5, std::slice::from_ref(&with));
+        leftover_metadata_partition_metadata(5, &[]);
+        leftover_metadata_partition_metadata(7, std::slice::from_ref(&with));
+        leftover_metadata_partition_metadata(7, &[]);
+        leftover_metadata_partition_metadata(13, std::slice::from_ref(&with));
+        leftover_metadata_partition_metadata(13, &[]);
+    }
+
+    fn leftover_metadata_partition_metadata(version: i16, parts: &[PartitionMetadata]) {
+        let topics = if parts.is_empty() {
+            Vec::new()
+        } else {
+            vec![TopicMetadata::new(0, "t", false, parts.to_vec())]
+        };
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: 1,
+            topics,
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, version, &resp).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_metadata_response(&mut cur, version).unwrap();
+        assert_eq!(decoded.throttle_time_ms, 0);
+        assert!(decoded.brokers.is_empty());
+        assert!(decoded.cluster_id.is_none());
+        assert_eq!(decoded.controller_id, 1);
+        if version >= 7 {
+            assert_eq!(decoded.topics, resp.topics);
+        } else {
+            assert_eq!(decoded.topics.len(), resp.topics.len());
+            for (got_topic, want_topic) in decoded.topics.iter().zip(&resp.topics) {
+                assert_eq!(got_topic.error_code, want_topic.error_code);
+                assert_eq!(got_topic.name, want_topic.name);
+                assert_eq!(got_topic.topic_id, [0u8; 16]);
+                assert_eq!(got_topic.is_internal, want_topic.is_internal);
+                assert_eq!(got_topic.partitions.len(), want_topic.partitions.len());
+                for (got, want) in got_topic.partitions.iter().zip(&want_topic.partitions) {
+                    assert_eq!(got.error_code, want.error_code);
+                    assert_eq!(got.partition_index, want.partition_index);
+                    assert_eq!(got.leader_id, want.leader_id);
+                    assert_eq!(
+                        got.leader_epoch,
+                        RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                        "Metadata v{version} omits LeaderEpoch; decode fills NO_PARTITION_LEADER_EPOCH"
+                    );
+                    assert_eq!(got.replica_nodes, want.replica_nodes);
+                    assert_eq!(got.isr_nodes, want.isr_nodes);
+                    if version < 5 {
+                        assert!(
+                            got.offline_replicas.is_empty(),
+                            "Metadata v{version} omits OfflineReplicas; decode fills empty"
+                        );
+                    } else {
+                        assert_eq!(got.offline_replicas, want.offline_replicas);
+                    }
+                }
+                assert_eq!(
+                    got_topic.topic_authorized_operations,
+                    MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+                );
+            }
+        }
+        assert_eq!(
+            decoded.cluster_authorized_operations,
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert_eq!(decoded.error_code, 0);
+        leftover_empty(
+            &cur,
+            match (version, parts.is_empty()) {
+                (1, false) => "Metadata v1 PartitionMetadata leftover-empty",
+                (1, true) => "Metadata v1 PartitionMetadata empty leftover-empty",
+                (5, false) => "Metadata v5 PartitionMetadata leftover-empty",
+                (5, true) => "Metadata v5 PartitionMetadata empty leftover-empty",
+                (7, false) => "Metadata v7 PartitionMetadata leftover-empty",
+                (7, true) => "Metadata v7 PartitionMetadata empty leftover-empty",
+                (13, false) => "Metadata v13 PartitionMetadata leftover-empty",
+                (13, true) => "Metadata v13 PartitionMetadata empty leftover-empty",
+                _ => "Metadata PartitionMetadata leftover-empty",
             },
         )
         .unwrap();
