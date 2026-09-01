@@ -718,8 +718,9 @@
 //! [`protocol::admin::ConsumerGroupDescribeResponse::error_counts`] is Java
 //! `ConsumerGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994; ThrottleTimeMs is JSON `0+`;
-//! Java `ListTransactionsRequest.Builder.build` rejects a non-negative
-//! DurationFilter on v0;
+//! [`protocol::admin::ListTransactionsRequest::build`] is Java
+//! `ListTransactionsRequest.Builder.build` (rejects a non-negative
+//! DurationFilter on v0; encode still writes independently after this helper);
 //! [`protocol::admin::ListTransactionsResponse::new`] fills `0`;
 //! [`protocol::admin::ListTransactionsResponse::error_counts`] is Java
 //! `ListTransactionsResponse.errorCounts` (top-level `errorCode` only,

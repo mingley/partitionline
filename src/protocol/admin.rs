@@ -8272,12 +8272,29 @@ impl ListTransactionsRequest {
     pub fn error_response(error_code: i16) -> ListTransactionsResponse {
         ListTransactionsResponse::new(error_code, Vec::new(), Vec::new())
     }
+
+    /// Java `ListTransactionsRequest.Builder.build`.
+    ///
+    /// A non-negative DurationFilter on v0 is `UnsupportedVersionException`
+    /// (Java `durationFilter() >= 0`). `-1` is allowed on v0. Encode still
+    /// writes independently after this helper. This crate speaks 0–1.
+    /// This is not [`Self::error_response`].
+    pub fn build(version: i16, duration_ms: i64) -> Result<()> {
+        if version < 1 && duration_ms >= 0 {
+            return Err(Error::Unsupported(
+                "Duration filter can be set only when using API version 1 or higher. If client is connected to an older broker, do not specify duration filter or set duration filter to -1.".into(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 /// Encode a ListTransactions v0–v1 request.
 ///
-/// Java `ListTransactionsRequest.Builder.build` rejects a non-negative
-/// DurationFilter on v0.
+/// [`ListTransactionsRequest::build`] is Java
+/// `ListTransactionsRequest.Builder.build` (rejects a non-negative
+/// DurationFilter on v0). Encode still writes independently after that
+/// helper.
 pub fn encode_list_transactions_request(
     buf: &mut BytesMut,
     version: i16,
@@ -8286,11 +8303,7 @@ pub fn encode_list_transactions_request(
     duration_ms: i64,
 ) -> crate::error::Result<()> {
     let _flexible = list_transactions_flexible(version)?;
-    if version < 1 && duration_ms >= 0 {
-        return Err(Error::Unsupported(
-            "Duration filter can be set only when using API version 1 or higher. If client is connected to an older broker, do not specify duration filter or set duration filter to -1.".into(),
-        ));
-    }
+    ListTransactionsRequest::build(version, duration_ms)?;
     buf::put_array_len(buf, true, Some(state_filters.len()))?;
     for state in state_filters {
         buf::put_compact_string(buf, Some(state))?;
@@ -25152,6 +25165,77 @@ mod tests {
             &conv[..],
             &zero_buf[..],
             "error_response still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn list_transactions_request_build_matches_java() {
+        // Java 4.0 ListTransactionsRequest.Builder.build: a non-negative
+        // DurationFilter on v0 is UnsupportedVersionException (Java
+        // durationFilter() >= 0). -1 is allowed on v0. Official Java
+        // ListTransactionsRequest.Builder.build. Encode still writes
+        // independently after this helper. This crate speaks 0-1. This
+        // is not getErrorResponse / errorCounts.
+        ListTransactionsRequest::build(0, -1).unwrap();
+        ListTransactionsRequest::build(0, -2).unwrap();
+        ListTransactionsRequest::build(1, 0).unwrap();
+        ListTransactionsRequest::build(1, 5_000).unwrap();
+        ListTransactionsRequest::build(1, -1).unwrap();
+        let zero = ListTransactionsRequest::build(0, 0).unwrap_err();
+        assert!(
+            matches!(zero, Error::Unsupported(_)),
+            "DurationFilter 0 on v0 is Java UnsupportedVersionException, got {zero}"
+        );
+        assert!(
+            zero.to_string()
+                .contains("Duration filter can be set only when using API version 1 or higher."),
+            "got {zero}"
+        );
+        let positive = ListTransactionsRequest::build(0, 5_000).unwrap_err();
+        assert!(
+            matches!(positive, Error::Unsupported(_)),
+            "DurationFilter on v0 is Java UnsupportedVersionException, got {positive}"
+        );
+        leftover_list_transactions_build(0, &[], &[], -1);
+        leftover_list_transactions_build(0, &["Ongoing".to_string()], &[1001], -1);
+        leftover_list_transactions_build(1, &[], &[], 0);
+        leftover_list_transactions_build(1, &["Ongoing".to_string()], &[1001], 5_000);
+    }
+
+    fn leftover_list_transactions_build(
+        version: i16,
+        state_filters: &[String],
+        producer_id_filters: &[i64],
+        duration_ms: i64,
+    ) {
+        ListTransactionsRequest::build(version, duration_ms).unwrap();
+        let mut buf = BytesMut::new();
+        encode_list_transactions_request(
+            &mut buf,
+            version,
+            state_filters,
+            producer_id_filters,
+            duration_ms,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (states, pids, duration) = decode_list_transactions_request(&mut cur, version).unwrap();
+        assert_eq!(states, state_filters);
+        assert_eq!(pids, producer_id_filters);
+        if version >= 1 {
+            assert_eq!(duration, duration_ms);
+        } else {
+            assert_eq!(duration, -1);
+        }
+        let empty = if state_filters.is_empty() && producer_id_filters.is_empty() {
+            "empty "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "ListTransactions v{version} Builder.build {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
