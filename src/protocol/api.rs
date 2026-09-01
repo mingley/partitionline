@@ -998,6 +998,8 @@ impl PartitionMetadata {
 /// partitions, JSON default `AUTHORIZED_OPERATIONS_OMITTED`).
 /// [`Self::new`] is Java `MetadataResponse.TopicMetadata(Errors, String, boolean, List)`
 /// (zero TopicId, JSON default `AUTHORIZED_OPERATIONS_OMITTED`).
+/// [`Self::with_topic_id`] is Java
+/// `MetadataResponse.TopicMetadata(Errors, String, Uuid, boolean, List, int)`.
 /// [`Display`] is Java `MetadataResponse.TopicMetadata.toString`. Nested
 /// `PartitionMetadata.toString` uses this topic's name (`null` when
 /// [`Self::name`] is `None`) so the crate type does not store a
@@ -1057,13 +1059,42 @@ impl TopicMetadata {
         is_internal: bool,
         partitions: Vec<PartitionMetadata>,
     ) -> Self {
+        Self::with_topic_id(
+            error_code,
+            topic,
+            [0; 16],
+            is_internal,
+            partitions,
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        )
+    }
+
+    /// Java `MetadataResponse.TopicMetadata(Errors, String, Uuid, boolean, List, int)`.
+    ///
+    /// Sets TopicId and `authorizedOperations` from the arguments. Name is
+    /// the argument (Java `String` is non-null). The four-argument Java
+    /// constructor is [`Self::new`]. Encode still writes independently
+    /// (below v8 omits `topicAuthorizedOperations`; decode fills
+    /// [`MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED`]; below v10
+    /// omits TopicId; decode fills zeros). This crate speaks 1–13. This
+    /// is not [`Self::error`] / [`Self::new`] / [`MetadataResponse::errors`] /
+    /// [`MetadataRequest::error_response`].
+    #[must_use]
+    pub fn with_topic_id(
+        error_code: i16,
+        topic: impl Into<String>,
+        topic_id: [u8; 16],
+        is_internal: bool,
+        partitions: Vec<PartitionMetadata>,
+        topic_authorized_operations: i32,
+    ) -> Self {
         Self {
             error_code,
             name: Some(topic.into()),
-            topic_id: [0; 16],
+            topic_id,
             is_internal,
             partitions,
-            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            topic_authorized_operations,
         }
     }
 }
@@ -5815,6 +5846,117 @@ mod tests {
                 (13, false) => "Metadata v13 TopicMetadata leftover-empty",
                 (13, true) => "Metadata v13 TopicMetadata empty leftover-empty",
                 _ => "Metadata TopicMetadata leftover-empty",
+            },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn metadata_response_topic_metadata_with_topic_id_matches_java() {
+        // Java 4.0 MetadataResponse.TopicMetadata(Errors, String, Uuid,
+        // boolean, List, int): TopicId and authorizedOperations from the
+        // arguments. Official Java MetadataResponse.TopicMetadata(Errors,
+        // String, Uuid, boolean, List, int). This crate speaks 1–13.
+        // This is not getErrorResponse / TopicMetadata four-arg / errors /
+        // toString.
+        let id = [7u8; 16];
+        assert_eq!(
+            TopicMetadata::new(0, "t", false, Vec::new()),
+            TopicMetadata::with_topic_id(
+                0,
+                "t",
+                [0; 16],
+                false,
+                Vec::new(),
+                MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            )
+        );
+        let with = TopicMetadata::with_topic_id(
+            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            "missing",
+            id,
+            true,
+            Vec::new(),
+            0,
+        );
+        assert_eq!(with.error_code, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(with.name.as_deref(), Some("missing"));
+        assert_eq!(with.topic_id, id);
+        assert!(with.is_internal);
+        assert!(with.partitions.is_empty());
+        assert_eq!(with.topic_authorized_operations, 0);
+        leftover_metadata_topic_metadata_with_topic_id(1, std::slice::from_ref(&with));
+        leftover_metadata_topic_metadata_with_topic_id(1, &[]);
+        leftover_metadata_topic_metadata_with_topic_id(8, std::slice::from_ref(&with));
+        leftover_metadata_topic_metadata_with_topic_id(8, &[]);
+        leftover_metadata_topic_metadata_with_topic_id(10, std::slice::from_ref(&with));
+        leftover_metadata_topic_metadata_with_topic_id(10, &[]);
+        leftover_metadata_topic_metadata_with_topic_id(13, std::slice::from_ref(&with));
+        leftover_metadata_topic_metadata_with_topic_id(13, &[]);
+    }
+
+    fn leftover_metadata_topic_metadata_with_topic_id(version: i16, topics: &[TopicMetadata]) {
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: 1,
+            topics: topics.to_vec(),
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, version, &resp).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_metadata_response(&mut cur, version).unwrap();
+        assert_eq!(decoded.throttle_time_ms, 0);
+        assert!(decoded.brokers.is_empty());
+        assert!(decoded.cluster_id.is_none());
+        assert_eq!(decoded.controller_id, 1);
+        if version >= 10 {
+            assert_eq!(decoded.topics, topics);
+        } else {
+            assert_eq!(decoded.topics.len(), topics.len());
+            for (got, want) in decoded.topics.iter().zip(topics) {
+                assert_eq!(got.error_code, want.error_code);
+                assert_eq!(got.name, want.name);
+                assert_eq!(
+                    got.topic_id, [0u8; 16],
+                    "Metadata v{version} omits TopicId; decode fills zeros"
+                );
+                assert_eq!(got.is_internal, want.is_internal);
+                assert_eq!(got.partitions, want.partitions);
+                if version < 8 {
+                    assert_eq!(
+                        got.topic_authorized_operations,
+                        MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                        "Metadata v{version} omits topicAuthorizedOperations; decode fills AUTHORIZED_OPERATIONS_OMITTED"
+                    );
+                } else {
+                    assert_eq!(
+                        got.topic_authorized_operations,
+                        want.topic_authorized_operations
+                    );
+                }
+            }
+        }
+        assert_eq!(
+            decoded.cluster_authorized_operations,
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert_eq!(decoded.error_code, 0);
+        leftover_empty(
+            &cur,
+            match (version, topics.is_empty()) {
+                (1, false) => "Metadata v1 TopicMetadata.topicId leftover-empty",
+                (1, true) => "Metadata v1 TopicMetadata.topicId empty leftover-empty",
+                (8, false) => "Metadata v8 TopicMetadata.topicId leftover-empty",
+                (8, true) => "Metadata v8 TopicMetadata.topicId empty leftover-empty",
+                (10, false) => "Metadata v10 TopicMetadata.topicId leftover-empty",
+                (10, true) => "Metadata v10 TopicMetadata.topicId empty leftover-empty",
+                (13, false) => "Metadata v13 TopicMetadata.topicId leftover-empty",
+                (13, true) => "Metadata v13 TopicMetadata.topicId empty leftover-empty",
+                _ => "Metadata TopicMetadata.topicId leftover-empty",
             },
         )
         .unwrap();

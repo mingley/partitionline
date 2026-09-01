@@ -102,6 +102,8 @@
 //! [`protocol::api::TopicMetadata::new`] is Java
 //! `MetadataResponse.TopicMetadata(Errors, String, boolean, List)` (zero
 //! TopicId; `AUTHORIZED_OPERATIONS_OMITTED`).
+//! [`protocol::api::TopicMetadata::with_topic_id`] is Java
+//! `MetadataResponse.TopicMetadata(Errors, String, Uuid, boolean, List, int)`.
 //! [`protocol::api::MetadataResponse::errors`] /
 //! [`protocol::api::MetadataResponse::errors_by_topic_id`] /
 //! [`protocol::api::MetadataResponse::topics_by_error`] /
