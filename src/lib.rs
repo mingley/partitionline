@@ -1,5 +1,10 @@
 //! A Kafka client written in Rust. No C, no librdkafka.
 //!
+//! Application entry points: [`Producer`], [`Consumer`], [`ConsumerGroup`],
+//! [`ShareGroup`], [`Admin`]. Auth is [`Sasl`] and [`TlsConfig`]. The rest of
+//! this crate rustdoc is the Java-shaped API catalog (protocol helpers,
+//! version ranges, and option names). Codecs live under [`protocol`].
+//!
 //! # Produce
 //!
 //! ```no_run
@@ -25,6 +30,7 @@
 //! (`examples/admin.rs`). SASL is [`ProducerConfig::sasl`] (`examples/sasl.rs`).
 //! TLS is [`ProducerConfig::tls`] (`examples/tls.rs`). Exactly-once consume
 //! then produce is [`Producer::send_offsets_for_group`] (`examples/eos.rs`).
+//! Produce interceptors are [`ProducerConfig::interceptor`] (`examples/intercept.rs`).
 //! The producer negotiates Produce v3–v12 (v3–v8 classic; v9+ flexible;
 //! v10+ KIP-951 CurrentLeader / NodeEndpoints; v11 TRANSACTION_ABORTABLE; v12 KIP-890
 //! Part 2 transaction V2, skipping AddPartitionsToTxn). ThrottleTimeMs is JSON `1+` after Responses

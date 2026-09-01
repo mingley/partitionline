@@ -121,6 +121,9 @@ name = "tls"
 name = "eos"
 
 [[example]]
+name = "intercept"
+
+[[example]]
 name = "bench_latency"
 
 [profile.release]
