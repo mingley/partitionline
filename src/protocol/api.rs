@@ -2050,6 +2050,27 @@ impl ProduceRequest {
         version > Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2
     }
 
+    /// Java `ProduceRequest.builder`.
+    ///
+    /// Oldest allowed version is 3 (Java `ApiKeys.PRODUCE.oldestVersion()`
+    /// on Kafka 4.0, matching this crate's spoken floor). Latest is
+    /// [`Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`] when
+    /// `use_transaction_v1_version` is true, otherwise 12 (Java
+    /// `ApiKeys.PRODUCE.latestVersion()`). The one-argument Java
+    /// `builder(data)` is this helper with `false`. Acks, timeout, and
+    /// Topics are the caller's values. Encode still writes independently
+    /// of this Builder range. This crate speaks 3–12. This is not
+    /// [`Self::is_transaction_v2_requested`] / [`Self::build`] /
+    /// [`Self::validate_records`].
+    #[must_use]
+    pub const fn builder(use_transaction_v1_version: bool) -> (i16, i16) {
+        if use_transaction_v1_version {
+            (3, Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2)
+        } else {
+            (3, 12)
+        }
+    }
+
     /// Java `RequestUtils.hasTransactionalRecords`.
     ///
     /// True when the first batch of any partition is transactional. Later
@@ -2081,7 +2102,7 @@ impl ProduceRequest {
     /// still rejects zstd (`Compression::from_attributes`). This crate
     /// speaks 3–12. This is not [`Self::has_transactional_records`] /
     /// [`Self::partition_sizes`] / [`Self::error_response`] /
-    /// `Builder.build`.
+    /// [`Self::builder`] / `Builder.build`.
     pub fn validate_records(version: i16, batches: &[RecordBatch]) -> Result<()> {
         let mut iter = batches.iter();
         let Some(entry) = iter.next() else {
@@ -2115,7 +2136,8 @@ impl ProduceRequest {
     /// success. Official Java skips a partition when `records` is not
     /// `instanceof Records`. This crate speaks 3–12. This is not
     /// [`Self::validate_records`] / [`Self::partition_sizes`] /
-    /// [`Self::error_response`] / [`Self::has_transactional_records`].
+    /// [`Self::error_response`] / [`Self::has_transactional_records`] /
+    /// [`Self::builder`].
     pub fn build(version: i16, topics: &[ProduceTopicData]) -> Result<()> {
         for topic in topics {
             for partition in &topic.partitions {
@@ -2929,6 +2951,72 @@ mod tests {
                 (9, true) => "Produce v9 Builder.build empty leftover-empty",
                 (_, false) => "Produce Builder.build leftover-empty",
                 (_, true) => "Produce Builder.build empty leftover-empty",
+            },
+        )
+        .unwrap();
+        assert_eq!(decoded.len(), topics.len());
+    }
+
+    #[test]
+    fn produce_request_builder_matches_java() {
+        // Java 4.0 ProduceRequest.builder: oldest is
+        // ApiKeys.PRODUCE.oldestVersion() (3 on Kafka 4.0); latest is
+        // LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 when
+        // useTransactionV1Version, otherwise ApiKeys.PRODUCE.latestVersion()
+        // (12). Official Java ProduceRequest.builder. The one-argument
+        // builder(data) is this helper with false. Encode still writes
+        // independently. This crate speaks 3-12. This is not
+        // isTransactionV2Requested / Builder.build / validateRecords.
+        let (oldest, latest) = ProduceRequest::builder(false);
+        assert_eq!(oldest, 3);
+        assert_eq!(latest, 12);
+        assert_eq!(
+            ProduceRequest::builder(true),
+            (3, ProduceRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2)
+        );
+        assert_eq!(ProduceRequest::builder(true), (3, 11));
+        assert!(!ProduceRequest::is_transaction_v2_requested(
+            ProduceRequest::builder(true).1
+        ));
+        assert!(ProduceRequest::is_transaction_v2_requested(latest));
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let topics = [ProduceTopicData {
+            topic: "t".into(),
+            partitions: vec![ProducePartitionData {
+                index: 0,
+                records: RecordBatch::from_records(vec![rec]),
+            }],
+        }];
+        leftover_empty_produce_builder(oldest, &topics);
+        leftover_empty_produce_builder(oldest, &[]);
+        leftover_empty_produce_builder(11, &topics);
+        leftover_empty_produce_builder(11, &[]);
+        leftover_empty_produce_builder(latest, &topics);
+        leftover_empty_produce_builder(latest, &[]);
+    }
+
+    fn leftover_empty_produce_builder(version: i16, topics: &[ProduceTopicData]) {
+        let mut buf = BytesMut::new();
+        encode_produce_request(&mut buf, version, None, 1, 0, topics).unwrap();
+        let mut cur = buf.as_ref();
+        let (.., decoded) = decode_produce_request(&mut cur, version).unwrap();
+        leftover_empty(
+            &cur,
+            match (version, topics.is_empty()) {
+                (3, false) => "Produce v3 builder leftover-empty",
+                (11, false) => "Produce v11 builder leftover-empty",
+                (12, false) => "Produce v12 builder leftover-empty",
+                (3, true) => "Produce v3 builder empty leftover-empty",
+                (11, true) => "Produce v11 builder empty leftover-empty",
+                (12, true) => "Produce v12 builder empty leftover-empty",
+                (_, false) => "Produce builder leftover-empty",
+                (_, true) => "Produce builder empty leftover-empty",
             },
         )
         .unwrap();

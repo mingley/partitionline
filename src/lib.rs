@@ -27,9 +27,11 @@
 //! encode still writes `0`; official Java `getErrorResponse` sets
 //! `throttleTimeMs` from the argument). v13+ (topic IDs)
 //! is not spoken. [`protocol::api::ProduceRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]
-//! / [`protocol::api::ProduceRequest::is_transaction_v2_requested`] are Java
+//! / [`protocol::api::ProduceRequest::is_transaction_v2_requested`] /
+//! [`protocol::api::ProduceRequest::builder`] are Java
 //! `ProduceRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2` /
-//! `isTransactionV2Requested`.
+//! `isTransactionV2Requested` / `builder` (oldest 3; latest 11 when
+//! transaction V1, otherwise 12).
 //! [`protocol::api::ProduceRequest::has_transactional_records`] is Java
 //! `RequestUtils.hasTransactionalRecords` (first batch of each partition
 //! only).
@@ -1298,6 +1300,9 @@
 //! magic other than v2, is `InvalidRecordException`; `version` below 7
 //! with ZSTD is `UnsupportedCompressionTypeException`; this crate's
 //! [`RecordBatch::magic`] is always v2; zstd is not spoken as a codec).
+//! [`protocol::api::ProduceRequest::builder`] is Java
+//! `ProduceRequest.builder` (oldest 3; latest 11 when transaction V1,
+//! otherwise 12).
 //! [`protocol::api::ProduceRequest::build`] is Java
 //! `ProduceRequest.Builder.build` (validates each partition's records;
 //! empty Topics is success).
