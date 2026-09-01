@@ -753,12 +753,15 @@
 //! [`protocol::admin::encode_delete_topics_response`] still writes `0`;
 //! [`protocol::admin::DeleteTopicsRequest::topic_ids`] /
 //! [`protocol::admin::DeleteTopicsRequest::topic_names`] /
-//! [`protocol::admin::DeleteTopicsRequest::topics`] are Java
-//! `DeleteTopicsRequest.topicIds` / `topicNames` / `topics` (topic IDs empty
+//! [`protocol::admin::DeleteTopicsRequest::topics`] /
+//! [`protocol::admin::DeleteTopicsRequest::number_of_topics`] are Java
+//! `DeleteTopicsRequest.topicIds` / `topicNames` / `topics` / `numberOfTopics`
+//! (topic IDs empty
 //! below v6; v6+ names include null when deleting by TopicId; below v6
 //! id-only entries are omitted from `topicNames`; `topics` below v6 keeps
 //! named entries with TopicId zeros and drops id-only; v6+ `topics` is
-//! as-is);
+//! as-is; `numberOfTopics` is TopicNames size below v6 and Topics size
+//! on v6+);
 //! [`protocol::admin::DeleteTopicsRequest::build`] is Java
 //! `DeleteTopicsRequest.Builder.build` (v6+ non-empty TopicNames replaces
 //! Topics; empty TopicNames leaves Topics as-is, including id-only; a

@@ -1486,6 +1486,29 @@ impl DeleteTopicsRequest {
         }
     }
 
+    /// Java `DeleteTopicsRequest.numberOfTopics`.
+    ///
+    /// v6+ is `data.topics().size()`. Below v6 is `data.topicNames().size()`.
+    /// Distinct from [`Self::topics`], which below v6 drops id-only
+    /// (null Name) entries: this count uses the raw TopicNames list,
+    /// including empty strings. v6+ ignores `topic_names` even when
+    /// non-empty ([`Self::build`] is the rewrite that copies names into
+    /// Topics). Empty is 0. This crate speaks 0–6. This is not
+    /// [`Self::topic_ids`] / [`Self::topic_names`] / [`Self::topics`] /
+    /// [`Self::build`].
+    #[must_use]
+    pub fn number_of_topics(
+        version: i16,
+        topic_names: &[String],
+        topics: &[DeleteTopicState],
+    ) -> usize {
+        if version >= 6 {
+            topics.len()
+        } else {
+            topic_names.len()
+        }
+    }
+
     /// Java `DeleteTopicsRequest.Builder.build`.
     ///
     /// v6+ with a non-empty TopicNames list **replaces** Topics with one
@@ -19273,6 +19296,77 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DeleteTopics v6 topics id leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+    }
+
+    #[test]
+    fn delete_topics_request_number_of_topics_matches_java() {
+        // Java 4.0 DeleteTopicsRequest.numberOfTopics: v6+ is
+        // data.topics().size(); below v6 is data.topicNames().size().
+        // Official Java DeleteTopicsRequest.numberOfTopics. Distinct from
+        // topics(), which drops id-only below v6. Encode still has
+        // separate name and state paths. This crate speaks 0-6. This is
+        // not topicIds / topicNames / topics / Builder.build.
+        let mut id = [0u8; 16];
+        id[0] = b't';
+        let by_id = DeleteTopicState::by_id(id);
+        let by_name = DeleteTopicState::by_name("t");
+        let names = ["a".to_string(), "b".to_string()];
+        assert_eq!(DeleteTopicsRequest::number_of_topics(0, &[], &[]), 0);
+        assert_eq!(DeleteTopicsRequest::number_of_topics(6, &[], &[]), 0);
+        assert_eq!(
+            DeleteTopicsRequest::number_of_topics(5, &names, std::slice::from_ref(&by_id)),
+            2,
+            "below v6 counts TopicNames, not Topics"
+        );
+        assert_eq!(
+            DeleteTopicsRequest::number_of_topics(6, &names, std::slice::from_ref(&by_id)),
+            1,
+            "v6+ counts Topics, not TopicNames"
+        );
+        assert_eq!(
+            DeleteTopicsRequest::number_of_topics(6, &names, &[by_id.clone(), by_name.clone()]),
+            2
+        );
+        assert_eq!(
+            DeleteTopicsRequest::number_of_topics(5, &[String::new()], &[]),
+            1,
+            "empty-string TopicNames still count"
+        );
+        leftover_delete_topics_number_of_topics(0, &names, &[]);
+        leftover_delete_topics_number_of_topics(5, &names, std::slice::from_ref(&by_id));
+        leftover_delete_topics_number_of_topics(5, &[], &[]);
+        leftover_delete_topics_number_of_topics(6, &names, std::slice::from_ref(&by_id));
+        leftover_delete_topics_number_of_topics(6, &[], &[by_id, by_name]);
+        leftover_delete_topics_number_of_topics(6, &[], &[]);
+    }
+
+    fn leftover_delete_topics_number_of_topics(
+        version: i16,
+        topic_names: &[String],
+        topics: &[DeleteTopicState],
+    ) {
+        let n = DeleteTopicsRequest::number_of_topics(version, topic_names, topics);
+        if version >= 6 {
+            assert_eq!(n, topics.len());
+        } else {
+            assert_eq!(n, topic_names.len());
+        }
+        let mut buf = BytesMut::new();
+        if version >= 6 {
+            encode_delete_topics_states_request(&mut buf, version, topics, 5_000).unwrap();
+        } else {
+            encode_delete_topics_request(&mut buf, version, topic_names, 5_000).unwrap();
+        }
+        let mut cur = buf.as_ref();
+        let (decoded, timeout) = decode_delete_topics_states_request(&mut cur, version).unwrap();
+        assert_eq!(timeout, 5_000);
+        assert_eq!(decoded.len(), n);
+        let empty = if n == 0 { "empty " } else { "" };
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v{version} numberOfTopics {empty}leftover-empty; leftover {} bytes",
             cur.remaining()
         );
     }
