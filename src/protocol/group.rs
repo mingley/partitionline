@@ -1110,16 +1110,19 @@ impl JoinGroupRequest<'_> {
     /// and member id are [`Self::UNKNOWN_MEMBER_ID`]. Members is empty.
     /// ProtocolType stays the JSON default (`null`) on v7+. SkipAssignment
     /// stays the JSON default (`false`) on v9+; official Java
-    /// `getErrorResponse` does not set it. Throttle is
-    /// the JSON default (`0`); official Java `getErrorResponse` sets
-    /// `throttleTimeMs` from the argument. Crate convenience encode
-    /// still writes `0`.
+    /// `getErrorResponse` does not set it. ThrottleTimeMs is written on
+    /// every spoken version from `throttle_time_ms` (JSON `2+`; this
+    /// crate does not speak v0–v1). Convenience encode still writes `0`.
+    /// This crate speaks 2–9. This is not [`Self::build`] leftover /
+    /// ProtocolType leftover / SkipAssignment leftover / ThrottleTimeMs
+    /// leftover.
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
         error_code: i16,
+        throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        encode_join_group_response(
+        encode_join_group_response_with_throttle(
             buf,
             version,
             error_code,
@@ -1128,6 +1131,7 @@ impl JoinGroupRequest<'_> {
             Self::UNKNOWN_MEMBER_ID,
             Self::UNKNOWN_MEMBER_ID,
             &[],
+            throttle_time_ms,
         )
     }
 
@@ -8971,7 +8975,7 @@ mod tests {
             )
             .unwrap();
             let mut got = BytesMut::new();
-            JoinGroupRequest::error_response(&mut got, version, 16).unwrap();
+            JoinGroupRequest::error_response(&mut got, version, 16, 0).unwrap();
             assert_eq!(
                 &got[..],
                 &expected[..],
@@ -8997,21 +9001,106 @@ mod tests {
             );
         }
         let mut v6 = BytesMut::new();
-        JoinGroupRequest::error_response(&mut v6, 6, 16).unwrap();
+        JoinGroupRequest::error_response(&mut v6, 6, 16, 0).unwrap();
         let mut v7 = BytesMut::new();
-        JoinGroupRequest::error_response(&mut v7, 7, 16).unwrap();
+        JoinGroupRequest::error_response(&mut v7, 7, 16, 0).unwrap();
         assert_ne!(
             &v6[..],
             &v7[..],
             "v7+ getErrorResponse ProtocolName is null, not empty compact string"
         );
         let mut v9 = BytesMut::new();
-        JoinGroupRequest::error_response(&mut v9, 9, 16).unwrap();
+        JoinGroupRequest::error_response(&mut v9, 9, 16, 0).unwrap();
         assert_ne!(
             &v7[..],
             &v9[..],
             "v9 getErrorResponse must include SkipAssignment"
         );
+    }
+
+    #[test]
+    fn join_group_request_error_response_matches_java() {
+        // Java 4.0 JoinGroupRequest.getErrorResponse writes UNKNOWN
+        // generation / protocol / member sentinels, empty Members, and
+        // ThrottleTimeMs from the argument. ProtocolName is null on v7+
+        // and empty below. ProtocolType stays JSON-null. SkipAssignment
+        // stays JSON-false on v9+. Official Java
+        // JoinGroupRequest.getErrorResponse. Convenience encode still
+        // writes ThrottleTimeMs 0. This crate speaks 2–9. This is not
+        // Builder.build leftover / ProtocolType leftover /
+        // SkipAssignment leftover / ThrottleTimeMs leftover / sentinel
+        // leftover.
+        let code = 16_i16;
+        for version in [2_i16, 6, 7, 9] {
+            let mut buf = BytesMut::new();
+            JoinGroupRequest::error_response(&mut buf, version, code, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (err, gen, protocol, leader, member, skip, members, ptype, throttle) =
+                decode_join_group_response(&mut cur, version).unwrap();
+            assert_eq!(err, code);
+            assert_eq!(gen, JoinGroupRequest::UNKNOWN_GENERATION_ID);
+            assert_eq!(protocol, JoinGroupRequest::UNKNOWN_PROTOCOL_NAME);
+            assert_eq!(leader, JoinGroupRequest::UNKNOWN_MEMBER_ID);
+            assert_eq!(member, JoinGroupRequest::UNKNOWN_MEMBER_ID);
+            assert!(!skip, "v{version} SkipAssignment JSON default is false");
+            assert!(members.is_empty());
+            assert!(ptype.is_none(), "v{version} ProtocolType stays JSON-null");
+            assert_eq!(throttle, 3_600_000);
+            leftover_join_group_error_response(version, cur);
+
+            let mut expected = BytesMut::new();
+            encode_join_group_response_with_throttle(
+                &mut expected,
+                version,
+                code,
+                JoinGroupRequest::UNKNOWN_GENERATION_ID,
+                JoinGroupRequest::UNKNOWN_PROTOCOL_NAME,
+                JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                &[],
+                3_600_000,
+            )
+            .unwrap();
+            assert_eq!(&buf[..], &expected[..]);
+        }
+
+        let mut conv = BytesMut::new();
+        encode_join_group_response(
+            &mut conv,
+            2,
+            code,
+            JoinGroupRequest::UNKNOWN_GENERATION_ID,
+            JoinGroupRequest::UNKNOWN_PROTOCOL_NAME,
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            &[],
+        )
+        .unwrap();
+        let mut with = BytesMut::new();
+        JoinGroupRequest::error_response(&mut with, 2, code, 3_600_000).unwrap();
+        assert_ne!(
+            &with[..],
+            &conv[..],
+            "JoinGroup Request.getErrorResponse must write the throttleTimeMs argument"
+        );
+        let mut zero = BytesMut::new();
+        JoinGroupRequest::error_response(&mut zero, 2, code, 0).unwrap();
+        assert_eq!(
+            &zero[..],
+            &conv[..],
+            "JoinGroup Request.getErrorResponse throttle 0 matches convenience encode"
+        );
+    }
+
+    fn leftover_join_group_error_response(version: i16, cur: &[u8]) {
+        let msg = match version {
+            2 => "JoinGroup v2 Request.getErrorResponse leftover-empty",
+            6 => "JoinGroup v6 Request.getErrorResponse leftover-empty",
+            7 => "JoinGroup v7 Request.getErrorResponse leftover-empty",
+            9 => "JoinGroup v9 Request.getErrorResponse leftover-empty",
+            _ => "JoinGroup Request.getErrorResponse leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]

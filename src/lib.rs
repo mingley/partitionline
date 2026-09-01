@@ -445,12 +445,12 @@
 //! ThrottleTimeMs is JSON `2+` on spoken v2–v9;
 //! [`protocol::group::encode_join_group_response_with_throttle`];
 //! encode previously always wrote `0` and decode discarded; convenience
-//! encode still writes `0`; official Java `getErrorResponse` sets
-//! `throttleTimeMs` from the argument;
+//! encode still writes `0`;
 //! [`protocol::group::JoinGroupRequest::error_response`] is Java
 //! `JoinGroupRequest.getErrorResponse` ([`protocol::group::JoinGroupRequest::UNKNOWN_GENERATION_ID`] /
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`] / [`protocol::group::JoinGroupRequest::UNKNOWN_MEMBER_ID`];
-//! empty members; ProtocolName null on v7+; ProtocolType stays null);
+//! empty members; ProtocolName null on v7+; ProtocolType stays null;
+//! ThrottleTimeMs from the argument);
 //! [`protocol::group::JoinGroupRequest::build`] is Java
 //! `JoinGroupRequest.Builder.build` (a present `group.instance.id`
 //! below v5 is `UnsupportedVersionException`; encode still omits)),
