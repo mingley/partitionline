@@ -94,7 +94,8 @@ producer.close().await?;
 ```
 
 `transactional.id` implies idempotence. `send_offsets_to_transaction` takes
-`TopicPartition` and the group's `ConsumerGroupMetadata`.
+`TopicPartition`. `send_offsets_for_group` uses the group's
+`ConsumerGroupMetadata` (see `examples/eos.rs`).
 
 ## Admin
 
@@ -165,8 +166,8 @@ Broker on `127.0.0.1:9092` (Docker `apache/kafka:3.9.1` is enough):
 cargo run --release --example roundtrip
 ```
 
-Also: `produce`, `consume`, `group`, `txn`, `admin`, `offsets`, `share`,
-`wakeup`, `pause`, `metrics`, `cooperative`.
+Also: `produce`, `consume`, `group`, `txn`, `admin`, `sasl`, `tls`, `eos`,
+`offsets`, `share`, `wakeup`, `pause`, `metrics`, `cooperative`.
 
 Locked produce vs librdkafka 2.15.0 C (linger 5ms, 8e6×100B). Do not publish
 rec/s unless broker high watermark equals records sent:

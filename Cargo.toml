@@ -112,6 +112,15 @@ name = "txn"
 name = "admin"
 
 [[example]]
+name = "sasl"
+
+[[example]]
+name = "tls"
+
+[[example]]
+name = "eos"
+
+[[example]]
 name = "bench_latency"
 
 [profile.release]
