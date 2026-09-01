@@ -1348,6 +1348,10 @@
 //! `ProduceResponse.PartitionResponse(Errors, long, long, long, List, String)`
 //! (`recordErrors` and `errorMessage` from the arguments; Java `lastOffset`
 //! is not stored).
+//! [`protocol::api::ProducePartitionResponse::partition_response_with_current_leader`] is Java
+//! `ProduceResponse.PartitionResponse(..., LeaderIdAndEpoch)` (`recordErrors` /
+//! `errorMessage` / CurrentLeader from the arguments; Java `lastOffset` is
+//! not stored).
 //! [`protocol::api::ProduceTopicData::error_result`] is Java
 //! `ProduceRequest.getErrorResponse` (one topic).
 //! [`protocol::api::ProduceRequest::validate_records`] is Java

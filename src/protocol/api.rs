@@ -2110,7 +2110,11 @@ impl fmt::Display for ProduceRecordError {
 /// [`Self::partition_response_with_record_errors_and_message`] is Java
 /// `ProduceResponse.PartitionResponse(Errors, long, long, long, List, String)`
 /// (`recordErrors` and `errorMessage` from the arguments; Java `lastOffset`
-/// stays [`Self::INVALID_OFFSET`] and is not stored). Decode below v2 fills
+/// stays [`Self::INVALID_OFFSET`] and is not stored).
+/// [`Self::partition_response_with_current_leader`] is Java
+/// `ProduceResponse.PartitionResponse(Errors, long, long, long, List, String, LeaderIdAndEpoch)`
+/// (`recordErrors` / `errorMessage` / CurrentLeader from the arguments; Java
+/// `lastOffset` stays [`Self::INVALID_OFFSET`] and is not stored). Decode below v2 fills
 /// [`RecordBatch::NO_TIMESTAMP`]; decode below v5 fills
 /// [`Self::INVALID_OFFSET`]. Decode below v8 fills empty `recordErrors` and
 /// null `errorMessage`. Omitted v10+ CurrentLeader fills
@@ -2308,6 +2312,57 @@ impl ProducePartitionResponse {
             record_errors,
         );
         part.error_message = error_message;
+        part
+    }
+
+    /// Java `ProduceResponse.PartitionResponse(Errors, long, long, long, List, String, LeaderIdAndEpoch)`.
+    ///
+    /// Sets `baseOffset` / `logAppendTime` / `logStartOffset` /
+    /// `recordErrors` / `errorMessage` / CurrentLeader from the arguments.
+    /// Java `lastOffset` stays [`Self::INVALID_OFFSET`] and is not a
+    /// ProduceResponse field (the Java constructor takes `lastOffset`;
+    /// this helper does not). `None` `errorMessage` is Java `null`.
+    /// Duplicate `batchIndex` values are kept (`ArrayList`). Encode below
+    /// v10 omits CurrentLeader; decode fills
+    /// [`MetadataResponse::NO_LEADER_ID`] /
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]. Encode still writes
+    /// independently (`current_leader_id` below 0 omits the tag even on
+    /// v10+). This crate speaks 3–12. This is not
+    /// [`Self::partition_response`] /
+    /// [`Self::partition_response_with_offsets`] /
+    /// [`Self::partition_response_with_message`] /
+    /// [`Self::partition_response_with_record_errors`] /
+    /// [`Self::partition_response_with_record_errors_and_message`] /
+    /// [`ProduceResponse::to_data`] / [`ProduceRequest::error_response`].
+    #[must_use]
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "Java PartitionResponse CurrentLeader constructor plus topic and partition stored on this type"
+    )]
+    pub fn partition_response_with_current_leader(
+        topic: impl Into<String>,
+        partition: i32,
+        error_code: i16,
+        base_offset: i64,
+        log_append_time_ms: i64,
+        log_start_offset: i64,
+        record_errors: Vec<ProduceRecordError>,
+        error_message: Option<String>,
+        current_leader_id: i32,
+        current_leader_epoch: i32,
+    ) -> Self {
+        let mut part = Self::partition_response_with_record_errors_and_message(
+            topic,
+            partition,
+            error_code,
+            base_offset,
+            log_append_time_ms,
+            log_start_offset,
+            record_errors,
+            error_message,
+        );
+        part.current_leader_id = current_leader_id;
+        part.current_leader_epoch = current_leader_epoch;
         part
     }
 }
@@ -4305,6 +4360,153 @@ mod tests {
                     "Produce v12 PartitionResponse.recordErrorsAndMessage empty leftover-empty"
                 }
                 _ => "Produce PartitionResponse.recordErrorsAndMessage leftover-empty",
+            },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn produce_partition_response_with_current_leader_matches_java() {
+        // Java 4.0 ProduceResponse.PartitionResponse(Errors, long
+        // lastOffset, long, long, List, String, LeaderIdAndEpoch):
+        // baseOffset / logAppendTime / logStartOffset / recordErrors /
+        // errorMessage / currentLeader from the arguments; lastOffset is
+        // not a ProduceResponse field. Official Java
+        // ProduceResponse.PartitionResponse with CurrentLeader. This crate
+        // speaks 3–12. This is not PartitionResponse(Errors) /
+        // PartitionResponse(Errors, String) /
+        // PartitionResponse(Errors, long, long, long) /
+        // PartitionResponse(Errors, long, long, long, List) /
+        // PartitionResponse(Errors, long, long, long, List, String) /
+        // toData / getErrorResponse.
+        assert_eq!(
+            ProducePartitionResponse::partition_response_with_record_errors_and_message(
+                "t",
+                0,
+                0,
+                ProducePartitionResponse::INVALID_OFFSET,
+                RecordBatch::NO_TIMESTAMP,
+                ProducePartitionResponse::INVALID_OFFSET,
+                Vec::new(),
+                None,
+            ),
+            ProducePartitionResponse::partition_response_with_current_leader(
+                "t",
+                0,
+                0,
+                ProducePartitionResponse::INVALID_OFFSET,
+                RecordBatch::NO_TIMESTAMP,
+                ProducePartitionResponse::INVALID_OFFSET,
+                Vec::new(),
+                None,
+                MetadataResponse::NO_LEADER_ID,
+                RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            )
+        );
+        let with = ProducePartitionResponse::partition_response_with_current_leader(
+            "t",
+            1,
+            crate::error::NOT_LEADER_OR_FOLLOWER,
+            7,
+            99,
+            3,
+            vec![
+                ProduceRecordError::new(0, None),
+                ProduceRecordError::new(0, Some("dup".into())),
+                ProduceRecordError::new(2, Some("bad".into())),
+            ],
+            Some("not leader".into()),
+            2,
+            7,
+        );
+        assert_eq!(with.topic, "t");
+        assert_eq!(with.partition, 1);
+        assert_eq!(with.error_code, crate::error::NOT_LEADER_OR_FOLLOWER);
+        assert_eq!(with.base_offset, 7);
+        assert_eq!(with.log_append_time_ms, 99);
+        assert_eq!(with.log_start_offset, 3);
+        assert_eq!(with.current_leader_id, 2);
+        assert_eq!(with.current_leader_epoch, 7);
+        assert_eq!(
+            with.record_errors,
+            vec![
+                ProduceRecordError::new(0, None),
+                ProduceRecordError::new(0, Some("dup".into())),
+                ProduceRecordError::new(2, Some("bad".into())),
+            ]
+        );
+        assert_eq!(with.error_message.as_deref(), Some("not leader"));
+        leftover_produce_partition_response_with_current_leader(3, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_current_leader(3, &[]);
+        leftover_produce_partition_response_with_current_leader(5, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_current_leader(5, &[]);
+        leftover_produce_partition_response_with_current_leader(8, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_current_leader(8, &[]);
+        leftover_produce_partition_response_with_current_leader(12, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_current_leader(12, &[]);
+    }
+
+    fn leftover_produce_partition_response_with_current_leader(
+        version: i16,
+        parts: &[ProducePartitionResponse],
+    ) {
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, version, parts).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, endpoints, throttle) = decode_produce_response(&mut cur, version).unwrap();
+        assert!(endpoints.is_empty());
+        assert_eq!(throttle, 0);
+        if version >= 10 {
+            assert_eq!(decoded, parts);
+        } else {
+            assert_eq!(decoded.len(), parts.len());
+            for (got, want) in decoded.iter().zip(parts) {
+                assert_eq!(got.topic, want.topic);
+                assert_eq!(got.partition, want.partition);
+                assert_eq!(got.error_code, want.error_code);
+                assert_eq!(got.base_offset, want.base_offset);
+                assert_eq!(got.log_append_time_ms, want.log_append_time_ms);
+                if version < 5 {
+                    assert_eq!(
+                        got.log_start_offset,
+                        ProducePartitionResponse::INVALID_OFFSET,
+                        "Produce v{version} omits LogStartOffset; decode fills INVALID_OFFSET"
+                    );
+                } else {
+                    assert_eq!(got.log_start_offset, want.log_start_offset);
+                }
+                assert_eq!(got.current_leader_id, MetadataResponse::NO_LEADER_ID);
+                assert_eq!(
+                    got.current_leader_epoch,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH
+                );
+                if version < 8 {
+                    assert!(
+                        got.record_errors.is_empty(),
+                        "Produce v{version} omits RecordErrors; decode fills empty"
+                    );
+                    assert!(
+                        got.error_message.is_none(),
+                        "Produce v{version} omits ErrorMessage; decode fills null"
+                    );
+                } else {
+                    assert_eq!(got.record_errors, want.record_errors);
+                    assert_eq!(got.error_message, want.error_message);
+                }
+            }
+        }
+        leftover_empty(
+            &cur,
+            match (version, parts.is_empty()) {
+                (3, false) => "Produce v3 PartitionResponse.currentLeader leftover-empty",
+                (3, true) => "Produce v3 PartitionResponse.currentLeader empty leftover-empty",
+                (5, false) => "Produce v5 PartitionResponse.currentLeader leftover-empty",
+                (5, true) => "Produce v5 PartitionResponse.currentLeader empty leftover-empty",
+                (8, false) => "Produce v8 PartitionResponse.currentLeader leftover-empty",
+                (8, true) => "Produce v8 PartitionResponse.currentLeader empty leftover-empty",
+                (12, false) => "Produce v12 PartitionResponse.currentLeader leftover-empty",
+                (12, true) => "Produce v12 PartitionResponse.currentLeader empty leftover-empty",
+                _ => "Produce PartitionResponse.currentLeader leftover-empty",
             },
         )
         .unwrap();
