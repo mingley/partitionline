@@ -1359,10 +1359,33 @@ impl MetadataRequest {
     /// IncludeClusterAuthorizedOperations stay false. Encode still writes
     /// `allow_auto` independently. This crate speaks 1–13. This is not
     /// [`Self::is_all_topics`] / [`Self::topics`] / [`Self::topic_ids`] /
-    /// getErrorResponse / AllowAutoTopicCreation decode.
+    /// [`Self::for_topic_ids`] / getErrorResponse /
+    /// AllowAutoTopicCreation decode.
     #[must_use]
     pub const fn all_topics() -> (Option<&'static [MetadataRequestTopic]>, bool) {
         (None, true)
+    }
+
+    /// Java `MetadataRequest.Builder(List<Uuid> topicIds)`.
+    ///
+    /// `None` is null Topics (all topics). `Some` is
+    /// [`MetadataRequestTopic::convert_from_ids`] (Name null).
+    /// AllowAutoTopicCreation is `false` (Java: it is impossible to
+    /// create a topic by TopicId). Distinct from [`Self::all_topics`],
+    /// which is null Topics with AllowAutoTopicCreation `true`.
+    /// IncludeTopicAuthorizedOperations and
+    /// IncludeClusterAuthorizedOperations stay false. Encode still writes
+    /// `allow_auto` independently; `allow_auto` false is rejected below
+    /// v4 and a non-zero TopicId is rejected below v12. This crate
+    /// speaks 1–13. This is not [`Self::all_topics`] /
+    /// [`MetadataRequestTopic::convert_from_ids`] / [`Self::topic_ids`] /
+    /// getErrorResponse.
+    #[must_use]
+    pub fn for_topic_ids(ids: Option<&[[u8; 16]]>) -> (Option<Vec<MetadataRequestTopic>>, bool) {
+        (
+            ids.map(|ids| MetadataRequestTopic::convert_from_ids(ids.iter().copied())),
+            false,
+        )
     }
 
     /// Java `MetadataRequest.topicIds`.
@@ -5066,6 +5089,65 @@ mod tests {
             &all[..],
             &with_names[..],
             "allTopics null Topics is not an empty or named Topics list"
+        );
+    }
+
+    #[test]
+    fn metadata_request_for_topic_ids_matches_java() {
+        // Java 4.0 MetadataRequest.Builder(List<Uuid> topicIds): Topics
+        // from the ids (null list is null Topics / all topics) and
+        // AllowAutoTopicCreation false. Official Java
+        // MetadataRequest.Builder(List<Uuid>). Encode still writes
+        // allow_auto independently; false is rejected below v4 and a
+        // non-zero TopicId is rejected below v12. This crate speaks
+        // 1-13. This is not allTopics / convertTopicIdsToMetadataRequestTopic
+        // / topicIds / getErrorResponse.
+        let (none, allow) = MetadataRequest::for_topic_ids(None);
+        assert!(none.is_none());
+        assert!(!allow);
+        assert!(MetadataRequest::is_all_topics(1, none.as_deref()));
+        assert_ne!(
+            MetadataRequest::all_topics().1,
+            allow,
+            "allTopics AllowAutoTopicCreation is true"
+        );
+        let (empty, empty_allow) = MetadataRequest::for_topic_ids(Some(&[]));
+        assert_eq!(empty.as_deref(), Some(&[][..]));
+        assert!(!empty_allow);
+        assert!(!MetadataRequest::is_all_topics(1, empty.as_deref()));
+        let id = [7u8; 16];
+        let (named, named_allow) = MetadataRequest::for_topic_ids(Some(std::slice::from_ref(&id)));
+        assert_eq!(named, Some(MetadataRequestTopic::convert_from_ids([id])));
+        assert!(!named_allow);
+        leftover_metadata_for_topic_ids(4, None);
+        leftover_metadata_for_topic_ids(13, None);
+        leftover_metadata_for_topic_ids(4, Some(&[]));
+        leftover_metadata_for_topic_ids(13, Some(&[]));
+        leftover_metadata_for_topic_ids(12, Some(std::slice::from_ref(&id)));
+        leftover_metadata_for_topic_ids(13, Some(std::slice::from_ref(&id)));
+    }
+
+    fn leftover_metadata_for_topic_ids(version: i16, ids: Option<&[[u8; 16]]>) {
+        let (topics, allow) = MetadataRequest::for_topic_ids(ids);
+        assert!(!allow);
+        let mut buf = BytesMut::new();
+        encode_metadata_request_topics(&mut buf, version, topics.as_deref(), allow, false).unwrap();
+        let mut cur = buf.as_ref();
+        let (got, allow_got, include_topic, include_cluster) =
+            decode_metadata_request_topics(&mut cur, version).unwrap();
+        assert_eq!(got, topics);
+        assert!(!allow_got);
+        assert!(!include_topic);
+        assert!(!include_cluster);
+        let empty = if ids.is_some_and(<[[u8; 16]]>::is_empty) {
+            "empty "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "Metadata v{version} Builder.topicIds {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
