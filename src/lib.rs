@@ -1480,13 +1480,15 @@
 //! `FetchRequest.Builder.build` Topics from fetchData (consecutive same
 //! name share one topic; first topic id is kept; intervening names stay
 //! split; encode still writes the caller's Topics as-is).
-//! [`protocol::fetch::FetchRequest::for_consumer`] is Java
-//! `FetchRequest.Builder.forConsumer` (oldest allowed version 4; latest
-//! is the argument; ReplicaId [`protocol::fetch::CONSUMER_REPLICA_ID`];
-//! ReplicaEpoch `-1`).
-//! [`protocol::fetch::FetchRequest::for_replica`] is Java
-//! `FetchRequest.Builder.forReplica` (oldest and latest are both the
-//! allowed version; ReplicaId and ReplicaEpoch are the arguments).
+//! [`protocol::fetch::FetchRequest::builder`] /
+//! [`protocol::fetch::FetchRequest::for_consumer`] /
+//! [`protocol::fetch::FetchRequest::for_replica`] are Java
+//! `FetchRequest.Builder(short minVersion, short maxVersion, int replicaId, long replicaEpoch, ...)` /
+//! `Builder.forConsumer` / `Builder.forReplica` (oldest is `minVersion`;
+//! latest is `maxVersion`; ReplicaId and ReplicaEpoch are the arguments;
+//! `forConsumer` is that helper with oldest 4, ReplicaId
+//! [`protocol::fetch::CONSUMER_REPLICA_ID`], ReplicaEpoch `-1`;
+//! `forReplica` pins oldest and latest to the allowed version).
 //! [`protocol::fetch::FetchRequest::simple_build`] is Java
 //! `FetchRequest.SimpleBuilder.build` (untagged ReplicaId must be `< 0`;
 //! below v15 copy ReplicaState.ReplicaId into ReplicaId and reset

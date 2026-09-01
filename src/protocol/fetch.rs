@@ -446,13 +446,38 @@ impl FetchRequest {
         }
     }
 
+    /// Java `FetchRequest.Builder(short minVersion, short maxVersion, int replicaId, long replicaEpoch, ...)`.
+    ///
+    /// Oldest allowed version is `min_version`. Latest is `max_version`.
+    /// ReplicaId and ReplicaEpoch are the arguments. Isolation defaults
+    /// to READ_UNCOMMITTED (`0`) and MaxBytes defaults to
+    /// [`DEFAULT_RESPONSE_MAX_BYTES`]; pass those on encode separately.
+    /// MaxWaitMs, MinBytes, and Topics are the caller's values.
+    /// [`Self::for_consumer`] is this helper with oldest 4, ReplicaId
+    /// [`CONSUMER_REPLICA_ID`], ReplicaEpoch `-1`. [`Self::for_replica`]
+    /// is this helper with min=max=`allowed_version`. Encode still writes
+    /// ReplicaId independently of this Builder range. This crate speaks
+    /// 4–17. This is not [`Self::forgotten_from_removed`] /
+    /// [`Self::topics_from_fetch_data`] / replicaId encode /
+    /// [`Self::simple_build`] / [`Self::replica_for_build`].
+    #[must_use]
+    pub const fn builder(
+        min_version: i16,
+        max_version: i16,
+        replica_id: i32,
+        replica_epoch: i64,
+    ) -> (i16, i16, i32, i64) {
+        (min_version, max_version, replica_id, replica_epoch)
+    }
+
     /// Java `FetchRequest.Builder.forConsumer`.
     ///
     /// Oldest allowed version is 4 (Java `ApiKeys.FETCH.oldestVersion()`
     /// on Kafka 4.0, matching this crate's spoken floor). Latest is
     /// `max_version`. ReplicaId is [`CONSUMER_REPLICA_ID`]. ReplicaEpoch
-    /// is `-1`. Isolation defaults to READ_UNCOMMITTED (`0`) and MaxBytes
-    /// defaults to [`DEFAULT_RESPONSE_MAX_BYTES`]; pass those on
+    /// is `-1`. This is [`Self::builder`] with those values. Isolation
+    /// defaults to READ_UNCOMMITTED (`0`) and MaxBytes defaults to
+    /// [`DEFAULT_RESPONSE_MAX_BYTES`]; pass those on
     /// [`encode_fetch_request`] separately. MaxWaitMs, MinBytes, and Topics
     /// are the caller's values. Replica epoch lives on Java `ReplicaState`
     /// (v15+ tagged field 1); consumers omit that field. This helper still
@@ -463,13 +488,14 @@ impl FetchRequest {
     /// replicaId encode / ShareFetch `forConsumer`.
     #[must_use]
     pub const fn for_consumer(max_version: i16) -> (i16, i16, i32, i64) {
-        (4, max_version, CONSUMER_REPLICA_ID, -1)
+        Self::builder(4, max_version, CONSUMER_REPLICA_ID, -1)
     }
 
     /// Java `FetchRequest.Builder.forReplica`.
     ///
     /// Oldest and latest allowed versions are both `allowed_version`.
-    /// ReplicaId and ReplicaEpoch are the arguments. Isolation defaults
+    /// ReplicaId and ReplicaEpoch are the arguments. This is
+    /// [`Self::builder`] with min=max=`allowed_version`. Isolation defaults
     /// to READ_UNCOMMITTED (`0`) and MaxBytes defaults to
     /// [`DEFAULT_RESPONSE_MAX_BYTES`]; pass those on
     /// [`encode_fetch_request_with_replica_id`] separately. MaxWaitMs,
@@ -486,7 +512,7 @@ impl FetchRequest {
         replica_id: i32,
         replica_epoch: i64,
     ) -> (i16, i16, i32, i64) {
-        (allowed_version, allowed_version, replica_id, replica_epoch)
+        Self::builder(allowed_version, allowed_version, replica_id, replica_epoch)
     }
 
     /// Java `FetchRequest.SimpleBuilder.build`.
@@ -499,7 +525,7 @@ impl FetchRequest {
     /// the caller passed them. [`encode_fetch_request_with_replica_id`]
     /// still writes untagged ReplicaId on v4–v14 and omits ReplicaState on
     /// v15+. This crate speaks 4–17. This is not [`replica_id`] /
-    /// [`replica_id_from_data`] / [`Self::for_consumer`] /
+    /// [`replica_id_from_data`] / [`Self::builder`] / [`Self::for_consumer`] /
     /// [`Self::for_replica`].
     pub fn simple_build(
         version: i16,
@@ -531,7 +557,7 @@ impl FetchRequest {
     /// [`encode_fetch_request_with_replica_id`] still writes untagged
     /// ReplicaId on v4–v14 and omits ReplicaState on v15+. This crate
     /// speaks 4–17. This is not [`replica_id`] / [`replica_id_from_data`]
-    /// / [`Self::simple_build`] / [`Self::for_consumer`] /
+    /// / [`Self::simple_build`] / [`Self::builder`] / [`Self::for_consumer`] /
     /// [`Self::for_replica`].
     #[must_use]
     pub const fn replica_for_build(
@@ -3278,6 +3304,131 @@ mod tests {
         leftover_for_replica(12, replica_id, &[]);
         leftover_for_replica(latest, replica_id, &topics);
         leftover_for_replica(latest, replica_id, &[]);
+    }
+
+    #[test]
+    fn fetch_request_builder_matches_java() {
+        // Java 4.0 FetchRequest.Builder(short minVersion, short maxVersion,
+        // int replicaId, long replicaEpoch, ...): oldest is minVersion;
+        // latest is maxVersion; ReplicaId and ReplicaEpoch are the
+        // arguments. Isolation defaults to READ_UNCOMMITTED (0) and
+        // MaxBytes to DEFAULT_RESPONSE_MAX_BYTES. Official Java
+        // FetchRequest.Builder(short, short, int, long, ...). forConsumer
+        // is this helper with oldest 4, ReplicaId CONSUMER_REPLICA_ID,
+        // ReplicaEpoch -1. forReplica is this helper with min=max.
+        // Encode still writes ReplicaId independently of this Builder
+        // range. This crate speaks 4-17. This is not forConsumer /
+        // forReplica / SimpleBuilder.build / replica_for_build /
+        // forgotten_from_removed / topics_from_fetch_data.
+        let (oldest, latest, replica_id, replica_epoch) = FetchRequest::builder(4, 17, 7, 3);
+        assert_eq!(oldest, 4);
+        assert_eq!(latest, 17);
+        assert_eq!(replica_id, 7);
+        assert_eq!(replica_epoch, 3);
+        assert_eq!(
+            FetchRequest::for_consumer(17),
+            FetchRequest::builder(4, 17, CONSUMER_REPLICA_ID, -1)
+        );
+        assert_eq!(
+            FetchRequest::for_replica(17, 7, 3),
+            FetchRequest::builder(17, 17, 7, 3)
+        );
+        assert_eq!(
+            FetchRequest::builder(13, 1, CONSUMER_REPLICA_ID, -1),
+            (13, 1, CONSUMER_REPLICA_ID, -1)
+        );
+        assert!(is_from_follower(replica_id));
+        assert!(!is_consumer(replica_id));
+        let topics = [FetchTopic {
+            topic: "t".into(),
+            topic_id: [7u8; 16],
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 0,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
+                partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
+            }],
+        }];
+        leftover_fetch_builder(4, replica_id, &topics);
+        leftover_fetch_builder(4, replica_id, &[]);
+        leftover_fetch_builder(12, replica_id, &topics);
+        leftover_fetch_builder(12, replica_id, &[]);
+        leftover_fetch_builder(latest, replica_id, &topics);
+        leftover_fetch_builder(latest, replica_id, &[]);
+    }
+
+    fn leftover_fetch_builder(version: i16, replica_id: i32, topics: &[FetchTopic]) {
+        let max_wait_ms = 500;
+        let min_bytes = 1;
+        let mut buf = BytesMut::new();
+        encode_fetch_request_with_replica_id(
+            &mut buf,
+            version,
+            max_wait_ms,
+            min_bytes,
+            DEFAULT_RESPONSE_MAX_BYTES,
+            0,
+            topics,
+            None,
+            replica_id,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (
+            isolation,
+            max_bytes,
+            decoded,
+            rack,
+            session,
+            forgotten,
+            got_wait,
+            got_min,
+            got_replica,
+            got_epoch,
+            got_cluster,
+        ) = decode_fetch_request(&mut cur, version).unwrap();
+        assert!(got_cluster.is_none());
+        assert_eq!(got_epoch, -1);
+        if version <= 14 {
+            assert_eq!(got_replica, replica_id);
+        } else {
+            assert_eq!(got_replica, CONSUMER_REPLICA_ID);
+        }
+        assert_eq!(isolation, 0, "Java IsolationLevel.READ_UNCOMMITTED");
+        assert_eq!(max_bytes, DEFAULT_RESPONSE_MAX_BYTES);
+        assert_eq!(got_wait, max_wait_ms);
+        assert_eq!(got_min, min_bytes);
+        assert_eq!(decoded.len(), topics.len());
+        if let Some(topic) = topics.first() {
+            let got = decoded.first().expect("one topic");
+            if version < 13 {
+                assert_eq!(got.topic, topic.topic);
+            } else {
+                assert!(got.topic.is_empty());
+                assert_eq!(got.topic_id, topic.topic_id);
+            }
+            assert_eq!(got.partitions.len(), topic.partitions.len());
+            assert_eq!(
+                got.partitions.first().map(|p| p.partition),
+                topic.partitions.first().map(|p| p.partition)
+            );
+        }
+        assert!(forgotten.is_empty());
+        if version >= 7 {
+            assert_eq!(session, FetchMetadata::LEGACY);
+        }
+        if version >= 11 {
+            assert!(rack.is_empty());
+        }
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "Fetch v{version} Builder.minVersion.maxVersion {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
     }
 
     fn leftover_for_replica(version: i16, replica_id: i32, topics: &[FetchTopic]) {
