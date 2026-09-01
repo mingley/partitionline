@@ -2515,7 +2515,10 @@
 //! [`protocol::txn::WritableTxnMarker::from_partitions`] is Java
 //! `WriteTxnMarkersRequest.Builder` one marker (group by name; a later
 //! entry for the same topic appends; first-seen topic order; duplicate
-//! pairs kept).
+//! pairs kept);
+//! [`protocol::txn::WriteTxnMarkersRequest::builder`] is Java
+//! `WriteTxnMarkersRequest.Builder(List markers)` (oldest and latest
+//! pinned to 1).
 //! [`protocol::txn::WriteTxnMarkersRequest::error_response`] is Java
 //! `WriteTxnMarkersRequest.getErrorResponse` (one error on every request
 //! partition; inner `HashMap.put` keeps the last pair per marker; a later

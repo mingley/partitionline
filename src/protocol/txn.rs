@@ -1655,6 +1655,7 @@ impl WritableTxnMarker {
     /// `partitionIndexes().add`). Topic order is first-seen (Java
     /// `HashMap.values` order is unspecified). Duplicate partitions for
     /// the same pair are kept (`ArrayList` of `PartitionIndexes`).
+    /// Version pin is [`WriteTxnMarkersRequest::builder`].
     #[must_use]
     pub fn from_partitions<'a, I>(
         producer_id: i64,
@@ -1758,6 +1759,7 @@ impl WriteTxnMarkersRequest {
     /// Distinct from [`WritableTxnMarker::result`], which copies the
     /// request layout (`ArrayList` duplicates and empty topics). The
     /// Java `throttleTimeMs` argument is unused (no throttle field).
+    /// This is not [`Self::builder`].
     #[must_use]
     pub fn error_response(
         markers: &[WritableTxnMarker],
@@ -1808,6 +1810,19 @@ impl WriteTxnMarkersRequest {
                     .map(|(topic, partition, error)| (topic.as_str(), *partition, *error)),
             )
         }))
+    }
+
+    /// Java `WriteTxnMarkersRequest.Builder(List markers)`.
+    ///
+    /// Pins oldest and latest to 1 (`AbstractRequest.Builder(ApiKeys,
+    /// short)`). Marker grouping is [`WritableTxnMarker::from_partitions`].
+    /// Encode still writes independently of this Builder range (v0 is
+    /// still spoken). The data-only Builder uses the full spoken range.
+    /// This crate speaks 0–1. This is not [`Self::error_response`] /
+    /// [`WritableTxnMarker::from_partitions`].
+    #[must_use]
+    pub const fn builder() -> (i16, i16) {
+        (1, 1)
     }
 }
 
@@ -2859,6 +2874,46 @@ mod tests {
         assert!(
             cur.is_empty(),
             "WriteTxnMarkers v1 from_partitions leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn write_txn_markers_request_builder_matches_java() {
+        // Java 4.0 WriteTxnMarkersRequest.Builder(List markers):
+        // super(ApiKeys.WRITE_TXN_MARKERS, (short) 1) pins oldest and
+        // latest to 1. Marker grouping is
+        // WritableTxnMarker.from_partitions. Official Java
+        // WriteTxnMarkersRequest.Builder(List). Encode still writes
+        // independently (v0 is still spoken). The data-only Builder
+        // uses the full spoken range. This crate speaks 0-1. This is
+        // not getErrorResponse / from_partitions.
+        let (oldest, latest) = WriteTxnMarkersRequest::builder();
+        assert_eq!(oldest, 1);
+        assert_eq!(latest, 1);
+        leftover_write_txn_markers_builder(0, &[]);
+        leftover_write_txn_markers_builder(1, &[]);
+        let grouped = WritableTxnMarker::from_partitions(
+            1000,
+            1,
+            3,
+            TransactionResult::Commit.id(),
+            [("a", 0), ("b", 2), ("a", 1)],
+        );
+        leftover_write_txn_markers_builder(0, std::slice::from_ref(&grouped));
+        leftover_write_txn_markers_builder(1, std::slice::from_ref(&grouped));
+    }
+
+    fn leftover_write_txn_markers_builder(version: i16, markers: &[WritableTxnMarker]) {
+        let mut buf = BytesMut::new();
+        encode_write_txn_markers_request(&mut buf, version, markers).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_write_txn_markers_request(&mut cur, version).unwrap();
+        assert_eq!(decoded, markers);
+        let empty = if markers.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v{version} Builder.markers {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }
