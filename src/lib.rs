@@ -1315,6 +1315,10 @@
 //! topic by name; append the partition; duplicates are kept;
 //! [`protocol::txn::TxnOffsetCommitResponse::from_errors`] is a batch of
 //! this helper);
+//! [`protocol::txn::TxnOffsetCommitResponse::add_partitions`] is Java
+//! `TxnOffsetCommitResponse.Builder.addPartitions` (find or create the
+//! topic by name; append each partition with a shared error code; an empty
+//! list still creates the topic);
 //! [`protocol::txn::TxnOffsetCommitResponse::merge`] is Java
 //! `TxnOffsetCommitResponse.Builder.merge` (replace when current Topics are
 //! empty; otherwise append topics / partitions; overlapping partitions are
