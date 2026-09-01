@@ -259,6 +259,10 @@
 //! `OffsetFetchRequest.Builder(String groupId, String memberId, int memberEpoch, boolean requireStable, List partitions)`
 //! (singleton Groups; Topics from that partition list; the four-argument
 //! Builder is MemberId null and MemberEpoch `-1`);
+//! [`protocol::group::OffsetFetchRequest::for_groups`] is Java
+//! `OffsetFetchRequest.Builder(Map groupIdToTopicPartitionMap, boolean requireStable)`
+//! (one group per map entry; `None` partitions is all committed
+//! partitions; MemberId null / MemberEpoch `-1`);
 //! [`protocol::group::OffsetFetchRequest::build`] is Java
 //! `OffsetFetchRequest.Builder.build` (`requireStable` below v7 with
 //! `throwOnFetchStableOffsetsUnsupported` is `UnsupportedVersionException`;
