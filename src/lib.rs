@@ -290,6 +290,12 @@
 //! (v8+ named group's `errorCode`; missing group is false / `None`;
 //! v1–v7 ignore `group_id` and use the top-level code, including `NONE`;
 //! `error` is always `None` on v8+ even when groups have errors);
+//! [`protocol::group::FetchedOffset::partition_data`] is Java
+//! `OffsetFetchResponse.PartitionData(long, Optional, String, Errors)`
+//! (this type stores `partitionIndex`; `Optional.empty` epoch is
+//! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; [`protocol::group::FetchedOffset::new`]
+//! is this helper with empty epoch and
+//! [`protocol::group::FetchedOffset::NO_METADATA`]);
 //! [`protocol::group::OffsetFetchResponse::partition_data_map`] is Java
 //! `OffsetFetchResponse.partitionDataMap` (v1–v7 ignore `group_id`; v8+
 //! first matching group; missing group is [`Error::protocol`]; a later
@@ -1721,6 +1727,7 @@
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
 //! match Java `toString`. [`protocol::group::FetchedOffset::INVALID_OFFSET`] /
 //! [`protocol::group::FetchedOffset::NO_METADATA`] /
+//! [`protocol::group::FetchedOffset::partition_data`] /
 //! [`protocol::group::FetchedOffset::has_error`] /
 //! [`protocol::group::FetchedOffset::unknown_partition`] /
 //! [`protocol::group::FetchedOffset::unauthorized_partition`] /
@@ -1730,6 +1737,7 @@
 //! [`protocol::group::OffsetFetchGroup::error_results`] /
 //! [`protocol::group::OffsetFetchGroupResult::error`] are Java
 //! `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
+//! `PartitionData(long, Optional, String, Errors)` /
 //! `PartitionData.hasError` / `UNKNOWN_PARTITION` / `UNAUTHORIZED_PARTITION` /
 //! `OffsetFetchRequest.getErrorResponse` (partition body / one topic on
 //! v1–v7; one group / Groups on v8+). v1 fills request partitions; v2–v7

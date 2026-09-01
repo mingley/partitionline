@@ -2860,6 +2860,8 @@ impl OffsetFetchTopic {
 /// One partition in an OffsetFetch v1–v9 response.
 ///
 /// Java `OffsetFetchResponse.PartitionData` plus the partition index.
+/// [`Self::partition_data`] is Java `OffsetFetchResponse.PartitionData`
+/// (`Optional.empty` epoch is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
 /// [`Self::INVALID_OFFSET`] / [`Self::NO_METADATA`] / [`Self::has_error`]
 /// / [`Self::unknown_partition`] / [`Self::unauthorized_partition`] /
 /// [`Self::error`] are Java
@@ -2887,16 +2889,44 @@ impl FetchedOffset {
     /// Java `OffsetFetchResponse.NO_METADATA`.
     pub const NO_METADATA: &'static str = "";
 
-    /// Offset with unknown epoch and [`Self::NO_METADATA`].
+    /// Java `OffsetFetchResponse.PartitionData`.
+    ///
+    /// Java takes `offset` / `Optional leaderEpoch` / `metadata` / `Errors`;
+    /// this type also stores `partitionIndex`. `leaderEpoch` `None` is Java
+    /// `Optional.empty` ([`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
+    /// [`Self::new`] is this helper with empty epoch and
+    /// [`Self::NO_METADATA`]. Encode still writes independently (below v5
+    /// omits CommittedLeaderEpoch; decode fills
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; empty metadata encodes
+    /// as null and decode fills [`Self::NO_METADATA`]). This crate speaks
+    /// 1–9. This is not [`Self::has_error`] / [`Self::unknown_partition`] /
+    /// [`Self::unauthorized_partition`] / [`Self::error`] /
+    /// [`OffsetFetchResponse::partition_data_map`].
     #[must_use]
-    pub fn new(partition: i32, offset: i64, error_code: i16) -> Self {
+    pub fn partition_data(
+        partition: i32,
+        offset: i64,
+        leader_epoch: Option<i32>,
+        metadata: impl Into<String>,
+        error_code: i16,
+    ) -> Self {
         Self {
             partition,
             offset,
-            leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
-            metadata: Self::NO_METADATA.into(),
+            leader_epoch: leader_epoch.unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH),
+            metadata: metadata.into(),
             error_code,
         }
+    }
+
+    /// Offset with unknown epoch and [`Self::NO_METADATA`].
+    ///
+    /// Java `PartitionData` with `Optional.empty` epoch and
+    /// [`Self::NO_METADATA`]. This is [`Self::partition_data`] with those
+    /// values.
+    #[must_use]
+    pub fn new(partition: i32, offset: i64, error_code: i16) -> Self {
+        Self::partition_data(partition, offset, None, Self::NO_METADATA, error_code)
     }
 
     /// Java `OffsetFetchRequest.getErrorResponse` partition body.
@@ -6019,6 +6049,112 @@ mod tests {
         assert_eq!(
             ok.to_string(),
             "PartitionData(offset=5, leaderEpoch=2, metadata=m, error='NONE')"
+        );
+    }
+
+    #[test]
+    fn offset_fetch_response_partition_data_constructor_matches_java() {
+        // Java 4.0 OffsetFetchResponse.PartitionData(long, Optional, String,
+        // Errors): offset / leaderEpoch / metadata / error from the
+        // arguments. Official Java OffsetFetchResponse.PartitionData.
+        // This type stores partitionIndex. Optional.empty epoch is
+        // NO_PARTITION_LEADER_EPOCH. FetchedOffset::new is this helper
+        // with empty epoch and NO_METADATA. UNKNOWN_PARTITION /
+        // UNAUTHORIZED_PARTITION are this helper with INVALID_OFFSET /
+        // empty epoch / NO_METADATA. Encode still writes independently
+        // (below v5 omits CommittedLeaderEpoch; decode fills
+        // NO_PARTITION_LEADER_EPOCH). This crate speaks 1-9. This is not
+        // hasError / unknown_partition leftover / partition_data_map /
+        // from_partition_data / getErrorResponse.
+        let none = FetchedOffset::partition_data(0, FetchedOffset::INVALID_OFFSET, None, "", 0);
+        assert_eq!(none.partition, 0);
+        assert_eq!(none.offset, FetchedOffset::INVALID_OFFSET);
+        assert_eq!(none.leader_epoch, RecordBatch::NO_PARTITION_LEADER_EPOCH);
+        assert_eq!(none.metadata, FetchedOffset::NO_METADATA);
+        assert_eq!(none.error_code, 0);
+        assert_eq!(
+            none,
+            FetchedOffset::new(0, FetchedOffset::INVALID_OFFSET, 0)
+        );
+        let with = FetchedOffset::partition_data(3, 42, Some(8), "m", 0);
+        assert_eq!(with.partition, 3);
+        assert_eq!(with.offset, 42);
+        assert_eq!(with.leader_epoch, 8);
+        assert_eq!(with.metadata, "m");
+        assert_eq!(with.error_code, 0);
+        assert_eq!(
+            FetchedOffset::unknown_partition(1),
+            FetchedOffset::partition_data(
+                1,
+                FetchedOffset::INVALID_OFFSET,
+                None,
+                FetchedOffset::NO_METADATA,
+                crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            )
+        );
+        assert_eq!(
+            FetchedOffset::unauthorized_partition(2),
+            FetchedOffset::partition_data(
+                2,
+                FetchedOffset::INVALID_OFFSET,
+                None,
+                FetchedOffset::NO_METADATA,
+                crate::error::TOPIC_AUTHORIZATION_FAILED,
+            )
+        );
+        let topics = [FetchedOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![with],
+        }];
+        leftover_offset_fetch_partition_data(1, &topics);
+        leftover_offset_fetch_partition_data(1, &[]);
+        leftover_offset_fetch_partition_data(5, &topics);
+        leftover_offset_fetch_partition_data(5, &[]);
+        leftover_offset_fetch_partition_data(6, &topics);
+        leftover_offset_fetch_partition_data(6, &[]);
+        leftover_offset_fetch_partition_data(9, &topics);
+        leftover_offset_fetch_partition_data(9, &[]);
+    }
+
+    fn leftover_offset_fetch_partition_data(version: i16, topics: &[FetchedOffsetTopic]) {
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_response(&mut buf, version, "g", topics, 0).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+        assert_eq!(throttle, 0);
+        assert_eq!(decoded.len(), 1);
+        let got = decoded.first().expect("one group");
+        if version >= 8 {
+            assert_eq!(got.group_id, "g");
+        } else {
+            assert!(got.group_id.is_empty());
+        }
+        assert_eq!(got.error_code, 0);
+        assert_eq!(got.topics.len(), topics.len());
+        if let Some(topic) = topics.first() {
+            let got_topic = got.topics.first().expect("one topic");
+            assert_eq!(got_topic.topic, topic.topic);
+            assert_eq!(got_topic.partitions.len(), topic.partitions.len());
+            let want = topic.partitions.first().expect("one partition");
+            let got_part = got_topic.partitions.first().expect("one partition");
+            assert_eq!(got_part.partition, want.partition);
+            assert_eq!(got_part.offset, want.offset);
+            assert_eq!(got_part.metadata, want.metadata);
+            assert_eq!(got_part.error_code, want.error_code);
+            if version >= 5 {
+                assert_eq!(got_part.leader_epoch, want.leader_epoch);
+            } else {
+                assert_eq!(
+                    got_part.leader_epoch,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH
+                );
+            }
+        }
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v{version} PartitionData {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
