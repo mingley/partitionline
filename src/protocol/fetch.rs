@@ -226,6 +226,13 @@ pub struct FetchPartition {
     pub log_start_offset: i64,
     /// Max bytes for this partition.
     pub partition_max_bytes: i32,
+    /// Fetch v17+ ReplicaDirectoryId (partition tagged field 0).
+    ///
+    /// Kafka 4.0.0 FetchRequest.json `17+` UUID, default zeros, ignorable.
+    /// Official Java `FetchRequestData.FetchPartition.replicaDirectoryId`.
+    /// Consumers omit the tag (zeros). Below v17 encode omits the field
+    /// even when non-zero; decode fills zeros.
+    pub replica_directory_id: [u8; 16],
 }
 
 /// One topic in a Fetch request.
@@ -1140,9 +1147,16 @@ fn encode_fetch_request_body(
             }
             buf.put_i32(p.partition_max_bytes);
             if flexible {
-                // v17+ ReplicaDirectoryId is partition tagged field 0.
-                // Consumers omit it (empty tagged fields).
-                buf::put_empty_tagged_fields(buf);
+                // v17+ ReplicaDirectoryId is partition tagged field 0
+                // (KIP-853). Consumers omit it (JSON default zeros).
+                if version >= 17 && p.replica_directory_id != [0; 16] {
+                    buf::put_tagged_fields(
+                        buf,
+                        &[(0, Bytes::copy_from_slice(&p.replica_directory_id))],
+                    )?;
+                } else {
+                    buf::put_empty_tagged_fields(buf);
+                }
             }
         }
         if flexible {
@@ -1230,6 +1244,29 @@ fn decode_cluster_id(value: &Bytes) -> Result<Option<String>> {
     Ok(cluster_id)
 }
 
+fn decode_replica_directory_id(value: &Bytes) -> Result<[u8; 16]> {
+    let mut cur = value.as_ref();
+    let directory_id = buf::get_uuid(&mut cur)?;
+    if !cur.is_empty() {
+        return Err(Error::protocol("ReplicaDirectoryId leftover bytes"));
+    }
+    Ok(directory_id)
+}
+
+fn decode_fetch_request_partition_tags<B: Buf>(buf: &mut B, version: i16) -> Result<[u8; 16]> {
+    let tags = buf::get_tagged_fields(buf)?;
+    let mut directory_id = [0u8; 16];
+    for (tag, value) in tags {
+        match tag {
+            0 if version >= 17 => {
+                directory_id = decode_replica_directory_id(&value)?;
+            }
+            _ => {}
+        }
+    }
+    Ok(directory_id)
+}
+
 fn decode_fetch_request_tags<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -1262,8 +1299,8 @@ fn decode_fetch_request_tags<B: Buf>(
 /// consumers omit it; [`encode_fetch_request_with_replica_state`] writes
 /// it). ClusterId tagged field 0 is decoded at v12+ (consumers omit it;
 /// [`encode_fetch_request_with_cluster_id`] writes it). v16 is the same request as v15 (KIP-951). v17 is
-/// the same consumer request as v16 (ReplicaDirectoryId tagged field 0 is
-/// follower-only and omitted). This crate speaks 4–17. Partition
+/// the same consumer request as v16 when ReplicaDirectoryId is zeros
+/// (partition tagged field 0, KIP-853; a non-zero directory id is written). This crate speaks 4–17. Partition
 /// CurrentLeader tagged field 1, DivergingEpoch tagged field 0, and
 /// SnapshotId tagged field 2 (`EndOffset` INT64 then `Epoch` INT32) are
 /// decoded (v12+). Below v12 SnapshotId is omitted even when the body is
@@ -1519,9 +1556,11 @@ pub fn decode_fetch_request<B: Buf>(
                 INVALID_LOG_START_OFFSET
             };
             let partition_max_bytes = buf::get_i32(buf)?;
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
+            let replica_directory_id = if flexible {
+                decode_fetch_request_partition_tags(buf, version)?
+            } else {
+                [0; 16]
+            };
             partitions.push(FetchPartition {
                 partition,
                 current_leader_epoch,
@@ -1529,6 +1568,7 @@ pub fn decode_fetch_request<B: Buf>(
                 last_fetched_epoch,
                 log_start_offset,
                 partition_max_bytes,
+                replica_directory_id,
             });
         }
         if flexible {
@@ -1935,6 +1975,7 @@ mod tests {
                     last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     log_start_offset: INVALID_LOG_START_OFFSET,
                     partition_max_bytes: 1,
+                    replica_directory_id: [0; 16],
                 },
                 FetchPartition {
                     partition: 3,
@@ -1943,6 +1984,7 @@ mod tests {
                     last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     log_start_offset: INVALID_LOG_START_OFFSET,
                     partition_max_bytes: 1,
+                    replica_directory_id: [0; 16],
                 },
             ],
         };
@@ -2121,6 +2163,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         for version in [14_i16, 15] {
@@ -2220,6 +2263,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         for version in [4_i16, 11, 12, 15, 17] {
@@ -2280,6 +2324,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         for version in [4_i16, 11, 12, 15, 17] {
@@ -2343,6 +2388,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: 42,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         for version in [4_i16, 5, 11, 12, 15, 17] {
@@ -2660,6 +2706,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }
         }
         let p0 = part(0, 10);
@@ -2814,6 +2861,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         for version in [11_i16, 12] {
@@ -2920,6 +2968,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         for version in [12_i16, 13] {
@@ -2974,6 +3023,7 @@ mod tests {
             last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             log_start_offset: INVALID_LOG_START_OFFSET,
             partition_max_bytes: 1024,
+            replica_directory_id: [0; 16],
         };
         let p1 = FetchPartition {
             partition: 1,
@@ -2982,6 +3032,7 @@ mod tests {
             last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             log_start_offset: INVALID_LOG_START_OFFSET,
             partition_max_bytes: 1024,
+            replica_directory_id: [0; 16],
         };
         let p2 = FetchPartition {
             partition: 2,
@@ -2990,6 +3041,7 @@ mod tests {
             last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             log_start_offset: INVALID_LOG_START_OFFSET,
             partition_max_bytes: 1024,
+            replica_directory_id: [0; 16],
         };
         let p0_dup = FetchPartition {
             partition: 0,
@@ -2998,6 +3050,7 @@ mod tests {
             last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             log_start_offset: INVALID_LOG_START_OFFSET,
             partition_max_bytes: 1,
+            replica_directory_id: [0; 16],
         };
 
         let consecutive = FetchRequest::topics_from_fetch_data([
@@ -3103,6 +3156,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         leftover_for_consumer(oldest, replica_id, &topics);
@@ -3215,6 +3269,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         leftover_for_replica(4, replica_id, &topics);
@@ -3349,6 +3404,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         leftover_simple_build(4, CONSUMER_REPLICA_ID, 7, &topics);
@@ -3475,6 +3531,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         leftover_replica_for_build(4, 7, 3, &topics);
@@ -3592,6 +3649,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         leftover_replica_state(4, replica_id, replica_epoch, &topics);
@@ -3744,6 +3802,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         leftover_cluster_id(4, Some("mk"), CONSUMER_REPLICA_ID, -1, &topics);
@@ -3945,6 +4004,147 @@ mod tests {
     }
 
     #[test]
+    fn fetch_request_replica_directory_id_matches_java() {
+        // Kafka 4.0.0 FetchRequest.json ReplicaDirectoryId is versions 17+
+        // partition tagged field 0 (UUID, default zeros, ignorable).
+        // Official Java FetchRequestData.FetchPartition.replicaDirectoryId
+        // (KIP-853). Consumers omit the tag. Below v17 encode omits even
+        // when non-zero; decode fills zeros. This crate speaks 4-17. This
+        // is not ClusterId tagged field 0 / ReplicaState tagged field 1 /
+        // response DivergingEpoch tagged field 0.
+        let directory = [9u8; 16];
+        let zeros = [0u8; 16];
+        let mut topics = [FetchTopic {
+            topic: "t".into(),
+            topic_id: [7u8; 16],
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 0,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
+                partition_max_bytes: 1024,
+                replica_directory_id: directory,
+            }],
+        }];
+        leftover_replica_directory_id(4, directory, &topics);
+        leftover_replica_directory_id(4, directory, &[]);
+        leftover_replica_directory_id(16, directory, &topics);
+        leftover_replica_directory_id(16, directory, &[]);
+        leftover_replica_directory_id(17, directory, &topics);
+        leftover_replica_directory_id(17, directory, &[]);
+        leftover_replica_directory_id(17, zeros, &topics);
+        leftover_replica_directory_id(17, zeros, &[]);
+
+        let mut with = BytesMut::new();
+        encode_fetch_request(&mut with, 17, 10, 1, 1024, 0, &topics, None).unwrap();
+        topics
+            .first_mut()
+            .expect("topic")
+            .partitions
+            .first_mut()
+            .expect("partition")
+            .replica_directory_id = zeros;
+        let mut omitted = BytesMut::new();
+        encode_fetch_request(&mut omitted, 17, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_ne!(
+            &with[..],
+            &omitted[..],
+            "v17 ReplicaDirectoryId tagged field 0 is not omitted when non-zero"
+        );
+        let mut v16 = BytesMut::new();
+        encode_fetch_request(&mut v16, 16, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_eq!(
+            &omitted[..],
+            &v16[..],
+            "v17 zeros ReplicaDirectoryId matches v16 consumer request"
+        );
+        topics
+            .first_mut()
+            .expect("topic")
+            .partitions
+            .first_mut()
+            .expect("partition")
+            .replica_directory_id = directory;
+        let mut v16_with = BytesMut::new();
+        encode_fetch_request(&mut v16_with, 16, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_eq!(
+            &v16_with[..],
+            &v16[..],
+            "below v17 ReplicaDirectoryId is omitted even when non-zero"
+        );
+    }
+
+    fn leftover_replica_directory_id(
+        version: i16,
+        replica_directory_id: [u8; 16],
+        topics: &[FetchTopic],
+    ) {
+        let owned: Vec<FetchTopic> = topics
+            .iter()
+            .map(|topic| FetchTopic {
+                topic: topic.topic.clone(),
+                topic_id: topic.topic_id,
+                partitions: topic
+                    .partitions
+                    .iter()
+                    .map(|partition| FetchPartition {
+                        replica_directory_id,
+                        ..partition.clone()
+                    })
+                    .collect(),
+            })
+            .collect();
+        let max_wait_ms = 500;
+        let min_bytes = 1;
+        let mut buf = BytesMut::new();
+        encode_fetch_request(
+            &mut buf,
+            version,
+            max_wait_ms,
+            min_bytes,
+            DEFAULT_RESPONSE_MAX_BYTES,
+            0,
+            &owned,
+            None,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (isolation, max_bytes, decoded, rack, ..) =
+            decode_fetch_request(&mut cur, version).unwrap();
+        assert_eq!(decoded.len(), owned.len());
+        let expected = if version >= 17 {
+            replica_directory_id
+        } else {
+            [0; 16]
+        };
+        if let Some(topic) = owned.first() {
+            let got = decoded.first().expect("one topic");
+            assert_eq!(
+                got.partitions.first().map(|p| p.replica_directory_id),
+                Some(expected)
+            );
+            if version < 13 {
+                assert_eq!(got.topic, topic.topic);
+            } else {
+                assert!(got.topic.is_empty());
+                assert_eq!(got.topic_id, topic.topic_id);
+            }
+        }
+        assert_eq!(isolation, 0, "Java IsolationLevel.READ_UNCOMMITTED");
+        assert_eq!(max_bytes, DEFAULT_RESPONSE_MAX_BYTES);
+        if version >= 11 {
+            assert!(rack.is_empty());
+        }
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "Fetch v{version} ReplicaDirectoryId {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
     fn fetch_request_error_response_matches_java() {
         // Java FetchRequest.getErrorResponse: below v13 each topic is
         // FetchResponse.partitionResponse per partition. v13+ Responses
@@ -3961,6 +4161,7 @@ mod tests {
                     last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     log_start_offset: INVALID_LOG_START_OFFSET,
                     partition_max_bytes: 1,
+                    replica_directory_id: [0; 16],
                 },
                 FetchPartition {
                     partition: 3,
@@ -3969,6 +4170,7 @@ mod tests {
                     last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     log_start_offset: INVALID_LOG_START_OFFSET,
                     partition_max_bytes: 1,
+                    replica_directory_id: [0; 16],
                 },
             ],
         };
@@ -4237,6 +4439,7 @@ mod tests {
                 last_fetched_epoch: -1,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         let mut v8 = BytesMut::new();
@@ -4259,6 +4462,7 @@ mod tests {
                     last_fetched_epoch: -1,
                     log_start_offset: INVALID_LOG_START_OFFSET,
                     partition_max_bytes: 1024,
+                    replica_directory_id: [0; 16],
                 }],
             }],
             None,
@@ -4503,6 +4707,7 @@ mod tests {
                 last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         let session = FetchMetadata::new(12, 3);
@@ -4824,6 +5029,7 @@ mod tests {
                 last_fetched_epoch: -1,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         let mut buf = BytesMut::new();
@@ -4867,6 +5073,7 @@ mod tests {
                 last_fetched_epoch: -1,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         let mut buf = BytesMut::new();
@@ -4891,6 +5098,7 @@ mod tests {
                 last_fetched_epoch: -1,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         let mut buf = BytesMut::new();
@@ -5122,6 +5330,7 @@ mod tests {
                 last_fetched_epoch: 4,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         let mut req = BytesMut::new();
@@ -5210,6 +5419,7 @@ mod tests {
                 last_fetched_epoch: -1,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         let mut buf = BytesMut::new();
@@ -5233,6 +5443,7 @@ mod tests {
                 last_fetched_epoch: -1,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }
     }
@@ -5335,6 +5546,7 @@ mod tests {
                 last_fetched_epoch: -1,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         let mut v12 = BytesMut::new();
@@ -5467,6 +5679,7 @@ mod tests {
                 last_fetched_epoch: -1,
                 log_start_offset: INVALID_LOG_START_OFFSET,
                 partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
             }],
         }];
         let mut v14 = BytesMut::new();

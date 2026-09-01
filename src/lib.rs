@@ -1401,7 +1401,8 @@
 //! ([`ConsumerGroup::poll`] uses the same check; [`ShareGroup::poll`] is
 //! `Consumer is not subscribed to any topics.`). Fetch negotiates v4–v17 (v12+ is
 //! flexible; v13+ topic IDs, KIP-516; v15 omits untagged ReplicaId, KIP-903;
-//! v16 CurrentLeader / NodeEndpoints, KIP-951; v17 omits ReplicaDirectoryId, KIP-853;
+//! v16 CurrentLeader / NodeEndpoints, KIP-951; v17 ReplicaDirectoryId tagged
+//! field 0, KIP-853 (consumers omit zeros; a non-zero directory id is written);
 //! v12+ LastFetchedEpoch from the last consumed batch, KIP-320;
 //! decode below v12 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`];
 //! SessionId / SessionEpoch / ForgottenTopicsData are v7+;

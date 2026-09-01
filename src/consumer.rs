@@ -2275,6 +2275,7 @@ impl Consumer {
                                 last_fetched_epoch: self.last_fetched_epoch(topic, *part),
                                 log_start_offset: INVALID_LOG_START_OFFSET,
                                 partition_max_bytes: self.cfg.max_partition_fetch_bytes,
+                                replica_directory_id: [0; 16],
                             });
                     }
                     None => {
