@@ -1611,6 +1611,32 @@ impl DescribeAclsResponse {
     }
 }
 
+/// Java `DescribeAclsRequest` helpers.
+pub struct DescribeAclsRequest;
+
+impl DescribeAclsRequest {
+    /// Java `DescribeAclsRequest.getErrorResponse`.
+    ///
+    /// Resources stay the JSON default (empty); the request filter is not
+    /// copied. `ErrorMessage` stays the JSON default (null); official Java
+    /// also sets the English `Errors.message` string. ThrottleTimeMs and
+    /// ErrorCode are written on every spoken version from the arguments
+    /// (Java always calls `setThrottleTimeMs` / `setErrorCode`).
+    /// Convenience encode still writes throttle `0` and ErrorCode `0`.
+    /// This crate speaks 0–3. This is not
+    /// [`encode_describe_acls_response_with_throttle`] /
+    /// [`encode_describe_acls_response_with_error_code`] leftover /
+    /// [`DescribeAclsResponse::error_counts`].
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> Result<()> {
+        encode_describe_acls_response_body(buf, version, &[], throttle_time_ms, None, error_code)
+    }
+}
+
 /// Java `DeleteAclsResponse` helpers.
 pub struct DeleteAclsResponse;
 
@@ -2869,6 +2895,66 @@ mod tests {
             (0, true) => "DeleteAcls v0 empty Request.getErrorResponse leftover-empty",
             (2, true) => "DeleteAcls v2 empty Request.getErrorResponse leftover-empty",
             _ => "DeleteAcls Request.getErrorResponse leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn describe_acls_request_error_response_matches_java() {
+        // Java 4.0 DescribeAclsRequest.getErrorResponse writes empty
+        // Resources, ErrorCode from ApiError, and ThrottleTimeMs from
+        // the argument. ErrorMessage stays JSON-null. Official Java
+        // DescribeAclsRequest.getErrorResponse. Convenience encode still
+        // writes ThrottleTimeMs 0 and ErrorCode 0. with_throttle still
+        // writes ErrorCode 0; with_error_code still writes throttle 0.
+        // This crate speaks 0–3. This is not ThrottleTimeMs leftover /
+        // ErrorCode leftover / ErrorMessage leftover.
+        let code = crate::error::CLUSTER_AUTHORIZATION_FAILED;
+        for version in [0_i16, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            DescribeAclsRequest::error_response(&mut buf, version, code, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle, msg, error_code) =
+                decode_describe_acls_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert_eq!(throttle, 3_600_000);
+            assert_eq!(msg, None);
+            assert_eq!(error_code, code);
+            leftover_describe_acls_error_response(version, cur);
+        }
+
+        let mut got = BytesMut::new();
+        DescribeAclsRequest::error_response(&mut got, 0, code, 3_600_000).unwrap();
+        let mut throttle_only = BytesMut::new();
+        encode_describe_acls_response_with_throttle(&mut throttle_only, 0, &[], 3_600_000).unwrap();
+        let mut code_only = BytesMut::new();
+        encode_describe_acls_response_with_error_code(&mut code_only, 0, &[], code).unwrap();
+        let mut conv = BytesMut::new();
+        encode_describe_acls_response(&mut conv, 0, &[]).unwrap();
+        assert_ne!(
+            &got[..],
+            &throttle_only[..],
+            "DescribeAcls Request.getErrorResponse must write ErrorCode"
+        );
+        assert_ne!(
+            &got[..],
+            &code_only[..],
+            "DescribeAcls Request.getErrorResponse must write the throttleTimeMs argument"
+        );
+        assert_ne!(
+            &got[..],
+            &conv[..],
+            "encode_describe_acls_response still writes ThrottleTimeMs 0 and ErrorCode 0"
+        );
+    }
+
+    fn leftover_describe_acls_error_response(version: i16, cur: &[u8]) {
+        let msg = match version {
+            0 => "DescribeAcls v0 Request.getErrorResponse leftover-empty",
+            1 => "DescribeAcls v1 Request.getErrorResponse leftover-empty",
+            2 => "DescribeAcls v2 Request.getErrorResponse leftover-empty",
+            3 => "DescribeAcls v3 Request.getErrorResponse leftover-empty",
+            _ => "DescribeAcls Request.getErrorResponse leftover-empty",
         };
         assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }

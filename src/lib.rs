@@ -1204,6 +1204,11 @@
 //! encode previously always wrote `0` and decode did not return it;
 //! convenience encode still writes `0`; not CreateAcls result ErrorCode /
 //! DeleteAcls filter ErrorCode / DeleteAcls matching ErrorCode);
+//! [`protocol::acl::DescribeAclsRequest::error_response`] is Java
+//! `DescribeAclsRequest.getErrorResponse` (empty Resources; `ErrorMessage`
+//! stays JSON-null; always writes the `throttleTimeMs` and `errorCode`
+//! arguments);
+//! [`protocol::acl::encode_describe_acls_response`] still writes `0`;
 //! DescribeAcls ErrorMessage is JSON `0+` (nullable STRING; not
 //! CreateAcls result ErrorMessage / DeleteAcls filter ErrorMessage /
 //! DeleteAcls matching ErrorMessage);
