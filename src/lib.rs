@@ -2695,6 +2695,9 @@
 //! is Java `DescribeTopicPartitionsResponse.partitionToTopicPartitionInfo`
 //! (leader `HashMap.get`; replica lists `getOrDefault` `Node(id, "", -1)`);
 //! [`TopicPartitionInfo`] is Java `TopicPartitionInfo`;
+//! [`protocol::admin::DescribeTopicPartitionsRequest::for_topic_names`] is Java
+//! `DescribeTopicPartitionsRequest.Builder(List topics)` (ResponsePartitionLimit
+//! JSON default `2000`; Cursor null);
 //! [`protocol::admin::DescribeTopicPartitionsRequest::error_response`] is Java
 //! `DescribeTopicPartitionsRequest.getErrorResponse` (one topic per request
 //! name; `isInternal` false; empty partitions; request Cursor / limit are

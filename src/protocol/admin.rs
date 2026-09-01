@@ -12682,7 +12682,7 @@ impl DescribeTopicPartitionsRequest {
     /// copied. Request `ResponsePartitionLimit` / `Cursor` are not copied.
     /// ThrottleTimeMs is JSON `0+` (JSON default `0`;
     /// [`DescribeTopicPartitionsResponse::new`] fills `0`).
-    /// `NextCursor` is omitted.
+    /// `NextCursor` is omitted. This is not [`Self::for_topic_names`].
     #[must_use]
     pub fn error_response<I>(topic_names: I, error_code: i16) -> DescribeTopicPartitionsResponse
     where
@@ -12695,6 +12695,20 @@ impl DescribeTopicPartitionsRequest {
                 .map(|name| DescribedTopicPartitions::new(name, error_code))
                 .collect(),
         )
+    }
+
+    /// Java `DescribeTopicPartitionsRequest.Builder(List topics)`.
+    ///
+    /// Topics from names. ResponsePartitionLimit stays the JSON default
+    /// (`2000`). Cursor stays null. Encode still writes independently.
+    /// This crate speaks 0. This is not [`Self::error_response`].
+    #[must_use]
+    pub fn for_topic_names<I>(names: I) -> (Vec<String>, i32, Option<TopicPartitionCursor>)
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        (names.into_iter().map(Into::into).collect(), 2000, None)
     }
 }
 
@@ -18157,6 +18171,58 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DescribeTopicPartitions two-topic getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn describe_topic_partitions_request_for_topic_names_matches_java() {
+        // Java 4.0 DescribeTopicPartitionsRequest.Builder(List topics):
+        // Topics from names; ResponsePartitionLimit stays JSON default
+        // 2000; Cursor stays null. Official Java
+        // DescribeTopicPartitionsRequest.Builder(List). Encode still
+        // writes independently. This crate speaks 0. This is not
+        // getErrorResponse.
+        let (empty, empty_limit, empty_cursor) =
+            DescribeTopicPartitionsRequest::for_topic_names(Vec::<String>::new());
+        assert!(empty.is_empty(), "empty names is empty Topics");
+        assert_eq!(empty_limit, 2000);
+        assert!(empty_cursor.is_none(), "Cursor stays null");
+        leftover_describe_topic_partitions_for_topic_names(&empty);
+
+        let (one, one_limit, one_cursor) = DescribeTopicPartitionsRequest::for_topic_names(["t"]);
+        assert_eq!(one, vec!["t".to_string()]);
+        assert_eq!(one_limit, 2000);
+        assert!(one_cursor.is_none(), "Cursor stays null");
+        leftover_describe_topic_partitions_for_topic_names(&one);
+
+        let (two, two_limit, two_cursor) =
+            DescribeTopicPartitionsRequest::for_topic_names(["t", "t2"]);
+        assert_eq!(two, vec!["t".to_string(), "t2".to_string()]);
+        assert_eq!(two_limit, 2000);
+        assert!(two_cursor.is_none(), "Cursor stays null");
+        leftover_describe_topic_partitions_for_topic_names(&two);
+    }
+
+    fn leftover_describe_topic_partitions_for_topic_names(names: &[String]) {
+        let (topics, limit, cursor) =
+            DescribeTopicPartitionsRequest::for_topic_names(names.iter().cloned());
+        assert_eq!(topics, names);
+        assert_eq!(limit, 2000);
+        assert!(cursor.is_none());
+        let mut buf = BytesMut::new();
+        encode_describe_topic_partitions_request(&mut buf, &topics, limit, cursor.as_ref())
+            .unwrap();
+        let mut cur = buf.as_ref();
+        let (got, got_limit, got_cursor) =
+            decode_describe_topic_partitions_request(&mut cur).unwrap();
+        assert_eq!(got, topics);
+        assert_eq!(got_limit, 2000);
+        assert!(got_cursor.is_none());
+        let empty = if names.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "DescribeTopicPartitions v0 Builder.topicNames {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }
