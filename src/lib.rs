@@ -352,6 +352,11 @@
 //! `OffsetFetchResponse` constructor from group errors and partition maps
 //! (v8+; a group missing from `errors` is [`Error::protocol`]; a group
 //! only in `errors` is omitted);
+//! [`protocol::group::OffsetFetchResponse::encode_from_groups_partition_data`] is Java
+//! `OffsetFetchResponse(int, Map, Map)` encode (Groups are
+//! `from_groups_partition_data`; writes the `throttleTimeMs` argument;
+//! convenience encode still writes throttle `0`; Java constructor is
+//! v8+);
 //! [`protocol::group::OffsetFetchResponse::from_groups`] is Java
 //! `OffsetFetchResponse` constructor from a group list (v8+ as-is; below
 //! v8 exactly one group; v1 rewrites partitions when the group has an
@@ -1890,6 +1895,11 @@
 //! `OffsetFetchResponse` constructor from group errors and partition maps
 //! (v8+; a group missing from `errors` is [`Error::protocol`]; a group
 //! only in `errors` is omitted).
+//! [`protocol::group::OffsetFetchResponse::encode_from_groups_partition_data`] is Java
+//! `OffsetFetchResponse(int, Map, Map)` encode (Groups are
+//! `from_groups_partition_data`; writes the `throttleTimeMs` argument;
+//! convenience encode still writes throttle `0`; Java constructor is
+//! v8+).
 //! [`protocol::group::OffsetFetchResponse::from_groups`] is Java
 //! `OffsetFetchResponse` constructor from a group list (v8+ as-is; below
 //! v8 exactly one group; v1 rewrites partitions when the group has an

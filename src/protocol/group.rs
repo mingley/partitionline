@@ -3320,8 +3320,9 @@ impl OffsetFetchResponse {
     /// `responseData.entrySet`). A group in `response_data` missing from
     /// `errors` is [`Error::protocol`] (Java `NullPointerException` on
     /// `errors.get`). Group order is iterator order (Java outer
-    /// `HashMap.entrySet` order is unspecified). Throttle is not part of
-    /// this helper (crate encode writes the JSON default `0`).
+    /// `HashMap.entrySet` order is unspecified). Throttle is the JSON
+    /// default (`0`). [`Self::encode_from_groups_partition_data`] writes
+    /// the Java `throttleTimeMs` argument.
     pub fn from_groups_partition_data<'a, I, J>(
         errors: &HashMap<String, i16>,
         response_data: I,
@@ -3344,6 +3345,35 @@ impl OffsetFetchResponse {
             });
         }
         Ok(groups)
+    }
+
+    /// Java `OffsetFetchResponse(int, Map, Map)` encode.
+    ///
+    /// Groups are [`Self::from_groups_partition_data`]. ThrottleTimeMs
+    /// is written from `throttle_time_ms` (JSON `3+`; always on the wire
+    /// for this helper). Convenience
+    /// [`encode_offset_fetch_groups_response`] still writes throttle
+    /// `0`. Java's constructor is v8+; v0–v7 Topics is
+    /// [`Self::encode_from_partition_data`]. This crate speaks 8–9 for
+    /// this helper. This is not [`Self::from_groups_partition_data`] /
+    /// [`Self::from_groups`] / Request getErrorResponse.
+    pub fn encode_from_groups_partition_data<'a, I, J>(
+        buf: &mut BytesMut,
+        version: i16,
+        errors: &HashMap<String, i16>,
+        response_data: I,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()>
+    where
+        I: IntoIterator<Item = (&'a str, J)>,
+        J: IntoIterator<Item = (&'a str, FetchedOffset)>,
+    {
+        encode_offset_fetch_groups_response_with_throttle(
+            buf,
+            version,
+            &Self::from_groups_partition_data(errors, response_data)?,
+            throttle_time_ms,
+        )
     }
 
     /// Java `OffsetFetchResponse` constructor from a group list and version.
@@ -7680,6 +7710,161 @@ mod tests {
             "OffsetFetch v9 from_groups_partition_data leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn offset_fetch_response_encode_from_groups_partition_data_matches_java() {
+        // Java 4.0 OffsetFetchResponse(int, Map, Map): Groups from
+        // from_groups_partition_data; ThrottleTimeMs from the argument.
+        // Official Java OffsetFetchResponse(int, Map, Map). Convenience
+        // encode still writes ThrottleTimeMs 0. Java constructor is v8+.
+        // This crate speaks 8-9 for this helper. This is not
+        // from_groups_partition_data leftover / from_groups leftover /
+        // Request getErrorResponse leftover.
+        let errors = HashMap::from([
+            ("g".into(), 0i16),
+            ("h".into(), crate::error::NOT_COORDINATOR),
+            ("unused".into(), crate::error::GROUP_AUTHORIZATION_FAILED),
+        ]);
+        let a0 = FetchedOffset {
+            partition: 0,
+            offset: 5,
+            leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            metadata: "m".into(),
+            error_code: 0,
+        };
+        let b2 = FetchedOffset::new(2, 7, 0);
+        let a1 = FetchedOffset::error(1, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        let rows = [
+            (
+                "g",
+                vec![("a", a0.clone()), ("b", b2.clone()), ("a", a1.clone())],
+            ),
+            ("h", Vec::new()),
+        ];
+        leftover_offset_fetch_encode_from_groups_partition_data(8, &errors, &rows, 3_600_000);
+        leftover_offset_fetch_encode_from_groups_partition_data(8, &errors, &[], 0);
+        leftover_offset_fetch_encode_from_groups_partition_data(9, &errors, &rows, 3_600_000);
+        leftover_offset_fetch_encode_from_groups_partition_data(9, &errors, &[], 0);
+
+        let grouped =
+            OffsetFetchResponse::from_groups_partition_data(&errors, rows.clone()).unwrap();
+        let mut encoded = BytesMut::new();
+        OffsetFetchResponse::encode_from_groups_partition_data(
+            &mut encoded,
+            8,
+            &errors,
+            rows.clone(),
+            3_600_000,
+        )
+        .unwrap();
+        let mut with = BytesMut::new();
+        encode_offset_fetch_groups_response_with_throttle(&mut with, 8, &grouped, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            encoded, with,
+            "encode_from_groups_partition_data is from_groups_partition_data then with_throttle"
+        );
+        let mut conv = BytesMut::new();
+        encode_offset_fetch_groups_response(&mut conv, 8, &grouped).unwrap();
+        assert_ne!(
+            encoded, conv,
+            "convenience encode still writes ThrottleTimeMs 0"
+        );
+
+        let missing = OffsetFetchResponse::encode_from_groups_partition_data(
+            &mut BytesMut::new(),
+            8,
+            &errors,
+            [("missing", Vec::<(&str, FetchedOffset)>::new())],
+            0,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(missing, Error::Protocol(_)),
+            "missing errors.get is Java NullPointerException, got {missing}"
+        );
+
+        let mut none = BytesMut::new();
+        OffsetFetchResponse::encode_from_groups_partition_data(
+            &mut none,
+            8,
+            &errors,
+            std::iter::empty::<(&str, Vec<(&str, FetchedOffset)>)>(),
+            0,
+        )
+        .unwrap();
+        let mut conv_empty = BytesMut::new();
+        encode_offset_fetch_groups_response(&mut conv_empty, 8, &[]).unwrap();
+        assert_eq!(
+            none, conv_empty,
+            "from_groups_partition_data(empty) plus throttle 0 equals convenience encode"
+        );
+    }
+
+    fn leftover_offset_fetch_encode_from_groups_partition_data(
+        version: i16,
+        errors: &HashMap<String, i16>,
+        response_data: &[(&str, Vec<(&str, FetchedOffset)>)],
+        throttle_time_ms: i32,
+    ) {
+        let mut buf = BytesMut::new();
+        OffsetFetchResponse::encode_from_groups_partition_data(
+            &mut buf,
+            version,
+            errors,
+            response_data.iter().map(|(group, parts)| {
+                (
+                    *group,
+                    parts.iter().map(|(topic, part)| (*topic, part.clone())),
+                )
+            }),
+            throttle_time_ms,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, decoded_throttle) =
+            decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+        let grouped = OffsetFetchResponse::from_groups_partition_data(
+            errors,
+            response_data.iter().map(|(group, parts)| {
+                (
+                    *group,
+                    parts.iter().map(|(topic, part)| (*topic, part.clone())),
+                )
+            }),
+        )
+        .unwrap();
+        assert_eq!(decoded, grouped);
+        assert_eq!(decoded_throttle, throttle_time_ms);
+        leftover_offset_fetch_encode_from_groups_partition_data_bytes(
+            version,
+            response_data.is_empty(),
+            cur,
+        );
+    }
+
+    fn leftover_offset_fetch_encode_from_groups_partition_data_bytes(
+        version: i16,
+        empty: bool,
+        cur: &[u8],
+    ) {
+        let msg = match (version, empty, cur.is_empty()) {
+            (8, false, true) => {
+                "OffsetFetch v8 Response.from_groups_partition_data throttle leftover-empty"
+            }
+            (9, false, true) => {
+                "OffsetFetch v9 Response.from_groups_partition_data throttle leftover-empty"
+            }
+            (8, true, true) => {
+                "OffsetFetch v8 Response.from_groups_partition_data throttle empty leftover-empty"
+            }
+            (9, true, true) => {
+                "OffsetFetch v9 Response.from_groups_partition_data throttle empty leftover-empty"
+            }
+            _ => "OffsetFetch Response.from_groups_partition_data throttle leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]
