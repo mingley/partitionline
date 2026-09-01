@@ -532,6 +532,9 @@
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::error_response`] is Java
 //! `ConsumerGroupHeartbeatRequest.getErrorResponse` (ThrottleTimeMs from the
 //! argument; other fields JSON defaults);
+//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::build`] is Java
+//! `ConsumerGroupHeartbeatRequest.Builder.build` (SubscribedTopicRegex on
+//! v0 is `UnsupportedVersionException`);
 //! RebalanceTimeoutMs is JSON `0+` (decode returns it; encode writes
 //! `rebalance_timeout_ms`; JSON default `-1` means unchanged; join sends
 //! `max.poll.interval.ms`);

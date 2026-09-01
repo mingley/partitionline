@@ -100,6 +100,22 @@ impl ConsumerGroupHeartbeatRequest {
         }
     }
 
+    /// Java `ConsumerGroupHeartbeatRequest.Builder.build`.
+    ///
+    /// SubscribedTopicRegex on v0 is `UnsupportedVersionException`
+    /// ([`Self::REGEX_RESOLUTION_NOT_SUPPORTED_MSG`]; Java `!= null`, so
+    /// empty is still present). Encode still writes independently after
+    /// this helper. This crate speaks 0–1. This is not
+    /// [`Self::error_response`] / [`Self::leave_group_epoch`].
+    pub fn build(version: i16, subscribed_topic_regex: Option<&str>) -> Result<()> {
+        if version == 0 && subscribed_topic_regex.is_some() {
+            return Err(Error::Unsupported(
+                Self::REGEX_RESOLUTION_NOT_SUPPORTED_MSG.into(),
+            ));
+        }
+        Ok(())
+    }
+
     /// Java `ConsumerMembershipManager.leaveGroupEpoch`.
     ///
     /// `Some` (including empty) is a static member (`Optional.isPresent`).
@@ -169,11 +185,7 @@ pub fn encode_consumer_group_heartbeat_request(
     req: &ConsumerGroupHeartbeatRequest,
 ) -> crate::error::Result<()> {
     let _ = consumer_group_heartbeat_spoken(version)?;
-    if version == 0 && req.subscribed_topic_regex.is_some() {
-        return Err(Error::Unsupported(
-            ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG.into(),
-        ));
-    }
+    ConsumerGroupHeartbeatRequest::build(version, req.subscribed_topic_regex.as_deref())?;
     buf::put_compact_string(buf, Some(&req.group_id))?;
     buf::put_compact_string(buf, Some(&req.member_id))?;
     buf.put_i32(req.member_epoch);
@@ -820,6 +832,76 @@ mod tests {
         assert!(
             cur.is_empty(),
             "ConsumerGroupHeartbeat v{version} getErrorResponse {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_request_build_matches_java() {
+        // Java 4.0 ConsumerGroupHeartbeatRequest.Builder.build:
+        // SubscribedTopicRegex on v0 is UnsupportedVersionException
+        // (Java != null, so empty is still present). Official Java
+        // ConsumerGroupHeartbeatRequest.Builder.build. Encode still
+        // writes independently after this helper. This crate speaks
+        // 0-1. This is not getErrorResponse / leaveGroupEpoch /
+        // ShareGroupHeartbeat.
+        assert!(ConsumerGroupHeartbeatRequest::build(0, None).is_ok());
+        assert!(ConsumerGroupHeartbeatRequest::build(1, None).is_ok());
+        assert!(ConsumerGroupHeartbeatRequest::build(1, Some("t.*")).is_ok());
+        let v0 = ConsumerGroupHeartbeatRequest::build(0, Some("t.*")).unwrap_err();
+        assert!(
+            matches!(v0, Error::Unsupported(_)),
+            "regex on v0 is Java UnsupportedVersionException, got {v0}"
+        );
+        assert!(
+            v0.to_string()
+                .contains(ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG),
+            "got {v0}"
+        );
+        let empty = ConsumerGroupHeartbeatRequest::build(0, Some("")).unwrap_err();
+        assert!(
+            matches!(empty, Error::Unsupported(_)),
+            "empty regex on v0 is still present, got {empty}"
+        );
+        let req = ConsumerGroupHeartbeatRequest {
+            group_id: "g".into(),
+            member_id: String::new(),
+            member_epoch: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            instance_id: None,
+            rack_id: None,
+            rebalance_timeout_ms: 45_000,
+            subscribed_topic_names: Some(vec!["t".into()]),
+            subscribed_topic_regex: None,
+            server_assignor: None,
+            topic_partitions: None,
+        };
+        leftover_consumer_group_heartbeat_build(0, &req);
+        leftover_consumer_group_heartbeat_build(1, &req);
+        let mut with_regex = req.clone();
+        with_regex.subscribed_topic_regex = Some("t.*".into());
+        leftover_consumer_group_heartbeat_build(1, &with_regex);
+        assert!(
+            encode_consumer_group_heartbeat_request(&mut BytesMut::new(), 0, &with_regex).is_err(),
+            "encode rejects regex on v0; Builder.build rejects it too"
+        );
+    }
+
+    fn leftover_consumer_group_heartbeat_build(version: i16, req: &ConsumerGroupHeartbeatRequest) {
+        ConsumerGroupHeartbeatRequest::build(version, req.subscribed_topic_regex.as_deref())
+            .unwrap();
+        let mut buf = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut buf, version, req).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_consumer_group_heartbeat_request(&mut cur, version).unwrap();
+        assert_eq!(got, *req);
+        let empty = if req.subscribed_topic_regex.is_none() {
+            "empty "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "ConsumerGroupHeartbeat v{version} Builder.build {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }
