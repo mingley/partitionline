@@ -1408,9 +1408,8 @@ impl AclCreationResult {
     ///
     /// Sets `ErrorCode`. `ErrorMessage` is the JSON default (null);
     /// official Java also sets the English `Errors.message` string.
-    /// Request ACL bindings are not copied. ThrottleTimeMs is JSON `0+`;
-    /// convenience encode still writes `0`. Official Java
-    /// `getErrorResponse` sets `throttleTimeMs` from the argument.
+    /// Request ACL bindings are not copied. ThrottleTimeMs is a
+    /// top-level field ([`CreateAclsRequest::error_response`]).
     #[must_use]
     pub fn error(error_code: i16) -> Self {
         Self {
@@ -1424,6 +1423,33 @@ impl AclCreationResult {
     #[must_use]
     pub fn error_results(n: usize, error_code: i16) -> Vec<Self> {
         vec![Self::error(error_code); n]
+    }
+}
+
+/// Java `CreateAclsRequest` helpers.
+pub struct CreateAclsRequest;
+
+impl CreateAclsRequest {
+    /// Java `CreateAclsRequest.getErrorResponse`.
+    ///
+    /// Writes [`AclCreationResult::error_results`] (`Collections.nCopies`).
+    /// Request ACL bindings are not copied. `ErrorMessage` stays the JSON
+    /// default (null); official Java also sets the English
+    /// `Errors.message` string. ThrottleTimeMs is written on every
+    /// spoken version from `throttle_time_ms` (Java always calls
+    /// `setThrottleTimeMs`). Convenience encode still writes `0`. This
+    /// crate speaks 0–3. This is not [`AclCreationResult::error`] /
+    /// [`AclCreationResult::error_results`] leftover /
+    /// [`CreateAclsResponse::error_counts`].
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        n: usize,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> Result<()> {
+        let results = AclCreationResult::error_results(n, error_code);
+        encode_create_acls_response_with_throttle(buf, version, &results, throttle_time_ms)
     }
 }
 
@@ -2599,6 +2625,111 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn create_acls_request_error_response_matches_java() {
+        // Java 4.0 CreateAclsRequest.getErrorResponse writes
+        // Collections.nCopies of one AclCreationResult and sets
+        // ThrottleTimeMs from the argument. Request bindings are not
+        // copied. ErrorMessage stays JSON-null. Official Java
+        // CreateAclsRequest.getErrorResponse. Convenience encode still
+        // writes ThrottleTimeMs 0. This crate speaks 0–3. This is not
+        // error_results leftover / error_counts / ThrottleTimeMs leftover.
+        let n = 2_usize;
+        let err = AclCreationResult::error_results(n, crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(err.len(), 2);
+        assert!(err.iter().all(|r| r.error_message.is_none()));
+        for version in [0_i16, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            CreateAclsRequest::error_response(
+                &mut buf,
+                version,
+                n,
+                crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_create_acls_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(throttle, 3_600_000);
+            leftover_create_acls_error_response(version, false, cur);
+        }
+
+        for version in [0_i16, 1, 2, 3] {
+            let mut expected = BytesMut::new();
+            encode_create_acls_response_with_throttle(&mut expected, version, &err, 3_600_000)
+                .unwrap();
+            let mut got = BytesMut::new();
+            CreateAclsRequest::error_response(
+                &mut got,
+                version,
+                n,
+                crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                3_600_000,
+            )
+            .unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "CreateAcls v{version} getErrorResponse must match with_throttle encode"
+            );
+        }
+
+        let mut conv = BytesMut::new();
+        encode_create_acls_response(&mut conv, 0, &err).unwrap();
+        let mut zero = BytesMut::new();
+        encode_create_acls_response_with_throttle(&mut zero, 0, &err, 0).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_create_acls_response still writes ThrottleTimeMs 0"
+        );
+        let mut with = BytesMut::new();
+        CreateAclsRequest::error_response(
+            &mut with,
+            0,
+            n,
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &conv[..],
+            "CreateAcls Request.getErrorResponse must write the throttleTimeMs argument"
+        );
+
+        for version in [0_i16, 2] {
+            let mut buf = BytesMut::new();
+            CreateAclsRequest::error_response(
+                &mut buf,
+                version,
+                0,
+                crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_create_acls_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert_eq!(throttle, 3_600_000);
+            leftover_create_acls_error_response(version, true, cur);
+        }
+    }
+
+    fn leftover_create_acls_error_response(version: i16, empty: bool, cur: &[u8]) {
+        let msg = match (version, empty) {
+            (0, false) => "CreateAcls v0 Request.getErrorResponse leftover-empty",
+            (1, false) => "CreateAcls v1 Request.getErrorResponse leftover-empty",
+            (2, false) => "CreateAcls v2 Request.getErrorResponse leftover-empty",
+            (3, false) => "CreateAcls v3 Request.getErrorResponse leftover-empty",
+            (0, true) => "CreateAcls v0 empty Request.getErrorResponse leftover-empty",
+            (2, true) => "CreateAcls v2 empty Request.getErrorResponse leftover-empty",
+            _ => "CreateAcls Request.getErrorResponse leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]

@@ -1180,8 +1180,10 @@
 //! [`AclCreationResult::error`] / [`AclCreationResult::error_results`] are Java
 //! `CreateAclsRequest.getErrorResponse` (one result / `nCopies`). Request
 //! bindings are not copied; `ErrorMessage` stays the JSON default (null);
-//! official Java also sets the English `Errors.message` string. ThrottleTimeMs
-//! is JSON `0+`;
+//! official Java also sets the English `Errors.message` string;
+//! [`protocol::acl::CreateAclsRequest::error_response`] is Java
+//! `CreateAclsRequest.getErrorResponse` (`nCopies`; `ErrorMessage` stays
+//! JSON-null; always writes the `throttleTimeMs` argument);
 //! [`protocol::acl::encode_create_acls_response`] still writes `0`;
 //! Java `CreateAclsRequest.validate` rejects
 //! UNKNOWN resource / pattern / operation / permission;
