@@ -3400,7 +3400,8 @@ impl OffsetFetchRequest {
     /// `HashMap.getOrDefault` then `partitionIndexes().add`). Topic
     /// order is first-seen (Java `HashMap.values` order is unspecified).
     /// Duplicate partitions for the same pair are kept (`ArrayList`).
-    /// `Some` empty is empty Topics, not all partitions.
+    /// `Some` empty is empty Topics, not all partitions. The six-argument
+    /// Builder is [`Self::for_group`].
     #[must_use]
     pub fn from_partitions<'a, I>(partitions: Option<I>) -> Option<Vec<OffsetFetchTopic>>
     where
@@ -3427,6 +3428,39 @@ impl OffsetFetchRequest {
                 })
                 .collect()
         })
+    }
+
+    /// Java `OffsetFetchRequest.Builder(String groupId, String memberId, int memberEpoch, boolean requireStable, List partitions, boolean throwOnFetchStableOffsetsUnsupported)`.
+    ///
+    /// Groups is a singleton. Topics from [`Self::from_partitions`].
+    /// MemberId is `member_id` (`None` is null). MemberEpoch is
+    /// `member_epoch`. RequireStable is the argument; [`Self::build`]
+    /// still applies the version check.
+    /// `throwOnFetchStableOffsetsUnsupported` is not part of this helper.
+    /// The four-argument Java Builder is this helper with MemberId null
+    /// and MemberEpoch `-1`. Encode still writes independently. This crate
+    /// speaks 1–9. This is not [`Self::from_partitions`] / [`Self::build`]
+    /// / [`Self::groups`] / [`OffsetFetchGroup::new`] / getErrorResponse.
+    #[must_use]
+    pub fn for_group<'a, I>(
+        group_id: impl Into<String>,
+        member_id: Option<String>,
+        member_epoch: i32,
+        require_stable: bool,
+        partitions: Option<I>,
+    ) -> (OffsetFetchGroup, bool)
+    where
+        I: IntoIterator<Item = (&'a str, i32)>,
+    {
+        (
+            OffsetFetchGroup {
+                group_id: group_id.into(),
+                member_id,
+                member_epoch,
+                topics: Self::from_partitions(partitions),
+            },
+            require_stable,
+        )
     }
 
     /// Java `OffsetFetchRequest.Builder.build` RequireStable check.
@@ -10793,6 +10827,117 @@ mod tests {
         assert!(
             cur.is_empty(),
             "OffsetFetch v2 null from_partitions leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_fetch_request_for_group_matches_java() {
+        // Java 4.0 OffsetFetchRequest.Builder(String groupId, String
+        // memberId, int memberEpoch, boolean requireStable, List
+        // partitions, boolean throwOnFetchStableOffsetsUnsupported):
+        // Groups is a singleton; Topics from the partition list;
+        // MemberId / MemberEpoch from the arguments; RequireStable from
+        // the argument. Official Java OffsetFetchRequest.Builder(String,
+        // String, int, boolean, List, boolean). The four-argument
+        // Builder is this helper with MemberId null and MemberEpoch -1.
+        // Encode still writes independently. This crate speaks 1-9.
+        // This is not from_partitions / Builder.build / groups /
+        // OffsetFetchGroup.new / getErrorResponse.
+        let (empty, empty_stable) = OffsetFetchRequest::for_group(
+            "g",
+            None,
+            -1,
+            false,
+            Some(std::iter::empty::<(&str, i32)>()),
+        );
+        assert_eq!(empty, OffsetFetchGroup::new("g", Some(Vec::new())));
+        assert!(!empty_stable);
+        leftover_offset_fetch_for_group(1, &empty, empty_stable);
+        leftover_offset_fetch_for_group(7, &empty, empty_stable);
+        leftover_offset_fetch_for_group(9, &empty, empty_stable);
+
+        let (all, all_stable) = OffsetFetchRequest::for_group(
+            "g",
+            None,
+            -1,
+            true,
+            None::<std::iter::Empty<(&str, i32)>>,
+        );
+        assert_eq!(all, OffsetFetchGroup::new("g", None));
+        assert!(all_stable);
+        leftover_offset_fetch_for_group(2, &all, all_stable);
+        leftover_offset_fetch_for_group(7, &all, all_stable);
+        leftover_offset_fetch_for_group(9, &all, all_stable);
+
+        let (grouped, grouped_stable) = OffsetFetchRequest::for_group(
+            "g",
+            None,
+            -1,
+            false,
+            Some([("a", 0), ("b", 2), ("a", 1)]),
+        );
+        assert_eq!(
+            grouped.topics,
+            OffsetFetchRequest::from_partitions(Some([("a", 0), ("b", 2), ("a", 1)]))
+        );
+        assert!(!grouped_stable);
+        leftover_offset_fetch_for_group(1, &grouped, grouped_stable);
+        leftover_offset_fetch_for_group(7, &grouped, grouped_stable);
+        leftover_offset_fetch_for_group(9, &grouped, grouped_stable);
+
+        let (with_member, member_stable) =
+            OffsetFetchRequest::for_group("g", Some("m".into()), 3, true, Some([("t", 0)]));
+        assert_eq!(with_member.group_id, "g");
+        assert_eq!(with_member.member_id.as_deref(), Some("m"));
+        assert_eq!(with_member.member_epoch, 3);
+        assert!(member_stable);
+        leftover_offset_fetch_for_group(1, &with_member, member_stable);
+        leftover_offset_fetch_for_group(7, &with_member, member_stable);
+        leftover_offset_fetch_for_group(9, &with_member, member_stable);
+    }
+
+    fn leftover_offset_fetch_for_group(
+        version: i16,
+        group: &OffsetFetchGroup,
+        require_stable: bool,
+    ) {
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_request(
+            &mut buf,
+            version,
+            &group.group_id,
+            group.member_id.as_deref(),
+            group.member_epoch,
+            require_stable,
+            group.topics.as_deref(),
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, got_stable) = decode_offset_fetch_groups_request(&mut cur, version).unwrap();
+        let got = decoded.first().expect("singleton Groups");
+        assert_eq!(got.group_id, group.group_id);
+        assert_eq!(got.topics, group.topics);
+        if version >= 9 {
+            assert_eq!(got.member_id, group.member_id);
+            assert_eq!(got.member_epoch, group.member_epoch);
+        } else {
+            assert!(got.member_id.is_none());
+            assert_eq!(got.member_epoch, -1);
+        }
+        if version >= 7 {
+            assert_eq!(got_stable, require_stable);
+        } else {
+            assert!(!got_stable);
+        }
+        let empty = match group.topics.as_deref() {
+            None => "all ",
+            Some([]) => "empty ",
+            Some(_) => "",
+        };
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v{version} Builder.groupId.memberId {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

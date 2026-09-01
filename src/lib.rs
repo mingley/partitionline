@@ -255,6 +255,10 @@
 //! `OffsetFetchRequest.Builder` Topics from a partition list (`None` is
 //! all partitions; a later entry for the same topic appends; first-seen
 //! topic order; duplicate pairs kept);
+//! [`protocol::group::OffsetFetchRequest::for_group`] is Java
+//! `OffsetFetchRequest.Builder(String groupId, String memberId, int memberEpoch, boolean requireStable, List partitions)`
+//! (singleton Groups; Topics from that partition list; the four-argument
+//! Builder is MemberId null and MemberEpoch `-1`);
 //! [`protocol::group::OffsetFetchRequest::build`] is Java
 //! `OffsetFetchRequest.Builder.build` (`requireStable` below v7 with
 //! `throwOnFetchStableOffsetsUnsupported` is `UnsupportedVersionException`;
