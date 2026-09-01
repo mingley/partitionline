@@ -59,9 +59,10 @@
 //! id/epoch). Java `InitProducerIdRequest.getErrorResponse` writes those
 //! sentinels ([`protocol::idem::InitProducerIdRequest::error_response`];
 //! throttle `0` even when the Java `throttleTimeMs` argument is non-zero).
-//! Java `InitProducerIdRequest.Builder.build` rejects a
-//! non-positive `transaction.timeout.ms` and an empty (non-null)
-//! transactional id.
+//! [`protocol::idem::InitProducerIdRequest::build`] is Java
+//! `InitProducerIdRequest.Builder.build` (rejects a non-positive
+//! `transaction.timeout.ms` and an empty (non-null) transactional id;
+//! encode still writes independently after this helper).
 //! [`protocol::idem::InitProducerIdResponse::should_client_throttle`] is Java
 //! `InitProducerIdResponse.shouldClientThrottle` (v1+).
 //! [`protocol::idem::InitProducerIdResponse::error_counts`] is Java

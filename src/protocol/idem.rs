@@ -29,6 +29,27 @@ fn init_producer_id_flexible(version: i16) -> Result<bool> {
 pub struct InitProducerIdRequest;
 
 impl InitProducerIdRequest {
+    /// Java `InitProducerIdRequest.Builder.build`.
+    ///
+    /// Rejects a non-positive `transactionTimeoutMs`
+    /// (`IllegalArgumentException`) and an empty (non-null) transactional
+    /// id. Null transactional id is idempotent produce. Encode still
+    /// writes independently after this helper. This crate speaks 0–5.
+    /// This is not [`Self::error_response`].
+    pub fn build(transaction_timeout_ms: i32, transactional_id: Option<&str>) -> Result<()> {
+        if transaction_timeout_ms <= 0 {
+            return Err(Error::protocol(format!(
+                "transaction timeout value is not positive: {transaction_timeout_ms}"
+            )));
+        }
+        if transactional_id.is_some_and(str::is_empty) {
+            return Err(Error::protocol(
+                "Must set either a null or a non-empty transactional id.",
+            ));
+        }
+        Ok(())
+    }
+
     /// Java `InitProducerIdRequest.getErrorResponse`.
     ///
     /// Producer id / epoch are [`RecordBatch::NO_PRODUCER_ID`] /
@@ -80,8 +101,10 @@ impl InitProducerIdResponse {
 /// [`RecordBatch::NO_PRODUCER_EPOCH`]. Epoch-bump resume sends the last
 /// producer id and epoch. Ignored on v0–v2. Java
 /// `InitProducerIdRequest.getErrorResponse` writes those same sentinels.
-/// Java `InitProducerIdRequest.Builder.build` rejects a non-positive
-/// timeout and an empty (non-null) transactional id.
+/// [`InitProducerIdRequest::build`] is Java
+/// `InitProducerIdRequest.Builder.build` (rejects a non-positive timeout
+/// and an empty (non-null) transactional id). Encode still writes
+/// independently after that helper.
 pub fn encode_init_producer_id_request(
     buf: &mut BytesMut,
     version: i16,
@@ -91,16 +114,7 @@ pub fn encode_init_producer_id_request(
     producer_epoch: i16,
 ) -> crate::error::Result<()> {
     let flexible = init_producer_id_flexible(version)?;
-    if transaction_timeout_ms <= 0 {
-        return Err(Error::protocol(format!(
-            "transaction timeout value is not positive: {transaction_timeout_ms}"
-        )));
-    }
-    if transactional_id.is_some_and(str::is_empty) {
-        return Err(Error::protocol(
-            "Must set either a null or a non-empty transactional id.",
-        ));
-    }
+    InitProducerIdRequest::build(transaction_timeout_ms, transactional_id)?;
     buf::put_string(buf, flexible, transactional_id)?;
     buf.put_i32(transaction_timeout_ms);
     if version >= 3 {
@@ -542,6 +556,86 @@ mod tests {
         assert!(
             empty.to_string().contains("non-empty transactional id"),
             "got {empty}"
+        );
+    }
+
+    #[test]
+    fn init_producer_id_request_build_matches_java() {
+        // Java 4.0 InitProducerIdRequest.Builder.build: rejects
+        // transactionTimeoutMs <= 0 and an empty (non-null) transactional
+        // id (IllegalArgumentException). Null transactional id is
+        // idempotent produce. Official Java
+        // InitProducerIdRequest.Builder.build. Encode still writes
+        // independently after this helper. This crate speaks 0-5. This
+        // is not getErrorResponse / errorCounts.
+        InitProducerIdRequest::build(45_000, Some("tid")).unwrap();
+        InitProducerIdRequest::build(45_000, None).unwrap();
+        InitProducerIdRequest::build(1, Some("tid")).unwrap();
+        let timeout = InitProducerIdRequest::build(0, Some("tid")).unwrap_err();
+        assert!(
+            matches!(timeout, Error::Protocol(_)),
+            "non-positive timeout is Java IllegalArgumentException, got {timeout}"
+        );
+        assert!(
+            timeout.to_string().contains("not positive"),
+            "got {timeout}"
+        );
+        let negative = InitProducerIdRequest::build(-1, None).unwrap_err();
+        assert!(
+            matches!(negative, Error::Protocol(_)),
+            "negative timeout is Java IllegalArgumentException, got {negative}"
+        );
+        let empty = InitProducerIdRequest::build(45_000, Some("")).unwrap_err();
+        assert!(
+            matches!(empty, Error::Protocol(_)),
+            "empty transactional id is Java IllegalArgumentException, got {empty}"
+        );
+        assert!(
+            empty.to_string().contains("non-empty transactional id"),
+            "got {empty}"
+        );
+        leftover_init_producer_id_build(0, Some("tid"), 45_000);
+        leftover_init_producer_id_build(0, None, 45_000);
+        leftover_init_producer_id_build(1, Some("tid"), 45_000);
+        leftover_init_producer_id_build(1, None, 45_000);
+        leftover_init_producer_id_build(2, Some("tid"), 45_000);
+        leftover_init_producer_id_build(2, None, 45_000);
+        leftover_init_producer_id_build(5, Some("tid"), 45_000);
+        leftover_init_producer_id_build(5, None, 45_000);
+    }
+
+    fn leftover_init_producer_id_build(
+        version: i16,
+        transactional_id: Option<&str>,
+        transaction_timeout_ms: i32,
+    ) {
+        InitProducerIdRequest::build(transaction_timeout_ms, transactional_id).unwrap();
+        let mut buf = BytesMut::new();
+        encode_init_producer_id_request(
+            &mut buf,
+            version,
+            transactional_id,
+            transaction_timeout_ms,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (tid, timeout, pid, epoch) =
+            decode_init_producer_id_request(&mut cur, version).unwrap();
+        assert_eq!(tid.as_deref(), transactional_id);
+        assert_eq!(timeout, transaction_timeout_ms);
+        assert_eq!(pid, RecordBatch::NO_PRODUCER_ID);
+        assert_eq!(epoch, RecordBatch::NO_PRODUCER_EPOCH);
+        let empty = if transactional_id.is_none() {
+            "null "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "InitProducerId v{version} Builder.build {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
