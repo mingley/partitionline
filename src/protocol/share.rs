@@ -593,6 +593,32 @@ impl ShareFetchResponse {
         }
         topics
     }
+
+    /// Java `ShareFetchResponse.sizeOf`.
+    ///
+    /// `4` plus the encoded body from [`Self::to_message`] then
+    /// [`encode_share_fetch_response`] (Java `toMessage(NONE, 0, iterator,
+    /// empty)` then `data.size` plus the INT32 size prefix). Throttle /
+    /// ErrorCode stay convenience-encode `0`; AcquisitionLockTimeoutMs
+    /// stays convenience-encode 15000 on v1 (Java `toMessage` leaves the
+    /// generated default `0`). Those fields have fixed width so the
+    /// values do not change the size. Empty NodeEndpoints. This crate
+    /// speaks 0–1. This is not [`Self::to_message`] /
+    /// [`ShareFetchedPartition::records_size`] /
+    /// [`ShareFetchRequest::error_response`].
+    pub fn size_of(
+        version: i16,
+        entries: &[([u8; 16], i32, ShareFetchedPartition)],
+    ) -> Result<i32> {
+        let topics = Self::to_message(entries);
+        let mut buf = BytesMut::new();
+        encode_share_fetch_response(&mut buf, version, &topics)?;
+        let n = buf
+            .len()
+            .checked_add(4)
+            .ok_or_else(|| Error::protocol("ShareFetchResponse.sizeOf overflow"))?;
+        buf::i32_from_usize(n)
+    }
 }
 
 /// One partition in a ShareAcknowledge response.
@@ -5993,5 +6019,104 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn share_fetch_response_size_of_matches_java() {
+        // Java 4.0 ShareFetchResponse.sizeOf: 4 plus
+        // toMessage(NONE, 0, iterator, empty).size. Official Java
+        // ShareFetchResponse.sizeOf. Convenience encode still writes
+        // throttle 0, ErrorCode 0, v1 AcquisitionLockTimeoutMs 15000.
+        // This crate speaks 0-1. This is not toMessage leftover /
+        // recordsSize leftover / Request.getErrorResponse leftover.
+        let empty = ShareFetchResponse::size_of(0, &[]).unwrap();
+        let mut buf = BytesMut::new();
+        encode_share_fetch_response(&mut buf, 0, &[]).unwrap();
+        let body_len = buf::i32_from_usize(buf.len()).unwrap();
+        assert_eq!(empty, body_len + 4, "sizeOf is 4 plus the encoded body");
+        assert_ne!(empty, body_len);
+        leftover_share_fetch_size_of(0, &[]);
+
+        let a = [1u8; 16];
+        let b = [2u8; 16];
+        let body = ShareFetchedPartition::partition_response(99, 0);
+        let entries = [
+            (a, 0, body.clone()),
+            (b, 1, body.clone()),
+            (a, 3, body.clone()),
+        ];
+        let topics = ShareFetchResponse::to_message(&entries);
+        assert_eq!(topics.len(), 2, "non-adjacent same topicId still merges");
+        for version in [0i16, 1] {
+            let size = ShareFetchResponse::size_of(version, &entries).unwrap();
+            buf.clear();
+            encode_share_fetch_response(&mut buf, version, &topics).unwrap();
+            let encoded_len = buf::i32_from_usize(buf.len()).unwrap();
+            assert_eq!(size, encoded_len + 4);
+            leftover_share_fetch_size_of(version, &topics);
+        }
+
+        leftover_share_fetch_size_of(0, &[]);
+        leftover_share_fetch_size_of(1, &[]);
+        leftover_share_fetch_size_of(0, &topics);
+        leftover_share_fetch_size_of(1, &topics);
+
+        let consecutive = [
+            (a, 0, body.clone()),
+            (a, 3, body.clone()),
+            (b, 1, body.clone()),
+        ];
+        assert_eq!(
+            ShareFetchResponse::size_of(0, &entries).unwrap(),
+            ShareFetchResponse::size_of(0, &consecutive).unwrap(),
+            "LinkedHashMap by topicId merges non-adjacent entries"
+        );
+
+        buf.clear();
+        encode_share_fetch_response_with_throttle(&mut buf, 1, &topics, 3_600_000).unwrap();
+        let mut convenience = BytesMut::new();
+        encode_share_fetch_response(&mut convenience, 1, &topics).unwrap();
+        assert_eq!(
+            buf.len(),
+            convenience.len(),
+            "ThrottleTimeMs is a fixed-width INT32"
+        );
+        buf.clear();
+        encode_share_fetch_response_with_acquisition_lock_timeout(&mut buf, 1, &topics, 0).unwrap();
+        assert_eq!(
+            buf.len(),
+            convenience.len(),
+            "AcquisitionLockTimeoutMs is a fixed-width INT32"
+        );
+        buf.clear();
+        encode_share_fetch_response_with_error_code(
+            &mut buf,
+            1,
+            &topics,
+            crate::error::GROUP_AUTHORIZATION_FAILED,
+        )
+        .unwrap();
+        assert_eq!(
+            buf.len(),
+            convenience.len(),
+            "ErrorCode is a fixed-width INT16"
+        );
+    }
+
+    fn leftover_share_fetch_size_of(version: i16, topics: &[ShareFetchedTopic]) {
+        let mut buf = BytesMut::new();
+        encode_share_fetch_response(&mut buf, version, topics).unwrap();
+        let mut cur = buf.as_ref();
+        drop(decode_share_fetch_response(&mut cur, version).unwrap());
+        leftover_share_fetch_size_of_cur(version, cur);
+    }
+
+    fn leftover_share_fetch_size_of_cur(version: i16, cur: &[u8]) {
+        let msg = match (version, cur.is_empty()) {
+            (0, true) => "ShareFetch v0 Response.sizeOf leftover-empty",
+            (1, true) => "ShareFetch v1 Response.sizeOf leftover-empty",
+            _ => "ShareFetch Response.sizeOf leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 }
