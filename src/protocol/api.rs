@@ -1359,8 +1359,8 @@ impl MetadataRequest {
     /// IncludeClusterAuthorizedOperations stay false. Encode still writes
     /// `allow_auto` independently. This crate speaks 1–13. This is not
     /// [`Self::is_all_topics`] / [`Self::topics`] / [`Self::topic_ids`] /
-    /// [`Self::for_topic_ids`] / getErrorResponse /
-    /// AllowAutoTopicCreation decode.
+    /// [`Self::for_topic_ids`] / [`Self::for_topic_names`] /
+    /// getErrorResponse / AllowAutoTopicCreation decode.
     #[must_use]
     pub const fn all_topics() -> (Option<&'static [MetadataRequestTopic]>, bool) {
         (None, true)
@@ -1378,6 +1378,7 @@ impl MetadataRequest {
     /// `allow_auto` independently; `allow_auto` false is rejected below
     /// v4 and a non-zero TopicId is rejected below v12. This crate
     /// speaks 1–13. This is not [`Self::all_topics`] /
+    /// [`Self::for_topic_names`] /
     /// [`MetadataRequestTopic::convert_from_ids`] / [`Self::topic_ids`] /
     /// getErrorResponse.
     #[must_use]
@@ -1385,6 +1386,29 @@ impl MetadataRequest {
         (
             ids.map(|ids| MetadataRequestTopic::convert_from_ids(ids.iter().copied())),
             false,
+        )
+    }
+
+    /// Java `MetadataRequest.Builder(List names, boolean allowAutoTopicCreation)`.
+    ///
+    /// `None` is null Topics (all topics). `Some` is
+    /// [`MetadataRequestTopic::convert_from_names`]. AllowAutoTopicCreation
+    /// is the argument. [`Self::all_topics`] is this helper with `None`
+    /// and `true`. [`Self::for_topic_ids`] with `None` is this helper
+    /// with `None` and `false`. IncludeTopicAuthorizedOperations and
+    /// IncludeClusterAuthorizedOperations stay false. Encode still writes
+    /// `allow_auto` independently; `allow_auto` false is rejected below
+    /// v4. This crate speaks 1–13. This is not [`Self::all_topics`] /
+    /// [`Self::for_topic_ids`] / [`MetadataRequestTopic::convert_from_names`] /
+    /// getErrorResponse.
+    #[must_use]
+    pub fn for_topic_names(
+        names: Option<&[String]>,
+        allow_auto: bool,
+    ) -> (Option<Vec<MetadataRequestTopic>>, bool) {
+        (
+            names.map(|names| MetadataRequestTopic::convert_from_names(names.iter().cloned())),
+            allow_auto,
         )
     }
 
@@ -5147,6 +5171,71 @@ mod tests {
         assert!(
             cur.is_empty(),
             "Metadata v{version} Builder.topicIds {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn metadata_request_for_topic_names_matches_java() {
+        // Java 4.0 MetadataRequest.Builder(List names, boolean
+        // allowAutoTopicCreation): Topics from the names (null list is
+        // null Topics / all topics) and AllowAutoTopicCreation from the
+        // argument. Official Java MetadataRequest.Builder(List, boolean).
+        // allTopics is this helper with null and true. Builder(List
+        // topicIds) with null is this helper with null and false. Encode
+        // still writes allow_auto independently; false is rejected below
+        // v4. This crate speaks 1-13. This is not allTopics /
+        // for_topic_ids / convertToMetadataRequestTopic / getErrorResponse.
+        let (none_true, allow_true) = MetadataRequest::for_topic_names(None, true);
+        assert!(none_true.is_none());
+        assert!(allow_true);
+        assert_eq!(allow_true, MetadataRequest::all_topics().1);
+        assert!(MetadataRequest::is_all_topics(1, none_true.as_deref()));
+        let (none_false, allow_false) = MetadataRequest::for_topic_names(None, false);
+        assert!(none_false.is_none());
+        assert!(!allow_false);
+        assert_eq!(allow_false, MetadataRequest::for_topic_ids(None).1);
+        let names = ["t".to_string()];
+        let (named, named_allow) = MetadataRequest::for_topic_names(Some(&names), true);
+        assert_eq!(named, Some(MetadataRequestTopic::convert_from_names(["t"])));
+        assert!(named_allow);
+        let (empty, empty_allow) = MetadataRequest::for_topic_names(Some(&[]), false);
+        assert_eq!(empty.as_deref(), Some(&[][..]));
+        assert!(!empty_allow);
+        leftover_metadata_for_topic_names(1, None, true);
+        leftover_metadata_for_topic_names(13, None, true);
+        leftover_metadata_for_topic_names(4, None, false);
+        leftover_metadata_for_topic_names(13, None, false);
+        leftover_metadata_for_topic_names(1, Some(&names), true);
+        leftover_metadata_for_topic_names(13, Some(&names), true);
+        leftover_metadata_for_topic_names(4, Some(&names), false);
+        leftover_metadata_for_topic_names(13, Some(&names), false);
+        leftover_metadata_for_topic_names(1, Some(&[]), true);
+        leftover_metadata_for_topic_names(13, Some(&[]), true);
+        leftover_metadata_for_topic_names(4, Some(&[]), false);
+        leftover_metadata_for_topic_names(13, Some(&[]), false);
+    }
+
+    fn leftover_metadata_for_topic_names(version: i16, names: Option<&[String]>, allow_auto: bool) {
+        let (topics, allow) = MetadataRequest::for_topic_names(names, allow_auto);
+        assert_eq!(allow, allow_auto);
+        let mut buf = BytesMut::new();
+        encode_metadata_request_topics(&mut buf, version, topics.as_deref(), allow, false).unwrap();
+        let mut cur = buf.as_ref();
+        let (got, allow_got, include_topic, include_cluster) =
+            decode_metadata_request_topics(&mut cur, version).unwrap();
+        assert_eq!(got, topics);
+        assert_eq!(allow_got, allow_auto);
+        assert!(!include_topic);
+        assert!(!include_cluster);
+        let empty = if names.is_some_and(<[String]>::is_empty) {
+            "empty "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "Metadata v{version} Builder.topicNames {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }
