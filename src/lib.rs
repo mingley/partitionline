@@ -226,6 +226,10 @@
 //! by name; append the partition; duplicates are kept;
 //! [`protocol::group::OffsetCommitResponse::from_errors`] is a batch of
 //! this helper);
+//! [`protocol::group::OffsetCommitResponse::add_partitions`] is Java
+//! `OffsetCommitResponse.Builder.addPartitions` (find or create the topic
+//! by name; append each partition with a shared error code; an empty
+//! list still creates the topic);
 //! [`protocol::group::OffsetCommitResponse::merge`] is Java
 //! `OffsetCommitResponse.Builder.merge` (replace when current Topics are
 //! empty; otherwise append topics / partitions; overlapping partitions are
