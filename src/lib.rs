@@ -1569,12 +1569,12 @@
 //! `FetchRequest.getErrorResponse` (one topic; v13 and later omit partitions).
 //! [`protocol::fetch::FetchRequest::error_response`] is Java
 //! `FetchRequest.getErrorResponse` (below v13 each topic through
-//! [`protocol::fetch::FetchTopic::error_result`]; v13+ Responses is empty;
-//! official Java sets `throttleTimeMs` from the argument; convenience
-//! encode still writes `0`;
-//! [`protocol::fetch::encode_fetch_response`] writes top-level `ErrorCode` 0 /
-//! `SessionId` 0; v7+ round-trips those fields; below v7 encode omits them
-//! even when the body is non-zero and decode fills `0`).
+//! [`protocol::fetch::FetchTopic::error_result`]; v13+ Responses is empty).
+//! [`protocol::fetch::FetchRequest::encode_error_response`] is Java
+//! `FetchRequest.getErrorResponse` encode (ThrottleTimeMs from the
+//! argument; v7+ ErrorCode / SessionId; below v7 those fields are omitted;
+//! NodeEndpoints stay empty; convenience encode still writes throttle `0`,
+//! ErrorCode `0`, SessionId [`protocol::fetch::FetchMetadata::INVALID_SESSION_ID`]).
 //! [`protocol::fetch::FetchRequest::fetch_data`] is Java
 //! `FetchRequest.fetchData` (v4–v12 use the topic name; v13+ looks up
 //! `topic_id` and keeps a missing name as `None`; a later partition
@@ -1644,8 +1644,9 @@
 //! ThrottleTimeMs is JSON `1+` first field
 //! ([`protocol::fetch::encode_fetch_response_with_throttle`];
 //! encode previously always wrote `0` and decode discarded; convenience
-//! encode still writes `0`; official Java `getErrorResponse` sets
-//! `throttleTimeMs` from the argument).
+//! encode still writes `0`;
+//! [`protocol::fetch::FetchRequest::encode_error_response`] writes the
+//! `throttleTimeMs` argument together with ErrorCode / SessionId).
 //! [`protocol::fetch::FetchResponse::topic_ids`] is Java
 //! `FetchResponse.topicIds` (skips zeros).
 //! [`protocol::fetch::FetchResponse::response_data`] is Java

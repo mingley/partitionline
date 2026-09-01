@@ -468,12 +468,13 @@ impl FetchRequest {
     /// Below v13 each request topic is [`FetchTopic::error_result`]. v13+
     /// Responses is empty (top-level error only; unlike `error_result`,
     /// which still keeps a topic with empty partitions). Official Java
-    /// `getErrorResponse` sets `throttleTimeMs` from the argument.
-    /// Convenience encode still writes `0`. [`encode_fetch_response`]
-    /// writes top-level `ErrorCode` `0` and `SessionId`
-    /// [`FetchMetadata::INVALID_SESSION_ID`].
-    /// Those fields are v7+; below v7 encode omits them even when the body
-    /// is non-zero and decode fills `0`.
+    /// also sets `throttleTimeMs`, top-level `ErrorCode`, and `SessionId`
+    /// from the request; this helper is the Responses body. Encode with
+    /// those fields through [`Self::encode_error_response`]. Convenience
+    /// encode still writes ThrottleTimeMs `0`, ErrorCode `0`, and SessionId
+    /// [`FetchMetadata::INVALID_SESSION_ID`]. ErrorCode / SessionId are
+    /// v7+; below v7 encode omits them even when the body is non-zero and
+    /// decode fills `0`.
     #[must_use]
     pub fn error_response(
         version: i16,
@@ -488,6 +489,40 @@ impl FetchRequest {
         } else {
             Vec::new()
         }
+    }
+
+    /// Java `FetchRequest.getErrorResponse` encode.
+    ///
+    /// Responses from [`Self::error_response`]. ThrottleTimeMs is written
+    /// on every spoken version from `throttle_time_ms` (JSON `1+`; this
+    /// crate speaks 4–17). ErrorCode and SessionId are written on v7+
+    /// from `error_code` / `session_id`; below v7 they are omitted even
+    /// when non-zero and decode fills `0` /
+    /// [`FetchMetadata::INVALID_SESSION_ID`]. NodeEndpoints stay empty.
+    /// Convenience encode still writes throttle `0`, ErrorCode `0`, and
+    /// SessionId [`FetchMetadata::INVALID_SESSION_ID`]. This crate speaks
+    /// 4–17. This is not [`Self::error_response`] leftover /
+    /// [`encode_fetch_response_with_throttle`] leftover /
+    /// [`encode_fetch_response_with_endpoints`] leftover / SimpleBuilder
+    /// leftover.
+    pub fn encode_error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        topics: &[FetchTopic],
+        error_code: i16,
+        session_id: i32,
+        throttle_time_ms: i32,
+    ) -> Result<()> {
+        let responses = Self::error_response(version, topics, error_code);
+        encode_fetch_response_fields(
+            buf,
+            version,
+            &responses,
+            error_code,
+            session_id,
+            &[],
+            throttle_time_ms,
+        )
     }
 
     /// Java `FetchRequest.Builder(short minVersion, short maxVersion, int replicaId, long replicaEpoch, ...)`.
@@ -4573,6 +4608,120 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn fetch_request_encode_error_response_matches_java() {
+        // Java 4.0 FetchRequest.getErrorResponse writes Responses from
+        // the request (empty on v13+), ThrottleTimeMs from the argument,
+        // and v7+ ErrorCode / SessionId. NodeEndpoints stay empty.
+        // Official Java FetchRequest.getErrorResponse. Convenience encode
+        // still writes throttle 0, ErrorCode 0, SessionId INVALID.
+        // This crate speaks 4–17. This is not error_response leftover /
+        // with_throttle leftover / with_endpoints leftover / ErrorCode
+        // leftover / SessionId leftover / ThrottleTimeMs leftover.
+        let topic = FetchTopic {
+            topic: "t".into(),
+            topic_id: [1u8; 16],
+            partitions: vec![FetchPartition::partition_data(
+                0,
+                0,
+                INVALID_LOG_START_OFFSET,
+                1,
+                None,
+                None,
+            )],
+        };
+        let err = crate::error::UNKNOWN_TOPIC_OR_PARTITION;
+        let session = 7;
+        for version in [4_i16, 7, 12, 13] {
+            let mut buf = BytesMut::new();
+            FetchRequest::encode_error_response(
+                &mut buf,
+                version,
+                std::slice::from_ref(&topic),
+                err,
+                session,
+                3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, error_code, session_id, throttle) =
+                decode_fetch_response(&mut cur, version).unwrap();
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle, 3_600_000);
+            if version < 13 {
+                assert_eq!(decoded.len(), 1);
+                assert_eq!(decoded.first().map(|t| t.partitions.len()), Some(1));
+            } else {
+                assert!(decoded.is_empty(), "v13+ Responses must be empty");
+            }
+            if version >= 7 {
+                assert_eq!(error_code, err);
+                assert_eq!(session_id, session);
+            } else {
+                assert_eq!(error_code, 0);
+                assert_eq!(session_id, FetchMetadata::INVALID_SESSION_ID);
+            }
+            leftover_fetch_encode_error_response(version, cur);
+        }
+
+        let responses = FetchRequest::error_response(7, std::slice::from_ref(&topic), err);
+        let mut with_throttle = BytesMut::new();
+        encode_fetch_response_with_throttle(&mut with_throttle, 7, &responses, 3_600_000).unwrap();
+        let mut with = BytesMut::new();
+        FetchRequest::encode_error_response(
+            &mut with,
+            7,
+            std::slice::from_ref(&topic),
+            err,
+            session,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &with_throttle[..],
+            "Fetch Request.getErrorResponse encode must write ErrorCode / SessionId"
+        );
+        let mut with_endpoints = BytesMut::new();
+        encode_fetch_response_with_endpoints(&mut with_endpoints, 7, &responses, err, session, &[])
+            .unwrap();
+        assert_ne!(
+            &with[..],
+            &with_endpoints[..],
+            "Fetch Request.getErrorResponse encode must write the throttleTimeMs argument"
+        );
+
+        let mut v4_with = BytesMut::new();
+        FetchRequest::encode_error_response(
+            &mut v4_with,
+            4,
+            std::slice::from_ref(&topic),
+            err,
+            session,
+            3_600_000,
+        )
+        .unwrap();
+        let v4_body = FetchRequest::error_response(4, std::slice::from_ref(&topic), err);
+        let mut v4_throttle = BytesMut::new();
+        encode_fetch_response_with_throttle(&mut v4_throttle, 4, &v4_body, 3_600_000).unwrap();
+        assert_eq!(
+            &v4_with[..],
+            &v4_throttle[..],
+            "Fetch v4 omits ErrorCode / SessionId even when the body is non-zero"
+        );
+    }
+
+    fn leftover_fetch_encode_error_response(version: i16, cur: &[u8]) {
+        let msg = match version {
+            4 => "Fetch v4 Request.getErrorResponse encode leftover-empty",
+            7 => "Fetch v7 Request.getErrorResponse encode leftover-empty",
+            12 => "Fetch v12 Request.getErrorResponse encode leftover-empty",
+            13 => "Fetch v13 Request.getErrorResponse encode leftover-empty",
+            _ => "Fetch Request.getErrorResponse encode leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]
