@@ -221,6 +221,11 @@
 //! `OffsetCommitResponse` constructor from an errors map (group by
 //! topic name; a later entry for the same topic appends; first-seen
 //! topic order);
+//! [`protocol::group::OffsetCommitResponse::add_partition`] is Java
+//! `OffsetCommitResponse.Builder.addPartition` (find or create the topic
+//! by name; append the partition; duplicates are kept;
+//! [`protocol::group::OffsetCommitResponse::from_errors`] is a batch of
+//! this helper);
 //! [`protocol::group::OffsetCommitResponse::merge`] is Java
 //! `OffsetCommitResponse.Builder.merge` (replace when current Topics are
 //! empty; otherwise append topics / partitions; overlapping partitions are

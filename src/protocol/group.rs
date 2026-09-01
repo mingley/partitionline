@@ -3864,6 +3864,41 @@ impl OffsetCommitResponse {
             .collect()
     }
 
+    /// Java `OffsetCommitResponse.Builder.addPartition`.
+    ///
+    /// Finds or creates the topic by name (first-seen order) and appends
+    /// a partition (`ArrayList`; duplicates are kept). Same-name later
+    /// calls append to that topic even when another topic sits between.
+    /// [`Self::from_errors`] is a batch of this helper. Encode still
+    /// writes independently. This crate speaks 2–9. This is not
+    /// [`Self::from_errors`] / [`Self::merge`] / getErrorResponse.
+    #[must_use]
+    pub fn add_partition(
+        topics: &[OffsetCommitResponseTopic],
+        topic_name: &str,
+        partition_index: i32,
+        error_code: i16,
+    ) -> Vec<OffsetCommitResponseTopic> {
+        let mut out = topics.to_vec();
+        if let Some(existing) = out.iter_mut().find(|topic| topic.topic == topic_name) {
+            existing
+                .partitions
+                .push(OffsetCommitResponsePartition::error(
+                    partition_index,
+                    error_code,
+                ));
+        } else {
+            out.push(OffsetCommitResponseTopic {
+                topic: topic_name.to_string(),
+                partitions: vec![OffsetCommitResponsePartition::error(
+                    partition_index,
+                    error_code,
+                )],
+            });
+        }
+        out
+    }
+
     /// Java `OffsetCommitResponse.Builder.merge`.
     ///
     /// If `current` has no topics, the result is `new_topics`. Otherwise
@@ -5639,6 +5674,83 @@ mod tests {
         assert!(
             cur.is_empty(),
             "OffsetCommit v8 from_errors leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_commit_response_add_partition_matches_java() {
+        // Java 4.0 OffsetCommitResponse.Builder.addPartition: getOrCreate
+        // topic by name, then partitions().add. Empty Topics plus one
+        // call is a singleton topic. A later call for the same name
+        // appends even when another topic sits between. Duplicate
+        // partitions for the same pair are kept (ArrayList).
+        // from_errors is a batch of this helper. Official Java
+        // OffsetCommitResponse.Builder.addPartition. Encode still writes
+        // independently. This crate speaks 2-9. This is not from_errors
+        // leftover / merge / getErrorResponse.
+        assert_eq!(
+            OffsetCommitResponse::add_partition(&[], "t", 0, 0),
+            OffsetCommitResponse::from_errors([("t", 0, 0i16)])
+        );
+        let grouped = OffsetCommitResponse::add_partition(
+            &OffsetCommitResponse::add_partition(
+                &OffsetCommitResponse::add_partition(
+                    &[],
+                    "a",
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                ),
+                "b",
+                0,
+                crate::error::NOT_LEADER_OR_FOLLOWER,
+            ),
+            "a",
+            1,
+            0,
+        );
+        assert_eq!(
+            grouped,
+            OffsetCommitResponse::from_errors([
+                ("a", 0, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+                ("b", 0, crate::error::NOT_LEADER_OR_FOLLOWER),
+                ("a", 1, 0i16),
+            ])
+        );
+        let dup = OffsetCommitResponse::add_partition(
+            &OffsetCommitResponse::add_partition(&[], "t", 0, 0),
+            "t",
+            0,
+            crate::error::NOT_LEADER_OR_FOLLOWER,
+        );
+        assert_eq!(
+            dup,
+            OffsetCommitResponse::from_errors([
+                ("t", 0, 0i16),
+                ("t", 0, crate::error::NOT_LEADER_OR_FOLLOWER),
+            ])
+        );
+        leftover_offset_commit_add_partition(2, &grouped);
+        leftover_offset_commit_add_partition(2, &[]);
+        leftover_offset_commit_add_partition(3, &grouped);
+        leftover_offset_commit_add_partition(3, &[]);
+        leftover_offset_commit_add_partition(8, &grouped);
+        leftover_offset_commit_add_partition(8, &[]);
+        leftover_offset_commit_add_partition(9, &grouped);
+        leftover_offset_commit_add_partition(9, &[]);
+    }
+
+    fn leftover_offset_commit_add_partition(version: i16, topics: &[OffsetCommitResponseTopic]) {
+        let mut buf = BytesMut::new();
+        encode_offset_commit_topics_response(&mut buf, version, topics).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_offset_commit_topics_response(&mut cur, version).unwrap();
+        assert_eq!(throttle, 0);
+        assert_eq!(decoded, topics);
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "OffsetCommit v{version} addPartition {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }
