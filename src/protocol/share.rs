@@ -619,6 +619,39 @@ impl ShareFetchResponse {
             .ok_or_else(|| Error::protocol("ShareFetchResponse.sizeOf overflow"))?;
         buf::i32_from_usize(n)
     }
+
+    /// Java `ShareFetchResponse.of`.
+    ///
+    /// Responses from [`Self::to_message`]. ThrottleTimeMs and ErrorCode
+    /// are the arguments. AcquisitionLockTimeoutMs stays the generated
+    /// Java default (`0`); [`encode_share_fetch_response`] still writes
+    /// 15000 on v1. ErrorMessage stays null. NodeEndpoints are the
+    /// `endpoints` argument (Java `of` always takes that list;
+    /// convenience encode still writes empty). This crate speaks 0–1.
+    /// This is not [`Self::to_message`] / [`Self::size_of`] /
+    /// [`encode_share_fetch_response_with_throttle`] /
+    /// [`encode_share_fetch_response_with_endpoints`] /
+    /// [`ShareFetchRequest::error_response`].
+    pub fn of(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+        entries: &[([u8; 16], i32, ShareFetchedPartition)],
+        endpoints: &[NodeEndpoint],
+    ) -> Result<()> {
+        let topics = Self::to_message(entries);
+        encode_share_fetch_response_full(
+            buf,
+            version,
+            &topics,
+            endpoints,
+            throttle_time_ms,
+            None,
+            0,
+            error_code,
+        )
+    }
 }
 
 /// One partition in a ShareAcknowledge response.
@@ -6116,6 +6149,140 @@ mod tests {
             (0, true) => "ShareFetch v0 Response.sizeOf leftover-empty",
             (1, true) => "ShareFetch v1 Response.sizeOf leftover-empty",
             _ => "ShareFetch Response.sizeOf leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn share_fetch_response_of_matches_java() {
+        // Java 4.0 ShareFetchResponse.of: toMessage(error, throttleTimeMs,
+        // iterator, nodeEndpoints). AcquisitionLockTimeoutMs stays the
+        // generated default 0. Official Java ShareFetchResponse.of.
+        // Convenience encode still writes throttle 0, ErrorCode 0, v1
+        // AcquisitionLockTimeoutMs 15000, empty NodeEndpoints. This crate
+        // speaks 0-1. This is not toMessage leftover / sizeOf leftover /
+        // with_throttle leftover / with_endpoints leftover /
+        // Request.getErrorResponse leftover.
+        let a = [1u8; 16];
+        let b = [2u8; 16];
+        let body = ShareFetchedPartition::partition_response(99, 0);
+        let entries = [
+            (a, 0, body.clone()),
+            (b, 1, body.clone()),
+            (a, 3, body.clone()),
+        ];
+        let topics = ShareFetchResponse::to_message(&entries);
+        assert_eq!(topics.len(), 2, "non-adjacent same topicId still merges");
+
+        let mut v0_none = BytesMut::new();
+        ShareFetchResponse::of(&mut v0_none, 0, 0, 0, &entries, &[]).unwrap();
+        let mut v0_conv = BytesMut::new();
+        encode_share_fetch_response(&mut v0_conv, 0, &topics).unwrap();
+        assert_eq!(
+            v0_none, v0_conv,
+            "v0 of(NONE, 0, empty) matches convenience encode"
+        );
+
+        let mut v1_none = BytesMut::new();
+        ShareFetchResponse::of(&mut v1_none, 1, 0, 0, &entries, &[]).unwrap();
+        let mut v1_conv = BytesMut::new();
+        encode_share_fetch_response(&mut v1_conv, 1, &topics).unwrap();
+        assert_ne!(
+            v1_none, v1_conv,
+            "v1 of writes AcquisitionLockTimeoutMs 0; convenience encode writes 15000"
+        );
+
+        let err = crate::error::GROUP_AUTHORIZATION_FAILED;
+        let throttle = 3_600_000;
+        for version in [0i16, 1] {
+            let mut buf = BytesMut::new();
+            ShareFetchResponse::of(&mut buf, version, err, throttle, &entries, &[]).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, throttle_time_ms, error_message, lock_ms, error_code) =
+                decode_share_fetch_response(&mut cur, version).unwrap();
+            leftover_share_fetch_of(version, cur);
+            assert_eq!(decoded, topics);
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle_time_ms, throttle);
+            assert_eq!(error_message, None);
+            assert_eq!(error_code, err);
+            assert_eq!(lock_ms, 0);
+        }
+
+        leftover_share_fetch_of_encode(0, err, throttle, &entries, &[]);
+        leftover_share_fetch_of_encode(1, err, throttle, &entries, &[]);
+        leftover_share_fetch_of_encode(0, 0, 0, &[], &[]);
+        leftover_share_fetch_of_encode(1, 0, 0, &[], &[]);
+
+        let mut of_buf = BytesMut::new();
+        ShareFetchResponse::of(&mut of_buf, 1, err, throttle, &entries, &[]).unwrap();
+        let mut with_throttle = BytesMut::new();
+        encode_share_fetch_response_with_throttle(&mut with_throttle, 1, &topics, throttle)
+            .unwrap();
+        assert_ne!(
+            of_buf, with_throttle,
+            "of writes ErrorCode and AcquisitionLockTimeoutMs 0"
+        );
+        let mut with_err = BytesMut::new();
+        encode_share_fetch_response_with_error_code(&mut with_err, 1, &topics, err).unwrap();
+        assert_ne!(
+            of_buf, with_err,
+            "of writes ThrottleTimeMs from the argument"
+        );
+
+        let endpoint = NodeEndpoint::new(1, "h", 9092, None);
+        let mut with_ep = BytesMut::new();
+        ShareFetchResponse::of(
+            &mut with_ep,
+            1,
+            err,
+            throttle,
+            &entries,
+            std::slice::from_ref(&endpoint),
+        )
+        .unwrap();
+        leftover_share_fetch_of_encode(1, err, throttle, &entries, std::slice::from_ref(&endpoint));
+        let mut conv_ep = BytesMut::new();
+        encode_share_fetch_response_with_endpoints(
+            &mut conv_ep,
+            1,
+            &topics,
+            std::slice::from_ref(&endpoint),
+        )
+        .unwrap();
+        assert_ne!(
+            with_ep, conv_ep,
+            "of writes throttle / ErrorCode / AcquisitionLockTimeoutMs 0; with_endpoints writes 0 / 0 / 15000"
+        );
+    }
+
+    fn leftover_share_fetch_of_encode(
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+        entries: &[([u8; 16], i32, ShareFetchedPartition)],
+        endpoints: &[NodeEndpoint],
+    ) {
+        let mut buf = BytesMut::new();
+        ShareFetchResponse::of(
+            &mut buf,
+            version,
+            error_code,
+            throttle_time_ms,
+            entries,
+            endpoints,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        drop(decode_share_fetch_response(&mut cur, version).unwrap());
+        leftover_share_fetch_of(version, cur);
+    }
+
+    fn leftover_share_fetch_of(version: i16, cur: &[u8]) {
+        let msg = match (version, cur.is_empty()) {
+            (0, true) => "ShareFetch v0 Response.of leftover-empty",
+            (1, true) => "ShareFetch v1 Response.of leftover-empty",
+            _ => "ShareFetch Response.of leftover-empty",
         };
         assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }

@@ -715,6 +715,10 @@
 //! [`protocol::share::ShareFetchResponse::size_of`] is Java
 //! `ShareFetchResponse.sizeOf` (`4` plus the encoded body from `toMessage`
 //! with `NONE` / throttle `0` / empty endpoints);
+//! [`protocol::share::ShareFetchResponse::of`] is Java
+//! `ShareFetchResponse.of` (Responses from `toMessage`; ThrottleTimeMs /
+//! ErrorCode / NodeEndpoints from the arguments; AcquisitionLockTimeoutMs
+//! stays `0`);
 //! [`protocol::share::ShareFetchedPartition::records_size`] is Java
 //! `ShareFetchResponse.recordsSize` (`0` when records are empty)),
 //! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;
