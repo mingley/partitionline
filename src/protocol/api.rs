@@ -1359,6 +1359,21 @@ impl MetadataResponse {
             .collect()
     }
 
+    /// Java `MetadataResponse.controller`.
+    ///
+    /// The broker whose `nodeId` is [`Self::controller_id`], or `None` when
+    /// that id is missing (Java returns null). Duplicate ids keep the last
+    /// broker, matching [`Self::brokers_by_id`]. Encode still writes
+    /// independently. This crate speaks 1–13. This is not
+    /// [`Self::brokers_by_id`] / [`Self::NO_CONTROLLER_ID`] /
+    /// [`Broker::no_node`].
+    #[must_use]
+    pub fn controller(&self) -> Option<&Broker> {
+        self.brokers
+            .iter()
+            .rfind(|broker| broker.node_id == self.controller_id)
+    }
+
     /// Fail when the v13+ top-level ErrorCode is non-zero.
     pub(crate) fn check(&self) -> Result<()> {
         if self.error_code == 0 {
@@ -6339,6 +6354,81 @@ mod tests {
             error_code: 0,
         };
         assert!(empty.brokers_by_id().is_empty());
+    }
+
+    #[test]
+    fn metadata_response_controller_matches_java() {
+        // Java 4.0 MetadataResponse.controller is Holder.brokers.get(controllerId)
+        // (null when missing). Official Java MetadataResponse.controller.
+        // This crate speaks 1–13. This is not brokersById / NO_CONTROLLER_ID /
+        // Node.noNode.
+        let a = Broker::new(1, "127.0.0.1", 9092, Some("r".into()));
+        let b = Broker::new(3, "10.0.0.3", 9093, None);
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![a.clone(), b.clone()],
+            cluster_id: None,
+            controller_id: 1,
+            topics: Vec::new(),
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        assert_eq!(resp.controller(), Some(&a));
+        let other = MetadataResponse {
+            controller_id: 3,
+            ..resp.clone()
+        };
+        assert_eq!(other.controller(), Some(&b));
+        let missing = MetadataResponse {
+            controller_id: 2,
+            ..resp.clone()
+        };
+        assert!(missing.controller().is_none());
+        let empty = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics: Vec::new(),
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        assert!(empty.controller().is_none());
+        let dup_last = Broker::new(1, "10.0.0.9", 9094, None);
+        let dups = MetadataResponse {
+            brokers: vec![a.clone(), dup_last.clone()],
+            controller_id: 1,
+            ..empty.clone()
+        };
+        assert_eq!(dups.controller(), Some(&dup_last));
+        leftover_metadata_controller(1, &resp);
+        leftover_metadata_controller(1, &empty);
+        leftover_metadata_controller(8, &resp);
+        leftover_metadata_controller(8, &empty);
+        leftover_metadata_controller(13, &resp);
+        leftover_metadata_controller(13, &empty);
+    }
+
+    fn leftover_metadata_controller(version: i16, resp: &MetadataResponse) {
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, version, resp).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_metadata_response(&mut cur, version).unwrap();
+        assert_eq!(decoded, *resp);
+        assert_eq!(decoded.controller(), resp.controller());
+        leftover_empty(
+            &cur,
+            match (version, resp.brokers.is_empty()) {
+                (1, false) => "Metadata v1 controller leftover-empty",
+                (1, true) => "Metadata v1 controller empty leftover-empty",
+                (8, false) => "Metadata v8 controller leftover-empty",
+                (8, true) => "Metadata v8 controller empty leftover-empty",
+                (13, false) => "Metadata v13 controller leftover-empty",
+                (13, true) => "Metadata v13 controller empty leftover-empty",
+                _ => "Metadata controller leftover-empty",
+            },
+        )
+        .unwrap();
     }
 
     #[test]
