@@ -106,6 +106,12 @@ name = "consume"
 name = "group"
 
 [[example]]
+name = "txn"
+
+[[example]]
+name = "admin"
+
+[[example]]
 name = "bench_latency"
 
 [profile.release]

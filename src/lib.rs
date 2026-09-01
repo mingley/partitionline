@@ -19,6 +19,10 @@
 //! For many records, [`Producer::send_all`] waits for every offset after
 //! queuing, and [`Producer::try_send`] plus [`Producer::flush`] is the
 //! throughput path (see `examples/bench_produce.rs`).
+//! Transactional produce is [`ProducerConfig::transactional_id`] plus
+//! [`Producer::begin_transaction`] / [`Producer::commit_transaction`]
+//! (`examples/txn.rs`). Cluster admin is [`Admin::connect`]
+//! (`examples/admin.rs`).
 //! The producer negotiates Produce v3–v12 (v3–v8 classic; v9+ flexible;
 //! v10+ KIP-951 CurrentLeader / NodeEndpoints; v11 TRANSACTION_ABORTABLE; v12 KIP-890
 //! Part 2 transaction V2, skipping AddPartitionsToTxn). ThrottleTimeMs is JSON `1+` after Responses
