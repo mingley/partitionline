@@ -124,6 +124,9 @@ name = "eos"
 name = "intercept"
 
 [[example]]
+name = "consume_intercept"
+
+[[example]]
 name = "bench_latency"
 
 [profile.release]

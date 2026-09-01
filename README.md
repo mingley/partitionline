@@ -167,7 +167,8 @@ cargo run --release --example roundtrip
 ```
 
 Also: `produce`, `consume`, `group`, `txn`, `admin`, `sasl`, `tls`, `eos`,
-`offsets`, `share`, `wakeup`, `pause`, `metrics`, `cooperative`, `intercept`.
+`offsets`, `share`, `wakeup`, `pause`, `metrics`, `cooperative`, `intercept`,
+`consume_intercept`.
 
 Locked produce vs librdkafka 2.15.0 C (linger 5ms, 8e6×100B). Do not publish
 rec/s unless broker high watermark equals records sent:
