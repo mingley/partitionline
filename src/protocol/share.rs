@@ -759,7 +759,8 @@ impl ShareAcknowledgeResponse {
     /// and top-level error stay with crate encode (`0`). NodeEndpoints
     /// stay empty on [`encode_share_acknowledge_topics_response`];
     /// [`encode_share_acknowledge_topics_response_with_endpoints`] writes
-    /// a non-empty list.
+    /// a non-empty list. [`Self::of`] writes throttle, ErrorCode, and
+    /// NodeEndpoints from its arguments.
     #[must_use]
     pub fn to_message(
         entries: &[([u8; 16], i32, ShareAcknowledgeResponsePartition)],
@@ -778,6 +779,37 @@ impl ShareAcknowledgeResponse {
             }
         }
         topics
+    }
+
+    /// Java `ShareAcknowledgeResponse.of`.
+    ///
+    /// Responses from [`Self::to_message`]. ThrottleTimeMs and ErrorCode
+    /// are the arguments. ErrorMessage stays the generated Java default
+    /// (null). NodeEndpoints are the `endpoints` argument (Java `of`
+    /// always takes that list; convenience encode still writes empty).
+    /// [`encode_share_acknowledge_topics_response`] still writes throttle
+    /// `0`. This crate speaks 0–1. This is not [`Self::to_message`] /
+    /// [`encode_share_acknowledge_topics_response_with_throttle`] /
+    /// [`encode_share_acknowledge_topics_response_with_endpoints`] /
+    /// [`ShareAcknowledgeRequest::error_response`].
+    pub fn of(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+        entries: &[([u8; 16], i32, ShareAcknowledgeResponsePartition)],
+        endpoints: &[NodeEndpoint],
+    ) -> Result<()> {
+        let topics = Self::to_message(entries);
+        encode_share_acknowledge_topics_response_full(
+            buf,
+            version,
+            error_code,
+            &topics,
+            endpoints,
+            throttle_time_ms,
+            None,
+        )
     }
 }
 
@@ -6283,6 +6315,163 @@ mod tests {
             (0, true) => "ShareFetch v0 Response.of leftover-empty",
             (1, true) => "ShareFetch v1 Response.of leftover-empty",
             _ => "ShareFetch Response.of leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn share_acknowledge_response_of_matches_java() {
+        // Java 4.0 ShareAcknowledgeResponse.of: toMessage(error,
+        // throttleTimeMs, iterator, nodeEndpoints). ErrorMessage stays
+        // the generated default null. Official Java
+        // ShareAcknowledgeResponse.of. Convenience encode still writes
+        // throttle 0 and empty NodeEndpoints. This crate speaks 0-1.
+        // This is not toMessage leftover / with_throttle leftover /
+        // with_endpoints leftover / Request.getErrorResponse leftover.
+        let a = [1u8; 16];
+        let b = [2u8; 16];
+        let body = ShareAcknowledgeResponsePartition::partition_response(99, 0);
+        let entries = [
+            (a, 0, body.clone()),
+            (b, 1, body.clone()),
+            (a, 3, body.clone()),
+        ];
+        let topics = ShareAcknowledgeResponse::to_message(&entries);
+        assert_eq!(topics.len(), 2, "non-adjacent same topicId still merges");
+
+        let mut none = BytesMut::new();
+        ShareAcknowledgeResponse::of(&mut none, 0, 0, 0, &entries, &[]).unwrap();
+        let mut conv = BytesMut::new();
+        encode_share_acknowledge_topics_response(&mut conv, 0, 0, &topics).unwrap();
+        assert_eq!(none, conv, "of(NONE, 0, empty) matches convenience encode");
+        let mut v1_none = BytesMut::new();
+        ShareAcknowledgeResponse::of(&mut v1_none, 1, 0, 0, &entries, &[]).unwrap();
+        assert_eq!(none, v1_none, "v0 and v1 of bodies match");
+
+        let err = crate::error::GROUP_AUTHORIZATION_FAILED;
+        let throttle = 3_600_000;
+        for version in [0i16, 1] {
+            let mut buf = BytesMut::new();
+            ShareAcknowledgeResponse::of(&mut buf, version, err, throttle, &entries, &[]).unwrap();
+            let mut cur = buf.as_ref();
+            let (error_code, decoded, endpoints, throttle_time_ms, error_message) =
+                decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
+            leftover_share_acknowledge_of(version, cur);
+            assert_eq!(decoded, topics);
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle_time_ms, throttle);
+            assert_eq!(error_message, None);
+            assert_eq!(error_code, err);
+        }
+
+        leftover_share_acknowledge_of_encode(0, err, throttle, &entries, &[]);
+        leftover_share_acknowledge_of_encode(1, err, throttle, &entries, &[]);
+        leftover_share_acknowledge_of_encode(0, 0, 0, &[], &[]);
+        leftover_share_acknowledge_of_encode(1, 0, 0, &[], &[]);
+
+        let mut of_throttle = BytesMut::new();
+        ShareAcknowledgeResponse::of(&mut of_throttle, 1, err, throttle, &entries, &[]).unwrap();
+        let mut with_throttle = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_throttle(
+            &mut with_throttle,
+            1,
+            err,
+            &topics,
+            throttle,
+        )
+        .unwrap();
+        assert_eq!(
+            of_throttle, with_throttle,
+            "of with empty endpoints matches with_throttle"
+        );
+
+        let endpoint = NodeEndpoint::new(1, "h", 9092, None);
+        let mut of_ep = BytesMut::new();
+        ShareAcknowledgeResponse::of(
+            &mut of_ep,
+            1,
+            err,
+            0,
+            &entries,
+            std::slice::from_ref(&endpoint),
+        )
+        .unwrap();
+        leftover_share_acknowledge_of_encode(1, err, 0, &entries, std::slice::from_ref(&endpoint));
+        let mut with_ep = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_endpoints(
+            &mut with_ep,
+            1,
+            err,
+            &topics,
+            std::slice::from_ref(&endpoint),
+        )
+        .unwrap();
+        assert_eq!(of_ep, with_ep, "of with throttle 0 matches with_endpoints");
+
+        let mut of_both = BytesMut::new();
+        ShareAcknowledgeResponse::of(
+            &mut of_both,
+            1,
+            err,
+            throttle,
+            &entries,
+            std::slice::from_ref(&endpoint),
+        )
+        .unwrap();
+        leftover_share_acknowledge_of_encode(
+            0,
+            err,
+            throttle,
+            &entries,
+            std::slice::from_ref(&endpoint),
+        );
+        leftover_share_acknowledge_of_encode(
+            1,
+            err,
+            throttle,
+            &entries,
+            std::slice::from_ref(&endpoint),
+        );
+        assert_ne!(
+            of_both, of_throttle,
+            "of writes NodeEndpoints from the argument"
+        );
+        assert_ne!(of_both, of_ep, "of writes ThrottleTimeMs from the argument");
+        let mut error_resp = BytesMut::new();
+        ShareAcknowledgeRequest::error_response(&mut error_resp, 1, err, throttle).unwrap();
+        assert_ne!(
+            of_both, error_resp,
+            "Request.getErrorResponse writes empty Responses"
+        );
+    }
+
+    fn leftover_share_acknowledge_of_encode(
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+        entries: &[([u8; 16], i32, ShareAcknowledgeResponsePartition)],
+        endpoints: &[NodeEndpoint],
+    ) {
+        let mut buf = BytesMut::new();
+        ShareAcknowledgeResponse::of(
+            &mut buf,
+            version,
+            error_code,
+            throttle_time_ms,
+            entries,
+            endpoints,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        drop(decode_share_acknowledge_topics_response(&mut cur, version).unwrap());
+        leftover_share_acknowledge_of(version, cur);
+    }
+
+    fn leftover_share_acknowledge_of(version: i16, cur: &[u8]) {
+        let msg = match (version, cur.is_empty()) {
+            (0, true) => "ShareAcknowledge v0 Response.of leftover-empty",
+            (1, true) => "ShareAcknowledge v1 Response.of leftover-empty",
+            _ => "ShareAcknowledge Response.of leftover-empty",
         };
         assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }

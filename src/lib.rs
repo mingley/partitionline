@@ -758,6 +758,9 @@
 //! [`protocol::share::ShareAcknowledgeResponse::to_message`] is Java
 //! `ShareAcknowledgeResponse.toMessage` Responses (group by `topic_id` in
 //! first-seen order; key partition overwrites the body);
+//! [`protocol::share::ShareAcknowledgeResponse::of`] is Java
+//! `ShareAcknowledgeResponse.of` (Responses from `toMessage`; ThrottleTimeMs /
+//! ErrorCode / NodeEndpoints from the arguments; ErrorMessage stays null);
 //! [`protocol::share::ShareAcknowledgeRequest::for_consumer`] is Java
 //! `ShareAcknowledgeRequest.Builder.forConsumer` Topics (group by topic
 //! id; first-seen id and partition order; duplicate `(id, partition)`
