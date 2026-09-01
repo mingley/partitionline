@@ -278,6 +278,25 @@ impl FindCoordinatorResponse {
             NodeEndpoint::new(0, "", 0, None)
         }
     }
+
+    /// Java `FindCoordinatorResponse.coordinators`.
+    ///
+    /// Non-empty Coordinators is the list as-is. Empty Coordinators
+    /// synthesizes a singleton from JSON defaults (`errorCode` `NONE`,
+    /// `nodeId` / `port` `0`, empty host, null `errorMessage`) with Key
+    /// null (empty in this crate). Java `setKey(null)`. v1–v3 crate
+    /// decode already folds the top-level coordinator into a one-entry
+    /// vec, so decoded bodies skip this empty path. This crate speaks
+    /// 1–6. This is not [`Self::coordinator_by_key`] (that helper stuffs
+    /// the lookup key) / [`Self::node`] / [`Self::prepare_response`].
+    #[must_use]
+    pub fn coordinators(coordinators: &[CoordinatorResult]) -> Vec<CoordinatorResult> {
+        if coordinators.is_empty() {
+            vec![find_coordinator_top_level_for_key("")]
+        } else {
+            coordinators.to_vec()
+        }
+    }
 }
 
 /// Java `FindCoordinatorRequest` helpers.
@@ -5570,6 +5589,108 @@ mod tests {
             FindCoordinatorResponse::node(1, &prepared),
             NodeEndpoint::new(1, "h", 9092, None)
         );
+    }
+
+    #[test]
+    fn find_coordinator_response_coordinators_matches_java() {
+        // Java 4.0 FindCoordinatorResponse.coordinators: non-empty
+        // Coordinators is the list as-is; empty synthesizes a singleton
+        // from JSON defaults with Key null. Official Java
+        // FindCoordinatorResponse.coordinators. coordinatorByKey stuffs
+        // the lookup key. node() on v4+ ignores Coordinators. This crate
+        // speaks 1-6. This is not coordinatorByKey leftover / node
+        // leftover / prepareResponse leftover / getErrorResponse leftover.
+        let broker = CoordinatorResult {
+            key: "g".into(),
+            node_id: 1,
+            host: "h".into(),
+            port: 9092,
+            error_code: 0,
+            error_message: None,
+        };
+        assert_eq!(
+            FindCoordinatorResponse::coordinators(std::slice::from_ref(&broker)),
+            vec![broker.clone()]
+        );
+        let two = [
+            broker.clone(),
+            CoordinatorResult::error_for_key(crate::error::NOT_COORDINATOR, "h"),
+        ];
+        assert_eq!(FindCoordinatorResponse::coordinators(&two), two);
+        let empty = FindCoordinatorResponse::coordinators(&[]);
+        assert_eq!(
+            empty,
+            vec![CoordinatorResult {
+                key: String::new(),
+                node_id: 0,
+                host: String::new(),
+                port: 0,
+                error_code: 0,
+                error_message: None,
+            }]
+        );
+        assert_ne!(
+            empty.first().expect("synthesized").node_id,
+            -1,
+            "empty Coordinators is JSON defaults, not Node.noNode"
+        );
+        assert_eq!(
+            FindCoordinatorResponse::coordinator_by_key(4, &[], "g")
+                .expect("by key")
+                .key,
+            "g"
+        );
+        assert_eq!(
+            empty.first().expect("null key").key,
+            "",
+            "coordinators() setKey(null)"
+        );
+        assert_eq!(
+            FindCoordinatorResponse::node(4, &two),
+            NodeEndpoint::new(0, "", 0, None),
+            "node() ignores Coordinators on v4+"
+        );
+
+        leftover_find_coordinator_coordinators_encode(1);
+        leftover_find_coordinator_coordinators_encode(3);
+        leftover_find_coordinator_coordinators_encode(4);
+        leftover_find_coordinator_coordinators_encode(6);
+        leftover_find_coordinator_coordinators_encode_body(1, std::slice::from_ref(&broker));
+        leftover_find_coordinator_coordinators_encode_body(4, &two);
+    }
+
+    fn leftover_find_coordinator_coordinators_encode(version: i16) {
+        leftover_find_coordinator_coordinators_encode_body(
+            version,
+            &FindCoordinatorResponse::coordinators(&[]),
+        );
+    }
+
+    fn leftover_find_coordinator_coordinators_encode_body(
+        version: i16,
+        coordinators: &[CoordinatorResult],
+    ) {
+        let mut buf = BytesMut::new();
+        encode_find_coordinator_response_coordinators(
+            &mut buf,
+            version,
+            &FindCoordinatorResponse::coordinators(coordinators),
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        drop(decode_find_coordinator_response_coordinators(&mut cur, version).unwrap());
+        leftover_find_coordinator_coordinators(version, cur);
+    }
+
+    fn leftover_find_coordinator_coordinators(version: i16, cur: &[u8]) {
+        let msg = match (version, cur.is_empty()) {
+            (1, true) => "FindCoordinator v1 Response.coordinators leftover-empty",
+            (3, true) => "FindCoordinator v3 Response.coordinators leftover-empty",
+            (4, true) => "FindCoordinator v4 Response.coordinators leftover-empty",
+            (6, true) => "FindCoordinator v6 Response.coordinators leftover-empty",
+            _ => "FindCoordinator Response.coordinators leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]

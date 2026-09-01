@@ -202,6 +202,9 @@
 //! [`protocol::group::FindCoordinatorResponse::node`] is Java
 //! `FindCoordinatorResponse.node` (v1–v3 folded top-level NodeId/Host/Port;
 //! v4+ JSON defaults `0` / empty / `0`, Coordinators ignored);
+//! [`protocol::group::FindCoordinatorResponse::coordinators`] is Java
+//! `FindCoordinatorResponse.coordinators` (non-empty list as-is; empty
+//! synthesizes JSON defaults with Key null);
 //! [`protocol::group::CoordinatorResult::error`] /
 //! [`protocol::group::CoordinatorResult::error_for_key`] /
 //! [`protocol::group::FindCoordinatorResponse::prepare_error_response`] /
