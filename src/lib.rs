@@ -494,6 +494,10 @@
 //! [`protocol::group::LeaveGroupResponse::from_members`] is Java
 //! `LeaveGroupResponse(List, Errors, int, short)` (v3+ identity; v0–v2
 //! fold `error()` and drop members; zero or many members are allowed);
+//! [`protocol::group::LeaveGroupResponse::encode_from_members`] is Java
+//! `LeaveGroupResponse(List, Errors, int, short)` encode (body is
+//! `from_members`; v1+ writes the `throttleTimeMs` argument; below v1
+//! omits it; convenience encode still writes `0`);
 //! [`LEAVE_GROUP_REASON_CLOSED`] on leave / close, [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate;

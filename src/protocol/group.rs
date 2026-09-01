@@ -2770,7 +2770,8 @@ impl LeaveGroupResponse {
     /// into the top-level code and drop members (zero or many members
     /// are allowed; unlike [`Self::for_version`] this does not require
     /// exactly one). Throttle is the JSON default (`0`) on v1+ (omitted
-    /// on v0; not part of this helper).
+    /// on v0). [`Self::encode_from_members`] writes the Java
+    /// `throttleTimeMs` argument.
     #[must_use]
     pub fn from_members(
         version: i16,
@@ -2782,6 +2783,31 @@ impl LeaveGroupResponse {
         } else {
             (error_code, members.to_vec())
         }
+    }
+
+    /// Java `LeaveGroupResponse(List, Errors, int, short)` encode.
+    ///
+    /// Body is [`Self::from_members`]. ThrottleTimeMs is written on v1+
+    /// from `throttle_time_ms`. Below v1 the field is omitted even when
+    /// that value is non-zero. Decode fills `0`. Convenience
+    /// [`encode_leave_group_response_version`] still writes throttle `0`.
+    /// This crate speaks 0–5. This is not [`Self::from_members`] /
+    /// [`Self::for_version`] / [`LeaveGroupRequest::error_response`].
+    pub fn encode_from_members(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        members: &[LeaveGroupMemberResult],
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        let (error_code, members) = Self::from_members(version, error_code, members);
+        encode_leave_group_response_with_throttle(
+            buf,
+            version,
+            error_code,
+            &members,
+            throttle_time_ms,
+        )
     }
 }
 
@@ -14803,6 +14829,145 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[test]
+    fn leave_group_response_encode_from_members_matches_java() {
+        // Java 4.0 LeaveGroupResponse(List, Errors, int, short): body is
+        // from_members; ThrottleTimeMs from the argument on v1+. Official
+        // Java LeaveGroupResponse(List, Errors, int, short). Convenience
+        // encode still writes ThrottleTimeMs 0. This crate speaks 0-5.
+        // This is not from_members leftover / (data, version) leftover /
+        // LeaveGroupRequest.getErrorResponse leftover.
+        let members = [
+            LeaveGroupMemberResult {
+                member_id: "ok".into(),
+                group_instance_id: None,
+                error_code: 0,
+            },
+            LeaveGroupMemberResult {
+                member_id: "unknown".into(),
+                group_instance_id: Some("i1".into()),
+                error_code: crate::error::UNKNOWN_MEMBER_ID,
+            },
+        ];
+        leftover_leave_group_encode_from_members(0, &members, crate::error::NONE, 3_600_000);
+        leftover_leave_group_encode_from_members(0, &[], crate::error::NONE, 0);
+        leftover_leave_group_encode_from_members(1, &members, crate::error::NONE, 3_600_000);
+        leftover_leave_group_encode_from_members(1, &[], crate::error::NONE, 0);
+        leftover_leave_group_encode_from_members(3, &members, crate::error::NONE, 3_600_000);
+        leftover_leave_group_encode_from_members(3, &[], crate::error::NONE, 0);
+        leftover_leave_group_encode_from_members(5, &members, crate::error::NONE, 3_600_000);
+        leftover_leave_group_encode_from_members(5, &[], crate::error::NONE, 0);
+
+        let (folded, dropped) = LeaveGroupResponse::from_members(1, 0, &members);
+        assert_eq!(folded, crate::error::UNKNOWN_MEMBER_ID);
+        assert!(dropped.is_empty());
+        let mut encoded = BytesMut::new();
+        LeaveGroupResponse::encode_from_members(&mut encoded, 1, 0, &members, 3_600_000).unwrap();
+        let mut with = BytesMut::new();
+        encode_leave_group_response_with_throttle(&mut with, 1, folded, &dropped, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            encoded, with,
+            "v1 encode_from_members is from_members then with_throttle"
+        );
+        let mut conv = BytesMut::new();
+        encode_leave_group_response_version(&mut conv, 1, folded, &dropped).unwrap();
+        assert_ne!(
+            encoded, conv,
+            "convenience encode still writes ThrottleTimeMs 0"
+        );
+
+        let mut v0_with = BytesMut::new();
+        LeaveGroupResponse::encode_from_members(&mut v0_with, 0, 0, &members, 3_600_000).unwrap();
+        let mut v0_zero = BytesMut::new();
+        LeaveGroupResponse::encode_from_members(&mut v0_zero, 0, 0, &members, 0).unwrap();
+        assert_eq!(
+            v0_with, v0_zero,
+            "v0 omits ThrottleTimeMs even when the argument is non-zero"
+        );
+        let mut v0_cur = v0_with.as_ref();
+        let (.., v0_throttle) = decode_leave_group_response_version(&mut v0_cur, 0).unwrap();
+        assert_eq!(v0_throttle, 0, "v0 decode fills ThrottleTimeMs 0");
+
+        let mut none = BytesMut::new();
+        LeaveGroupResponse::encode_from_members(&mut none, 3, 0, &[], 0).unwrap();
+        let mut conv_empty = BytesMut::new();
+        encode_leave_group_response_version(&mut conv_empty, 3, 0, &[]).unwrap();
+        assert_eq!(
+            none, conv_empty,
+            "from_members(NONE, empty) plus throttle 0 equals convenience encode"
+        );
+
+        let mut v3 = BytesMut::new();
+        LeaveGroupResponse::encode_from_members(&mut v3, 3, 0, &members, 3_600_000).unwrap();
+        let mut v3_with = BytesMut::new();
+        encode_leave_group_response_with_throttle(&mut v3_with, 3, 0, &members, 3_600_000).unwrap();
+        assert_eq!(
+            v3, v3_with,
+            "v3 from_members is identity so encode_from_members equals with_throttle"
+        );
+        let mut v2 = BytesMut::new();
+        LeaveGroupResponse::encode_from_members(&mut v2, 2, 0, &members, 3_600_000).unwrap();
+        let mut v2_raw = BytesMut::new();
+        encode_leave_group_response_with_throttle(&mut v2_raw, 2, 0, &members, 3_600_000).unwrap();
+        assert_ne!(
+            v2, v2_raw,
+            "v2 with_throttle does not drop members; encode_from_members does"
+        );
+
+        let mut req_err = BytesMut::new();
+        LeaveGroupRequest::error_response(&mut req_err, 3, 0, 3_600_000).unwrap();
+        assert_ne!(
+            v3, req_err,
+            "Request getErrorResponse keeps Members empty; this constructor keeps v3+ members"
+        );
+    }
+
+    fn leftover_leave_group_encode_from_members(
+        version: i16,
+        members: &[LeaveGroupMemberResult],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) {
+        let mut buf = BytesMut::new();
+        LeaveGroupResponse::encode_from_members(
+            &mut buf,
+            version,
+            error_code,
+            members,
+            throttle_time_ms,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded_err, decoded_members, decoded_throttle) =
+            decode_leave_group_response_version(&mut cur, version).unwrap();
+        let (want_err, want_members) =
+            LeaveGroupResponse::from_members(version, error_code, members);
+        assert_eq!(decoded_err, want_err);
+        assert_eq!(decoded_members, want_members);
+        if version >= 1 {
+            assert_eq!(decoded_throttle, throttle_time_ms);
+        } else {
+            assert_eq!(decoded_throttle, 0);
+        }
+        leftover_leave_group_encode_from_members_bytes(version, members.is_empty(), cur);
+    }
+
+    fn leftover_leave_group_encode_from_members_bytes(version: i16, empty: bool, cur: &[u8]) {
+        let msg = match (version, empty, cur.is_empty()) {
+            (0, false, true) => "LeaveGroup v0 Response.from_members throttle leftover-empty",
+            (1, false, true) => "LeaveGroup v1 Response.from_members throttle leftover-empty",
+            (3, false, true) => "LeaveGroup v3 Response.from_members throttle leftover-empty",
+            (5, false, true) => "LeaveGroup v5 Response.from_members throttle leftover-empty",
+            (0, true, true) => "LeaveGroup v0 Response.from_members throttle empty leftover-empty",
+            (1, true, true) => "LeaveGroup v1 Response.from_members throttle empty leftover-empty",
+            (3, true, true) => "LeaveGroup v3 Response.from_members throttle empty leftover-empty",
+            (5, true, true) => "LeaveGroup v5 Response.from_members throttle empty leftover-empty",
+            _ => "LeaveGroup Response.from_members throttle leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]
