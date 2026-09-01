@@ -925,7 +925,12 @@
 //! [`protocol::admin::encode_alter_client_quotas_response`] still writes `0`;
 //! [`protocol::admin::AlterClientQuotasRequest::entries`] is Java
 //! `AlterClientQuotasRequest.entries` (duplicate EntityType last-wins;
-//! leftover Value on remove is ignored)),
+//! leftover Value on remove is ignored);
+//! [`protocol::admin::AlterClientQuotasRequest::error_response`] is Java
+//! `AlterClientQuotasRequest.getErrorResponse` (copies entity type/name;
+//! `ErrorMessage` stays JSON-null; always writes the `throttleTimeMs`
+//! argument);
+//! [`protocol::admin::encode_alter_client_quotas_response`] still writes `0`),
 //! AllocateProducerIds v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::AllocateProducerIdsResponse::error_counts`] is Java
 //! `AllocateProducerIdsResponse.errorCounts` (top-level `errorCode` only,
@@ -2719,6 +2724,10 @@
 //! [`protocol::admin::AlterClientQuotasRequest::entries`] is Java
 //! `AlterClientQuotasRequest.entries` (duplicate EntityType last-wins;
 //! leftover Value on remove is ignored).
+//! [`protocol::admin::AlterClientQuotasRequest::error_response`] is Java
+//! `AlterClientQuotasRequest.getErrorResponse` (copies entity type/name;
+//! `ErrorMessage` stays JSON-null; always writes the `throttleTimeMs`
+//! argument).
 //! [`Admin::alter_user_scram_credentials_with`] is Java
 //! `alterUserScramCredentials(List)` ([`UserScramCredentialAlteration`]).
 //! [`AlterUserScramCredentialsResult::error`] /

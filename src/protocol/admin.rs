@@ -6718,8 +6718,9 @@ impl ClientQuotaAlteration {
     ///
     /// Copies this entry's entity type/name list and sets `ErrorCode`.
     /// `ErrorMessage` is the JSON default (null); official Java also
-    /// sets the English `Errors.message` string. Throttle on the
-    /// response is the JSON default (`0`).
+    /// sets the English `Errors.message` string. Request ops are not
+    /// copied. ThrottleTimeMs is a top-level field
+    /// ([`AlterClientQuotasRequest::error_response`]).
     #[must_use]
     pub fn error_result(&self, error_code: i16) -> ClientQuotaAlterationResult {
         ClientQuotaAlterationResult::error(self.entity.iter().cloned(), error_code)
@@ -6910,6 +6911,28 @@ impl AlterClientQuotasRequest {
                 ClientQuotaAlteration::new(entity, ops)
             })
             .collect()
+    }
+
+    /// Java `AlterClientQuotasRequest.getErrorResponse`.
+    ///
+    /// Copies each entry's entity type/name through
+    /// [`ClientQuotaAlterationResult::error_results`]. `ErrorMessage`
+    /// stays the JSON default (null); official Java also sets the English
+    /// `Errors.message` string. Request ops are not copied.
+    /// ThrottleTimeMs is written on every spoken version from
+    /// `throttle_time_ms` (Java always calls `setThrottleTimeMs`).
+    /// Convenience encode still writes `0`. This crate speaks 0–1. This
+    /// is not [`Self::entries`] / [`ClientQuotaAlteration::error_result`]
+    /// leftover / [`AlterClientQuotasResponse::from_quota_entities`].
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        entries: &[ClientQuotaAlteration],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        let results = ClientQuotaAlterationResult::error_results(entries, error_code);
+        encode_alter_client_quotas_response_with_throttle(buf, version, &results, throttle_time_ms)
     }
 }
 
@@ -23391,6 +23414,127 @@ mod tests {
             &v1_with[..],
             "v1 adds compact arrays/strings plus tagged fields"
         );
+    }
+
+    #[test]
+    fn alter_client_quotas_request_error_response_matches_java() {
+        // Java 4.0 AlterClientQuotasRequest.getErrorResponse copies
+        // entity type/name from each request entry and sets
+        // ThrottleTimeMs from the argument. Request ops are not copied.
+        // ErrorMessage stays JSON-null. Official Java
+        // AlterClientQuotasRequest.getErrorResponse. Convenience encode
+        // still writes ThrottleTimeMs 0. This crate speaks 0–1. This is
+        // not error_result leftover / from_quota_entities leftover /
+        // entries leftover / ThrottleTimeMs leftover.
+        let entries = [
+            ClientQuotaAlteration::new(
+                vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+                vec![ClientQuotaOp::set("producer_byte_rate", 1024.0)],
+            ),
+            ClientQuotaAlteration::new(
+                vec![ClientQuotaEntity::new("user", Some("carol".into()))],
+                vec![],
+            ),
+        ];
+        let err =
+            ClientQuotaAlterationResult::error_results(&entries, crate::error::NOT_CONTROLLER);
+        assert_eq!(err.len(), 2);
+        assert!(err.iter().all(|r| r.error_message.is_none()));
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            AlterClientQuotasRequest::error_response(
+                &mut buf,
+                version,
+                &entries,
+                crate::error::NOT_CONTROLLER,
+                3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_alter_client_quotas_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(throttle, 3_600_000);
+            leftover_alter_client_quotas_error_response(version, false, cur);
+        }
+
+        for version in [0_i16, 1] {
+            let mut expected = BytesMut::new();
+            encode_alter_client_quotas_response_with_throttle(
+                &mut expected,
+                version,
+                &err,
+                3_600_000,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            AlterClientQuotasRequest::error_response(
+                &mut got,
+                version,
+                &entries,
+                crate::error::NOT_CONTROLLER,
+                3_600_000,
+            )
+            .unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "AlterClientQuotas v{version} getErrorResponse must match with_throttle encode"
+            );
+        }
+
+        let mut conv = BytesMut::new();
+        encode_alter_client_quotas_response(&mut conv, 0, &err).unwrap();
+        let mut zero = BytesMut::new();
+        encode_alter_client_quotas_response_with_throttle(&mut zero, 0, &err, 0).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_alter_client_quotas_response still writes ThrottleTimeMs 0"
+        );
+        let mut with = BytesMut::new();
+        AlterClientQuotasRequest::error_response(
+            &mut with,
+            0,
+            &entries,
+            crate::error::NOT_CONTROLLER,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &conv[..],
+            "AlterClientQuotas Request.getErrorResponse must write the throttleTimeMs argument"
+        );
+
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            AlterClientQuotasRequest::error_response(
+                &mut buf,
+                version,
+                &[],
+                crate::error::NOT_CONTROLLER,
+                3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_alter_client_quotas_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert_eq!(throttle, 3_600_000);
+            leftover_alter_client_quotas_error_response(version, true, cur);
+        }
+    }
+
+    fn leftover_alter_client_quotas_error_response(version: i16, empty: bool, cur: &[u8]) {
+        let msg = match (version, empty) {
+            (0, false) => "AlterClientQuotas v0 Request.getErrorResponse leftover-empty",
+            (1, false) => "AlterClientQuotas v1 Request.getErrorResponse leftover-empty",
+            (0, true) => "AlterClientQuotas v0 empty Request.getErrorResponse leftover-empty",
+            (1, true) => "AlterClientQuotas v1 empty Request.getErrorResponse leftover-empty",
+            _ => "AlterClientQuotas Request.getErrorResponse leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]
