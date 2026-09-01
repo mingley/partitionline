@@ -1676,6 +1676,10 @@
 //! [`protocol::fetch::FetchResponse::of`] is Java
 //! `FetchResponse.of` (Responses from `toMessage`; ThrottleTimeMs /
 //! ErrorCode / SessionId from the arguments; empty NodeEndpoints).
+//! [`protocol::fetch::FetchResponse::of_with_endpoints`] is Java
+//! `FetchResponse.of` with NodeEndpoints (v16+ tagged field 0; below v16
+//! omitted even when non-empty; [`protocol::fetch::FetchResponse::of`] is
+//! this helper with empty endpoints).
 //! [`protocol::fetch::DEFAULT_RESPONSE_MAX_BYTES`] /
 //! [`protocol::fetch::is_from_follower`] are Java
 //! `FetchRequest.DEFAULT_RESPONSE_MAX_BYTES` / `isFromFollower`.

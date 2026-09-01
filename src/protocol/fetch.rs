@@ -973,10 +973,11 @@ impl FetchResponse {
     /// SessionId are the arguments. ErrorCode and SessionId are written on
     /// v7+; below v7 they are omitted even when non-zero and decode fills
     /// `0` / [`FetchMetadata::INVALID_SESSION_ID`]. NodeEndpoints stay
-    /// empty (the five-argument Java `of` with `nodeEndpoints` is not this
-    /// helper). Convenience encode still writes throttle `0`, ErrorCode
-    /// `0`, SessionId [`FetchMetadata::INVALID_SESSION_ID`]. This crate
-    /// speaks 4–17. This is not [`Self::to_message`] / [`Self::size_of`] /
+    /// empty ([`Self::of_with_endpoints`] is the five-argument Java `of`
+    /// with `nodeEndpoints`). Convenience encode still writes throttle
+    /// `0`, ErrorCode `0`, SessionId
+    /// [`FetchMetadata::INVALID_SESSION_ID`]. This crate speaks 4–17.
+    /// This is not [`Self::to_message`] / [`Self::size_of`] /
     /// [`encode_fetch_response_with_throttle`] /
     /// [`encode_fetch_response_with_endpoints`] /
     /// [`FetchRequest::encode_error_response`].
@@ -988,6 +989,41 @@ impl FetchResponse {
         session_id: i32,
         entries: &[([u8; 16], &str, i32, FetchedPartition)],
     ) -> Result<()> {
+        Self::of_with_endpoints(
+            buf,
+            version,
+            error_code,
+            throttle_time_ms,
+            session_id,
+            entries,
+            &[],
+        )
+    }
+
+    /// Java `FetchResponse.of` with NodeEndpoints.
+    ///
+    /// Responses from [`Self::to_message`]. ThrottleTimeMs, ErrorCode,
+    /// SessionId, and NodeEndpoints are the arguments. ErrorCode and
+    /// SessionId are written on v7+; below v7 they are omitted even when
+    /// non-zero. NodeEndpoints are written on v16+ (tagged field 0);
+    /// below v16 they are omitted even when non-empty and decode fills
+    /// empty. [`Self::of`] is this helper with empty NodeEndpoints.
+    /// Convenience encode still writes throttle `0`, ErrorCode `0`,
+    /// SessionId [`FetchMetadata::INVALID_SESSION_ID`], empty
+    /// NodeEndpoints. This crate speaks 4–17. This is not [`Self::of`] /
+    /// [`Self::to_message`] / [`Self::size_of`] /
+    /// [`encode_fetch_response_with_throttle`] /
+    /// [`encode_fetch_response_with_endpoints`] /
+    /// [`FetchRequest::encode_error_response`].
+    pub fn of_with_endpoints(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+        session_id: i32,
+        entries: &[([u8; 16], &str, i32, FetchedPartition)],
+        endpoints: &[super::api::NodeEndpoint],
+    ) -> Result<()> {
         let topics = Self::to_message(entries);
         encode_fetch_response_fields(
             buf,
@@ -995,7 +1031,7 @@ impl FetchResponse {
             &topics,
             error_code,
             session_id,
-            &[],
+            endpoints,
             throttle_time_ms,
         )
     }
@@ -3094,6 +3130,148 @@ mod tests {
             (12, true) => "Fetch v12 Response.of leftover-empty",
             (13, true) => "Fetch v13 Response.of leftover-empty",
             _ => "Fetch Response.of leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn fetch_response_of_with_endpoints_matches_java() {
+        // Java 4.0 FetchResponse.of(error, throttleTimeMs, sessionId,
+        // responseData, nodeEndpoints). Official Java FetchResponse.of
+        // with NodeEndpoints. The four-argument of is this helper with
+        // empty endpoints. NodeEndpoints are v16+ tagged field 0; below
+        // v16 encode omits them even when non-empty. This crate speaks
+        // 4-17. This is not of leftover / toMessage leftover / sizeOf
+        // leftover / with_throttle leftover / with_endpoints leftover /
+        // Request.getErrorResponse leftover.
+        let a = [1u8; 16];
+        let b = [2u8; 16];
+        let body = FetchedPartition::partition_response(99, 0);
+        let entries = [
+            (a, "alpha", 0, body.clone()),
+            (b, "beta", 1, body.clone()),
+            (a, "alpha", 3, body.clone()),
+        ];
+        let topics = FetchResponse::to_message(&entries);
+        let endpoint = crate::protocol::api::NodeEndpoint::new(1, "h", 9092, None);
+        let endpoints = std::slice::from_ref(&endpoint);
+        let err = crate::error::FETCH_SESSION_ID_NOT_FOUND;
+        let session = 9;
+        let throttle = 3_600_000;
+
+        let mut empty = BytesMut::new();
+        FetchResponse::of_with_endpoints(
+            &mut empty,
+            16,
+            0,
+            0,
+            FetchMetadata::INVALID_SESSION_ID,
+            &entries,
+            &[],
+        )
+        .unwrap();
+        let mut of_empty = BytesMut::new();
+        FetchResponse::of(
+            &mut of_empty,
+            16,
+            0,
+            0,
+            FetchMetadata::INVALID_SESSION_ID,
+            &entries,
+        )
+        .unwrap();
+        assert_eq!(empty, of_empty, "of_with_endpoints empty list matches of");
+
+        let mut v12 = BytesMut::new();
+        FetchResponse::of_with_endpoints(&mut v12, 12, err, throttle, session, &entries, endpoints)
+            .unwrap();
+        let mut v12_of = BytesMut::new();
+        FetchResponse::of(&mut v12_of, 12, err, throttle, session, &entries).unwrap();
+        assert_eq!(
+            v12, v12_of,
+            "Fetch v12 omits NodeEndpoints even when non-empty"
+        );
+        leftover_fetch_of_endpoints_encode(4, err, throttle, session, &entries, endpoints);
+        leftover_fetch_of_endpoints_encode(12, err, throttle, session, &entries, endpoints);
+        leftover_fetch_of_endpoints_encode(16, err, throttle, session, &entries, endpoints);
+        leftover_fetch_of_endpoints_encode(17, err, throttle, session, &entries, endpoints);
+        leftover_fetch_of_endpoints_encode(16, 0, 0, FetchMetadata::INVALID_SESSION_ID, &[], &[]);
+        leftover_fetch_of_endpoints_encode(17, 0, 0, FetchMetadata::INVALID_SESSION_ID, &[], &[]);
+
+        for version in [16_i16, 17] {
+            let mut buf = BytesMut::new();
+            FetchResponse::of_with_endpoints(
+                &mut buf, version, err, throttle, session, &entries, endpoints,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, got_endpoints, error_code, session_id, throttle_time_ms) =
+                decode_fetch_response(&mut cur, version).unwrap();
+            leftover_fetch_of_endpoints(version, cur);
+            assert_eq!(decoded.len(), 3);
+            assert_eq!(got_endpoints, endpoints);
+            assert_eq!(error_code, err);
+            assert_eq!(session_id, session);
+            assert_eq!(throttle_time_ms, throttle);
+        }
+
+        let mut of_ep = BytesMut::new();
+        FetchResponse::of_with_endpoints(
+            &mut of_ep, 16, err, throttle, session, &entries, endpoints,
+        )
+        .unwrap();
+        let mut of_only = BytesMut::new();
+        FetchResponse::of(&mut of_only, 16, err, throttle, session, &entries).unwrap();
+        assert_ne!(
+            of_ep, of_only,
+            "of_with_endpoints writes NodeEndpoints on v16+"
+        );
+        let mut with_ep = BytesMut::new();
+        encode_fetch_response_with_endpoints(&mut with_ep, 16, &topics, err, session, endpoints)
+            .unwrap();
+        assert_ne!(
+            of_ep, with_ep,
+            "of_with_endpoints writes ThrottleTimeMs from the argument; with_endpoints writes 0"
+        );
+        let mut with_throttle = BytesMut::new();
+        encode_fetch_response_with_throttle(&mut with_throttle, 16, &topics, throttle).unwrap();
+        assert_ne!(
+            of_ep, with_throttle,
+            "of_with_endpoints writes ErrorCode / SessionId / NodeEndpoints"
+        );
+    }
+
+    fn leftover_fetch_of_endpoints_encode(
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+        session_id: i32,
+        entries: &[([u8; 16], &str, i32, FetchedPartition)],
+        endpoints: &[crate::protocol::api::NodeEndpoint],
+    ) {
+        let mut buf = BytesMut::new();
+        FetchResponse::of_with_endpoints(
+            &mut buf,
+            version,
+            error_code,
+            throttle_time_ms,
+            session_id,
+            entries,
+            endpoints,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        drop(decode_fetch_response(&mut cur, version).unwrap());
+        leftover_fetch_of_endpoints(version, cur);
+    }
+
+    fn leftover_fetch_of_endpoints(version: i16, cur: &[u8]) {
+        let msg = match (version, cur.is_empty()) {
+            (4, true) => "Fetch v4 Response.of endpoints leftover-empty",
+            (12, true) => "Fetch v12 Response.of endpoints leftover-empty",
+            (16, true) => "Fetch v16 Response.of endpoints leftover-empty",
+            (17, true) => "Fetch v17 Response.of endpoints leftover-empty",
+            _ => "Fetch Response.of endpoints leftover-empty",
         };
         assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
