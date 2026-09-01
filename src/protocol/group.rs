@@ -3947,7 +3947,7 @@ impl OffsetCommitResponse {
         counts
     }
 
-    /// Java `OffsetCommitResponse(int, Map)`.
+    /// Java `OffsetCommitResponse(int, Map)` Topics.
     ///
     /// Groups `(topic, partition, error)` by name. A later entry for the
     /// same topic appends (Java `HashMap.getOrDefault` then
@@ -3955,8 +3955,9 @@ impl OffsetCommitResponse {
     /// `HashMap.values` order is unspecified). The Java map key is
     /// `TopicPartition`; grouping uses only the name. Duplicate
     /// partitions for the same pair are kept (`ArrayList`). Throttle is
-    /// not part of this helper (crate encode writes the JSON default
-    /// `0` on v3+; v2 has no throttle field).
+    /// the JSON default (`0`) on v3+ (omitted on v2).
+    /// [`Self::encode_from_errors`] writes the Java `requestThrottleMs`
+    /// argument.
     #[must_use]
     pub fn from_errors<'a, I>(response_data: I) -> Vec<OffsetCommitResponseTopic>
     where
@@ -3986,6 +3987,31 @@ impl OffsetCommitResponse {
             .collect()
     }
 
+    /// Java `OffsetCommitResponse(int, Map)` encode.
+    ///
+    /// Topics are [`Self::from_errors`]. ThrottleTimeMs is written on
+    /// v3+ from `throttle_time_ms`. Below v3 the field is omitted even
+    /// when that value is non-zero. Decode fills `0`. Convenience
+    /// [`encode_offset_commit_topics_response`] still writes throttle
+    /// `0`. This crate speaks 2–9. This is not [`Self::from_errors`] /
+    /// [`Self::add_partition`] / [`Self::merge`] / getErrorResponse.
+    pub fn encode_from_errors<'a, I>(
+        buf: &mut BytesMut,
+        version: i16,
+        response_data: I,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()>
+    where
+        I: IntoIterator<Item = (&'a str, i32, i16)>,
+    {
+        encode_offset_commit_topics_response_with_throttle(
+            buf,
+            version,
+            &Self::from_errors(response_data),
+            throttle_time_ms,
+        )
+    }
+
     /// Java `OffsetCommitResponse.Builder.addPartition`.
     ///
     /// Finds or creates the topic by name (first-seen order) and appends
@@ -3993,7 +4019,8 @@ impl OffsetCommitResponse {
     /// calls append to that topic even when another topic sits between.
     /// [`Self::from_errors`] is a batch of this helper. Encode still
     /// writes independently. This crate speaks 2–9. This is not
-    /// [`Self::from_errors`] / [`Self::merge`] / getErrorResponse.
+    /// [`Self::from_errors`] / [`Self::encode_from_errors`] /
+    /// [`Self::merge`] / getErrorResponse.
     #[must_use]
     pub fn add_partition(
         topics: &[OffsetCommitResponseTopic],
@@ -6003,6 +6030,116 @@ mod tests {
             "OffsetCommit v8 from_errors leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn offset_commit_response_encode_from_errors_matches_java() {
+        // Java 4.0 OffsetCommitResponse(int, Map): Topics from from_errors;
+        // ThrottleTimeMs from the argument on v3+. Official Java
+        // OffsetCommitResponse(int, Map). Convenience encode still writes
+        // ThrottleTimeMs 0. This crate speaks 2-9. This is not from_errors
+        // leftover / addPartition leftover / merge leftover /
+        // getErrorResponse leftover.
+        let rows = [
+            ("a", 0, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            ("b", 0, crate::error::NOT_LEADER_OR_FOLLOWER),
+            ("a", 1, 0i16),
+        ];
+        leftover_offset_commit_encode_from_errors(2, &rows, 3_600_000);
+        leftover_offset_commit_encode_from_errors(2, &[], 0);
+        leftover_offset_commit_encode_from_errors(3, &rows, 3_600_000);
+        leftover_offset_commit_encode_from_errors(3, &[], 0);
+        leftover_offset_commit_encode_from_errors(8, &rows, 3_600_000);
+        leftover_offset_commit_encode_from_errors(8, &[], 0);
+        leftover_offset_commit_encode_from_errors(9, &rows, 3_600_000);
+        leftover_offset_commit_encode_from_errors(9, &[], 0);
+
+        let grouped = OffsetCommitResponse::from_errors(rows);
+        let mut encoded = BytesMut::new();
+        OffsetCommitResponse::encode_from_errors(&mut encoded, 3, rows, 3_600_000).unwrap();
+        let mut with = BytesMut::new();
+        encode_offset_commit_topics_response_with_throttle(&mut with, 3, &grouped, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            encoded, with,
+            "encode_from_errors is from_errors then with_throttle"
+        );
+        let mut conv = BytesMut::new();
+        encode_offset_commit_topics_response(&mut conv, 3, &grouped).unwrap();
+        assert_ne!(
+            encoded, conv,
+            "convenience encode still writes ThrottleTimeMs 0"
+        );
+
+        let mut v2_with = BytesMut::new();
+        OffsetCommitResponse::encode_from_errors(&mut v2_with, 2, rows, 3_600_000).unwrap();
+        let mut v2_zero = BytesMut::new();
+        OffsetCommitResponse::encode_from_errors(&mut v2_zero, 2, rows, 0).unwrap();
+        assert_eq!(
+            v2_with, v2_zero,
+            "v2 omits ThrottleTimeMs even when the argument is non-zero"
+        );
+        let mut v2_cur = v2_with.as_ref();
+        let (.., v2_throttle) = decode_offset_commit_topics_response(&mut v2_cur, 2).unwrap();
+        assert_eq!(v2_throttle, 0, "v2 decode fills ThrottleTimeMs 0");
+
+        let mut none = BytesMut::new();
+        OffsetCommitResponse::encode_from_errors(
+            &mut none,
+            8,
+            std::iter::empty::<(&str, i32, i16)>(),
+            0,
+        )
+        .unwrap();
+        let mut conv_empty = BytesMut::new();
+        encode_offset_commit_topics_response(&mut conv_empty, 8, &[]).unwrap();
+        assert_eq!(
+            none, conv_empty,
+            "from_errors(empty) plus throttle 0 equals convenience encode"
+        );
+    }
+
+    fn leftover_offset_commit_encode_from_errors(
+        version: i16,
+        response_data: &[(&str, i32, i16)],
+        throttle_time_ms: i32,
+    ) {
+        let mut buf = BytesMut::new();
+        OffsetCommitResponse::encode_from_errors(
+            &mut buf,
+            version,
+            response_data.iter().copied(),
+            throttle_time_ms,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, decoded_throttle) =
+            decode_offset_commit_topics_response(&mut cur, version).unwrap();
+        assert_eq!(
+            decoded,
+            OffsetCommitResponse::from_errors(response_data.iter().copied())
+        );
+        if version >= 3 {
+            assert_eq!(decoded_throttle, throttle_time_ms);
+        } else {
+            assert_eq!(decoded_throttle, 0);
+        }
+        leftover_offset_commit_encode_from_errors_bytes(version, response_data.is_empty(), cur);
+    }
+
+    fn leftover_offset_commit_encode_from_errors_bytes(version: i16, empty: bool, cur: &[u8]) {
+        let msg = match (version, empty, cur.is_empty()) {
+            (2, false, true) => "OffsetCommit v2 Response.from_errors throttle leftover-empty",
+            (3, false, true) => "OffsetCommit v3 Response.from_errors throttle leftover-empty",
+            (8, false, true) => "OffsetCommit v8 Response.from_errors throttle leftover-empty",
+            (9, false, true) => "OffsetCommit v9 Response.from_errors throttle leftover-empty",
+            (2, true, true) => "OffsetCommit v2 Response.from_errors throttle empty leftover-empty",
+            (3, true, true) => "OffsetCommit v3 Response.from_errors throttle empty leftover-empty",
+            (8, true, true) => "OffsetCommit v8 Response.from_errors throttle empty leftover-empty",
+            (9, true, true) => "OffsetCommit v9 Response.from_errors throttle empty leftover-empty",
+            _ => "OffsetCommit Response.from_errors throttle leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]

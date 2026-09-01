@@ -246,6 +246,10 @@
 //! `OffsetCommitResponse` constructor from an errors map (group by
 //! topic name; a later entry for the same topic appends; first-seen
 //! topic order);
+//! [`protocol::group::OffsetCommitResponse::encode_from_errors`] is Java
+//! `OffsetCommitResponse(int, Map)` encode (Topics are `from_errors`;
+//! v3+ writes the `requestThrottleMs` argument; below v3 omits it;
+//! convenience encode still writes `0`);
 //! [`protocol::group::OffsetCommitResponse::add_partition`] is Java
 //! `OffsetCommitResponse.Builder.addPartition` (find or create the topic
 //! by name; append the partition; duplicates are kept;
