@@ -2230,6 +2230,34 @@ impl CreatePartitionsTopic {
     }
 }
 
+/// Java `CreatePartitionsRequest` helpers.
+pub struct CreatePartitionsRequest;
+
+impl CreatePartitionsRequest {
+    /// Java `CreatePartitionsRequest.getErrorResponse`.
+    ///
+    /// Copies each topic name through
+    /// [`CreatePartitionsTopic::error_result`]. `ErrorMessage` stays the
+    /// JSON default (null); official Java also sets the English
+    /// `Errors.message` string. Request count and assignments are not
+    /// copied. ThrottleTimeMs is written on every spoken version from
+    /// `throttle_time_ms` (Java always calls `setThrottleTimeMs`).
+    /// Convenience encode still writes `0`. This crate speaks 0–3. This
+    /// is not [`CreatePartitionsTopic::error_result`] /
+    /// [`CreatePartitionsTopic::error_results`] leftover /
+    /// [`CreatePartitionsResponse::error_counts`].
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        topics: &[CreatePartitionsTopic],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        let results = CreatePartitionsTopic::error_results(topics, error_code);
+        encode_create_partitions_response_with_throttle(buf, version, &results, throttle_time_ms)
+    }
+}
+
 /// Topics, TimeoutMs, and ValidateOnly from a CreatePartitions request.
 type CreatePartitionsDecoded = (Vec<CreatePartitionsTopic>, i32, bool);
 
@@ -19927,6 +19955,109 @@ mod tests {
             &v3_with[..],
             "empty-Results ThrottleTimeMs bodies: v2 == v3"
         );
+    }
+
+    #[test]
+    fn create_partitions_request_error_response_matches_java() {
+        // Java 4.0 CreatePartitionsRequest.getErrorResponse copies Name
+        // from each request topic and sets ThrottleTimeMs from the
+        // argument. ErrorMessage stays JSON-null. Official Java
+        // CreatePartitionsRequest.getErrorResponse. Convenience encode
+        // still writes ThrottleTimeMs 0. This crate speaks 0–3. This is
+        // not error_result leftover / error_counts / ThrottleTimeMs
+        // leftover.
+        let topics = [
+            CreatePartitionsTopic::new("t", 3),
+            CreatePartitionsTopic {
+                name: "u".into(),
+                count: 5,
+                assignments: Some(vec![vec![1, 2]]),
+            },
+        ];
+        let err = CreatePartitionsTopic::error_results(&topics, crate::error::NOT_COORDINATOR);
+        assert_eq!(err.len(), 2);
+        assert!(err.iter().all(|r| r.error_message.is_none()));
+        for version in [0_i16, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            CreatePartitionsRequest::error_response(
+                &mut buf,
+                version,
+                &topics,
+                crate::error::NOT_COORDINATOR,
+                3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_create_partitions_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(throttle, 3_600_000);
+            leftover_create_partitions_error_response(version, false, cur);
+        }
+
+        for version in [0_i16, 1, 2, 3] {
+            let mut expected = BytesMut::new();
+            encode_create_partitions_response_with_throttle(
+                &mut expected,
+                version,
+                &err,
+                3_600_000,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            CreatePartitionsRequest::error_response(
+                &mut got,
+                version,
+                &topics,
+                crate::error::NOT_COORDINATOR,
+                3_600_000,
+            )
+            .unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "CreatePartitions v{version} getErrorResponse must match with_throttle encode"
+            );
+        }
+
+        let mut conv = BytesMut::new();
+        encode_create_partitions_response(&mut conv, 0, &err).unwrap();
+        let mut zero = BytesMut::new();
+        encode_create_partitions_response_with_throttle(&mut zero, 0, &err, 0).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_create_partitions_response still writes ThrottleTimeMs 0"
+        );
+
+        for version in [0_i16, 2] {
+            let mut buf = BytesMut::new();
+            CreatePartitionsRequest::error_response(
+                &mut buf,
+                version,
+                &[],
+                crate::error::NOT_COORDINATOR,
+                3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_create_partitions_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert_eq!(throttle, 3_600_000);
+            leftover_create_partitions_error_response(version, true, cur);
+        }
+    }
+
+    fn leftover_create_partitions_error_response(version: i16, empty: bool, cur: &[u8]) {
+        let msg = match (version, empty) {
+            (0, false) => "CreatePartitions v0 getErrorResponse leftover-empty",
+            (1, false) => "CreatePartitions v1 getErrorResponse leftover-empty",
+            (2, false) => "CreatePartitions v2 getErrorResponse leftover-empty",
+            (3, false) => "CreatePartitions v3 getErrorResponse leftover-empty",
+            (0, true) => "CreatePartitions v0 empty getErrorResponse leftover-empty",
+            (2, true) => "CreatePartitions v2 empty getErrorResponse leftover-empty",
+            _ => "CreatePartitions getErrorResponse leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]

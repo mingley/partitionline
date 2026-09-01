@@ -1097,8 +1097,10 @@
 //! [`protocol::admin::CreatePartitionsTopic::error_result`] /
 //! [`protocol::admin::CreatePartitionsTopic::error_results`] are Java
 //! `CreatePartitionsRequest.getErrorResponse` (one topic / Results).
-//! `ErrorMessage` stays the JSON default (null); official Java also
-//! sets the English `Errors.message` string;
+//! [`protocol::admin::CreatePartitionsRequest::error_response`] is Java
+//! `CreatePartitionsRequest.getErrorResponse` (copies names; `ErrorMessage`
+//! stays JSON-null; always writes the `throttleTimeMs` argument);
+//! official Java also sets the English `Errors.message` string;
 //! [`protocol::admin::encode_create_partitions_response`] still writes `0`),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible; Resources of N; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::IncrementalAlterConfigsResponse::should_client_throttle`] is Java
