@@ -941,6 +941,31 @@ impl FetchResponse {
         }
         topics
     }
+
+    /// Java `FetchResponse.sizeOf`.
+    ///
+    /// `4` plus the encoded body from [`Self::to_message`] then
+    /// [`encode_fetch_response`] (Java `toMessage(NONE, 0,
+    /// INVALID_SESSION_ID, iterator, empty)` then `data.size` plus the
+    /// INT32 size prefix). Throttle / ErrorCode / SessionId stay
+    /// convenience-encode values (`0` / [`FetchMetadata::INVALID_SESSION_ID`]);
+    /// those fields have fixed width so the values do not change the
+    /// size. Empty NodeEndpoints. This crate speaks 4–17. This is not
+    /// [`Self::to_message`] / [`FetchedPartition::records_size`] /
+    /// [`FetchRequest::encode_error_response`].
+    pub fn size_of(
+        version: i16,
+        entries: &[([u8; 16], &str, i32, FetchedPartition)],
+    ) -> Result<i32> {
+        let topics = Self::to_message(entries);
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, version, &topics)?;
+        let n = buf
+            .len()
+            .checked_add(4)
+            .ok_or_else(|| Error::protocol("FetchResponse.sizeOf overflow"))?;
+        buf::i32_from_usize(n)
+    }
 }
 
 /// One topic in a Fetch response.
@@ -2796,6 +2821,106 @@ mod tests {
                 .map(|part| part.partition),
             Some(3)
         );
+    }
+
+    #[test]
+    fn fetch_response_size_of_matches_java() {
+        // Java 4.0 FetchResponse.sizeOf: 4 plus
+        // toMessage(NONE, 0, INVALID_SESSION_ID, iterator, empty).size.
+        // Official Java FetchResponse.sizeOf. Convenience encode still
+        // writes throttle 0, ErrorCode 0, SessionId INVALID. This crate
+        // speaks 4-17. This is not toMessage leftover / recordsSize
+        // leftover / Request.getErrorResponse leftover.
+        let empty = FetchResponse::size_of(4, &[]).unwrap();
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, 4, &[]).unwrap();
+        let body_len = buf::i32_from_usize(buf.len()).unwrap();
+        assert_eq!(empty, body_len + 4, "sizeOf is 4 plus the encoded body");
+        assert_ne!(empty, body_len);
+        leftover_fetch_size_of(4, &[]);
+
+        let a = [1u8; 16];
+        let b = [2u8; 16];
+        let body = FetchedPartition::partition_response(99, 0);
+        let entries = [
+            (a, "alpha", 0, body.clone()),
+            (b, "beta", 1, body.clone()),
+            (a, "alpha", 3, body.clone()),
+        ];
+        let topics = FetchResponse::to_message(&entries);
+        assert_eq!(topics.len(), 3, "non-adjacent same topicId stays split");
+        for version in [4_i16, 7, 12, 13, 17] {
+            let size = FetchResponse::size_of(version, &entries).unwrap();
+            buf.clear();
+            encode_fetch_response(&mut buf, version, &topics).unwrap();
+            let encoded_len = buf::i32_from_usize(buf.len()).unwrap();
+            assert_eq!(size, encoded_len + 4);
+            let mut cur = buf.as_ref();
+            let (decoded, ..) = decode_fetch_response(&mut cur, version).unwrap();
+            leftover_fetch_size_of_cur(version, cur);
+            assert_eq!(decoded.len(), 3);
+        }
+
+        leftover_fetch_size_of(4, &[]);
+        leftover_fetch_size_of(7, &[]);
+        leftover_fetch_size_of(12, &[]);
+        leftover_fetch_size_of(13, &[]);
+        leftover_fetch_size_of(4, &topics);
+        leftover_fetch_size_of(7, &topics);
+        leftover_fetch_size_of(12, &topics);
+        leftover_fetch_size_of(13, &topics);
+
+        let consecutive = [(a, "alpha", 0, body.clone()), (a, "alpha", 3, body.clone())];
+        let split = FetchResponse::size_of(12, &entries).unwrap();
+        let merged = FetchResponse::size_of(12, &consecutive).unwrap();
+        assert!(
+            split > merged,
+            "non-adjacent grouping is larger than consecutive matchingTopic"
+        );
+
+        buf.clear();
+        encode_fetch_response_with_throttle(&mut buf, 7, &topics, 3_600_000).unwrap();
+        let mut with_throttle = BytesMut::new();
+        encode_fetch_response(&mut with_throttle, 7, &topics).unwrap();
+        assert_eq!(
+            buf.len(),
+            with_throttle.len(),
+            "ThrottleTimeMs is a fixed-width INT32"
+        );
+        buf.clear();
+        encode_fetch_response_with_endpoints(
+            &mut buf,
+            7,
+            &topics,
+            crate::error::FETCH_SESSION_ID_NOT_FOUND,
+            9,
+            &[],
+        )
+        .unwrap();
+        assert_eq!(
+            buf.len(),
+            with_throttle.len(),
+            "ErrorCode and SessionId are fixed width on v7+"
+        );
+    }
+
+    fn leftover_fetch_size_of(version: i16, topics: &[FetchedTopic]) {
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, version, topics).unwrap();
+        let mut cur = buf.as_ref();
+        drop(decode_fetch_response(&mut cur, version).unwrap());
+        leftover_fetch_size_of_cur(version, cur);
+    }
+
+    fn leftover_fetch_size_of_cur(version: i16, cur: &[u8]) {
+        let msg = match (version, cur.is_empty()) {
+            (4, true) => "Fetch v4 Response.sizeOf leftover-empty",
+            (7, true) => "Fetch v7 Response.sizeOf leftover-empty",
+            (12, true) => "Fetch v12 Response.sizeOf leftover-empty",
+            (13, true) => "Fetch v13 Response.sizeOf leftover-empty",
+            _ => "Fetch Response.sizeOf leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]

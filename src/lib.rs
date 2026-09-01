@@ -1660,6 +1660,9 @@
 //! `FetchResponse.toMessage` Responses (consecutive `matchingTopic`:
 //! non-zero `topic_id` matches by id, else by name; key partition
 //! overwrites the body).
+//! [`protocol::fetch::FetchResponse::size_of`] is Java
+//! `FetchResponse.sizeOf` (`4` plus the encoded body from `toMessage`
+//! with `NONE` / throttle `0` / `INVALID_SESSION_ID` / empty endpoints).
 //! [`protocol::fetch::DEFAULT_RESPONSE_MAX_BYTES`] /
 //! [`protocol::fetch::is_from_follower`] are Java
 //! `FetchRequest.DEFAULT_RESPONSE_MAX_BYTES` / `isFromFollower`.
