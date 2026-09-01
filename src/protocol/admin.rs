@@ -2657,9 +2657,8 @@ impl IncrementalAlterConfigsResponse {
     /// [`ApiError::error`] / [`ApiError::message`] (the message is
     /// copied; contrast [`AlterConfigsResourceResult::error`], which
     /// leaves `ErrorMessage` null). Inverse of [`Self::from_response_data`].
-    /// Throttle is unused in this helper
-    /// ([`encode_incremental_alter_configs_resource_results`] still writes
-    /// `0`). Official Java constructor sets `throttleTimeMs` from the
+    /// Throttle is the JSON default (`0`).
+    /// [`Self::encode_from_errors`] writes the Java `requestThrottleMs`
     /// argument.
     #[must_use]
     pub fn from_errors<'a, I>(results: I) -> Vec<AlterConfigsResourceResult>
@@ -2675,6 +2674,33 @@ impl IncrementalAlterConfigsResponse {
                 name: name.to_string(),
             })
             .collect()
+    }
+
+    /// Java `IncrementalAlterConfigsResponse(int, Map)` encode.
+    ///
+    /// Responses are [`Self::from_errors`]. ThrottleTimeMs is written
+    /// from `throttle_time_ms` on every spoken version (JSON `0+`).
+    /// Convenience [`encode_incremental_alter_configs_resource_results`]
+    /// still writes throttle `0`. Distinct from
+    /// [`IncrementalAlterConfigsRequest::error_response`] (null
+    /// ErrorMessage; Java does not set throttle). This crate speaks 0–1.
+    /// This is not [`Self::from_errors`] / Request getErrorResponse /
+    /// [`IncrementalAlterConfigsRequest::from_configs`].
+    pub fn encode_from_errors<'a, I>(
+        buf: &mut BytesMut,
+        version: i16,
+        results: I,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()>
+    where
+        I: IntoIterator<Item = (i8, &'a str, ApiError)>,
+    {
+        encode_incremental_alter_configs_resource_results_with_throttle(
+            buf,
+            version,
+            &Self::from_errors(results),
+            throttle_time_ms,
+        )
     }
 }
 
@@ -17606,6 +17632,130 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn incremental_alter_configs_response_encode_from_errors_matches_java() {
+        // Java 4.0 IncrementalAlterConfigsResponse(int, Map): Responses
+        // from from_errors; ThrottleTimeMs from the argument on every
+        // spoken version. Official Java IncrementalAlterConfigsResponse(int,
+        // Map). Convenience encode still writes ThrottleTimeMs 0. This
+        // crate speaks 0-1. This is not from_errors leftover /
+        // from_configs leftover / Request getErrorResponse leftover.
+        let denied = crate::error::ApiError::from_code(
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+            Some("no".into()),
+        );
+        let none = crate::error::ApiError::NONE;
+        let invalid = crate::error::ApiError::from_code(crate::error::INVALID_CONFIG, None);
+        let rows = [
+            (RESOURCE_TOPIC, "t", denied),
+            (RESOURCE_BROKER, "1", none),
+            (RESOURCE_TOPIC, "t", invalid),
+        ];
+        leftover_incremental_alter_configs_encode_from_errors(0, &rows, 3_600_000);
+        leftover_incremental_alter_configs_encode_from_errors(0, &[], 0);
+        leftover_incremental_alter_configs_encode_from_errors(1, &rows, 3_600_000);
+        leftover_incremental_alter_configs_encode_from_errors(1, &[], 0);
+
+        let grouped = IncrementalAlterConfigsResponse::from_errors(rows.clone());
+        let mut encoded = BytesMut::new();
+        IncrementalAlterConfigsResponse::encode_from_errors(
+            &mut encoded,
+            0,
+            rows.clone(),
+            3_600_000,
+        )
+        .unwrap();
+        let mut with = BytesMut::new();
+        encode_incremental_alter_configs_resource_results_with_throttle(
+            &mut with, 0, &grouped, 3_600_000,
+        )
+        .unwrap();
+        assert_eq!(
+            encoded, with,
+            "encode_from_errors is from_errors then with_throttle"
+        );
+        let mut conv = BytesMut::new();
+        encode_incremental_alter_configs_resource_results(&mut conv, 0, &grouped).unwrap();
+        assert_ne!(
+            encoded, conv,
+            "convenience encode still writes ThrottleTimeMs 0"
+        );
+
+        let mut none_buf = BytesMut::new();
+        IncrementalAlterConfigsResponse::encode_from_errors(
+            &mut none_buf,
+            1,
+            std::iter::empty::<(i8, &str, crate::error::ApiError)>(),
+            0,
+        )
+        .unwrap();
+        let mut conv_empty = BytesMut::new();
+        encode_incremental_alter_configs_resource_results(&mut conv_empty, 1, &[]).unwrap();
+        assert_eq!(
+            none_buf, conv_empty,
+            "from_errors(empty) plus throttle 0 equals convenience encode"
+        );
+    }
+
+    fn leftover_incremental_alter_configs_encode_from_errors(
+        version: i16,
+        results: &[(i8, &str, crate::error::ApiError)],
+        throttle_time_ms: i32,
+    ) {
+        let mut buf = BytesMut::new();
+        IncrementalAlterConfigsResponse::encode_from_errors(
+            &mut buf,
+            version,
+            results
+                .iter()
+                .map(|(resource_type, name, error)| (*resource_type, *name, error.clone())),
+            throttle_time_ms,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, decoded_throttle) =
+            decode_incremental_alter_configs_resource_results(&mut cur, version).unwrap();
+        assert_eq!(
+            decoded,
+            IncrementalAlterConfigsResponse::from_errors(
+                results.iter().map(|(resource_type, name, error)| (
+                    *resource_type,
+                    *name,
+                    error.clone()
+                ))
+            )
+        );
+        assert_eq!(decoded_throttle, throttle_time_ms);
+        leftover_incremental_alter_configs_encode_from_errors_bytes(
+            version,
+            results.is_empty(),
+            cur,
+        );
+    }
+
+    fn leftover_incremental_alter_configs_encode_from_errors_bytes(
+        version: i16,
+        empty: bool,
+        cur: &[u8],
+    ) {
+        let msg = match (version, empty, cur.is_empty()) {
+            (0, false, true) => {
+                "IncrementalAlterConfigs v0 Response.from_errors throttle leftover-empty"
+            }
+            (1, false, true) => {
+                "IncrementalAlterConfigs v1 Response.from_errors throttle leftover-empty"
+            }
+            (0, true, true) => {
+                "IncrementalAlterConfigs v0 Response.from_errors throttle empty leftover-empty"
+            }
+            (1, true, true) => {
+                "IncrementalAlterConfigs v1 Response.from_errors throttle empty leftover-empty"
+            }
+            _ => "IncrementalAlterConfigs Response.from_errors throttle leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]

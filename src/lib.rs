@@ -1163,9 +1163,11 @@
 //! [`ApiError`]; unknown resource types are UNKNOWN);
 //! [`protocol::admin::IncrementalAlterConfigsResponse::from_errors`] is Java
 //! `IncrementalAlterConfigsResponse` constructed from a result map (type
-//! id + name plus [`ApiError`] into Responses; `ErrorMessage` is copied;
-//! throttle unused;
-//! [`protocol::admin::encode_incremental_alter_configs_resource_results`] still writes `0`;
+//! id + name plus [`ApiError`] into Responses; `ErrorMessage` is copied);
+//! [`protocol::admin::IncrementalAlterConfigsResponse::encode_from_errors`] is Java
+//! `IncrementalAlterConfigsResponse(int, Map)` encode (Responses are
+//! `from_errors`; writes the `requestThrottleMs` argument; convenience
+//! encode still writes throttle `0`);
 //! [`protocol::admin::IncrementalAlterConfigsRequest::from_configs`] is Java
 //! `IncrementalAlterConfigsRequest.Builder` from a resource list and
 //! configs map (missing `Map.get` is [`Error::protocol`]; mapKey first
@@ -2294,8 +2296,11 @@
 //! does not set `ThrottleTimeMs` (JSON default `0`).
 //! [`protocol::admin::IncrementalAlterConfigsResponse::from_errors`] is Java
 //! `IncrementalAlterConfigsResponse` constructed from a result map (type
-//! id + name plus [`ApiError`] into Responses; `ErrorMessage` is copied;
-//! throttle unused).
+//! id + name plus [`ApiError`] into Responses; `ErrorMessage` is copied).
+//! [`protocol::admin::IncrementalAlterConfigsResponse::encode_from_errors`] is Java
+//! `IncrementalAlterConfigsResponse(int, Map)` encode (Responses are
+//! `from_errors`; writes the `requestThrottleMs` argument; convenience
+//! encode still writes throttle `0`).
 //! [`protocol::admin::IncrementalAlterConfigsRequest::from_configs`] is Java
 //! `IncrementalAlterConfigsRequest.Builder` from a resource list and
 //! configs map (missing `Map.get` is [`Error::protocol`]; mapKey first
