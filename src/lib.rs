@@ -742,7 +742,11 @@
 //! omits it);
 //! v2+ round-trips ThrottleTimeMs; below v2 encode omits it even when
 //! the body has a non-zero value and decode fills `0`;
-//! [`protocol::admin::encode_create_topics_response`] still writes `0`),
+//! [`protocol::admin::encode_create_topics_response`] still writes `0`;
+//! [`protocol::admin::CreateTopicsRequest::build`] is Java
+//! `CreateTopicsRequest.Builder.build` (rejects `validateOnly` on v0
+//! and default partitions / replication factor below v4 when Assignments
+//! is empty; encode still writes independently after this helper),
 //! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId, `delete_topics_by_id`;
 //! [`protocol::admin::DeleteTopicsResponse::should_client_throttle`] is Java
 //! `DeleteTopicsResponse.shouldClientThrottle` (v2+);
