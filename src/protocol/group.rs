@@ -144,6 +144,53 @@ impl FindCoordinatorResponse {
             .collect()
     }
 
+    /// Java `FindCoordinatorResponse.prepareCoordinatorResponse`.
+    ///
+    /// Copies Key, ErrorCode, NodeId, Host, and Port from the arguments.
+    /// `ErrorMessage` stays the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. Throttle is the JSON
+    /// default (`0`). [`CoordinatorResult::error_for_key`] is this helper
+    /// with `Node.noNode`. This crate speaks 1–6. This is not
+    /// [`Self::prepare_error_response`] / [`Self::error_results`].
+    #[must_use]
+    pub fn prepare_coordinator_response(
+        error_code: i16,
+        key: impl Into<String>,
+        node_id: i32,
+        host: impl Into<String>,
+        port: i32,
+    ) -> CoordinatorResult {
+        CoordinatorResult {
+            key: key.into(),
+            node_id,
+            host: host.into(),
+            port,
+            error_code,
+            error_message: None,
+        }
+    }
+
+    /// Java `FindCoordinatorResponse.prepareResponse`.
+    ///
+    /// A singleton Coordinators list from
+    /// [`Self::prepare_coordinator_response`]. Throttle stays the JSON
+    /// default (`0`). Convenience
+    /// [`encode_find_coordinator_response`] still writes ErrorCode `0`.
+    /// This crate speaks 1–6. This is not [`Self::prepare_error_response`]
+    /// / [`Self::error_results`] / [`CoordinatorResult::error_for_key`].
+    #[must_use]
+    pub fn prepare_response(
+        error_code: i16,
+        key: impl Into<String>,
+        node_id: i32,
+        host: impl Into<String>,
+        port: i32,
+    ) -> Vec<CoordinatorResult> {
+        vec![Self::prepare_coordinator_response(
+            error_code, key, node_id, host, port,
+        )]
+    }
+
     /// Java `FindCoordinatorRequest.getErrorResponse`.
     ///
     /// Below [`MIN_BATCHED_VERSION`] this is `prepareOldResponse` (one
@@ -721,16 +768,11 @@ impl CoordinatorResult {
     /// Copies `Key` and sets ErrorCode / `Node.noNode` (`id` `-1`, empty
     /// host, port `-1`). `ErrorMessage` is the JSON default (null);
     /// official Java also sets the English `Errors.message` string.
+    /// [`FindCoordinatorResponse::prepare_coordinator_response`] is this
+    /// helper with a caller Node.
     #[must_use]
     pub fn error_for_key(error_code: i16, key: impl Into<String>) -> Self {
-        Self {
-            key: key.into(),
-            node_id: -1,
-            host: String::new(),
-            port: -1,
-            error_code,
-            error_message: None,
-        }
+        FindCoordinatorResponse::prepare_coordinator_response(error_code, key, -1, "", -1)
     }
 }
 
@@ -7640,6 +7682,114 @@ mod tests {
             "FindCoordinator v4 empty prepareErrorResponse leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn find_coordinator_response_prepare_response_matches_java() {
+        // Java 4.0 FindCoordinatorResponse.prepareResponse: singleton
+        // Coordinators from prepareCoordinatorResponse(error, key, node).
+        // ErrorMessage stays the generated default null. Official Java
+        // FindCoordinatorResponse.prepareResponse. Convenience encode
+        // still writes ErrorCode 0. error_for_key / prepareErrorResponse
+        // still use Node.noNode. This crate speaks 1-6. This is not
+        // prepareErrorResponse leftover / getErrorResponse leftover /
+        // Builder.build leftover.
+        let err = crate::error::COORDINATOR_NOT_AVAILABLE;
+        let body = FindCoordinatorResponse::prepare_coordinator_response(err, "g", 1, "h", 9092);
+        assert_eq!(body.key, "g");
+        assert_eq!(body.node_id, 1);
+        assert_eq!(body.host, "h");
+        assert_eq!(body.port, 9092);
+        assert_eq!(body.error_code, err);
+        assert_eq!(body.error_message, None);
+        assert_eq!(
+            CoordinatorResult::error_for_key(err, "g"),
+            FindCoordinatorResponse::prepare_coordinator_response(err, "g", -1, "", -1),
+            "error_for_key is prepareCoordinatorResponse with Node.noNode"
+        );
+
+        let prepared = FindCoordinatorResponse::prepare_response(err, "g", 1, "h", 9092);
+        assert_eq!(prepared, vec![body.clone()]);
+        let no_node = FindCoordinatorResponse::prepare_error_response(["g"], err);
+        assert_ne!(
+            prepared, no_node,
+            "prepareResponse writes Node from the argument; prepareErrorResponse uses noNode"
+        );
+
+        let none = FindCoordinatorResponse::prepare_response(0, "g", 1, "h", 9092);
+        for version in [1_i16, 3, 4, 6] {
+            let mut via_prepare = BytesMut::new();
+            encode_find_coordinator_response_coordinators(&mut via_prepare, version, &none)
+                .unwrap();
+            let mut via_conv = BytesMut::new();
+            encode_find_coordinator_response(&mut via_conv, version, 1, "h", 9092, "g").unwrap();
+            assert_eq!(
+                via_prepare, via_conv,
+                "prepareResponse(NONE, node) matches convenience encode"
+            );
+            leftover_find_coordinator_prepare_response_encode(version, 0, "g", 1, "h", 9092);
+        }
+
+        leftover_find_coordinator_prepare_response_encode(1, err, "g", 1, "h", 9092);
+        leftover_find_coordinator_prepare_response_encode(3, err, "g", 1, "h", 9092);
+        leftover_find_coordinator_prepare_response_encode(4, err, "g", 1, "h", 9092);
+        leftover_find_coordinator_prepare_response_encode(6, err, "g", 1, "h", 9092);
+
+        for version in [1_i16, 3] {
+            let mut buf = BytesMut::new();
+            encode_find_coordinator_response_coordinators(&mut buf, version, &prepared).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_find_coordinator_response_coordinators(&mut cur, version).unwrap();
+            leftover_find_coordinator_prepare_response(version, cur);
+            assert_eq!(decoded.len(), 1);
+            let first = decoded.first().expect("v1-v3 coordinator");
+            assert_eq!(first.key, "", "v1-v3 omit Key even when the body has one");
+            assert_eq!(first.node_id, 1);
+            assert_eq!(first.host, "h");
+            assert_eq!(first.port, 9092);
+            assert_eq!(first.error_code, err);
+            assert_eq!(first.error_message, None);
+            assert_eq!(throttle, 0);
+        }
+        for version in [4_i16, 6] {
+            let mut buf = BytesMut::new();
+            encode_find_coordinator_response_coordinators(&mut buf, version, &prepared).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_find_coordinator_response_coordinators(&mut cur, version).unwrap();
+            leftover_find_coordinator_prepare_response(version, cur);
+            assert_eq!(decoded, prepared);
+            assert_eq!(throttle, 0);
+        }
+    }
+
+    fn leftover_find_coordinator_prepare_response_encode(
+        version: i16,
+        error_code: i16,
+        key: &str,
+        node_id: i32,
+        host: &str,
+        port: i32,
+    ) {
+        let prepared =
+            FindCoordinatorResponse::prepare_response(error_code, key, node_id, host, port);
+        let mut buf = BytesMut::new();
+        encode_find_coordinator_response_coordinators(&mut buf, version, &prepared).unwrap();
+        let mut cur = buf.as_ref();
+        drop(decode_find_coordinator_response_coordinators(&mut cur, version).unwrap());
+        leftover_find_coordinator_prepare_response(version, cur);
+    }
+
+    fn leftover_find_coordinator_prepare_response(version: i16, cur: &[u8]) {
+        let msg = match (version, cur.is_empty()) {
+            (1, true) => "FindCoordinator v1 Response.prepareResponse leftover-empty",
+            (3, true) => "FindCoordinator v3 Response.prepareResponse leftover-empty",
+            (4, true) => "FindCoordinator v4 Response.prepareResponse leftover-empty",
+            (6, true) => "FindCoordinator v6 Response.prepareResponse leftover-empty",
+            _ => "FindCoordinator Response.prepareResponse leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]
