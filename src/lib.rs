@@ -1666,6 +1666,9 @@
 //! [`protocol::fetch::FetchResponse::size_of`] is Java
 //! `FetchResponse.sizeOf` (`4` plus the encoded body from `toMessage`
 //! with `NONE` / throttle `0` / `INVALID_SESSION_ID` / empty endpoints).
+//! [`protocol::fetch::FetchResponse::of`] is Java
+//! `FetchResponse.of` (Responses from `toMessage`; ThrottleTimeMs /
+//! ErrorCode / SessionId from the arguments; empty NodeEndpoints).
 //! [`protocol::fetch::DEFAULT_RESPONSE_MAX_BYTES`] /
 //! [`protocol::fetch::is_from_follower`] are Java
 //! `FetchRequest.DEFAULT_RESPONSE_MAX_BYTES` / `isFromFollower`.

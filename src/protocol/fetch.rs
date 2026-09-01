@@ -966,6 +966,39 @@ impl FetchResponse {
             .ok_or_else(|| Error::protocol("FetchResponse.sizeOf overflow"))?;
         buf::i32_from_usize(n)
     }
+
+    /// Java `FetchResponse.of` (empty NodeEndpoints).
+    ///
+    /// Responses from [`Self::to_message`]. ThrottleTimeMs, ErrorCode, and
+    /// SessionId are the arguments. ErrorCode and SessionId are written on
+    /// v7+; below v7 they are omitted even when non-zero and decode fills
+    /// `0` / [`FetchMetadata::INVALID_SESSION_ID`]. NodeEndpoints stay
+    /// empty (the five-argument Java `of` with `nodeEndpoints` is not this
+    /// helper). Convenience encode still writes throttle `0`, ErrorCode
+    /// `0`, SessionId [`FetchMetadata::INVALID_SESSION_ID`]. This crate
+    /// speaks 4–17. This is not [`Self::to_message`] / [`Self::size_of`] /
+    /// [`encode_fetch_response_with_throttle`] /
+    /// [`encode_fetch_response_with_endpoints`] /
+    /// [`FetchRequest::encode_error_response`].
+    pub fn of(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+        session_id: i32,
+        entries: &[([u8; 16], &str, i32, FetchedPartition)],
+    ) -> Result<()> {
+        let topics = Self::to_message(entries);
+        encode_fetch_response_fields(
+            buf,
+            version,
+            &topics,
+            error_code,
+            session_id,
+            &[],
+            throttle_time_ms,
+        )
+    }
 }
 
 /// One topic in a Fetch response.
@@ -2919,6 +2952,148 @@ mod tests {
             (12, true) => "Fetch v12 Response.sizeOf leftover-empty",
             (13, true) => "Fetch v13 Response.sizeOf leftover-empty",
             _ => "Fetch Response.sizeOf leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn fetch_response_of_matches_java() {
+        // Java 4.0 FetchResponse.of: toMessage(error, throttleTimeMs,
+        // sessionId, iterator, empty). Official Java FetchResponse.of
+        // (empty NodeEndpoints). Convenience encode still writes throttle
+        // 0, ErrorCode 0, SessionId INVALID. This crate speaks 4-17. This
+        // is not toMessage leftover / sizeOf leftover / with_throttle
+        // leftover / with_endpoints leftover / Request.getErrorResponse
+        // leftover.
+        let a = [1u8; 16];
+        let b = [2u8; 16];
+        let body = FetchedPartition::partition_response(99, 0);
+        let entries = [
+            (a, "alpha", 0, body.clone()),
+            (b, "beta", 1, body.clone()),
+            (a, "alpha", 3, body.clone()),
+        ];
+        let topics = FetchResponse::to_message(&entries);
+        assert_eq!(topics.len(), 3, "non-adjacent same topicId stays split");
+
+        let mut none = BytesMut::new();
+        FetchResponse::of(
+            &mut none,
+            7,
+            0,
+            0,
+            FetchMetadata::INVALID_SESSION_ID,
+            &entries,
+        )
+        .unwrap();
+        let mut conv = BytesMut::new();
+        encode_fetch_response(&mut conv, 7, &topics).unwrap();
+        assert_eq!(
+            none, conv,
+            "of(NONE, 0, INVALID) matches convenience encode"
+        );
+
+        let err = crate::error::FETCH_SESSION_ID_NOT_FOUND;
+        let session = 9;
+        let throttle = 3_600_000;
+        for version in [4_i16, 7, 12, 13, 17] {
+            let mut buf = BytesMut::new();
+            FetchResponse::of(&mut buf, version, err, throttle, session, &entries).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, error_code, session_id, throttle_time_ms) =
+                decode_fetch_response(&mut cur, version).unwrap();
+            leftover_fetch_of(version, cur);
+            assert_eq!(decoded.len(), 3);
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle_time_ms, throttle);
+            if version >= 7 {
+                assert_eq!(error_code, err);
+                assert_eq!(session_id, session);
+            } else {
+                assert_eq!(error_code, 0);
+                assert_eq!(session_id, FetchMetadata::INVALID_SESSION_ID);
+            }
+        }
+
+        leftover_fetch_of_encode(4, err, throttle, session, &entries);
+        leftover_fetch_of_encode(7, err, throttle, session, &entries);
+        leftover_fetch_of_encode(12, err, throttle, session, &entries);
+        leftover_fetch_of_encode(13, err, throttle, session, &entries);
+        leftover_fetch_of_encode(4, 0, 0, FetchMetadata::INVALID_SESSION_ID, &[]);
+        leftover_fetch_of_encode(7, 0, 0, FetchMetadata::INVALID_SESSION_ID, &[]);
+        leftover_fetch_of_encode(12, 0, 0, FetchMetadata::INVALID_SESSION_ID, &[]);
+        leftover_fetch_of_encode(13, 0, 0, FetchMetadata::INVALID_SESSION_ID, &[]);
+
+        let mut of_buf = BytesMut::new();
+        FetchResponse::of(&mut of_buf, 7, err, throttle, session, &entries).unwrap();
+        let mut with_throttle = BytesMut::new();
+        encode_fetch_response_with_throttle(&mut with_throttle, 7, &topics, throttle).unwrap();
+        assert_ne!(
+            of_buf, with_throttle,
+            "of writes ErrorCode / SessionId; with_throttle writes 0 / INVALID"
+        );
+        let mut with_endpoints = BytesMut::new();
+        encode_fetch_response_with_endpoints(&mut with_endpoints, 7, &topics, err, session, &[])
+            .unwrap();
+        assert_ne!(
+            of_buf, with_endpoints,
+            "of writes ThrottleTimeMs from the argument; with_endpoints writes 0"
+        );
+
+        let mut v4_of = BytesMut::new();
+        FetchResponse::of(&mut v4_of, 4, err, throttle, session, &entries).unwrap();
+        let mut v4_throttle = BytesMut::new();
+        encode_fetch_response_with_throttle(&mut v4_throttle, 4, &topics, throttle).unwrap();
+        assert_eq!(
+            v4_of, v4_throttle,
+            "Fetch v4 omits ErrorCode / SessionId even when the body is non-zero"
+        );
+
+        let mut sized = BytesMut::new();
+        FetchResponse::of(
+            &mut sized,
+            12,
+            0,
+            0,
+            FetchMetadata::INVALID_SESSION_ID,
+            &entries,
+        )
+        .unwrap();
+        assert_eq!(
+            FetchResponse::size_of(12, &entries).unwrap(),
+            buf::i32_from_usize(sized.len()).unwrap() + 4
+        );
+    }
+
+    fn leftover_fetch_of_encode(
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+        session_id: i32,
+        entries: &[([u8; 16], &str, i32, FetchedPartition)],
+    ) {
+        let mut buf = BytesMut::new();
+        FetchResponse::of(
+            &mut buf,
+            version,
+            error_code,
+            throttle_time_ms,
+            session_id,
+            entries,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        drop(decode_fetch_response(&mut cur, version).unwrap());
+        leftover_fetch_of(version, cur);
+    }
+
+    fn leftover_fetch_of(version: i16, cur: &[u8]) {
+        let msg = match (version, cur.is_empty()) {
+            (4, true) => "Fetch v4 Response.of leftover-empty",
+            (7, true) => "Fetch v7 Response.of leftover-empty",
+            (12, true) => "Fetch v12 Response.of leftover-empty",
+            (13, true) => "Fetch v13 Response.of leftover-empty",
+            _ => "Fetch Response.of leftover-empty",
         };
         assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
