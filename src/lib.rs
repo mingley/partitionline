@@ -110,10 +110,11 @@
 //! [`PartitionInfo::from_partition_metadata`] is Java
 //! `MetadataResponse.toPartitionInfo` (broker ids, not `Node`).
 //! [`protocol::api::MetadataRequest::is_all_topics`] /
+//! [`protocol::api::MetadataRequest::all_topics`] /
 //! [`protocol::api::MetadataRequest::topic_ids`] /
 //! [`protocol::api::MetadataRequest::topics`] are Java
-//! `MetadataRequest.isAllTopics` / `topicIds` / `topics` (null Topics is all
-//! topics; empty Topics is all topics only on v0; topic IDs are empty when all
+//! `MetadataRequest.isAllTopics` / `Builder.allTopics` / `topicIds` / `topics` (null Topics is all
+//! topics; empty Topics is all topics only on v0; `allTopics` sets AllowAutoTopicCreation `true`; topic IDs are empty when all
 //! topics or below v10; `topics` is null when all topics, else each Name);
 //! [`protocol::api::MetadataRequestTopic::convert_from_names`] /
 //! [`protocol::api::MetadataRequestTopic::convert_from_ids`] are Java

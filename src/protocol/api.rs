@@ -1351,6 +1351,20 @@ impl MetadataRequest {
         }
     }
 
+    /// Java `MetadataRequest.Builder.allTopics`.
+    ///
+    /// Topics is null (all topics). AllowAutoTopicCreation is `true` (JSON
+    /// default; Java sets it so v2 and older round-trip consistently).
+    /// IncludeTopicAuthorizedOperations and
+    /// IncludeClusterAuthorizedOperations stay false. Encode still writes
+    /// `allow_auto` independently. This crate speaks 1–13. This is not
+    /// [`Self::is_all_topics`] / [`Self::topics`] / [`Self::topic_ids`] /
+    /// getErrorResponse / AllowAutoTopicCreation decode.
+    #[must_use]
+    pub const fn all_topics() -> (Option<&'static [MetadataRequestTopic]>, bool) {
+        (None, true)
+    }
+
     /// Java `MetadataRequest.topicIds`.
     ///
     /// Empty when [`Self::is_all_topics`] or below Metadata v10. Otherwise
@@ -4933,6 +4947,56 @@ mod tests {
             &v1[..],
             &v3[..],
             "v1 and v3 both omit AllowAutoTopicCreation"
+        );
+    }
+
+    #[test]
+    fn metadata_request_all_topics_matches_java() {
+        // Java 4.0 MetadataRequest.Builder.allTopics: Topics null, AllowAutoTopicCreation
+        // true (JSON default so v2 and older round-trip). Official Java
+        // MetadataRequest.Builder.allTopics. Encode still writes
+        // allow_auto independently. This crate speaks 1-13. This is not
+        // is_all_topics / topics / topic_ids / getErrorResponse /
+        // AllowAutoTopicCreation decode.
+        let (topics, allow) = MetadataRequest::all_topics();
+        assert!(topics.is_none());
+        assert!(allow);
+        assert!(MetadataRequest::is_all_topics(1, topics));
+        assert!(MetadataRequest::is_all_topics(13, topics));
+        leftover_metadata_all_topics(1);
+        leftover_metadata_all_topics(3);
+        leftover_metadata_all_topics(4);
+        leftover_metadata_all_topics(9);
+        leftover_metadata_all_topics(13);
+
+        let mut all = BytesMut::new();
+        encode_metadata_request(&mut all, 4, None, allow).unwrap();
+        let named = ["t".to_string()];
+        let mut with_names = BytesMut::new();
+        encode_metadata_request(&mut with_names, 4, Some(&named), allow).unwrap();
+        assert_ne!(
+            &all[..],
+            &with_names[..],
+            "allTopics null Topics is not an empty or named Topics list"
+        );
+    }
+
+    fn leftover_metadata_all_topics(version: i16) {
+        let (topics, allow) = MetadataRequest::all_topics();
+        assert!(topics.is_none());
+        let mut buf = BytesMut::new();
+        encode_metadata_request(&mut buf, version, None, allow).unwrap();
+        let mut cur = buf.as_ref();
+        let (got, allow_got, include_topic, include_cluster) =
+            decode_metadata_request_topics(&mut cur, version).unwrap();
+        assert!(got.is_none());
+        assert!(allow_got);
+        assert!(!include_topic);
+        assert!(!include_cluster);
+        assert!(
+            cur.is_empty(),
+            "Metadata v{version} Builder.allTopics leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
