@@ -115,13 +115,16 @@
 //! [`protocol::api::MetadataRequest::all_topics`] /
 //! [`protocol::api::MetadataRequest::for_topic_ids`] /
 //! [`protocol::api::MetadataRequest::for_topic_names`] /
+//! [`protocol::api::MetadataRequest::for_topic_names_version`] /
 //! [`protocol::api::MetadataRequest::topic_ids`] /
 //! [`protocol::api::MetadataRequest::topics`] are Java
 //! `MetadataRequest.isAllTopics` / `Builder.allTopics` /
 //! `Builder(List topicIds)` / `Builder(List names, boolean allowAuto)` /
+//! `Builder(List names, boolean allowAuto, short allowedVersion)` /
 //! `topicIds` / `topics` (null Topics is all
 //! topics; empty Topics is all topics only on v0; `allTopics` sets AllowAutoTopicCreation `true`;
-//! `Builder(List topicIds)` sets it `false`; topic IDs are empty when all
+//! `Builder(List topicIds)` sets it `false`; the three-argument Builder pins
+//! oldest and latest to `allowedVersion`; topic IDs are empty when all
 //! topics or below v10; `topics` is null when all topics, else each Name);
 //! [`protocol::api::MetadataRequestTopic::convert_from_names`] /
 //! [`protocol::api::MetadataRequestTopic::convert_from_ids`] are Java
