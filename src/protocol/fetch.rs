@@ -204,6 +204,10 @@ impl fmt::Display for FetchMetadata {
 }
 
 /// One partition in a Fetch request.
+///
+/// [`Self::partition_data`] is Java `FetchRequest.PartitionData(Uuid, long, long, int, Optional, Optional)`
+/// (Java `topicId` is not stored; callers pass `partition`.
+/// `Optional.empty` epoch is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
 #[derive(Debug, Clone)]
 pub struct FetchPartition {
     /// Partition index.
@@ -233,6 +237,46 @@ pub struct FetchPartition {
     /// Consumers omit the tag (zeros). Below v17 encode omits the field
     /// even when non-zero; decode fills zeros.
     pub replica_directory_id: [u8; 16],
+}
+
+impl FetchPartition {
+    /// Java `FetchRequest.PartitionData(Uuid, long, long, int, Optional, Optional)`.
+    ///
+    /// Java stores `topicId` on this object; this type stores `partition`
+    /// (topic id lives on [`FetchTopic`]). `currentLeaderEpoch` /
+    /// `lastFetchedEpoch` `None` is Java `Optional.empty`
+    /// ([`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). ReplicaDirectoryId
+    /// stays zeros (JSON default). The five-argument Java constructor is
+    /// this helper with empty `lastFetchedEpoch`. Encode still writes
+    /// independently (below v5 omits LogStartOffset; decode fills
+    /// [`INVALID_LOG_START_OFFSET`]; below v9 omits CurrentLeaderEpoch;
+    /// decode fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; below v12
+    /// omits LastFetchedEpoch; decode fills
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). This crate speaks
+    /// 4–17. This is not [`FetchRequest::fetch_data`] /
+    /// [`FetchRequest::topics_from_fetch_data`] / ReplicaDirectoryId /
+    /// replicaId encode.
+    #[must_use]
+    pub fn partition_data(
+        partition: i32,
+        fetch_offset: i64,
+        log_start_offset: i64,
+        max_bytes: i32,
+        current_leader_epoch: Option<i32>,
+        last_fetched_epoch: Option<i32>,
+    ) -> Self {
+        Self {
+            partition,
+            current_leader_epoch: current_leader_epoch
+                .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH),
+            fetch_offset,
+            last_fetched_epoch: last_fetched_epoch
+                .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH),
+            log_start_offset,
+            partition_max_bytes: max_bytes,
+            replica_directory_id: [0; 16],
+        }
+    }
 }
 
 /// One topic in a Fetch request.
@@ -3427,6 +3471,138 @@ mod tests {
         assert!(
             cur.is_empty(),
             "Fetch v{version} Builder.minVersion.maxVersion {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn fetch_partition_data_matches_java() {
+        // Java 4.0 FetchRequest.PartitionData(Uuid, long, long, int,
+        // Optional, Optional): fetchOffset / logStartOffset / maxBytes /
+        // currentLeaderEpoch / lastFetchedEpoch from the arguments.
+        // Official Java FetchRequest.PartitionData. This type stores
+        // partitionIndex; Java topicId lives on FetchTopic. ReplicaDirectoryId
+        // stays zeros. The five-argument Java constructor is this helper
+        // with empty lastFetchedEpoch. Encode still writes independently
+        // (below v5 omits LogStartOffset; decode fills
+        // INVALID_LOG_START_OFFSET; below v9 omits CurrentLeaderEpoch;
+        // decode fills NO_PARTITION_LEADER_EPOCH; below v12 omits
+        // LastFetchedEpoch; decode fills NO_PARTITION_LEADER_EPOCH). This
+        // crate speaks 4-17. This is not fetch_data /
+        // topics_from_fetch_data / ReplicaDirectoryId / replicaId encode.
+        let none = FetchPartition::partition_data(0, 0, INVALID_LOG_START_OFFSET, 1, None, None);
+        assert_eq!(none.partition, 0);
+        assert_eq!(none.fetch_offset, 0);
+        assert_eq!(none.log_start_offset, INVALID_LOG_START_OFFSET);
+        assert_eq!(none.partition_max_bytes, 1);
+        assert_eq!(
+            none.current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(
+            none.last_fetched_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(none.replica_directory_id, [0; 16]);
+        let with = FetchPartition::partition_data(3, 42, 10, 1024, Some(8), Some(7));
+        assert_eq!(with.partition, 3);
+        assert_eq!(with.fetch_offset, 42);
+        assert_eq!(with.log_start_offset, 10);
+        assert_eq!(with.partition_max_bytes, 1024);
+        assert_eq!(with.current_leader_epoch, 8);
+        assert_eq!(with.last_fetched_epoch, 7);
+        assert_eq!(with.replica_directory_id, [0; 16]);
+        let five = FetchPartition::partition_data(3, 42, 10, 1024, Some(8), None);
+        assert_eq!(five.partition, 3);
+        assert_eq!(five.fetch_offset, 42);
+        assert_eq!(five.log_start_offset, 10);
+        assert_eq!(five.partition_max_bytes, 1024);
+        assert_eq!(five.current_leader_epoch, 8);
+        assert_eq!(
+            five.last_fetched_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(five.replica_directory_id, [0; 16]);
+        let topics = [FetchTopic {
+            topic: "t".into(),
+            topic_id: [7u8; 16],
+            partitions: vec![with],
+        }];
+        leftover_fetch_partition_data(4, &topics);
+        leftover_fetch_partition_data(4, &[]);
+        leftover_fetch_partition_data(9, &topics);
+        leftover_fetch_partition_data(9, &[]);
+        leftover_fetch_partition_data(12, &topics);
+        leftover_fetch_partition_data(12, &[]);
+        leftover_fetch_partition_data(17, &topics);
+        leftover_fetch_partition_data(17, &[]);
+    }
+
+    fn leftover_fetch_partition_data(version: i16, topics: &[FetchTopic]) {
+        let max_wait_ms = 500;
+        let min_bytes = 1;
+        let mut buf = BytesMut::new();
+        encode_fetch_request(
+            &mut buf,
+            version,
+            max_wait_ms,
+            min_bytes,
+            DEFAULT_RESPONSE_MAX_BYTES,
+            0,
+            topics,
+            None,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (isolation, max_bytes, decoded, rack, ..) =
+            decode_fetch_request(&mut cur, version).unwrap();
+        assert_eq!(decoded.len(), topics.len());
+        if let Some(topic) = topics.first() {
+            let got = decoded.first().expect("one topic");
+            let want = topic.partitions.first().expect("one partition");
+            let got_part = got.partitions.first().expect("one partition");
+            assert_eq!(got.partitions.len(), topic.partitions.len());
+            assert_eq!(got_part.partition, want.partition);
+            assert_eq!(got_part.fetch_offset, want.fetch_offset);
+            assert_eq!(got_part.partition_max_bytes, want.partition_max_bytes);
+            assert_eq!(got_part.replica_directory_id, [0; 16]);
+            if version >= 5 {
+                assert_eq!(got_part.log_start_offset, want.log_start_offset);
+            } else {
+                assert_eq!(got_part.log_start_offset, INVALID_LOG_START_OFFSET);
+            }
+            if version >= 9 {
+                assert_eq!(got_part.current_leader_epoch, want.current_leader_epoch);
+            } else {
+                assert_eq!(
+                    got_part.current_leader_epoch,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH
+                );
+            }
+            if version >= 12 {
+                assert_eq!(got_part.last_fetched_epoch, want.last_fetched_epoch);
+            } else {
+                assert_eq!(
+                    got_part.last_fetched_epoch,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH
+                );
+            }
+            if version < 13 {
+                assert_eq!(got.topic, topic.topic);
+            } else {
+                assert!(got.topic.is_empty());
+                assert_eq!(got.topic_id, topic.topic_id);
+            }
+        }
+        assert_eq!(isolation, 0, "Java IsolationLevel.READ_UNCOMMITTED");
+        assert_eq!(max_bytes, DEFAULT_RESPONSE_MAX_BYTES);
+        if version >= 11 {
+            assert!(rack.is_empty());
+        }
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "Fetch v{version} PartitionData {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

@@ -1548,6 +1548,18 @@
 //! [`protocol::fetch::FetchRequest::replica_for_build`] is Java
 //! `FetchRequest.Builder.build` ReplicaId / ReplicaState (untagged
 //! ReplicaId below v15; ReplicaState on v15+).
+//! [`protocol::fetch::FetchPartition::partition_data`] is Java
+//! `FetchRequest.PartitionData(Uuid, long, long, int, Optional, Optional)`
+//! (this type stores `partitionIndex`; Java `topicId` lives on
+//! [`protocol::fetch::FetchTopic`]; `Optional.empty` epoch is
+//! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; ReplicaDirectoryId stays
+//! zeros; the five-argument Java constructor is this helper with empty
+//! `lastFetchedEpoch`; encode still writes independently; below v5 omits
+//! LogStartOffset; decode fills [`protocol::fetch::INVALID_LOG_START_OFFSET`];
+//! below v9 omits CurrentLeaderEpoch; decode fills
+//! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; below v12 omits
+//! LastFetchedEpoch; decode fills
+//! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
 //! [`protocol::fetch::FetchedPartition::preferred_read_replica()`] /
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
 //! [`protocol::fetch::FetchedPartition::diverging_epoch()`] /
