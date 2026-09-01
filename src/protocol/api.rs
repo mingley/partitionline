@@ -1360,8 +1360,8 @@ impl MetadataRequest {
     /// `allow_auto` independently. This crate speaks 1–13. This is not
     /// [`Self::is_all_topics`] / [`Self::topics`] / [`Self::topic_ids`] /
     /// [`Self::for_topic_ids`] / [`Self::for_topic_names`] /
-    /// [`Self::for_topic_names_version`] / getErrorResponse /
-    /// AllowAutoTopicCreation decode.
+    /// [`Self::for_topic_names_version`] / [`Self::for_topic_names_range`] /
+    /// getErrorResponse / AllowAutoTopicCreation decode.
     #[must_use]
     pub const fn all_topics() -> (Option<&'static [MetadataRequestTopic]>, bool) {
         (None, true)
@@ -1380,6 +1380,7 @@ impl MetadataRequest {
     /// v4 and a non-zero TopicId is rejected below v12. This crate
     /// speaks 1–13. This is not [`Self::all_topics`] /
     /// [`Self::for_topic_names`] / [`Self::for_topic_names_version`] /
+    /// [`Self::for_topic_names_range`] /
     /// [`MetadataRequestTopic::convert_from_ids`] / [`Self::topic_ids`] /
     /// getErrorResponse.
     #[must_use]
@@ -1401,6 +1402,7 @@ impl MetadataRequest {
     /// `allow_auto` independently; `allow_auto` false is rejected below
     /// v4. This crate speaks 1–13. This is not [`Self::all_topics`] /
     /// [`Self::for_topic_ids`] / [`Self::for_topic_names_version`] /
+    /// [`Self::for_topic_names_range`] /
     /// [`MetadataRequestTopic::convert_from_names`] / getErrorResponse.
     #[must_use]
     pub fn for_topic_names(
@@ -1417,22 +1419,50 @@ impl MetadataRequest {
     ///
     /// Topics and AllowAutoTopicCreation match [`Self::for_topic_names`].
     /// Oldest and latest allowed versions are both `allowed_version`
-    /// (Java `minVersion` / `maxVersion`). Distinct from
-    /// [`Self::for_topic_names`], which uses `ApiKeys.METADATA.oldestVersion`
-    /// through `latestVersion`. IncludeTopicAuthorizedOperations and
+    /// (Java `minVersion` / `maxVersion`). This is
+    /// [`Self::for_topic_names_range`] with the same version twice.
+    /// Distinct from [`Self::for_topic_names`], which uses
+    /// `ApiKeys.METADATA.oldestVersion` through `latestVersion`.
+    /// IncludeTopicAuthorizedOperations and
     /// IncludeClusterAuthorizedOperations stay false. Encode still writes
     /// independently of this Builder range; `allow_auto` false is
     /// rejected below v4. This crate speaks 1–13. This is not
     /// [`Self::all_topics`] / [`Self::for_topic_ids`] /
-    /// [`Self::for_topic_names`] / getErrorResponse.
+    /// [`Self::for_topic_names`] / [`Self::for_topic_names_range`] /
+    /// getErrorResponse.
     #[must_use]
     pub fn for_topic_names_version(
         names: Option<&[String]>,
         allow_auto: bool,
         allowed_version: i16,
     ) -> (Option<Vec<MetadataRequestTopic>>, bool, i16, i16) {
+        Self::for_topic_names_range(names, allow_auto, allowed_version, allowed_version)
+    }
+
+    /// Java `MetadataRequest.Builder(List names, boolean allowAuto, short minVersion, short maxVersion)`.
+    ///
+    /// Topics and AllowAutoTopicCreation match [`Self::for_topic_names`].
+    /// Oldest is `min_version` and latest is `max_version` (Java
+    /// `AbstractRequest.Builder`). Distinct from
+    /// [`Self::for_topic_names_version`], which pins both to
+    /// `allowedVersion`, and from [`Self::for_topic_names`], which uses
+    /// `ApiKeys.METADATA.oldestVersion` through `latestVersion`.
+    /// IncludeTopicAuthorizedOperations and
+    /// IncludeClusterAuthorizedOperations stay false. Encode still writes
+    /// independently of this Builder range; `allow_auto` false is
+    /// rejected below v4. This crate speaks 1–13. This is not
+    /// [`Self::all_topics`] / [`Self::for_topic_ids`] /
+    /// [`Self::for_topic_names`] / [`Self::for_topic_names_version`] /
+    /// getErrorResponse.
+    #[must_use]
+    pub fn for_topic_names_range(
+        names: Option<&[String]>,
+        allow_auto: bool,
+        min_version: i16,
+        max_version: i16,
+    ) -> (Option<Vec<MetadataRequestTopic>>, bool, i16, i16) {
         let (topics, allow_auto) = Self::for_topic_names(names, allow_auto);
-        (topics, allow_auto, allowed_version, allowed_version)
+        (topics, allow_auto, min_version, max_version)
     }
 
     /// Java `MetadataRequest.topicIds`.
@@ -5248,7 +5278,8 @@ mod tests {
         // MetadataRequest.Builder(List, boolean, short). Encode still
         // writes independently of this Builder range; false is rejected
         // below v4. This crate speaks 1-13. This is not allTopics /
-        // for_topic_ids / for_topic_names / getErrorResponse.
+        // for_topic_ids / for_topic_names / for_topic_names_range /
+        // getErrorResponse.
         let names = ["t".to_string()];
         let (none, allow, oldest, latest) =
             MetadataRequest::for_topic_names_version(None, true, 13);
@@ -5282,6 +5313,54 @@ mod tests {
         leftover_metadata_for_topic_names_version(13, Some(&[]), true, 1);
         leftover_metadata_for_topic_names_version(4, Some(&[]), false, 12);
         leftover_metadata_for_topic_names_version(13, Some(&[]), false, 12);
+    }
+
+    #[test]
+    fn metadata_request_for_topic_names_range_matches_java() {
+        // Java 4.0 MetadataRequest.Builder(List names, boolean allowAuto,
+        // short minVersion, short maxVersion): Topics and
+        // AllowAutoTopicCreation match Builder(List, boolean); oldest is
+        // minVersion and latest is maxVersion. Official Java
+        // MetadataRequest.Builder(List, boolean, short, short). The
+        // three-argument Builder is this helper with min=max. Encode still
+        // writes independently of this Builder range; false is rejected
+        // below v4. This crate speaks 1-13. This is not allTopics /
+        // for_topic_ids / for_topic_names / for_topic_names_version /
+        // getErrorResponse.
+        let names = ["t".to_string()];
+        let (none, allow, oldest, latest) =
+            MetadataRequest::for_topic_names_range(None, true, 1, 13);
+        assert!(none.is_none());
+        assert!(allow);
+        assert_eq!(oldest, 1);
+        assert_eq!(latest, 13);
+        assert_eq!(allow, MetadataRequest::all_topics().1);
+        let (named, named_allow, named_oldest, named_latest) =
+            MetadataRequest::for_topic_names_range(Some(&names), false, 4, 13);
+        assert_eq!(named, Some(MetadataRequestTopic::convert_from_names(["t"])));
+        assert!(!named_allow);
+        assert_eq!(named_oldest, 4);
+        assert_eq!(named_latest, 13);
+        assert_eq!(
+            MetadataRequest::for_topic_names_version(Some(&names), false, 4),
+            MetadataRequest::for_topic_names_range(Some(&names), false, 4, 4)
+        );
+        assert_eq!(
+            MetadataRequest::for_topic_names_range(None, false, 13, 1),
+            (None, false, 13, 1)
+        );
+        leftover_metadata_for_topic_names_range(1, None, true, 1, 13);
+        leftover_metadata_for_topic_names_range(13, None, true, 1, 13);
+        leftover_metadata_for_topic_names_range(4, None, false, 4, 13);
+        leftover_metadata_for_topic_names_range(13, None, false, 4, 13);
+        leftover_metadata_for_topic_names_range(1, Some(&names), true, 1, 13);
+        leftover_metadata_for_topic_names_range(13, Some(&names), true, 1, 13);
+        leftover_metadata_for_topic_names_range(4, Some(&names), false, 4, 13);
+        leftover_metadata_for_topic_names_range(13, Some(&names), false, 4, 13);
+        leftover_metadata_for_topic_names_range(1, Some(&[]), true, 1, 1);
+        leftover_metadata_for_topic_names_range(13, Some(&[]), true, 1, 1);
+        leftover_metadata_for_topic_names_range(4, Some(&[]), false, 4, 12);
+        leftover_metadata_for_topic_names_range(13, Some(&[]), false, 4, 12);
     }
 
     fn leftover_metadata_for_topic_names(version: i16, names: Option<&[String]>, allow_auto: bool) {
@@ -5336,6 +5415,39 @@ mod tests {
         assert!(
             cur.is_empty(),
             "Metadata v{version} Builder.topicNames.allowedVersion {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    fn leftover_metadata_for_topic_names_range(
+        version: i16,
+        names: Option<&[String]>,
+        allow_auto: bool,
+        min_version: i16,
+        max_version: i16,
+    ) {
+        let (topics, allow, oldest, latest) =
+            MetadataRequest::for_topic_names_range(names, allow_auto, min_version, max_version);
+        assert_eq!(allow, allow_auto);
+        assert_eq!(oldest, min_version);
+        assert_eq!(latest, max_version);
+        let mut buf = BytesMut::new();
+        encode_metadata_request_topics(&mut buf, version, topics.as_deref(), allow, false).unwrap();
+        let mut cur = buf.as_ref();
+        let (got, allow_got, include_topic, include_cluster) =
+            decode_metadata_request_topics(&mut cur, version).unwrap();
+        assert_eq!(got, topics);
+        assert_eq!(allow_got, allow_auto);
+        assert!(!include_topic);
+        assert!(!include_cluster);
+        let empty = if names.is_some_and(<[String]>::is_empty) {
+            "empty "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "Metadata v{version} Builder.topicNames.minVersion.maxVersion {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }
