@@ -1417,13 +1417,17 @@
 //! fills empty; v13+ uses TopicId;
 //! MaxWaitMs is JSON `0+` (decode returns it; encode already takes `max_wait_ms`);
 //! MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`);
-//! request ReplicaId is JSON `0-14` (decode returns it, then ReplicaEpoch;
+//! request ReplicaId is JSON `0-14` (decode returns it, then ReplicaEpoch,
+//! then ClusterId;
 //! [`protocol::fetch::encode_fetch_request_with_replica_id`]; convenience encode
 //! still writes [`protocol::fetch::CONSUMER_REPLICA_ID`]; v15+ omit the untagged
 //! field even when non-default and decode fills
 //! [`protocol::fetch::CONSUMER_REPLICA_ID`] when ReplicaState is omitted;
 //! [`protocol::fetch::encode_fetch_request_with_replica_state`] writes
-//! ReplicaState tagged field 1 on v15+);
+//! ReplicaState tagged field 1 on v15+;
+//! [`protocol::fetch::encode_fetch_request_with_cluster_id`] writes ClusterId
+//! tagged field 0 on v12+; convenience encode still omits ClusterId; below v12
+//! omit even when `Some` and decode fills `None`);
 //! request LogStartOffset is JSON `5+` (encode writes the partition field;
 //! below v5 omit even when non-default and decode fills
 //! [`protocol::fetch::INVALID_LOG_START_OFFSET`]; official Java

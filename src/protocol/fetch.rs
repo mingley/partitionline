@@ -67,7 +67,8 @@ pub fn describe_replica_id(replica_id: i32) -> String {
 /// through v14 and omits ReplicaState for consumers.
 /// [`encode_fetch_request_with_replica_id`] writes the untagged field on
 /// v4–v14. [`encode_fetch_request_with_replica_state`] writes ReplicaState
-/// tagged field 1 on v15+.
+/// tagged field 1 on v15+. [`encode_fetch_request_with_cluster_id`] writes
+/// ClusterId tagged field 0 on v12+.
 #[must_use]
 pub const fn replica_id(version: i16, replica_id: i32, replica_state_replica_id: i32) -> i32 {
     if version < 15 {
@@ -947,6 +948,7 @@ pub fn encode_fetch_request_with_forgotten(
         CONSUMER_REPLICA_ID,
         CONSUMER_REPLICA_ID,
         -1,
+        None,
     )
 }
 
@@ -988,6 +990,7 @@ pub fn encode_fetch_request_with_replica_id(
         replica_id,
         CONSUMER_REPLICA_ID,
         -1,
+        None,
     )
 }
 
@@ -1033,12 +1036,60 @@ pub fn encode_fetch_request_with_replica_state(
         untagged,
         state_id,
         state_epoch,
+        None,
+    )
+}
+
+/// Encode Fetch v4–v17 with ClusterId and ReplicaId / ReplicaState.
+///
+/// Kafka 4.0.0 FetchRequest.json ClusterId is versions `12+` tagged
+/// field 0 (nullable compact STRING, default `null`, ignorable). Official
+/// Java `FetchRequestData.clusterId`. Consumers omit it. Below v12 the
+/// field is omitted even when `Some`. [`encode_fetch_request`] /
+/// [`encode_fetch_request_with_replica_id`] /
+/// [`encode_fetch_request_with_replica_state`] still omit ClusterId.
+/// ReplicaId / ReplicaState match [`encode_fetch_request_with_replica_state`].
+/// This crate speaks 4–17. This is not partition ReplicaDirectoryId.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, replica id, replica epoch, and cluster id together"
+)]
+pub fn encode_fetch_request_with_cluster_id(
+    buf: &mut BytesMut,
+    version: i16,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    isolation_level: i8,
+    topics: &[FetchTopic],
+    rack_id: Option<&str>,
+    replica_id: i32,
+    replica_epoch: i64,
+    cluster_id: Option<&str>,
+) -> crate::error::Result<()> {
+    let (untagged, state_id, state_epoch) =
+        FetchRequest::replica_for_build(version, replica_id, replica_epoch);
+    encode_fetch_request_body(
+        buf,
+        version,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        isolation_level,
+        topics,
+        rack_id,
+        FetchMetadata::LEGACY,
+        &[],
+        untagged,
+        state_id,
+        state_epoch,
+        cluster_id,
     )
 }
 
 #[expect(
     clippy::too_many_arguments,
-    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, session, forgotten, replica id, and replica epoch together"
+    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, session, forgotten, replica id, replica epoch, and cluster id together"
 )]
 fn encode_fetch_request_body(
     buf: &mut BytesMut,
@@ -1054,6 +1105,7 @@ fn encode_fetch_request_body(
     replica_id: i32,
     replica_state_replica_id: i32,
     replica_state_replica_epoch: i64,
+    cluster_id: Option<&str>,
 ) -> crate::error::Result<()> {
     let flexible = fetch_flexible(version)?;
     // ReplicaId is untagged only through v14. v15+ uses ReplicaState tagged
@@ -1116,19 +1168,25 @@ fn encode_fetch_request_body(
         buf::put_string(buf, flexible, Some(rack_id.unwrap_or("")))?;
     }
     if flexible {
+        let mut tags: Vec<(u32, Bytes)> = Vec::new();
+        if version >= 12 {
+            if let Some(cluster_id) = cluster_id {
+                tags.push((0, encode_cluster_id(cluster_id)?));
+            }
+        }
         if version >= 15
             && (replica_state_replica_id != CONSUMER_REPLICA_ID
                 || replica_state_replica_epoch != -1)
         {
-            buf::put_tagged_fields(
-                buf,
-                &[(
-                    1,
-                    encode_replica_state(replica_state_replica_id, replica_state_replica_epoch),
-                )],
-            )?;
-        } else {
+            tags.push((
+                1,
+                encode_replica_state(replica_state_replica_id, replica_state_replica_epoch),
+            ));
+        }
+        if tags.is_empty() {
             buf::put_empty_tagged_fields(buf);
+        } else {
+            buf::put_tagged_fields(buf, &tags)?;
         }
     }
     Ok(())
@@ -1145,6 +1203,13 @@ fn encode_replica_state(replica_id: i32, replica_epoch: i64) -> Bytes {
     inner.freeze()
 }
 
+/// ClusterId inside Fetch request tagged field 0 (compact STRING).
+fn encode_cluster_id(cluster_id: &str) -> Result<Bytes> {
+    let mut inner = BytesMut::new();
+    buf::put_compact_string(&mut inner, Some(cluster_id))?;
+    Ok(inner.freeze())
+}
+
 fn decode_replica_state(value: &Bytes) -> Result<(i32, i64)> {
     let mut cur = value.as_ref();
     let replica_id = buf::get_i32(&mut cur)?;
@@ -1156,19 +1221,35 @@ fn decode_replica_state(value: &Bytes) -> Result<(i32, i64)> {
     Ok((replica_id, replica_epoch))
 }
 
-fn decode_fetch_request_tags<B: Buf>(buf: &mut B, version: i16) -> Result<(i32, i64)> {
+fn decode_cluster_id(value: &Bytes) -> Result<Option<String>> {
+    let mut cur = value.as_ref();
+    let cluster_id = buf::get_compact_string(&mut cur)?;
+    if !cur.is_empty() {
+        return Err(Error::protocol("ClusterId leftover bytes"));
+    }
+    Ok(cluster_id)
+}
+
+fn decode_fetch_request_tags<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(i32, i64, Option<String>)> {
     let tags = buf::get_tagged_fields(buf)?;
     let mut replica_id = CONSUMER_REPLICA_ID;
     let mut replica_epoch = -1i64;
+    let mut cluster_id = None;
     for (tag, value) in tags {
         match tag {
+            0 if version >= 12 => {
+                cluster_id = decode_cluster_id(&value)?;
+            }
             1 if version >= 15 => {
                 (replica_id, replica_epoch) = decode_replica_state(&value)?;
             }
             _ => {}
         }
     }
-    Ok((replica_id, replica_epoch))
+    Ok((replica_id, replica_epoch, cluster_id))
 }
 
 /// `true` when Fetch `version` is flexible (v12+).
@@ -1179,7 +1260,8 @@ fn decode_fetch_request_tags<B: Buf>(buf: &mut B, version: i16) -> Result<(i32, 
 /// same layout as v13 (`OffsetMovedToTieredStorageException`). v15 drops
 /// untagged ReplicaId and adds ReplicaState tagged field 1 (KIP-903;
 /// consumers omit it; [`encode_fetch_request_with_replica_state`] writes
-/// it). v16 is the same request as v15 (KIP-951). v17 is
+/// it). ClusterId tagged field 0 is decoded at v12+ (consumers omit it;
+/// [`encode_fetch_request_with_cluster_id`] writes it). v16 is the same request as v15 (KIP-951). v17 is
 /// the same consumer request as v16 (ReplicaDirectoryId tagged field 0 is
 /// follower-only and omitted). This crate speaks 4–17. Partition
 /// CurrentLeader tagged field 1, DivergingEpoch tagged field 0, and
@@ -1357,7 +1439,7 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
 }
 
 /// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id, session,
-/// forgotten, max_wait_ms, min_bytes, replica_id, replica_epoch)`.
+/// forgotten, max_wait_ms, min_bytes, replica_id, replica_epoch, cluster_id)`.
 ///
 /// `last_fetched_epoch` is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]
 /// below v12. `current_leader_epoch` is the same below v9. SessionId /
@@ -1374,10 +1456,12 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
 /// and filled from ReplicaState tagged field 1, or
 /// [`CONSUMER_REPLICA_ID`] when that field is omitted). ReplicaEpoch is
 /// ReplicaState.ReplicaEpoch (JSON `15+` default `-1`; omitted below v15
-/// and when consumers skip the tag).
+/// and when consumers skip the tag). ClusterId is JSON `12+` tagged field 0
+/// (nullable compact STRING, default `null`; omitted below v12 and when
+/// consumers skip the tag).
 #[expect(
     clippy::type_complexity,
-    reason = "Fetch request decode returns isolation, max bytes, topics, rack, session, forgotten, max wait, min bytes, replica id, and replica epoch together"
+    reason = "Fetch request decode returns isolation, max bytes, topics, rack, session, forgotten, max wait, min bytes, replica id, replica epoch, and cluster id together"
 )]
 pub fn decode_fetch_request<B: Buf>(
     buf: &mut B,
@@ -1393,6 +1477,7 @@ pub fn decode_fetch_request<B: Buf>(
     i32,
     i32,
     i64,
+    Option<String>,
 )> {
     let flexible = fetch_flexible(version)?;
     let untagged_replica_id = if version <= 14 {
@@ -1481,10 +1566,10 @@ pub fn decode_fetch_request<B: Buf>(
     } else {
         String::new()
     };
-    let (replica_state_replica_id, replica_epoch) = if flexible {
+    let (replica_state_replica_id, replica_epoch, cluster_id) = if flexible {
         decode_fetch_request_tags(buf, version)?
     } else {
-        (CONSUMER_REPLICA_ID, -1)
+        (CONSUMER_REPLICA_ID, -1, None)
     };
     let replica_id = replica_id(version, untagged_replica_id, replica_state_replica_id);
     Ok((
@@ -1498,6 +1583,7 @@ pub fn decode_fetch_request<B: Buf>(
         min_bytes,
         replica_id,
         replica_epoch,
+        cluster_id,
     ))
 }
 
@@ -2080,7 +2166,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., replica, _) = decode_fetch_request(&mut cur, version).unwrap();
+            let (.., replica, _, _) = decode_fetch_request(&mut cur, version).unwrap();
             if version <= 14 {
                 assert_eq!(replica, 7);
             } else {
@@ -2102,7 +2188,7 @@ mod tests {
             &consumer[..],
             "v4 ReplicaId is not always CONSUMER_REPLICA_ID"
         );
-        let (.., replica, _) = decode_fetch_request(&mut consumer.as_ref(), 4).unwrap();
+        let (.., replica, _, _) = decode_fetch_request(&mut consumer.as_ref(), 4).unwrap();
         assert_eq!(replica, CONSUMER_REPLICA_ID);
 
         let mut v15_with = BytesMut::new();
@@ -2165,7 +2251,7 @@ mod tests {
         encode_fetch_request(&mut ten, 4, 10, 1, 1024, 0, &topics, None).unwrap();
         assert_ne!(&with[..], &ten[..], "v4 MaxWaitMs is not always 10");
         let mut cur = ten.as_ref();
-        let (.., max_wait, _, _, _) = decode_fetch_request(&mut cur, 4).unwrap();
+        let (.., max_wait, _, _, _, _) = decode_fetch_request(&mut cur, 4).unwrap();
         assert_eq!(max_wait, 10);
 
         let mut v15 = BytesMut::new();
@@ -2226,7 +2312,7 @@ mod tests {
         encode_fetch_request(&mut one, 4, 10, 1, 1024, 0, &topics, None).unwrap();
         assert_ne!(&with[..], &one[..], "v4 MinBytes is not always 1");
         let mut cur = one.as_ref();
-        let (.., min_bytes, _, _) = decode_fetch_request(&mut cur, 4).unwrap();
+        let (.., min_bytes, _, _, _) = decode_fetch_request(&mut cur, 4).unwrap();
         assert_eq!(min_bytes, 1);
 
         let mut v15 = BytesMut::new();
@@ -3054,7 +3140,9 @@ mod tests {
             got_min,
             got_replica,
             got_epoch,
+            got_cluster,
         ) = decode_fetch_request(&mut cur, version).unwrap();
+        assert!(got_cluster.is_none());
         assert_eq!(got_epoch, -1);
         assert_eq!(got_replica, replica_id);
         assert_eq!(isolation, 0, "Java IsolationLevel.READ_UNCOMMITTED");
@@ -3165,7 +3253,9 @@ mod tests {
             got_min,
             got_replica,
             got_epoch,
+            got_cluster,
         ) = decode_fetch_request(&mut cur, version).unwrap();
+        assert!(got_cluster.is_none());
         assert_eq!(got_epoch, -1);
         if version <= 14 {
             assert_eq!(got_replica, replica_id);
@@ -3304,7 +3394,9 @@ mod tests {
             got_min,
             got_replica,
             got_epoch,
+            got_cluster,
         ) = decode_fetch_request(&mut cur, version).unwrap();
+        assert!(got_cluster.is_none());
         assert_eq!(got_epoch, -1);
         if version <= 14 {
             assert_eq!(got_replica, untagged);
@@ -3427,7 +3519,9 @@ mod tests {
             got_min,
             got_replica,
             got_epoch,
+            got_cluster,
         ) = decode_fetch_request(&mut cur, version).unwrap();
+        assert!(got_cluster.is_none());
         assert_eq!(got_epoch, -1);
         if version <= 14 {
             assert_eq!(got_replica, untagged);
@@ -3586,7 +3680,9 @@ mod tests {
             got_min,
             got_replica,
             got_epoch,
+            got_cluster,
         ) = decode_fetch_request(&mut cur, version).unwrap();
+        assert!(got_cluster.is_none());
         assert_eq!(got_replica, replica_id);
         if version >= 15 {
             assert_eq!(got_epoch, replica_epoch);
@@ -3623,6 +3719,227 @@ mod tests {
         assert!(
             cur.is_empty(),
             "Fetch v{version} ReplicaState {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn fetch_request_cluster_id_matches_java() {
+        // Kafka 4.0.0 FetchRequest.json ClusterId is versions 12+ tagged
+        // field 0 (nullable compact STRING, default null, ignorable).
+        // Official Java FetchRequestData.clusterId. Consumers omit it.
+        // encode_fetch_request and encode_fetch_request_with_replica_state
+        // still omit ClusterId. This crate speaks 4-17. This is not
+        // ReplicaState tagged field 1 / partition ReplicaDirectoryId /
+        // replicaId encode leftover.
+        let replica_id = 7;
+        let replica_epoch = 3i64;
+        let topics = [FetchTopic {
+            topic: "t".into(),
+            topic_id: [7u8; 16],
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 0,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        leftover_cluster_id(4, Some("mk"), CONSUMER_REPLICA_ID, -1, &topics);
+        leftover_cluster_id(4, Some("mk"), CONSUMER_REPLICA_ID, -1, &[]);
+        leftover_cluster_id(11, Some("mk"), CONSUMER_REPLICA_ID, -1, &topics);
+        leftover_cluster_id(11, Some("mk"), CONSUMER_REPLICA_ID, -1, &[]);
+        leftover_cluster_id(12, Some("mk"), CONSUMER_REPLICA_ID, -1, &topics);
+        leftover_cluster_id(12, Some("mk"), CONSUMER_REPLICA_ID, -1, &[]);
+        leftover_cluster_id(12, None, CONSUMER_REPLICA_ID, -1, &topics);
+        leftover_cluster_id(12, Some(""), CONSUMER_REPLICA_ID, -1, &topics);
+        leftover_cluster_id(15, Some("mk"), replica_id, replica_epoch, &topics);
+        leftover_cluster_id(15, Some("mk"), replica_id, replica_epoch, &[]);
+        leftover_cluster_id(15, None, replica_id, replica_epoch, &topics);
+        leftover_cluster_id(17, Some("mk"), replica_id, replica_epoch, &topics);
+        leftover_cluster_id(17, Some("mk"), replica_id, replica_epoch, &[]);
+        leftover_cluster_id(17, None, CONSUMER_REPLICA_ID, -1, &topics);
+
+        let mut with = BytesMut::new();
+        encode_fetch_request_with_cluster_id(
+            &mut with,
+            12,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            CONSUMER_REPLICA_ID,
+            -1,
+            Some("mk"),
+        )
+        .unwrap();
+        let mut omitted = BytesMut::new();
+        encode_fetch_request(&mut omitted, 12, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_ne!(
+            &with[..],
+            &omitted[..],
+            "v12 ClusterId tagged field 0 is not omitted when set"
+        );
+        let mut none = BytesMut::new();
+        encode_fetch_request_with_cluster_id(
+            &mut none,
+            12,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            CONSUMER_REPLICA_ID,
+            -1,
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            &none[..],
+            &omitted[..],
+            "v12 ClusterId tagged field 0 is omitted when null"
+        );
+        let mut below = BytesMut::new();
+        encode_fetch_request_with_cluster_id(
+            &mut below,
+            11,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            CONSUMER_REPLICA_ID,
+            -1,
+            Some("mk"),
+        )
+        .unwrap();
+        let mut v11 = BytesMut::new();
+        encode_fetch_request(&mut v11, 11, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_eq!(
+            &below[..],
+            &v11[..],
+            "below v12 ClusterId is omitted even when Some"
+        );
+        let mut both = BytesMut::new();
+        encode_fetch_request_with_cluster_id(
+            &mut both,
+            15,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            replica_id,
+            replica_epoch,
+            Some("mk"),
+        )
+        .unwrap();
+        let mut replica_only = BytesMut::new();
+        encode_fetch_request_with_replica_state(
+            &mut replica_only,
+            15,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            replica_id,
+            replica_epoch,
+        )
+        .unwrap();
+        assert_ne!(
+            &both[..],
+            &replica_only[..],
+            "v15 ClusterId tagged field 0 is written before ReplicaState tagged field 1"
+        );
+    }
+
+    fn leftover_cluster_id(
+        version: i16,
+        cluster_id: Option<&str>,
+        replica_id: i32,
+        replica_epoch: i64,
+        topics: &[FetchTopic],
+    ) {
+        let max_wait_ms = 500;
+        let min_bytes = 1;
+        let mut buf = BytesMut::new();
+        encode_fetch_request_with_cluster_id(
+            &mut buf,
+            version,
+            max_wait_ms,
+            min_bytes,
+            DEFAULT_RESPONSE_MAX_BYTES,
+            0,
+            topics,
+            None,
+            replica_id,
+            replica_epoch,
+            cluster_id,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (
+            isolation,
+            max_bytes,
+            decoded,
+            rack,
+            session,
+            forgotten,
+            got_wait,
+            got_min,
+            got_replica,
+            got_epoch,
+            got_cluster,
+        ) = decode_fetch_request(&mut cur, version).unwrap();
+        assert_eq!(got_replica, replica_id);
+        if version >= 15 {
+            assert_eq!(got_epoch, replica_epoch);
+        } else {
+            assert_eq!(got_epoch, -1);
+        }
+        if version >= 12 {
+            assert_eq!(got_cluster.as_deref(), cluster_id);
+        } else {
+            assert!(got_cluster.is_none());
+        }
+        assert_eq!(isolation, 0, "Java IsolationLevel.READ_UNCOMMITTED");
+        assert_eq!(max_bytes, DEFAULT_RESPONSE_MAX_BYTES);
+        assert_eq!(got_wait, max_wait_ms);
+        assert_eq!(got_min, min_bytes);
+        assert_eq!(decoded.len(), topics.len());
+        if let Some(topic) = topics.first() {
+            let got = decoded.first().expect("one topic");
+            if version < 13 {
+                assert_eq!(got.topic, topic.topic);
+            } else {
+                assert!(got.topic.is_empty());
+                assert_eq!(got.topic_id, topic.topic_id);
+            }
+            assert_eq!(got.partitions.len(), topic.partitions.len());
+            assert_eq!(
+                got.partitions.first().map(|p| p.partition),
+                topic.partitions.first().map(|p| p.partition)
+            );
+        }
+        assert!(forgotten.is_empty());
+        if version >= 7 {
+            assert_eq!(session, FetchMetadata::LEGACY);
+        }
+        if version >= 11 {
+            assert!(rack.is_empty());
+        }
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "Fetch v{version} ClusterId {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }
@@ -4317,7 +4634,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., forgotten, _, _, _, _) = decode_fetch_request(&mut cur, version).unwrap();
+            let (.., forgotten, _, _, _, _, _) = decode_fetch_request(&mut cur, version).unwrap();
             assert_eq!(forgotten.as_slice(), named.as_slice());
             assert!(
                 cur.is_empty(),
@@ -4340,7 +4657,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., forgotten, _, _, _, _) = decode_fetch_request(&mut cur, version).unwrap();
+            let (.., forgotten, _, _, _, _, _) = decode_fetch_request(&mut cur, version).unwrap();
             assert_eq!(forgotten.as_slice(), by_id.as_slice());
             assert!(
                 cur.is_empty(),
@@ -4364,7 +4681,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., forgotten, _, _, _, _) = decode_fetch_request(&mut cur, version).unwrap();
+            let (.., forgotten, _, _, _, _, _) = decode_fetch_request(&mut cur, version).unwrap();
             assert!(
                 forgotten.is_empty(),
                 "Fetch v{version} omits ForgottenTopicsData even when the body is non-empty"
