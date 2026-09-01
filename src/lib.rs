@@ -1312,7 +1312,8 @@
 //! version at `LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`);
 //! [`protocol::txn::EndTxnRequest::error_response`] is Java
 //! `EndTxnRequest.getErrorResponse` ([`RecordBatch::NO_PRODUCER_ID`] /
-//! [`RecordBatch::NO_PRODUCER_EPOCH`] on v5+);
+//! [`RecordBatch::NO_PRODUCER_EPOCH`] on v5+; ThrottleTimeMs from the
+//! argument);
 //! [`protocol::txn::EndTxnResponse::should_client_throttle`] is Java
 //! `EndTxnResponse.shouldClientThrottle` (v1+);
 //! [`protocol::txn::EndTxnResponse::error_counts`] is Java

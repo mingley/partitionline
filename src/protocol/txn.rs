@@ -29,16 +29,24 @@ impl EndTxnRequest {
     ///
     /// Producer id / epoch stay the JSON defaults
     /// ([`RecordBatch::NO_PRODUCER_ID`] / [`RecordBatch::NO_PRODUCER_EPOCH`])
-    /// on v5+. ThrottleTimeMs is JSON `0+`; convenience encode still
-    /// writes `0`. Official Java `getErrorResponse` sets
-    /// `throttleTimeMs` from the argument.
-    pub fn error_response(buf: &mut BytesMut, version: i16, error_code: i16) -> Result<()> {
-        encode_end_txn_response(
+    /// on v5+. ThrottleTimeMs is written on every spoken version from
+    /// `throttle_time_ms` (JSON `0+`; Java always calls
+    /// `setThrottleTimeMs`). Convenience encode still writes `0`. This
+    /// crate speaks 0–5. This is not [`Self::build`] leftover /
+    /// ThrottleTimeMs leftover / ProducerId leftover.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> Result<()> {
+        encode_end_txn_response_with_throttle(
             buf,
             version,
             error_code,
             RecordBatch::NO_PRODUCER_ID,
             RecordBatch::NO_PRODUCER_EPOCH,
+            throttle_time_ms,
         )
     }
 
@@ -3972,7 +3980,7 @@ mod tests {
             )
             .unwrap();
             let mut got = BytesMut::new();
-            EndTxnRequest::error_response(&mut got, version, 16).unwrap();
+            EndTxnRequest::error_response(&mut got, version, 16, 0).unwrap();
             assert_eq!(
                 &got[..],
                 &expected[..],
@@ -3990,14 +3998,92 @@ mod tests {
             );
         }
         let mut v3 = BytesMut::new();
-        EndTxnRequest::error_response(&mut v3, 3, 16).unwrap();
+        EndTxnRequest::error_response(&mut v3, 3, 16, 0).unwrap();
         let mut v5 = BytesMut::new();
-        EndTxnRequest::error_response(&mut v5, 5, 16).unwrap();
+        EndTxnRequest::error_response(&mut v5, 5, 16, 0).unwrap();
         assert_ne!(
             &v3[..],
             &v5[..],
             "v5 getErrorResponse includes ProducerId / ProducerEpoch JSON defaults"
         );
+    }
+
+    #[test]
+    fn end_txn_request_error_response_matches_java() {
+        // Java 4.0 EndTxnRequest.getErrorResponse writes ErrorCode from
+        // Errors.forException and ThrottleTimeMs from the argument.
+        // ProducerId / ProducerEpoch stay JSON defaults (-1) on v5+.
+        // Official Java EndTxnRequest.getErrorResponse. Convenience
+        // encode still writes ThrottleTimeMs 0. This crate speaks 0–5.
+        // This is not Builder.build leftover / ProducerId leftover /
+        // ThrottleTimeMs leftover / sentinel leftover.
+        let code = 16_i16;
+        for version in [0_i16, 3, 5] {
+            let mut buf = BytesMut::new();
+            EndTxnRequest::error_response(&mut buf, version, code, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (err, pid, epoch, throttle) = decode_end_txn_response(&mut cur, version).unwrap();
+            assert_eq!(err, code);
+            assert_eq!(pid, RecordBatch::NO_PRODUCER_ID);
+            assert_eq!(epoch, RecordBatch::NO_PRODUCER_EPOCH);
+            assert_eq!(throttle, 3_600_000);
+            leftover_end_txn_error_response(version, cur);
+
+            let mut expected = BytesMut::new();
+            encode_end_txn_response_with_throttle(
+                &mut expected,
+                version,
+                code,
+                RecordBatch::NO_PRODUCER_ID,
+                RecordBatch::NO_PRODUCER_EPOCH,
+                3_600_000,
+            )
+            .unwrap();
+            assert_eq!(&buf[..], &expected[..]);
+        }
+
+        let mut conv = BytesMut::new();
+        encode_end_txn_response(
+            &mut conv,
+            0,
+            code,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+        )
+        .unwrap();
+        let mut with = BytesMut::new();
+        EndTxnRequest::error_response(&mut with, 0, code, 3_600_000).unwrap();
+        assert_ne!(
+            &with[..],
+            &conv[..],
+            "EndTxn Request.getErrorResponse must write the throttleTimeMs argument"
+        );
+        let mut zero = BytesMut::new();
+        EndTxnRequest::error_response(&mut zero, 0, code, 0).unwrap();
+        assert_eq!(
+            &zero[..],
+            &conv[..],
+            "EndTxn Request.getErrorResponse throttle 0 matches convenience encode"
+        );
+        let mut v3 = BytesMut::new();
+        EndTxnRequest::error_response(&mut v3, 3, code, 3_600_000).unwrap();
+        let mut v5 = BytesMut::new();
+        EndTxnRequest::error_response(&mut v5, 5, code, 3_600_000).unwrap();
+        assert_ne!(
+            &v3[..],
+            &v5[..],
+            "v5 Request.getErrorResponse includes ProducerId / ProducerEpoch JSON defaults"
+        );
+    }
+
+    fn leftover_end_txn_error_response(version: i16, cur: &[u8]) {
+        let msg = match version {
+            0 => "EndTxn v0 Request.getErrorResponse leftover-empty",
+            3 => "EndTxn v3 Request.getErrorResponse leftover-empty",
+            5 => "EndTxn v5 Request.getErrorResponse leftover-empty",
+            _ => "EndTxn Request.getErrorResponse leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]
