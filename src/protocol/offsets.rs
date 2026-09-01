@@ -361,6 +361,34 @@ impl ListOffsetsRequest {
             .collect()
     }
 
+    /// Java `ListOffsetsRequest.Builder(short oldest, short latest, int replicaId, IsolationLevel isolation)`.
+    ///
+    /// Oldest allowed version is `oldest_allowed_version`. Latest is
+    /// `latest_allowed_version`. ReplicaId is `replica_id`. Isolation is
+    /// `isolation` (`0` is READ_UNCOMMITTED, `1` is READ_COMMITTED) so this
+    /// module does not import [`crate::IsolationLevel`].
+    /// [`Self::for_consumer`] is the oldest-version half; callers pass that
+    /// oldest, latest 10, [`CONSUMER_REPLICA_ID`], and isolation into this
+    /// helper. [`Self::for_replica`] is this helper with oldest `0` and
+    /// isolation `0`. Encode still writes ReplicaId and isolation
+    /// independently of this Builder range. This crate speaks 1–10.
+    /// This is not [`Self::duplicate_partitions`] / [`Self::error_response`]
+    /// / Fetch `Builder`.
+    #[must_use]
+    pub const fn builder(
+        oldest_allowed_version: i16,
+        latest_allowed_version: i16,
+        replica_id: i32,
+        isolation: i8,
+    ) -> (i16, i16, i32, i8) {
+        (
+            oldest_allowed_version,
+            latest_allowed_version,
+            replica_id,
+            isolation,
+        )
+    }
+
     /// Java `ListOffsetsRequest.Builder.forConsumer`.
     ///
     /// Oldest ListOffsets version a consumer builder will negotiate.
@@ -370,9 +398,10 @@ impl ListOffsetsRequest {
     /// though Kafka 4.0 `validVersions` is `1-10`; this crate speaks
     /// 1–10). Isolation is a `bool` (`true` is `READ_COMMITTED`) so
     /// this module does not import [`crate::IsolationLevel`]. ReplicaId
-    /// is always [`CONSUMER_REPLICA_ID`]. The two-argument Java
-    /// `forConsumer` is this call with the last three flags `false`.
-    /// This is not [`Self::for_replica`].
+    /// is always [`CONSUMER_REPLICA_ID`]. Java then calls
+    /// [`Self::builder`] with this oldest, latest 10, that replica id,
+    /// and isolation. The two-argument Java `forConsumer` is this call
+    /// with the last three flags `false`. This is not [`Self::for_replica`].
     #[must_use]
     pub const fn for_consumer(
         require_timestamp: bool,
@@ -402,13 +431,13 @@ impl ListOffsetsRequest {
     /// Kafka 4.0 `validVersions` is `1-10`; this crate speaks 1–10).
     /// Latest is `allowed_version`. ReplicaId is the argument. Isolation
     /// is `READ_UNCOMMITTED` (`0`) so this module does not import
-    /// [`crate::IsolationLevel`]. Encode still writes ReplicaId
-    /// independently of this Builder range. This is not
-    /// [`Self::for_consumer`] / [`Self::error_response`] / replicaId
-    /// encode / Fetch `forReplica`.
+    /// [`crate::IsolationLevel`]. This is [`Self::builder`] with those
+    /// values. Encode still writes ReplicaId independently of this
+    /// Builder range. This is not [`Self::for_consumer`] /
+    /// [`Self::error_response`] / replicaId encode / Fetch `forReplica`.
     #[must_use]
     pub const fn for_replica(allowed_version: i16, replica_id: i32) -> (i16, i16, i32, i8) {
-        (0, allowed_version, replica_id, 0)
+        Self::builder(0, allowed_version, replica_id, 0)
     }
 
     /// Java `ListOffsetsRequest.getErrorResponse`.
@@ -1630,6 +1659,97 @@ mod tests {
         leftover_for_replica(6, replica_id, isolation, &[]);
         leftover_for_replica(10, replica_id, isolation, &topics);
         leftover_for_replica(10, replica_id, isolation, &[]);
+    }
+
+    #[test]
+    fn list_offsets_request_builder_matches_java() {
+        // Java 4.0 ListOffsetsRequest.Builder(short oldest, short latest,
+        // int replicaId, IsolationLevel isolation): oldest and latest
+        // from the arguments; ReplicaId from the argument; isolation
+        // from IsolationLevel.id(). Official Java
+        // ListOffsetsRequest.Builder(short, short, int, IsolationLevel).
+        // forConsumer is the oldest-version half, then this helper with
+        // latest 10, CONSUMER_REPLICA_ID, and isolation. forReplica is
+        // this helper with oldest 0 and isolation 0. Encode still writes
+        // ReplicaId and isolation independently. This crate speaks 1-10.
+        // This is not forConsumer / forReplica / getErrorResponse /
+        // replicaId encode / Fetch Builder.
+        let (oldest, latest, replica_id, isolation) = ListOffsetsRequest::builder(2, 10, 7, 1);
+        assert_eq!(oldest, 2);
+        assert_eq!(latest, 10);
+        assert_eq!(replica_id, 7);
+        assert_eq!(isolation, 1, "Java IsolationLevel.READ_COMMITTED");
+        assert_eq!(
+            ListOffsetsRequest::for_replica(10, 7),
+            ListOffsetsRequest::builder(0, 10, 7, 0)
+        );
+        assert_eq!(
+            ListOffsetsRequest::builder(
+                ListOffsetsRequest::for_consumer(false, true, false, false, false),
+                10,
+                CONSUMER_REPLICA_ID,
+                1,
+            ),
+            (2, 10, CONSUMER_REPLICA_ID, 1)
+        );
+        assert_eq!(
+            ListOffsetsRequest::builder(9, 1, CONSUMER_REPLICA_ID, 0),
+            (9, 1, CONSUMER_REPLICA_ID, 0)
+        );
+        let epoch = RecordBatch::NO_PARTITION_LEADER_EPOCH;
+        let topics = [ListOffsetsTopicRequest::new(
+            "t",
+            vec![ListOffsetsPartitionRequest::new(
+                0,
+                epoch,
+                EARLIEST_TIMESTAMP,
+            )],
+        )];
+        leftover_list_offsets_builder(1, replica_id, isolation, &topics);
+        leftover_list_offsets_builder(1, replica_id, isolation, &[]);
+        leftover_list_offsets_builder(2, replica_id, isolation, &topics);
+        leftover_list_offsets_builder(2, replica_id, isolation, &[]);
+        leftover_list_offsets_builder(6, replica_id, isolation, &topics);
+        leftover_list_offsets_builder(6, replica_id, isolation, &[]);
+        leftover_list_offsets_builder(latest, replica_id, isolation, &topics);
+        leftover_list_offsets_builder(latest, replica_id, isolation, &[]);
+    }
+
+    fn leftover_list_offsets_builder(
+        version: i16,
+        replica_id: i32,
+        isolation: i8,
+        topics: &[ListOffsetsTopicRequest],
+    ) {
+        let mut buf = BytesMut::new();
+        encode_list_offsets_topics_request_with_replica_id(
+            &mut buf, version, isolation, topics, 0, replica_id,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded_isolation, decoded, timeout, got_replica) =
+            decode_list_offsets_topics_request(&mut cur, version).unwrap();
+        assert_eq!(got_replica, replica_id);
+        if version >= 2 {
+            assert_eq!(decoded_isolation, isolation);
+        } else {
+            assert_eq!(decoded_isolation, 0);
+        }
+        assert_eq!(decoded.as_slice(), topics);
+        if version >= 10 {
+            assert_eq!(timeout, Some(0), "v10 TimeoutMs JSON default is 0");
+        } else {
+            assert!(
+                timeout.is_none(),
+                "Builder does not set TimeoutMs below v10"
+            );
+        }
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "ListOffsets v{version} Builder.oldestAllowedVersion.latestAllowedVersion {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
     }
 
     fn leftover_for_replica(

@@ -2256,14 +2256,17 @@
 //! [`protocol::offsets::ListOffsetsRequest::to_list_offsets_topics`] is Java
 //! `ListOffsetsRequest.toListOffsetsTopics` (group by name; a later
 //! entry for the same topic appends; first-seen topic order);
-//! [`protocol::offsets::ListOffsetsRequest::for_consumer`] is Java
-//! `ListOffsetsRequest.Builder.forConsumer` (else-if first match:
-//! tiered v9, earliest-local v8, max-timestamp v7, `READ_COMMITTED`
-//! v2, timestamp v1; all false is `0`).
-//! [`protocol::offsets::ListOffsetsRequest::for_replica`] is Java
-//! `ListOffsetsRequest.Builder.forReplica` (oldest allowed version `0`;
-//! latest is the argument; ReplicaId is the argument; isolation
-//! `READ_UNCOMMITTED`).
+//! [`protocol::offsets::ListOffsetsRequest::builder`] /
+//! [`protocol::offsets::ListOffsetsRequest::for_consumer`] /
+//! [`protocol::offsets::ListOffsetsRequest::for_replica`] are Java
+//! `ListOffsetsRequest.Builder(short oldest, short latest, int replicaId, IsolationLevel isolation)` /
+//! `Builder.forConsumer` / `Builder.forReplica` (oldest and latest are
+//! the arguments; ReplicaId is the argument; isolation `0` is
+//! READ_UNCOMMITTED; `forConsumer` is the oldest-version half, then
+//! that helper with latest 10 and [`protocol::offsets::CONSUMER_REPLICA_ID`];
+//! `forReplica` is that helper with oldest `0` and isolation `0`;
+//! `forConsumer` else-if first match: tiered v9, earliest-local v8,
+//! max-timestamp v7, `READ_COMMITTED` v2, timestamp v1; all false is `0`).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]
