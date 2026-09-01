@@ -6435,6 +6435,28 @@ impl DescribeClientQuotasRequest {
             .collect();
         (components, filter.strict())
     }
+
+    /// Java `DescribeClientQuotasRequest.getErrorResponse`.
+    ///
+    /// Writes [`DescribeClientQuotasResponse::error`] (`Entries` null, not
+    /// empty). `ErrorMessage` stays the JSON default (null); official Java
+    /// also sets the English `Errors.message` string. ThrottleTimeMs is
+    /// written on every spoken version from `throttle_time_ms` (Java
+    /// always calls `setThrottleTimeMs`).
+    /// [`DescribeClientQuotasResponse::error`] fills throttle `0`; encode
+    /// writes `resp.throttle_time_ms`. This crate speaks 0–1. This is not
+    /// [`Self::filter`] / [`Self::from_filter`] leftover /
+    /// [`DescribeClientQuotasResponse::from_quota_entities`].
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        let mut resp = DescribeClientQuotasResponse::error(error_code);
+        resp.throttle_time_ms = throttle_time_ms;
+        encode_describe_client_quotas_response(buf, version, &resp)
+    }
 }
 
 /// One quota key/value in a DescribeClientQuotas entry.
@@ -6537,9 +6559,9 @@ impl DescribeClientQuotasResponse {
     ///
     /// Sets `ErrorCode`. `ErrorMessage` is the JSON default (null);
     /// official Java also sets the English `Errors.message` string.
-    /// `Entries` is null (not an empty array). Throttle is the JSON
-    /// default (`0`) from [`Self::new`]; official Java also sets
-    /// `throttleTimeMs` from the argument.
+    /// `Entries` is null (not an empty array). ThrottleTimeMs is a
+    /// top-level field
+    /// ([`DescribeClientQuotasRequest::error_response`]).
     /// [`encode_describe_client_quotas_response`] writes
     /// `resp.throttle_time_ms`.
     #[must_use]
@@ -24987,6 +25009,65 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn describe_client_quotas_request_error_response_matches_java() {
+        // Java 4.0 DescribeClientQuotasRequest.getErrorResponse writes
+        // null Entries, ErrorCode from ApiError, and ThrottleTimeMs from
+        // the argument. ErrorMessage stays JSON-null. Official Java
+        // DescribeClientQuotasRequest.getErrorResponse.
+        // DescribeClientQuotasResponse::error still fills throttle 0.
+        // This crate speaks 0–1. This is not filter leftover /
+        // from_filter leftover / from_quota_entities leftover /
+        // ThrottleTimeMs leftover / null-Entries leftover.
+        let code = crate::error::CLUSTER_AUTHORIZATION_FAILED;
+        let mut err = DescribeClientQuotasResponse::error(code);
+        err.throttle_time_ms = 3_600_000;
+        assert!(err.entries().is_none());
+        assert!(err.error_message().is_none());
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            DescribeClientQuotasRequest::error_response(&mut buf, version, code, 3_600_000)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_describe_client_quotas_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(decoded.throttle_time_ms, 3_600_000);
+            leftover_describe_client_quotas_error_response(version, cur);
+        }
+
+        let mut conv = BytesMut::new();
+        encode_describe_client_quotas_response(
+            &mut conv,
+            0,
+            &DescribeClientQuotasResponse::error(code),
+        )
+        .unwrap();
+        let mut with = BytesMut::new();
+        DescribeClientQuotasRequest::error_response(&mut with, 0, code, 3_600_000).unwrap();
+        assert_ne!(
+            &with[..],
+            &conv[..],
+            "DescribeClientQuotas Request.getErrorResponse must write the throttleTimeMs argument"
+        );
+        let empty_entries = DescribeClientQuotasResponse::new(code, None, Some(Vec::new()));
+        let mut empty = BytesMut::new();
+        encode_describe_client_quotas_response(&mut empty, 0, &empty_entries).unwrap();
+        assert_ne!(
+            &with[..],
+            &empty[..],
+            "DescribeClientQuotas Request.getErrorResponse Entries must be null, not empty"
+        );
+    }
+
+    fn leftover_describe_client_quotas_error_response(version: i16, cur: &[u8]) {
+        let msg = match version {
+            0 => "DescribeClientQuotas v0 Request.getErrorResponse leftover-empty",
+            1 => "DescribeClientQuotas v1 Request.getErrorResponse leftover-empty",
+            _ => "DescribeClientQuotas Request.getErrorResponse leftover-empty",
+        };
+        assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
     }
 
     #[test]

@@ -909,6 +909,10 @@
 //! empty). `ErrorMessage` stays the JSON default (null); official Java
 //! also sets the English `Errors.message` string. ThrottleTimeMs is JSON `0+`;
 //! encode writes the field; [`protocol::admin::DescribeClientQuotasResponse::new`] fills `0`;
+//! [`protocol::admin::DescribeClientQuotasRequest::error_response`] is Java
+//! `DescribeClientQuotasRequest.getErrorResponse` (null Entries;
+//! `ErrorMessage` stays JSON-null; always writes the `throttleTimeMs`
+//! argument);
 //! [`protocol::admin::DescribeClientQuotasResponse::from_quota_entities`] is Java
 //! `DescribeClientQuotasResponse.fromQuotaEntities` (type/name pairs
 //! plus values into `Entries`; `ErrorCode` `0`; `ErrorMessage` null;
@@ -2701,6 +2705,10 @@
 //! empty). ThrottleTimeMs is JSON `0+`; encode writes the field;
 //! [`protocol::admin::DescribeClientQuotasResponse::new`] fills `0`.
 //! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
+//! [`protocol::admin::DescribeClientQuotasRequest::error_response`] is Java
+//! `DescribeClientQuotasRequest.getErrorResponse` (null Entries;
+//! `ErrorMessage` stays JSON-null; always writes the `throttleTimeMs`
+//! argument).
 //! [`protocol::admin::DescribeClientQuotasResponse::from_quota_entities`] is Java
 //! `DescribeClientQuotasResponse.fromQuotaEntities` (type/name pairs
 //! plus values into `Entries`; `ErrorCode` `0`; `ErrorMessage` null;
