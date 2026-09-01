@@ -1538,6 +1538,50 @@ impl MetadataRequest {
             error_code,
         }
     }
+
+    /// Java `MetadataRequest.Builder.build`.
+    ///
+    /// Versions older than 1 are `UnsupportedVersionException`.
+    /// `allowAutoTopicCreation` false below v4 is
+    /// `UnsupportedVersionException`. A null Name or non-zero TopicId
+    /// below v12 is `UnsupportedVersionException`. Null Topics (all
+    /// topics) skips the Name / TopicId walk. Encode still writes
+    /// independently after this helper. This crate speaks 1–13. This is
+    /// not [`Self::all_topics`] / [`Self::for_topic_ids`] /
+    /// [`Self::for_topic_names`] / [`Self::for_topic_names_version`] /
+    /// [`Self::for_topic_names_range`] / [`Self::error_response`].
+    pub fn build(
+        version: i16,
+        topics: Option<&[MetadataRequestTopic]>,
+        allow_auto: bool,
+    ) -> Result<()> {
+        if version < 1 {
+            return Err(Error::Unsupported(
+                "MetadataRequest versions older than 1 are not supported.".into(),
+            ));
+        }
+        if !allow_auto && version < 4 {
+            return Err(Error::Unsupported(
+                "MetadataRequest versions older than 4 don't support the allowAutoTopicCreation field"
+                    .into(),
+            ));
+        }
+        if let Some(topics) = topics {
+            for t in topics {
+                if t.name.is_none() && version < 12 {
+                    return Err(Error::Unsupported(format!(
+                        "MetadataRequest version {version} does not support null topic names."
+                    )));
+                }
+                if t.topic_id != [0; 16] && version < 12 {
+                    return Err(Error::Unsupported(format!(
+                        "MetadataRequest version {version} does not support non-zero topic IDs."
+                    )));
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 /// Encode Metadata. `topics = None` asks for all topics.
@@ -1585,7 +1629,7 @@ pub fn encode_metadata_request_with(
 ///
 /// Java `MetadataRequest.Builder.build` rejects versions older than 1,
 /// `allowAutoTopicCreation` false below v4, and a null Name or non-zero
-/// TopicId below v12.
+/// TopicId below v12 ([`MetadataRequest::build`]).
 ///
 /// `IncludeClusterAuthorizedOperations` is false (JSON default). Use
 /// [`encode_metadata_request_topics_with_include_cluster_authorized_operations`]
@@ -1622,31 +1666,7 @@ pub fn encode_metadata_request_topics_with_include_cluster_authorized_operations
     include_topic_authorized_operations: bool,
     include_cluster_authorized_operations: bool,
 ) -> crate::error::Result<()> {
-    if version < 1 {
-        return Err(Error::Unsupported(
-            "MetadataRequest versions older than 1 are not supported.".into(),
-        ));
-    }
-    if !allow_auto && version < 4 {
-        return Err(Error::Unsupported(
-            "MetadataRequest versions older than 4 don't support the allowAutoTopicCreation field"
-                .into(),
-        ));
-    }
-    if let Some(topics) = topics {
-        for t in topics {
-            if t.name.is_none() && version < 12 {
-                return Err(Error::Unsupported(format!(
-                    "MetadataRequest version {version} does not support null topic names."
-                )));
-            }
-            if t.topic_id != [0; 16] && version < 12 {
-                return Err(Error::Unsupported(format!(
-                    "MetadataRequest version {version} does not support non-zero topic IDs."
-                )));
-            }
-        }
-    }
+    MetadataRequest::build(version, topics, allow_auto)?;
     let flexible = version >= 9;
     match topics {
         None => buf::put_array_len(buf, flexible, None)?,
@@ -5361,6 +5381,97 @@ mod tests {
         leftover_metadata_for_topic_names_range(13, Some(&[]), true, 1, 1);
         leftover_metadata_for_topic_names_range(4, Some(&[]), false, 4, 12);
         leftover_metadata_for_topic_names_range(13, Some(&[]), false, 4, 12);
+    }
+
+    #[test]
+    fn metadata_request_build_matches_java() {
+        // Java 4.0 MetadataRequest.Builder.build: versions older than 1
+        // are UnsupportedVersionException; allowAutoTopicCreation false
+        // below v4 is UnsupportedVersionException; a null Name or
+        // non-zero TopicId below v12 is UnsupportedVersionException.
+        // Null Topics skips the Name / TopicId walk. Official Java
+        // MetadataRequest.Builder.build. Encode still writes
+        // independently after this helper. This crate speaks 1-13.
+        // This is not allTopics / for_topic_ids / for_topic_names /
+        // for_topic_names_version / for_topic_names_range /
+        // getErrorResponse.
+        let named = [MetadataRequestTopic::by_name("t")];
+        MetadataRequest::build(1, Some(&named), true).unwrap();
+        MetadataRequest::build(1, None, true).unwrap();
+        MetadataRequest::build(4, Some(&named), false).unwrap();
+        let v0 = MetadataRequest::build(0, Some(&named), true).unwrap_err();
+        assert!(
+            matches!(v0, Error::Unsupported(_)),
+            "v0 is Java UnsupportedVersionException, got {v0}"
+        );
+        assert!(v0.to_string().contains("older than 1"), "got {v0}");
+        let auto = MetadataRequest::build(3, Some(&named), false).unwrap_err();
+        assert!(
+            matches!(auto, Error::Unsupported(_)),
+            "allowAuto false below v4 is Java UnsupportedVersionException, got {auto}"
+        );
+        assert!(
+            auto.to_string().contains("allowAutoTopicCreation"),
+            "got {auto}"
+        );
+        let id = [MetadataRequestTopic::by_id([1; 16])];
+        let null_name = MetadataRequest::build(11, Some(&id), true).unwrap_err();
+        assert!(
+            matches!(null_name, Error::Unsupported(_)),
+            "null Name below v12 is Java UnsupportedVersionException, got {null_name}"
+        );
+        assert!(
+            null_name.to_string().contains("null topic names"),
+            "got {null_name}"
+        );
+        let named_with_id = [MetadataRequestTopic {
+            name: Some("t".into()),
+            topic_id: [1; 16],
+        }];
+        let nonzero = MetadataRequest::build(11, Some(&named_with_id), true).unwrap_err();
+        assert!(
+            matches!(nonzero, Error::Unsupported(_)),
+            "non-zero TopicId below v12 is Java UnsupportedVersionException, got {nonzero}"
+        );
+        assert!(
+            nonzero.to_string().contains("non-zero topic IDs"),
+            "got {nonzero}"
+        );
+        MetadataRequest::build(12, Some(&id), true).unwrap();
+        MetadataRequest::build(12, Some(&named_with_id), false).unwrap();
+        leftover_metadata_build(1, Some(&named), true);
+        leftover_metadata_build(1, None, true);
+        leftover_metadata_build(1, Some(&[]), true);
+        leftover_metadata_build(4, Some(&named), false);
+        leftover_metadata_build(12, Some(&id), true);
+        leftover_metadata_build(13, Some(&named), true);
+    }
+
+    fn leftover_metadata_build(
+        version: i16,
+        topics: Option<&[MetadataRequestTopic]>,
+        allow_auto: bool,
+    ) {
+        MetadataRequest::build(version, topics, allow_auto).unwrap();
+        let mut buf = BytesMut::new();
+        encode_metadata_request_topics(&mut buf, version, topics, allow_auto, false).unwrap();
+        let mut cur = buf.as_ref();
+        let (got, allow_got, include_topic, include_cluster) =
+            decode_metadata_request_topics(&mut cur, version).unwrap();
+        assert_eq!(got.as_deref(), topics);
+        assert_eq!(allow_got, allow_auto);
+        assert!(!include_topic);
+        assert!(!include_cluster);
+        let empty = if topics.is_some_and(<[MetadataRequestTopic]>::is_empty) {
+            "empty "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "Metadata v{version} Builder.build {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
     }
 
     fn leftover_metadata_for_topic_names(version: i16, names: Option<&[String]>, allow_auto: bool) {
