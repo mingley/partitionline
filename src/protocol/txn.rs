@@ -325,10 +325,35 @@ impl AddPartitionsToTxnRequest {
     /// Latest is [`Self::LAST_CLIENT_VERSION`]. Topics are
     /// [`Self::from_partitions`]. This crate speaks 0–3. v4+
     /// (`forBroker`) is not spoken. This is not [`Self::partitions`] /
-    /// [`Self::from_partitions`] / getErrorResponse / `forBroker`.
+    /// [`Self::from_partitions`] / [`Self::error_response`] / `forBroker`.
     #[must_use]
     pub const fn for_client() -> (i16, i16) {
         (0, Self::LAST_CLIENT_VERSION)
+    }
+
+    /// Java `AddPartitionsToTxnRequest.getErrorResponse`.
+    ///
+    /// Spoken versions write ResultsByTopicV3AndBelow from
+    /// [`TxnPartitionsTopic::error_results`] (v4+ top-level ErrorCode is
+    /// not spoken). ThrottleTimeMs is `throttle_time_ms` on every spoken
+    /// version (JSON `0+`). [`encode_add_partitions_to_txn_response`]
+    /// still writes throttle `0`. This crate speaks 0–3. This is not
+    /// [`Self::partitions`] / [`Self::from_partitions`] / [`Self::for_client`]
+    /// / [`TxnPartitionsTopic::error_results`] / EndTxn /
+    /// AddOffsetsToTxn getErrorResponse.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        topics: &[TxnPartitionsTopic],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> Result<()> {
+        encode_add_partitions_to_txn_topics_response_with_throttle(
+            buf,
+            version,
+            &TxnPartitionsTopic::error_results(topics, error_code),
+            throttle_time_ms,
+        )
     }
 }
 
@@ -5096,6 +5121,80 @@ mod tests {
             !cur.has_remaining(),
             "AddPartitionsToTxn v{version} Builder.forClient {empty}leftover-empty; leftover {} bytes",
             cur.remaining()
+        );
+    }
+
+    #[test]
+    fn add_partitions_to_txn_request_error_response_matches_java() {
+        // Java 4.0 AddPartitionsToTxnRequest.getErrorResponse: spoken
+        // versions write ResultsByTopicV3AndBelow from request topics
+        // (errorResponseForTopics) and ThrottleTimeMs from the
+        // argument. Official Java
+        // AddPartitionsToTxnRequest.getErrorResponse. Convenience encode
+        // still writes ThrottleTimeMs 0. v4+ top-level ErrorCode is not
+        // spoken. This crate speaks 0-3. This is not error_results
+        // leftover / forClient / EndTxn / AddOffsetsToTxn
+        // getErrorResponse.
+        let topics = AddPartitionsToTxnRequest::from_partitions([("t", 0), ("t", 1)]);
+        leftover_add_partitions_to_txn_error_response(0, &topics, 16, 3_600_000);
+        leftover_add_partitions_to_txn_error_response(0, &[], 0, 0);
+        leftover_add_partitions_to_txn_error_response(2, &topics, 16, 3_600_000);
+        leftover_add_partitions_to_txn_error_response(3, &topics, 16, 3_600_000);
+        leftover_add_partitions_to_txn_error_response(3, &[], 0, 0);
+        leftover_add_partitions_to_txn_error_response(0, &[], 16, 3_600_000);
+
+        let mut expected = BytesMut::new();
+        encode_add_partitions_to_txn_topics_response_with_throttle(
+            &mut expected,
+            0,
+            &TxnPartitionsTopic::error_results(&topics, 16),
+            3_600_000,
+        )
+        .unwrap();
+        let mut got = BytesMut::new();
+        AddPartitionsToTxnRequest::error_response(&mut got, 0, &topics, 16, 3_600_000).unwrap();
+        assert_eq!(
+            &got[..],
+            &expected[..],
+            "AddPartitionsToTxn v0 getErrorResponse must match with_throttle encode"
+        );
+        let mut conv = BytesMut::new();
+        encode_add_partitions_to_txn_response(&mut conv, 0, &topics, 16).unwrap();
+        assert_ne!(
+            &got[..],
+            &conv[..],
+            "getErrorResponse writes ThrottleTimeMs from the argument, not convenience 0"
+        );
+    }
+
+    fn leftover_add_partitions_to_txn_error_response(
+        version: i16,
+        topics: &[TxnPartitionsTopic],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) {
+        let mut buf = BytesMut::new();
+        AddPartitionsToTxnRequest::error_response(
+            &mut buf,
+            version,
+            topics,
+            error_code,
+            throttle_time_ms,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) =
+            decode_add_partitions_to_txn_topics_response(&mut cur, version).unwrap();
+        assert_eq!(
+            decoded,
+            TxnPartitionsTopic::error_results(topics, error_code)
+        );
+        assert_eq!(throttle, throttle_time_ms);
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "AddPartitionsToTxn v{version} getErrorResponse {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 

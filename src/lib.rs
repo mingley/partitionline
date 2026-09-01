@@ -1189,7 +1189,12 @@
 //! [`protocol::txn::AddPartitionsToTxnRequest::for_client`] are Java
 //! `AddPartitionsToTxnRequest.LAST_CLIENT_VERSION` /
 //! `Builder.forClient` (oldest 0, latest 3; v4+ `forBroker` is not
-//! spoken)), AddOffsetsToTxn v0–v4
+//! spoken);
+//! [`protocol::txn::AddPartitionsToTxnRequest::error_response`] is Java
+//! `AddPartitionsToTxnRequest.getErrorResponse` (ResultsByTopicV3AndBelow
+//! from request topics; ThrottleTimeMs from the argument;
+//! [`protocol::txn::encode_add_partitions_to_txn_response`] still writes `0`)),
+//! AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; ThrottleTimeMs is JSON `0+`;
 //! request ProducerId is JSON `0+` (decode returns it; encode already
 //! takes `producer_id`; official Java `AddOffsetsToTxnRequestData.producerId`;
