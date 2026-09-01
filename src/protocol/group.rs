@@ -6,6 +6,7 @@ use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
 
+use super::api::NodeEndpoint;
 use super::buf;
 use super::records::RecordBatch;
 use crate::error::{for_code, Error, Result};
@@ -246,6 +247,36 @@ impl FindCoordinatorResponse {
             return Some(find_coordinator_top_level_for_key(key));
         }
         None
+    }
+
+    /// Java `FindCoordinatorResponse.node`.
+    ///
+    /// v1–v3 use the folded top-level NodeId / Host / Port (first
+    /// [`CoordinatorResult`]; empty Coordinators is JSON defaults
+    /// `0` / empty host / `0`). v4+ Coordinators are ignored: Java reads
+    /// the generated top-level fields, which are not on the wire, so this
+    /// is JSON defaults even when Coordinators has a broker. Rack stays
+    /// null (Java `Node(id, host, port)`). This is not `Node.noNode`
+    /// (`-1` / empty / `-1`). This crate speaks 1–6. This is not
+    /// [`Self::coordinator_by_key`] / [`Self::prepare_response`] /
+    /// [`Self::prepare_coordinator_response`].
+    #[must_use]
+    pub fn node(version: i16, coordinators: &[CoordinatorResult]) -> NodeEndpoint {
+        if version < MIN_BATCHED_VERSION {
+            coordinators
+                .first()
+                .map(|coordinator| {
+                    NodeEndpoint::new(
+                        coordinator.node_id,
+                        coordinator.host.clone(),
+                        coordinator.port,
+                        None,
+                    )
+                })
+                .unwrap_or_else(|| NodeEndpoint::new(0, "", 0, None))
+        } else {
+            NodeEndpoint::new(0, "", 0, None)
+        }
     }
 }
 
@@ -5473,6 +5504,72 @@ mod tests {
         assert_eq!(empty_v4.node_id, 0);
         assert_eq!(empty_v4.port, 0);
         assert_eq!(empty_v4.error_code, 0);
+    }
+
+    #[test]
+    fn find_coordinator_response_node_matches_java() {
+        // Java 4.0 FindCoordinatorResponse.node: new Node(data.nodeId(),
+        // data.host(), data.port()). v1-v3 are the folded top-level
+        // fields. v4+ Coordinators are ignored (those fields are not on
+        // the wire; JSON defaults 0 / empty / 0). Official Java
+        // FindCoordinatorResponse.node. This is not Node.noNode /
+        // coordinatorByKey leftover / prepareResponse leftover.
+        let broker = CoordinatorResult {
+            key: "g".into(),
+            node_id: 1,
+            host: "h".into(),
+            port: 9092,
+            error_code: 0,
+            error_message: None,
+        };
+        assert_eq!(
+            FindCoordinatorResponse::node(1, std::slice::from_ref(&broker)),
+            NodeEndpoint::new(1, "h", 9092, None)
+        );
+        assert_eq!(
+            FindCoordinatorResponse::node(3, std::slice::from_ref(&broker)),
+            NodeEndpoint::new(1, "h", 9092, None)
+        );
+        assert_eq!(
+            FindCoordinatorResponse::node(1, &[]),
+            NodeEndpoint::new(0, "", 0, None),
+            "empty v1-v3 is JSON defaults, not Node.noNode"
+        );
+        assert_ne!(
+            FindCoordinatorResponse::node(1, &[]),
+            NodeEndpoint::no_node()
+        );
+        assert_eq!(
+            FindCoordinatorResponse::node(4, std::slice::from_ref(&broker)),
+            NodeEndpoint::new(0, "", 0, None),
+            "v4+ ignores Coordinators"
+        );
+        assert_eq!(
+            FindCoordinatorResponse::node(6, std::slice::from_ref(&broker)),
+            NodeEndpoint::new(0, "", 0, None)
+        );
+        assert_eq!(
+            FindCoordinatorResponse::node(4, &[]),
+            NodeEndpoint::new(0, "", 0, None)
+        );
+        let stuffed =
+            FindCoordinatorResponse::coordinator_by_key(4, std::slice::from_ref(&broker), "g")
+                .unwrap();
+        assert_eq!(stuffed.node_id, 1, "coordinatorByKey reads Coordinators");
+        assert_eq!(
+            FindCoordinatorResponse::node(4, std::slice::from_ref(&broker)).node_id,
+            0
+        );
+        let prepared = FindCoordinatorResponse::prepare_response(0, "g", 1, "h", 9092);
+        assert_eq!(
+            FindCoordinatorResponse::node(4, &prepared),
+            NodeEndpoint::new(0, "", 0, None),
+            "prepareResponse fills Coordinators; node() still reads top-level defaults on v4+"
+        );
+        assert_eq!(
+            FindCoordinatorResponse::node(1, &prepared),
+            NodeEndpoint::new(1, "h", 9092, None)
+        );
     }
 
     #[test]

@@ -199,6 +199,9 @@
 //! `FindCoordinatorResponse.coordinatorByKey` (v4+ first matching `Key`;
 //! v0–v3 stuffs `key` into the folded top-level coordinator; empty
 //! Coordinators synthesizes JSON defaults with that `Key`);
+//! [`protocol::group::FindCoordinatorResponse::node`] is Java
+//! `FindCoordinatorResponse.node` (v1–v3 folded top-level NodeId/Host/Port;
+//! v4+ JSON defaults `0` / empty / `0`, Coordinators ignored);
 //! [`protocol::group::CoordinatorResult::error`] /
 //! [`protocol::group::CoordinatorResult::error_for_key`] /
 //! [`protocol::group::FindCoordinatorResponse::prepare_error_response`] /
