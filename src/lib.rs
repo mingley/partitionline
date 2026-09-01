@@ -99,6 +99,9 @@
 //! [`protocol::api::TopicMetadata`] `Display` is Java
 //! `MetadataResponse.TopicMetadata.toString` (nested
 //! `PartitionMetadata.toString` uses the topic name).
+//! [`protocol::api::TopicMetadata::new`] is Java
+//! `MetadataResponse.TopicMetadata(Errors, String, boolean, List)` (zero
+//! TopicId; `AUTHORIZED_OPERATIONS_OMITTED`).
 //! [`protocol::api::MetadataResponse::errors`] /
 //! [`protocol::api::MetadataResponse::errors_by_topic_id`] /
 //! [`protocol::api::MetadataResponse::topics_by_error`] /
