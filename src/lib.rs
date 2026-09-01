@@ -1333,6 +1333,9 @@
 //! is Java `ProduceResponse.INVALID_OFFSET`.
 //! [`protocol::api::ProducePartitionResponse::partition_response`] is Java
 //! `ProduceResponse.PartitionResponse(Errors)`.
+//! [`protocol::api::ProducePartitionResponse::partition_response_with_offsets`] is Java
+//! `ProduceResponse.PartitionResponse(Errors, long, long, long)` (empty
+//! `recordErrors`; null `errorMessage`; Java `lastOffset` is not stored).
 //! [`protocol::api::ProduceTopicData::error_result`] is Java
 //! `ProduceRequest.getErrorResponse` (one topic).
 //! [`protocol::api::ProduceRequest::validate_records`] is Java

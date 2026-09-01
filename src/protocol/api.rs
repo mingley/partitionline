@@ -2095,7 +2095,11 @@ impl fmt::Display for ProduceRecordError {
 /// [`Self::partition_response`] is Java `ProduceResponse.PartitionResponse(Errors)`
 /// (`baseOffset` / `logStartOffset` [`Self::INVALID_OFFSET`], `logAppendTime`
 /// [`RecordBatch::NO_TIMESTAMP`], empty `recordErrors`, null `errorMessage`).
-/// Decode below v2 fills [`RecordBatch::NO_TIMESTAMP`]; decode below v5 fills
+/// [`Self::partition_response_with_offsets`] is Java
+/// `ProduceResponse.PartitionResponse(Errors, long, long, long)` (empty
+/// `recordErrors`, null `errorMessage`; Java `lastOffset` stays
+/// [`Self::INVALID_OFFSET`] and is not stored). Decode below v2 fills
+/// [`RecordBatch::NO_TIMESTAMP`]; decode below v5 fills
 /// [`Self::INVALID_OFFSET`]. Decode below v8 fills empty `recordErrors` and
 /// null `errorMessage`. Omitted v10+ CurrentLeader fills
 /// [`MetadataResponse::NO_LEADER_ID`] /
@@ -2134,21 +2138,53 @@ impl ProducePartitionResponse {
 
     /// Java `ProduceResponse.PartitionResponse(Errors)`.
     ///
-    /// Sets [`Self::INVALID_OFFSET`] for `baseOffset` / `logStartOffset` and
-    /// [`RecordBatch::NO_TIMESTAMP`] for `logAppendTime`. CurrentLeader is
-    /// the Apache JSON default ([`MetadataResponse::NO_LEADER_ID`] /
+    /// Java calls [`Self::partition_response_with_offsets`] with
+    /// [`Self::INVALID_OFFSET`] / [`RecordBatch::NO_TIMESTAMP`] /
+    /// [`Self::INVALID_OFFSET`]. CurrentLeader is the Apache JSON default
+    /// ([`MetadataResponse::NO_LEADER_ID`] /
     /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). `recordErrors` is empty
     /// and `errorMessage` is null. Java `PartitionResponse` has no topic
     /// name; this type does, so callers pass it.
     #[must_use]
     pub fn partition_response(topic: impl Into<String>, partition: i32, error_code: i16) -> Self {
+        Self::partition_response_with_offsets(
+            topic,
+            partition,
+            error_code,
+            Self::INVALID_OFFSET,
+            RecordBatch::NO_TIMESTAMP,
+            Self::INVALID_OFFSET,
+        )
+    }
+
+    /// Java `ProduceResponse.PartitionResponse(Errors, long, long, long)`.
+    ///
+    /// Sets `baseOffset` / `logAppendTime` / `logStartOffset` from the
+    /// arguments. Java `lastOffset` stays [`Self::INVALID_OFFSET`] and is
+    /// not a ProduceResponse field. `recordErrors` is empty and
+    /// `errorMessage` is null. CurrentLeader is the Apache JSON default
+    /// ([`MetadataResponse::NO_LEADER_ID`] /
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). Encode below v5 omits
+    /// `logStartOffset`; decode fills [`Self::INVALID_OFFSET`]. Encode
+    /// still writes independently. This crate speaks 3–12. This is not
+    /// [`Self::partition_response`] / [`ProduceResponse::to_data`] /
+    /// [`ProduceRequest::error_response`].
+    #[must_use]
+    pub fn partition_response_with_offsets(
+        topic: impl Into<String>,
+        partition: i32,
+        error_code: i16,
+        base_offset: i64,
+        log_append_time_ms: i64,
+        log_start_offset: i64,
+    ) -> Self {
         Self {
             topic: topic.into(),
             partition,
             error_code,
-            base_offset: Self::INVALID_OFFSET,
-            log_append_time_ms: RecordBatch::NO_TIMESTAMP,
-            log_start_offset: Self::INVALID_OFFSET,
+            base_offset,
+            log_append_time_ms,
+            log_start_offset,
             current_leader_id: MetadataResponse::NO_LEADER_ID,
             current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             record_errors: Vec::new(),
@@ -3644,6 +3680,108 @@ mod tests {
         assert!(endpoints.is_empty());
         assert_eq!(decoded, result);
         leftover_empty(&cur, "Produce getErrorResponse v8").unwrap();
+    }
+
+    #[test]
+    fn produce_partition_response_with_offsets_matches_java() {
+        // Java 4.0 ProduceResponse.PartitionResponse(Errors, long, long,
+        // long): baseOffset / logAppendTime / logStartOffset from the
+        // arguments; recordErrors empty; errorMessage null; lastOffset
+        // stays INVALID_OFFSET (not a ProduceResponse field). Official
+        // Java ProduceResponse.PartitionResponse(Errors, long, long,
+        // long). This crate speaks 3–12. This is not
+        // PartitionResponse(Errors) / toData / getErrorResponse.
+        assert_eq!(
+            ProducePartitionResponse::partition_response("t", 0, 0),
+            ProducePartitionResponse::partition_response_with_offsets(
+                "t",
+                0,
+                0,
+                ProducePartitionResponse::INVALID_OFFSET,
+                RecordBatch::NO_TIMESTAMP,
+                ProducePartitionResponse::INVALID_OFFSET,
+            )
+        );
+        let with = ProducePartitionResponse::partition_response_with_offsets(
+            "t",
+            1,
+            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            7,
+            99,
+            3,
+        );
+        assert_eq!(with.topic, "t");
+        assert_eq!(with.partition, 1);
+        assert_eq!(with.error_code, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(with.base_offset, 7);
+        assert_eq!(with.log_append_time_ms, 99);
+        assert_eq!(with.log_start_offset, 3);
+        assert_eq!(with.current_leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(
+            with.current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert!(with.record_errors.is_empty());
+        assert!(with.error_message.is_none());
+        leftover_produce_partition_response_with_offsets(3, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_offsets(3, &[]);
+        leftover_produce_partition_response_with_offsets(5, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_offsets(5, &[]);
+        leftover_produce_partition_response_with_offsets(8, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_offsets(8, &[]);
+        leftover_produce_partition_response_with_offsets(12, std::slice::from_ref(&with));
+        leftover_produce_partition_response_with_offsets(12, &[]);
+    }
+
+    fn leftover_produce_partition_response_with_offsets(
+        version: i16,
+        parts: &[ProducePartitionResponse],
+    ) {
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, version, parts).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, endpoints, throttle) = decode_produce_response(&mut cur, version).unwrap();
+        assert!(endpoints.is_empty());
+        assert_eq!(throttle, 0);
+        if version < 5 {
+            assert_eq!(decoded.len(), parts.len());
+            for (got, want) in decoded.iter().zip(parts) {
+                assert_eq!(got.topic, want.topic);
+                assert_eq!(got.partition, want.partition);
+                assert_eq!(got.error_code, want.error_code);
+                assert_eq!(got.base_offset, want.base_offset);
+                assert_eq!(got.log_append_time_ms, want.log_append_time_ms);
+                assert_eq!(
+                    got.log_start_offset,
+                    ProducePartitionResponse::INVALID_OFFSET,
+                    "Produce v{version} omits LogStartOffset; decode fills INVALID_OFFSET"
+                );
+                assert_eq!(got.current_leader_id, MetadataResponse::NO_LEADER_ID);
+                assert_eq!(
+                    got.current_leader_epoch,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH
+                );
+                assert!(got.record_errors.is_empty());
+                assert!(got.error_message.is_none());
+            }
+        } else {
+            assert_eq!(decoded, parts);
+        }
+        leftover_empty(
+            &cur,
+            match (version, parts.is_empty()) {
+                (3, false) => "Produce v3 PartitionResponse.offsets leftover-empty",
+                (3, true) => "Produce v3 PartitionResponse.offsets empty leftover-empty",
+                (5, false) => "Produce v5 PartitionResponse.offsets leftover-empty",
+                (5, true) => "Produce v5 PartitionResponse.offsets empty leftover-empty",
+                (8, false) => "Produce v8 PartitionResponse.offsets leftover-empty",
+                (8, true) => "Produce v8 PartitionResponse.offsets empty leftover-empty",
+                (12, false) => "Produce v12 PartitionResponse.offsets leftover-empty",
+                (12, true) => "Produce v12 PartitionResponse.offsets empty leftover-empty",
+                _ => "Produce PartitionResponse.offsets leftover-empty",
+            },
+        )
+        .unwrap();
     }
 
     #[test]
