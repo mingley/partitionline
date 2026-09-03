@@ -34,6 +34,7 @@ include = [
     "Cargo.lock",
     "clippy.toml",
     "README.md",
+    "SECURITY.md",
     "LICENSE-APACHE",
     "LICENSE-MIT",
     "NOTICE",

@@ -6,6 +6,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Prefer the newest push on a branch; drop superseded queued runs.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   fmt:
     runs-on: ubuntu-latest
@@ -58,7 +63,7 @@ jobs:
         with:
           command: check advisories licenses bans sources
 
-  # crates.io packaging dry-run (does not publish).
+  # crates.io packaging + publish dry-run (does not publish).
   package:
     runs-on: ubuntu-latest
     steps:
@@ -67,6 +72,8 @@ jobs:
       - run: cargo package
       - name: List crate contents
         run: tar -tzf target/package/partitionline-*.crate | head -80
+      - name: Publish dry-run
+        run: cargo publish --dry-run --allow-dirty
 
   # Optional-feature compile gate (tracing spans).
   features:
