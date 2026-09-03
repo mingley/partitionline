@@ -6,6 +6,7 @@ A Kafka client written in Rust. It does not call into C or librdkafka.
 
 ```toml
 [dependencies]
+# After crates.io publish (see docs/RELEASE.md): partitionline = "0.1"
 partitionline = { git = "https://github.com/mingley/partitionline" }
 ```
 
@@ -152,10 +153,12 @@ Defaults that differ from Java:
 `metadata.max.age.ms` / `transaction.timeout.ms` match Java.
 
 The crate rustdoc is the full Java-shaped API catalog (protocol helpers,
-version ranges, and option names). Capability list vs librdkafka:
-[docs/gaps.md](docs/gaps.md).
-Roadmap for adoption and trust:
-[docs/CIVILIZATION.md](docs/CIVILIZATION.md).
+version ranges, and option names). Operator guide: [docs/guide.md](docs/guide.md).
+Migrate from rust-rdkafka: [docs/migrate-from-rdkafka.md](docs/migrate-from-rdkafka.md).
+Capability list vs librdkafka: [docs/gaps.md](docs/gaps.md).
+Security: [docs/security.md](docs/security.md).
+Release policy: [docs/RELEASE.md](docs/RELEASE.md).
+Roadmap: [docs/CIVILIZATION.md](docs/CIVILIZATION.md).
 
 **Not a drop-in for `rd_kafka_*`.** Still missing vs librdkafka: zstd and
 Kerberos (C libraries), Schema Registry.

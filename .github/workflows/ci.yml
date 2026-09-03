@@ -24,6 +24,7 @@ jobs:
           components: clippy
       - run: cargo clippy --all-targets --all-features -- -D warnings
 
+  # Default fast path: mock / unit tests, no Docker.
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -36,3 +37,30 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
       - run: cargo test --all-targets
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Real Apache Kafka broker smoke (separate from mock suite).
+  # Matrix: Kafka 3.9.x and 4.x KRaft images.
+  broker-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # WP-1.3: one 3.9 and one 4.x broker image
+        kafka_image: ["apache/kafka:3.9.1", "apache/kafka:4.0.0"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Broker smoke
+        env:
+          CI: "true"
+          KAFKA_IMAGE: ${{ matrix.kafka_image }}
+        run: bash scripts/ci-broker-smoke.sh

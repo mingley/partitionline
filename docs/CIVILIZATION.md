@@ -43,9 +43,9 @@ ecosystems can trust and adopt**.
 | TLS (rustls), SCRAM, OAUTHBEARER/OIDC | **done** |
 | gzip / snappy / lz4 | **done**; zstd / Kerberos blocked on C |
 | Mock protocol tests | large (`tests/full_surface.rs`, `client_api.rs`); mock e2e in `#80` |
-| Real-broker CI | not in `.github/workflows/ci.yml` today |
-| crates.io publish | not published (`git` dependency in README) |
-| Open GitHub issues | none; work is commit-driven |
+| Real-broker CI | `broker-smoke` job + `scripts/ci-broker-smoke.sh` (3.9.1 and 4.0.0) |
+| crates.io publish | not published yet (`git` dependency; WP-0.5 owner action) |
+| Open GitHub issues | templates added; work is still mostly commit-driven |
 
 ---
 
@@ -183,14 +183,14 @@ Execute in this sequence unless blocked:
 
 | Package | Status | Notes |
 |---|---|---|
-| WP-0 Public crate identity | not started | |
-| WP-1 Real-broker CI | not started | |
-| WP-2 Adversarial trust | not started | |
-| WP-3 Operator docs | not started | |
-| WP-4 Observability | not started | |
+| WP-0 Public crate identity | **in progress** | 0.1–0.4 done (RELEASE, CHANGELOG, api-stability, package dry-run). **0.5 owner publish** remains. |
+| WP-1 Real-broker CI | **done** | `broker-smoke` matrix 3.9.1 + 4.0.0; mock `test` job unchanged. |
+| WP-2 Adversarial trust | **in progress** | security.md + `audit` CI job. Fuzz targets (2.1–2.2) remain. |
+| WP-3 Operator docs | **done** | guide.md + migrate-from-rdkafka.md + README links. |
+| WP-4 Observability | **in progress** | Metrics documented in guide. tracing feature (4.2) remains. |
 | WP-5 Perf honesty | not started | |
 | WP-6 Adoption gaps | not started | |
-| WP-7 Stewardship | not started | |
+| WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING updated. |
 
 ## Success criteria (civilization bar)
 
