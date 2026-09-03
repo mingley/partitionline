@@ -2074,6 +2074,11 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
         Compression::Lz4 => Bytes::from(lz4_decompress(&body)?),
     };
     let count_usize = buf::usize_from_i32(count)?;
+    if count_usize > records_cur.remaining() {
+        return Err(Error::protocol(
+            "Incorrect declared record count, exceeds remaining bytes",
+        ));
+    }
     let mut records = Vec::with_capacity(count_usize);
     for _ in 0..count_usize {
         if !records_cur.has_remaining() {

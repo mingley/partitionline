@@ -33,5 +33,7 @@ advisories when enabled). Do not open a public issue with exploit details.
 - Real-broker smoke (`scripts/ci-broker-smoke.sh`) checks live produce/fetch
   against Apache Kafka in CI when Docker is available.
 - Dependency advisories: CI `audit` job (`cargo audit`).
-- Fuzz targets for decode paths are tracked in `docs/CIVILIZATION.md` WP-2.1
-  (add them; do not claim coverage until they exist).
+- Decode allocation guards: `get_array_len` / tagged-field counts reject
+  lengths greater than remaining buffer bytes (untrusted broker DoS).
+- Adversarial decode smoke: `tests/fuzz_decode_smoke.rs` (pseudo-random
+  blobs must not panic). Dedicated cargo-fuzz targets remain optional.

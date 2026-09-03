@@ -185,10 +185,10 @@ Execute in this sequence unless blocked:
 |---|---|---|
 | WP-0 Public crate identity | **in progress** | 0.1–0.4 done (RELEASE, CHANGELOG, api-stability, package dry-run). **0.5 owner publish** remains. |
 | WP-1 Real-broker CI | **done** | `broker-smoke` matrix 3.9.1 + 4.0.0; mock `test` job unchanged. |
-| WP-2 Adversarial trust | **in progress** | security.md + `audit` CI job. Fuzz targets (2.1–2.2) remain. |
+| WP-2 Adversarial trust | **in progress** | security.md + `audit` CI + decode OOM guards + `tests/fuzz_decode_smoke.rs`. cargo-fuzz libFuzzer targets still open. |
 | WP-3 Operator docs | **done** | guide.md + migrate-from-rdkafka.md + README links. |
 | WP-4 Observability | **in progress** | Metrics documented in guide. tracing feature (4.2) remains. |
-| WP-5 Perf honesty | not started | |
+| WP-5 Perf honesty | **in progress** | `scripts/lab-a-produce.sh` (HW check reminder). Latency CI gate remains. |
 | WP-6 Adoption gaps | not started | |
 | WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING updated. |
 

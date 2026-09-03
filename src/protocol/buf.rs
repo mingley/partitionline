@@ -777,13 +777,19 @@ pub fn put_array_len(buf: &mut BytesMut, flexible: bool, len: Option<usize>) -> 
 }
 
 /// Read an array length. `None` is a null array.
+///
+/// Rejects lengths greater than `buf.remaining()` so untrusted broker bytes
+/// cannot force `Vec::with_capacity` into multi-gigabyte allocations. Kafka
+/// array elements are at least one byte on the wire.
 pub fn get_array_len<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<usize>> {
     if flexible {
         let n = get_unsigned_varint(buf)?;
         if n == 0 {
             Ok(None)
         } else {
-            Ok(Some(usize_from_u32(n - 1)?))
+            let len = usize_from_u32(n - 1)?;
+            reject_array_len(buf, len)?;
+            Ok(Some(len))
         }
     } else {
         need(buf, 4)?;
@@ -791,14 +797,30 @@ pub fn get_array_len<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<usize
         if n < 0 {
             Ok(None)
         } else {
-            Ok(Some(usize_from_i32(n)?))
+            let len = usize_from_i32(n)?;
+            reject_array_len(buf, len)?;
+            Ok(Some(len))
         }
     }
 }
 
+fn reject_array_len<B: Buf>(buf: &B, len: usize) -> Result<()> {
+    if len > buf.remaining() {
+        return Err(Error::protocol("array length exceeds remaining bytes"));
+    }
+    Ok(())
+}
+
 /// Skip tagged fields (flexible protocol). Unknown tags are discarded.
 pub fn skip_tagged_fields<B: Buf>(buf: &mut B) -> Result<()> {
-    let n = get_unsigned_varint(buf)?;
+    let n = usize_from_u32(get_unsigned_varint(buf)?)?;
+    // Each field is at least a tag varint + size varint (≥2 bytes) when
+    // non-empty; require `n <= remaining` so a huge count cannot hang/OOM.
+    if n > buf.remaining() {
+        return Err(Error::protocol(
+            "tagged field count exceeds remaining bytes",
+        ));
+    }
     for _ in 0..n {
         let _tag = get_unsigned_varint(buf)?;
         let size = usize_from_u32(get_unsigned_varint(buf)?)?;
@@ -830,8 +852,13 @@ pub fn put_tagged_fields<T: AsRef<[u8]>>(buf: &mut BytesMut, fields: &[(u32, T)]
 
 /// Read tagged fields. Tags must be strictly ascending.
 pub fn get_tagged_fields<B: Buf>(buf: &mut B) -> Result<Vec<(u32, Bytes)>> {
-    let n = get_unsigned_varint(buf)?;
-    let mut out = Vec::with_capacity(usize_from_u32(n)?);
+    let n = usize_from_u32(get_unsigned_varint(buf)?)?;
+    if n > buf.remaining() {
+        return Err(Error::protocol(
+            "tagged field count exceeds remaining bytes",
+        ));
+    }
+    let mut out = Vec::with_capacity(n);
     let mut prev: Option<u32> = None;
     for _ in 0..n {
         let tag = get_unsigned_varint(buf)?;
@@ -1077,6 +1104,21 @@ mod tests {
         assert_eq!(get_compact_string(&mut cur).unwrap().as_deref(), Some(""));
         assert_eq!(get_compact_string(&mut cur).unwrap().as_deref(), Some("hi"));
         assert_eq!(cur.remaining(), 0);
+    }
+
+    #[test]
+    fn array_len_rejects_claims_past_remaining() {
+        // Classic: length 1_000_000 but only 0 payload bytes left after the i32.
+        let mut buf = BytesMut::new();
+        buf.put_i32(1_000_000);
+        let mut cur = &buf[..];
+        assert!(get_array_len(&mut cur, false).is_err());
+
+        // Flexible: compact length n+1 = 100 (99 elements) with empty remainder.
+        let mut buf = BytesMut::new();
+        put_unsigned_varint(&mut buf, 100);
+        let mut cur = &buf[..];
+        assert!(get_array_len(&mut cur, true).is_err());
     }
 
     fn naive_size_of_unsigned_varint(value: i32) -> i32 {

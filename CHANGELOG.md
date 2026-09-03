@@ -13,6 +13,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   API stability, security, and operator docs.
 - Real-broker CI smoke workflow and `scripts/ci-broker-smoke.sh`.
 - GitHub issue / PR templates for stewardship.
+- Adversarial decode smoke tests (`tests/fuzz_decode_smoke.rs`).
+- Lab A produce harness (`scripts/lab-a-produce.sh`).
+
+### Security
+
+- Reject array / tagged-field lengths that exceed remaining buffer bytes so
+  malformed broker frames cannot force multi-gigabyte `Vec` allocations.
 
 ## [0.1.0] - 2026-09-03
 
