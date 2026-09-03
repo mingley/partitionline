@@ -1,0 +1,5 @@
+{
+  "description": "Unsigned CI produce-ack p99 baseline (linger=0, 100B). Relative gate only — not Lab A, not vs C.",
+  "produce_ack_p99_us": 500,
+  "notes": "Loose ceiling for GitHub-hosted runners + Docker Kafka. Tighten after signed Lab A latency process exists. See docs/STATUS.md."
+}

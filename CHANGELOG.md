@@ -15,6 +15,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - GitHub issue / PR templates for stewardship.
 - Adversarial decode smoke tests (`tests/fuzz_decode_smoke.rs`).
 - Lab A produce harness (`scripts/lab-a-produce.sh`).
+- Optional `tracing` feature (produce/fetch/poll/rejoin/txn spans).
+- libFuzzer targets under `fuzz/` and `scripts/ci-fuzz-smoke.sh`.
+- Relative produce-ack latency CI gate (`scripts/ci-latency-gate.sh`,
+  `docs/latency-baseline.json`).
+- Adoption survey issue template, zstd spike doc, README feature matrix.
+- `examples/metrics.rs` Prometheus text mode (`FORMAT=prom`).
 
 ### Security
 

@@ -47,6 +47,33 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+  # Optional-feature compile gate (tracing spans).
+  features:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo clippy --all-targets --features tracing -- -D warnings
+      - run: cargo test --all-targets --features tracing
+
+  # libFuzzer smoke (nightly). Short wall-clock per target.
+  fuzz-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+      - name: Install C++ toolchain for libFuzzer
+        run: sudo apt-get update && sudo apt-get install -y g++
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+      - name: Fuzz smoke
+        env:
+          FUZZ_SECONDS: "15"
+          CXX: g++
+        run: bash scripts/ci-fuzz-smoke.sh
+
   # Real Apache Kafka broker smoke (separate from mock suite).
   # Matrix: Kafka 3.9.x and 4.x KRaft images.
   broker-smoke:
@@ -64,3 +91,33 @@ jobs:
           CI: "true"
           KAFKA_IMAGE: ${{ matrix.kafka_image }}
         run: bash scripts/ci-broker-smoke.sh
+
+  # Produce-ack p99 relative gate (unsigned, not vs C).
+  latency-gate:
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Start Kafka
+        run: |
+          docker run -d --name pl-lat -p 9092:9092 apache/kafka:3.9.1
+          for i in $(seq 1 90); do
+            if docker exec pl-lat /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec pl-lat /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
+            --create --if-not-exists --topic pl-ci-latency --partitions 1 --replication-factor 1
+      - name: Latency gate
+        env:
+          KAFKA_BOOTSTRAP: "127.0.0.1:9092"
+          KAFKA_TOPIC: "pl-ci-latency"
+          COUNT: "2000"
+          WARMUP: "200"
+          LATENCY_SLACK_PCT: "100"
+        run: bash scripts/ci-latency-gate.sh
+      - name: Stop Kafka
+        if: always()
+        run: docker rm -f pl-lat || true

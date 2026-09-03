@@ -1,0 +1,44 @@
+[package]
+name = "partitionline-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+# Isolate from the crate root workspace (cargo-fuzz requirement).
+[workspace]
+members = ["."]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+partitionline = { path = ".." }
+
+[[bin]]
+name = "decode_fetch_response"
+path = "fuzz_targets/decode_fetch_response.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "decode_produce_response"
+path = "fuzz_targets/decode_produce_response.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "decode_metadata_response"
+path = "fuzz_targets/decode_metadata_response.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "decode_record_batches"
+path = "fuzz_targets/decode_record_batches.rs"
+test = false
+doc = false
+bench = false

@@ -163,6 +163,18 @@ Roadmap: [docs/CIVILIZATION.md](docs/CIVILIZATION.md).
 **Not a drop-in for `rd_kafka_*`.** Still missing vs librdkafka: zstd and
 Kerberos (C libraries), Schema Registry.
 
+## Features vs C stack
+
+| Capability | partitionline (default) | librdkafka |
+|---|---|---|
+| Produce / fetch / groups / EOS / admin / share | yes | yes |
+| gzip / snappy / lz4 | yes (pure Rust) | yes (often C) |
+| TLS | rustls (no OpenSSL) | OpenSSL |
+| SASL PLAIN / SCRAM / OAUTHBEARER / OIDC | yes (pure Rust) | yes |
+| zstd | no (see [docs/zstd-spike.md](docs/zstd-spike.md)) | yes (`libzstd`) |
+| Kerberos / GSSAPI | no | yes (Cyrus) |
+| Optional `tracing` spans | feature `tracing` | n/a |
+
 ## Examples
 
 Broker on `127.0.0.1:9092` (Docker `apache/kafka:3.9.1` is enough):

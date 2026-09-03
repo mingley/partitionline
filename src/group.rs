@@ -1103,6 +1103,7 @@ impl ConsumerGroup {
     ///
     /// Not subscribed is Java `IllegalStateException` (`Consumer is not
     /// subscribed to any topics or assigned any partitions`).
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub async fn poll(&mut self) -> Result<ConsumerRecords> {
         self.poll_fetch(None).await
     }
@@ -1813,6 +1814,7 @@ impl ConsumerGroup {
         Ok(())
     }
 
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self), fields(protocol = %self.protocol)))]
     async fn rejoin(&mut self) -> Result<()> {
         for _ in 0..8 {
             let revoked = self.rejoin_once().await?;

@@ -1245,6 +1245,10 @@ impl Producer {
     /// A loop of `send().await` therefore cannot pipeline. For many records
     /// use [`Self::send_all`] (offsets) or [`Self::try_send`] plus
     /// [`Self::flush`] (throughput).
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip(self, rec), fields(topic = %rec.topic))
+    )]
     pub async fn send(&self, rec: ProduceRecord) -> Result<RecordMetadata> {
         let mut out = self.send_all(std::iter::once(rec)).await?;
         out.pop().ok_or_else(|| Error::protocol("send_all empty"))
@@ -1489,6 +1493,7 @@ impl Producer {
     ///
     /// Missing `transactional.id` is Java `IllegalStateException`
     /// (`Cannot use transactional methods without enabling transactions`).
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub async fn init_transactions(&self) -> Result<()> {
         if self.inner.shared.cfg.transactional_id.is_none() {
             return Err(reject_java_no_transaction_manager());
@@ -1503,6 +1508,7 @@ impl Producer {
     ///
     /// Missing `transactional.id` is the same Java message as
     /// [`Self::init_transactions`].
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub async fn begin_transaction(&self) -> Result<()> {
         if self.inner.shared.cfg.transactional_id.is_none() {
             return Err(reject_java_no_transaction_manager());
@@ -1515,6 +1521,7 @@ impl Producer {
 
     /// Flush, then commit the current transaction (`EndTxn`
     /// [`TransactionResult::Commit`]).
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub async fn commit_transaction(&self) -> Result<()> {
         self.flush().await?;
         self.end_txn(TransactionResult::Commit.id()).await
@@ -1531,6 +1538,7 @@ impl Producer {
     /// A Produce that already completed [`Self::send`] with a broker error
     /// does not fail abort: Java still EndTxn-aborts, then optionally re-inits.
     /// [`Self::commit_transaction`] still fails `flush` on that error.
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub async fn abort_transaction(&self) -> Result<()> {
         self.drain_before_abort().await?;
         self.end_txn(TransactionResult::Abort.id()).await?;

@@ -36,4 +36,7 @@ advisories when enabled). Do not open a public issue with exploit details.
 - Decode allocation guards: `get_array_len` / tagged-field counts reject
   lengths greater than remaining buffer bytes (untrusted broker DoS).
 - Adversarial decode smoke: `tests/fuzz_decode_smoke.rs` (pseudo-random
-  blobs must not panic). Dedicated cargo-fuzz targets remain optional.
+  blobs must not panic).
+- libFuzzer targets under `fuzz/` (`decode_fetch_response`,
+  `decode_produce_response`, `decode_metadata_response`,
+  `decode_record_batches`); CI `fuzz-smoke` runs a short wall-clock budget.

@@ -25,6 +25,8 @@ include = [
     "docs/security.md",
     "docs/guide.md",
     "docs/migrate-from-rdkafka.md",
+    "docs/zstd-spike.md",
+    "docs/latency-baseline.json",
     "CHANGELOG.md",
     "Cargo.toml",
     "Cargo.lock",
@@ -36,6 +38,7 @@ include = [
 ]
 
 [workspace]
+exclude = ["fuzz"]
 
 [workspace.lints.rust]
 missing_docs = "deny"
@@ -73,6 +76,11 @@ lossy_float_literal = "deny"
 [lints]
 workspace = true
 
+[features]
+default = []
+# Optional OpenTelemetry-friendly spans on produce-ack, fetch, rebalance, and txn boundaries.
+tracing = ["dep:tracing"]
+
 [dependencies]
 base64 = "0.22"
 bytes = "1"
@@ -89,6 +97,7 @@ snap = "1"
 tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "rt", "rt-multi-thread", "signal", "sync", "time"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
 parking_lot = "0.12"
+tracing = { version = "0.1", optional = true }
 webpki-roots = "1"
 
 [dev-dependencies]

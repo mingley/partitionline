@@ -141,9 +141,22 @@ pause (`examples/cooperative.rs`). Handle `on_rebalance` for revoke/assign.
 `examples/eos.rs`: read with `ReadCommitted`, produce inside a transaction,
 `send_offsets_for_group`, `commit_transaction`.
 
+## Tracing (optional feature)
+
+Enable spans without changing default builds:
+
+```toml
+partitionline = { version = "0.1", features = ["tracing"] }
+```
+
+Spans cover `Producer::send` (topic field), `Consumer::fetch`,
+`ConsumerGroup::poll`, cooperative rejoin, and transaction
+init/begin/commit/abort. Pair with `tracing-subscriber` in the application.
+
 ## More
 
 - Capability vs librdkafka: [`gaps.md`](gaps.md)
 - Wire notes: [`design.md`](design.md)
 - Migrate from rust-rdkafka: [`migrate-from-rdkafka.md`](migrate-from-rdkafka.md)
 - Security: [`security.md`](security.md)
+- Pure-Rust zstd spike: [`zstd-spike.md`](zstd-spike.md)

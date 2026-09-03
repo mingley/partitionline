@@ -2014,6 +2014,7 @@ impl Consumer {
     ///
     /// When [`ConsumerConfig::max_poll_records`] is set, extra records from
     /// the Fetch stay buffered and are returned on the next call.
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub async fn fetch(&mut self) -> Result<ConsumerRecords> {
         self.fetch_records(true).await
     }
