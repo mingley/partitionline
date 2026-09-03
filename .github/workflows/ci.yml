@@ -48,6 +48,16 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+  # cargo-deny: advisories + licenses + no-C bans + crates.io-only sources.
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories licenses bans sources
+
   # crates.io packaging dry-run (does not publish).
   package:
     runs-on: ubuntu-latest

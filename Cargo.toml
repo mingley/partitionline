@@ -7,9 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "A Kafka client in pure Rust. No C, no librdkafka."
 repository = "https://github.com/mingley/partitionline"
 homepage = "https://github.com/mingley/partitionline"
+documentation = "https://docs.rs/partitionline"
 readme = "README.md"
 authors = ["Michael Ingley"]
-keywords = ["kafka", "client", "async", "producer"]
+keywords = ["kafka", "client", "async", "producer", "streaming"]
 categories = ["network-programming", "asynchronous"]
 include = [
     "src/**",
@@ -28,6 +29,7 @@ include = [
     "docs/zstd-spike.md",
     "docs/latency-baseline.json",
     "CHANGELOG.md",
+    "deny.toml",
     "Cargo.toml",
     "Cargo.lock",
     "clippy.toml",
@@ -76,6 +78,10 @@ lossy_float_literal = "deny"
 [lints]
 workspace = true
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [features]
 default = []
 # Optional OpenTelemetry-friendly spans on produce-ack, fetch, rebalance, and txn boundaries.
@@ -91,7 +97,6 @@ hmac = "0.12"
 lz4_flex = "0.11"
 pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
-rustls-pemfile = "2"
 sha2 = "0.10"
 snap = "1"
 tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "rt", "rt-multi-thread", "signal", "sync", "time"] }

@@ -1,0 +1,58 @@
+# cargo-deny: supply-chain policy for a no-C Kafka client.
+# Run: bash scripts/ci-deny.sh
+# CI: deny job in .github/workflows/ci.yml (EmbarkStudios/cargo-deny-action)
+
+[graph]
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "aarch64-unknown-linux-gnu" },
+    { triple = "x86_64-apple-darwin" },
+    { triple = "aarch64-apple-darwin" },
+]
+all-features = true
+
+[advisories]
+version = 2
+yanked = "deny"
+ignore = [
+    # Dev-only via rcgen. Patched time (>=0.3.47) needs rustc 1.88; MSRV is 1.85.
+    # Production/default feature graph does not depend on `time`.
+    { id = "RUSTSEC-2026-0009", reason = "dev-only (rcgen); MSRV 1.85 blocks patched time" },
+]
+
+[licenses]
+version = 2
+confidence-threshold = 0.8
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-3-Clause",
+    "BSD-2-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "CDLA-Permissive-2.0",
+]
+exceptions = []
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = false
+# Keep the feature set free of C Kafka / OpenSSL / libzstd / Cyrus / archived PEM crate.
+deny = [
+    { crate = "rdkafka", reason = "partitionline must not depend on librdkafka" },
+    { crate = "rdkafka-sys", reason = "partitionline must not link librdkafka" },
+    { crate = "openssl", reason = "use rustls; OpenSSL is C" },
+    { crate = "openssl-sys", reason = "use rustls; OpenSSL is C" },
+    { crate = "native-tls", reason = "prefer rustls; native-tls pulls platform C TLS" },
+    { crate = "zstd-sys", reason = "zstd stays out of features until pure-Rust path exists" },
+    { crate = "libzstd-sys", reason = "zstd stays out of features until pure-Rust path exists" },
+    { crate = "rustls-pemfile", reason = "unmaintained; use rustls-pki-types PemObject" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "warn"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

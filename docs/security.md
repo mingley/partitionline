@@ -32,7 +32,12 @@ advisories when enabled). Do not open a public issue with exploit details.
 - Mock protocol tests exercise encode/decode extensively.
 - Real-broker smoke (`scripts/ci-broker-smoke.sh`) checks live produce/fetch
   against Apache Kafka in CI when Docker is available.
-- Dependency advisories: CI `audit` job (`cargo audit`).
+- Dependency advisories: CI `audit` job (`cargo audit`) and `deny` job
+  (`cargo deny` via `deny.toml` / `scripts/ci-deny.sh`).
+- Supply-chain bans: `rdkafka` / `rdkafka-sys`, OpenSSL, `native-tls`,
+  `zstd-sys`, and archived `rustls-pemfile` are denied so C Kafka / TLS /
+  zstd cannot land quietly.
+- TLS PEM: `rustls-pki-types::pem::PemObject` (no `rustls-pemfile`).
 - Decode allocation guards: `get_array_len` / tagged-field counts reject
   lengths greater than remaining buffer bytes (untrusted broker DoS).
 - Adversarial decode smoke: `tests/fuzz_decode_smoke.rs` (pseudo-random

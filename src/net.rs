@@ -9,6 +9,7 @@ use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
 
 use bytes::{BufMut, Bytes, BytesMut};
+use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
 use rustls::{ClientConfig, RootCertStore};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
@@ -291,15 +292,14 @@ fn host_of(addr: &str) -> &str {
 }
 
 fn certs_from_pem(pem: &[u8]) -> Result<Vec<CertificateDer<'static>>> {
-    rustls_pemfile::certs(&mut &*pem)
+    CertificateDer::pem_slice_iter(pem)
         .collect::<std::result::Result<Vec<_>, _>>()
         .map_err(|e| Error::protocol(format!("tls cert pem: {e}")))
 }
 
 fn key_from_pem(pem: &[u8]) -> Result<PrivateKeyDer<'static>> {
-    rustls_pemfile::private_key(&mut &*pem)
-        .map_err(|e| Error::protocol(format!("tls key pem: {e}")))?
-        .ok_or_else(|| Error::protocol("tls: no private key in pem"))
+    PrivateKeyDer::from_pem_slice(pem)
+        .map_err(|e| Error::protocol(format!("tls key pem: {e}")))
 }
 
 fn root_store(tls: &TlsConfig) -> Result<RootCertStore> {

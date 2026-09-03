@@ -1,0 +1,6 @@
+# Shared with cargo-deny ignores for CI `audit` job (rustsec/audit-check).
+[advisories]
+ignore = [
+    # Dev-only via rcgen. Patched time (>=0.3.47) needs rustc 1.88; MSRV is 1.85.
+    "RUSTSEC-2026-0009",
+]
