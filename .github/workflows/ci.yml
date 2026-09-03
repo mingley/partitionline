@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   fmt:
@@ -46,6 +47,16 @@ jobs:
       - uses: rustsec/audit-check@v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  # crates.io packaging dry-run (does not publish).
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo package
+      - name: List crate contents
+        run: tar -tzf target/package/partitionline-*.crate | head -80
 
   # Optional-feature compile gate (tracing spans).
   features:

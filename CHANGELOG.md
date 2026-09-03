@@ -7,29 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
-### Added
-
-- Civilization adoption plan (`docs/CIVILIZATION.md`) and supporting release,
-  API stability, security, and operator docs.
-- Real-broker CI smoke workflow and `scripts/ci-broker-smoke.sh`.
-- GitHub issue / PR templates for stewardship.
-- Adversarial decode smoke tests (`tests/fuzz_decode_smoke.rs`).
-- Lab A produce harness (`scripts/lab-a-produce.sh`).
-- Optional `tracing` feature (produce/fetch/poll/rejoin/txn spans).
-- libFuzzer targets under `fuzz/` and `scripts/ci-fuzz-smoke.sh`.
-- Relative produce-ack latency CI gate (`scripts/ci-latency-gate.sh`,
-  `docs/latency-baseline.json`).
-- Adoption survey issue template, zstd spike doc, README feature matrix.
-- `examples/metrics.rs` Prometheus text mode (`FORMAT=prom`).
-
-### Security
-
-- Reject array / tagged-field lengths that exceed remaining buffer bytes so
-  malformed broker frames cannot force multi-gigabyte `Vec` allocations.
-
 ## [0.1.0] - 2026-09-03
 
-Initial public baseline (git / pre-crates.io).
+First crates.io-ready baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
 
 ### Added
 
@@ -39,11 +19,21 @@ Initial public baseline (git / pre-crates.io).
 - TLS via rustls (no OpenSSL); SASL PLAIN, SCRAM-SHA-256/512, OAUTHBEARER,
   OIDC client credentials.
 - Compression: gzip, snappy, lz4 (zstd and Kerberos remain out of default
-  features; see `docs/gaps.md`).
+  features; see `docs/gaps.md` and `docs/zstd-spike.md`).
 - Java-shaped builders and rustdoc naming matching Java client calls.
+- Optional `tracing` feature (produce/fetch/poll/rejoin/txn spans).
 - Examples: produce, consume, group, txn, eos, admin, tls, sasl, share,
-  benches, interceptors, and related operator samples.
-- Mock protocol / surface tests; design, gaps, and benchmark documentation.
+  benches, interceptors, metrics (`FORMAT=prom`).
+- Operator docs: guide, rdkafka migration, security, release policy,
+  API stability, civilization plan.
+- CI: mock tests (MSRV 1.85 + stable), clippy, audit, `cargo package`,
+  broker-smoke (Kafka 3.9.1 + 4.0.0), fuzz-smoke, latency-gate.
+- libFuzzer targets under `fuzz/`; decode allocation DoS guards.
+
+### Security
+
+- Reject array / tagged-field lengths that exceed remaining buffer bytes so
+  malformed broker frames cannot force multi-gigabyte `Vec` allocations.
 
 ### Notes
 

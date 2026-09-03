@@ -6,8 +6,10 @@ A Kafka client written in Rust. It does not call into C or librdkafka.
 
 ```toml
 [dependencies]
-# After crates.io publish (see docs/RELEASE.md): partitionline = "0.1"
+# crates.io publish is one owner step away (docs/RELEASE.md → tag v0.1.0).
+# Until then:
 partitionline = { git = "https://github.com/mingley/partitionline" }
+# After publish: partitionline = "0.1"
 ```
 
 ## Produce

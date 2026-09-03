@@ -23,6 +23,27 @@ helper map commit. Mock-only internal refactors can wait.
 Requires a crates.io token owned by a crate owner. Agents without the token
 stop after a successful `cargo package` dry-run.
 
+### Preferred: GitHub Actions tag publish
+
+One-time setup:
+
+1. Create a crates.io API token (publish-update for `partitionline`).
+2. Add repository secret `CARGO_REGISTRY_TOKEN` (Settings → Secrets → Actions).
+3. Ensure CHANGELOG has a dated `0.1.0` (or next) section and README is ready
+   to show the crates.io dependency line after the run.
+
+Then:
+
+```bash
+# on main, version already set in Cargo.toml
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Workflow: `.github/workflows/release.yml` (fmt / clippy / test / package / publish).
+
+### Manual publish
+
 ```bash
 cargo fmt --all -- --check
 cargo clippy --all-targets --all-features -- -D warnings
@@ -34,9 +55,9 @@ cargo publish
 
 After publish:
 
-1. Tag `vX.Y.Z` matching `Cargo.toml`.
-2. Move CHANGELOG `[Unreleased]` into `[X.Y.Z]`.
-3. Point README install at crates.io (not git) if not already.
+1. Tag `vX.Y.Z` matching `Cargo.toml` (if not already tagged by Actions).
+2. Move CHANGELOG `[Unreleased]` into `[X.Y.Z]` if anything remains.
+3. Point README install at crates.io (not git) if the release job did not.
 
 ## Honesty
 
