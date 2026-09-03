@@ -4,7 +4,8 @@ This project is MIT OR Apache-2.0. Patches are under the same licenses unless yo
 
 Execution plan (what to build next, constraints, acceptance checks):
 [docs/CIVILIZATION.md](docs/CIVILIZATION.md). Capability tracker: [docs/gaps.md](docs/gaps.md).
-Release / semver: [docs/RELEASE.md](docs/RELEASE.md). Security: [docs/security.md](docs/security.md).
+Release / semver: [docs/RELEASE.md](docs/RELEASE.md). Security: [docs/security.md](docs/security.md)
+and [SECURITY.md](SECURITY.md).
 
 ```
 cargo fmt
