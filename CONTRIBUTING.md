@@ -44,6 +44,14 @@ Civilization bar self-check (package + deny + docs gates; broker optional):
 bash scripts/ci-civilization-check.sh
 ```
 
+When Docker overlay is unavailable (common in nested VMs), use a native broker:
+
+```
+bash scripts/ci-native-kafka.sh start
+SKIP_DOCKER=1 bash scripts/ci-broker-smoke.sh
+bash scripts/ci-native-kafka.sh stop
+```
+
 Please do not add librdkafka, or C compression libraries, as default dependencies. This crate forbids `unsafe`.
 
 MSRV is 1.85. `rcgen` pulls `time`; keep `time` at **0.3.41** in `Cargo.lock` (`0.3.55` needs rustc 1.88).

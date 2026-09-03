@@ -298,8 +298,7 @@ fn certs_from_pem(pem: &[u8]) -> Result<Vec<CertificateDer<'static>>> {
 }
 
 fn key_from_pem(pem: &[u8]) -> Result<PrivateKeyDer<'static>> {
-    PrivateKeyDer::from_pem_slice(pem)
-        .map_err(|e| Error::protocol(format!("tls key pem: {e}")))
+    PrivateKeyDer::from_pem_slice(pem).map_err(|e| Error::protocol(format!("tls key pem: {e}")))
 }
 
 fn root_store(tls: &TlsConfig) -> Result<RootCertStore> {
