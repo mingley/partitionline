@@ -154,6 +154,8 @@ Defaults that differ from Java:
 The crate rustdoc is the full Java-shaped API catalog (protocol helpers,
 version ranges, and option names). Capability list vs librdkafka:
 [docs/gaps.md](docs/gaps.md).
+Roadmap for adoption and trust:
+[docs/CIVILIZATION.md](docs/CIVILIZATION.md).
 
 **Not a drop-in for `rd_kafka_*`.** Still missing vs librdkafka: zstd and
 Kerberos (C libraries), Schema Registry.
