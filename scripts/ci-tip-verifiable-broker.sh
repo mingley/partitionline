@@ -33,6 +33,7 @@
 #   bash scripts/ci-tip-verifiable-broker.sh
 #   REQUIRE_BROKER=1 REQUIRE_AUTH=1 bash scripts/ci-tip-verifiable-broker.sh
 #   TIP_VERIFIABLE_SOFT=1 bash scripts/ci-tip-verifiable-broker.sh
+#   bash scripts/ci-tip-verifiable-broker.sh --self-test   # PARTIAL exit-code units
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -41,6 +42,71 @@ cd "$ROOT"
 REQUIRE_BROKER="${REQUIRE_BROKER:-0}"
 REQUIRE_AUTH="${REQUIRE_AUTH:-0}"
 REQUIRE_INTEGRITY="${REQUIRE_INTEGRITY:-0}"
+
+# Final gate: ok only when both auth+integrity passed; else PARTIAL (exit 2 unless soft).
+# Shared by live path and --self-test so exit-code honesty cannot drift.
+pl_tip_verifiable_finalize() {
+  local auth_ok="$1"
+  local integ_ok="$2"
+  local soft_skip="${3:-0}"
+  if [[ "$auth_ok" == "1" && "$integ_ok" == "1" ]]; then
+    echo "ci-tip-verifiable-broker: ok (tip live-broker Verifiable; unsigned)"
+    return 0
+  fi
+  # Soft-skipped mid-chain: never claim ok (not Verifiable evidence).
+  # Default exit 2 so set -e tip proxies fail closed; TIP_VERIFIABLE_SOFT=1 → exit 0.
+  echo "ci-tip-verifiable-broker: PARTIAL — soft-skipped stage(s); not full tip Verifiable evidence (soft_skip=${soft_skip})"
+  if [[ "${TIP_VERIFIABLE_SOFT:-0}" == "1" ]]; then
+    return 0
+  fi
+  return 2
+}
+
+if [[ "${1:-}" == "--self-test" ]]; then
+  echo "ci-tip-verifiable-broker: self-test — full pass must exit 0"
+  TIP_VERIFIABLE_SOFT=0
+  set +e
+  out="$(pl_tip_verifiable_finalize 1 1 0 2>&1)"
+  rc=$?
+  set -e
+  if [[ "$rc" -ne 0 ]] || ! grep -q 'ci-tip-verifiable-broker: ok' <<<"$out"; then
+    echo "ci-tip-verifiable-broker: self-test FAIL — expected ok/exit 0, got rc=$rc out=$out" >&2
+    exit 1
+  fi
+
+  echo "ci-tip-verifiable-broker: self-test — PARTIAL default must exit 2"
+  TIP_VERIFIABLE_SOFT=0
+  set +e
+  out="$(pl_tip_verifiable_finalize 0 1 1 2>&1)"
+  rc=$?
+  set -e
+  if [[ "$rc" -ne 2 ]] || ! grep -q 'PARTIAL' <<<"$out"; then
+    echo "ci-tip-verifiable-broker: self-test FAIL — expected PARTIAL/exit 2, got rc=$rc out=$out" >&2
+    exit 1
+  fi
+  if grep -q 'ci-tip-verifiable-broker: ok' <<<"$out"; then
+    echo "ci-tip-verifiable-broker: self-test FAIL — PARTIAL path printed ok" >&2
+    exit 1
+  fi
+
+  echo "ci-tip-verifiable-broker: self-test — PARTIAL under TIP_VERIFIABLE_SOFT=1 must exit 0"
+  TIP_VERIFIABLE_SOFT=1
+  set +e
+  out="$(pl_tip_verifiable_finalize 1 0 1 2>&1)"
+  rc=$?
+  set -e
+  if [[ "$rc" -ne 0 ]] || ! grep -q 'PARTIAL' <<<"$out"; then
+    echo "ci-tip-verifiable-broker: self-test FAIL — expected PARTIAL/exit 0 under soft, got rc=$rc out=$out" >&2
+    exit 1
+  fi
+  if grep -q 'ci-tip-verifiable-broker: ok' <<<"$out"; then
+    echo "ci-tip-verifiable-broker: self-test FAIL — soft PARTIAL printed ok" >&2
+    exit 1
+  fi
+
+  echo "ci-tip-verifiable-broker: self-test OK — finalize ok/PARTIAL exit 2/soft exit 0"
+  exit 0
+fi
 
 pl_tip_verifiable_tooling_ready() {
   local kver="${KAFKA_VERSION:-4.1.0}"
@@ -136,15 +202,5 @@ else
   exit 1
 fi
 
-if [[ "$auth_ok" == "1" && "$integ_ok" == "1" ]]; then
-  echo "ci-tip-verifiable-broker: ok (tip live-broker Verifiable; unsigned)"
-  exit 0
-fi
-
-# Soft-skipped mid-chain: never claim ok (not Verifiable evidence).
-# Default exit 2 so set -e tip proxies fail closed; TIP_VERIFIABLE_SOFT=1 → exit 0.
-echo "ci-tip-verifiable-broker: PARTIAL — soft-skipped stage(s); not full tip Verifiable evidence (soft_skip=${soft_skip})"
-if [[ "${TIP_VERIFIABLE_SOFT:-0}" == "1" ]]; then
-  exit 0
-fi
-exit 2
+pl_tip_verifiable_finalize "$auth_ok" "$integ_ok" "$soft_skip"
+exit $?
