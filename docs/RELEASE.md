@@ -38,12 +38,17 @@ Then (on `main`, after civilization is merged):
 ```bash
 # Final version only — must match Cargo.toml exactly (e.g. 0.1.0 → v0.1.0).
 # Do not use v0.1.0-rc.1 here: RC tags are git install pins and do not
-# trigger release.yml (filter is vX.Y.Z only).
+# trigger a publish job (tag glob is final vX.Y.Z; job also refuses '-'/'+').
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
 Workflow: `.github/workflows/release.yml` (fmt / clippy / test / package / publish).
+The tag filter is GitHub's workflow glob (`+` = one-or-more of the preceding
+character), not regex. The Release-notes step must keep shell strings indented
+under `run: |` (a flush-left multiline string is invalid YAML and used to create
+empty-job `release` failures on branch pushes). A job-level `if` also skips
+non-tag evaluations.
 
 ### Manual publish
 
