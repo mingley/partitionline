@@ -112,18 +112,22 @@ use partitionline::protocol::api_keys::{
     DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
     DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS,
     DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
-    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
-    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
-    INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
-    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
-    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
-    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
-    WRITE_TXN_MARKERS,
+    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, ELECT_LEADERS, END_TXN,
+    EXPIRE_DELEGATION_TOKEN, FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES,
+    LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
+    OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY,
+    RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
+    SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER,
+    UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use partitionline::protocol::cgheartbeat::{
     decode_consumer_group_heartbeat_request, encode_consumer_group_heartbeat_response,
     ConsumerGroupHeartbeatResponse, TopicPartitions,
+};
+use partitionline::protocol::elect::{
+    decode_elect_leaders_request, encode_elect_leaders_response, ElectLeadersResponse,
+    ElectLeadersTopic, ElectionType, PartitionElectionResult, ReplicaElectionResult,
 };
 use partitionline::protocol::epoch::{
     decode_offset_for_leader_epoch_topics_request, encode_offset_for_leader_epoch_topics_response,
@@ -329,6 +333,13 @@ struct State {
     last_alter_reassignments_node: Option<i32>,
     last_alter_reassignments_timeout: Option<i32>,
     alter_reassignments_not_controller: u32,
+    last_elect_leaders_node: Option<i32>,
+    last_elect_leaders_timeout: Option<i32>,
+    last_elect_leaders_version: Option<i16>,
+    last_elect_leaders_election_type: Option<ElectionType>,
+    last_elect_leaders_all: Option<bool>,
+    elect_leaders_not_controller: u32,
+    last_elect: Option<(String, i32, ElectionType)>,
     last_reassignment: Option<(String, i32, Option<Vec<i32>>)>,
     reassignments: HashMap<(String, i32), Vec<i32>>,
     last_list_reassignments_node: Option<i32>,
@@ -691,6 +702,13 @@ fn new_state(
         last_alter_reassignments_node: None,
         last_alter_reassignments_timeout: None,
         alter_reassignments_not_controller: 0,
+        last_elect_leaders_node: None,
+        last_elect_leaders_timeout: None,
+        last_elect_leaders_version: None,
+        last_elect_leaders_election_type: None,
+        last_elect_leaders_all: None,
+        elect_leaders_not_controller: 0,
+        last_elect: None,
         last_reassignment: None,
         reassignments: HashMap::new(),
         last_list_reassignments_node: None,
@@ -2092,6 +2110,34 @@ impl Mock {
         self.state.lock().alter_reassignments_not_controller
     }
 
+    pub fn last_elect_leaders_node(&self) -> Option<i32> {
+        self.state.lock().last_elect_leaders_node
+    }
+
+    pub fn last_elect_leaders_timeout(&self) -> Option<i32> {
+        self.state.lock().last_elect_leaders_timeout
+    }
+
+    pub fn last_elect_leaders_version(&self) -> Option<i16> {
+        self.state.lock().last_elect_leaders_version
+    }
+
+    pub fn last_elect_leaders_election_type(&self) -> Option<ElectionType> {
+        self.state.lock().last_elect_leaders_election_type
+    }
+
+    pub fn last_elect_leaders_all(&self) -> Option<bool> {
+        self.state.lock().last_elect_leaders_all
+    }
+
+    pub fn elect_leaders_not_controller(&self) -> u32 {
+        self.state.lock().elect_leaders_not_controller
+    }
+
+    pub fn last_elect(&self) -> Option<(String, i32, ElectionType)> {
+        self.state.lock().last_elect.clone()
+    }
+
     pub fn last_reassignment(&self) -> Option<(String, i32, Option<Vec<i32>>)> {
         self.state.lock().last_reassignment.clone()
     }
@@ -3261,6 +3307,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (DELETE_ACLS, 0, 3),
         (INCREMENTAL_ALTER_CONFIGS, 0, 1),
         (ALTER_PARTITION_REASSIGNMENTS, 0, 0),
+        (ELECT_LEADERS, 0, 2),
         (LIST_PARTITION_REASSIGNMENTS, 0, 0),
         (UPDATE_FEATURES, 0, 2),
         (ALTER_USER_SCRAM_CREDENTIALS, 0, 0),
@@ -4198,6 +4245,71 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     encode_alter_partition_reassignments_response(
                         &mut body,
                         &AlterPartitionReassignmentsResponse::new(0, None, results),
+                    )
+                    .unwrap();
+                }
+            }
+            ELECT_LEADERS => {
+                let version = header.api_version;
+                let req = decode_elect_leaders_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_elect_leaders_timeout = Some(req.timeout_ms);
+                st.last_elect_leaders_version = Some(version);
+                st.last_elect_leaders_election_type = Some(req.election_type);
+                st.last_elect_leaders_all = Some(req.topic_partitions.is_none());
+                if st.controller_node != node_id {
+                    st.elect_leaders_not_controller =
+                        st.elect_leaders_not_controller.saturating_add(1);
+                    encode_elect_leaders_response(
+                        &mut body,
+                        version,
+                        &req.error_response(error::NOT_CONTROLLER, 0),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_elect_leaders_node = Some(node_id);
+                    let topics = match req.topic_partitions {
+                        Some(topics) => topics,
+                        None => st
+                            .created_topics
+                            .iter()
+                            .map(|(name, t)| {
+                                ElectLeadersTopic::new(
+                                    name.clone(),
+                                    (0..t.num_partitions).collect(),
+                                )
+                            })
+                            .collect(),
+                    };
+                    let mut replica_election_results = Vec::new();
+                    for t in topics {
+                        let mut partition_result = Vec::new();
+                        for p in t.partitions {
+                            let err = if st.created_topics.contains_key(&t.topic) {
+                                st.last_elect = Some((t.topic.clone(), p, req.election_type));
+                                0
+                            } else {
+                                error::UNKNOWN_TOPIC_OR_PARTITION
+                            };
+                            partition_result.push(PartitionElectionResult {
+                                partition_id: p,
+                                error_code: err,
+                                error_message: None,
+                            });
+                        }
+                        replica_election_results.push(ReplicaElectionResult {
+                            topic: t.topic,
+                            partition_result,
+                        });
+                    }
+                    encode_elect_leaders_response(
+                        &mut body,
+                        version,
+                        &ElectLeadersResponse {
+                            throttle_time_ms: 0,
+                            error_code: 0,
+                            replica_election_results,
+                        },
                     )
                     .unwrap();
                 }

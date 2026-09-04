@@ -104,6 +104,9 @@ admin.close().await?;
 # }
 ```
 
+Preferred replica election after failover is `Admin::elect_leaders`
+(`ElectionType::Preferred` or `Unclean`; `None` elects every partition).
+
 ## TLS and SASL
 
 ```rust,no_run

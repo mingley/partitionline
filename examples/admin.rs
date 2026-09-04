@@ -2,7 +2,7 @@
 //!
 //! Broker on `KAFKA_BOOTSTRAP`. Topic `KAFKA_TOPIC` (default `partitionline`).
 
-use partitionline::{Admin, NewTopic};
+use partitionline::{Admin, ElectionType, NewTopic, TopicPartition};
 
 #[tokio::main]
 async fn main() -> partitionline::Result<()> {
@@ -11,13 +11,27 @@ async fn main() -> partitionline::Result<()> {
 
     let mut admin = Admin::connect(bootstrap).await?;
     let created = admin
-        .create_topics(&[NewTopic::new(topic, 1, 1)], 30_000, false)
+        .create_topics(&[NewTopic::new(topic.clone(), 1, 1)], 30_000, false)
         .await?;
     for result in &created {
         println!("{} error={}", result.name, result.error_code);
     }
     for listing in admin.list_topics_with(false).await? {
         println!("{}", listing.name());
+    }
+    let elected = admin
+        .elect_leaders(
+            ElectionType::Preferred,
+            Some(&[TopicPartition::new(topic, 0)]),
+        )
+        .await?;
+    for result in &elected {
+        println!(
+            "{}-{} elect error={}",
+            result.topic(),
+            result.partition(),
+            result.error_code()
+        );
     }
     admin.close().await?;
     Ok(())

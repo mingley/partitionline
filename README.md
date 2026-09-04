@@ -122,9 +122,9 @@ admin.close().await?;
 ```
 
 CreateTopics, DeleteTopics, DescribeConfigs, IncrementalAlterConfigs, ACLs,
-groups, transactions, log dirs, quotas, and the other Kafka 3.x / 4.x admin
-APIs are on `Admin`. Method-level rustdoc names the matching Java
-`Admin` / `*Options` calls.
+groups, transactions, log dirs, quotas, leader election (`elect_leaders`),
+and the other Kafka 3.x / 4.x admin APIs are on `Admin`. Method-level rustdoc
+names the matching Java `Admin` / `*Options` calls.
 
 ## Configure
 

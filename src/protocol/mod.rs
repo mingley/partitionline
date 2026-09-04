@@ -4,6 +4,7 @@ pub mod api;
 pub mod api_keys;
 pub mod buf;
 pub mod cgheartbeat;
+pub mod elect;
 pub mod epoch;
 pub mod fetch;
 pub mod group;

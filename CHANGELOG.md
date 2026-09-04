@@ -27,6 +27,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Added
 
+- Admin: ElectLeaders (api 43, KIP-183 / KIP-460) v0–2. `Admin::elect_leaders`
+  / `elect_leaders_timeout` elect preferred or unclean partition leaders
+  (`ElectionType`; `None` elects every partition). Lands on the Metadata
+  controller with `NOT_CONTROLLER` retry. Unclean on v0 is
+  `UnsupportedVersionException`. Optional at `Admin::new`.
 - `scripts/check-main-ci.sh`: probe whether `origin/main` HEAD has terminal
   green CI (exit 0/1/2). Wired into `owner-finish-installable` step 2b —
   refuses Installable cut on red main unless `ALLOW_RED_MAIN=1`; real cuts

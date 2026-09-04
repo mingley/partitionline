@@ -2262,6 +2262,21 @@
 //! is Java `AlterPartitionReassignmentsResponse.shouldClientThrottle`
 //! (always). ThrottleTimeMs is JSON `0+`; encode writes the field;
 //! [`protocol::admin::AlterPartitionReassignmentsResponse::new`] fills `0`.
+//! [`Admin::elect_leaders`] is Java `electLeaders(ElectionType, Set)`
+//! (`None` elects every partition). [`Admin::elect_leaders_timeout`] is Java
+//! `ElectLeadersOptions.timeoutMs` (RPC deadline and TimeoutMs). Unclean
+//! election requires v1+ ([`protocol::elect::ElectLeadersRequest::UNCLEAN_NOT_SUPPORTED_ON_V0_MSG`]).
+//! [`protocol::elect::ElectLeadersRequest::error_response`] is Java
+//! `ElectLeadersRequest.getErrorResponse` (copies request partitions;
+//! ErrorMessage JSON-null; encode omits ErrorCode below v1).
+//! [`protocol::elect::ElectLeadersResponse::error_counts`] is Java
+//! `ElectLeadersResponse.errorCounts` (top-level `errorCode` including
+//! `NONE`, plus each partition-level code including `NONE`).
+//! [`protocol::elect::ElectLeadersResponse::should_client_throttle`] is Java
+//! `ElectLeadersResponse.shouldClientThrottle` (always). ThrottleTimeMs
+//! is JSON `0+`; encode writes the field;
+//! [`protocol::elect::ElectLeadersResponse::new`] fills `0`. Kafka 4.0
+//! `validVersions` is `0-2`. This crate speaks 0–2. v3+ is not spoken.
 //! [`Admin::list_partition_reassignments_timeout`] is Java
 //! `ListPartitionReassignmentsOptions.timeoutMs`.
 //! [`Admin::list_partition_reassignments_all`] is Java
@@ -2852,7 +2867,7 @@
 //! DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials,
 //! DescribeUserScramCredentials, AlterReplicaLogDirs, DescribeLogDirs,
 //! the delegation-token APIs, DescribeTransactions, ListTransactions,
-//! AlterPartitionReassignments, ListPartitionReassignments, OffsetDelete,
+//! AlterPartitionReassignments, ElectLeaders, ListPartitionReassignments, OffsetDelete,
 //! IncrementalAlterConfigs, ShareGroupDescribe, the share-offset RPCs, ListConfigResources,
 //! GetTelemetrySubscriptions, PushTelemetry, or AssignReplicasToDirs.
 //! [`Admin::assign_replicas_to_dirs_timeout`] is Java
@@ -3139,8 +3154,8 @@
 //! # Admin
 //!
 //! [`Admin`] covers topics, partitions, configs, ACLs, groups, transactions,
-//! quotas, telemetry, log dirs, and delegation tokens. See the [`admin`]
-//! module. Still missing versus librdkafka: zstd and Kerberos (C libraries)
+//! quotas, telemetry, log dirs, leader election, and delegation tokens. See
+//! the [`admin`] module. Still missing versus librdkafka: zstd and Kerberos (C libraries)
 //! and Schema Registry. Tracker: `docs/gaps.md`.
 
 #![forbid(unsafe_code)]
@@ -3201,16 +3216,16 @@ pub use admin::{
     DescribedDelegationTokenRenewer, DescribedGroup, DescribedGroupMember, DescribedShareGroup,
     DescribedShareGroupOffsets, DescribedShareGroupOffsetsPartition,
     DescribedShareGroupOffsetsTopic, DescribedTopicPartition, DescribedTopicPartitions,
-    EndpointType, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse, FeatureMetadata,
-    FeatureUpdate, FeatureUpdateResult, FencedProducer, FinalizedVersionRange,
+    ElectionType, EndpointType, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
+    FeatureMetadata, FeatureUpdate, FeatureUpdateResult, FencedProducer, FinalizedVersionRange,
     GetTelemetrySubscriptionsResponse, GroupState, GroupType, ListConsumerGroupOffsetsSpec,
     ListedConfigResource, ListedGroup, MemberToRemove, NewPartitionReassignment, NewPartitions,
-    NewTopic, Node, OffsetDeleteResult, OngoingReassignment, PartitionReassignment,
-    ProducerIdBlock, PushTelemetryResponse, ReassignmentResult, RecordsToDelete, RemovedMember,
-    RenewDelegationTokenRequest, RenewDelegationTokenResponse, ReplicaLogDirInfo, ResourcePattern,
-    ResourcePatternFilter, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
-    ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange, TopicCollection,
-    TopicDescription, TopicListing, TopicPartitionCursor, TopicPartitionInfo,
+    NewTopic, Node, OffsetDeleteResult, OngoingReassignment, PartitionElection,
+    PartitionReassignment, ProducerIdBlock, PushTelemetryResponse, ReassignmentResult,
+    RecordsToDelete, RemovedMember, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
+    ReplicaLogDirInfo, ResourcePattern, ResourcePatternFilter, ScramCredentialInfo, ScramMechanism,
+    ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange,
+    TopicCollection, TopicDescription, TopicListing, TopicPartitionCursor, TopicPartitionInfo,
     TopicPartitionReplica, TransactionListing, TransactionState, TransactionTopic,
     UnregisterBrokerResponse, UpgradeType, UserScramCredentialAlteration,
     UserScramCredentialDeletion, UserScramCredentialResult, UserScramCredentialUpsertion, Uuid,

@@ -18,12 +18,12 @@ use partitionline::protocol::api_keys::{
     DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
     DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS,
     DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
-    DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT,
-    INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
-    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
-    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
-    SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
+    DESCRIBE_USER_SCRAM_CREDENTIALS, ELECT_LEADERS, END_TXN, EXPIRE_DELEGATION_TOKEN,
+    FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LEAVE_GROUP,
+    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
+    OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN,
+    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
+    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -38,8 +38,8 @@ use partitionline::{
     CreatableRenewer, CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic, DeletedRecords,
     DescribableLogDirTopic, DescribeClusterBroker, DescribeDelegationTokenOwner,
     DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup,
-    EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, GroupProtocol, GroupState,
-    GroupType, IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitionReassignment,
+    ElectionType, EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, GroupProtocol,
+    GroupState, GroupType, IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitionReassignment,
     NewPartitions, NewTopic, Node, OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment,
     PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RecordBatch, RecordsToDelete,
     RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup,
@@ -6967,6 +6967,157 @@ async fn alter_partition_reassignments_follows_controller() {
         .await
         .unwrap();
     assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn elect_leaders_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(
+            &[NewTopic::new("el2", 1, 1), NewTopic::new("el1", 1, 1)],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+
+    let results = admin
+        .elect_leaders(
+            ElectionType::Preferred,
+            Some(&[TopicPartition::new("el2", 0)]),
+        )
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].error_code(), 0);
+    assert_eq!(results[0].topic(), "el2");
+    assert_eq!(results[0].partition(), 0);
+    assert_eq!(
+        mock.last_elect_leaders_node(),
+        Some(2),
+        "ElectLeaders must land on the controller, not bootstrap"
+    );
+    assert_eq!(
+        mock.last_elect(),
+        Some(("el2".into(), 0, ElectionType::Preferred)),
+        "controller must record the preferred election"
+    );
+    assert_eq!(
+        mock.last_elect_leaders_election_type(),
+        Some(ElectionType::Preferred)
+    );
+    assert_eq!(mock.last_elect_leaders_all(), Some(false));
+
+    mock.set_controller(1);
+    let again = admin
+        .elect_leaders(
+            ElectionType::Unclean,
+            Some(&[TopicPartition::new("el1", 0)]),
+        )
+        .await
+        .unwrap();
+    assert_eq!(again.len(), 1);
+    assert_eq!(again[0].error_code(), 0);
+    assert_eq!(
+        mock.elect_leaders_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_elect_leaders_node(),
+        Some(1),
+        "ElectLeaders must follow Metadata after NOT_CONTROLLER"
+    );
+    assert_eq!(
+        mock.last_elect(),
+        Some(("el1".into(), 0, ElectionType::Unclean)),
+        "retry on the new controller must record unclean election"
+    );
+    assert_eq!(
+        mock.last_elect_leaders_election_type(),
+        Some(ElectionType::Unclean)
+    );
+
+    let timed = admin
+        .elect_leaders_timeout(
+            ElectionType::Preferred,
+            Some(&[TopicPartition::new("el2", 0)]),
+            Duration::from_millis(10_000),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed[0].error_code(), 0);
+    assert_eq!(
+        mock.last_elect_leaders_timeout(),
+        Some(10_000),
+        "elect_leaders_timeout must send TimeoutMs"
+    );
+
+    let missing = admin
+        .elect_leaders(
+            ElectionType::Preferred,
+            Some(&[TopicPartition::new("no-such-el", 0)]),
+        )
+        .await
+        .unwrap();
+    assert_eq!(missing[0].error_code(), error::UNKNOWN_TOPIC_OR_PARTITION);
+
+    let all = admin
+        .elect_leaders(ElectionType::Preferred, None)
+        .await
+        .unwrap();
+    assert!(
+        all.iter()
+            .any(|r| r.topic() == "el2" && r.partition() == 0 && r.error_code() == 0),
+        "null TopicPartitions elects created topics: {all:?}"
+    );
+    assert_eq!(mock.last_elect_leaders_all(), Some(true));
+
+    admin.close().await.unwrap();
+    mock.set_api_max(ELECT_LEADERS, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let unclean = admin
+        .elect_leaders(ElectionType::Unclean, None)
+        .await
+        .unwrap_err();
+    assert!(
+        unclean
+            .to_string()
+            .contains("API Version 0 only supports PREFERRED election type"),
+        "unclean on v0: {unclean}"
+    );
+    let v0 = admin
+        .elect_leaders(
+            ElectionType::Preferred,
+            Some(&[TopicPartition::new("el2", 0)]),
+        )
+        .await
+        .unwrap();
+    assert_eq!(v0[0].error_code(), 0);
+    assert_eq!(
+        mock.last_elect_leaders_version(),
+        Some(0),
+        "client must speak ElectLeaders v0 when the broker max is 0"
+    );
+    admin.close().await.unwrap();
+    mock.hide_api(ELECT_LEADERS);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin
+        .elect_leaders(
+            ElectionType::Preferred,
+            Some(&[TopicPartition::new("el2", 0)]),
+        )
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "ElectLeaders is optional at connect: {err}"
+    );
     admin.close().await.unwrap();
 }
 

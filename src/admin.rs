@@ -79,11 +79,16 @@ use crate::protocol::api_keys::{
     DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN,
     DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS,
     DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
-    EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS,
+    ELECT_LEADERS, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS,
     INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
     LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
     OFFSET_DELETE, OFFSET_FETCH, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE,
     UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
+};
+pub use crate::protocol::elect::ElectionType;
+use crate::protocol::elect::{
+    decode_elect_leaders_response, encode_elect_leaders_request, ElectLeadersRequest,
+    ElectLeadersTopic,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_find_coordinator_response_coordinators,
@@ -1892,6 +1897,48 @@ impl ReassignmentResult {
     }
 }
 
+/// Flattened per-partition result of [`Admin::elect_leaders`].
+///
+/// Java `ElectLeadersResult.partitions()` map entry: empty optional is
+/// success (`error_code == 0`); a present throwable is a non-zero code.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PartitionElection {
+    /// Topic name.
+    pub topic: String,
+    /// Partition index.
+    pub partition: i32,
+    /// Per-partition error code (`0` is success).
+    pub error_code: i16,
+    /// Broker error message, when present.
+    pub error_message: Option<String>,
+}
+
+impl PartitionElection {
+    /// Topic name.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Per-partition error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+}
+
 /// Flattened ongoing reassignment from ListPartitionReassignments
 /// (Java `PartitionReassignment`).
 ///
@@ -2734,6 +2781,7 @@ pub struct Admin {
     find_coord_version: i16,
     offset_delete_version: Option<i16>,
     reassign_version: Option<i16>,
+    elect_leaders_version: Option<i16>,
     list_reassign_version: Option<i16>,
     update_features_version: Option<i16>,
     alter_user_scram_version: Option<i16>,
@@ -3070,6 +3118,9 @@ impl Admin {
         let reassign_version = versions
             .get(&ALTER_PARTITION_REASSIGNMENTS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
+        let elect_leaders_version = versions
+            .get(&ELECT_LEADERS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));
         let list_reassign_version = versions
             .get(&LIST_PARTITION_REASSIGNMENTS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
@@ -3184,6 +3235,7 @@ impl Admin {
             find_coord_version,
             offset_delete_version,
             reassign_version,
+            elect_leaders_version,
             list_reassign_version,
             update_features_version,
             alter_user_scram_version,
@@ -4774,6 +4826,111 @@ impl Admin {
                 ));
             }
             return Ok(flatten_reassignment_results(&resp.results));
+        }
+    }
+
+    /// Elect partition leaders (ElectLeaders api 43, KIP-183 / KIP-460).
+    ///
+    /// Java `electLeaders(ElectionType, Set)`. `partitions = None` elects
+    /// every partition (Java `Set` null). Lands on the Metadata controller.
+    /// `NOT_CONTROLLER` (41) refreshes Metadata and retries on the new
+    /// controller. Unclean election requires v1+ (`group` brokers that
+    /// only speak v0 return [`Error::Unsupported`]). Optional at
+    /// [`Self::new`]; a broker that omits api 43 returns
+    /// [`Error::Unsupported`]. TimeoutMs is
+    /// [`AdminConfig::request_timeout`]. For a one-shot timeout that
+    /// drives both the RPC deadline and TimeoutMs, use
+    /// [`Self::elect_leaders_timeout`].
+    pub async fn elect_leaders(
+        &mut self,
+        election_type: ElectionType,
+        partitions: Option<&[crate::TopicPartition]>,
+    ) -> Result<Vec<PartitionElection>> {
+        let timeout = self.cfg.request_timeout;
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.elect_leaders_with(election_type, partitions, timeout_ms, timeout)
+            .await
+    }
+
+    /// [`Self::elect_leaders`] with a one-shot timeout (Java
+    /// `ElectLeadersOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and ElectLeaders TimeoutMs.
+    pub async fn elect_leaders_timeout(
+        &mut self,
+        election_type: ElectionType,
+        partitions: Option<&[crate::TopicPartition]>,
+        timeout: Duration,
+    ) -> Result<Vec<PartitionElection>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.elect_leaders_with(election_type, partitions, timeout_ms, timeout)
+            .await
+    }
+
+    async fn elect_leaders_with(
+        &mut self,
+        election_type: ElectionType,
+        partitions: Option<&[crate::TopicPartition]>,
+        timeout_ms: i32,
+        timeout: Duration,
+    ) -> Result<Vec<PartitionElection>> {
+        let version = self.elect_leaders_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support ElectLeaders v0-2".into())
+        })?;
+        ElectLeadersRequest::build(version, election_type)?;
+        let topic_partitions = partitions.map(group_elect_topics);
+        let req = ElectLeadersRequest::new(election_type, topic_partitions, timeout_ms);
+        let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing elect_leaders conn"))?;
+                conn.roundtrip(
+                    ELECT_LEADERS,
+                    version,
+                    |buf| encode_elect_leaders_request(buf, version, &req),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let resp = decode_elect_leaders_response(&mut body.clone(), version)?;
+            if resp.error_code == error::NOT_CONTROLLER
+                || resp.replica_election_results.iter().any(|t| {
+                    t.partition_result
+                        .iter()
+                        .any(|p| p.error_code == error::NOT_CONTROLLER)
+                })
+            {
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                self.wait_retry(&mut attempt, deadline).await?;
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            if resp.error_code != 0 {
+                return Err(Error::broker(resp.error_code, "ElectLeaders"));
+            }
+            return Ok(flatten_elect_leaders_results(
+                &resp.replica_election_results,
+            ));
         }
     }
 
@@ -11584,6 +11741,46 @@ fn flatten_reassignment_results(
             out.push(ReassignmentResult {
                 topic: t.name.clone(),
                 partition: p.partition_index,
+                error_code: p.error_code,
+                error_message: p.error_message.clone(),
+            });
+        }
+    }
+    out
+}
+
+fn group_elect_topics(partitions: &[crate::TopicPartition]) -> Vec<ElectLeadersTopic> {
+    let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+    let mut order: Vec<String> = Vec::new();
+    for tp in partitions {
+        match by_topic.entry(tp.topic.clone()) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                order.push(tp.topic.clone());
+                let _ = slot.insert(vec![tp.partition]);
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                slot.get_mut().push(tp.partition);
+            }
+        }
+    }
+    order
+        .into_iter()
+        .map(|topic| ElectLeadersTopic {
+            partitions: by_topic.remove(&topic).unwrap_or_default(),
+            topic,
+        })
+        .collect()
+}
+
+fn flatten_elect_leaders_results(
+    results: &[crate::protocol::elect::ReplicaElectionResult],
+) -> Vec<PartitionElection> {
+    let mut out = Vec::new();
+    for t in results {
+        for p in &t.partition_result {
+            out.push(PartitionElection {
+                topic: t.topic.clone(),
+                partition: p.partition_id,
                 error_code: p.error_code,
                 error_message: p.error_message.clone(),
             });
