@@ -191,7 +191,7 @@ Execute in this sequence unless blocked:
 | WP-4 Observability | **done** | Metrics in guide; `tracing` feature; Prometheus text example. |
 | WP-5 Perf honesty | **in progress** | Lab A produce enforces **HW sum == acked**; Lab A fetch enforces **HW + consumed == seeded**; combined `scripts/lab-a-integrity.sh` + `ci-integrity-smoke.sh` in civilization-check (unsigned). 2026-09-04 native recheck: integrity COUNT=2000 HW==acked+consumed==seeded; latency gate p99≈69µs vs 500µs baseline (STATUS). Not a Suite HOLD lift. Signed Suite HOLD still external. |
 | WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md + `docs/schema-companion.md` design (crate waits on crates.io). Packed-crate downstream consumer gate in civilization/publish-ready. Git install pin **`v0.1.0-rc.6`** (pin gate allows docs/scripts tip drift; library changes still require a new rc) (KIP-848 join fix + OIDC/mTLS) until crates.io `0.1.0`. |
-| WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish; civilization-check; `scripts/ci-publish-ready.sh`. Tip Verifiable via `scripts/ci-branch-lite.sh` (no auto CI on `dev/**` push while org runners starved); full matrix on PR/`main`/`workflow_dispatch`. |
+| WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish; civilization-check; `scripts/ci-publish-ready.sh`; `scripts/audit-civilization-bars.sh` (six-bar evidence audit). Tip Verifiable via `scripts/ci-branch-lite.sh` (no auto CI on `dev/**` push while org runners starved); full matrix on PR/`main`/`workflow_dispatch`. |
 
 ## Success criteria (civilization bar)
 
