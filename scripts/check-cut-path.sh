@@ -20,6 +20,19 @@ echo "== check-cut-path: cut-release PUBLISH_LOCAL auto-default =="
 # Stepwise docs call cut-release bare; token in-env must prefer PUBLISH_LOCAL=1.
 bash scripts/owner-cut-release.sh --self-test
 
+echo
+echo "== check-cut-path: cut-release owner-helper comments match auto PUBLISH_LOCAL =="
+# Owner checklists must not undo the token-day auto-default (bare cut → local when token in-env).
+if grep -nE 'owner-cut-release\.sh.*tag → Actions' scripts/owner-unblock.sh scripts/owner-status.sh 2>/dev/null \
+  | grep -v 'PUBLISH_LOCAL=0'; then
+  echo "check-cut-path: FAIL — owner-unblock/status still steers bare cut-release to Actions" >&2
+  exit 1
+fi
+grep -qF 'token in-env → local publish (auto)' scripts/owner-unblock.sh   || { echo "check-cut-path: FAIL — owner-unblock missing cut-release auto-local comment" >&2; exit 1; }
+grep -qF 'token in-env → local publish (auto)' scripts/owner-status.sh   || { echo "check-cut-path: FAIL — owner-status missing cut-release auto-local comment" >&2; exit 1; }
+echo "check-cut-path: owner helpers match cut-release PUBLISH_LOCAL auto-default"
+
+
 
 echo "== check-cut-path: parks-refresh cut guards (restore main/caller) =="
 bash scripts/check-parks-refresh-cut-guards.sh

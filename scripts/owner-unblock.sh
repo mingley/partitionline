@@ -99,8 +99,8 @@ echo
 echo "Or stepwise (docs/RELEASE.md): merge civilization → main, then tag final only:"
 echo "  # open/merge PR: dev/civilization-plan-b686 → main"
 echo "  git fetch origin main && git checkout main && git pull origin main"
-echo "  bash scripts/owner-cut-release.sh          # tag → Actions → day1"
-echo "  PUBLISH_LOCAL=1 bash scripts/owner-cut-release.sh  # manual cargo publish"
+echo "  bash scripts/owner-cut-release.sh          # token in-env → local publish (auto)"
+echo "  PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh  # force tag → Actions"
 echo "  DRY_RUN=1 bash scripts/owner-cut-release.sh"
 echo
 echo "If the token is Actions-only (not in this shell):"

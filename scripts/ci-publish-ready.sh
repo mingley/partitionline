@@ -102,5 +102,6 @@ echo "  1. Ensure CARGO_REGISTRY_TOKEN is set (Cloud Agent env + Actions secret)
 echo "  2. Preferred (FF-merge tip → main + local publish; bypasses starved Actions):"
 echo "       bash scripts/owner-finish-installable.sh"
 echo "  3. Or: merge civilization → main, then bash scripts/owner-cut-release.sh"
+echo "       # token in-env → local publish (auto); PUBLISH_LOCAL=0 → tag → Actions"
 echo "  4. Confirm https://crates.io/crates/partitionline/${ver}"
-echo "  5. README crates.io line (day1) + Trusted Publishing for release.yml"
+echo "  5. README crates.io line (day1) + bash scripts/owner-post-installable-handoff.sh"

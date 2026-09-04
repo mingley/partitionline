@@ -223,6 +223,17 @@ else
   bad "cut-release PUBLISH_LOCAL auto-default missing/broken; see /tmp/pl-cut-publish-local-auto.log"
 fi
 
+
+# Owner checklists must match cut-release auto PUBLISH_LOCAL (no bare → Actions steer).
+bare_actions="$(grep -nE 'owner-cut-release\.sh.*tag → Actions' scripts/owner-unblock.sh scripts/owner-status.sh 2>/dev/null | grep -v 'PUBLISH_LOCAL=0' || true)"
+if grep -qF 'token in-env → local publish (auto)' scripts/owner-unblock.sh \
+  && grep -qF 'token in-env → local publish (auto)' scripts/owner-status.sh \
+  && [[ -z "$bare_actions" ]]; then
+  ok "cut-release owner-helper comments match PUBLISH_LOCAL auto-default"
+else
+  bad "owner-unblock/status still steers bare cut-release to Actions (or missing auto-local comment)"
+fi
+
 # --- 4. Honest ---
 echo
 echo "== 4. Honest (labeled benches; no false Suite HOLD lift) =="
