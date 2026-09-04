@@ -48,11 +48,17 @@ bash scripts/owner-finish-installable.sh
 That fast-forwards `main` to the civilization tip, publishes locally, runs
 day1, and proves Installable.
 
-If the token is only in **GitHub Actions** secrets (not Cloud Agent), after
-canceling stuck queued runs: Actions → **first-publish** → Run workflow →
-`confirm=publish` (optional `ref`, default `main` after civilization
-FF-merge). Prefer the local finish script when the token is in-env — it does
-not wait on runners.
+If the token is only in **GitHub Actions** secrets (not Cloud Agent):
+
+1. Merge/FF civilization tip → `main` first — GitHub only lists
+   `workflow_dispatch` workflows from the default branch, so
+   `first-publish.yml` is not runnable until it exists on `main`.
+2. Cancel stuck queued runs (`bash scripts/owner-cancel-stuck-runs.sh`).
+3. Actions → **First publish** → `confirm=publish` (optional `ref`, default
+   `main`), or `bash scripts/owner-dispatch-first-publish.sh`.
+
+Prefer `bash scripts/owner-finish-installable.sh` when the token is already
+in-env — it FF-merges, publishes locally, and does not wait on runners.
 
 One-shot on clean `main` (tag → Actions): `bash scripts/owner-cut-release.sh`
 (pushes `vX.Y.Z`, waits for crates.io, runs day1, then
