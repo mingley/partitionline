@@ -72,6 +72,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Shared parks-on-main probe + fast owner-status (2026-09-04):** `scripts/check-parks-on-main.sh` is the shared ancestor-of-main probe (handoff DRY_RUN + live). Preflight `ALREADY_INSTALLABLE` surfaces `PARTIAL` when parks remain off main (Installable ≠ post-cut complete). `owner-status` live-probes parks-on-main and skips branch-lite/full bars when `CARGO_REGISTRY_TOKEN` is unset unless `OWNER_STATUS_FULL=1` (token-ask path stays usable). Self-test + bars gate. Still not a Suite HOLD lift.
 
+**Pre-Installable parks-off-main framing (2026-09-04):** `owner-status` no longer labels parks-off-main as PARTIAL before crates.io exists (that looked like a cut blocker). Pre-token shows `pending (expected pre-Installable)`; post-Installable keeps PARTIAL + handoff re-entry. Token ask + unblock note the same. Bars gate. Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

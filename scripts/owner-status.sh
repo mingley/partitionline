@@ -159,14 +159,22 @@ else
   echo "  fix: bash scripts/refresh-post-cut-parks.sh   # tip→Verifiable→SCRAM→lz4→checkout"
 fi
 # Stack ≠ landed. Live parks-on-main probe (same honesty as handoff).
+# Pre-Installable: parks intentionally stay off main — do not label that PARTIAL
+# (looks like a cut blocker). Post-Installable: PARTIAL + handoff re-entry.
 parks_main_rc=0
 bash scripts/check-parks-on-main.sh >/tmp/pl-owner-parks-main.log 2>&1 || parks_main_rc=$?
 if [[ "$parks_main_rc" -eq 0 ]]; then
   echo "  parks on main: ok"
 elif [[ "$parks_main_rc" -eq 2 ]]; then
-  echo "  parks on main: PARTIAL — not yet ancestors of origin/main"
-  grep -E '^  - |Re-enter:' /tmp/pl-owner-parks-main.log | sed 's/^/    /' || true
-  echo "    LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+  if bash scripts/check-installable.sh >/dev/null 2>&1; then
+    echo "  parks on main: PARTIAL — Installable OK but parks not on main"
+    grep -E '^  - |Re-enter:' /tmp/pl-owner-parks-main.log | sed 's/^/    /' || true
+    echo "    LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+  else
+    echo "  parks on main: pending (expected pre-Installable; land after crates.io cut)"
+    echo "    tip⊆parks stack is the pre-cut gate; do not FF parks onto main before 0.1.0"
+    echo "    After Installable: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+  fi
 else
   echo "  parks on main: FAIL rc=${parks_main_rc} (see /tmp/pl-owner-parks-main.log)"
 fi
