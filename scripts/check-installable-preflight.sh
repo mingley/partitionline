@@ -29,6 +29,8 @@ echo "== honesty self-tests (no token required) =="
 # Same executable units as cut-path / owner-finish-installable step 0a.
 bash scripts/check-registry-token.sh --self-test
 bash scripts/ci-tip-verifiable-broker.sh --self-test
+# Parks auto-refresh must restore main/caller before cut/publish (token-day footgun).
+bash scripts/check-parks-refresh-cut-guards.sh
 
 # Already published?
 if bash scripts/check-installable.sh >/tmp/pl-preflight-installable.log 2>&1; then
