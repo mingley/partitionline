@@ -83,7 +83,7 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "  Next: export CARGO_REGISTRY_TOKEN (Cloud Agent + Actions), then:"
   echo "        bash scripts/owner-finish-installable.sh"
   echo "        # publishes 0.1.0 then chains post-cut parks land by default"
-  echo "        # (MERGE_PARKED_VERIFIABLE=0 to skip Verifiable+flate2+SCRAM+lz4 parks land)"
+  echo "        # (MERGE_PARKED_VERIFIABLE=0 to skip Verifiable+flate2+SCRAM+lz4+checkout parks land)"
   exit 0
 fi
 

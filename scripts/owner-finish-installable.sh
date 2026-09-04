@@ -288,7 +288,7 @@ echo "owner-finish-installable: then: bash scripts/check-trusted-publishing-read
 if [[ "${MERGE_POST_CUT_PARKS}" == "1" ]]; then
   echo
   echo "== 8) Land parked Verifiable on main =="
-  echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=1 — landing post-cut parks (Verifiable + flate2 + SCRAM crypto + lz4_flex)"
+  echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=1 — landing post-cut parks (Verifiable + flate2 + SCRAM crypto + lz4_flex + actions/checkout)"
   # Installable already proven above; merge script rechecks crates.io.
   if bash scripts/owner-land-post-cut-parks.sh; then
     echo "owner-finish-installable: post-cut parks landed on main"

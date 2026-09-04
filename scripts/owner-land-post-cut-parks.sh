@@ -28,7 +28,7 @@ REQUIRE_PARKS="${REQUIRE_PARKS:-0}"
 TARGET_BRANCH="${TARGET_BRANCH:-main}"
 PUSH="${PUSH:-1}"
 # Space-separated; override to land a subset.
-PARKED_BRANCHES="${PARKED_BRANCHES:-dev/verifiable-auth-integrity-fuzz-b686 dev/scram-crypto-bumps-b686 dev/lz4-flex-bump-b686}"
+PARKED_BRANCHES="${PARKED_BRANCHES:-dev/verifiable-auth-integrity-fuzz-b686 dev/scram-crypto-bumps-b686 dev/lz4-flex-bump-b686 dev/actions-checkout-bump-b686}"
 
 echo "owner-land-post-cut-parks: → ${TARGET_BRANCH}"
 echo "owner-land-post-cut-parks: parks: ${PARKED_BRANCHES}"
