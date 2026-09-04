@@ -86,7 +86,8 @@ if bash scripts/check-installable.sh; then
     echo "owner-finish-installable: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
     # Parks dry-run inside handoff is stack-check only; keep REQUIRE_PARKS land rehearsal
     # so soft-skipping parks here cannot lie about cut readiness. Capture rc so DRY_RUN
-    # can still surface PARTIAL (handoff DRY_RUN itself always exits 0).
+    # can still surface PARTIAL — handoff DRY_RUN exits 2 when already Installable and
+    # parks remain off main (pre-token holds exit 0 with a PARTIAL note).
     parks_rc=0
     if [[ "$land_parks" == "1" ]]; then
       DRY_RUN=1 REQUIRE_PARKS=1 bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?

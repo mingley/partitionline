@@ -264,6 +264,8 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'finish_rc' scripts/check-cut-path.sh \
   && grep -qF 'dispatch_rc' scripts/check-cut-path.sh \
   && grep -qF 'dispatch_rc' scripts/ci-branch-lite.sh \
+  && grep -qF 'handoff_rc' scripts/check-cut-path.sh \
+  && grep -qF 'PARTIAL — handoff DRY_RUN soft-failed' scripts/check-cut-path.sh \
   && grep -qF 'PARTIAL — already Installable' scripts/owner-dispatch-first-publish.sh \
   && bash scripts/owner-dispatch-first-publish.sh --self-test >/tmp/pl-dispatch-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-dispatch-self-test.log \
