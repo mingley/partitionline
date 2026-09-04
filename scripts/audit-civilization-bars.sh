@@ -7,6 +7,9 @@
 #   bash scripts/audit-civilization-bars.sh
 #   FULL=1 bash scripts/audit-civilization-bars.sh   # also run branch-lite + deny
 #   JSON=1 bash scripts/audit-civilization-bars.sh   # machine-readable summary line
+#   PRE_PUBLISH=1 bash scripts/audit-civilization-bars.sh
+#     # exit 0 if the only BLOCKEDs are Installable (crates.io / token) — for
+#     # publish-ready / pre-cut gates that must not fail before first publish
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -14,15 +17,18 @@ cd "$ROOT"
 
 FULL="${FULL:-0}"
 JSON="${JSON:-0}"
+PRE_PUBLISH="${PRE_PUBLISH:-0}"
 
 pass=0
 fail=0
 blocked=0
 partial=0
+installable_blocked=0
 
 ok() { echo "PASS  $*"; pass=$((pass + 1)); }
 bad() { echo "FAIL  $*"; fail=$((fail + 1)); }
 blk() { echo "BLOCKED  $*"; blocked=$((blocked + 1)); }
+iblk() { echo "BLOCKED  $*"; blocked=$((blocked + 1)); installable_blocked=$((installable_blocked + 1)); }
 part() { echo "PARTIAL  $*"; partial=$((partial + 1)); }
 
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
@@ -55,14 +61,14 @@ case "${PL_CRATES_PROBE_STATUS}" in
     ok "crates.io has ${name} ${ver} (${PL_CRATES_PROBE_DETAIL})"
     ;;
   absent)
-    blk "crates.io missing ${name} ${ver} (${PL_CRATES_PROBE_DETAIL}) — need CARGO_REGISTRY_TOKEN + owner-cut-release"
+    iblk "crates.io missing ${name} ${ver} (${PL_CRATES_PROBE_DETAIL}) — need CARGO_REGISTRY_TOKEN + owner-cut-release"
     ;;
   *)
     bad "crates.io probe inconclusive (${PL_CRATES_PROBE_DETAIL})"
     ;;
 esac
 if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-  blk "CARGO_REGISTRY_TOKEN unset (first publish / Actions secret)"
+  iblk "CARGO_REGISTRY_TOKEN unset (first publish / Actions secret)"
 else
   ok "CARGO_REGISTRY_TOKEN present in environment"
 fi
@@ -174,15 +180,35 @@ else
 fi
 
 echo
-echo "audit-civilization-bars: pass=${pass} partial=${partial} blocked=${blocked} fail=${fail}"
+echo "audit-civilization-bars: pass=${pass} partial=${partial} blocked=${blocked} fail=${fail} installable_blocked=${installable_blocked}"
 if [[ "$JSON" == "1" ]]; then
-  printf '{"pass":%s,"partial":%s,"blocked":%s,"fail":%s,"installable":"%s","version":"%s"}\n' \
-    "$pass" "$partial" "$blocked" "$fail" "${PL_CRATES_PROBE_STATUS:-unknown}" "$ver"
+  printf '{"pass":%s,"partial":%s,"blocked":%s,"fail":%s,"installable_blocked":%s,"installable":"%s","version":"%s"}\n' \
+    "$pass" "$partial" "$blocked" "$fail" "$installable_blocked" "${PL_CRATES_PROBE_STATUS:-unknown}" "$ver"
 fi
 
-if [[ "$fail" -gt 0 || "$blocked" -gt 0 ]]; then
+if [[ "$fail" -gt 0 ]]; then
+  echo "audit-civilization-bars: NOT COMPLETE — FAIL items above" >&2
+  exit 1
+fi
+
+# Pre-publish gates: Installable BLOCKED is expected until crates.io lands.
+if [[ "$PRE_PUBLISH" == "1" ]]; then
+  other_blocked=$((blocked - installable_blocked))
+  if [[ "$other_blocked" -gt 0 ]]; then
+    echo "audit-civilization-bars: NOT COMPLETE — non-Installable BLOCKED items" >&2
+    exit 1
+  fi
+  if [[ "$installable_blocked" -gt 0 ]]; then
+    echo "audit-civilization-bars: PRE_PUBLISH OK — bars green except Installable (owner token/cut)"
+    exit 0
+  fi
+  echo "audit-civilization-bars: PRE_PUBLISH OK — all six bars PASS (already Installable)"
+  exit 0
+fi
+
+if [[ "$blocked" -gt 0 ]]; then
   echo "audit-civilization-bars: NOT COMPLETE — civilization bars unmet" >&2
-  if [[ "$blocked" -gt 0 && "$fail" -eq 0 ]]; then
+  if [[ "$installable_blocked" -eq "$blocked" ]]; then
     echo "audit-civilization-bars: remaining blockers are owner/credentials (see BLOCKED lines)" >&2
   fi
   exit 1

@@ -45,6 +45,9 @@ bash scripts/check-workflows.sh
 echo "== merge/tag readiness =="
 bash scripts/check-merge-ready.sh
 
+echo "== civilization bars (pre-publish) =="
+PRE_PUBLISH=1 bash scripts/audit-civilization-bars.sh
+
 echo "== civilization check =="
 REQUIRE_BROKER="${REQUIRE_BROKER:-0}" bash scripts/ci-civilization-check.sh
 
