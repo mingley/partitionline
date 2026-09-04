@@ -34,6 +34,15 @@ export ACKS=1
 export LINGER_MS=0
 export MODE=produce
 
+# Nested agent sequences often run auth/integrity before latency; those must not
+# leave us assuming 9092 is up. Ensure a broker (native fallback) before benching.
+# shellcheck source=scripts/lib/ensure-broker.sh
+source "$ROOT/scripts/lib/ensure-broker.sh"
+if ! pl_ensure_broker "ci-latency-gate"; then
+  echo "ci-latency-gate: no broker at ${BOOTSTRAP}" >&2
+  exit 1
+fi
+
 echo "ci-latency-gate: running bench_latency COUNT=$COUNT WARMUP=$WARMUP"
 
 # CI creates the topic before invoking this gate; locally, best-effort create when
