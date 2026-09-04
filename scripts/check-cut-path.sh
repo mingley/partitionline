@@ -30,6 +30,12 @@ echo "== check-cut-path: tip-delta (docs/scripts-only vs main) =="
 bash scripts/check-tip-delta.sh
 
 echo
+echo "== check-cut-path: post-cut parks refresh DRY_RUN (chain-safe) =="
+# Proves tip→Verifiable→SCRAM→lz4→checkout refresh stays idempotent before cut.
+# Do not merge tip into each park in parallel — that forks the tip⊆… chain.
+DRY_RUN=1 bash scripts/refresh-post-cut-parks.sh
+
+echo
 echo "== check-cut-path: cargo publish --dry-run =="
 # Proves the packed crate still uploads-shaped before the token arrives.
 # Does not contact crates.io with credentials (dry-run aborts before upload).
