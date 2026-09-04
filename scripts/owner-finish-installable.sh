@@ -8,7 +8,7 @@
 #   3. Fast-forwards main to the civilization tip (MERGE_CIVILIZATION=1)
 #   4. Cuts vX.Y.Z via PUBLISH_LOCAL=1 by default (bypasses starved Actions)
 #   5. Cuts via owner-cut-release (day1 + Installable + bars)
-#   6. Syncs Actions secret, then owner-post-installable-handoff (TP + parks + re-verify)
+#   6. Syncs Actions secret (PARTIAL/exit 2 if sync fails after Installable), then handoff
 #
 # Prefer this over hand-assembling merge → tag → Actions when the Cloud Agent
 # (or owner shell) already has the crates.io token. Actions + OIDC remain the
@@ -369,23 +369,30 @@ fi
 PUBLISH_LOCAL="$PUBLISH_LOCAL" SKIP_HANDOFF=1 AUTO_REFRESH_PARKS=1 bash scripts/owner-cut-release.sh
 
 echo
-echo "== 6) Best-effort sync Actions secret for later tag publishes =="
+echo "== 6) Sync Actions secret for later tag publishes =="
 # cut-release already ran day1 + Installable prove. Keep Actions secret sync here
 # (handoff does not touch secrets), then one-shot TP + parks + re-verify via
 # owner-post-installable-handoff so live cut cannot drift from Actions re-entry.
+# Fail-closed PARTIAL: crates.io Installable + unsynced Actions secret must not
+# print final OK (agents often 403; later tag/Actions re-entry then fail closed
+# with no PARTIAL trail).
+secret_rc=0
 if [[ "$PUBLISH_LOCAL" == "0" ]]; then
-  echo "owner-finish-installable: Actions secret already synced pre-cut (PUBLISH_LOCAL=0); refreshing best-effort"
+  echo "owner-finish-installable: Actions secret already synced pre-cut (PUBLISH_LOCAL=0); refreshing"
 fi
 if command -v gh >/dev/null 2>&1; then
   if printf '%s' "${CARGO_REGISTRY_TOKEN}" | gh secret set CARGO_REGISTRY_TOKEN 2>/tmp/pl-finish-secret.log; then
     echo "owner-finish-installable: Actions secret CARGO_REGISTRY_TOKEN synced"
   else
-    echo "owner-finish-installable: note — could not set Actions secret (need admin; agents often 403)"
+    secret_rc=1
+    echo "owner-finish-installable: WARN — could not set Actions secret (need admin; agents often 403)"
     tail -3 /tmp/pl-finish-secret.log 2>/dev/null | sed 's/^/  /' || true
     echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"$CARGO_REGISTRY_TOKEN\""
   fi
 else
-  echo "owner-finish-installable: note — gh not available; set Actions secret manually"
+  secret_rc=1
+  echo "owner-finish-installable: WARN — gh not available; set Actions secret manually"
+  echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"$CARGO_REGISTRY_TOKEN\""
 fi
 
 echo
@@ -407,6 +414,14 @@ if [[ "$handoff_rc" -eq 2 ]]; then
 elif [[ "$handoff_rc" -ne 0 ]]; then
   echo "owner-finish-installable: FAIL — post-Installable handoff rc=${handoff_rc}" >&2
   exit "$handoff_rc"
+fi
+if [[ "$secret_rc" -ne 0 ]]; then
+  echo "owner-finish-installable: PARTIAL — Installable OK but Actions secret not synced"
+  echo "owner-finish-installable: ${name} ${ver} is on crates.io; later tag/Actions cuts need the secret"
+  echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"$CARGO_REGISTRY_TOKEN\""
+  echo "  Then: bash scripts/owner-post-installable-handoff.sh   # if handoff/parks still pending"
+  echo "owner-finish-installable: commit README + docs/ADOPTION.md crates.io lines if day1 changed them"
+  exit 2
 fi
 echo "owner-finish-installable: OK — ${name} ${ver} is Installable"
 echo "owner-finish-installable: commit README + docs/ADOPTION.md crates.io lines if day1 changed them"

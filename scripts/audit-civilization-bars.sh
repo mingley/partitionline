@@ -252,6 +252,8 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF -- 'SKIP_HANDOFF=1' scripts/owner-finish-installable.sh \
   && grep -qF 'PARTIAL — already-Installable DRY_RUN soft-failed' scripts/owner-finish-installable.sh \
   && grep -qF 'PARTIAL — not-yet-Installable DRY_RUN soft-failed' scripts/owner-finish-installable.sh \
+  && grep -qF 'PARTIAL — Installable OK but Actions secret not synced' scripts/owner-finish-installable.sh \
+  && grep -qF 'secret_rc' scripts/owner-finish-installable.sh \
   && grep -qF 'parks_rc' scripts/owner-finish-installable.sh \
   && grep -qF 'PARTIAL — not yet Installable' scripts/day1-after-publish.sh \
   && grep -qF 'day1_rc' scripts/check-cut-path.sh \
