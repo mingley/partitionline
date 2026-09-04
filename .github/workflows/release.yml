@@ -9,10 +9,10 @@ name: release
 # "one or more of the preceding character", so `v[0-9]+.[0-9]+.[0-9]+`
 # matches `v0.1.0` / `v1.10.2` and does not match `v0.1.0-rc.1`.
 #
-# Branch pushes that touch this file can still create a ghost `push` run
-# (GitHub evaluates workflow_dispatch inputs outside a real tag event).
-# Job-level `if` + input-safe expressions keep those runs green/no-op
-# instead of empty-job failures that pollute Verifiable status.
+# Branch pushes that touch this file must not create empty-job failures.
+# Root cause of prior noise: flush-left multiline shell inside `run: |`
+# (invalid YAML). Defense in depth: job-level `if` + input-safe expressions
+# so a spurious push evaluation stays a no-op instead of a red X.
 #
 # Owner setup (one-time):
 #   1. crates.io → Account → New Token (scope: publish-update for partitionline)
