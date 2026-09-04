@@ -5,8 +5,8 @@ need a memory-safe Kafka stack with no C in the default feature set.
 
 ## Owner unblock (WP-0.5)
 
-Civilization **Installable** is blocked only on credentials (and merge, if
-you prefer the Actions path):
+Civilization **Installable** is blocked only on credentials (`main` already
+has the civilization tip + `first-publish.yml`):
 
 1. Add `CARGO_REGISTRY_TOKEN` (Cloud Agent env + GitHub Actions secret).
 2. Cancel stale tip/tag Actions still stuck in `queued` (agents get 403).
