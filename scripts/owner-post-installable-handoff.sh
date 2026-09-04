@@ -11,9 +11,30 @@
 #   DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh   # rehearse before token/cut
 #   LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh  # also land post-cut parks
 #   ENABLE_TP=0 bash scripts/owner-post-installable-handoff.sh   # skip Trusted Publishing helper
+#   bash scripts/owner-post-installable-handoff.sh --self-test   # preserve wiring units
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+
+if [[ "${1:-}" == "--self-test" ]]; then
+  echo "owner-post-installable-handoff: self-test — LAND_PARKS path must preserve day1 docs"
+  if ! grep -qF 'preserve-day1-docs.sh' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — missing preserve-day1-docs.sh source" >&2
+    exit 1
+  fi
+  if ! grep -qF 'pl_day1_docs_begin' "$ROOT/scripts/owner-post-installable-handoff.sh" \
+    || ! grep -qF 'pl_day1_docs_end' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — missing pl_day1_docs_begin/end around parks land" >&2
+    exit 1
+  fi
+  if ! grep -qF 'LAND_PARKS' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — LAND_PARKS knob missing" >&2
+    exit 1
+  fi
+  bash "$ROOT/scripts/lib/preserve-day1-docs.sh" --self-test
+  echo "owner-post-installable-handoff: self-test OK — preserve wired for LAND_PARKS"
+  exit 0
+fi
 
 DRY_RUN="${DRY_RUN:-0}"
 LAND_PARKS="${LAND_PARKS:-0}"
