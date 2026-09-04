@@ -36,6 +36,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Post-Installable handoff (2026-09-04):** `scripts/owner-post-installable-handoff.sh` re-enters Installable + adopter pin + registry consumer + full bars + Trusted Publishing + optional parks land after any cut path (finish, Actions first-publish, or soft-failed TP/parks). `DRY_RUN=1` rehearsed in cut-path + bars (`HANDOFF_FROM_BARS=1` avoids bars↔handoff recursion). Day1 / first-publish dispatch / status / unblock / cut-release / Trusted Publishing helpers all point owners at the handoff; finish's already-Installable short-circuit, live cut, **and** DRY_RUN cut rehearsal all chain into the handoff (`LAND_PARKS` from post-cut parks knobs) so Actions-alternate and in-env cuts cannot drift — still not a Suite HOLD lift.
 
+**Cut-release PUBLISH_LOCAL auto-default (2026-09-04):** bare `owner-cut-release` (stepwise docs) now defaults to `PUBLISH_LOCAL=1` when `CARGO_REGISTRY_TOKEN` is in-env and `PUBLISH_LOCAL` is unset — closing the token-day footgun where an in-env token was ignored and the cut waited on starved Actions. Explicit `PUBLISH_LOCAL=0` still forces tag → `release.yml`. Gated by `--self-test` in cut-path + bars — still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

@@ -15,6 +15,12 @@ echo
 echo "== check-cut-path: registry token probe self-test =="
 bash scripts/check-registry-token.sh --self-test
 
+echo
+echo "== check-cut-path: cut-release PUBLISH_LOCAL auto-default =="
+# Stepwise docs call cut-release bare; token in-env must prefer PUBLISH_LOCAL=1.
+bash scripts/owner-cut-release.sh --self-test
+
+
 echo "== check-cut-path: parks-refresh cut guards (restore main/caller) =="
 bash scripts/check-parks-refresh-cut-guards.sh
 
