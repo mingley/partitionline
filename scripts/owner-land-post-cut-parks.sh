@@ -28,7 +28,7 @@ REQUIRE_PARKS="${REQUIRE_PARKS:-0}"
 TARGET_BRANCH="${TARGET_BRANCH:-main}"
 PUSH="${PUSH:-1}"
 # Space-separated; override to land a subset.
-PARKED_BRANCHES="${PARKED_BRANCHES:-dev/verifiable-auth-integrity-fuzz-b686 dev/scram-crypto-bumps-b686}"
+PARKED_BRANCHES="${PARKED_BRANCHES:-dev/verifiable-auth-integrity-fuzz-b686 dev/scram-crypto-bumps-b686 dev/lz4-flex-bump-b686}"
 
 echo "owner-land-post-cut-parks: → ${TARGET_BRANCH}"
 echo "owner-land-post-cut-parks: parks: ${PARKED_BRANCHES}"
@@ -95,22 +95,25 @@ done
 # Use a worktree so we never `checkout -f` the caller's branch (that discarded
 # tip WIP while wiring this gate).
 dry_run_stack() {
-  local base_sha wt branch fail=0 parked parked_sha saw_park=0
+  # NOTE: do not rely on `local` vars inside EXIT trap — bash can unset them
+  # before the trap runs under `set -u`, which previously aborted cleanup.
+  local base_sha fail=0 parked parked_sha saw_park=0
+  local cleanup_wt cleanup_branch
   base_sha="${TARGET_SHA}"
-  wt="$(mktemp -d /tmp/pl-post-cut-dry-XXXXXX)"
-  branch="tmp/post-cut-dry-run-$$"
-  git branch -D "$branch" 2>/dev/null || true
-  git worktree add -b "$branch" "$wt" "$base_sha" >/dev/null
+  cleanup_wt="$(mktemp -d /tmp/pl-post-cut-dry-XXXXXX)"
+  cleanup_branch="tmp/post-cut-dry-run-$$"
+  git branch -D "$cleanup_branch" 2>/dev/null || true
+  git worktree add -b "$cleanup_branch" "$cleanup_wt" "$base_sha" >/dev/null
   cleanup() {
-    git worktree remove --force "$wt" 2>/dev/null || true
-    rm -rf "$wt"
-    git branch -D "$branch" 2>/dev/null || true
+    git worktree remove --force "${cleanup_wt}" 2>/dev/null || true
+    rm -rf "${cleanup_wt}"
+    git branch -D "${cleanup_branch}" 2>/dev/null || true
   }
   trap cleanup EXIT
   echo
   echo "== DRY_RUN stacked merges from ${TARGET_BRANCH}=${base_sha:0:7} (worktree) =="
   (
-    cd "$wt"
+    cd "$cleanup_wt"
     for parked in ${PARKED_BRANCHES}; do
       if ! git rev-parse "origin/${parked}" >/dev/null 2>&1; then
         if [[ "$REQUIRE_PARKS" == "1" ]]; then
