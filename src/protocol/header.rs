@@ -545,13 +545,18 @@ pub fn encode_response_header(
 }
 
 /// Read [`ResponseHeader`] for `api_key` / `api_version`.
+///
+/// Flexible headers (v1+) write tagged fields after the correlation id.
+/// Kafka 3.9 preview paths (ConsumerGroupHeartbeat when the consumer
+/// protocol is off) may send only the correlation id. EOF there is empty
+/// tagged fields, matching body-level truncated error handling.
 pub fn decode_response_header<B: Buf>(
     buf: &mut B,
     api_key: i16,
     api_version: i16,
 ) -> Result<ResponseHeader> {
     let correlation_id = buf::get_i32(buf)?;
-    if response_header_version(api_key, api_version) >= 1 {
+    if response_header_version(api_key, api_version) >= 1 && buf.has_remaining() {
         buf::skip_tagged_fields(buf)?;
     }
     Ok(ResponseHeader { correlation_id })
@@ -1078,6 +1083,17 @@ mod tests {
                 1
             );
         }
+    }
+
+    #[test]
+    fn flexible_response_header_accepts_correlation_id_only() {
+        // Kafka 3.9.1 ConsumerGroupHeartbeat can return a 4-byte frame
+        // (correlation id, no tagged fields). That used to fail with
+        // protocol: need 1 bytes, have 0.
+        let mut buf = BytesMut::new();
+        buf.put_i32(7);
+        let header = decode_response_header(&mut &buf[..], CONSUMER_GROUP_HEARTBEAT, 0).unwrap();
+        assert_eq!(header.correlation_id, 7);
     }
 
     #[test]

@@ -223,7 +223,7 @@ run_examples() {
       kip848_ok=1
       break
     fi
-    if grep -qiE 'UnsupportedVersion|Unsupported|UNKNOWN_SERVER_ERROR|does not support|ConsumerGroupHeartbeat|InvalidRequest|API version' "$kip848_log"; then
+    if grep -qiE 'UnsupportedVersion|Unsupported|UNKNOWN_SERVER_ERROR|does not support|ConsumerGroupHeartbeat|InvalidRequest|API version|need [0-9]+ bytes|truncated response' "$kip848_log"; then
       break
     fi
     # Truncated Protocol bodies on 3.9 are terminal when KIP-848 is optional —

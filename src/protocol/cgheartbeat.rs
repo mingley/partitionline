@@ -288,13 +288,35 @@ pub fn encode_consumer_group_heartbeat_response(
 /// Decode a flexible v0–v1 ConsumerGroupHeartbeat response.
 ///
 /// ThrottleTimeMs is JSON `0+` (always on the wire).
+///
+/// Kafka 3.9 advertises this preview API, then may reply with an empty
+/// body or throttle-plus-error-code only when
+/// `group.coordinator.rebalance.protocols` does not include `consumer`.
+/// Those frames are [`Error::Unsupported`], not a short-read protocol
+/// error, so callers can fall back to classic groups.
 pub fn decode_consumer_group_heartbeat_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ConsumerGroupHeartbeatResponse> {
     let _ = consumer_group_heartbeat_spoken(version)?;
+    if buf.remaining() < 6 {
+        return Err(Error::Unsupported(
+            "broker does not support ConsumerGroupHeartbeat (truncated response)".into(),
+        ));
+    }
     let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
+    if !buf.has_remaining() {
+        return Ok(ConsumerGroupHeartbeatResponse {
+            throttle_time_ms,
+            error_code,
+            error_message: None,
+            member_id: None,
+            member_epoch: 0,
+            heartbeat_interval_ms: 0,
+            assignment: None,
+        });
+    }
     let error_message = buf::get_compact_string(buf)?;
     let member_id = buf::get_compact_string(buf)?;
     let member_epoch = buf::get_i32(buf)?;
@@ -426,6 +448,31 @@ mod tests {
         let decoded = decode_consumer_group_heartbeat_response(&mut &buf[..], 0).unwrap();
         assert_eq!(decoded.error_code, 42);
         assert!(decoded.assignment.is_none());
+    }
+
+    #[test]
+    fn decode_empty_body_is_unsupported_not_short_read() {
+        // Kafka 3.9.1 may advertise the API then send no body. That used
+        // to surface as protocol: need 1 bytes, have 0 and fail 3.9 CI
+        // smoke that expects a skippable Unsupported error.
+        let err = decode_consumer_group_heartbeat_response(&mut &[][..], 0).unwrap_err();
+        let text = err.to_string();
+        assert!(
+            text.contains("does not support ConsumerGroupHeartbeat"),
+            "{text}"
+        );
+        assert!(!text.contains("need 1 bytes"), "{text}");
+    }
+
+    #[test]
+    fn decode_throttle_and_error_only_keeps_broker_code() {
+        let mut buf = BytesMut::new();
+        buf.put_i32(0);
+        buf.put_i16(35); // UNSUPPORTED_VERSION
+        let decoded = decode_consumer_group_heartbeat_response(&mut &buf[..], 0).unwrap();
+        assert_eq!(decoded.error_code, 35);
+        assert!(decoded.assignment.is_none());
+        assert!(decoded.error_message.is_none());
     }
 
     #[test]
