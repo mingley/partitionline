@@ -19,14 +19,21 @@ Civilization **Installable** is blocked only on credentials and merge:
 ## Install (today)
 
 crates.io publish is the remaining owner step (`docs/RELEASE.md`). Until the
-first release lands:
+first release lands, pin a **tag** (not floating `main`):
+
+```toml
+[dependencies]
+partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.1" }
+```
+
+Floating `main` also works for tip-chasers:
 
 ```toml
 [dependencies]
 partitionline = { git = "https://github.com/mingley/partitionline" }
 ```
 
-After `v0.1.0`:
+After `v0.1.0` on crates.io:
 
 ```toml
 [dependencies]
@@ -37,7 +44,8 @@ partitionline = "0.1"
 
 1. Produce + fetch against your Kafka 3.9 / 4.x cluster (`examples/roundtrip`).
 2. Classic or cooperative groups (`examples/group`, `examples/cooperative`).
-3. TLS (`rustls`) and SCRAM or OIDC as required (`examples/tls`, `examples/sasl`).
+3. TLS (`rustls`) and SCRAM or OIDC as required (`examples/tls`, `examples/sasl`,
+   `examples/oauth`).
 4. Transactions / EOS if you need them (`examples/txn`, `examples/eos`).
 5. Share groups on Kafka 4.1+ with `share.version=1` (`examples/share`).
 6. Scrape `Producer` / `Consumer` / `Admin` / `ShareGroup` metrics; optional

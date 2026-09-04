@@ -3,6 +3,8 @@
 //! Broker on `KAFKA_BOOTSTRAP`. Topic `KAFKA_TOPIC` (default `partitionline`).
 //! `SASL_MECHANISM` defaults to `SCRAM-SHA-256`. `KAFKA_USERNAME` /
 //! `KAFKA_PASSWORD` default to `alice` / `secret`.
+//!
+//! For OAUTHBEARER / OIDC, see `examples/oauth.rs`.
 
 use partitionline::{ProduceRecord, Producer, ProducerConfig, Sasl};
 

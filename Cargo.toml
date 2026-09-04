@@ -139,6 +139,9 @@ name = "admin"
 name = "sasl"
 
 [[example]]
+name = "oauth"
+
+[[example]]
 name = "tls"
 
 [[example]]
