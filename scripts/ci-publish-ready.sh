@@ -64,8 +64,15 @@ bash scripts/check-post-cut-parks-stack.sh || parks_rc=$?
 if [[ "$parks_rc" -ne 0 ]]; then
   if [[ "${AUTO_REFRESH_PARKS:-0}" == "1" ]]; then
     echo "ci-publish-ready: parks lag tip — AUTO_REFRESH_PARKS=1 refreshing chain"
+    caller_branch="$(git rev-parse --abbrev-ref HEAD)"
     bash scripts/refresh-post-cut-parks.sh
     bash scripts/check-post-cut-parks-stack.sh
+    # refresh ends on civilization tip; restore caller (usually main) for publish.
+    if [[ -n "$caller_branch" && "$caller_branch" != "HEAD" \
+        && "$(git rev-parse --abbrev-ref HEAD)" != "$caller_branch" ]]; then
+      echo "ci-publish-ready: restoring branch ${caller_branch} after parks refresh"
+      git checkout "$caller_branch"
+    fi
   else
     echo "ci-publish-ready: parks stack failed (set AUTO_REFRESH_PARKS=1 to refresh, or: bash scripts/refresh-post-cut-parks.sh)" >&2
     exit "$parks_rc"
