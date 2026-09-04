@@ -5,6 +5,15 @@ name: release
 # pins only — they must not queue a publish job (wastes Actions capacity and
 # cannot match Cargo.toml when version is 0.1.0).
 #
+# Tag filter uses GitHub's workflow glob language (not PCRE): `+` means
+# "one or more of the preceding character", so `v[0-9]+.[0-9]+.[0-9]+`
+# matches `v0.1.0` / `v1.10.2` and does not match `v0.1.0-rc.1`.
+#
+# Branch pushes that touch this file must not create empty-job failures.
+# Root cause of prior noise: flush-left multiline shell inside `run: |`
+# (invalid YAML). Defense in depth: job-level `if` + input-safe expressions
+# so a spurious push evaluation stays a no-op instead of a red X.
+#
 # Owner setup (one-time):
 #   1. crates.io → Account → New Token (scope: publish-update for partitionline)
 #   2. GitHub → Settings → Secrets → Actions → CARGO_REGISTRY_TOKEN
@@ -25,25 +34,37 @@ on:
 permissions:
   contents: write
 
+# Prefer github.event.inputs (empty on push) over bare inputs.* so a ghost
+# branch-push evaluation cannot fail while resolving the concurrency group.
 concurrency:
-  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+  group: release-${{ github.event.inputs.tag || github.ref }}
   cancel-in-progress: true
 
 jobs:
   publish:
+    # Real work only for final tags or an explicit dispatch. Skips ghost
+    # branch-push evaluations and any hyphenated prerelease tag that somehow
+    # matched the glob.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.ref_type == 'tag' && !contains(github.ref_name, '-'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
       - name: Verify tag matches Cargo.toml (final versions only)
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_TAG: ${{ github.event.inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            tag="${{ inputs.tag }}"
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            tag="${DISPATCH_TAG}"
             tag="${tag#v}"
           else
-            tag="${GITHUB_REF_NAME#v}"
+            tag="${REF_NAME#v}"
           fi
           case "$tag" in
             *-*|*+*)
@@ -52,6 +73,11 @@ jobs:
               exit 1
               ;;
           esac
+          # Guard dispatch / odd refs: require digits.digits.digits only.
+          if ! printf '%s' "$tag" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Refusing non-final version tag '$tag' (need X.Y.Z)." >&2
+            exit 1
+          fi
           ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           echo "tag=$tag cargo=$ver"
           test "$tag" = "$ver"
@@ -93,16 +119,19 @@ jobs:
           ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           tag="v${ver}"
           # Prefer an existing annotated tag body; otherwise write a short crates.io pointer.
+          # Keep every line indented under `run: |` — a flush-left multiline shell
+          # string is invalid YAML and produces empty-job release failures on push.
           body="$(git tag -l --format='%(contents)' "$tag" 2>/dev/null | sed '/^$/d' | head -40)"
           if [ -z "$body" ]; then
-            body="partitionline ${ver}
-
-Published to crates.io: https://crates.io/crates/partitionline/${ver}
-Docs: https://docs.rs/partitionline/${ver}
-
-Owner follow-up on main:
-  bash scripts/day1-after-publish.sh
-  # commit README crates.io dep + badges, then push"
+            body="$(printf '%s\n' \
+              "partitionline ${ver}" \
+              "" \
+              "Published to crates.io: https://crates.io/crates/partitionline/${ver}" \
+              "Docs: https://docs.rs/partitionline/${ver}" \
+              "" \
+              "Owner follow-up on main:" \
+              "  bash scripts/day1-after-publish.sh" \
+              "  # commit README crates.io dep + badges, then push")"
           fi
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "GitHub release ${tag} already exists"

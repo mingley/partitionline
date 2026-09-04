@@ -59,6 +59,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- `release.yml` hardens the crates.io publish trigger: fix invalid YAML in the
+  GitHub Release notes step (flush-left multiline string caused empty-job
+  `release` failures on branch pushes), input-safe concurrency / checkout
+  expressions, job-level skip unless final tag or `workflow_dispatch`, and an
+  explicit `X.Y.Z` tag shape check. Still publishes on `v0.1.0`.
 - `scripts/post-publish-readme.sh` also inserts crates.io + docs.rs badges on
   day-1 README flip (`DRY_RUN=1` asserts badges). `release.yml` creates a
   GitHub Release after a successful crates.io publish.
