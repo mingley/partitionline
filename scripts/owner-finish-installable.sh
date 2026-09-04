@@ -61,8 +61,9 @@ echo "owner-finish-installable: ${name} ${ver}"
 echo
 
 echo "== 0a) Honesty self-tests (no token required) =="
-# Cut path must not drift: registry probe units + tip Verifiable PARTIAL exit codes.
-# These are executable (not grep-only) and run before Installable short-circuit / token gate.
+# Cut path must not drift: registry probe units + tip Verifiable PARTIAL exit codes
+# + parks-refresh restore-main/caller guards. Executable (not grep-only); run before
+# Installable short-circuit / token gate.
 bash scripts/check-registry-token.sh --self-test
 bash scripts/ci-tip-verifiable-broker.sh --self-test
 bash scripts/check-parks-refresh-cut-guards.sh

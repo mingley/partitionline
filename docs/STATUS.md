@@ -26,6 +26,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Preflight honesty self-tests (2026-09-04, tip `f9f3e00`):** `check-installable-preflight` runs registry-token + tip Verifiable `--self-test` before `READY_EXCEPT_TOKEN`; bars gate preflight wiring alongside finish/cut-path — still not a Suite HOLD lift.
 
+**Parks-refresh cut guards in preflight (2026-09-04):** `check-installable-preflight` also runs `check-parks-refresh-cut-guards` (finish restores main after parks auto-refresh; publish-ready restores caller). Bars require the guard wired into finish + cut-path + preflight — token-day footgun closed without lifting Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

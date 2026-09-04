@@ -172,8 +172,9 @@ fi
 if [[ -x scripts/check-parks-refresh-cut-guards.sh ]] \
   && bash scripts/check-parks-refresh-cut-guards.sh >/tmp/pl-parks-refresh-guards.log 2>&1 \
   && grep -qF -- 'check-parks-refresh-cut-guards.sh' scripts/owner-finish-installable.sh \
-  && grep -qF -- 'check-parks-refresh-cut-guards.sh' scripts/check-cut-path.sh; then
-  ok "parks-refresh cut guards (restore main/caller; wired into finish + cut-path)"
+  && grep -qF -- 'check-parks-refresh-cut-guards.sh' scripts/check-cut-path.sh \
+  && grep -qF -- 'check-parks-refresh-cut-guards.sh' scripts/check-installable-preflight.sh; then
+  ok "parks-refresh cut guards (restore main/caller; wired into finish + cut-path + preflight)"
 else
   bad "parks-refresh cut guards missing or unwired; see /tmp/pl-parks-refresh-guards.log"
 fi
