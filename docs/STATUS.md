@@ -54,6 +54,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Day1 PARTIAL tip-proxy + parks fail-closed (2026-09-04):** `ci-branch-lite` and `ci-publish-ready` now capture `day1-after-publish` DRY_RUN `PARTIAL`/exit 2 (same as cut-path) so tip Verifiable and token-day publish-ready cannot abort on the expected absent crate. Preflight refuses `READY_EXCEPT_TOKEN` (exit 1) when parks are stale without a token; token ask refuses the rehearsed claim on that path. Bars gate `day1_rc` in branch-lite + publish-ready. Still not a Suite HOLD lift.
 
+**Finish Actions-secret PARTIAL (2026-09-04):** after a successful crates.io cut, `owner-finish-installable` tracks Actions `gh secret set` and exits `PARTIAL`/2 when sync fails (agents often 403) — never final OK with an unsynced Actions secret. Owner re-entry printed; bars gate `secret_rc` + PARTIAL string. Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
