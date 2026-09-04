@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts/docs: Cursor env Secrets deep link defaults to `.../secrets` so login redirect lands on the Secrets tab for `CARGO_REGISTRY_TOKEN` injection.
 - Scripts: `check-actions-hygiene` probes for the GitHub `dependencies` label Dependabot expects and prints the owner `gh label create` one-shot (agents 403); surfaces in `owner-unblock` / cut-path hygiene.
 - Tip: merge `main` `first-publish.yml` **publish-new** honesty; `check-post-cut-parks-stack` now requires tip↔main workflow match (not tip-soft-only) so tip-delta stays docs/scripts-only after the main Actions alternate landed.
 - Scripts/docs: shared `scripts/lib/cursor-env-secrets-url.sh` prints the Cloud Agent Environments → Secrets deep link (overridable via `PARTITIONLINE_CURSOR_ENV_SECRETS_URL`); wired into `owner-finish-installable` / `owner-unblock` / RELEASE so token injection is one click away.
