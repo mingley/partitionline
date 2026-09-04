@@ -12,7 +12,8 @@ name: release
 # Branch pushes that touch this file must not create empty-job failures.
 # Root cause of prior noise: flush-left multiline shell inside `run: |`
 # (invalid YAML). Defense in depth: job-level `if` + input-safe expressions
-# so a spurious push evaluation stays a no-op instead of a red X.
+# + a complementary `ghost-noop` job so a spurious push evaluation stays a
+# green no-op instead of "all jobs skipped" / empty-job red X.
 #
 # Auth (civilization-grade):
 #   Prefer crates.io Trusted Publishing (OIDC, short-lived token) via
@@ -55,6 +56,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Always run when publish is skipped so ghost branch-push evaluations
+  # (workflow file touched on a non-tag ref) stay green instead of
+  # conclusion=failure with zero jobs.
+  ghost-noop:
+    if: >-
+      !(github.event_name == 'workflow_dispatch' ||
+        (github.ref_type == 'tag' && !contains(github.ref_name, '-')))
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op (not a final tag publish)
+        run: |
+          echo "release: ghost-noop — skipping publish"
+          echo "event=${{ github.event_name }} ref=${{ github.ref }}"
+          echo "Final publish requires tag vX.Y.Z or workflow_dispatch."
+
   publish:
     # Real work only for final tags or an explicit dispatch. Skips ghost
     # branch-push evaluations and any hyphenated prerelease tag that somehow

@@ -7,6 +7,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+### Fixed
+
+- `release.yml`: add complementary `ghost-noop` job so branch-push evaluations
+  that skip `publish` stay green (avoids empty-job / all-skipped red X on tip).
+
 ### Added
 
 - `scripts/lib/crates-io.sh`: shared Installable probe (crates.io API + sparse

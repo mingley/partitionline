@@ -59,6 +59,11 @@ if [[ -f .github/workflows/release.yml ]]; then
   else
     bad "release.yml missing OIDC auth action and/or CARGO_REGISTRY_TOKEN fallback"
   fi
+  if grep -q 'ghost-noop' .github/workflows/release.yml; then
+    ok "release.yml has ghost-noop job (branch-push evaluations stay green)"
+  else
+    bad "release.yml missing ghost-noop job (ghost branch pushes can empty-fail)"
+  fi
   if grep -q 'v\[0-9\]+\\.\[0-9\]+\\.\[0-9\]+' .github/workflows/release.yml \
     || grep -q 'v\[0-9\]+\.\[0-9\]+\.\[0-9\]+' .github/workflows/release.yml; then
     ok "release.yml tag filter is final vX.Y.Z glob"
