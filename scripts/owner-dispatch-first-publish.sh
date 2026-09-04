@@ -3,6 +3,10 @@
 # Actions secret but not in this shell. Prefer owner-finish-installable.sh when
 # the token is already exported (no Actions queue wait).
 #
+# First cut of a NEW crate: the Actions secret must include crates.io scope
+# **publish-new** (+ usually publish-update). publish-update alone cannot create
+# the crate. owner-finish-installable / check-registry-token probe publish-new.
+#
 # GitHub only lists workflow_dispatch workflows from the *default* branch.
 # Options to make first-publish.yml visible:
 #   A) Merge thin PR that adds only first-publish.yml onto main, or
@@ -75,7 +79,7 @@ if ! gh workflow run "$WORKFLOW" -f confirm=publish -f "ref=${REF}" >"$dispatch_
     echo "  B) From an owner machine with Actions write:" >&2
     echo "       REF=${REF} bash scripts/owner-dispatch-first-publish.sh" >&2
     echo "     or Actions → First publish → confirm=publish (ref=${REF})" >&2
-    echo "  C) Add CARGO_REGISTRY_TOKEN as an Actions secret, then do B." >&2
+    echo "  C) Add CARGO_REGISTRY_TOKEN as an Actions secret with publish-new (+ publish-update), then do B." >&2
   fi
   rm -f "$dispatch_err"
   exit 1
