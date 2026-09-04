@@ -46,6 +46,26 @@ if [[ "$ancestor_fail" != "0" ]]; then
 fi
 echo "check-post-cut-parks-stack: tip ${tip_sha:0:7} is ancestor of all parks"
 
+# Parks must form a chain tip⊆park1⊆park2⊆… so parallel tip refreshes cannot
+# silently fork CHANGELOG histories that only conflict when stacked at land time.
+# Refresh order: merge tip→Verifiable, then Verifiable→SCRAM→lz4→checkout.
+chain_fail=0
+prev=""
+for parked in ${PARKED_BRANCHES}; do
+  if [[ -n "$prev" ]]; then
+    if ! git merge-base --is-ancestor "origin/${prev}" "origin/${parked}"; then
+      echo "check-post-cut-parks-stack: FAIL — ${prev} is not an ancestor of ${parked}" >&2
+      echo "  Restore chain: checkout ${parked}, merge ${prev}, push — then re-run." >&2
+      chain_fail=1
+    fi
+  fi
+  prev="$parked"
+done
+if [[ "$chain_fail" != "0" ]]; then
+  exit 1
+fi
+echo "check-post-cut-parks-stack: parks form tip⊆… chain (land order)"
+
 # Default: prove stacked post-cut tree is not just merge-clean but test-green.
 RUN_STACK_TESTS="${RUN_STACK_TESTS:-1}"
 REQUIRE_PARKS=1 ALLOW_BEFORE_INSTALLABLE=1 TARGET_BRANCH="$tip_br" DRY_RUN=1 \
