@@ -37,7 +37,23 @@ One-time setup (first crates.io cut):
 
 Before merging/tagging, run `bash scripts/check-merge-ready.sh` (add `FULL=1` for tip Verifiable proxy). Does not require a token.
 
-One-shot on clean `main`: `bash scripts/owner-cut-release.sh` (pushes `vX.Y.Z`, waits for crates.io, runs day1, then `audit-civilization-bars`). `PUBLISH_LOCAL=1` uses `owner-publish` instead of Actions; `DRY_RUN=1` prints actions only (allowed on the civilization tip for rehearsal — still no tag/push); `REQUIRE_ACTIONS_SECRET=1` refuses to cut if Actions lacks `CARGO_REGISTRY_TOKEN` (when `gh secret list` is permitted).
+Fastest first cut when `CARGO_REGISTRY_TOKEN` is already in the environment
+(Cloud Agent or owner shell) and Actions runners are starved:
+
+```bash
+bash scripts/owner-finish-installable.sh
+# DRY_RUN=1 to rehearse; PUBLISH_LOCAL=0 to tag → release.yml instead
+```
+
+That fast-forwards `main` to the civilization tip, publishes locally, runs
+day1, and proves Installable.
+
+One-shot on clean `main` (tag → Actions): `bash scripts/owner-cut-release.sh`
+(pushes `vX.Y.Z`, waits for crates.io, runs day1, then
+`audit-civilization-bars`). `PUBLISH_LOCAL=1` uses `owner-publish` instead of
+Actions; `DRY_RUN=1` prints actions only (allowed on the civilization tip for
+rehearsal — still no tag/push); `REQUIRE_ACTIONS_SECRET=1` refuses to cut if
+Actions lacks `CARGO_REGISTRY_TOKEN` (when `gh secret list` is permitted).
 
 Then (on `main`, after civilization is merged):
 

@@ -36,20 +36,18 @@ echo
 
 echo "== 4) Publish path (after token + clean Actions) =="
 echo "Tracking issue: https://github.com/mingley/partitionline/issues/86"
-echo "Preferred (docs/RELEASE.md): merge civilization → main, then tag final only:"
+echo
+echo "Fastest once CARGO_REGISTRY_TOKEN is in this environment (bypasses starved Actions):"
+echo "  bash scripts/owner-finish-installable.sh"
+echo "  # FF-merges civilization → main, cargo publish locally, day1, proves Installable"
+echo "  DRY_RUN=1 bash scripts/owner-finish-installable.sh"
+echo
+echo "Or stepwise (docs/RELEASE.md): merge civilization → main, then tag final only:"
 echo "  # open/merge PR: dev/civilization-plan-b686 → main"
 echo "  git fetch origin main && git checkout main && git pull origin main"
-echo "  git tag -a v0.1.0 -m 'partitionline 0.1.0'"
-echo "  git push origin v0.1.0"
-echo "  # release.yml: OIDC trusted publishing if configured, else CARGO_REGISTRY_TOKEN"
-echo
-echo "One-shot after merge to main (preferred):"
 echo "  bash scripts/owner-cut-release.sh          # tag → Actions → day1"
 echo "  PUBLISH_LOCAL=1 bash scripts/owner-cut-release.sh  # manual cargo publish"
 echo "  DRY_RUN=1 bash scripts/owner-cut-release.sh"
-echo
-echo "If publishing locally instead (token in env):"
-echo "  cargo publish --dry-run && cargo publish"
 echo
 echo "Until crates.io lands, adopters pin git tag v0.1.0-rc.6 (not floating main)."
 echo

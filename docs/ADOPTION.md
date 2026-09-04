@@ -5,7 +5,8 @@ need a memory-safe Kafka stack with no C in the default feature set.
 
 ## Owner unblock (WP-0.5)
 
-Civilization **Installable** is blocked only on credentials and merge:
+Civilization **Installable** is blocked only on credentials (and merge, if
+you prefer the Actions path):
 
 1. Add `CARGO_REGISTRY_TOKEN` (Cloud Agent env + GitHub Actions secret).
 2. Cancel stale tip/tag Actions still stuck in `queued` (agents get 403).
@@ -13,14 +14,15 @@ Civilization **Installable** is blocked only on credentials and merge:
    `main` CI is green again (e.g. run `33714516185`). Tip (`dev/**`) pushes
    no longer auto-queue CI (was thrashing starved runners); local gate:
    `bash scripts/ci-branch-lite.sh`. Full matrix on PR/`main`/`workflow_dispatch`.
-   Local civilization-check includes broker + SASL_SSL PLAIN + SCRAM-256/512 +
-   OAUTHBEARER + OIDC + mTLS. After merge, `ci.yml` cancels in-progress on
-   `main` so the next push can clear a stuck predecessor.
-3. Merge `dev/civilization-plan-b686` → `main`, then on clean `main` run
-   `bash scripts/owner-cut-release.sh` (tags **`v0.1.0`** final only —
-   not `-rc`; `release.yml` ignores prerelease tags; waits for crates.io;
-   runs day1). Confirm https://crates.io/crates/partitionline
-   (`bash scripts/check-installable.sh` should exit 0).
+3. **Preferred once the token is in-env** (bypasses starved Actions for the
+   first cut):
+   ```bash
+   bash scripts/owner-finish-installable.sh
+   ```
+   Fast-forwards `main` to the civilization tip, `cargo publish`es locally,
+   runs day1, and proves Installable. Or stepwise: merge
+   `dev/civilization-plan-b686` → `main`, then
+   `bash scripts/owner-cut-release.sh` (tags **`v0.1.0`** final only).
 4. Commit the README crates.io line if day1 changed it; configure crates.io
    Trusted Publishing for `release.yml`.
 
@@ -28,7 +30,7 @@ Probe current blockers anytime:
 
 ```bash
 bash scripts/owner-status.sh
-# One-shot checklist (status + dry-run cancel + merge/tag/day1 path):
+# One-shot checklist (status + dry-run cancel + finish path):
 bash scripts/owner-unblock.sh
 # When Actions stay queued, local Verifiable proxy:
 bash scripts/ci-branch-lite.sh
