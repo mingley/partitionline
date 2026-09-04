@@ -220,6 +220,9 @@ done
 echo
 echo "civilization-check: pass=$pass fail=$fail skip=$skip"
 echo
+echo "== Civilization bars (pre-publish) =="
+PRE_PUBLISH=1 bash scripts/audit-civilization-bars.sh
+echo
 echo "== Owner blocker probe (informational) =="
 bash scripts/owner-status.sh || true
 if [[ "$fail" -gt 0 ]]; then

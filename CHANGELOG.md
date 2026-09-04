@@ -25,6 +25,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   probe, day1 README `DRY_RUN` preflight, merge-ready gate, and actions hygiene.
 - `scripts/audit-civilization-bars.sh`: evidence audit for the six CIVILIZATION
   success bars (PASS/PARTIAL/BLOCKED/FAIL); wired into `owner-status`.
+  `PRE_PUBLISH=1` treats Installable BLOCKED as expected so publish-ready can
+  gate on the other five bars before the first crates.io cut.
 - `scripts/owner-cut-release.sh`: best-effort Actions `CARGO_REGISTRY_TOKEN`
   preflight (`REQUIRE_ACTIONS_SECRET=1` to hard-fail); runs
   `audit-civilization-bars` after a successful cut.
