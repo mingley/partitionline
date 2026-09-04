@@ -47,7 +47,16 @@ DRY_RUN=1 bash scripts/post-publish-adoption.sh >/tmp/pl-adoption-flip-dry.log
 tail -2 /tmp/pl-adoption-flip-dry.log
 
 echo "== day-1 after-publish rehearsal (no crates.io wait) =="
-DRY_RUN=1 bash scripts/day1-after-publish.sh
+# Live cut runs this *before* publish. Absent crate + DRY_RUN is PARTIAL/2 —
+# capture so token-day owner-cut-release cannot abort on the expected miss.
+day1_rc=0
+DRY_RUN=1 bash scripts/day1-after-publish.sh || day1_rc=$?
+if [[ "$day1_rc" -eq 2 ]]; then
+  echo "ci-publish-ready: PARTIAL — day1 DRY_RUN not yet Installable (expected pre-publish; rehearsal held)"
+elif [[ "$day1_rc" -ne 0 ]]; then
+  echo "ci-publish-ready: FAIL — day1 DRY_RUN rc=${day1_rc}" >&2
+  exit "$day1_rc"
+fi
 
 echo "== adopter pin =="
 bash scripts/check-adopter-pin.sh
@@ -93,7 +102,11 @@ REQUIRE_BROKER="${REQUIRE_BROKER:-0}" bash scripts/ci-civilization-check.sh
 
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 echo
-echo "ci-publish-ready: ok for partitionline ${ver}"
+if [[ "${day1_rc:-0}" -eq 2 ]]; then
+  echo "ci-publish-ready: ok with PARTIAL for partitionline ${ver} — day1 DRY_RUN not yet Installable (cut still publishes first)"
+else
+  echo "ci-publish-ready: ok for partitionline ${ver}"
+fi
 echo
 bash scripts/owner-status.sh || true
 echo
