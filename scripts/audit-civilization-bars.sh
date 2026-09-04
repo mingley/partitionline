@@ -100,6 +100,18 @@ if [[ -f scripts/ci-broker-smoke.sh && -f scripts/ci-auth-smoke.sh ]]; then
 else
   bad "missing broker/auth smoke scripts"
 fi
+if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
+   && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
+  ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"
+else
+  bad "missing tip live-broker Verifiable scripts (ci-integrity-smoke/ci-latency-gate/ensure-broker/ci-tip-verifiable-broker)"
+fi
+if [[ -f scripts/ci-branch-lite.sh ]] && grep -q 'ci-tip-verifiable-broker' scripts/ci-branch-lite.sh \
+  && [[ -f scripts/check-cut-path.sh ]] && grep -q 'ci-tip-verifiable-broker' scripts/check-cut-path.sh; then
+  ok "tip Verifiable proxy wires ci-tip-verifiable-broker (branch-lite + cut-path)"
+else
+  bad "ci-tip-verifiable-broker not wired into ci-branch-lite / check-cut-path"
+fi
 fuzz_n=0
 if [[ -d fuzz/fuzz_targets ]]; then
   fuzz_n="$(find fuzz/fuzz_targets -name '*.rs' | wc -l | tr -d ' ')"
