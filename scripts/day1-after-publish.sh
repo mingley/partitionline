@@ -25,6 +25,9 @@ if [[ "$ok" != "1" ]]; then
 fi
 echo "day1-after-publish: crates.io has partitionline ${ver}"
 
+echo "day1-after-publish: verify adopter crates.io consumer compiles"
+bash scripts/verify-crates-io-consumer.sh
+
 bash scripts/post-publish-readme.sh
 
 echo

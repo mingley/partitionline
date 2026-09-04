@@ -23,6 +23,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Added
 
+- `scripts/verify-crates-io-consumer.sh`: after crates.io publish, prove an
+  adopter can `cargo depend` on the registry release and compile the operator
+  surface (wired into `day1-after-publish` + `owner-finish-installable`).
 - `scripts/owner-finish-installable.sh`: one-shot Installable finish once
   `CARGO_REGISTRY_TOKEN` is in-env — FF-merge civilization → `main`, local
   `cargo publish` (bypasses starved Actions), day1, prove Installable; after
