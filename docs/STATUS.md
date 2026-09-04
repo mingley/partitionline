@@ -58,6 +58,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Bare cut Actions-secret PARTIAL (2026-09-04):** bare `owner-cut-release` (stepwise path, `SKIP_HANDOFF=0`) now syncs Actions `CARGO_REGISTRY_TOKEN` after Installable and exits `PARTIAL`/2 on sync failure — same fail-closed honesty as finish. `SKIP_HANDOFF=1` still leaves sync to finish. Self-test + bars + status/unblock re-entry gated. Still not a Suite HOLD lift.
 
+**Handoff day1 chain (2026-09-04):** `owner-post-installable-handoff` runs `day1-after-publish` after Installable prove (Actions-alternate / handoff-only re-entry) and exits `PARTIAL`/2 if adopter docs remain git-shaped — never final OK with pre-crates.io install pins. DRY_RUN captures day1 PARTIAL. Self-test + bars gate. Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
