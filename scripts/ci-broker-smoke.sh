@@ -120,6 +120,10 @@ run_examples() {
   export KAFKA_GROUP="pl-ci-group"
   export KAFKA_TRANSACTIONAL_ID="pl-ci-txn"
 
+  # Build once so timed paths (share/group/eos) are not racing cargo compile.
+  echo "== build examples =="
+  cargo build --release --examples
+
   echo "== roundtrip =="
   cargo run --release --example roundtrip
 
