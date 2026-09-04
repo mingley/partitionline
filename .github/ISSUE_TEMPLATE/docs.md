@@ -1,7 +1,7 @@
 ---
 name: Docs
 about: Guide, migration, or rustdoc fix
-labels: docs
+labels: documentation
 ---
 
 **Page / module**

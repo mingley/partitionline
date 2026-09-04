@@ -38,9 +38,10 @@ if [[ "$ok" != "1" ]]; then
   cat /tmp/pl-day1-installable.log >&2 || true
   echo "day1-after-publish: crates.io does not yet have partitionline ${ver}" >&2
   if [[ "$DRY_RUN" == "1" ]]; then
-    echo "day1-after-publish: DRY_RUN=1 — would verify crates.io consumer + flip README after publish" >&2
-    echo "day1-after-publish: rehearsing README flip only (post-publish-readme DRY_RUN=1)" >&2
+    echo "day1-after-publish: DRY_RUN=1 — would verify crates.io consumer + flip README/ADOPTION after publish" >&2
+    echo "day1-after-publish: rehearsing README + ADOPTION flips (DRY_RUN=1)" >&2
     DRY_RUN=1 bash scripts/post-publish-readme.sh
+    DRY_RUN=1 bash scripts/post-publish-adoption.sh
     echo
     echo "day1-after-publish: DRY_RUN complete — publish first, then re-run without DRY_RUN"
     echo "  Preferred cut: bash scripts/owner-finish-installable.sh"
@@ -60,13 +61,15 @@ fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
   DRY_RUN=1 bash scripts/post-publish-readme.sh
+  DRY_RUN=1 bash scripts/post-publish-adoption.sh
 else
   bash scripts/post-publish-readme.sh
+  bash scripts/post-publish-adoption.sh
 fi
 
 echo
 echo "day1-after-publish: next owner steps"
-echo "  1. Review and commit README crates.io dep + status blurb + crates.io/docs.rs badges"
+echo "  1. Review and commit README + docs/ADOPTION.md crates.io install lines (+ badges)"
 echo "  2. Prefer crates.io Trusted Publishing for later tags:"
 echo "       bash scripts/owner-enable-trusted-publishing.sh"
 echo "     (prints exact crates.io UI steps; verifies release.yml OIDC shape)."
