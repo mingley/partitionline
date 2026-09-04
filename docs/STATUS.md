@@ -42,6 +42,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Tip Verifiable soft-latency honesty (2026-09-04):** `ci-tip-verifiable-broker` treats integrity `latency gate failed (soft)` as `PARTIAL` (exit 2) even when `ci-integrity-smoke` still prints `ok` — under-agent-load soft-misses can no longer greenwash tip Verifiable. `--self-test` covers the soft-latency interpret path; bars gate it. Handoff `--self-test` + bars also require day1 README/ADOPTION preserve on `LAND_PARKS=1`. Agent priority list in `docs/CIVILIZATION.md` now leads with WP-0.5 token cut — still **unsigned**, still not a Suite HOLD lift.
 
+**Tip Verifiable quiet soft-latency recovery (2026-09-04):** after integrity `latency gate failed (soft)`, `ci-tip-verifiable-broker` now quiet-rechecks integrity by default (`TIP_VERIFIABLE_QUIET_RETRIES=1`, sleep 8s) and only prints `ok` when the recheck is clean — still-soft stays `PARTIAL`/exit 2 (no greenwash). `--self-test` + bars cover quiet retry. **Unsigned live recheck (tip ):** native Kafka 4.1 broker-smoke (kip848+share) green; auth matrix green; Lab A integrity COUNT=2000 HW==acked and consumed==seeded green; latency quiet p99≈61µs (pass vs 750µs) without needing quiet retry — still **unsigned**, still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

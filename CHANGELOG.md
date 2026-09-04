@@ -9,6 +9,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: tip Verifiable quiet soft-latency recovery — after `latency gate failed (soft)`, `ci-tip-verifiable-broker` sleeps and re-runs integrity (`TIP_VERIFIABLE_QUIET_RETRIES` default 1, `TIP_VERIFIABLE_QUIET_SLEEP_SECS` default 8; `0` disables). Only a clean recheck may restore `ok`; still-soft stays PARTIAL/exit 2. `--self-test` + bars gate quiet retry (no greenwash).
+- Scripts: tip Verifiable soft-latency honesty — soft latency miss is PARTIAL even when integrity-smoke prints `ok`; handoff `--self-test` gates day1 README/ADOPTION preserve on `LAND_PARKS=1`.
+- Scripts/docs: cut-release `PUBLISH_LOCAL` auto-defaults to 1 when `CARGO_REGISTRY_TOKEN` is in-env; CIVILIZATION agent priority leads with WP-0.5 token cut.
 - Scripts: `check-installable-preflight` runs honesty self-tests (`check-registry-token --self-test` + `ci-tip-verifiable-broker --self-test`) before `READY_EXCEPT_TOKEN`, so the one-screen Installable gate cannot skip PARTIAL/token-normalize units; bars require preflight wiring.
 - Scripts: `owner-finish-installable` runs honesty self-tests before the token gate (`check-registry-token --self-test` + `ci-tip-verifiable-broker --self-test`) so the cut path cannot skip PARTIAL/token-normalize units; bars require finish wiring.
 - Scripts: tip Verifiable soft-skip honesty is now executable — `ci-tip-verifiable-broker --self-test` proves finalize `ok`/PARTIAL exit 2/soft PARTIAL exit 0; wired into `ci-branch-lite` / `check-cut-path`; bars run the self-test (not grep-only).
