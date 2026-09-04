@@ -9,11 +9,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Added
 
-- `scripts/ci-auth-smoke.sh`: native Kafka SASL_SSL + SCRAM-SHA-256/512 smoke
-  (private CA, isolated ports, `examples/sasl` with `TLS_CA_PEM`); TLS-only
-  produce must fail closed. Wired into `scripts/ci-civilization-check.sh`.
-- `examples/sasl` accepts optional `TLS_CA_PEM` / `TLS_SERVER_NAME` for the
-  production SASL_SSL path.
+- `scripts/ci-auth-smoke.sh`: native Kafka SASL_SSL + SCRAM-SHA-256/512 +
+  OAUTHBEARER (unsecured JWT) smoke (private CA, isolated ports,
+  `examples/sasl` / `examples/oauth` with `TLS_CA_PEM`); TLS-only produce must
+  fail closed. Wired into `scripts/ci-civilization-check.sh`.
+- `examples/sasl` and `examples/oauth` accept optional `TLS_CA_PEM` /
+  `TLS_SERVER_NAME` for the production SASL_SSL path.
 - `scripts/owner-status.sh` prints Installable/Verifiable blocker status
   (token, crates.io, Actions tip/main); wired into civilization-check and
   publish-ready as an informational footer.
@@ -25,10 +26,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - Mock TLS fixtures use the `openssl` CLI instead of `rcgen`, dropping
   `time` from the dependency graph and clearing the `RUSTSEC-2026-0009`
   ignore in `deny.toml` / `.cargo/audit.toml` without raising MSRV.
-- Auth smoke covers SCRAM-SHA-256 and SCRAM-SHA-512 over SASL_SSL; CI `test`
-  jobs assert `openssl version` before `cargo test`.
+- Auth smoke covers SCRAM-SHA-256/512 and OAUTHBEARER over SASL_SSL; CI
+  `test` jobs assert `openssl version` before `cargo test`.
 - ADOPTION / CIVILIZATION record local civilization-check **26/26** evidence
-  (broker + SASL_SSL SCRAM-256/512) while GitHub Actions remains queued.
+  (broker + SASL_SSL SCRAM-256/512 + OAUTHBEARER) while GitHub Actions
+  remains queued.
 
 ## [0.1.0] - 2026-09-04
 
