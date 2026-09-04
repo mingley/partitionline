@@ -170,14 +170,16 @@ else
 fi
 # Documented git pin must cargo-check while Installable waits (Adoptable before crates.io).
 if grep -qF 'MODE=git' scripts/check-cut-path.sh \
+  && grep -qF 'MODE=git' scripts/check-installable-preflight.sh \
+  && grep -qF 'MODE=git' scripts/owner-finish-installable.sh \
   && grep -qE 'MODE=git|mode.*git' scripts/verify-crates-io-consumer.sh; then
   if MODE=git bash scripts/verify-crates-io-consumer.sh >/tmp/pl-git-adopter.log 2>&1; then
-    ok "git-tag adopter consumer (documented pin cargo-checks; wired into cut-path)"
+    ok "git-tag adopter consumer (documented pin cargo-checks; wired into cut-path + preflight + finish)"
   else
     bad "git-tag adopter consumer failed; see /tmp/pl-git-adopter.log"
   fi
 else
-  bad "git-tag adopter consumer not wired into cut-path / verify-crates-io-consumer"
+  bad "git-tag adopter consumer not wired into cut-path / preflight / finish / verify-crates-io-consumer"
 fi
 # Parks auto-refresh must restore main/caller before cut/publish (token-day footgun).
 if [[ -x scripts/check-parks-refresh-cut-guards.sh ]] \

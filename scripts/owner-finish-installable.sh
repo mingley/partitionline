@@ -62,11 +62,12 @@ echo
 
 echo "== 0a) Honesty self-tests (no token required) =="
 # Cut path must not drift: registry probe units + tip Verifiable PARTIAL exit codes
-# + parks-refresh restore-main/caller guards. Executable (not grep-only); run before
-# Installable short-circuit / token gate.
+# + parks-refresh restore-main/caller guards + documented git-tag adopter compile.
+# Executable (not grep-only); run before Installable short-circuit / token gate.
 bash scripts/check-registry-token.sh --self-test
 bash scripts/ci-tip-verifiable-broker.sh --self-test
 bash scripts/check-parks-refresh-cut-guards.sh
+MODE=git bash scripts/verify-crates-io-consumer.sh
 
 echo
 echo "== 0) Already Installable? =="
