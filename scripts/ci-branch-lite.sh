@@ -36,6 +36,9 @@ bash scripts/check-workflows.sh
 echo "== ci-branch-lite: tip-delta classifier (cut/sync trust guard) =="
 bash scripts/check-tip-delta.sh
 
+echo "== ci-branch-lite: post-cut parks stack rehearsal =="
+bash scripts/check-post-cut-parks-stack.sh
+
 echo "== ci-branch-lite: day1 after-publish rehearsal (no crates.io wait) =="
 DRY_RUN=1 bash scripts/day1-after-publish.sh
 

@@ -20,6 +20,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Fixed
 
+- Scripts: post-cut parks DRY_RUN uses a disposable worktree (no `checkout -f` on tip) so tip WIP is not discarded; tip Verifiable proxy hard-fails on dirty tip→Verifiable→SCRAM stacks (`check-post-cut-parks-stack`).
 - Scripts: tip Verifiable proxy (`ci-branch-lite` / `ci-publish-ready`) hard-fails when parked post-cut branches no longer stack-clean onto tip (`check-post-cut-parks-stack`); lander DRY_RUN prefers local tip when ahead of origin and honors `REQUIRE_PARKS=1`.
 - Scripts: `owner-land-post-cut-parks` DRY_RUN now performs real stacked merges (per-park merge-tree vs bare target hid tip→Verifiable→SCRAM CHANGELOG conflicts); SCRAM/flate2 park rebased onto tip for clean post-cut land.
 - Soft-skip honesty: optional kip848/share broker soft-skips only on Unsupported*/truncated-Protocol signals; civilization-check fails unexpected auth/integrity errors instead of SKIP-greenwashing.
