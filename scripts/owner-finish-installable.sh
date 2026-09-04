@@ -250,6 +250,23 @@ if [[ "$DRY_RUN" != "1" && "$branch" != "main" ]]; then
 fi
 
 echo
+echo "== 4c) Ensure post-cut parks contain tip =="
+# Tip docs/scripts commits (cut-path hardening, etc.) leave parks lagging tip⊆chain.
+# publish-ready hard-fails on that; refresh here so token-day cut does not die mid-flight.
+parks_rc=0
+bash scripts/check-post-cut-parks-stack.sh || parks_rc=$?
+if [[ "$parks_rc" -ne 0 ]]; then
+  echo "owner-finish-installable: parks lag tip — refreshing tip→Verifiable→SCRAM→lz4→checkout before cut"
+  if [[ "$DRY_RUN" == "1" ]]; then
+    DRY_RUN=1 bash scripts/refresh-post-cut-parks.sh
+    echo "owner-finish-installable: DRY_RUN parks refresh does not push; live cut will push the chain"
+  else
+    bash scripts/refresh-post-cut-parks.sh
+    bash scripts/check-post-cut-parks-stack.sh
+  fi
+fi
+
+echo
 echo "== 5) Cut release =="
 if [[ "$PUBLISH_LOCAL" == "1" ]]; then
   echo "owner-finish-installable: PUBLISH_LOCAL=1 (token in-env; bypasses Actions queue)"
@@ -277,6 +294,7 @@ fi
 if [[ "$DRY_RUN" == "1" ]]; then
   DRY_RUN=1 PUBLISH_LOCAL="$PUBLISH_LOCAL" \
     SKIP_PUBLISH_READY="${SKIP_PUBLISH_READY:-1}" \
+    AUTO_REFRESH_PARKS=1 \
     bash scripts/owner-cut-release.sh
   echo
   echo "owner-finish-installable: DRY_RUN complete — no merge/tag/publish performed"
@@ -302,7 +320,7 @@ if [[ "$DRY_RUN" == "1" ]]; then
   exit 0
 fi
 
-PUBLISH_LOCAL="$PUBLISH_LOCAL" bash scripts/owner-cut-release.sh
+PUBLISH_LOCAL="$PUBLISH_LOCAL" AUTO_REFRESH_PARKS=1 bash scripts/owner-cut-release.sh
 
 echo
 echo "== 6) Prove Installable =="
