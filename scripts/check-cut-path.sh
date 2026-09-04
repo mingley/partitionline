@@ -12,6 +12,16 @@ echo "== check-cut-path: Installable preflight =="
 bash scripts/check-installable-preflight.sh
 
 echo
+echo "== check-cut-path: registry token probe =="
+tok_rc=0
+bash scripts/check-registry-token.sh || tok_rc=$?
+if [[ "$tok_rc" -eq 1 ]]; then
+  echo "check-cut-path: FAIL — token present but rejected by crates.io" >&2
+  exit 1
+fi
+# tok_rc 0 (ok) or 2 (missing) are fine for rehearsal
+
+echo
 echo "== check-cut-path: tip-delta (docs/scripts-only vs main) =="
 bash scripts/check-tip-delta.sh
 
