@@ -39,13 +39,12 @@ first release lands, pin a **tag** (not floating `main`):
 
 ```toml
 [dependencies]
-partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.3" }
+partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.4" }
 ```
 
-`v0.1.0-rc.3` tracks the civilization tip (KIP-848 empty TopicPartitions join
-fix + live example, OIDC + mTLS auth smoke, SASL_SSL PLAIN/SCRAM/OAUTHBEARER,
-local branch-lite Verifiable proxy, tip pushes no longer thrash Actions).
-Prefer this over floating `main`. After crates.io `0.1.0`, switch to:
+`v0.1.0-rc.4` tracks the civilization tip (everything in `rc.3`, plus day-1
+README flip preflight, KIP-848 guide note, and full example metadata). Prefer
+this over floating `main`. After crates.io `0.1.0`, switch to:
 
 ```toml
 [dependencies]
