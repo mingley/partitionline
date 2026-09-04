@@ -46,6 +46,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Integrity leaf + handoff fail-closed (2026-09-04):** `ci-integrity-smoke` soft-latency → `PARTIAL`/exit 2 (no final `ok`). `owner-post-installable-handoff` exits `PARTIAL`/2 when `LAND_PARKS=1` parks land or Trusted Publishing helper fails (never final `OK`). `owner-cut-release` chains the same handoff after day1; finish/cut surface handoff PARTIAL without claiming a finished post-cut land. Bars + `--self-test` gate — still not a Suite HOLD lift.
 
+**Cut-path single-handoff + DRY_RUN honesty (2026-09-04):** finish calls cut with `SKIP_HANDOFF=1`, syncs Actions secrets, then runs exactly one handoff (no double parks land). Bare cut-release still chains handoff; its `DRY_RUN` now rehearses handoff before `DRY_RUN complete` (self-test + bars gate). Full bars refuse final OK when PARTIAL notes remain (exit 2); `PRE_PUBLISH` still allows structural PARTIAL notes while Installable waits. Trusted Publishing helper prints `INFO` (UI still owner), not final OK. Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
