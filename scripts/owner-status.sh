@@ -20,6 +20,10 @@ case "$tok_rc" in
   2)
     echo "BLOCKED  CARGO_REGISTRY_TOKEN unset (export for Cloud Agent + Actions secret)"
     echo "         First cut needs publish-new (+ publish-update); publish-update alone cannot create the crate."
+    # Surface Secrets typos that leave Installable stuck (length-only; never print values).
+    if grep -q 'misnamed token' /tmp/pl-owner-token.log 2>/dev/null; then
+      grep 'misnamed token\|Rename to exactly' /tmp/pl-owner-token.log | sed 's/^/         /' || true
+    fi
     ;;
   *)
     echo "BLOCKED  CARGO_REGISTRY_TOKEN rejected by crates.io (see scripts/check-registry-token.sh)"
@@ -27,17 +31,18 @@ case "$tok_rc" in
     ;;
 esac
 # Compact preflight verdict (does not fail owner-status).
-if bash scripts/check-installable-preflight.sh >/tmp/pl-owner-preflight.log 2>&1; then
+pf=0
+bash scripts/check-installable-preflight.sh >/tmp/pl-owner-preflight.log 2>&1 || pf=$?
+preflight_already=0
+if [[ "$pf" -eq 0 ]]; then
   echo "  preflight: $(grep -E 'READY_EXCEPT_TOKEN|READY —' /tmp/pl-owner-preflight.log | tail -1)"
+elif [[ "$pf" -eq 2 ]]; then
+  preflight_already=1
+  echo "  preflight: ALREADY_INSTALLABLE"
+elif [[ "$pf" -eq 3 ]]; then
+  echo "  preflight: READY_EXCEPT_TOKEN (main CI still running — see check-main-ci)"
 else
-  pf=$?
-  if [[ "$pf" -eq 2 ]]; then
-    echo "  preflight: ALREADY_INSTALLABLE"
-  elif [[ "$pf" -eq 3 ]]; then
-    echo "  preflight: READY_EXCEPT_TOKEN (main CI still running — see check-main-ci)"
-  else
-    echo "  preflight: not ready (exit ${pf}); bash scripts/check-installable-preflight.sh"
-  fi
+  echo "  preflight: not ready (exit ${pf}); bash scripts/check-installable-preflight.sh"
 fi
 # shellcheck source=scripts/lib/crates-io.sh
 source "$ROOT/scripts/lib/crates-io.sh"
@@ -168,39 +173,51 @@ if bash scripts/audit-civilization-bars.sh >/tmp/pl-owner-bars.log 2>&1; then
   echo "  bars: $(tail -1 /tmp/pl-owner-bars.log)"
 else
   echo "  bars: NOT COMPLETE (see summary)"
+  # Include PARTIAL — soft notes must not vanish when bars exit 2.
   grep -E '^(PASS|PARTIAL|BLOCKED|FAIL|audit-civilization-bars:)' /tmp/pl-owner-bars.log \
-    | grep -E 'BLOCKED|FAIL|audit-civilization-bars:' | tail -8 | sed 's/^/    /' || true
+    | grep -E 'PARTIAL|BLOCKED|FAIL|audit-civilization-bars:' | tail -12 | sed 's/^/    /' || true
 fi
 
 echo "owner-status: next"
-echo "  0. Token missing? one screen: bash scripts/owner-request-registry-token.sh"
-echo "  0b. Full checklist: bash scripts/owner-unblock.sh"
-echo "  1. Set CARGO_REGISTRY_TOKEN (Cloud Agent env + Actions secret; scope publish-new)"
-# shellcheck source=scripts/lib/cursor-env-secrets-url.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cursor-env-secrets-url.sh"
-echo "     Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL"
-echo "  1b. Rehearse cut path (no publish): bash scripts/check-cut-path.sh"
-echo "  2. Preferred once token is in-env (bypasses starved Actions):"
-echo "       bash scripts/owner-finish-installable.sh"
-echo "       # finish chains post-cut parks land by default after Installable"
-echo "       # MERGE_PARKED_VERIFIABLE=0 to skip"
-echo "       # finish FF tip→main when tip is ahead; do not tip→main thrash beforehand"
-tip_sha="$(git rev-parse origin/dev/civilization-plan-b686 2>/dev/null || true)"
-main_sha="$(git rev-parse origin/main 2>/dev/null || true)"
-if [[ -n "$tip_sha" && -n "$main_sha" && "$tip_sha" != "$main_sha" ]]; then
-  echo "  tip/main: tip ${tip_sha:0:7} ≠ main ${main_sha:0:7} (intentional while Installable waits)"
-  echo "       DRY_RUN=1 bash scripts/owner-sync-main.sh   # show FF; CONFIRM=1 to push"
-  echo "       # refuses while main HEAD CI is running unless ALLOW_BUSY_MAIN=1"
+if [[ "${preflight_already:-0}" -eq 1 ]]; then
+  echo "  crates.io already has this version — do not re-cut."
+  echo "  Re-enter post-cut: bash scripts/owner-finish-installable.sh"
+  echo "    (or LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh)"
+  echo "  Finish uses SKIP_HANDOFF=1 into cut so parks/TP land once after secret sync."
+  echo "  If finish/cut exited PARTIAL: re-enter handoff — do not re-publish."
+  echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+else
+  echo "  0. Token missing? one screen: bash scripts/owner-request-registry-token.sh"
+  echo "  0b. Full checklist: bash scripts/owner-unblock.sh"
+  echo "  1. Set CARGO_REGISTRY_TOKEN (Cloud Agent env + Actions secret; scope publish-new)"
+  # shellcheck source=scripts/lib/cursor-env-secrets-url.sh
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cursor-env-secrets-url.sh"
+  echo "     Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL"
+  echo "  1b. Rehearse cut path (no publish): bash scripts/check-cut-path.sh"
+  echo "  2. Preferred once token is in-env (bypasses starved Actions):"
+  echo "       bash scripts/owner-finish-installable.sh"
+  echo "       # finish SKIP_HANDOFF=1 into cut, syncs Actions secret, then one handoff"
+  echo "       # finish chains post-cut parks land by default after Installable"
+  echo "       # MERGE_PARKED_VERIFIABLE=0 to skip"
+  echo "       # finish FF tip→main when tip is ahead; do not tip→main thrash beforehand"
+  tip_sha="$(git rev-parse origin/dev/civilization-plan-b686 2>/dev/null || true)"
+  main_sha="$(git rev-parse origin/main 2>/dev/null || true)"
+  if [[ -n "$tip_sha" && -n "$main_sha" && "$tip_sha" != "$main_sha" ]]; then
+    echo "  tip/main: tip ${tip_sha:0:7} ≠ main ${main_sha:0:7} (intentional while Installable waits)"
+    echo "       DRY_RUN=1 bash scripts/owner-sync-main.sh   # show FF; CONFIRM=1 to push"
+    echo "       # refuses while main HEAD CI is running unless ALLOW_BUSY_MAIN=1"
+  fi
+  echo "  3. Actions-only alternate (first-publish.yml must be on main):"
+  echo "       bash scripts/owner-cancel-stuck-runs.sh   # owner machine; agents 403"
+  echo "       CONFIRM=1 bash scripts/owner-sync-main.sh # if tip ahead; wait for idle main CI"
+  echo "       bash scripts/owner-dispatch-first-publish.sh"
+  echo "       # or: Actions → First publish → confirm=publish"
+  echo "  4. Or stepwise tag path after cancel + tip on main:"
+  echo "       bash scripts/owner-cut-release.sh         # token in-env → local publish (auto)"
+  echo "       PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh  # force tag → Actions"
+  echo "  5. bash scripts/check-installable.sh   # must exit 0"
+  echo "  6. After Installable (any cut path): bash scripts/owner-post-installable-handoff.sh"
+  echo "       LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # TP+parks+bars"
+  echo "       # If cut/finish exited PARTIAL: re-enter handoff — do not re-cut"
+  echo "  7. Or stepwise: bash scripts/owner-enable-trusted-publishing.sh  # after crates.io 0.1.0"
 fi
-echo "  3. Actions-only alternate (first-publish.yml must be on main):"
-echo "       bash scripts/owner-cancel-stuck-runs.sh   # owner machine; agents 403"
-echo "       CONFIRM=1 bash scripts/owner-sync-main.sh # if tip ahead; wait for idle main CI"
-echo "       bash scripts/owner-dispatch-first-publish.sh"
-echo "       # or: Actions → First publish → confirm=publish"
-echo "  4. Or stepwise tag path after cancel + tip on main:"
-echo "       bash scripts/owner-cut-release.sh         # token in-env → local publish (auto)"
-echo "       PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh  # force tag → Actions"
-echo "  5. bash scripts/check-installable.sh   # must exit 0"
-echo "  6. After Installable (any cut path): bash scripts/owner-post-installable-handoff.sh"
-echo "       LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # TP+parks+bars"
-echo "  7. Or stepwise: bash scripts/owner-enable-trusted-publishing.sh  # after crates.io 0.1.0"
