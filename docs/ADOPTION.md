@@ -113,3 +113,12 @@ lift. Later same day: local `KAFKA_IMAGE=apache/kafka:4.1.0` broker-smoke
 Actions `broker-smoke` Kafka **4.1.0** green on that same SHA; Kafka **3.9.1**
 needed a soft-skip for optional kip848 `Protocol` truncate (`7051625` re-run
 `33848465892` in flight). Packed-crate downstream consumer gate green tip-side.
+
+## Dependabot vs post-cut parks
+
+Dependabot PRs for flate2 1.1.10 and SCRAM crypto (hmac/pbkdf2/sha2) overlap
+parked `dev/scram-crypto-bumps-b686`. **Do not merge those lockfile bumps onto
+tip/`main` while Installable waits** — they break docs/scripts-only tip-delta and
+cancel-in-progress main CI. After crates.io `0.1.0`, land via
+`bash scripts/owner-land-post-cut-parks.sh` (or finish's default chain) and close
+the overlapping Dependabot PRs.
