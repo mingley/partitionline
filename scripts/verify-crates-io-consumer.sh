@@ -68,7 +68,27 @@ EOF
 pl_write_adopter_consumer_main "$cons/src/main.rs" "$name" "crates-io-consumer"
 
 echo "verify-crates-io-consumer: cargo check (${mode}) for ${name} ${ver}"
-(cd "$cons" && cargo check --quiet)
+# Sparse-index lag: registry mode may need a few cargo retries after API shows the crate.
+cargo_attempts="${CARGO_CHECK_ATTEMPTS:-12}"
+cargo_sleep="${CARGO_CHECK_SLEEP_SECS:-5}"
+if [[ "$mode" != "registry" ]]; then
+  cargo_attempts=1
+fi
+cargo_ok=0
+for cargo_i in $(seq 1 "$cargo_attempts"); do
+  if (cd "$cons" && cargo check --quiet); then
+    cargo_ok=1
+    break
+  fi
+  if [[ "$cargo_i" -lt "$cargo_attempts" ]]; then
+    echo "verify-crates-io-consumer: cargo check not ready (${cargo_i}/${cargo_attempts}); retrying in ${cargo_sleep}s..."
+    sleep "$cargo_sleep"
+  fi
+done
+if [[ "$cargo_ok" != "1" ]]; then
+  echo "verify-crates-io-consumer: FAIL — cargo check did not succeed for ${name} ${ver}" >&2
+  exit 1
+fi
 
 if [[ "$mode" == "path" ]]; then
   echo "verify-crates-io-consumer: ok (path rehearsal — day1 registry consumer will compile)"
