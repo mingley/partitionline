@@ -64,6 +64,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Handoff parks-on-main PARTIAL (2026-09-04):** bare `owner-post-installable-handoff` (`LAND_PARKS=0`) no longer final-OKs while post-cut parks are off `origin/main`. Probes each park is an ancestor of main; exits `PARTIAL`/2 unless landed or `ALLOW_PARKS_PENDING=1`. `LAND_PARKS=1` now uses `REQUIRE_PARKS=1`. Self-test + bars gate. Still not a Suite HOLD lift.
 
+**Handoff DRY_RUN parks-on-main honesty (2026-09-04):** `DRY_RUN=1` handoff now probes parks-on-main (not only stack). Already-Installable DRY_RUN exits `PARTIAL`/2 when parks remain off main; pre-token holds exit 0 with a PARTIAL note (same pattern as day1). Status/unblock print parks-not-on-main re-entry. Self-test + bars gate. Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

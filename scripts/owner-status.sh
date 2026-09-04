@@ -187,7 +187,8 @@ if [[ "${preflight_already:-0}" -eq 1 ]]; then
   echo "  If finish/cut exited PARTIAL (parks/TP): re-enter handoff — do not re-publish."
   echo "  If PARTIAL was Actions secret not synced:"
   echo "    gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
-  echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+  echo "  If PARTIAL was parks not on main (or parks/TP soft-fail):"
+  echo "    LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
 else
   echo "  0. Token missing? one screen: bash scripts/owner-request-registry-token.sh"
   echo "  0b. Full checklist: bash scripts/owner-unblock.sh"
@@ -222,5 +223,6 @@ else
   echo "       LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # TP+parks+bars"
   echo "       # If cut/finish exited PARTIAL (parks/TP): re-enter handoff — do not re-cut"
   echo "       # If PARTIAL was Actions secret: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
+  echo "       # If PARTIAL was parks not on main: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
   echo "  7. Or stepwise: bash scripts/owner-enable-trusted-publishing.sh  # after crates.io 0.1.0"
 fi
