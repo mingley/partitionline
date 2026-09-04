@@ -318,13 +318,14 @@ fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
   # SKIP_HANDOFF=1: cut rehearses publish/tag only; finish owns the single handoff.
+  cut_rc=0
   DRY_RUN=1 PUBLISH_LOCAL="$PUBLISH_LOCAL" \
     SKIP_PUBLISH_READY="${SKIP_PUBLISH_READY:-1}" \
     SKIP_HANDOFF=1 \
     AUTO_REFRESH_PARKS=1 \
-    bash scripts/owner-cut-release.sh
+    bash scripts/owner-cut-release.sh || cut_rc=$?
   echo
-  echo "owner-finish-installable: DRY_RUN complete — no merge/tag/publish performed"
+  echo "owner-finish-installable: DRY_RUN — no merge/tag/publish performed"
   echo "owner-finish-installable: DRY_RUN=1 — would sync Actions secret CARGO_REGISTRY_TOKEN"
   land_parks=0
   if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
@@ -333,7 +334,10 @@ if [[ "$DRY_RUN" == "1" ]]; then
   echo "owner-finish-installable: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
   # Handoff DRY_RUN rehearses TP shape + parks stack (does not land). Keep the
   # REQUIRE_PARKS land rehearsal below so soft-skipping parks cannot greenwash.
-  LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh
+  # Capture rcs — not-yet-Installable DRY_RUN must PARTIAL like already-Installable.
+  handoff_rc=0
+  LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+  parks_rc=0
   if [[ "$land_parks" == "1" ]]; then
     echo "owner-finish-installable: DRY_RUN=1 — parks land rehearsal (REQUIRE_PARKS=1)"
     tip_br="${CIVILIZATION_TIP:-dev/civilization-plan-b686}"
@@ -342,12 +346,21 @@ if [[ "$DRY_RUN" == "1" ]]; then
         && ! git merge-base --is-ancestor "origin/${tip_br}" origin/main; then
       echo "owner-finish-installable: tip ahead of main — DRY_RUN parks against ${tip_br}"
       DRY_RUN=1 REQUIRE_PARKS=1 ALLOW_BEFORE_INSTALLABLE=1 TARGET_BRANCH="$tip_br" \
-        bash scripts/owner-land-post-cut-parks.sh
+        bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?
     else
       DRY_RUN=1 REQUIRE_PARKS=1 ALLOW_BEFORE_INSTALLABLE=1 \
-        bash scripts/owner-land-post-cut-parks.sh
+        bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?
     fi
   fi
+  if [[ "$cut_rc" -eq 2 || "$parks_rc" -ne 0 || "$handoff_rc" -eq 2 ]]; then
+    echo "owner-finish-installable: PARTIAL — not-yet-Installable DRY_RUN soft-failed (cut_rc=${cut_rc} parks_rc=${parks_rc} handoff_rc=${handoff_rc})"
+    echo "  Re-enter after token cut: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    exit 2
+  elif [[ "$cut_rc" -ne 0 || "$handoff_rc" -ne 0 ]]; then
+    echo "owner-finish-installable: FAIL — not-yet-Installable DRY_RUN cut_rc=${cut_rc} handoff_rc=${handoff_rc}" >&2
+    exit 1
+  fi
+  echo "owner-finish-installable: DRY_RUN OK — not-yet-Installable path rehearsed (still needs token cut)"
   exit 0
 fi
 
