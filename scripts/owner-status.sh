@@ -60,6 +60,11 @@ if [[ -n "$(git status --porcelain 2>/dev/null || true)" ]]; then
 else
   echo "  working tree: clean"
 fi
+if bash scripts/ci-branch-lite.sh >/tmp/pl-owner-branch-lite.log 2>&1; then
+  echo "  branch-lite (local Actions mirror): ok"
+else
+  echo "  branch-lite (local Actions mirror): FAIL (see /tmp/pl-owner-branch-lite.log)"
+fi
 echo
 echo "owner-status: next"
 echo "  1. Set CARGO_REGISTRY_TOKEN (Cloud + Actions)"

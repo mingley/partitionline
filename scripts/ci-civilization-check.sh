@@ -45,6 +45,12 @@ else
 fi
 
 echo "== Verifiable =="
+# Local mirror of Actions branch-lite (fmt/clippy/lib/docs) — evidence when GH is queued.
+if bash scripts/ci-branch-lite.sh >/tmp/pl-branch-lite.log 2>&1; then
+  ok "branch-lite gate (local mirror of Actions tip job)"
+else
+  bad "branch-lite gate; see /tmp/pl-branch-lite.log"
+fi
 if cargo test --lib --quiet; then ok "cargo test --lib"; else bad "cargo test --lib"; fi
 if bash scripts/ci-deny.sh >/tmp/pl-deny.log 2>&1; then ok "cargo deny"; else bad "cargo deny; see /tmp/pl-deny.log"; fi
 if [[ -f fuzz/fuzz_targets/decode_fetch_response.rs \

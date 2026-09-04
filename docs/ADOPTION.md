@@ -29,6 +29,8 @@ Probe current blockers anytime:
 
 ```bash
 bash scripts/owner-status.sh
+# When Actions stay queued, local Verifiable proxy:
+bash scripts/ci-branch-lite.sh
 ```
 
 ## Install (today)

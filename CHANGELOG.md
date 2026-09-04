@@ -20,6 +20,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   publish-ready as an informational footer.
 - CI concurrency cancels superseded runs on `main` too, so a stuck queued
   `main` job cannot permanently block the next push after merge.
+- `scripts/owner-cancel-stuck-runs.sh` cancels queued Actions runs older than
+  15 minutes (`DRY_RUN=1` supported); wired from `owner-status` / ADOPTION for
+  the org-wide runner starvation case (agents get 403 — owner must run it).
+- `scripts/ci-branch-lite.sh` locally mirrors the Actions `branch-lite` job
+  (fmt/clippy/lib/docs); wired into civilization-check and owner-status so
+  Verifiable evidence exists when org runners stay queued.
 
 ### Changed
 
@@ -28,7 +34,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   ignore in `deny.toml` / `.cargo/audit.toml` without raising MSRV.
 - Auth smoke covers PLAIN, SCRAM-SHA-256/512, and OAUTHBEARER over SASL_SSL;
   CI `test` jobs assert `openssl version` before `cargo test`.
-- ADOPTION / CIVILIZATION record local civilization-check **26/26** evidence
+- ADOPTION / CIVILIZATION record local civilization-check evidence
   (broker + SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER) while GitHub Actions
   remains queued.
 
@@ -38,12 +44,6 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `std::fs::read`, restoring `clippy::disallowed_methods` / publish-ready.
 - `release.yml` only runs on final `vX.Y.Z` tags (not `v0.1.0-rc.*`), so git
   RC install pins do not queue crates.io publish jobs or burn Actions capacity.
-
-### Added
-
-- `scripts/owner-cancel-stuck-runs.sh` cancels queued Actions runs older than
-  15 minutes (`DRY_RUN=1` supported); wired from `owner-status` / ADOPTION for
-  the org-wide runner starvation case (agents get 403 — owner must run it).
 
 ## [0.1.0] - 2026-09-04
 
