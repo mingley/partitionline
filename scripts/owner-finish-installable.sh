@@ -245,6 +245,9 @@ if [[ "$DRY_RUN" == "1" ]]; then
     bash scripts/owner-cut-release.sh
   echo
   echo "owner-finish-installable: DRY_RUN complete — no merge/tag/publish performed"
+  echo "owner-finish-installable: DRY_RUN=1 — would then run owner-enable-trusted-publishing.sh"
+  # Rehearse workflow-shape + UI checklist (crate may be absent).
+  DRY_RUN=1 bash scripts/owner-enable-trusted-publishing.sh
   if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
     echo "owner-finish-installable: DRY_RUN=1 — would then run owner-land-post-cut-parks.sh"
     # Finish FFs tip→main before parks; rehearse stack on tip when tip is ahead.
