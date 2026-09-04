@@ -107,6 +107,12 @@ echo "== check-cut-path: Actions hygiene (stale queue surface) =="
 bash scripts/check-actions-hygiene.sh
 
 echo
+echo "== check-cut-path: tip live-broker Verifiable =="
+# Same tip Verifiable broker chain as ci-branch-lite — soft-skips honestly when
+# no broker/tooling; fails on real smoke breaks (no greenwash).
+bash scripts/ci-tip-verifiable-broker.sh
+
+echo
 echo "== check-cut-path: finish DRY_RUN (tip-aware parks, hard-fail) =="
 DRY_RUN=1 bash scripts/owner-finish-installable.sh
 

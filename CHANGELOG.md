@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: tip Verifiable (`ci-branch-lite` / `check-cut-path`) now runs `ci-tip-verifiable-broker` (ensure-broker → broker-smoke kip848+share → auth → integrity/latency) with soft-skip honesty when tooling/broker is absent — tip Verifiable is no longer fmt/clippy/lib-only while Installable waits.
 - Scripts: `owner-finish-installable` missing-token path prints `owner-request-registry-token` inline so the publish-new Secrets ask is unavoidable.
 - Scripts: `check-installable-preflight` surfaces `owner-request-registry-token` on READY_EXCEPT_TOKEN so the one-screen publish-new ask is the default next step.
 - Scripts/docs: `owner-request-registry-token.sh` one-screen Installable token ask (Secrets deep link + publish-new scope + finish path); wired from `owner-status` / `owner-unblock`. CIVILIZATION post-cut parks tip ancestor stamp → `bb2506c`.
