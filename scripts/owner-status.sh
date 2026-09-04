@@ -146,6 +146,11 @@ else
   echo "  post-cut parks stack: FAIL (see /tmp/pl-owner-parks-stack.log)"
   echo "  fix: bash scripts/refresh-post-cut-parks.sh   # tip→Verifiable→SCRAM→lz4→checkout"
 fi
+if bash scripts/check-parks-refresh-cut-guards.sh >/tmp/pl-owner-parks-guards.log 2>&1; then
+  echo "  parks-refresh cut guards: ok (finish restores main; publish-ready restores caller)"
+else
+  echo "  parks-refresh cut guards: FAIL (see /tmp/pl-owner-parks-guards.log)"
+fi
 if bash scripts/check-trusted-publishing-ready.sh >/tmp/pl-owner-tp.log 2>&1; then
   echo "  trusted-publishing shape: $(grep -E 'OK|INFO|FAIL' /tmp/pl-owner-tp.log | tail -1)"
 else
