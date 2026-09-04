@@ -25,9 +25,9 @@ on:
         required: true
         type: string
       ref:
-        description: 'Git ref to package (branch, tag, or SHA). Until tip is on main, default to civilization tip.'
+        description: 'Git ref to package (branch, tag, or SHA). Prefer main after civilization merge.'
         required: false
-        default: dev/civilization-plan-b686
+        default: main
         type: string
 
 permissions:

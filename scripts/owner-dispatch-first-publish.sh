@@ -26,7 +26,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 DRY_RUN="${DRY_RUN:-0}"
-REF="${REF:-dev/civilization-plan-b686}"
+REF="${REF:-main}"
 CONFIRM="${CONFIRM:-publish}"
 WORKFLOW="${WORKFLOW:-first-publish.yml}"
 
