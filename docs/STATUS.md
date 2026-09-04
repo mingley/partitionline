@@ -48,6 +48,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Cut-path single-handoff + DRY_RUN honesty (2026-09-04):** finish calls cut with `SKIP_HANDOFF=1`, syncs Actions secrets, then runs exactly one handoff (no double parks land). Bare cut-release still chains handoff; its `DRY_RUN` now rehearses handoff before `DRY_RUN complete` (self-test + bars gate). Full bars refuse final OK when PARTIAL notes remain (exit 2); `PRE_PUBLISH` still allows structural PARTIAL notes while Installable waits. Trusted Publishing helper prints `INFO` (UI still owner), not final OK. Still not a Suite HOLD lift.
 
+**Preflight TOKEN prepare + PARTIAL re-entry (2026-09-04):** `check-installable-preflight` runs `pl_prepare_cargo_registry_token` before any `READY_EXCEPT_TOKEN` claim (whitespace→unset, `TOKEN_FILE` load, misname WARN) with `--self-test` gated in bars. Finish already-Installable `DRY_RUN` captures parks rehearsal rc and can exit `PARTIAL`/2. `owner-status` surfaces misname WARNs + PARTIAL bar lines and branches next-steps on `ALREADY_INSTALLABLE`; `owner-unblock` documents SKIP_HANDOFF + PARTIAL re-entry (do not re-cut). Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
