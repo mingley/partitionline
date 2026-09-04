@@ -117,8 +117,9 @@ ssl.truststore.location=${CERTDIR}/kafka.truststore.p12
 ssl.truststore.password=${STOREPASS}
 ssl.truststore.type=PKCS12
 ssl.endpoint.identification.algorithm=
-sasl.enabled.mechanisms=SCRAM-SHA-256
+sasl.enabled.mechanisms=SCRAM-SHA-256,SCRAM-SHA-512
 listener.name.sasl_ssl.scram-sha-256.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required;
+listener.name.sasl_ssl.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required;
 listener.name.sasl_ssl.ssl.client.auth=none
 super.users=User:${SCRAM_USER}
 EOF
@@ -152,20 +153,28 @@ echo "== create SCRAM user + topic =="
 "$KDIR/bin/kafka-configs.sh" --bootstrap-server "$ADMIN_BOOTSTRAP" \
   --alter --add-config "SCRAM-SHA-256=[password=${SCRAM_PASS}]" \
   --entity-type users --entity-name "$SCRAM_USER"
+"$KDIR/bin/kafka-configs.sh" --bootstrap-server "$ADMIN_BOOTSTRAP" \
+  --alter --add-config "SCRAM-SHA-512=[password=${SCRAM_PASS}]" \
+  --entity-type users --entity-name "$SCRAM_USER"
 "$KDIR/bin/kafka-topics.sh" --bootstrap-server "$ADMIN_BOOTSTRAP" \
   --create --if-not-exists --topic "$TOPIC" --partitions 1 --replication-factor 1
 
 echo "== build examples =="
 cargo build --release --example sasl --example tls
 
-echo "== SASL_SSL produce (SCRAM-SHA-256 + rustls) =="
 export KAFKA_BOOTSTRAP="$SSL_BOOTSTRAP"
 export KAFKA_TOPIC="$TOPIC"
 export KAFKA_USERNAME="$SCRAM_USER"
 export KAFKA_PASSWORD="$SCRAM_PASS"
-export SASL_MECHANISM="SCRAM-SHA-256"
 export TLS_CA_PEM="$CA_PEM"
 export TLS_SERVER_NAME="localhost"
+
+echo "== SASL_SSL produce (SCRAM-SHA-256 + rustls) =="
+export SASL_MECHANISM="SCRAM-SHA-256"
+cargo run --release --example sasl
+
+echo "== SASL_SSL produce (SCRAM-SHA-512 + rustls) =="
+export SASL_MECHANISM="SCRAM-SHA-512"
 cargo run --release --example sasl
 
 echo "== SSL-only produce (no SASL) against SASL_SSL should fail closed =="
@@ -183,4 +192,4 @@ if grep -E -- '@[0-9]+' /tmp/pl-auth-tls-only.log >/dev/null; then
 fi
 echo "ci-auth-smoke: TLS-only correctly failed (rc=${tls_only_rc})"
 
-echo "ci-auth-smoke: ok (SASL_SSL SCRAM-SHA-256 @ ${SSL_BOOTSTRAP})"
+echo "ci-auth-smoke: ok (SASL_SSL SCRAM-SHA-256/512 @ ${SSL_BOOTSTRAP})"

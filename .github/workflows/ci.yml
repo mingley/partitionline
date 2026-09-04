@@ -62,6 +62,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+      # Mock TLS fixtures shell out to openssl (no rcgen/time in the graph).
+      - run: openssl version
       - run: cargo test --all-targets
 
   audit:

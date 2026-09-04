@@ -2977,7 +2977,12 @@ fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
             "extendedKeyUsage=serverAuth",
         ])
         .output()
-        .expect("spawn openssl");
+        .unwrap_or_else(|e| {
+            panic!(
+                "spawn openssl failed: {e}\n\
+                 mock TLS fixtures require the openssl CLI on PATH (see CONTRIBUTING.md)"
+            )
+        });
     if !output.status.success() {
         let _ = std::fs::remove_dir_all(&dir);
         panic!(
