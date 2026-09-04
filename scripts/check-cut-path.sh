@@ -119,8 +119,16 @@ echo "== check-cut-path: first-publish Actions alternate (DRY_RUN visibility) ==
 # GitHub only lists workflow_dispatch from the default branch. Prove
 # first-publish.yml stays visible on main so the Actions-secret alternate
 # path remains owner-dispatchable once CARGO_REGISTRY_TOKEN is an Actions secret.
-# DRY_RUN=1 does not dispatch (agents often 403 on workflow_dispatch anyway).
-DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh
+# DRY_RUN=1 does not dispatch. Already-Installable exits PARTIAL/2 (refuse
+# re-dispatch soft-OK) — capture like day1 so set -e cannot abort tip proxies.
+dispatch_rc=0
+DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh || dispatch_rc=$?
+if [[ "$dispatch_rc" -eq 2 ]]; then
+  echo "check-cut-path: PARTIAL — first-publish DRY_RUN already Installable (re-dispatch refused; handoff re-entry)"
+elif [[ "$dispatch_rc" -ne 0 ]]; then
+  echo "check-cut-path: FAIL — first-publish DRY_RUN rc=${dispatch_rc}" >&2
+  exit "$dispatch_rc"
+fi
 
 echo
 echo "== check-cut-path: day1 after-publish rehearsal (no crates.io wait) =="
@@ -193,9 +201,10 @@ fi
 
 echo
 # Unpublished crate makes day1 DRY_RUN PARTIAL by design — that is cut-path honesty,
-# not a failed rehearsal. Exit 0 so tip proxies can stay green while Installable waits.
-if [[ "${day1_rc:-0}" -eq 2 || "$finish_rc" -eq 2 ]]; then
-  echo "check-cut-path: OK with PARTIAL — cut path rehearsed; Installable still blocked on CARGO_REGISTRY_TOKEN"
+# not a failed rehearsal. Already-Installable first-publish DRY_RUN PARTIAL is the
+# post-cut refuse-redispatch honesty. Exit 0 so tip proxies stay green while waiting.
+if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "$finish_rc" -eq 2 ]]; then
+  echo "check-cut-path: OK with PARTIAL — cut path rehearsed; Installable still blocked on CARGO_REGISTRY_TOKEN (or post-cut re-entry)"
   exit 0
 fi
 echo "check-cut-path: OK — cut path rehearsed; blocked only on CARGO_REGISTRY_TOKEN if preflight said READY_EXCEPT_TOKEN"
