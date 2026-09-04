@@ -32,6 +32,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Git-tag adopter consumer (2026-09-04):** `MODE=git bash scripts/verify-crates-io-consumer.sh` cargo-checks the documented README/ADOPTION git pin (`v0.1.0-rc.6`) so pre-crates.io adopters are not lied to; wired into cut-path + preflight + finish honesty + Operable bars — still not a Suite HOLD lift.
 
+**Day1 docs preserve across parks (2026-09-04):** `scripts/lib/preserve-day1-docs.sh` backs up README/ADOPTION before parks land and restores from filesystem if stash pop fails; wired into finish + cut-path + preflight honesty — token-day footgun closed without lifting Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
