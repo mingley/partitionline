@@ -87,6 +87,8 @@ echo
 echo "== 5) Day-1 after crates.io shows partitionline 0.1.0 =="
 echo "  bash scripts/day1-after-publish.sh"
 echo "  bash scripts/check-installable.sh"
+echo "  # Rehearse without waiting on crates.io index:"
+echo "  DRY_RUN=1 bash scripts/day1-after-publish.sh"
 echo "  # day1 flips README via post-publish-readme.sh (DRY_RUN=1 preflight in publish-ready)"
 echo "  # then: crates.io → Settings → Trusted Publishing → GitHub"
 echo "  #        owner=mingley repo=partitionline workflow=release.yml"

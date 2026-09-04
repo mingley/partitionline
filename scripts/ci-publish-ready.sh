@@ -42,6 +42,9 @@ echo "== day-1 README flip preflight =="
 DRY_RUN=1 bash scripts/post-publish-readme.sh >/tmp/pl-readme-flip-dry.log
 tail -2 /tmp/pl-readme-flip-dry.log
 
+echo "== day-1 after-publish rehearsal (no crates.io wait) =="
+DRY_RUN=1 bash scripts/day1-after-publish.sh
+
 echo "== adopter pin =="
 bash scripts/check-adopter-pin.sh
 
