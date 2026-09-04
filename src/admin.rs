@@ -77,13 +77,14 @@ use crate::protocol::api_keys::{
     CREATE_ACLS, CREATE_DELEGATION_TOKEN, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
     DELETE_GROUPS, DELETE_RECORDS, DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS,
     DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN,
-    DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS,
-    DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
-    EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS,
-    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
-    LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
-    OFFSET_DELETE, OFFSET_FETCH, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE,
-    UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
+    DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_QUORUM,
+    DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
+    DESCRIBE_USER_SCRAM_CREDENTIALS, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR,
+    GET_TELEMETRY_SUBSCRIPTIONS, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, LEAVE_GROUP,
+    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
+    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, PUSH_TELEMETRY,
+    RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER, UPDATE_FEATURES,
+    WRITE_TXN_MARKERS,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_find_coordinator_response_coordinators,
@@ -99,6 +100,11 @@ use crate::protocol::idem::{decode_init_producer_id_response, encode_init_produc
 use crate::protocol::offsets::{
     decode_list_offsets_topics_response, encode_list_offsets_topics_request,
     ListOffsetsPartitionRequest, ListOffsetsResponsePartition, ListOffsetsTopicRequest,
+};
+use crate::protocol::quorum::{
+    decode_describe_quorum_response, encode_describe_quorum_request, DescribeQuorumRequest,
+    DescribeQuorumResponse, ReplicaState as DescribeQuorumReplicaState,
+    CLUSTER_METADATA_PARTITION_INDEX, CLUSTER_METADATA_TOPIC_NAME,
 };
 use crate::protocol::sasl;
 use crate::protocol::txn::{
@@ -1955,6 +1961,334 @@ impl fmt::Display for OngoingReassignment {
     }
 }
 
+/// Java `org.apache.kafka.clients.admin.RaftVoterEndpoint`.
+///
+/// [`Self::new`] is the Java constructor (`name` must be non-empty,
+/// trimmed, and UPPERCASE).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RaftVoterEndpoint {
+    name: String,
+    host: String,
+    port: i32,
+}
+
+impl RaftVoterEndpoint {
+    /// Java `RaftVoterEndpoint(String, String, int)`.
+    ///
+    /// `name` is Java `requireNonNullAllCapsNonEmpty`.
+    pub fn new(name: impl Into<String>, host: impl Into<String>, port: i32) -> Result<Self> {
+        let name = require_non_null_all_caps_non_empty(name.into())?;
+        Ok(Self {
+            name,
+            host: host.into(),
+            port,
+        })
+    }
+
+    /// Java `RaftVoterEndpoint.name`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `RaftVoterEndpoint.host`.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.host.as_str()
+    }
+
+    /// Java `RaftVoterEndpoint.port`.
+    #[must_use]
+    pub const fn port(&self) -> i32 {
+        self.port
+    }
+}
+
+impl fmt::Display for RaftVoterEndpoint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Java RaftVoterEndpoint.toString: enclose IPv6 hosts in brackets.
+        if self.host.contains(':') {
+            write!(f, "{}://[{}]:{}", self.name, self.host, self.port)
+        } else {
+            write!(f, "{}://{}:{}", self.name, self.host, self.port)
+        }
+    }
+}
+
+fn require_non_null_all_caps_non_empty(input: String) -> Result<String> {
+    if input.trim() != input.as_str() {
+        return Err(Error::protocol(
+            "Leading or trailing whitespace is not allowed.",
+        ));
+    }
+    if input.is_empty() {
+        return Err(Error::protocol("Empty string is not allowed."));
+    }
+    if input.to_uppercase() != input {
+        return Err(Error::protocol("String must be UPPERCASE."));
+    }
+    Ok(input)
+}
+
+/// Java `QuorumInfo.ReplicaState`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuorumReplicaState {
+    replica_id: i32,
+    replica_directory_id: Uuid,
+    log_end_offset: i64,
+    last_fetch_timestamp: Option<i64>,
+    last_caught_up_timestamp: Option<i64>,
+}
+
+impl QuorumReplicaState {
+    /// Java `QuorumInfo.ReplicaState.replicaId`.
+    #[must_use]
+    pub const fn replica_id(&self) -> i32 {
+        self.replica_id
+    }
+
+    /// Java `QuorumInfo.ReplicaState.replicaDirectoryId` (`Uuid.ZERO_UUID`
+    /// when the broker omitted it).
+    #[must_use]
+    pub const fn replica_directory_id(&self) -> Uuid {
+        self.replica_directory_id
+    }
+
+    /// Java `QuorumInfo.ReplicaState.logEndOffset`.
+    #[must_use]
+    pub const fn log_end_offset(&self) -> i64 {
+        self.log_end_offset
+    }
+
+    /// Java `QuorumInfo.ReplicaState.lastFetchTimestamp` (`OptionalLong`).
+    #[must_use]
+    pub const fn last_fetch_timestamp(&self) -> Option<i64> {
+        self.last_fetch_timestamp
+    }
+
+    /// Java `QuorumInfo.ReplicaState.lastCaughtUpTimestamp` (`OptionalLong`).
+    #[must_use]
+    pub const fn last_caught_up_timestamp(&self) -> Option<i64> {
+        self.last_caught_up_timestamp
+    }
+}
+
+impl fmt::Display for QuorumReplicaState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "ReplicaState(replicaId={}, replicaDirectoryId={}, logEndOffset={}, lastFetchTimestamp={}, lastCaughtUpTimestamp={})",
+            self.replica_id,
+            self.replica_directory_id,
+            self.log_end_offset,
+            optional_long_java(self.last_fetch_timestamp),
+            optional_long_java(self.last_caught_up_timestamp),
+        )
+    }
+}
+
+fn optional_long_java(value: Option<i64>) -> String {
+    match value {
+        None => "OptionalLong.empty".into(),
+        Some(v) => format!("OptionalLong[{v}]"),
+    }
+}
+
+/// Java `QuorumInfo.Node` (not [`Node`], which is a broker endpoint).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuorumNode {
+    node_id: i32,
+    endpoints: Vec<RaftVoterEndpoint>,
+}
+
+impl QuorumNode {
+    /// Java `QuorumInfo.Node.nodeId`.
+    #[must_use]
+    pub const fn node_id(&self) -> i32 {
+        self.node_id
+    }
+
+    /// Java `QuorumInfo.Node.endpoints`.
+    #[must_use]
+    pub fn endpoints(&self) -> &[RaftVoterEndpoint] {
+        &self.endpoints
+    }
+}
+
+impl fmt::Display for QuorumNode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Node{{nodeId={}, endpoints={:?}}}",
+            self.node_id, self.endpoints
+        )
+    }
+}
+
+/// Java `org.apache.kafka.clients.admin.QuorumInfo`.
+///
+/// Returned by [`Admin::describe_metadata_quorum`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuorumInfo {
+    leader_id: i32,
+    leader_epoch: i64,
+    high_watermark: i64,
+    voters: Vec<QuorumReplicaState>,
+    observers: Vec<QuorumReplicaState>,
+    nodes: HashMap<i32, QuorumNode>,
+}
+
+impl QuorumInfo {
+    /// Java `QuorumInfo.leaderId`.
+    #[must_use]
+    pub const fn leader_id(&self) -> i32 {
+        self.leader_id
+    }
+
+    /// Java `QuorumInfo.leaderEpoch` (`long`; widened from the wire INT32).
+    #[must_use]
+    pub const fn leader_epoch(&self) -> i64 {
+        self.leader_epoch
+    }
+
+    /// Java `QuorumInfo.highWatermark`.
+    #[must_use]
+    pub const fn high_watermark(&self) -> i64 {
+        self.high_watermark
+    }
+
+    /// Java `QuorumInfo.voters`.
+    #[must_use]
+    pub fn voters(&self) -> &[QuorumReplicaState] {
+        &self.voters
+    }
+
+    /// Java `QuorumInfo.observers`.
+    #[must_use]
+    pub fn observers(&self) -> &[QuorumReplicaState] {
+        &self.observers
+    }
+
+    /// Java `QuorumInfo.nodes` (empty when KIP-853 is not enabled).
+    #[must_use]
+    pub fn nodes(&self) -> &HashMap<i32, QuorumNode> {
+        &self.nodes
+    }
+
+    /// Java `KafkaAdminClient.describeMetadataQuorum` response mapping.
+    fn from_describe_quorum_response(resp: DescribeQuorumResponse) -> Result<Self> {
+        if resp.error_code != 0 {
+            return Err(Error::broker(resp.error_code, "DescribeQuorum"));
+        }
+        let (leader_id, leader_epoch, high_watermark, voters, observers) = {
+            let [topic] = resp.topics.as_slice() else {
+                return Err(Error::protocol(format!(
+                    "DescribeMetadataQuorum received {} topics when 1 was expected",
+                    resp.topics.len()
+                )));
+            };
+            if topic.topic_name != CLUSTER_METADATA_TOPIC_NAME {
+                return Err(Error::protocol(format!(
+                    "DescribeMetadataQuorum received a topic with name {} when {} was expected",
+                    topic.topic_name, CLUSTER_METADATA_TOPIC_NAME
+                )));
+            }
+            let [partition] = topic.partitions.as_slice() else {
+                return Err(Error::protocol(format!(
+                    "DescribeMetadataQuorum received a topic {} with {} partitions when 1 was expected",
+                    topic.topic_name,
+                    topic.partitions.len()
+                )));
+            };
+            if partition.partition_index != CLUSTER_METADATA_PARTITION_INDEX {
+                return Err(Error::protocol(format!(
+                    "DescribeMetadataQuorum received a single partition with index {} when {} was expected",
+                    partition.partition_index, CLUSTER_METADATA_PARTITION_INDEX
+                )));
+            }
+            if partition.error_code != 0 {
+                return Err(Error::broker(partition.error_code, "DescribeQuorum"));
+            }
+            (
+                partition.leader_id,
+                i64::from(partition.leader_epoch),
+                partition.high_watermark,
+                partition
+                    .current_voters
+                    .iter()
+                    .map(convert_quorum_replica)
+                    .collect(),
+                partition
+                    .observers
+                    .iter()
+                    .map(convert_quorum_replica)
+                    .collect(),
+            )
+        };
+        let mut nodes = HashMap::new();
+        for node in resp.nodes {
+            let mut endpoints = Vec::with_capacity(node.listeners.len());
+            for listener in node.listeners {
+                endpoints.push(RaftVoterEndpoint::new(
+                    listener.name,
+                    listener.host,
+                    i32::from(listener.port),
+                )?);
+            }
+            let id = node.node_id;
+            if nodes
+                .insert(
+                    id,
+                    QuorumNode {
+                        node_id: id,
+                        endpoints,
+                    },
+                )
+                .is_some()
+            {
+                return Err(Error::protocol(format!(
+                    "duplicate node id {id} in DescribeQuorumResponse"
+                )));
+            }
+        }
+        Ok(Self {
+            leader_id,
+            leader_epoch,
+            high_watermark,
+            voters,
+            observers,
+            nodes,
+        })
+    }
+}
+
+impl fmt::Display for QuorumInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "QuorumInfo(leaderId={}, leaderEpoch={}, highWatermark={}, voters={:?}, observers={:?}, nodes={:?})",
+            self.leader_id,
+            self.leader_epoch,
+            self.high_watermark,
+            self.voters,
+            self.observers,
+            self.nodes
+        )
+    }
+}
+
+fn convert_quorum_replica(replica: &DescribeQuorumReplicaState) -> QuorumReplicaState {
+    QuorumReplicaState {
+        replica_id: replica.replica_id,
+        replica_directory_id: Uuid::from_bytes(replica.replica_directory_id),
+        log_end_offset: replica.log_end_offset,
+        last_fetch_timestamp: (replica.last_fetch_timestamp != -1)
+            .then_some(replica.last_fetch_timestamp),
+        last_caught_up_timestamp: (replica.last_caught_up_timestamp != -1)
+            .then_some(replica.last_caught_up_timestamp),
+    }
+}
+
 /// One finalized-feature update for `Admin::update_features`.
 ///
 /// [`std::fmt::Display`] is Java `FeatureUpdate.toString` (no feature name; that is
@@ -2735,6 +3069,7 @@ pub struct Admin {
     offset_delete_version: Option<i16>,
     reassign_version: Option<i16>,
     list_reassign_version: Option<i16>,
+    describe_quorum_version: Option<i16>,
     update_features_version: Option<i16>,
     alter_user_scram_version: Option<i16>,
     describe_user_scram_version: Option<i16>,
@@ -3073,6 +3408,9 @@ impl Admin {
         let list_reassign_version = versions
             .get(&LIST_PARTITION_REASSIGNMENTS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
+        let describe_quorum_version = versions
+            .get(&DESCRIBE_QUORUM)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));
         let update_features_version = versions
             .get(&UPDATE_FEATURES)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));
@@ -3185,6 +3523,7 @@ impl Admin {
             offset_delete_version,
             reassign_version,
             list_reassign_version,
+            describe_quorum_version,
             update_features_version,
             alter_user_scram_version,
             describe_user_scram_version,
@@ -4774,6 +5113,87 @@ impl Admin {
                 ));
             }
             return Ok(flatten_reassignment_results(&resp.results));
+        }
+    }
+
+    /// Describe the KRaft metadata quorum (DescribeQuorum api 55).
+    ///
+    /// Java `describeMetadataQuorum()`. Sends
+    /// [`DescribeQuorumRequest::singleton_request`] (`__cluster_metadata`-0).
+    /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
+    /// Metadata and retries on the new controller. Optional at
+    /// [`Self::new`]; a broker that omits api 55 returns
+    /// [`Error::Unsupported`]. DescribeQuorum has no TimeoutMs; the RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::describe_metadata_quorum_timeout`].
+    pub async fn describe_metadata_quorum(&mut self) -> Result<QuorumInfo> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_metadata_quorum_with(timeout).await
+    }
+
+    /// [`Self::describe_metadata_quorum`] with a one-shot timeout (Java
+    /// `DescribeMetadataQuorumOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and the `NOT_CONTROLLER` retry
+    /// budget. DescribeQuorum has no TimeoutMs.
+    pub async fn describe_metadata_quorum_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<QuorumInfo> {
+        self.describe_metadata_quorum_with(timeout).await
+    }
+
+    async fn describe_metadata_quorum_with(&mut self, timeout: Duration) -> Result<QuorumInfo> {
+        let version = self.describe_quorum_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeQuorum v0-2".into())
+        })?;
+        let req = DescribeQuorumRequest::singleton_request();
+        let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing describe_metadata_quorum conn"))?;
+                conn.roundtrip(
+                    DESCRIBE_QUORUM,
+                    version,
+                    |buf| encode_describe_quorum_request(buf, version, &req),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let resp = decode_describe_quorum_response(&mut body.clone(), version)?;
+            if resp.error_code == error::NOT_CONTROLLER
+                || resp.topics.iter().any(|t| {
+                    t.partitions
+                        .iter()
+                        .any(|p| p.error_code == error::NOT_CONTROLLER)
+                })
+            {
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                self.wait_retry(&mut attempt, deadline).await?;
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            return QuorumInfo::from_describe_quorum_response(resp);
         }
     }
 
@@ -13553,5 +13973,92 @@ mod tests {
         assert_eq!(topics[0].partitions[0].timestamp, crate::EARLIEST_TIMESTAMP);
         assert_eq!(topics[0].partitions[1].timestamp, crate::LATEST_TIMESTAMP);
         assert_eq!(topics[0].partitions[2].partition, 1);
+    }
+
+    #[test]
+    fn raft_voter_endpoint_new_matches_java_require_all_caps() {
+        let ep = RaftVoterEndpoint::new("CONTROLLER", "127.0.0.1", 9093).unwrap();
+        assert_eq!(ep.name(), "CONTROLLER");
+        assert_eq!(ep.host(), "127.0.0.1");
+        assert_eq!(ep.port(), 9093);
+        assert_eq!(ep.to_string(), "CONTROLLER://127.0.0.1:9093");
+        let v6 = RaftVoterEndpoint::new("CONTROLLER", "::1", 9093).unwrap();
+        assert_eq!(v6.to_string(), "CONTROLLER://[::1]:9093");
+        let empty = RaftVoterEndpoint::new("", "h", 1).unwrap_err();
+        assert_eq!(empty.to_string(), "protocol: Empty string is not allowed.");
+        let ws = RaftVoterEndpoint::new(" CONTROLLER", "h", 1).unwrap_err();
+        assert_eq!(
+            ws.to_string(),
+            "protocol: Leading or trailing whitespace is not allowed."
+        );
+        let lower = RaftVoterEndpoint::new("Controller", "h", 1).unwrap_err();
+        assert_eq!(lower.to_string(), "protocol: String must be UPPERCASE.");
+    }
+
+    #[test]
+    fn quorum_info_from_response_rejects_wrong_topic_count() {
+        let err = QuorumInfo::from_describe_quorum_response(DescribeQuorumResponse::new(0, vec![]))
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "protocol: DescribeMetadataQuorum received 0 topics when 1 was expected"
+        );
+        let two = DescribeQuorumResponse::new(
+            0,
+            vec![
+                crate::protocol::quorum::DescribeQuorumResponseTopic::new("a", vec![]),
+                crate::protocol::quorum::DescribeQuorumResponseTopic::new("b", vec![]),
+            ],
+        );
+        let err = QuorumInfo::from_describe_quorum_response(two).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "protocol: DescribeMetadataQuorum received 2 topics when 1 was expected"
+        );
+    }
+
+    #[test]
+    fn quorum_info_from_response_maps_singleton_cluster_metadata() {
+        use crate::protocol::quorum::{
+            DescribeQuorumListener, DescribeQuorumNode, DescribeQuorumResponsePartition,
+            DescribeQuorumResponseTopic, ReplicaState,
+        };
+        let mut replica = ReplicaState::new(1, 42);
+        replica.last_fetch_timestamp = -1;
+        replica.last_caught_up_timestamp = 9;
+        replica.replica_directory_id = Uuid::ONE.to_bytes();
+        let resp = DescribeQuorumResponse {
+            error_code: 0,
+            error_message: None,
+            topics: vec![DescribeQuorumResponseTopic::new(
+                CLUSTER_METADATA_TOPIC_NAME,
+                vec![DescribeQuorumResponsePartition {
+                    partition_index: 0,
+                    error_code: 0,
+                    error_message: None,
+                    leader_id: 1,
+                    leader_epoch: 7,
+                    high_watermark: 42,
+                    current_voters: vec![replica],
+                    observers: vec![],
+                }],
+            )],
+            nodes: vec![DescribeQuorumNode::new(
+                1,
+                vec![DescribeQuorumListener::new("CONTROLLER", "127.0.0.1", 9093)],
+            )],
+        };
+        let info = QuorumInfo::from_describe_quorum_response(resp).unwrap();
+        assert_eq!(info.leader_id(), 1);
+        assert_eq!(info.leader_epoch(), 7);
+        assert_eq!(info.high_watermark(), 42);
+        assert_eq!(info.voters()[0].replica_id(), 1);
+        assert_eq!(info.voters()[0].replica_directory_id(), Uuid::ONE);
+        assert!(info.voters()[0].last_fetch_timestamp().is_none());
+        assert_eq!(info.voters()[0].last_caught_up_timestamp(), Some(9));
+        assert_eq!(info.nodes().get(&1).unwrap().endpoints()[0].port(), 9093);
+        let top = DescribeQuorumResponse::new(41, vec![]);
+        let err = QuorumInfo::from_describe_quorum_response(top).unwrap_err();
+        assert!(err.to_string().contains("broker error 41"), "{err}");
     }
 }

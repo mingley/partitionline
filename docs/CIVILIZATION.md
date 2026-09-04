@@ -144,8 +144,15 @@ standard service without reading `design.md` wire notes.
 ### WP-6 — Adoption-blocking features only
 
 **Goal:** Close only gaps that stop real migrations. Do not expand STATUS
-named holes (ElectLeaders, DescribeQuorum, Raft voters, DescribeLogDirs v5)
+named holes (ElectLeaders, Raft voters, DescribeLogDirs v5)
 without a deployment need written here.
+
+**Deployment need (DescribeQuorum / api 55):** KRaft operators inspect
+the metadata quorum after failover via Java `Admin.describeMetadataQuorum`
+and `kafka-metadata-quorum.sh`. Keeping that hole forced a second admin
+client (Java or C) beside this crate. DescribeQuorum is spoken in this
+tree (v0–2, controller hop, `NOT_CONTROLLER` retry, KIP-836 timestamps,
+KIP-853 nodes).
 
 | ID | Task | Acceptance |
 |---|---|---|
@@ -190,7 +197,7 @@ Execute in this sequence unless blocked:
 | WP-3 Operator docs | **done** | guide.md (incl. recipes) + migrate-from-rdkafka.md + ADOPTION.md + README links. |
 | WP-4 Observability | **done** | Metrics in guide; `tracing` feature; Prometheus text example. |
 | WP-5 Perf honesty | **in progress** | Lab A produce enforces **HW sum == acked**; Lab A fetch enforces **HW + consumed == seeded**; combined `scripts/lab-a-integrity.sh` + `ci-integrity-smoke.sh` in civilization-check (unsigned). 2026-09-04 native recheck: integrity COUNT=2000 HW==acked+consumed==seeded; latency gate p99≈71–86µs (earlier ≈69µs) vs 500µs baseline (STATUS). Not a Suite HOLD lift. Signed Suite HOLD still external. |
-| WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md + `docs/schema-companion.md` design (crate waits on crates.io). Packed-crate downstream consumer gate in civilization/publish-ready. Git install pin **`v0.1.0-rc.6`** (pin gate allows docs/scripts tip drift; library changes still require a new rc) (KIP-848 join fix + OIDC/mTLS) until crates.io `0.1.0`. |
+| WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md + `docs/schema-companion.md` design (crate waits on crates.io). Packed-crate downstream consumer gate in civilization/publish-ready. Git install pin **`v0.1.0-rc.6`** (pin gate allows docs/scripts tip drift; library changes still require a new rc) (KIP-848 join fix + OIDC/mTLS) until crates.io `0.1.0`. **DescribeQuorum (55)** closed with a written operator need (KRaft metadata quorum after failover). |
 | WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish; civilization-check; `scripts/ci-publish-ready.sh`; `scripts/audit-civilization-bars.sh` (six-bar evidence audit). Tip Verifiable via `scripts/ci-branch-lite.sh` (no auto CI on `dev/**` push while org runners starved); full matrix on PR/`main`/`workflow_dispatch`. |
 
 ## Success criteria (civilization bar)

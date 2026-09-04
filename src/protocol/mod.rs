@@ -12,6 +12,7 @@ pub mod idem;
 pub mod oauth;
 pub mod offsets;
 pub mod oidc;
+pub mod quorum;
 pub mod records;
 pub mod sasl;
 pub mod scram;

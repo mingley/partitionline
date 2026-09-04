@@ -63,6 +63,7 @@ default feature set.
 | Commit | `commit_message` | `commit_with_metadata(recs.next_offsets())` |
 | Transactions | init / begin / send_offsets / commit | same names on `Producer`; see `examples/eos.rs` |
 | Create topic | admin create | `Admin::create_topics` |
+| Describe KRaft metadata quorum | (Java `Admin.describeMetadataQuorum` / `kafka-metadata-quorum.sh`) | `Admin::describe_metadata_quorum` / `describe_metadata_quorum_timeout` |
 
 ## Intentional differences
 

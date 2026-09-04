@@ -104,6 +104,9 @@ admin.close().await?;
 # }
 ```
 
+The KRaft metadata quorum is `Admin::describe_metadata_quorum`
+(`QuorumInfo` voters, observers, and KIP-853 nodes).
+
 ## TLS and SASL
 
 ```rust,no_run

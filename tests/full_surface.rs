@@ -17,13 +17,13 @@ use partitionline::protocol::api_keys::{
     CREATE_ACLS, CREATE_DELEGATION_TOKEN, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
     DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
     DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS,
-    DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
-    DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT,
-    INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
-    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
-    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
-    SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
+    DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_QUORUM, DESCRIBE_TOPIC_PARTITIONS,
+    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
+    FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LEAVE_GROUP,
+    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
+    OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN,
+    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
+    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -6967,6 +6967,97 @@ async fn alter_partition_reassignments_follows_controller() {
         .await
         .unwrap();
     assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn describe_metadata_quorum_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let info = admin.describe_metadata_quorum().await.unwrap();
+    assert_eq!(info.leader_id(), 2);
+    assert_eq!(info.leader_epoch(), 7);
+    assert_eq!(info.high_watermark(), 42);
+    assert!(
+        info.voters().iter().any(|v| v.replica_id() == 2),
+        "voters must include the controller: {:?}",
+        info.voters()
+    );
+    assert!(
+        info.observers().iter().any(|v| v.replica_id() == 99),
+        "fixture observer 99: {:?}",
+        info.observers()
+    );
+    assert_eq!(
+        mock.last_describe_quorum_node(),
+        Some(2),
+        "DescribeQuorum must land on the controller, not bootstrap"
+    );
+    assert_eq!(
+        mock.last_describe_quorum_topic().as_deref(),
+        Some("__cluster_metadata")
+    );
+    assert_eq!(
+        mock.last_describe_quorum_version(),
+        Some(2),
+        "mock advertises DescribeQuorum 0-2; client prefers 2"
+    );
+    let leader_node = info.nodes().get(&2).expect("KIP-853 node for leader");
+    assert_eq!(leader_node.node_id(), 2);
+    assert_eq!(leader_node.endpoints()[0].name(), "CONTROLLER");
+
+    mock.set_controller(1);
+    let again = admin.describe_metadata_quorum().await.unwrap();
+    assert_eq!(again.leader_id(), 1);
+    assert_eq!(
+        mock.describe_quorum_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_describe_quorum_node(),
+        Some(1),
+        "DescribeQuorum must follow Metadata after NOT_CONTROLLER"
+    );
+    let timed = admin
+        .describe_metadata_quorum_timeout(Duration::from_millis(10_000))
+        .await
+        .unwrap();
+    assert_eq!(timed.leader_id(), 1);
+    assert_eq!(timed.leader_epoch(), 7);
+    admin.close().await.unwrap();
+    mock.set_api_max(DESCRIBE_QUORUM, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let v0 = admin.describe_metadata_quorum().await.unwrap();
+    assert_eq!(v0.leader_id(), 1);
+    assert!(
+        v0.nodes().is_empty(),
+        "v0 omits KIP-853 Nodes: {:?}",
+        v0.nodes()
+    );
+    assert_eq!(
+        mock.last_describe_quorum_version(),
+        Some(0),
+        "client must speak DescribeQuorum v0 when the broker max is 0"
+    );
+    let voter = v0
+        .voters()
+        .iter()
+        .find(|v| v.replica_id() == 1)
+        .expect("leader voter");
+    assert!(
+        voter.last_fetch_timestamp().is_none(),
+        "v0 timestamps decode as -1 / empty: {voter:?}"
+    );
+    admin.close().await.unwrap();
+    mock.hide_api(DESCRIBE_QUORUM);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin.describe_metadata_quorum().await.unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "DescribeQuorum is optional at connect: {err}"
+    );
     admin.close().await.unwrap();
 }
 

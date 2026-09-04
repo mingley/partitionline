@@ -96,6 +96,8 @@ pub const ALTER_CLIENT_QUOTAS: i16 = 49;
 pub const DESCRIBE_USER_SCRAM_CREDENTIALS: i16 = 50;
 /// AlterUserScramCredentials (51).
 pub const ALTER_USER_SCRAM_CREDENTIALS: i16 = 51;
+/// DescribeQuorum (55).
+pub const DESCRIBE_QUORUM: i16 = 55;
 /// UpdateFeatures (57).
 pub const UPDATE_FEATURES: i16 = 57;
 /// DescribeCluster (60).
@@ -206,7 +208,7 @@ pub const fn name(id: i16) -> Option<&'static str> {
         52 => Some("VOTE"),
         53 => Some("BEGIN_QUORUM_EPOCH"),
         54 => Some("END_QUORUM_EPOCH"),
-        55 => Some("DESCRIBE_QUORUM"),
+        DESCRIBE_QUORUM => Some("DESCRIBE_QUORUM"),
         56 => Some("ALTER_PARTITION"),
         UPDATE_FEATURES => Some("UPDATE_FEATURES"),
         58 => Some("ENVELOPE"),
@@ -273,7 +275,7 @@ pub const fn cluster_action(id: i16) -> bool {
             | 52
             | 53
             | 54
-            | 55
+            | DESCRIBE_QUORUM
             | 56
             | UPDATE_FEATURES
             | 58
@@ -311,7 +313,7 @@ pub const fn forwardable(id: i16) -> bool {
             | LIST_PARTITION_REASSIGNMENTS
             | ALTER_CLIENT_QUOTAS
             | ALTER_USER_SCRAM_CREDENTIALS
-            | 55
+            | DESCRIBE_QUORUM
             | UPDATE_FEATURES
             | UNREGISTER_BROKER
             | ALLOCATE_PRODUCER_IDS
@@ -389,8 +391,8 @@ mod tests {
         assert!(forwardable(ALLOCATE_PRODUCER_IDS));
         assert!(!cluster_action(43));
         assert!(forwardable(43));
-        assert!(cluster_action(55));
-        assert!(forwardable(55));
+        assert!(cluster_action(DESCRIBE_QUORUM));
+        assert!(forwardable(DESCRIBE_QUORUM));
         assert!(cluster_action(4));
         assert!(!forwardable(4));
         assert!(!cluster_action(DESCRIBE_SHARE_GROUP_OFFSETS));

@@ -916,6 +916,12 @@ pub fn get_i16<B: Buf>(buf: &mut B) -> Result<i16> {
     Ok(buf.get_i16())
 }
 
+/// Read `UINT16`.
+pub fn get_u16<B: Buf>(buf: &mut B) -> Result<u16> {
+    need(buf, 2)?;
+    Ok(buf.get_u16())
+}
+
 /// Read `INT32`.
 pub fn get_i32<B: Buf>(buf: &mut B) -> Result<i32> {
     need(buf, 4)?;
@@ -1074,6 +1080,15 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use super::*;
+
+    #[test]
+    fn u16_roundtrip_and_short_buffer() {
+        let mut buf = BytesMut::new();
+        buf.put_u16(9093);
+        assert_eq!(get_u16(&mut &buf[..]).unwrap(), 9093);
+        let err = get_u16(&mut &[][..]).unwrap_err();
+        assert!(err.to_string().contains("need 2 bytes"), "{err}");
+    }
 
     #[test]
     fn unsigned_varint_roundtrip() {

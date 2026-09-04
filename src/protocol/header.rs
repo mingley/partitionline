@@ -12,14 +12,15 @@ use super::api_keys::{
     CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS,
     DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
     DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS,
-    DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
-    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
-    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
-    INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
-    OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
-    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
-    TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
+    DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_QUORUM, DESCRIBE_SHARE_GROUP_OFFSETS,
+    DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN,
+    EXPIRE_DELEGATION_TOKEN, FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES,
+    LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
+    OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY,
+    RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
+    SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER,
+    UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use super::buf;
 use crate::error::{Error, Result};
@@ -200,7 +201,13 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // Kafka 4.0 validVersions is 0-2. This crate speaks 0–2.
         // v1 EndpointType (KIP-919). v2 IncludeFencedBrokers / IsFenced
         // (KIP-1073). v3+ is not spoken.
+        // DescribeQuorum is flexible from v0 (Apache JSON flexibleVersions: "0+").
+        // Kafka 4.0 validVersions is 0-2. This crate speaks 0–2. Request is
+        // unchanged across versions. v1 LastFetchTimestamp /
+        // LastCaughtUpTimestamp (KIP-836). v2 ErrorMessage, Nodes,
+        // ReplicaDirectoryId (KIP-853). v3+ is not spoken.
         DESCRIBE_CLUSTER
+        | DESCRIBE_QUORUM
         // UpdateFeatures is flexible from v0 (Apache JSON flexibleVersions: "0+").
         // Kafka 4.0 validVersions is 0-2. This crate speaks 0–2.
         // v1 UpgradeType / ValidateOnly. v2 omits Results. v3+ is not spoken.
@@ -421,6 +428,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         FIND_COORDINATOR if api_version >= 3 => 1,
         METADATA if api_version >= 9 => 1,
         DESCRIBE_CLUSTER
+        | DESCRIBE_QUORUM
         | ALTER_PARTITION_REASSIGNMENTS
         | LIST_PARTITION_REASSIGNMENTS
         | UPDATE_FEATURES
@@ -866,6 +874,16 @@ mod tests {
         for version in 0..=2 {
             assert_eq!(request_header_version(DESCRIBE_CLUSTER, version), 2);
             assert_eq!(response_header_version(DESCRIBE_CLUSTER, version), 1);
+        }
+    }
+
+    #[test]
+    fn describe_quorum_v0_to_v2_are_flexible() {
+        // Official Kafka 4.0 JSON: validVersions 0-2, flexibleVersions 0+.
+        // HeaderVersion is 2 / 1 at every spoken version. This crate speaks 0–2.
+        for version in 0..=2 {
+            assert_eq!(request_header_version(DESCRIBE_QUORUM, version), 2);
+            assert_eq!(response_header_version(DESCRIBE_QUORUM, version), 1);
         }
     }
 
@@ -1453,6 +1471,10 @@ mod tests {
         );
 
         assert_eq!(crate::protocol::api_keys::name(43), Some("ELECT_LEADERS"));
+        assert_eq!(
+            crate::protocol::api_keys::name(DESCRIBE_QUORUM),
+            Some("DESCRIBE_QUORUM")
+        );
         assert_eq!(crate::protocol::api_keys::name(999), None);
         assert!(crate::protocol::api_keys::has_id(43));
         assert!(!crate::protocol::api_keys::has_id(999));

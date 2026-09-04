@@ -2262,6 +2262,30 @@
 //! is Java `AlterPartitionReassignmentsResponse.shouldClientThrottle`
 //! (always). ThrottleTimeMs is JSON `0+`; encode writes the field;
 //! [`protocol::admin::AlterPartitionReassignmentsResponse::new`] fills `0`.
+//! [`Admin::describe_metadata_quorum`] is Java `describeMetadataQuorum`.
+//! [`Admin::describe_metadata_quorum_timeout`] is Java
+//! `DescribeMetadataQuorumOptions.timeoutMs` (RPC deadline; DescribeQuorum
+//! has no TimeoutMs). Sends [`protocol::quorum::DescribeQuorumRequest::singleton_request`]
+//! (`__cluster_metadata`-0). Lands on the Metadata controller with
+//! `NOT_CONTROLLER` retry. Optional at [`Admin::new`].
+//! [`protocol::quorum::DescribeQuorumRequest::error_response`] is Java
+//! `DescribeQuorumRequest.getErrorResponse` / `getTopLevelErrorResponse`
+//! (empty Topics / Nodes; `ErrorMessage` JSON-null; official Java also
+//! sets `Errors.message`; the `throttleTimeMs` argument is unused).
+//! [`protocol::quorum::DescribeQuorumRequest::partition_level_error_response`]
+//! is Java `DescribeQuorumRequest.getPartitionLevelErrorResponse`
+//! (copies request partitions; `ErrorMessage` JSON-null).
+//! [`protocol::quorum::DescribeQuorumResponse::error_counts`] is Java
+//! `DescribeQuorumResponse.errorCounts` (top-level `errorCode` including
+//! `NONE`, plus each partition). [`protocol::quorum::DescribeQuorumResponse::should_client_throttle`]
+//! is Java `DescribeQuorumResponse.shouldClientThrottle` (not overridden;
+//! `AbstractResponse` default `false`). No ThrottleTimeMs in the schema.
+//! v0–v2 flexible. v1 LastFetchTimestamp / LastCaughtUpTimestamp
+//! (KIP-836). v2 ErrorMessage, ReplicaDirectoryId, Nodes (KIP-853).
+//! [`QuorumInfo`] / [`QuorumReplicaState`] / [`QuorumNode`] /
+//! [`RaftVoterEndpoint`] are Java `QuorumInfo` / `ReplicaState` /
+//! `QuorumInfo.Node` / `RaftVoterEndpoint`. Kafka 4.0 `validVersions`
+//! is `0-2`. This crate speaks 0–2. v3+ is not spoken.
 //! [`Admin::list_partition_reassignments_timeout`] is Java
 //! `ListPartitionReassignmentsOptions.timeoutMs`.
 //! [`Admin::list_partition_reassignments_all`] is Java
@@ -2852,7 +2876,7 @@
 //! DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials,
 //! DescribeUserScramCredentials, AlterReplicaLogDirs, DescribeLogDirs,
 //! the delegation-token APIs, DescribeTransactions, ListTransactions,
-//! AlterPartitionReassignments, ListPartitionReassignments, OffsetDelete,
+//! AlterPartitionReassignments, DescribeQuorum, ListPartitionReassignments, OffsetDelete,
 //! IncrementalAlterConfigs, ShareGroupDescribe, the share-offset RPCs, ListConfigResources,
 //! GetTelemetrySubscriptions, PushTelemetry, or AssignReplicasToDirs.
 //! [`Admin::assign_replicas_to_dirs_timeout`] is Java
@@ -3139,7 +3163,8 @@
 //! # Admin
 //!
 //! [`Admin`] covers topics, partitions, configs, ACLs, groups, transactions,
-//! quotas, telemetry, log dirs, and delegation tokens. See the [`admin`]
+//! quotas, telemetry, log dirs, delegation tokens, and the KRaft metadata
+//! quorum ([`Admin::describe_metadata_quorum`]). See the [`admin`]
 //! module. Still missing versus librdkafka: zstd and Kerberos (C libraries)
 //! and Schema Registry. Tracker: `docs/gaps.md`.
 
@@ -3206,7 +3231,8 @@ pub use admin::{
     GetTelemetrySubscriptionsResponse, GroupState, GroupType, ListConsumerGroupOffsetsSpec,
     ListedConfigResource, ListedGroup, MemberToRemove, NewPartitionReassignment, NewPartitions,
     NewTopic, Node, OffsetDeleteResult, OngoingReassignment, PartitionReassignment,
-    ProducerIdBlock, PushTelemetryResponse, ReassignmentResult, RecordsToDelete, RemovedMember,
+    ProducerIdBlock, PushTelemetryResponse, QuorumInfo, QuorumNode, QuorumReplicaState,
+    RaftVoterEndpoint, ReassignmentResult, RecordsToDelete, RemovedMember,
     RenewDelegationTokenRequest, RenewDelegationTokenResponse, ReplicaLogDirInfo, ResourcePattern,
     ResourcePatternFilter, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
     ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange, TopicCollection,

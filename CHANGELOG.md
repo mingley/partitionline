@@ -27,6 +27,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Added
 
+- Admin: DescribeQuorum (api 55, KIP-595 / KIP-836 / KIP-853) v0–2.
+  `Admin::describe_metadata_quorum` / `describe_metadata_quorum_timeout`
+  inspect the KRaft metadata quorum (`QuorumInfo`). Lands on the
+  Metadata controller with `NOT_CONTROLLER` retry. Optional at
+  `Admin::new`.
 - `scripts/check-main-ci.sh`: probe whether `origin/main` HEAD has terminal
   green CI (exit 0/1/2). Wired into `owner-finish-installable` step 2b —
   refuses Installable cut on red main unless `ALLOW_RED_MAIN=1`; real cuts

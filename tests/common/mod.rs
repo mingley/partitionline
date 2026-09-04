@@ -111,15 +111,15 @@ use partitionline::protocol::api_keys::{
     CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS,
     DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
     DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS,
-    DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
-    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
-    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
-    INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
-    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
-    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
-    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
-    WRITE_TXN_MARKERS,
+    DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_QUORUM, DESCRIBE_SHARE_GROUP_OFFSETS,
+    DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN,
+    EXPIRE_DELEGATION_TOKEN, FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES,
+    LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
+    OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY,
+    RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
+    SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER,
+    UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use partitionline::protocol::cgheartbeat::{
     decode_consumer_group_heartbeat_request, encode_consumer_group_heartbeat_response,
@@ -153,6 +153,11 @@ use partitionline::protocol::offsets::{
     decode_list_offsets_topics_request, encode_list_offsets_topics_response, ListOffsetsPartition,
     ListOffsetsResponsePartition, ListOffsetsTopicResponse, EARLIEST_LOCAL_TIMESTAMP,
     EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, MAX_TIMESTAMP,
+};
+use partitionline::protocol::quorum::{
+    decode_describe_quorum_request, encode_describe_quorum_response, DescribeQuorumListener,
+    DescribeQuorumNode, DescribeQuorumResponse, DescribeQuorumResponsePartition,
+    DescribeQuorumResponseTopic, ReplicaState, CLUSTER_METADATA_TOPIC_NAME,
 };
 use partitionline::protocol::records::{Record, RecordBatch};
 use partitionline::protocol::sasl::{
@@ -276,6 +281,10 @@ struct State {
     last_describe_cluster_version: Option<i16>,
     last_describe_cluster_endpoint_type: Option<i8>,
     last_describe_cluster_include_fenced: Option<bool>,
+    last_describe_quorum_node: Option<i32>,
+    last_describe_quorum_version: Option<i16>,
+    last_describe_quorum_topic: Option<String>,
+    describe_quorum_not_controller: u32,
     last_describe_producers_node: Option<i32>,
     last_describe_producers_topics: Option<usize>,
     describe_producers_not_leader: u32,
@@ -638,6 +647,10 @@ fn new_state(
         last_describe_cluster_version: None,
         last_describe_cluster_endpoint_type: None,
         last_describe_cluster_include_fenced: None,
+        last_describe_quorum_node: None,
+        last_describe_quorum_version: None,
+        last_describe_quorum_topic: None,
+        describe_quorum_not_controller: 0,
         last_describe_producers_node: None,
         last_describe_producers_topics: None,
         describe_producers_not_leader: 0,
@@ -1860,6 +1873,22 @@ impl Mock {
 
     pub fn last_describe_cluster_include_fenced(&self) -> Option<bool> {
         self.state.lock().last_describe_cluster_include_fenced
+    }
+
+    pub fn last_describe_quorum_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_quorum_node
+    }
+
+    pub fn last_describe_quorum_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_quorum_version
+    }
+
+    pub fn last_describe_quorum_topic(&self) -> Option<String> {
+        self.state.lock().last_describe_quorum_topic.clone()
+    }
+
+    pub fn describe_quorum_not_controller(&self) -> u32 {
+        self.state.lock().describe_quorum_not_controller
     }
 
     pub fn last_describe_producers_node(&self) -> Option<i32> {
@@ -3255,6 +3284,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (DELETE_RECORDS, 0, 2),
         (ALTER_CONFIGS, 0, 2),
         (DESCRIBE_CLUSTER, 0, 2),
+        (DESCRIBE_QUORUM, 0, 2),
         (DESCRIBE_PRODUCERS, 0, 0),
         (DESCRIBE_ACLS, 0, 3),
         (CREATE_ACLS, 0, 3),
@@ -3391,6 +3421,72 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
         SHARE_FETCH => encode_share_fetch_error(body, api_version, NC).unwrap(),
         OFFSET_DELETE => encode_offset_delete_response(body, NC, &[]).unwrap(),
         _ => {}
+    }
+}
+
+fn replica_directory_id(replica_id: i32) -> [u8; 16] {
+    let mut id = [0u8; 16];
+    let bytes = replica_id.to_be_bytes();
+    id[12..16].copy_from_slice(&bytes);
+    id
+}
+
+fn mock_describe_quorum_response(st: &State, node_id: i32) -> DescribeQuorumResponse {
+    let leader = st.controller_node;
+    let brokers = if st.brokers.is_empty() {
+        vec![Broker {
+            node_id,
+            host: "127.0.0.1".into(),
+            port: 9093,
+            rack: None,
+        }]
+    } else {
+        st.brokers.clone()
+    };
+    let mut voters = Vec::new();
+    for broker in &brokers {
+        let mut replica = ReplicaState::new(broker.node_id, 42);
+        replica.replica_directory_id = replica_directory_id(broker.node_id);
+        if broker.node_id == leader {
+            replica.last_fetch_timestamp = -1;
+            replica.last_caught_up_timestamp = 1_700_000_000_100;
+        } else {
+            replica.last_fetch_timestamp = 1_700_000_000_000;
+            replica.last_caught_up_timestamp = 1_699_000_000_000;
+        }
+        voters.push(replica);
+    }
+    let mut observer = ReplicaState::new(99, 10);
+    observer.replica_directory_id = replica_directory_id(99);
+    let mut nodes = Vec::new();
+    for broker in &brokers {
+        let port = u16::try_from(broker.port).unwrap_or(9093);
+        nodes.push(DescribeQuorumNode::new(
+            broker.node_id,
+            vec![DescribeQuorumListener::new(
+                "CONTROLLER",
+                broker.host.clone(),
+                port,
+            )],
+        ));
+    }
+    DescribeQuorumResponse {
+        error_code: 0,
+        error_message: None,
+        topics: vec![DescribeQuorumResponseTopic::new(
+            CLUSTER_METADATA_TOPIC_NAME,
+            vec![DescribeQuorumResponsePartition {
+                partition_index: 0,
+                error_code: 0,
+                error_message: None,
+                leader_id: leader,
+                leader_epoch: 7,
+                high_watermark: 42,
+                current_voters: voters,
+                observers: vec![observer],
+            }],
+        )],
+        nodes,
     }
 }
 
@@ -4116,6 +4212,27 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     ),
                 )
                 .unwrap();
+            }
+            DESCRIBE_QUORUM => {
+                let version = header.api_version;
+                let req = decode_describe_quorum_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_describe_quorum_version = Some(version);
+                st.last_describe_quorum_topic = req.topics.first().map(|t| t.topic_name.clone());
+                if st.controller_node != node_id {
+                    st.describe_quorum_not_controller =
+                        st.describe_quorum_not_controller.saturating_add(1);
+                    encode_describe_quorum_response(
+                        &mut body,
+                        version,
+                        &req.error_response(error::NOT_CONTROLLER),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_describe_quorum_node = Some(node_id);
+                    let resp = mock_describe_quorum_response(&st, node_id);
+                    encode_describe_quorum_response(&mut body, version, &resp).unwrap();
+                }
             }
             CREATE_ACLS => {
                 let version = header.api_version;
