@@ -12,11 +12,21 @@ PARTITIONS="${PARTITIONS:-1}"
 RUNS="${RUNS:-1}"
 TOPIC="${TOPIC:-pl-ci-integrity}"
 BOOTSTRAP="${KAFKA_BOOTSTRAP:-127.0.0.1:9092}"
+# Leave shared native brokers up for subsequent gates (latency / broker-smoke).
+# Only stop on EXIT when *this* invocation started native Kafka from a cold port.
 started_native=0
+broker_was_up=0
+
+# shellcheck source=scripts/lib/ensure-broker.sh
+source "$ROOT/scripts/lib/ensure-broker.sh"
 
 cleanup() {
-  if [[ "$started_native" -eq 1 ]]; then
-    bash scripts/ci-native-kafka.sh stop >/dev/null 2>&1 || true
+  if [[ "$started_native" -eq 1 && "$broker_was_up" -eq 0 ]]; then
+    # We brought the broker up; stop only when STOP_NATIVE_ON_EXIT=1 (default off
+    # so agent Verifiable sequences can chain integrity → latency → fuzz).
+    if [[ "${STOP_NATIVE_ON_EXIT:-0}" == "1" ]]; then
+      bash scripts/ci-native-kafka.sh stop >/dev/null 2>&1 || true
+    fi
   fi
 }
 trap cleanup EXIT
@@ -27,14 +37,21 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   # often broken in nested VMs).
   if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "${BROKER_NAME:-pl-lab-a-kafka}"; then
     broker_ready=1
+    broker_was_up=1
   fi
 fi
 
 if [[ "$broker_ready" -eq 0 ]]; then
-  if bash scripts/ci-native-kafka.sh start >/tmp/pl-integrity-native.log 2>&1; then
-    started_native=1
+  if pl_broker_tcp_ready "$BOOTSTRAP"; then
     broker_ready=1
-    BOOTSTRAP="${KAFKA_BOOTSTRAP:-127.0.0.1:9092}"
+    broker_was_up=1
+  elif pl_ensure_broker "ci-integrity-smoke"; then
+    broker_ready=1
+    if [[ "${PL_ENSURE_BROKER_STARTED:-0}" -eq 1 ]]; then
+      started_native=1
+    else
+      broker_was_up=1
+    fi
   fi
 fi
 
