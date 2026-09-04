@@ -1,25 +1,83 @@
 #!/usr/bin/env bash
 # One-shot owner cut: main → tag vX.Y.Z → crates.io → day1.
-# Preferred civilization path (docs/RELEASE.md): push the final tag and let
-# release.yml publish (OIDC Trusted Publishing if configured, else
-# CARGO_REGISTRY_TOKEN Actions secret). Optional PUBLISH_LOCAL=1 uses
-# scripts/owner-publish.sh instead of waiting on Actions.
+# Preferred civilization path when a token is already in-env: PUBLISH_LOCAL=1
+# (cargo publish here; bypasses starved Actions). If CARGO_REGISTRY_TOKEN is
+# present and PUBLISH_LOCAL is unset, defaults to 1. Set PUBLISH_LOCAL=0 to
+# push the final tag and let release.yml publish (OIDC Trusted Publishing if
+# configured, else the Actions secret). Prefer owner-finish-installable for
+# tip→main FF + parks/handoff chaining.
 #
 # Refuses dirty trees and non-main branches (ALLOW_NON_MAIN_PUBLISH=1 to override).
 # Does not redefine Installable: check-installable.sh must still exit 0.
 #
 # Usage (on a clean main that already contains the civilization tip):
-#   bash scripts/owner-cut-release.sh
-#   PUBLISH_LOCAL=1 bash scripts/owner-cut-release.sh
+#   bash scripts/owner-cut-release.sh                 # auto PUBLISH_LOCAL=1 when token in-env
+#   PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh # tag → release.yml
+#   PUBLISH_LOCAL=1 bash scripts/owner-cut-release.sh # force local publish
 #   DRY_RUN=1 bash scripts/owner-cut-release.sh
 #   REQUIRE_ACTIONS_SECRET=1 bash scripts/owner-cut-release.sh  # fail if Actions secret missing
+#   bash scripts/owner-cut-release.sh --self-test
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if [[ "${1:-}" == "--self-test" ]]; then
+  # Prove unset PUBLISH_LOCAL + token → auto 1; explicit 0 stays 0.
+  # shellcheck source=scripts/lib/cargo-registry-token.sh
+  source "$ROOT/scripts/lib/cargo-registry-token.sh"
+  auto_from_token() {
+    local PUBLISH_LOCAL_EXPLICIT PUBLISH_LOCAL CARGO_REGISTRY_TOKEN
+    unset PUBLISH_LOCAL || true
+    if [[ -z "${PUBLISH_LOCAL+x}" ]]; then
+      PUBLISH_LOCAL_EXPLICIT=0
+      PUBLISH_LOCAL=0
+    else
+      PUBLISH_LOCAL_EXPLICIT=1
+    fi
+    CARGO_REGISTRY_TOKEN="fake-token-for-self-test"
+    if [[ "$PUBLISH_LOCAL_EXPLICIT" != "1" && -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+      PUBLISH_LOCAL=1
+    fi
+    [[ "$PUBLISH_LOCAL" == "1" ]] || {
+      echo "owner-cut-release --self-test: FAIL — token+unset should auto PUBLISH_LOCAL=1" >&2
+      exit 1
+    }
+  }
+  keep_explicit_zero() {
+    local PUBLISH_LOCAL_EXPLICIT PUBLISH_LOCAL CARGO_REGISTRY_TOKEN
+    PUBLISH_LOCAL=0
+    if [[ -z "${PUBLISH_LOCAL+x}" ]]; then
+      PUBLISH_LOCAL_EXPLICIT=0
+      PUBLISH_LOCAL=0
+    else
+      PUBLISH_LOCAL_EXPLICIT=1
+    fi
+    CARGO_REGISTRY_TOKEN="fake-token-for-self-test"
+    if [[ "$PUBLISH_LOCAL_EXPLICIT" != "1" && -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+      PUBLISH_LOCAL=1
+    fi
+    [[ "$PUBLISH_LOCAL" == "0" ]] || {
+      echo "owner-cut-release --self-test: FAIL — explicit PUBLISH_LOCAL=0 must stick" >&2
+      exit 1
+    }
+  }
+  auto_from_token
+  keep_explicit_zero
+  grep -qF 'PUBLISH_LOCAL_EXPLICIT' "$ROOT/scripts/owner-cut-release.sh"     || { echo "owner-cut-release --self-test: FAIL — missing PUBLISH_LOCAL_EXPLICIT wiring" >&2; exit 1; }
+  echo "owner-cut-release: --self-test OK — token auto PUBLISH_LOCAL=1; explicit 0 preserved"
+  exit 0
+fi
+
+
 DRY_RUN="${DRY_RUN:-0}"
-PUBLISH_LOCAL="${PUBLISH_LOCAL:-0}"
+# Distinguish unset (auto) from explicit PUBLISH_LOCAL=0 (tag→Actions).
+if [[ -z "${PUBLISH_LOCAL+x}" ]]; then
+  PUBLISH_LOCAL_EXPLICIT=0
+  PUBLISH_LOCAL=0
+else
+  PUBLISH_LOCAL_EXPLICIT=1
+fi
 SKIP_PUBLISH_READY="${SKIP_PUBLISH_READY:-0}"
 WAIT_CRATES_ATTEMPTS="${WAIT_CRATES_ATTEMPTS:-36}" # ~6 minutes at 10s
 
@@ -27,6 +85,15 @@ WAIT_CRATES_ATTEMPTS="${WAIT_CRATES_ATTEMPTS:-36}" # ~6 minutes at 10s
 # shellcheck source=scripts/lib/cargo-registry-token.sh
 source "$ROOT/scripts/lib/cargo-registry-token.sh"
 pl_prepare_cargo_registry_token "owner-cut-release"
+
+# Token-day footgun: stepwise docs call cut-release bare. If a publish-new token
+# is already in-env and the caller did not force PUBLISH_LOCAL=0, prefer local
+# publish (same default as owner-finish-installable) instead of tag→starved Actions.
+if [[ "$PUBLISH_LOCAL_EXPLICIT" != "1" && -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+  PUBLISH_LOCAL=1
+  echo "owner-cut-release: CARGO_REGISTRY_TOKEN in-env — defaulting PUBLISH_LOCAL=1"
+  echo "  (set PUBLISH_LOCAL=0 to force tag → release.yml / Actions)"
+fi
 
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
@@ -106,6 +173,10 @@ else
 fi
 
 if [[ "$PUBLISH_LOCAL" == "1" ]]; then
+  # Probe publish-new auth before cargo publish (structured empty-tarball; not /me).
+  if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+    bash scripts/check-registry-token.sh
+  fi
   if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     if [[ "$DRY_RUN" == "1" ]]; then
       echo "owner-cut-release: DRY_RUN=1 — would require CARGO_REGISTRY_TOKEN then owner-publish + push ${tag}"
@@ -122,7 +193,7 @@ if [[ "$PUBLISH_LOCAL" == "1" ]]; then
   fi
 else
   echo
-  echo "owner-cut-release: preferred path — push tag; release.yml publishes"
+  echo "owner-cut-release: PUBLISH_LOCAL=0 — push tag; release.yml publishes"
   if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     echo "owner-cut-release: note — no local CARGO_REGISTRY_TOKEN; Actions must have"
     echo "  the secret (first cut) or crates.io Trusted Publishing (later cuts)."

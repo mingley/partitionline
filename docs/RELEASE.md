@@ -98,12 +98,17 @@ unless `ALLOW_BUSY_MAIN=1`. While crates.io `0.1.0` is still absent, it also
 refuses docs/scripts-only tip→main unless `ALLOW_DOCS_THRASH=1` — leave tip
 ahead and let `owner-finish-installable` FF once at cut time.
 
-One-shot on clean `main` (tag → Actions): `bash scripts/owner-cut-release.sh`
-(pushes `vX.Y.Z`, waits for crates.io, runs day1, then
-`audit-civilization-bars`). `PUBLISH_LOCAL=1` uses `owner-publish` instead of
-Actions; `DRY_RUN=1` prints actions only (allowed on the civilization tip for
-rehearsal — still no tag/push); `REQUIRE_ACTIONS_SECRET=1` refuses to cut if
-Actions lacks `CARGO_REGISTRY_TOKEN` (when `gh secret list` is permitted).
+One-shot on clean `main`: `bash scripts/owner-cut-release.sh` (pushes
+`vX.Y.Z`, waits for crates.io, runs day1, then `audit-civilization-bars`).
+When `CARGO_REGISTRY_TOKEN` is already in-env and `PUBLISH_LOCAL` is unset,
+cut-release defaults to **local publish** (same token-day preference as
+`owner-finish-installable`); set `PUBLISH_LOCAL=0` to force tag →
+`release.yml` / Actions. Explicit `PUBLISH_LOCAL=1` always uses
+`owner-publish`. `DRY_RUN=1` prints actions only (allowed on the
+civilization tip for rehearsal — still no tag/push);
+`REQUIRE_ACTIONS_SECRET=1` refuses to cut if Actions lacks
+`CARGO_REGISTRY_TOKEN` (when `gh secret list` is permitted).
+`bash scripts/owner-cut-release.sh --self-test` proves the auto-default.
 
 Then (on `main`, after civilization is merged):
 
