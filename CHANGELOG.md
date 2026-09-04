@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: READY_EXCEPT_TOKEN / owner-status / owner-unblock note that `owner-finish-installable` chains parked Verifiable merge by default.
 - Scripts: `owner-finish-installable` defaults to chaining `owner-merge-parked-verifiable` after Installable (`MERGE_PARKED_VERIFIABLE=0` skips).
 - Scripts: `owner-merge-parked-verifiable.sh` lands post-Installable Actions auth+integrity + ConsumerGroupHeartbeat fuzz from parked branch.
 - Docs/scripts: post-cut Verifiable handoff for parked `dev/verifiable-auth-integrity-fuzz-b686` (Actions auth+integrity jobs + ConsumerGroupHeartbeat fuzz); tip stays docs/scripts-only until Installable.

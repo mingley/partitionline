@@ -60,6 +60,7 @@ echo "Probe: bash scripts/check-installable-preflight.sh   # expect READY_EXCEPT
 echo
 echo "Fastest once CARGO_REGISTRY_TOKEN is in this environment (bypasses starved Actions):"
 echo "  bash scripts/owner-finish-installable.sh"
+echo "  # chains parked Verifiable (auth/integrity Actions) after Installable; MERGE_PARKED_VERIFIABLE=0 skips"
 echo "  # FF-merges civilization → main (includes any tip-ahead docs/scripts), cargo publish,"
 echo "  # day1, proves Installable. Real cuts default REQUIRE_MAIN_CI=1 — wait for"
 echo "  # green main CI if a docs/scripts push is still running, or override with 0."
