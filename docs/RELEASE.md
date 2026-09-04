@@ -33,7 +33,12 @@ One-time setup (first crates.io cut):
    **`publish-update`** for later versions). `publish-update` alone cannot
    create `partitionline` on crates.io. After 0.1.0 exists, prefer Trusted
    Publishing and keep only a short-lived or narrowly scoped token as backup.
-2. Add repository secret `CARGO_REGISTRY_TOKEN` (Settings → Secrets → Actions).
+2. Add `CARGO_REGISTRY_TOKEN` in **two** places (same crates.io token value):
+   - **Cursor Cloud Agent** → Cloud Agents → Environments → this env → Secrets
+     (name exactly `CARGO_REGISTRY_TOKEN`; restart/re-run the agent after save so
+     `owner-finish-installable` can PUBLISH_LOCAL without waiting on Actions).
+   - **GitHub Actions** repository secret (Settings → Secrets → Actions) for
+     `release.yml` / `first-publish.yml`.
    Probe without printing: `bash scripts/check-registry-token.sh` (exit 2 = missing,
    0 = crates.io accepted the token for publish-new auth via a structured
    empty-tarball PUT that cannot create a crate, 1 = rejected).
