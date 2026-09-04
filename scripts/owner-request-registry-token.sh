@@ -34,6 +34,15 @@ case "$pf_rc" in
       tail -12 /tmp/pl-request-preflight.log | sed 's/^/  /' >&2 || true
       exit 2
     fi
+    # Belt-and-suspenders: preflight now exits 1 on stale parks, but refuse the
+    # "everything rehearsed" claim if a soft parks note ever regresses into exit 0.
+    if grep -qiE 'parks stack stale|also parks' /tmp/pl-request-preflight.log; then
+      echo "owner-request-registry-token: refusing READY_EXCEPT_TOKEN claim — parks stack stale" >&2
+      echo "  Refresh parks first, then re-run this ask (token alone cannot cut a stale stack)." >&2
+      echo "  bash scripts/refresh-post-cut-parks.sh" >&2
+      tail -12 /tmp/pl-request-preflight.log | sed 's/^/  /' >&2 || true
+      exit 1
+    fi
     echo "Installable is READY_EXCEPT_TOKEN. Everything else for the first cut is rehearsed."
     ;;
   2)
@@ -48,6 +57,10 @@ case "$pf_rc" in
   *)
     echo "owner-request-registry-token: refusing READY_EXCEPT_TOKEN claim — preflight exit ${pf_rc}" >&2
     echo "  Fix blockers below, then re-run this ask (do not inject a token into a broken cut path)." >&2
+    if grep -qiE 'parks stack stale|refresh-post-cut-parks' /tmp/pl-request-preflight.log; then
+      echo "  Parks look stale — refresh before the token ask:" >&2
+      echo "  bash scripts/refresh-post-cut-parks.sh" >&2
+    fi
     tail -20 /tmp/pl-request-preflight.log | sed 's/^/  /' >&2 || true
     echo "  Probe: bash scripts/check-installable-preflight.sh" >&2
     exit 1
