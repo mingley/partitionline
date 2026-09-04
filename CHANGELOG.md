@@ -39,6 +39,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `release.yml` only runs on final `vX.Y.Z` tags (not `v0.1.0-rc.*`), so git
   RC install pins do not queue crates.io publish jobs or burn Actions capacity.
 
+### Added
+
+- `scripts/owner-cancel-stuck-runs.sh` cancels queued Actions runs older than
+  15 minutes (`DRY_RUN=1` supported); wired from `owner-status` / ADOPTION for
+  the org-wide runner starvation case (agents get 403 — owner must run it).
+
 ## [0.1.0] - 2026-09-04
 
 First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).

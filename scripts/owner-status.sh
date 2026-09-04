@@ -40,6 +40,11 @@ echo "== Verifiable (GitHub Actions) =="
 if ! command -v gh >/dev/null 2>&1; then
   echo "SKIP  gh CLI not available"
 else
+  queued="$(gh run list --status queued --limit 50 --json databaseId --jq 'length' 2>/dev/null || echo "?")"
+  echo "queued runs (repo, up to 50): ${queued}"
+  if [[ "$queued" != "?" && "$queued" != "0" ]]; then
+    echo "  owner: bash scripts/owner-cancel-stuck-runs.sh   # or DRY_RUN=1 first"
+  fi
   echo "-- main (latest 2) --"
   gh run list --branch main --limit 2 2>/dev/null || echo "WARN  gh run list main failed"
   echo "-- civilization tip (latest 2) --"
@@ -58,7 +63,8 @@ fi
 echo
 echo "owner-status: next"
 echo "  1. Set CARGO_REGISTRY_TOKEN (Cloud + Actions)"
-echo "  2. Restore Actions runners (cancel stuck queued jobs if possible)"
+echo "  2. Restore Actions runners: bash scripts/owner-cancel-stuck-runs.sh"
+echo "     (needs Actions write; agents usually get 403 — owner must run it)"
 echo "  3. Merge civilization → main, tag v${ver} (docs/RELEASE.md)"
 echo "  4. bash scripts/day1-after-publish.sh"
 echo "  5. bash scripts/check-installable.sh   # must exit 0"
