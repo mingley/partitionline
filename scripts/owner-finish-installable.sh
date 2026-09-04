@@ -106,7 +106,7 @@ if bash scripts/check-installable.sh; then
   fi
   bash scripts/day1-after-publish.sh
   handoff_rc=0
-  LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+  SKIP_DAY1=1 LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
   if [[ "$handoff_rc" -eq 2 ]]; then
     echo "owner-finish-installable: PARTIAL — ${name} ${ver} already Installable; handoff soft-failed"
     echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
@@ -401,9 +401,9 @@ land_parks=0
 if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
   land_parks=1
 fi
-echo "owner-finish-installable: LAND_PARKS=${land_parks} owner-post-installable-handoff"
+echo "owner-finish-installable: LAND_PARKS=${land_parks} owner-post-installable-handoff (SKIP_DAY1=1; cut already ran day1)"
 handoff_rc=0
-LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+SKIP_DAY1=1 LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
 
 echo
 if [[ "$handoff_rc" -eq 2 ]]; then
