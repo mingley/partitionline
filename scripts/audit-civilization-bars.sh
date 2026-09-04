@@ -290,6 +290,10 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'check-parks-on-main.sh' scripts/owner-status.sh \
   && grep -qF 'PARTIAL — Installable OK but parks not on main' scripts/check-installable-preflight.sh \
   && grep -qF 'OWNER_STATUS_FULL' scripts/owner-status.sh \
+  && grep -qF 'expected pre-Installable' scripts/owner-status.sh \
+  && grep -qF 'stay off main until after crates.io' scripts/owner-request-registry-token.sh \
+  && grep -qF 'pre-cut pending is expected' scripts/owner-unblock.sh \
+  && grep -qF 'tip⊆parks stack' scripts/owner-unblock.sh \
   && bash scripts/check-parks-on-main.sh --self-test >/tmp/pl-parks-on-main-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-parks-on-main-self-test.log \
   && grep -qF 'parks not on main' scripts/owner-status.sh \

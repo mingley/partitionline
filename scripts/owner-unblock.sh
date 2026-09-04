@@ -122,9 +122,12 @@ echo "  If finish/cut exited PARTIAL (parks/TP soft-fail): do NOT re-publish."
 echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
 echo "  If PARTIAL was Actions secret not synced:"
 echo "    gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
-echo "  If PARTIAL was parks not on main:"
+echo "  If PARTIAL was parks not on main (only after Installable — pre-cut pending is expected):"
 echo "    LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
 echo "  Or: bash scripts/owner-finish-installable.sh  # already-Installable short-circuit"
+echo
+echo "  Note: parks-off-main before crates.io 0.1.0 is expected (post-cut parks)."
+echo "  Pre-cut gate is tip⊆parks stack, not parks-on-main."
 echo
 
 echo "== 5) Day-1 after crates.io shows partitionline 0.1.0 =="

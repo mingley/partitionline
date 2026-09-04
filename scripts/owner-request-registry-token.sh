@@ -44,15 +44,25 @@ case "$pf_rc" in
       exit 1
     fi
     echo "Installable is READY_EXCEPT_TOKEN. Everything else for the first cut is rehearsed."
+    echo "Post-cut parks stay off main until after crates.io 0.1.0 (expected; tip⊆parks stack is the pre-cut gate)."
     ;;
   2)
     echo "Installable is ALREADY_INSTALLABLE (crates.io has ${name} ${ver})."
-    echo "No token ask needed for first cut. Re-enter: bash scripts/owner-post-installable-handoff.sh"
+    echo "No token ask needed for first cut."
+    parks_main_rc=0
+    bash scripts/check-parks-on-main.sh >/tmp/pl-request-parks-main.log 2>&1 || parks_main_rc=$?
+    if [[ "$parks_main_rc" -eq 2 ]]; then
+      echo "PARTIAL — parks not on main yet. Re-enter:"
+      echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    else
+      echo "Re-enter handoff if TP/parks/day1 still pending: bash scripts/owner-post-installable-handoff.sh"
+    fi
     exit 0
     ;;
   3)
     echo "Installable is READY_EXCEPT_TOKEN (main CI still running — wait or REQUIRE_MAIN_CI=0)."
     echo "Token ask still valid once CI is green; structural gates otherwise OK."
+    echo "Post-cut parks stay off main until after crates.io 0.1.0 (expected pre-Installable)."
     ;;
   *)
     echo "owner-request-registry-token: refusing READY_EXCEPT_TOKEN claim — preflight exit ${pf_rc}" >&2
