@@ -9,8 +9,10 @@ Civilization **Installable** is blocked only on credentials and merge:
 
 1. Add `CARGO_REGISTRY_TOKEN` (Cloud Agent env + GitHub Actions secret).
 2. Restore GitHub Actions runners — **org-wide**, not just this branch: `main`
-   has had a run stuck `queued` for ~22h, and `dev/**` `branch-lite` also
-   never leaves the queue. Agent cannot cancel runs (403).
+   has had a run stuck `queued` for ~22.5h (run `33714516185`), and `dev/**`
+   `branch-lite` also never leaves the queue. Agent cannot cancel runs (403).
+   Local `ci-civilization-check.sh` is green (**26/26**, 2026-09-04) including
+   broker + SASL_SSL SCRAM-256/512.
 3. Merge `dev/civilization-plan-b686` → `main`, tag `v0.1.0` (or
    `workflow_dispatch` on that tag), confirm https://crates.io/crates/partitionline
    (`bash scripts/check-installable.sh` should exit 0).

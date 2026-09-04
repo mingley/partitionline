@@ -22,6 +22,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   ignore in `deny.toml` / `.cargo/audit.toml` without raising MSRV.
 - Auth smoke covers SCRAM-SHA-256 and SCRAM-SHA-512 over SASL_SSL; CI `test`
   jobs assert `openssl version` before `cargo test`.
+- ADOPTION / CIVILIZATION record local civilization-check **26/26** evidence
+  (broker + SASL_SSL SCRAM-256/512) while GitHub Actions remains queued.
 
 ## [0.1.0] - 2026-09-04
 
