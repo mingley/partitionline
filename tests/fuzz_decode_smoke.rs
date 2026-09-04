@@ -22,6 +22,9 @@ use partitionline::protocol::group::{
 use partitionline::protocol::header::{decode_request_header, decode_response_header};
 use partitionline::protocol::idem::decode_init_producer_id_response;
 use partitionline::protocol::records::decode_record_batches;
+use partitionline::protocol::cgheartbeat::{
+    decode_consumer_group_heartbeat_request, decode_consumer_group_heartbeat_response,
+};
 use partitionline::protocol::share::decode_share_fetch_response;
 use partitionline::protocol::txn::{
     decode_add_partitions_to_txn_response, decode_end_txn_response,
@@ -86,6 +89,17 @@ fn assert_no_panic_group_and_share(bytes: &[u8]) {
     }
 }
 
+
+fn assert_no_panic_cgheartbeat(bytes: &[u8]) {
+    // Mirror fuzz/fuzz_targets/decode_cgheartbeat_responses.rs version sets.
+    for version in [0_i16, 1] {
+        let mut cur = bytes;
+        drop(decode_consumer_group_heartbeat_request(&mut cur, version));
+        let mut cur = bytes;
+        drop(decode_consumer_group_heartbeat_response(&mut cur, version));
+    }
+}
+
 fn assert_no_panic_txn(bytes: &[u8]) {
     for version in [0_i16, 1, 2, 3, 4] {
         let mut cur = bytes;
@@ -114,7 +128,9 @@ fn empty_and_short_buffers_do_not_panic() {
         assert_no_panic_metadata(&[1, 2, 3, 4], version);
     }
     assert_no_panic_group_and_share(&[]);
+    assert_no_panic_cgheartbeat(&[]);
     assert_no_panic_group_and_share(&[0xff; 7]);
+    assert_no_panic_cgheartbeat(&[0xff; 7]);
     assert_no_panic_txn(&[]);
     assert_no_panic_txn(&[0x80, 0x01, 0x00]);
     let mut empty = &[][..];
@@ -140,6 +156,7 @@ fn random_blobs_do_not_panic_hot_decoders() {
                 assert_no_panic_metadata(&data, version);
             }
             assert_no_panic_group_and_share(&data);
+            assert_no_panic_cgheartbeat(&data);
             assert_no_panic_txn(&data);
             let mut cur = data.as_slice();
             drop(decode_record_batches(&mut cur));

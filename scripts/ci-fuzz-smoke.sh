@@ -27,6 +27,7 @@ targets=(
   decode_record_batches
   decode_group_responses
   decode_share_fetch_response
+  decode_cgheartbeat_responses
 )
 
 for t in "${targets[@]}"; do

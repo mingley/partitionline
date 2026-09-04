@@ -171,3 +171,37 @@ jobs:
       - name: Stop Kafka
         if: always()
         run: docker rm -f pl-lat || true
+
+  # TLS + SASL_SSL PLAIN/SCRAM/OAUTHBEARER/OIDC + mTLS (fail-closed).
+  # Requires Java; downloads Apache Kafka binaries when missing.
+  auth-smoke:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Setup Java (Kafka broker)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Auth smoke
+        env:
+          CI: "true"
+          REQUIRE_AUTH: "1"
+        run: bash scripts/ci-auth-smoke.sh
+
+  # Lab A integrity (HW==acked, consumed==seeded) + unsigned latency soft gate.
+  # Not a Suite HOLD lift.
+  integrity-smoke:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Integrity smoke
+        env:
+          CI: "true"
+          REQUIRE_INTEGRITY: "1"
+          COUNT: "2000"
+        run: bash scripts/ci-integrity-smoke.sh

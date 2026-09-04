@@ -51,6 +51,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Added
 
+- Verifiable: Actions `auth-smoke` + `integrity-smoke` jobs (REQUIRE_AUTH/REQUIRE_INTEGRITY); ConsumerGroupHeartbeat (KIP-848) decode fuzz target + decode-smoke coverage; auth-smoke self-bootstraps Kafka binaries when missing.
 - `scripts/check-installable-preflight.sh`: one-shot pre-publish probe that
   exits `0` with `READY_EXCEPT_TOKEN` when merge-ready + metadata + main CI
   are green and only `CARGO_REGISTRY_TOKEN` / crates.io cut remains (exit `3`

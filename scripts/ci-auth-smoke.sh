@@ -58,7 +58,22 @@ need_bin java
 need_bin python3
 
 if [[ ! -d "$KDIR/bin" ]]; then
-  soft_skip "Kafka not installed at $KDIR (run scripts/ci-native-kafka.sh start once)"
+  # Self-bootstrap Apache Kafka binaries (same archive as ci-native-kafka).
+  # Prefer a pre-seeded KAFKA_HOME; download when REQUIRE_AUTH=1 so Actions
+  # does not depend on a prior native-kafka start.
+  tgz="/tmp/kafka_${KVER}.tgz"
+  echo "ci-auth-smoke: Kafka missing at $KDIR — downloading Apache Kafka ${KVER}"
+  if ! curl -fsSL "https://archive.apache.org/dist/kafka/${KVER}/kafka_2.13-${KVER}.tgz" -o "$tgz"; then
+    soft_skip "failed to download Kafka ${KVER}"
+  fi
+  rm -rf "/tmp/kafka_extract_${KVER}"
+  mkdir -p "/tmp/kafka_extract_${KVER}"
+  tar -xzf "$tgz" -C "/tmp/kafka_extract_${KVER}"
+  rm -rf "$KDIR"
+  mv "/tmp/kafka_extract_${KVER}/kafka_2.13-${KVER}" "$KDIR"
+fi
+if [[ ! -d "$KDIR/bin" ]]; then
+  soft_skip "Kafka not installed at $KDIR after download attempt"
 fi
 
 wait_tcp() {
