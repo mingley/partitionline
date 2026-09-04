@@ -36,6 +36,9 @@ bash scripts/check-workflows.sh
 echo "== ci-branch-lite: tip-delta classifier (cut/sync trust guard) =="
 bash scripts/check-tip-delta.sh
 
+echo "== ci-branch-lite: crates.io token probe self-test =="
+bash scripts/check-registry-token.sh --self-test
+
 echo "== ci-branch-lite: post-cut parks stack rehearsal =="
 bash scripts/check-post-cut-parks-stack.sh
 

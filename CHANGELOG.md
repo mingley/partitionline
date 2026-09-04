@@ -21,7 +21,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Fixed
 
-- Scripts: `check-registry-token` probes crates.io publish-new auth via PUT `/api/v1/crates/new` with a structured empty-tarball body (not `/api/v1/me`, which 403s publish-only tokens; not an empty body, which 400s before auth and false-accepts); `--self-test` proves fake tokens fail; wired into preflight, cut-path, and finish.
+- Scripts: `check-registry-token` probes crates.io publish-new auth via PUT `/api/v1/crates/new` with a structured empty-tarball body (not `/api/v1/me`, which 403s publish-only tokens; not an empty body, which 400s before auth and false-accepts); `--self-test` proves fake tokens fail; wired into preflight, cut-path, finish, and `ci-branch-lite`.
 - Docs/scripts: first-cut token guidance requires crates.io `publish-new` (not only `publish-update`) so a wrong-scoped token cannot silently block Installable.
 - Scripts/docs: `check-trusted-publishing-ready` validates release.yml OIDC shape; ADOPTION warns not to merge Dependabot flate2/SCRAM bumps onto tip before Installable (covered by post-cut SCRAM park); Verifiable park refreshed onto tip.
 - Scripts: finish DRY_RUN hard-fails dirty post-cut parks stacks (no `|| true` greenwash); `check-cut-path` + owner-unblock surface tip→Verifiable→SCRAM stack gate.
