@@ -45,7 +45,10 @@ First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
 - Release workflow accepts `workflow_dispatch` on an existing `v*` tag; rustdoc/`ci-docs` smoke is part of publish-ready.
 - Fixed broken rustdoc `[Display]` intra-doc links (now `std::fmt::Display`).
 - Cleared remaining unresolved rustdoc intra-doc links (module docs resolve in
-  submodule scope; `ci-docs` fails the gate if any reappear).
+  submodule scope; crate denies `rustdoc::broken_intra_doc_links`; `ci-docs`
+  fails the gate if any reappear).
+- CI: `dev/**` branch pushes run a single `branch-lite` job; full matrix on
+  pull_request, `main`, and `workflow_dispatch` so scarce runners can finish.
 - Broker smoke: Kafka CI matrix uses `apache/kafka:4.1.0`; Docker 4.x starts with
   share coordinator RF=1 and upgrades `share.version=1`; `REQUIRE_SHARE=1` fails
   the job if share cannot fetch records on 4.x. Civilization-check only counts

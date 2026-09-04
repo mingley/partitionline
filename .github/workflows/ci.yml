@@ -6,16 +6,31 @@ on:
   pull_request:
   workflow_dispatch:
 
-# One CI group per ref. Cancel in-progress/queued only on pull_request
-# synchronize (PR noise). On branch pushes, keep a queued run's place when
-# runners are scarce — cancel-in-progress:true was resetting the queue on
-# every agent push so jobs never left "queued".
+# One CI group per ref. Always cancel superseded runs on feature branches and
+# PRs so scarce runners are not held by stale queues. Never cancel mid-run on
+# main (release verification).
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # Branch pushes (dev/**): one light job so a single free runner can finish.
+  # Full matrix runs on pull_request, main, and workflow_dispatch.
+  branch-lite:
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo test --lib
+      - run: bash scripts/ci-docs.sh
+
   fmt:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -25,6 +40,7 @@ jobs:
       - run: cargo fmt --all -- --check
 
   clippy:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -35,6 +51,7 @@ jobs:
 
   # Default fast path: mock / unit tests, no Docker.
   test:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -48,6 +65,7 @@ jobs:
       - run: cargo test --all-targets
 
   audit:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -58,6 +76,7 @@ jobs:
 
   # cargo-deny: advisories + licenses + no-C bans + crates.io-only sources.
   deny:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -68,6 +87,7 @@ jobs:
 
   # crates.io packaging + publish dry-run (does not publish).
   package:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -80,6 +100,7 @@ jobs:
 
   # Optional-feature compile gate (tracing spans).
   features:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -89,6 +110,7 @@ jobs:
 
   # libFuzzer smoke (nightly). Short wall-clock per target.
   fuzz-smoke:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -108,6 +130,7 @@ jobs:
   # Real Apache Kafka broker smoke (separate from mock suite).
   # Matrix: Kafka 3.9.x and 4.x KRaft images.
   broker-smoke:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -125,6 +148,7 @@ jobs:
 
   # Produce-ack p99 relative gate (unsigned, not vs C).
   latency-gate:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: []
     steps:

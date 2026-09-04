@@ -183,14 +183,14 @@ Execute in this sequence unless blocked:
 
 | Package | Status | Notes |
 |---|---|---|
-| WP-0 Public crate identity | **in progress** | 0.1–0.4 done; `cargo package` + `cargo publish --dry-run` + packed-crate consumer + rustdoc/`ci-docs` smoke green (**zero** unresolved intra-doc links); docs.rs metadata; release workflow supports tag push and `workflow_dispatch`; `owner-publish` / `day1-after-publish` ready. Share-assignment fixes merged here for one path to `main`. **0.5 blocked on owner `CARGO_REGISTRY_TOKEN`** (crate name free on crates.io; GitHub Actions still often stuck queued/pending). |
+| WP-0 Public crate identity | **in progress** | 0.1–0.4 done; `cargo package` + `cargo publish --dry-run` + packed-crate consumer + rustdoc/`ci-docs` smoke green (**zero** unresolved intra-doc links; crate `#![deny(rustdoc::broken_intra_doc_links)]`); docs.rs metadata; release workflow supports tag push and `workflow_dispatch`; `owner-publish` / `day1-after-publish` ready. Share-assignment fixes merged here for one path to `main`. **0.5 blocked on owner `CARGO_REGISTRY_TOKEN`** (crate name free on crates.io). Branch pushes use a single `branch-lite` CI job so scarce runners can finish; full matrix on PR/`main`/`workflow_dispatch`. |
 | WP-1 Real-broker CI | **done** | `broker-smoke` matrix `apache/kafka:3.9.1` + `4.1.0`; Docker 4.x enables share coordinator + upgrades `share.version=1`; native Kafka fallback; smoke covers roundtrip/produce/admin/txn/**group/eos/share** (`REQUIRE_SHARE=1` on 4.x). |
 | WP-2 Adversarial trust | **done** | security.md + audit CI + `cargo deny` + PEM via rustls-pki-types + decode OOM guards + fuzz smoke + libFuzzer. |
 | WP-3 Operator docs | **done** | guide.md (incl. recipes) + migrate-from-rdkafka.md + ADOPTION.md + README links. |
 | WP-4 Observability | **done** | Metrics in guide; `tracing` feature; Prometheus text example. |
 | WP-5 Perf honesty | **in progress** | Lab A script enforces **HW sum == acked** each run (Docker or native kafka tools); `latency-gate` CI (unsigned). 2026-09-04 native gate sample in STATUS (not a Suite HOLD lift). Signed Suite HOLD still external. |
 | WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md + `docs/schema-companion.md` design (crate waits on crates.io). Packed-crate downstream consumer gate in civilization/publish-ready. |
-| WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish; civilization-check; `scripts/ci-publish-ready.sh`. |
+| WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish; civilization-check; `scripts/ci-publish-ready.sh`. `dev/**` pushes run `branch-lite` only (fmt/clippy/lib tests/docs) to conserve Actions capacity. |
 
 ## Success criteria (civilization bar)
 

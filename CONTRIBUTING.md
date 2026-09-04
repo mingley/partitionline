@@ -13,6 +13,11 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 ```
 
+GitHub Actions: pushes to `dev/**` run a single `branch-lite` job (fmt, clippy,
+lib tests, docs). The full matrix (MSRV, broker smoke, fuzz, deny, package, …)
+runs on pull requests, `main`, and `workflow_dispatch`. Prefer opening a PR (or
+dispatching the workflow) when you need the full gate.
+
 Real-broker smoke (Docker required; skipped locally if Docker is missing unless `CI=true`):
 
 ```
