@@ -40,14 +40,27 @@ echo
 echo "== 4) Publish path (after token; Verifiable already green on main) =="
 echo "Tracking issue: https://github.com/mingley/partitionline/issues/86"
 echo
+# Live tip/main relationship — do not hardcode "matches main" (tip often stays
+# ahead on docs/scripts while Installable waits; thrash guard refuses sync).
+git fetch origin main dev/civilization-plan-b686 >/dev/null 2>&1 || true
+tip_sha="$(git rev-parse origin/dev/civilization-plan-b686 2>/dev/null || true)"
+main_sha="$(git rev-parse origin/main 2>/dev/null || true)"
+if [[ -n "$tip_sha" && -n "$main_sha" && "$tip_sha" == "$main_sha" ]]; then
+  tip_main_note="Tip matches main."
+elif [[ -n "$tip_sha" && -n "$main_sha" ]]; then
+  ahead="$(git rev-list --count origin/main..origin/dev/civilization-plan-b686 2>/dev/null || echo '?')"
+  tip_main_note="Tip ${tip_sha:0:7} is ahead of main ${main_sha:0:7} by ${ahead} commit(s) (intentional while Installable waits; do not tip→main thrash)."
+else
+  tip_main_note="Tip/main relationship unknown (fetch failed)."
+fi
 echo "As of 2026-09-04: main CI is green through Kafka 3.9.1 + 4.1.0 broker-smoke"
 echo "and latency-gate (soft-skip kip848 on 3.9). PRE_PUBLISH bars: only Installable"
-echo "blocked. Tip matches main. Remaining owner action is CARGO_REGISTRY_TOKEN."
+echo "blocked. ${tip_main_note} Remaining owner action is CARGO_REGISTRY_TOKEN."
 echo "Probe: bash scripts/check-installable-preflight.sh   # expect READY_EXCEPT_TOKEN"
 echo
 echo "Fastest once CARGO_REGISTRY_TOKEN is in this environment (bypasses starved Actions):"
 echo "  bash scripts/owner-finish-installable.sh"
-echo "  # FF-merges civilization → main (no-op if already aligned), cargo publish,"
+echo "  # FF-merges civilization → main (includes any tip-ahead docs/scripts), cargo publish,"
 echo "  # day1, proves Installable. Real cuts default REQUIRE_MAIN_CI=1 — wait for"
 echo "  # green main CI if a docs/scripts push is still running, or override with 0."
 echo "  DRY_RUN=1 bash scripts/owner-finish-installable.sh"

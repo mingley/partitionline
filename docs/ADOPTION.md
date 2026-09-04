@@ -5,22 +5,30 @@ need a memory-safe Kafka stack with no C in the default feature set.
 
 ## Owner unblock (WP-0.5)
 
-Civilization **Installable** is blocked only on credentials (`main` already
-has the civilization tip + `first-publish.yml`):
+Civilization **Installable** is blocked only on credentials. Probe anytime:
+
+```bash
+bash scripts/check-installable-preflight.sh   # READY_EXCEPT_TOKEN when cut-ready
+bash scripts/owner-status.sh
+bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish path
+```
 
 1. Add `CARGO_REGISTRY_TOKEN` (Cloud Agent env + GitHub Actions secret).
 2. Cancel stale tip/tag Actions still stuck in `queued` (agents get 403).
    **Owner:** `bash scripts/owner-cancel-stuck-runs.sh` (or `DRY_RUN=1` first).
-   `main` CI is green again (e.g. run `33714516185`). Tip (`dev/**`) pushes
-   no longer auto-queue CI (was thrashing starved runners); local gate:
-   `bash scripts/ci-branch-lite.sh`. Full matrix on PR/`main`/`workflow_dispatch`.
+   `main` HEAD CI is green (e.g. run `33850540606` on `6431785` — Kafka
+   3.9.1 + 4.1.0 broker-smoke + latency-gate). Tip (`dev/**`) pushes no longer
+   auto-queue CI; local gate: `bash scripts/ci-branch-lite.sh`. Full matrix on
+   PR/`main`/`workflow_dispatch`. While the token is missing, leave tip ahead
+   on docs/scripts — `owner-sync-main` refuses docs-only tip→main thrash
+   (restarting broker-smoke cancels in-flight Verifiable).
 3. **Preferred once the token is in-env** (bypasses starved Actions for the
    first cut):
    ```bash
    bash scripts/owner-finish-installable.sh
    ```
-   Publishes from current `main` (civilization tip already landed), runs day1,
-   and proves Installable. Or stepwise:
+   Fast-forwards tip → `main` once (if tip is ahead), publishes locally,
+   runs day1, and proves Installable. Or stepwise:
    `bash scripts/owner-cut-release.sh` (tags **`v0.1.0`** final only).
    If the token is **Actions-only** (not in your shell): cancel stuck runs,
    then Actions → **First publish** → `confirm=publish` or
@@ -28,16 +36,6 @@ has the civilization tip + `first-publish.yml`):
    (`.github/workflows/first-publish.yml` is already on `main`).
 4. Commit the README crates.io line if day1 changed it; configure crates.io
    Trusted Publishing for `release.yml`.
-
-Probe current blockers anytime:
-
-```bash
-bash scripts/owner-status.sh
-# One-shot checklist (status + dry-run cancel + finish path):
-bash scripts/owner-unblock.sh
-# When Actions stay queued, local Verifiable proxy:
-bash scripts/ci-branch-lite.sh
-```
 
 ## Install (today)
 
