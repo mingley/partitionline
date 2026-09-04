@@ -62,6 +62,12 @@ echo "== check-cut-path: path adopter consumer (pre-crates.io) =="
 MODE=path bash scripts/verify-crates-io-consumer.sh
 
 echo
+echo "== check-cut-path: git-tag adopter consumer (documented pin) =="
+# README/ADOPTION git pin must cargo-check while Installable waits on the token.
+# Skips cleanly once README is crates.io-shaped after day1.
+MODE=git bash scripts/verify-crates-io-consumer.sh
+
+echo
 echo "== check-cut-path: packed crate consumer (Installable packaging) =="
 bash scripts/ci-crate-consumer.sh
 
