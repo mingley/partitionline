@@ -138,6 +138,12 @@ grep -qF 'preserve-day1-docs.sh' scripts/owner-finish-installable.sh \
   || { echo "check-cut-path: FAIL — finish must source preserve-day1-docs.sh" >&2; exit 1; }
 
 echo
+echo "== check-cut-path: post-Installable handoff rehearsal (DRY_RUN) =="
+# After crates.io 0.1.0 (or Actions-alternate publish), owners re-enter via
+# owner-post-installable-handoff. Rehearse before the token cut.
+DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh
+
+echo
 echo "== check-cut-path: tip Verifiable PARTIAL exit self-test =="
 # Prove finalize exit codes before the live broker rehearsal.
 bash scripts/ci-tip-verifiable-broker.sh --self-test
