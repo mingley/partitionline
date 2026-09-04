@@ -136,10 +136,16 @@ if [[ -f scripts/ci-tip-verifiable-broker.sh ]] \
   && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/owner-finish-installable.sh \
   && [[ -f scripts/check-installable-preflight.sh ]] \
   && grep -qF -- 'check-registry-token.sh --self-test' scripts/check-installable-preflight.sh \
-  && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/check-installable-preflight.sh; then
+  && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/check-installable-preflight.sh \
+  && grep -qF -- 'pl_prepare_cargo_registry_token' scripts/check-installable-preflight.sh \
+  && grep -qF -- 'check-installable-preflight.sh --self-test' scripts/check-installable-preflight.sh \
+  && bash scripts/check-installable-preflight.sh --self-test >/tmp/pl-preflight-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-preflight-self-test.log; then
   ok "tip Verifiable soft-skip honesty (--self-test PARTIAL exit 2 + soft latency + quiet retry; wired into branch-lite/cut-path/finish/preflight)"
+  ok "Installable preflight TOKEN prepare honesty (whitespace/misname/TOKEN_FILE before READY_EXCEPT_TOKEN; --self-test)"
 else
   bad "ci-tip-verifiable-broker soft-skip honesty missing (--self-test / finalize / soft latency / quiet retry / tip proxy+finish+preflight wiring); see /tmp/pl-tip-verifiable-self-test.log"
+  bad "Installable preflight TOKEN prepare honesty missing (pl_prepare / --self-test); see /tmp/pl-preflight-self-test.log"
 fi
 # Integrity leaf must not print final `ok` after soft latency — civilization-check / tip
 # proxies must see PARTIAL/exit 2 (REQUIRE_INTEGRITY=1 → hard-fail). Soft branch must
@@ -244,6 +250,8 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF -- 'LAND_PARKS' scripts/owner-cut-release.sh \
   && grep -qF -- 'SKIP_HANDOFF' scripts/owner-cut-release.sh \
   && grep -qF -- 'SKIP_HANDOFF=1' scripts/owner-finish-installable.sh \
+  && grep -qF 'PARTIAL — already-Installable DRY_RUN soft-failed' scripts/owner-finish-installable.sh \
+  && grep -qF 'parks_rc' scripts/owner-finish-installable.sh \
   && grep -qF -- '--self-test' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — Installable OK but parks land failed' scripts/owner-post-installable-handoff.sh \
   && bash scripts/owner-post-installable-handoff.sh --self-test >/tmp/pl-handoff-self-test.log 2>&1 \

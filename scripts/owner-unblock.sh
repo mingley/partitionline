@@ -115,6 +115,14 @@ echo
 echo "Until crates.io lands, adopters pin git tag v0.1.0-rc.6 (not floating main)."
 echo
 
+echo "== 4b) After Installable / PARTIAL re-entry =="
+echo "  Finish calls cut with SKIP_HANDOFF=1, syncs Actions secrets, then one handoff"
+echo "  (bare owner-cut-release still chains handoff itself)."
+echo "  If finish/cut exited PARTIAL (parks/TP soft-fail): do NOT re-publish."
+echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+echo "  Or: bash scripts/owner-finish-installable.sh  # already-Installable short-circuit"
+echo
+
 echo "== 5) Day-1 after crates.io shows partitionline 0.1.0 =="
 echo "  bash scripts/day1-after-publish.sh"
 echo "  bash scripts/check-installable.sh"
