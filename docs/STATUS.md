@@ -68,6 +68,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Cut-path handoff_rc capture (2026-09-04):** `check-cut-path` captures handoff DRY_RUN rc (like day1/dispatch) so already-Installable parks-off-main PARTIAL/2 cannot `set -e` abort the rehearsal. Aggregates into OK-with-PARTIAL. Finish comment no longer claims handoff DRY_RUN always exits 0. Bars gate `handoff_rc`. Still not a Suite HOLD lift.
 
+**Tip-proxy handoff DRY_RUN (2026-09-04):** `ci-branch-lite` and `ci-publish-ready` now rehearse `owner-post-installable-handoff` DRY_RUN (with `HANDOFF_FROM_BARS=1`) and capture `handoff_rc` like cut-path — tip Verifiable / token-day publish-ready cannot ignore parks-on-main PARTIAL. Bars gate. Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
