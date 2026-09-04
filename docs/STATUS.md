@@ -20,6 +20,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Tip Verifiable PARTIAL fail-closed (2026-09-04, tip `e1fecbe` + `ci-tip-verifiable-broker` exit 2):** mid-chain soft-skips now exit 2 by default so tip proxies cannot treat PARTIAL as green (`TIP_VERIFIABLE_SOFT=1` opt-in exit 0). Capable-env recheck: native Kafka 4.1 broker-smoke (kip848+share) green; auth matrix green; Lab A integrity COUNT=2000 HW==acked and consumed==seeded green; latency quiet p99≈98µs (pass vs 750µs) — still **unsigned**, still not a Suite HOLD lift.
 
+**Tip Verifiable PARTIAL --self-test (2026-09-04, tip `TIPSHA`):** `ci-tip-verifiable-broker --self-test` proves finalize ok/exit0, PARTIAL/exit2, soft PARTIAL/exit0; wired into tip proxies + bars. Live recheck: integrity COUNT=2000, latency quiet p99≈86µs — still **unsigned**, still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
