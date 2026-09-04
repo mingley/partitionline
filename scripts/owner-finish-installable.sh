@@ -301,13 +301,17 @@ if [[ "$DRY_RUN" == "1" ]]; then
     bash scripts/owner-cut-release.sh
   echo
   echo "owner-finish-installable: DRY_RUN complete — no merge/tag/publish performed"
-  echo "owner-finish-installable: DRY_RUN=1 — would then run owner-enable-trusted-publishing.sh"
-  # Rehearse workflow-shape + UI checklist (crate may be absent).
-  DRY_RUN=1 bash scripts/owner-enable-trusted-publishing.sh
+  echo "owner-finish-installable: DRY_RUN=1 — would sync Actions secret CARGO_REGISTRY_TOKEN"
+  land_parks=0
   if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
-    echo "owner-finish-installable: DRY_RUN=1 — would then run owner-land-post-cut-parks.sh"
-    # Finish FFs tip→main before parks; rehearse stack on tip when tip is ahead.
-    # Hard-fail parks rehearsal — || true previously greenwashed dirty stacks.
+    land_parks=1
+  fi
+  echo "owner-finish-installable: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
+  # Handoff DRY_RUN rehearses TP shape + parks stack (does not land). Keep the
+  # REQUIRE_PARKS land rehearsal below so soft-skipping parks cannot greenwash.
+  LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh
+  if [[ "$land_parks" == "1" ]]; then
+    echo "owner-finish-installable: DRY_RUN=1 — parks land rehearsal (REQUIRE_PARKS=1)"
     tip_br="${CIVILIZATION_TIP:-dev/civilization-plan-b686}"
     git fetch origin main "$tip_br" >/dev/null 2>&1 || true
     if git rev-parse "origin/${tip_br}" >/dev/null 2>&1 \
