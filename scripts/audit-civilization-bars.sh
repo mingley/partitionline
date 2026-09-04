@@ -141,6 +141,26 @@ if [[ -f scripts/ci-tip-verifiable-broker.sh ]] \
 else
   bad "ci-tip-verifiable-broker soft-skip honesty missing (--self-test / finalize / soft latency / quiet retry / tip proxy+finish+preflight wiring); see /tmp/pl-tip-verifiable-self-test.log"
 fi
+# Integrity leaf must not print final `ok` after soft latency — civilization-check / tip
+# proxies must see PARTIAL/exit 2 (REQUIRE_INTEGRITY=1 → hard-fail). Soft branch must
+# exit before the final `ok` line in source order.
+if [[ -f scripts/ci-integrity-smoke.sh ]] \
+  && grep -qF 'latency_soft=1' scripts/ci-integrity-smoke.sh \
+  && grep -qF 'ci-integrity-smoke: PARTIAL' scripts/ci-integrity-smoke.sh \
+  && awk '
+      /latency_soft=1/ { soft=NR }
+      /ci-integrity-smoke: PARTIAL/ { partial=NR }
+      /exit 2/ && soft && NR >= soft { e2=NR }
+      /ci-integrity-smoke: ok \(unsigned/ { ok=NR }
+      END { exit (soft && partial && e2 && ok && partial < ok && e2 < ok) ? 0 : 1 }
+    ' scripts/ci-integrity-smoke.sh \
+  && [[ -f scripts/ci-civilization-check.sh ]] \
+  && grep -qF 'ci-integrity-smoke: PARTIAL' scripts/ci-civilization-check.sh \
+  && grep -qF 'latency soft-miss' scripts/ci-civilization-check.sh; then
+  ok "integrity-smoke soft-latency honesty (PARTIAL/exit 2 before final ok; civilization-check ski)"
+else
+  bad "integrity-smoke soft-latency honesty missing (must PARTIAL/exit 2 before final ok; never greenwash soft)"
+fi
 fuzz_n=0
 if [[ -d fuzz/fuzz_targets ]]; then
   fuzz_n="$(find fuzz/fuzz_targets -name '*.rs' | wc -l | tr -d ' ')"
@@ -220,20 +240,25 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF -- 'LAND_PARKS=' scripts/owner-finish-installable.sh \
   && grep -qF -- 'Post-Installable handoff' scripts/owner-finish-installable.sh \
   && grep -qF -- 'would run owner-post-installable-handoff' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'owner-post-installable-handoff' scripts/owner-cut-release.sh \
+  && grep -qF -- 'LAND_PARKS' scripts/owner-cut-release.sh \
   && grep -qF -- '--self-test' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'PARTIAL — Installable OK but parks land failed' scripts/owner-post-installable-handoff.sh \
   && bash scripts/owner-post-installable-handoff.sh --self-test >/tmp/pl-handoff-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-handoff-self-test.log \
+  && grep -q 'fail-closed PARTIAL' /tmp/pl-handoff-self-test.log \
   && HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1; then
-  ok "post-Installable handoff (DRY_RUN + --self-test preserve; finish live+re-entry + cut-path + day1 + first-publish)"
+  ok "post-Installable handoff (DRY_RUN + fail-closed PARTIAL; finish+cut-release chain + cut-path + day1 + first-publish)"
 else
   bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log /tmp/pl-handoff-self-test.log"
 fi
 
 # Cut-release bare must auto PUBLISH_LOCAL=1 when token is in-env (token-day footgun).
-if bash scripts/owner-cut-release.sh --self-test >/tmp/pl-cut-publish-local-auto.log 2>&1; then
-  ok "cut-release PUBLISH_LOCAL auto-default (token in-env → local publish)"
+if bash scripts/owner-cut-release.sh --self-test >/tmp/pl-cut-publish-local-auto.log 2>&1 \
+  && grep -q 'handoff chained' /tmp/pl-cut-publish-local-auto.log; then
+  ok "cut-release PUBLISH_LOCAL auto-default + post-Installable handoff chain"
 else
-  bad "cut-release PUBLISH_LOCAL auto-default missing/broken; see /tmp/pl-cut-publish-local-auto.log"
+  bad "cut-release PUBLISH_LOCAL auto-default / handoff chain missing/broken; see /tmp/pl-cut-publish-local-auto.log"
 fi
 
 
