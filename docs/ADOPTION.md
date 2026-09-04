@@ -107,7 +107,9 @@ native broker smoke and SASL_SSL PLAIN + SCRAM + OAUTHBEARER + OIDC + mTLS auth
 smoke. Same-day recheck: `SKIP_DOCKER=1` broker-smoke (kip848+share),
 `REQUIRE_AUTH=1` auth-smoke, integrity COUNT=2000 HW==acked+consumed==seeded,
 latency gate p99≈71–86µs vs 500µs baseline — all unsigned; not a Suite HOLD
-lift. Later same day: local `KAFKA_IMAGE=apache/kafka:4.1.0` broker-smoke
+lift. Later same day tip `86412be`: native broker kip848+share, auth matrix,
+integrity COUNT=2000, latency quiet p99≈126–203µs after under-load miss
+≈0.9–1.1ms — unsigned; not a Suite HOLD lift. Later same day: local `KAFKA_IMAGE=apache/kafka:4.1.0` broker-smoke
 (kip848+share) green after the Docker `KAFKA_*` / `process.roles` fix; Actions
 `latency-gate` on `main` @ `910015f` also green (`LATENCY_LIMIT_US=5000`);
 Actions `broker-smoke` Kafka **4.1.0** green on that same SHA; Kafka **3.9.1**
