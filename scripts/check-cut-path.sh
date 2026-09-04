@@ -55,6 +55,10 @@ echo "== check-cut-path: path adopter consumer (pre-crates.io) =="
 MODE=path bash scripts/verify-crates-io-consumer.sh
 
 echo
+echo "== check-cut-path: packed crate consumer (Installable packaging) =="
+bash scripts/ci-crate-consumer.sh
+
+echo
 echo "== check-cut-path: post-cut parks stack =="
 bash scripts/check-post-cut-parks-stack.sh
 
