@@ -131,16 +131,15 @@ if [[ "${1:-}" == "--self-test" ]]; then
   exit 0
 fi
 
-# Load TOKEN_FILE into *this* process (and callers that source the same helper).
+# Load TOKEN_FILE, normalize whitespace-only TOKEN, warn on misnames — in *this* process.
 # shellcheck source=scripts/lib/cargo-registry-token.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cargo-registry-token.sh"
-pl_load_cargo_registry_token_file "check-registry-token"
+pl_prepare_cargo_registry_token "check-registry-token"
 
 if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "check-registry-token: MISSING — CARGO_REGISTRY_TOKEN unset"
   echo "  First cut of a NEW crate: https://crates.io/settings/tokens"
   echo "  Enable scope publish-new (+ publish-update). publish-update alone cannot create the crate."
-  pl_warn_misnamed_cargo_registry_token "check-registry-token"
   if [[ "$REQUIRE_TOKEN" == "1" ]]; then
     exit 1
   fi
