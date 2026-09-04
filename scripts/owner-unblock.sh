@@ -25,7 +25,11 @@ echo "If targets listed above: cancel them as repo owner, then re-run this scrip
 echo "  bash scripts/owner-cancel-stuck-runs.sh"
 echo
 
-echo "== 3) Publish path (after token + clean Actions) =="
+echo "== 3) Merge/tag readiness (no token required) =="
+bash scripts/check-merge-ready.sh || true
+echo
+
+echo "== 4) Publish path (after token + clean Actions) =="
 echo "Tracking issue: https://github.com/mingley/partitionline/issues/86"
 echo "Preferred (docs/RELEASE.md): merge civilization → main, then tag final only:"
 echo "  # open/merge PR: dev/civilization-plan-b686 → main"
@@ -40,7 +44,7 @@ echo
 echo "Until crates.io lands, adopters pin git tag v0.1.0-rc.6 (not floating main)."
 echo
 
-echo "== 4) Day-1 after crates.io shows partitionline 0.1.0 =="
+echo "== 5) Day-1 after crates.io shows partitionline 0.1.0 =="
 echo "  bash scripts/day1-after-publish.sh"
 echo "  bash scripts/check-installable.sh"
 echo "  # day1 flips README via post-publish-readme.sh (DRY_RUN=1 preflight in publish-ready)"

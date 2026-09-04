@@ -35,6 +35,8 @@ One-time setup (first crates.io cut):
 3. Ensure CHANGELOG has a dated `0.1.0` (or next) section and README is ready
    to show the crates.io dependency line after the run.
 
+Before merging/tagging, run `bash scripts/check-merge-ready.sh` (add `FULL=1` for tip Verifiable proxy). Does not require a token.
+
 Then (on `main`, after civilization is merged):
 
 ```bash
