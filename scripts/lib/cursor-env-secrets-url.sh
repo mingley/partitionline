@@ -9,7 +9,7 @@
 #
 # Or print helper:
 #   bash scripts/lib/cursor-env-secrets-url.sh
-: "${PARTITIONLINE_CURSOR_ENV_SECRETS_URL:=https://cursor.com/dashboard/cloud-agents/environments/e/55ff85be-9e3a-11f1-a7d1-d6b4613131ce}"
+: "${PARTITIONLINE_CURSOR_ENV_SECRETS_URL:=https://cursor.com/dashboard/cloud-agents/environments/e/55ff85be-9e3a-11f1-a7d1-d6b4613131ce/secrets}"
 export PARTITIONLINE_CURSOR_ENV_SECRETS_URL
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
