@@ -163,7 +163,8 @@ else
 fi
 
 echo "owner-status: next"
-echo "  0. One-shot checklist: bash scripts/owner-unblock.sh"
+echo "  0. Token missing? one screen: bash scripts/owner-request-registry-token.sh"
+echo "  0b. Full checklist: bash scripts/owner-unblock.sh"
 echo "  1. Set CARGO_REGISTRY_TOKEN (Cloud Agent env + Actions secret; scope publish-new)"
 # shellcheck source=scripts/lib/cursor-env-secrets-url.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cursor-env-secrets-url.sh"
