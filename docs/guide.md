@@ -158,5 +158,6 @@ init/begin/commit/abort. Pair with `tracing-subscriber` in the application.
 - Capability vs librdkafka: [`gaps.md`](gaps.md)
 - Wire notes: [`design.md`](design.md)
 - Migrate from rust-rdkafka: [`migrate-from-rdkafka.md`](migrate-from-rdkafka.md)
+- Adoption / pilot checklist: [`ADOPTION.md`](ADOPTION.md)
 - Security: [`security.md`](security.md)
 - Pure-Rust zstd spike: [`zstd-spike.md`](zstd-spike.md)

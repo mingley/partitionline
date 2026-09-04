@@ -29,6 +29,28 @@ wait_tcp() {
   return 1
 }
 
+# group/eos examples loop forever — succeed if they print progress before timeout.
+run_until_progress() {
+  local label="$1"
+  local pattern="$2"
+  shift 2
+  local log
+  log="$(mktemp)"
+  set +e
+  timeout 45s "$@" >"$log" 2>&1
+  local rc=$?
+  set -e
+  if grep -E -- "$pattern" "$log" >/dev/null; then
+    echo "ci-broker-smoke: $label ok"
+    rm -f "$log"
+    return 0
+  fi
+  echo "ci-broker-smoke: $label failed (rc=$rc); log:" >&2
+  cat "$log" >&2 || true
+  rm -f "$log"
+  return 1
+}
+
 run_examples() {
   export KAFKA_BOOTSTRAP="$BOOTSTRAP"
   export KAFKA_TOPIC="$TOPIC"
@@ -59,6 +81,39 @@ run_examples() {
     echo "ci-broker-smoke: txn not ready yet; retry $attempt"
     sleep 3
   done
+
+  # Seed records then exercise classic group consume/commit.
+  echo "== group =="
+  cargo run --release --example produce >/dev/null
+  cargo run --release --example produce >/dev/null
+  for attempt in 1 2 3 4 5 6; do
+    if run_until_progress "group" '@[0-9]+' cargo run --release --example group; then
+      break
+    fi
+    if [[ "$attempt" -eq 6 ]]; then
+      echo "ci-broker-smoke: group example failed after retries" >&2
+      exit 1
+    fi
+    echo "ci-broker-smoke: group coordinator not ready yet; retry $attempt"
+    sleep 3
+  done
+
+  # Exactly-once consume→produce path (needs source records + output topic).
+  echo "== eos =="
+  cargo run --release --example produce >/dev/null
+  export KAFKA_TRANSACTIONAL_ID="pl-ci-eos"
+  export KAFKA_GROUP="pl-ci-eos"
+  for attempt in 1 2 3 4 5 6; do
+    if run_until_progress "eos" '-> ' cargo run --release --example eos; then
+      break
+    fi
+    if [[ "$attempt" -eq 6 ]]; then
+      echo "ci-broker-smoke: eos example failed after retries" >&2
+      exit 1
+    fi
+    echo "ci-broker-smoke: eos not ready yet; retry $attempt"
+    sleep 3
+  done
 }
 
 if [[ "${SKIP_DOCKER:-}" == "1" ]]; then
@@ -67,11 +122,17 @@ if [[ "${SKIP_DOCKER:-}" == "1" ]]; then
     echo "ci-broker-smoke: broker not reachable at $BOOTSTRAP" >&2
     exit 1
   fi
-  # Topic create is best-effort via admin example / produce; prefer kafka CLI if present.
+  # Topic create via kafka CLI when available (PATH or common native install).
+  topics_bin=""
   if command -v kafka-topics.sh >/dev/null 2>&1; then
-    kafka-topics.sh --bootstrap-server "$BOOTSTRAP" --create --if-not-exists \
+    topics_bin="$(command -v kafka-topics.sh)"
+  elif [[ -x /tmp/kafka_3.9.1/bin/kafka-topics.sh ]]; then
+    topics_bin=/tmp/kafka_3.9.1/bin/kafka-topics.sh
+  fi
+  if [[ -n "$topics_bin" ]]; then
+    "$topics_bin" --bootstrap-server "$BOOTSTRAP" --create --if-not-exists \
       --topic "$TOPIC" --partitions 1 --replication-factor 1 || true
-    kafka-topics.sh --bootstrap-server "$BOOTSTRAP" --create --if-not-exists \
+    "$topics_bin" --bootstrap-server "$BOOTSTRAP" --create --if-not-exists \
       --topic "$OUT_TOPIC" --partitions 1 --replication-factor 1 || true
   fi
   run_examples

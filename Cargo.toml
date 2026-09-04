@@ -27,6 +27,7 @@ include = [
     "docs/guide.md",
     "docs/migrate-from-rdkafka.md",
     "docs/zstd-spike.md",
+    "docs/ADOPTION.md",
     "docs/latency-baseline.json",
     "CHANGELOG.md",
     "deny.toml",

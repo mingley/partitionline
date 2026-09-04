@@ -157,6 +157,7 @@ Defaults that differ from Java:
 The crate rustdoc is the full Java-shaped API catalog (protocol helpers,
 version ranges, and option names). Operator guide: [docs/guide.md](docs/guide.md).
 Migrate from rust-rdkafka: [docs/migrate-from-rdkafka.md](docs/migrate-from-rdkafka.md).
+Adoption / pilot checklist: [docs/ADOPTION.md](docs/ADOPTION.md).
 Capability list vs librdkafka: [docs/gaps.md](docs/gaps.md).
 Security: [docs/security.md](docs/security.md).
 Release policy: [docs/RELEASE.md](docs/RELEASE.md).

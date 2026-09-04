@@ -184,13 +184,13 @@ Execute in this sequence unless blocked:
 | Package | Status | Notes |
 |---|---|---|
 | WP-0 Public crate identity | **in progress** | 0.1–0.4 done; `cargo package` + `cargo publish --dry-run` green; docs.rs metadata; release workflow ready. **0.5 blocked on owner `CARGO_REGISTRY_TOKEN`** (crate name free on crates.io). |
-| WP-1 Real-broker CI | **done** | `broker-smoke` matrix `apache/kafka:3.9.1` + `4.0.0`; `SKIP_DOCKER=1` + `scripts/ci-native-kafka.sh` for agent VMs without overlayfs; mock `test` unchanged. |
+| WP-1 Real-broker CI | **done** | `broker-smoke` matrix `apache/kafka:3.9.1` + `4.0.0`; native Kafka fallback; smoke covers roundtrip/produce/admin/txn/**group/eos**. |
 | WP-2 Adversarial trust | **done** | security.md + audit CI + `cargo deny` + PEM via rustls-pki-types + decode OOM guards + fuzz smoke + libFuzzer. |
-| WP-3 Operator docs | **done** | guide.md (incl. recipes) + migrate-from-rdkafka.md + README links. |
+| WP-3 Operator docs | **done** | guide.md (incl. recipes) + migrate-from-rdkafka.md + ADOPTION.md + README links. |
 | WP-4 Observability | **done** | Metrics in guide; `tracing` feature; Prometheus text example. |
 | WP-5 Perf honesty | **in progress** | Lab A script + `latency-gate` CI (unsigned). Signed Suite HOLD still external. |
-| WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey issue [#85](https://github.com/mingley/partitionline/issues/85). Schema companion waits on crates.io. |
-| WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish workflow; `scripts/ci-civilization-check.sh`. |
+| WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md. Schema companion waits on crates.io. |
+| WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish; civilization-check; `scripts/ci-publish-ready.sh`. |
 
 ## Success criteria (civilization bar)
 
