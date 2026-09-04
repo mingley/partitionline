@@ -56,7 +56,7 @@ bash scripts/owner-status.sh || true
 echo
 echo "Next (owner):"
 echo "  1. Ensure CARGO_REGISTRY_TOKEN is set (env + GitHub Actions secret)"
-echo "  2. Merge to main"
-echo "  3. git tag v${ver} && git push origin v${ver}"
-echo "  4. Confirm https://crates.io/crates/partitionline"
-echo "  5. README: partitionline = \"${ver%.*}\"  # e.g. 0.1"
+echo "  2. Merge civilization → main"
+echo "  3. On clean main: bash scripts/owner-cut-release.sh"
+echo "  4. Confirm https://crates.io/crates/partitionline/${ver}"
+echo "  5. README crates.io line (day1) + Trusted Publishing for release.yml"
