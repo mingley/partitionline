@@ -5,10 +5,12 @@ Suite HOLD stands. This file records holes. It does not lift them.
 | Hole | Status |
 |---|---|
 | Fetch writeup | **Recorded** 2026-08-28 on this-VM (Apache Kafka 3.9.1 KRaft + rust-rdkafka 0.39.0). **Unsigned** until Kernel Integrity signs. Not Lab A. Not a signed vs-C win. |
-| Latency | **Recorded** 2026-08-28 on this-VM (Apache Kafka 3.9.1 KRaft + rust-rdkafka 0.39.0 produce-ack). **Unsigned** until Kernel Integrity signs. Not Lab A. Not a signed vs-C win. Not a Suite HOLD lift. CI relative gate (`scripts/ci-latency-gate.sh` vs `docs/latency-baseline.json`) rechecked 2026-09-04 on native Kafka 4.1 (produce-ack p99 ≈ 119µs vs baseline 500µs ceiling; earlier same-day sample ≈ 379µs) — still **unsigned**, still not a Suite HOLD lift. Lab A produce smoke same day: HW sum == acked. Lab A **fetch** integrity (`scripts/lab-a-fetch.sh`): seeded==consumed (50k / 5k samples) — unsigned integrity only, not a Suite HOLD lift. |
+| Latency | **Recorded** 2026-08-28 on this-VM (Apache Kafka 3.9.1 KRaft + rust-rdkafka 0.39.0 produce-ack). **Unsigned** until Kernel Integrity signs. Not Lab A. Not a signed vs-C win. Not a Suite HOLD lift. CI relative gate (`scripts/ci-latency-gate.sh` vs `docs/latency-baseline.json`) rechecked 2026-09-04 on native Kafka 4.1 (produce-ack p99 ≈ 119µs vs baseline 500µs ceiling; earlier same-day sample ≈ 379µs) — still **unsigned**, still not a Suite HOLD lift. Lab A produce smoke same day: HW sum == acked. Combined Lab A integrity (`scripts/lab-a-integrity.sh` / `ci-integrity-smoke.sh`): HW==acked and consumed==seeded — unsigned only, not a Suite HOLD lift. |
 | e2e | First mock-broker protocol-client e2e landed in #80 (`tests/e2e.rs`). Mock only. |
 
 Named gaps stay closed: ElectLeaders (43), DescribeLogDirs v5, DescribeQuorum (55), Add/Remove/UpdateRaftVoter (80–82).
 
-This slice is latency writeup only. It is not a Suite HOLD lift. It is not a win.
+This file tracks holes and unsigned samples. It does not lift Suite HOLD.
+Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
+`lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
 Numbers and reproduce steps: [benchmark.md](benchmark.md).

@@ -21,7 +21,8 @@ helper map commit. Mock-only internal refactors can wait.
 ## Owner publish checklist (WP-0.5)
 
 Requires a crates.io token owned by a crate owner. Agents without the token
-stop after a successful `cargo package` dry-run.
+stop after a successful `cargo package` dry-run. Owner one-shot checklist:
+`bash scripts/owner-unblock.sh`.
 
 ### Preferred: GitHub Actions tag publish
 

@@ -67,6 +67,7 @@ else
 fi
 echo
 echo "owner-status: next"
+echo "  0. One-shot checklist: bash scripts/owner-unblock.sh"
 echo "  1. Set CARGO_REGISTRY_TOKEN (Cloud + Actions)"
 echo "  2. Restore Actions runners: bash scripts/owner-cancel-stuck-runs.sh"
 echo "     (needs Actions write; agents usually get 403 — owner must run it)"

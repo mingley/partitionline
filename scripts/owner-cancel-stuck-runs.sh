@@ -1,78 +1,95 @@
 #!/usr/bin/env bash
-# Owner-only: cancel stuck queued GitHub Actions runs that starve org runners.
-#
-# Cloud Agents typically get HTTP 403 on `gh run cancel`. A human with
-# Actions write permission should run this when Verifiable is blocked by a
-# multi-hour `queued` backlog (main, tip, obsolete RC release jobs, etc.).
+# Cancel GitHub Actions runs that are stuck in `queued` longer than STALE_MINUTES.
+# Requires repo write access (agent tokens often get 403 — run as repo owner).
 #
 # Usage:
-#   bash scripts/owner-cancel-stuck-runs.sh           # cancel queued runs older than 15m
-#   MIN_AGE_MINUTES=5 bash scripts/owner-cancel-stuck-runs.sh
-#   DRY_RUN=1 bash scripts/owner-cancel-stuck-runs.sh # print only
+#   bash scripts/owner-cancel-stuck-runs.sh           # cancel stale queued runs
+#   DRY_RUN=1 bash scripts/owner-cancel-stuck-runs.sh # print targets + copy-paste cancel lines
+#   STALE_MINUTES=30 bash scripts/owner-cancel-stuck-runs.sh
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if ! command -v gh >/dev/null 2>&1; then
-  echo "owner-cancel-stuck-runs: gh CLI required" >&2
-  exit 1
-fi
+STALE_MINUTES="${STALE_MINUTES:-15}"
+NOW_EPOCH="$(date -u +%s)"
+CUTOFF=$((NOW_EPOCH - STALE_MINUTES * 60))
 
-MIN_AGE_MINUTES="${MIN_AGE_MINUTES:-15}"
-DRY_RUN="${DRY_RUN:-0}"
-REPO="${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)}"
-if [[ -z "$REPO" ]]; then
-  echo "owner-cancel-stuck-runs: cannot resolve repo (set GITHUB_REPOSITORY or run from a gh-authenticated clone)" >&2
-  exit 1
-fi
+need() { command -v "$1" >/dev/null 2>&1 || { echo "need $1" >&2; exit 1; }; }
+need gh
+need python3
 
-echo "owner-cancel-stuck-runs: repo=$REPO min_age_minutes=$MIN_AGE_MINUTES dry_run=$DRY_RUN"
+REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+echo "== owner cancel stuck runs: ${REPO} (queued older than ${STALE_MINUTES}m) =="
 
-# List queued runs as TSV: databaseId, createdAt, workflowName, headBranch, displayTitle
-mapfile -t rows < <(gh run list --repo "$REPO" --status queued --limit 50 \
-  --json databaseId,createdAt,workflowName,headBranch,displayTitle \
-  --jq '.[] | [.databaseId, .createdAt, .workflowName, .headBranch, .displayTitle] | @tsv' 2>/dev/null || true)
+json="$(gh run list --limit 100 --json databaseId,status,createdAt,displayTitle,headBranch,event,url)"
 
-if [[ ${#rows[@]} -eq 0 ]]; then
-  echo "owner-cancel-stuck-runs: no queued runs"
+mapfile -t cancels < <(printf '%s' "$json" | CUTOFF="$CUTOFF" python3 -c '
+import json, os, sys
+from datetime import datetime
+cutoff = int(os.environ["CUTOFF"])
+runs = json.load(sys.stdin)
+for r in runs:
+    if r.get("status") != "queued":
+        continue
+    created = datetime.fromisoformat(r["createdAt"].replace("Z", "+00:00"))
+    if int(created.timestamp()) > cutoff:
+        continue
+    print("|".join([
+        str(r["databaseId"]),
+        r.get("headBranch") or "",
+        r.get("event") or "",
+        (r.get("displayTitle") or "").replace("|", "/"),
+        r.get("url") or "",
+    ]))
+')
+
+if [[ "${#cancels[@]}" -eq 0 ]]; then
+  echo "No stale queued runs older than ${STALE_MINUTES}m (among last 100)."
   exit 0
 fi
 
-now_epoch="$(date -u +%s)"
-cancelled=0
-skipped=0
-failed=0
+echo "Targets (${#cancels[@]}):"
+for line in "${cancels[@]}"; do
+  IFS='|' read -r id branch event title url <<<"$line"
+  echo "  run ${id}  branch=${branch}  event=${event}  ${title}"
+  echo "    ${url}"
+done
 
-for row in "${rows[@]}"; do
-  IFS=$'\t' read -r id created workflow branch title <<<"$row"
-  # createdAt is ISO8601; GNU/BSD date both accept -d / -u with care
-  created_epoch="$(date -u -d "$created" +%s 2>/dev/null || date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "${created%.*}Z" +%s 2>/dev/null || echo 0)"
-  if [[ "$created_epoch" -eq 0 ]]; then
-    echo "SKIP  parse createdAt=$created id=$id"
-    skipped=$((skipped + 1))
-    continue
-  fi
-  age_min=$(( (now_epoch - created_epoch) / 60 ))
-  if [[ "$age_min" -lt "$MIN_AGE_MINUTES" ]]; then
-    echo "KEEP  age=${age_min}m < ${MIN_AGE_MINUTES}m  id=$id  $workflow  $branch  $title"
-    skipped=$((skipped + 1))
-    continue
-  fi
-  echo "CANCEL age=${age_min}m  id=$id  $workflow  $branch  $title"
-  if [[ "$DRY_RUN" == "1" ]]; then
-    continue
-  fi
-  if gh run cancel "$id" --repo "$REPO" 2>/tmp/pl-cancel-err; then
-    cancelled=$((cancelled + 1))
+emit_cancel_lines() {
+  echo "----"
+  for line in "${cancels[@]}"; do
+    IFS='|' read -r id _ <<<"$line"
+    echo "gh run cancel ${id} --repo ${REPO}"
+  done
+  echo "----"
+}
+
+if [[ "${DRY_RUN:-}" == "1" ]]; then
+  echo
+  echo "DRY_RUN=1 — not cancelling. Copy-paste (owner shell with write access):"
+  emit_cancel_lines
+  exit 0
+fi
+
+failed=0
+for line in "${cancels[@]}"; do
+  IFS='|' read -r id branch event title url <<<"$line"
+  echo "Cancelling ${id} (${branch}/${event})..."
+  if gh run cancel "$id"; then
+    echo "  cancelled ${id}"
   else
-    echo "  FAIL: $(tr '\n' ' ' </tmp/pl-cancel-err)" >&2
-    failed=$((failed + 1))
+    echo "  FAILED to cancel ${id} (need repo write access?)" >&2
+    failed=1
   fi
 done
 
-echo "owner-cancel-stuck-runs: cancelled=$cancelled kept_or_skipped=$skipped failed=$failed"
-if [[ "$failed" -gt 0 ]]; then
-  echo "owner-cancel-stuck-runs: cancel requires Actions write (agents often get 403)" >&2
+if [[ "$failed" -ne 0 ]]; then
+  echo
+  echo "Some cancels failed. Copy-paste as repo owner:"
+  emit_cancel_lines
+  echo "Or open each run URL above → Cancel workflow."
   exit 1
 fi
+
+echo "Done. Re-check: gh run list --limit 20"

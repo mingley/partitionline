@@ -23,6 +23,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `scripts/owner-cancel-stuck-runs.sh` cancels queued Actions runs older than
   15 minutes (`DRY_RUN=1` supported); wired from `owner-status` / ADOPTION for
   the org-wide runner starvation case (agents get 403 — owner must run it).
+- `scripts/owner-unblock.sh` one-shot owner checklist: status probe, dry-run
+  cancel targets, merge → tag `v0.1.0` → day1 path after token + runners.
+- `scripts/lab-a-common.sh` shared broker helpers; `scripts/lab-a-integrity.sh`
+  combined produce→HW→fetch integrity; `scripts/ci-integrity-smoke.sh` small-
+  count local/CI smoke (+ unsigned latency) wired into civilization-check.
+  `lab-a-fetch.sh` now also requires HW delta == acked.
 - `scripts/ci-branch-lite.sh` locally mirrors the former Actions tip gate
   (fmt/clippy/lib/docs); wired into civilization-check and owner-status.
 - CI: `dev/**` tip pushes no longer auto-queue (org runner starvation /

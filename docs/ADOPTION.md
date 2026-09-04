@@ -26,6 +26,8 @@ Probe current blockers anytime:
 
 ```bash
 bash scripts/owner-status.sh
+# One-shot checklist (status + dry-run cancel + merge/tag/day1 path):
+bash scripts/owner-unblock.sh
 # When Actions stay queued, local Verifiable proxy:
 bash scripts/ci-branch-lite.sh
 ```

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# One-shot owner checklist after CARGO_REGISTRY_TOKEN is set and/or Actions runners recover.
+# Safe to run anytime: prints status, dry-run cancel targets, then the merge → tag → day1 path.
+#
+# Usage:
+#   bash scripts/owner-unblock.sh
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+echo "========================================"
+echo " partitionline owner unblock checklist"
+echo "========================================"
+echo
+
+echo "== 1) Current status =="
+bash scripts/owner-status.sh || true
+echo
+
+echo "== 2) Stale queued Actions (dry-run) =="
+DRY_RUN=1 bash scripts/owner-cancel-stuck-runs.sh || true
+echo
+echo "If targets listed above: cancel them as repo owner, then re-run this script."
+echo "  bash scripts/owner-cancel-stuck-runs.sh"
+echo
+
+echo "== 3) Publish path (after token + clean Actions) =="
+echo "Preferred (docs/RELEASE.md): merge civilization → main, then tag final only:"
+echo "  # merge PR for dev/civilization-plan-b686 → main"
+echo "  git fetch origin main && git checkout main && git pull origin main"
+echo "  git tag -a v0.1.0 -m 'partitionline 0.1.0'"
+echo "  git push origin v0.1.0"
+echo "  # release.yml publishes when CARGO_REGISTRY_TOKEN is set on the repo"
+echo
+echo "If publishing locally instead (token in env):"
+echo "  cargo publish --dry-run && cargo publish"
+echo
+
+echo "== 4) Day-1 after crates.io shows partitionline 0.1.0 =="
+echo "  bash scripts/day1-after-publish.sh"
+echo "  bash scripts/check-installable.sh"
+echo
+echo "Installable is proven only when crates.io returns partitionline 0.1.0"
+echo "and check-installable.sh exits 0."

@@ -159,6 +159,23 @@ Spans cover `Producer::send` (topic field), `Consumer::fetch`,
 `ConsumerGroup::poll`, cooperative rejoin, and transaction
 init/begin/commit/abort. Pair with `tracing-subscriber` in the application.
 
+## Integrity / benchmarks
+
+Unsigned Lab A integrity (produce → broker high-watermark == acked → fetch →
+consumed == seeded):
+
+```bash
+bash scripts/lab-a-integrity.sh          # small default COUNT
+COUNT=50000 bash scripts/lab-a-fetch.sh  # fetch-focused
+COUNT=8000000 PARTITIONS=6 RUNS=3 bash scripts/lab-a-produce.sh
+```
+
+Local smoke (small COUNT + relative latency gate):
+`bash scripts/ci-integrity-smoke.sh`.
+
+These refuse fake wins; they are **not** Suite HOLD lifts. See
+[`STATUS.md`](STATUS.md) and [`benchmark.md`](benchmark.md).
+
 ## More
 
 - Capability vs librdkafka: [`gaps.md`](gaps.md)

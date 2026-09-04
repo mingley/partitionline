@@ -18,10 +18,11 @@ reproducibility to a C FFI stack.
 
 partitionline already speaks modern Kafka 3.x/4.x protocol surfaces, matches
 Java-shaped APIs for produce / fetch / groups / transactions / admin / share
-groups, and has measured produce and fetch throughput that competes with or
-beats C on locked Lab A / this-VM writeups (see `benchmark.md`). The remaining
-gap is not “write a client.” It is **make the client something operators and
-ecosystems can trust and adopt**.
+groups, and has measured produce / fetch / latency writeups on Lab A and
+this-VM (see `benchmark.md`). Lab A produce is vs C when locked; this-VM fetch
+and latency samples are vs rust-rdkafka and are **unsigned** — latency is not
+claimed as a win. The remaining gap is not “write a client.” It is **make the
+client something operators and ecosystems can trust and adopt**.
 
 ## Non-negotiable constraints
 
@@ -183,12 +184,12 @@ Execute in this sequence unless blocked:
 
 | Package | Status | Notes |
 |---|---|---|
-| WP-0 Public crate identity | **in progress** | 0.1–0.4 done; `cargo package` + `cargo publish --dry-run` + packed-crate consumer + rustdoc/`ci-docs` smoke green (**zero** unresolved intra-doc links; crate `#![deny(rustdoc::broken_intra_doc_links)]`); docs.rs metadata; release workflow supports tag push and `workflow_dispatch`; `owner-publish` / `day1-after-publish` / `check-installable` ready. Share-assignment fixes merged here for one path to `main`. **0.5 blocked on owner `CARGO_REGISTRY_TOKEN`** (crate name free on crates.io). **Local civilization-check** (2026-09-04) including broker + SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER + local `ci-branch-lite` mirror. **Verifiable on GitHub still blocked:** Actions org-wide stuck (`main` run queued many hours). **`dev/**` pushes no longer auto-queue CI** (was thrashing starved runners); tip gate is `scripts/ci-branch-lite.sh`; full matrix on PR/`main`/`workflow_dispatch`. Owner: `scripts/owner-cancel-stuck-runs.sh`. |
+| WP-0 Public crate identity | **in progress** | 0.1–0.4 done; `cargo package` + `cargo publish --dry-run` + packed-crate consumer + rustdoc/`ci-docs` smoke green (**zero** unresolved intra-doc links; crate `#![deny(rustdoc::broken_intra_doc_links)]`); docs.rs metadata; release workflow supports tag push and `workflow_dispatch`; `owner-publish` / `day1-after-publish` / `check-installable` ready. Share-assignment fixes merged here for one path to `main`. **0.5 blocked on owner `CARGO_REGISTRY_TOKEN`** (crate name free on crates.io). **Local civilization-check** (2026-09-04) including broker + SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER + local `ci-branch-lite` mirror. **Verifiable on GitHub still blocked:** Actions org-wide stuck (`main` run queued many hours). **`dev/**` pushes no longer auto-queue CI** (was thrashing starved runners); tip gate is `scripts/ci-branch-lite.sh`; full matrix on PR/`main`/`workflow_dispatch`. Owner: `scripts/owner-cancel-stuck-runs.sh` / `scripts/owner-unblock.sh`. |
 | WP-1 Real-broker CI | **done** | `broker-smoke` matrix `apache/kafka:3.9.1` + `4.1.0`; Docker 4.x enables share coordinator + upgrades `share.version=1`; native Kafka fallback; smoke covers roundtrip/produce/admin/txn/**group/eos/share** (`REQUIRE_SHARE=1` on 4.x). **TLS+SASL:** `scripts/ci-auth-smoke.sh` (SASL_SSL PLAIN + SCRAM-SHA-256/512 + OAUTHBEARER unsecured JWT + rustls; fail-closed without SASL); wired into `ci-civilization-check.sh`. |
 | WP-2 Adversarial trust | **done** | security.md + audit CI + `cargo deny` + PEM via rustls-pki-types + decode OOM guards + fuzz smoke + libFuzzer (Fetch/Produce/Metadata/records + **Group** Join/Sync/Heartbeat/OffsetCommit + **ShareFetch**). Mock TLS via `openssl` CLI (no `rcgen`/`time`); `RUSTSEC-2026-0009` ignore cleared. Auth smoke: SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER. |
 | WP-3 Operator docs | **done** | guide.md (incl. recipes) + migrate-from-rdkafka.md + ADOPTION.md + README links. |
 | WP-4 Observability | **done** | Metrics in guide; `tracing` feature; Prometheus text example. |
-| WP-5 Perf honesty | **in progress** | Lab A produce enforces **HW sum == acked**; Lab A fetch enforces **consumed == seeded** (`scripts/lab-a-fetch.sh`); `latency-gate` CI (unsigned). 2026-09-04 native samples in STATUS (not a Suite HOLD lift). Signed Suite HOLD still external. |
+| WP-5 Perf honesty | **in progress** | Lab A produce enforces **HW sum == acked**; Lab A fetch enforces **HW + consumed == seeded**; combined `scripts/lab-a-integrity.sh` + `ci-integrity-smoke.sh` in civilization-check (unsigned). 2026-09-04 native samples in STATUS (not a Suite HOLD lift). Signed Suite HOLD still external. |
 | WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md + `docs/schema-companion.md` design (crate waits on crates.io). Packed-crate downstream consumer gate in civilization/publish-ready. |
 | WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish; civilization-check; `scripts/ci-publish-ready.sh`. Tip Verifiable via `scripts/ci-branch-lite.sh` (no auto CI on `dev/**` push while org runners starved); full matrix on PR/`main`/`workflow_dispatch`. |
 

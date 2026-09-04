@@ -126,6 +126,24 @@ if grep -qiE 'unsigned|Suite HOLD|HOLD' docs/STATUS.md docs/benchmark.md; then
 else
   bad "bench honesty labels missing"
 fi
+# Produce → HW == acked → fetch → consumed == seeded (+ unsigned latency gate).
+# Soft-skips without a broker unless REQUIRE_INTEGRITY=1.
+if bash scripts/ci-integrity-smoke.sh >/tmp/pl-integrity.log 2>&1 \
+  && grep -q 'ci-integrity-smoke: ok' /tmp/pl-integrity.log; then
+  ok "Lab A integrity smoke (HW+fetch+latency; unsigned)"
+elif grep -q 'ci-integrity-smoke: skipping' /tmp/pl-integrity.log; then
+  if [[ "${REQUIRE_INTEGRITY:-}" == "1" ]]; then
+    bad "Lab A integrity smoke skipped; see /tmp/pl-integrity.log"
+  else
+    ski "Lab A integrity smoke (no broker)"
+  fi
+else
+  if [[ "${REQUIRE_INTEGRITY:-}" == "1" ]]; then
+    bad "Lab A integrity smoke; see /tmp/pl-integrity.log"
+  else
+    ski "Lab A integrity smoke (failed soft); see /tmp/pl-integrity.log"
+  fi
+fi
 
 echo "== Independent =="
 if grep -q 'unsafe_code' Cargo.toml && grep -q 'forbid' Cargo.toml; then

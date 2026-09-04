@@ -57,6 +57,14 @@ Civilization bar self-check (package + deny + docs gates; broker optional):
 bash scripts/ci-civilization-check.sh
 ```
 
+Lab A integrity smoke (HW == acked and consumed == seeded + unsigned latency;
+needs a broker — native Kafka is fine):
+
+```
+bash scripts/ci-integrity-smoke.sh
+# or: REQUIRE_INTEGRITY=1 bash scripts/ci-integrity-smoke.sh
+```
+
 Before a crates.io cut (owner token required for the real publish):
 
 ```
