@@ -65,6 +65,11 @@ bash scripts/check-post-cut-parks-stack.sh
 echo "== ci-branch-lite: day1 after-publish rehearsal (no crates.io wait) =="
 DRY_RUN=1 bash scripts/day1-after-publish.sh
 
+echo "== ci-branch-lite: civilization bars (PRE_PUBLISH) =="
+# Prove all bars except Installable credentials before the token cut.
+# FULL=0: avoid recursion when FULL=1 audit nests this script.
+FULL=0 PRE_PUBLISH=1 bash scripts/audit-civilization-bars.sh
+
 echo "== ci-branch-lite: docs =="
 bash scripts/ci-docs.sh
 
