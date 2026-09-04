@@ -104,7 +104,9 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     echo "  1. Create a crates.io token at https://crates.io/settings/tokens" >&2
     echo "     First cut of a NEW crate needs scope publish-new (+ publish-update)." >&2
     echo "     publish-update alone cannot create ${name} on crates.io." >&2
-    echo "  2. Add it as Cloud Agent secret CARGO_REGISTRY_TOKEN" >&2
+    echo "  2. Add Cloud Agent secret CARGO_REGISTRY_TOKEN:" >&2
+    echo "       Cursor → Cloud Agents → Environments → this env → Secrets" >&2
+    echo "       Name exactly CARGO_REGISTRY_TOKEN; restart/re-run agent after save." >&2
     echo "  3. Also add Actions secret CARGO_REGISTRY_TOKEN (release.yml / first-publish.yml)" >&2
     echo "  4. Re-run: bash scripts/owner-finish-installable.sh" >&2
     echo >&2
