@@ -27,6 +27,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Added
 
+- `scripts/check-installable-preflight.sh`: one-shot pre-publish probe that
+  exits `0` with `READY_EXCEPT_TOKEN` when merge-ready + metadata + main CI
+  are green and only `CARGO_REGISTRY_TOKEN` / crates.io cut remains (exit `3`
+  if main CI is still running; exit `2` if already Installable).
 - `scripts/check-main-ci.sh`: probe whether `origin/main` HEAD has terminal
   green CI (exit 0/1/2). Wired into `owner-finish-installable` step 2b —
   refuses Installable cut on red main unless `ALLOW_RED_MAIN=1`; real cuts

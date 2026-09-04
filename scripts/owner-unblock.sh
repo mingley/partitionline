@@ -33,6 +33,9 @@ echo
 echo "== 3) Merge/tag readiness (no token required) =="
 bash scripts/check-merge-ready.sh || true
 echo
+echo "== 3b) Installable preflight =="
+bash scripts/check-installable-preflight.sh || true
+echo
 
 echo "== 4) Publish path (after token; Verifiable already green on main) =="
 echo "Tracking issue: https://github.com/mingley/partitionline/issues/86"
@@ -40,6 +43,7 @@ echo
 echo "As of 2026-09-04: main CI is green through Kafka 3.9.1 + 4.1.0 broker-smoke"
 echo "and latency-gate (soft-skip kip848 on 3.9). PRE_PUBLISH bars: only Installable"
 echo "blocked. Tip matches main. Remaining owner action is CARGO_REGISTRY_TOKEN."
+echo "Probe: bash scripts/check-installable-preflight.sh   # expect READY_EXCEPT_TOKEN"
 echo
 echo "Fastest once CARGO_REGISTRY_TOKEN is in this environment (bypasses starved Actions):"
 echo "  bash scripts/owner-finish-installable.sh"

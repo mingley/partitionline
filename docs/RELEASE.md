@@ -41,6 +41,7 @@ Fastest first cut when `CARGO_REGISTRY_TOKEN` is already in the environment
 (Cloud Agent or owner shell) and Actions runners are starved:
 
 ```bash
+bash scripts/check-installable-preflight.sh   # expect READY_EXCEPT_TOKEN before cut
 bash scripts/owner-finish-installable.sh
 # DRY_RUN=1 to rehearse; PUBLISH_LOCAL=0 to tag → release.yml instead
 # ALLOW_RED_MAIN=1 overrides a red main CI refuse (not recommended)

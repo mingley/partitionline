@@ -15,6 +15,19 @@ if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
 else
   echo "BLOCKED  CARGO_REGISTRY_TOKEN unset (export for Cloud Agent + Actions secret)"
 fi
+# Compact preflight verdict (does not fail owner-status).
+if bash scripts/check-installable-preflight.sh >/tmp/pl-owner-preflight.log 2>&1; then
+  echo "  preflight: $(grep -E 'READY_EXCEPT_TOKEN|READY —' /tmp/pl-owner-preflight.log | tail -1)"
+else
+  pf=$?
+  if [[ "$pf" -eq 2 ]]; then
+    echo "  preflight: ALREADY_INSTALLABLE"
+  elif [[ "$pf" -eq 3 ]]; then
+    echo "  preflight: READY_EXCEPT_TOKEN (main CI still running — see check-main-ci)"
+  else
+    echo "  preflight: not ready (exit ${pf}); bash scripts/check-installable-preflight.sh"
+  fi
+fi
 # shellcheck source=scripts/lib/crates-io.sh
 source "$ROOT/scripts/lib/crates-io.sh"
 pl_crates_probe_version "partitionline" "$ver" "partitionline-owner-status/1"
