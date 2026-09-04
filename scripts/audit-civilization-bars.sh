@@ -209,6 +209,7 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF -- 'owner-post-installable-handoff.sh' scripts/owner-dispatch-first-publish.sh \
   && grep -qF -- 'LAND_PARKS=' scripts/owner-finish-installable.sh \
   && grep -qF -- 'Post-Installable handoff' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'would run owner-post-installable-handoff' scripts/owner-finish-installable.sh \
   && HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1; then
   ok "post-Installable handoff (DRY_RUN; finish live+re-entry + cut-path + day1 + first-publish)"
 else
