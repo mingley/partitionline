@@ -59,6 +59,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- `scripts/post-publish-readme.sh` also inserts crates.io + docs.rs badges on
+  day-1 README flip (`DRY_RUN=1` asserts badges). `release.yml` creates a
+  GitHub Release after a successful crates.io publish.
 - `scripts/check-adopter-pin.sh` allows docs/scripts tip drift without a new rc;
   library/`Cargo.toml` changes since the pin still fail the gate.
 

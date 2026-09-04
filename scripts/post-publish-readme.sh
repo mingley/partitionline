@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Flip README install stanza from git to crates.io after a successful publish.
-# Also rewrites the WP-0.5 status blurb so it does not still say "waits on publish".
+# Also rewrites the WP-0.5 status blurb and ensures crates.io / docs.rs badges.
 # Safe to re-run. Does not commit (owner reviews the diff).
 #
 # DRY_RUN=1 writes the flipped README to a temp file and asserts the crates.io
-# dep line is present — used by ci-publish-ready so day-1 cannot silently break.
+# dep line + badges — used by ci-publish-ready so day-1 cannot silently break.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -36,7 +36,6 @@ status = (
     f"[crates.io](https://crates.io/crates/partitionline) "
     f"(`partitionline = \"{mm}\"`). Probe: `bash scripts/check-installable.sh`."
 )
-# Match from **Status…** through the end of the paragraph (blank line or heading).
 status_pat = re.compile(
     r"\*\*Status(?:\s*\([^)]+\))?:\*\*[^\n]*(?:\n(?!\n|#)[^\n]*)*",
 )
@@ -45,26 +44,53 @@ if status_pat.search(text2):
     if sn != 1:
         raise SystemExit("post-publish-readme: status blurb replacement failed")
 else:
-    # Insert after the install fence if no status line exists.
     text2 = text2.replace(new_block, new_block + "\n\n" + status, 1)
+
+# Ensure crates.io + docs.rs badges sit with the CI badge row.
+crates_badge = (
+    "[![crates.io](https://img.shields.io/crates/v/partitionline.svg)]"
+    "(https://crates.io/crates/partitionline)"
+)
+docs_badge = (
+    "[![docs.rs](https://docs.rs/partitionline/badge.svg)]"
+    "(https://docs.rs/partitionline)"
+)
+if "img.shields.io/crates/v/partitionline" not in text2:
+    # Insert after the first CI badge line if present, else after the title block.
+    ci_line = re.search(r"^\[!\[ci\][^\n]*\n", text2, re.M)
+    if ci_line:
+        insert_at = ci_line.end()
+        text2 = text2[:insert_at] + crates_badge + "\n" + docs_badge + "\n" + text2[insert_at:]
+    else:
+        # After first blank line following H1
+        m = re.search(r"^# .+\n(?:.*\n)*?\n", text2)
+        if not m:
+            raise SystemExit("post-publish-readme: could not find README header for badges")
+        text2 = text2[: m.end()] + crates_badge + "\n" + docs_badge + "\n\n" + text2[m.end() :]
 
 needle = f'partitionline = "{mm}"'
 if needle not in text2:
     raise SystemExit(f"post-publish-readme: flipped README missing {needle!r}")
 if "crates.io/crates/partitionline" not in text2:
     raise SystemExit("post-publish-readme: flipped README missing crates.io link")
+if "img.shields.io/crates/v/partitionline" not in text2:
+    raise SystemExit("post-publish-readme: flipped README missing crates.io badge")
+if "docs.rs/partitionline/badge.svg" not in text2:
+    raise SystemExit("post-publish-readme: flipped README missing docs.rs badge")
 
 if dry:
     fd, tmp = tempfile.mkstemp(prefix="pl-readme-flip-", suffix=".md")
     os.close(fd)
     pathlib.Path(tmp).write_text(text2)
-    print(f"post-publish-readme: DRY_RUN ok ({needle}; wrote {tmp})")
+    print(f"post-publish-readme: DRY_RUN ok ({needle}; badges; wrote {tmp})")
     print(tmp)
 else:
     path.write_text(text2)
-    print(f'post-publish-readme: README now shows partitionline = "{mm}" ({ver} on crates.io)')
+    print(
+        f'post-publish-readme: README now shows partitionline = "{mm}" '
+        f"({ver} on crates.io) + crates.io/docs.rs badges"
+    )
 PY
 )"
 
-# Surface the script's stdout (and fail if python failed — set -e).
 printf '%s\n' "$OUT"
