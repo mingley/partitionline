@@ -68,6 +68,7 @@ bash scripts/check-registry-token.sh --self-test
 bash scripts/ci-tip-verifiable-broker.sh --self-test
 bash scripts/check-parks-refresh-cut-guards.sh
 MODE=git bash scripts/verify-crates-io-consumer.sh
+bash scripts/lib/preserve-day1-docs.sh --self-test
 
 echo
 echo "== 0) Already Installable? =="
@@ -372,13 +373,11 @@ if [[ "${MERGE_POST_CUT_PARKS}" == "1" ]]; then
   echo
   echo "== 9) Land parked Verifiable on main =="
   echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=1 — landing post-cut parks (Verifiable + flate2 + SCRAM crypto + lz4_flex + actions/checkout)"
-  # day1 may have dirtied README/ADOPTION; stash so park merges can checkout/pull cleanly.
-  day1_stash=""
-  if [[ -n "$(git status --porcelain -- README.md docs/ADOPTION.md 2>/dev/null || true)" ]]; then
-    echo "owner-finish-installable: stashing day1 README/ADOPTION edits before parks land"
-    git stash push -m "pl-finish-day1-docs" -- README.md docs/ADOPTION.md
-    day1_stash="$(git rev-parse -q --verify refs/stash || true)"
-  fi
+  # day1 may have dirtied README/ADOPTION; preserve via stash + filesystem backup so
+  # park merges run clean and crates.io flips survive a failed stash pop.
+  # shellcheck source=scripts/lib/preserve-day1-docs.sh
+  source "$ROOT/scripts/lib/preserve-day1-docs.sh"
+  pl_day1_docs_begin
   parks_rc=0
   if bash scripts/owner-land-post-cut-parks.sh; then
     echo "owner-finish-installable: post-cut parks landed on main"
@@ -388,14 +387,7 @@ if [[ "${MERGE_POST_CUT_PARKS}" == "1" ]]; then
     echo "  Retry: bash scripts/owner-land-post-cut-parks.sh" >&2
     echo "  Skip later: MERGE_PARKED_VERIFIABLE=0 bash scripts/owner-finish-installable.sh" >&2
   fi
-  if [[ -n "$day1_stash" ]]; then
-    if git stash pop --quiet; then
-      echo "owner-finish-installable: restored day1 README/ADOPTION edits after parks"
-    else
-      echo "owner-finish-installable: WARN — could not auto-restore day1 docs stash; resolve manually:" >&2
-      echo "  git stash list | head" >&2
-    fi
-  fi
+  pl_day1_docs_end
   if [[ "$parks_rc" -ne 0 ]]; then
     :
   fi
