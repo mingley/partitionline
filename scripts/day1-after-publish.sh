@@ -69,6 +69,9 @@ fi
 
 echo
 echo "day1-after-publish: next owner steps"
+echo "  Preferred one-shot (TP + parks + full bars — any cut path, including Actions first-publish):"
+echo "       bash scripts/owner-post-installable-handoff.sh"
+echo "       LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks not yet landed"
 echo "  1. Review and commit README + docs/ADOPTION.md crates.io install lines (+ badges)"
 echo "  2. Prefer crates.io Trusted Publishing for later tags:"
 echo "       bash scripts/owner-enable-trusted-publishing.sh"

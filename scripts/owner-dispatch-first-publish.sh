@@ -19,6 +19,7 @@
 #   3. bash scripts/owner-dispatch-first-publish.sh
 #   4. bash scripts/check-installable.sh
 #   5. bash scripts/day1-after-publish.sh
+#   6. bash scripts/owner-post-installable-handoff.sh   # TP + parks + bars
 #
 # Usage:
 #   bash scripts/owner-dispatch-first-publish.sh
@@ -87,4 +88,7 @@ fi
 rm -f "$dispatch_err"
 echo "owner-dispatch-first-publish: dispatched. Watch:"
 echo "  gh run list --workflow=${WORKFLOW} --limit 5"
-echo "After green: bash scripts/check-installable.sh && bash scripts/day1-after-publish.sh"
+echo "After green:"
+echo "  bash scripts/check-installable.sh && bash scripts/day1-after-publish.sh"
+echo "  bash scripts/owner-post-installable-handoff.sh"
+echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks pending"

@@ -205,8 +205,10 @@ fi
 if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF -- 'owner-post-installable-handoff.sh' scripts/owner-finish-installable.sh \
   && grep -qF -- 'owner-post-installable-handoff.sh' scripts/check-cut-path.sh \
+  && grep -qF -- 'owner-post-installable-handoff.sh' scripts/day1-after-publish.sh \
+  && grep -qF -- 'owner-post-installable-handoff.sh' scripts/owner-dispatch-first-publish.sh \
   && HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1; then
-  ok "post-Installable handoff (DRY_RUN; wired into finish + cut-path)"
+  ok "post-Installable handoff (DRY_RUN; finish + cut-path + day1 + first-publish dispatch)"
 else
   bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log"
 fi
