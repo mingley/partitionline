@@ -112,16 +112,18 @@ if [[ -f scripts/ci-branch-lite.sh ]] && grep -q 'ci-tip-verifiable-broker' scri
 else
   bad "ci-tip-verifiable-broker not wired into ci-branch-lite / check-cut-path"
 fi
-# Soft-skip must not claim tip Verifiable `ok` after mid-chain skips (PARTIAL only).
+# Soft-skip must not claim tip Verifiable `ok` after mid-chain skips (PARTIAL).
+# PARTIAL must exit 2 by default so set -e tip proxies cannot greenwash.
 if [[ -f scripts/ci-tip-verifiable-broker.sh ]] \
   && grep -q 'PARTIAL' scripts/ci-tip-verifiable-broker.sh \
   && grep -q 'auth_ok' scripts/ci-tip-verifiable-broker.sh \
   && grep -q 'integ_ok' scripts/ci-tip-verifiable-broker.sh \
   && grep -q 'TIP_VERIFIABLE_SOFT' scripts/ci-tip-verifiable-broker.sh \
-  && grep -q 'pl_tip_verifiable_tooling_ready' scripts/ci-tip-verifiable-broker.sh; then
-  ok "tip Verifiable soft-skip honesty (PARTIAL; tooling auto-REQUIRE; no ok after skip)"
+  && grep -q 'pl_tip_verifiable_tooling_ready' scripts/ci-tip-verifiable-broker.sh \
+  && grep -q 'exit 2' scripts/ci-tip-verifiable-broker.sh; then
+  ok "tip Verifiable soft-skip honesty (PARTIAL exit 2; tooling auto-REQUIRE; no ok after skip)"
 else
-  bad "ci-tip-verifiable-broker missing soft-skip honesty (PARTIAL / auth_ok / integ_ok / tooling REQUIRE)"
+  bad "ci-tip-verifiable-broker missing soft-skip honesty (PARTIAL exit 2 / auth_ok / integ_ok / tooling REQUIRE)"
 fi
 fuzz_n=0
 if [[ -d fuzz/fuzz_targets ]]; then
