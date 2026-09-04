@@ -83,6 +83,9 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "  Token scope: first cut of a NEW crate needs crates.io publish-new (+ usually publish-update)."
   echo "  publish-update alone cannot create the crate. Trusted Publishing is configured after 0.1.0."
   echo "  Next: set Cloud Agent secret CARGO_REGISTRY_TOKEN (Cursor → Environments → Secrets),"
+  # shellcheck source=scripts/lib/cursor-env-secrets-url.sh
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cursor-env-secrets-url.sh"
+  echo "        Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL"
   echo "        also add Actions secret CARGO_REGISTRY_TOKEN, restart agent, then:"
   echo "        bash scripts/owner-finish-installable.sh"
   echo "        # publishes 0.1.0 then chains post-cut parks land by default"

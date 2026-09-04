@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts/docs: shared `scripts/lib/cursor-env-secrets-url.sh` prints the Cloud Agent Environments → Secrets deep link (overridable via `PARTITIONLINE_CURSOR_ENV_SECRETS_URL`); wired into `owner-finish-installable` / `owner-unblock` / RELEASE so token injection is one click away.
 - Scripts: `ci-branch-lite` + `check-cut-path` run `DRY_RUN=1` `owner-enable-trusted-publishing` so tip Verifiable and cut-path rehearse the post-Installable OIDC UI checklist (crate may be absent); Installable preflight READY_EXCEPT_TOKEN messaging spells publish-new + Cursor/Actions secret paths.
 - Scripts: `check-cut-path` runs `DRY_RUN=1` `day1-after-publish` (README flip rehearsal) and `check-actions-hygiene` (stale queue surface); tip Verifiable (`ci-branch-lite`) also surfaces Actions hygiene before Installable preflight.
 - Scripts: `ci-branch-lite` + `check-cut-path` run `DRY_RUN=1` `owner-dispatch-first-publish` so tip Verifiable and cut-path prove `first-publish.yml` stays workflow_dispatch-visible on main (Actions-secret alternate) before the token cut.
