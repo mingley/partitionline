@@ -164,6 +164,9 @@ jobs:
           COUNT: "2000"
           WARMUP: "200"
           LATENCY_SLACK_PCT: "100"
+          # Absolute ceiling for GHA+Docker noise (local native is tens of µs).
+          # Catches catastrophic regressions; not a Lab A / vs-C claim.
+          LATENCY_LIMIT_US: "5000"
         run: bash scripts/ci-latency-gate.sh
       - name: Stop Kafka
         if: always()
