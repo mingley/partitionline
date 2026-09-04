@@ -111,6 +111,7 @@ See [crates.io Trusted Publishing](https://crates.io/docs/trusted-publishing).
 ### After 0.1.0: prefer OIDC (no long-lived Actions token)
 
 Probe anytime: `bash scripts/check-trusted-publishing-ready.sh`
+Owner one-shot after first cut: `bash scripts/owner-enable-trusted-publishing.sh`
 (`REQUIRE_INSTALLABLE=1` after crates.io cut).
 
 1. crates.io → `partitionline` → Settings → Trusted Publishing → Add.
