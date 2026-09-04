@@ -158,6 +158,7 @@ From a **clean `main`** checkout with `CARGO_REGISTRY_TOKEN` exported:
 bash scripts/ci-publish-ready.sh
 bash scripts/owner-publish.sh
 bash scripts/day1-after-publish.sh    # crates.io confirm + adopter consumer check + README flip
+bash scripts/owner-post-installable-handoff.sh  # TP + parks + full bars (LAND_PARKS=1 if needed)
 # or: bash scripts/check-installable.sh  # Installable bar probe only
 #     bash scripts/verify-crates-io-consumer.sh  # adopter cargo-depend compile proof
 git tag "v$(sed -n 's/^version = \"\(.*\)\"/\1/p' Cargo.toml | head -1)"
@@ -172,7 +173,9 @@ After publish:
 1. Tag `vX.Y.Z` matching `Cargo.toml` (if not already tagged by Actions).
 2. Move CHANGELOG `[Unreleased]` into `[X.Y.Z]` if anything remains.
 3. Run `bash scripts/day1-after-publish.sh` (crates.io confirm + adopter consumer compile + README flip)
-   and commit the README if needed.
+   and commit the README if needed. Then
+   `bash scripts/owner-post-installable-handoff.sh` (Trusted Publishing + parks + bars;
+   `LAND_PARKS=1` if parks were skipped).
 
 ## Honesty
 
