@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Real-broker TLS + SASL (SASL_SSL) smoke against native Apache Kafka.
+# Real-broker TLS + SASL (SASL_SSL) + OIDC + mTLS smoke against native Apache Kafka.
 # Generates a private CA, boots an isolated KRaft broker with PLAIN,
-# SCRAM-SHA-256/512, and OAUTHBEARER (unsecured JWT validator), creates a
-# SCRAM user over a PLAINTEXT admin listener, then produces via examples/sasl
-# and examples/oauth with TLS_CA_PEM set. Soft-skips when Java/openssl/keytool/
-# Kafka are missing unless REQUIRE_AUTH=1.
+# SCRAM-SHA-256/512, OAUTHBEARER (unsecured JWT validator), and an SSL listener
+# with client auth required. Creates a SCRAM user over a PLAINTEXT admin
+# listener, then produces via examples/sasl, examples/oauth (unsecured JWT and
+# OIDC client-credentials against scripts/oidc-token-stub.py), and examples/tls
+# (mTLS). Soft-skips when Java/openssl/keytool/python3/Kafka are missing unless
+# REQUIRE_AUTH=1.
 #
 # Usage:
 #   bash scripts/ci-auth-smoke.sh
@@ -30,6 +32,11 @@ SCRAM_USER="${AUTH_USERNAME:-alice}"
 SCRAM_PASS="${AUTH_PASSWORD:-secret-change-me}"
 OAUTH_PRINCIPAL="${AUTH_OAUTH_PRINCIPAL:-alice}"
 STOREPASS="${AUTH_STORE_PASS:-changeit}"
+MTLS_BOOTSTRAP="${AUTH_MTLS_BOOTSTRAP:-127.0.0.1:9195}"
+OIDC_STUB_PORT="${AUTH_OIDC_STUB_PORT:-18080}"
+OIDC_STUB_PIDFILE="${WORKDIR}/oidc-stub.pid"
+CLIENT_CERT_PEM="${CERTDIR}/client.crt"
+CLIENT_KEY_PEM="${CERTDIR}/client.key"
 # Class path confirmed in kafka-clients 3.9/4.0/4.1 jars (test/dev unsecured JWT).
 OAUTH_VALIDATOR="org.apache.kafka.common.security.oauthbearer.internals.unsecured.OAuthBearerUnsecuredValidatorCallbackHandler"
 
@@ -48,6 +55,7 @@ need_bin() {
 need_bin openssl
 need_bin keytool
 need_bin java
+need_bin python3
 
 if [[ ! -d "$KDIR/bin" ]]; then
   soft_skip "Kafka not installed at $KDIR (run scripts/ci-native-kafka.sh start once)"
@@ -66,6 +74,10 @@ wait_tcp() {
 }
 
 cleanup() {
+  if [[ -f "$OIDC_STUB_PIDFILE" ]]; then
+    kill "$(cat "$OIDC_STUB_PIDFILE")" 2>/dev/null || true
+    rm -f "$OIDC_STUB_PIDFILE"
+  fi
   if [[ -f "$PIDFILE" ]]; then
     kill "$(cat "$PIDFILE")" 2>/dev/null || true
     rm -f "$PIDFILE"
@@ -95,16 +107,33 @@ keytool -importcert -noprompt -alias ca -file "$CA_PEM" \
   -keystore "$CERTDIR/kafka.truststore.p12" -storetype PKCS12 \
   -storepass "$STOREPASS" >/dev/null 2>&1
 
-echo "== write broker props (PLAINTEXT admin + SASL_SSL client) =="
+echo "== generate mTLS client identity =="
+# rustls rejects X.509 v1; force v3 + clientAuth when signing the CSR.
+openssl req -newkey rsa:2048 -nodes \
+  -keyout "$CLIENT_KEY_PEM" -out "$CERTDIR/client.csr" \
+  -subj "/CN=partitionline-mtls-client" >/dev/null 2>&1
+cat >"$CERTDIR/client.ext" <<'EXT'
+basicConstraints=CA:FALSE
+keyUsage=digitalSignature,keyEncipherment
+extendedKeyUsage=clientAuth
+EXT
+openssl x509 -req -in "$CERTDIR/client.csr" -CA "$CA_PEM" -CAkey "$CERTDIR/ca.key" \
+  -CAcreateserial -out "$CLIENT_CERT_PEM" -days 2 \
+  -extfile "$CERTDIR/client.ext" >/dev/null 2>&1
+# Ensure PKCS#8 PEM key (not OpenSSH) for rustls.
+openssl pkcs8 -topk8 -nocrypt -in "$CLIENT_KEY_PEM" -out "$CERTDIR/client.pkcs8.key" >/dev/null 2>&1 \
+  && mv "$CERTDIR/client.pkcs8.key" "$CLIENT_KEY_PEM"
+
+echo "== write broker props (PLAINTEXT admin + SASL_SSL + mTLS SSL) =="
 cat >"$PROPS" <<EOF
 process.roles=broker,controller
 node.id=1
 controller.quorum.voters=1@${CONTROLLER}
-listeners=SASL_SSL://127.0.0.1:9192,CONTROLLER://127.0.0.1:9193,PLAINTEXT://127.0.0.1:9194
-advertised.listeners=SASL_SSL://127.0.0.1:9192,PLAINTEXT://127.0.0.1:9194
+listeners=SASL_SSL://127.0.0.1:9192,CONTROLLER://127.0.0.1:9193,PLAINTEXT://127.0.0.1:9194,SSL://127.0.0.1:9195
+advertised.listeners=SASL_SSL://127.0.0.1:9192,PLAINTEXT://127.0.0.1:9194,SSL://127.0.0.1:9195
 controller.listener.names=CONTROLLER
 inter.broker.listener.name=PLAINTEXT
-listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SASL_SSL:SASL_SSL
+listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SASL_SSL:SASL_SSL,SSL:SSL
 log.dirs=${LOGDIR}
 num.network.threads=2
 num.io.threads=4
@@ -131,6 +160,7 @@ listener.name.sasl_ssl.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.se
 listener.name.sasl_ssl.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;
 listener.name.sasl_ssl.oauthbearer.sasl.server.callback.handler.class=${OAUTH_VALIDATOR}
 listener.name.sasl_ssl.ssl.client.auth=none
+listener.name.ssl.ssl.client.auth=required
 super.users=User:${SCRAM_USER};User:${OAUTH_PRINCIPAL}
 EOF
 
@@ -196,9 +226,27 @@ export SASL_OAUTH_PRINCIPAL="$OAUTH_PRINCIPAL"
 env -u OIDC_TOKEN_URL -u OIDC_CLIENT_ID -u OIDC_CLIENT_SECRET \
   cargo run --release --example oauth
 
+echo "== start OIDC client_credentials stub =="
+AUTH_OAUTH_PRINCIPAL="$OAUTH_PRINCIPAL" OIDC_STUB_PORT="$OIDC_STUB_PORT" \
+  python3 "$ROOT/scripts/oidc-token-stub.py" >"${WORKDIR}/oidc-stub.log" 2>&1 &
+echo $! >"$OIDC_STUB_PIDFILE"
+if ! wait_tcp "127.0.0.1:${OIDC_STUB_PORT}"; then
+  echo "ci-auth-smoke: OIDC stub did not listen; log:" >&2
+  cat "${WORKDIR}/oidc-stub.log" >&2 || true
+  exit 1
+fi
+
+echo "== SASL_SSL produce (OIDC client_credentials → OAUTHBEARER + rustls) =="
+export OIDC_TOKEN_URL="http://127.0.0.1:${OIDC_STUB_PORT}/token"
+export OIDC_CLIENT_ID="partitionline-smoke"
+export OIDC_CLIENT_SECRET="smoke-secret"
+cargo run --release --example oauth
+unset OIDC_TOKEN_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET
+
 echo "== SSL-only produce (no SASL) against SASL_SSL should fail closed =="
 set +e
 timeout 20s env -u KAFKA_USERNAME -u KAFKA_PASSWORD -u SASL_MECHANISM \
+  -u TLS_CLIENT_CERT_PEM -u TLS_CLIENT_KEY_PEM \
   KAFKA_BOOTSTRAP="$SSL_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
   TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost" \
   cargo run --release --example tls >/tmp/pl-auth-tls-only.log 2>&1
@@ -211,4 +259,25 @@ if grep -E -- '@[0-9]+' /tmp/pl-auth-tls-only.log >/dev/null; then
 fi
 echo "ci-auth-smoke: TLS-only correctly failed (rc=${tls_only_rc})"
 
-echo "ci-auth-smoke: ok (SASL_SSL PLAIN + SCRAM-SHA-256/512 + OAUTHBEARER @ ${SSL_BOOTSTRAP})"
+echo "== mTLS produce (SSL listener requires client cert) =="
+TLS_CLIENT_CERT_PEM="$CLIENT_CERT_PEM" TLS_CLIENT_KEY_PEM="$CLIENT_KEY_PEM" \
+  KAFKA_BOOTSTRAP="$MTLS_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
+  TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost" \
+  cargo run --release --example tls
+
+echo "== SSL without client cert against mTLS listener should fail closed =="
+set +e
+timeout 20s env -u TLS_CLIENT_CERT_PEM -u TLS_CLIENT_KEY_PEM \
+  KAFKA_BOOTSTRAP="$MTLS_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
+  TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost" \
+  cargo run --release --example tls >/tmp/pl-auth-mtls-deny.log 2>&1
+mtls_deny_rc=$?
+set -e
+if grep -E -- '@[0-9]+' /tmp/pl-auth-mtls-deny.log >/dev/null; then
+  echo "ci-auth-smoke: produce without client cert unexpectedly succeeded on mTLS listener" >&2
+  cat /tmp/pl-auth-mtls-deny.log >&2
+  exit 1
+fi
+echo "ci-auth-smoke: mTLS correctly denied bare TLS (rc=${mtls_deny_rc})"
+
+echo "ci-auth-smoke: ok (SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC + mTLS @ ${SSL_BOOTSTRAP} / ${MTLS_BOOTSTRAP})"
