@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts/docs: `check-registry-token` / `owner-finish-installable` load `CARGO_REGISTRY_TOKEN_FILE` into the current shell and WARN on common misnamed env vars (`CARGO_TOKEN`, `CRATES_IO_TOKEN`, …) so Secrets UI typos cannot silently block Installable; shared helper `scripts/lib/cargo-registry-token.sh`.
 - Scripts/docs: Cursor env Secrets deep link defaults to `.../secrets` so login redirect lands on the Secrets tab for `CARGO_REGISTRY_TOKEN` injection.
 - Scripts: `check-actions-hygiene` probes for the GitHub `dependencies` label Dependabot expects and prints the owner `gh label create` one-shot (agents 403); surfaces in `owner-unblock` / cut-path hygiene.
 - Tip: merge `main` `first-publish.yml` **publish-new** honesty; `check-post-cut-parks-stack` now requires tip↔main workflow match (not tip-soft-only) so tip-delta stays docs/scripts-only after the main Actions alternate landed.
