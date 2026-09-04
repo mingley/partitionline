@@ -56,6 +56,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Finish Actions-secret PARTIAL (2026-09-04):** after a successful crates.io cut, `owner-finish-installable` tracks Actions `gh secret set` and exits `PARTIAL`/2 when sync fails (agents often 403) — never final OK with an unsynced Actions secret. Owner re-entry printed; bars gate `secret_rc` + PARTIAL string. Still not a Suite HOLD lift.
 
+**Bare cut Actions-secret PARTIAL (2026-09-04):** bare `owner-cut-release` (stepwise path, `SKIP_HANDOFF=0`) now syncs Actions `CARGO_REGISTRY_TOKEN` after Installable and exits `PARTIAL`/2 on sync failure — same fail-closed honesty as finish. `SKIP_HANDOFF=1` still leaves sync to finish. Self-test + bars + status/unblock re-entry gated. Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

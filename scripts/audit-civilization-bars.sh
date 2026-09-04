@@ -254,6 +254,8 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'PARTIAL — not-yet-Installable DRY_RUN soft-failed' scripts/owner-finish-installable.sh \
   && grep -qF 'PARTIAL — Installable OK but Actions secret not synced' scripts/owner-finish-installable.sh \
   && grep -qF 'secret_rc' scripts/owner-finish-installable.sh \
+  && grep -qF 'PARTIAL — Installable OK but Actions secret not synced' scripts/owner-cut-release.sh \
+  && grep -qF 'secret_rc' scripts/owner-cut-release.sh \
   && grep -qF 'parks_rc' scripts/owner-finish-installable.sh \
   && grep -qF 'PARTIAL — not yet Installable' scripts/day1-after-publish.sh \
   && grep -qF 'day1_rc' scripts/check-cut-path.sh \
@@ -277,10 +279,11 @@ fi
 # Cut-release bare must auto PUBLISH_LOCAL=1 when token is in-env (token-day footgun).
 if bash scripts/owner-cut-release.sh --self-test >/tmp/pl-cut-publish-local-auto.log 2>&1 \
   && grep -q 'handoff chained' /tmp/pl-cut-publish-local-auto.log \
-  && grep -q 'DRY_RUN reaches handoff' /tmp/pl-cut-publish-local-auto.log; then
-  ok "cut-release PUBLISH_LOCAL auto-default + handoff chain + DRY_RUN reaches handoff + SKIP_HANDOFF for finish"
+  && grep -q 'DRY_RUN reaches handoff' /tmp/pl-cut-publish-local-auto.log \
+  && grep -q 'Actions secret PARTIAL gated' /tmp/pl-cut-publish-local-auto.log; then
+  ok "cut-release PUBLISH_LOCAL auto-default + handoff chain + DRY_RUN reaches handoff + SKIP_HANDOFF for finish + Actions secret PARTIAL"
 else
-  bad "cut-release PUBLISH_LOCAL auto-default / handoff chain missing/broken; see /tmp/pl-cut-publish-local-auto.log"
+  bad "cut-release PUBLISH_LOCAL auto-default / handoff chain / Actions secret PARTIAL missing/broken; see /tmp/pl-cut-publish-local-auto.log"
 fi
 
 
