@@ -86,9 +86,9 @@ bash scripts/ci-native-kafka.sh start
 SKIP_DOCKER=1 bash scripts/ci-broker-smoke.sh
 bash scripts/ci-native-kafka.sh stop
 # TLS + SCRAM (isolated ports; needs local Kafka/Java/openssl):
-REQUIRE_AUTH=1 bash scripts/ci-auth-smoke.sh   # SCRAM-256/512 + OAUTHBEARER
+REQUIRE_AUTH=1 bash scripts/ci-auth-smoke.sh   # PLAIN + SCRAM-256/512 + OAUTHBEARER
 ```
 
 Local evidence (2026-09-04): `ci-civilization-check.sh` **26/26** including
-native broker smoke and SASL_SSL SCRAM-256/512 + OAUTHBEARER auth smoke. GitHub Actions
+native broker smoke and SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER auth smoke. GitHub Actions
 still cannot confirm Verifiable until org runners leave `queued`.

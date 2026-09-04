@@ -74,7 +74,7 @@ not in this crate). Produce-ack latency vs rust-rdkafka **0.39.0**
 Both writeups are **unsigned** until Kernel Integrity signs. See
 `docs/benchmark.md` and `docs/STATUS.md`. Mock produce over
 OAUTH is `sasl_oauthbearer_then_produce` in `tests/full_surface.rs`. Real-broker
-SASL_SSL OAUTHBEARER (plus SCRAM-256/512) is `scripts/ci-auth-smoke.sh`. Mock
+SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER is `scripts/ci-auth-smoke.sh`. Mock
 admin is `admin_create_then_produce_fetch`.
 
 ## Notes on the C-blocked rows
