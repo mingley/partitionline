@@ -7,8 +7,8 @@
 #   2. Best-effort cancels stuck Actions (agents often 403 — non-fatal)
 #   3. Fast-forwards main to the civilization tip (MERGE_CIVILIZATION=1)
 #   4. Cuts vX.Y.Z via PUBLISH_LOCAL=1 by default (bypasses starved Actions)
-#   5. Runs day1 + check-installable + audit-civilization-bars
-#   6. Optionally lands parked post-cut parks (MERGE_PARKED_VERIFIABLE=1 default)
+#   5. Cuts via owner-cut-release (day1 + Installable + bars)
+#   6. Syncs Actions secret, then owner-post-installable-handoff (TP + parks + re-verify)
 #
 # Prefer this over hand-assembling merge → tag → Actions when the Cloud Agent
 # (or owner shell) already has the crates.io token. Actions + OIDC remain the
@@ -326,14 +326,10 @@ fi
 PUBLISH_LOCAL="$PUBLISH_LOCAL" AUTO_REFRESH_PARKS=1 bash scripts/owner-cut-release.sh
 
 echo
-echo "== 6) Prove Installable =="
-bash scripts/check-installable.sh
-echo "owner-finish-installable: verify adopter crates.io consumer compiles"
-bash scripts/verify-crates-io-consumer.sh
-bash scripts/audit-civilization-bars.sh
-
-echo
-echo "== 7) Best-effort sync Actions secret for later tag publishes =="
+echo "== 6) Best-effort sync Actions secret for later tag publishes =="
+# cut-release already ran day1 + Installable prove + bars. Keep Actions secret
+# sync here (handoff does not touch secrets), then one-shot TP + parks + re-verify
+# via owner-post-installable-handoff so live cut cannot drift from Actions re-entry.
 if [[ "$PUBLISH_LOCAL" == "0" ]]; then
   echo "owner-finish-installable: Actions secret already synced pre-cut (PUBLISH_LOCAL=0); refreshing best-effort"
 fi
@@ -343,54 +339,25 @@ if command -v gh >/dev/null 2>&1; then
   else
     echo "owner-finish-installable: note — could not set Actions secret (need admin; agents often 403)"
     tail -3 /tmp/pl-finish-secret.log 2>/dev/null | sed 's/^/  /' || true
-    echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
+    echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"$CARGO_REGISTRY_TOKEN\""
   fi
 else
   echo "owner-finish-installable: note — gh not available; set Actions secret manually"
 fi
 
 echo
+echo "== 7) Post-Installable handoff (TP + parks + re-verify) =="
+land_parks=0
+if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
+  land_parks=1
+fi
+echo "owner-finish-installable: LAND_PARKS=${land_parks} owner-post-installable-handoff"
+LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh
+
+echo
 echo "owner-finish-installable: OK — ${name} ${ver} is Installable"
 echo "owner-finish-installable: commit README + docs/ADOPTION.md crates.io lines if day1 changed them"
-
-echo
-echo "== 8) Trusted Publishing (post-Installable) =="
-# Prints exact crates.io UI steps so later tags can drop the long-lived token.
-# Non-fatal: Installable is already proven above.
-bash scripts/owner-enable-trusted-publishing.sh || {
-  echo "owner-finish-installable: WARN — Trusted Publishing helper failed; Installable still OK" >&2
-  echo "  Retry: bash scripts/owner-enable-trusted-publishing.sh" >&2
-}
-
-if [[ "${MERGE_POST_CUT_PARKS}" == "1" ]]; then
-  echo
-  echo "== 9) Land parked Verifiable on main =="
-  echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=1 — landing post-cut parks (Verifiable + flate2 + SCRAM crypto + lz4_flex + actions/checkout)"
-  # day1 may have dirtied README/ADOPTION; preserve via stash + filesystem backup so
-  # park merges run clean and crates.io flips survive a failed stash pop.
-  # shellcheck source=scripts/lib/preserve-day1-docs.sh
-  source "$ROOT/scripts/lib/preserve-day1-docs.sh"
-  pl_day1_docs_begin
-  parks_rc=0
-  if bash scripts/owner-land-post-cut-parks.sh; then
-    echo "owner-finish-installable: post-cut parks landed on main"
-  else
-    parks_rc=1
-    echo "owner-finish-installable: WARN — post-cut parks land failed; Installable still OK" >&2
-    echo "  Retry: bash scripts/owner-land-post-cut-parks.sh" >&2
-    echo "  Skip later: MERGE_PARKED_VERIFIABLE=0 bash scripts/owner-finish-installable.sh" >&2
-  fi
-  pl_day1_docs_end
-  if [[ "$parks_rc" -ne 0 ]]; then
-    :
-  fi
-else
-  echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=0 — skipped post-cut parks land"
-  echo "  Later: bash scripts/owner-land-post-cut-parks.sh"
-fi
-
-echo
-echo "owner-finish-installable: re-verify / resume TP+parks anytime with:"
+echo "owner-finish-installable: re-enter anytime with:"
 echo "  bash scripts/owner-post-installable-handoff.sh"
 echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks were skipped/failed"
 exit 0
