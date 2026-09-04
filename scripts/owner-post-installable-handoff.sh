@@ -11,7 +11,8 @@
 #   DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh   # rehearse before token/cut
 #   LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh  # also land post-cut parks
 #   ENABLE_TP=0 bash scripts/owner-post-installable-handoff.sh   # skip Trusted Publishing helper
-#   bash scripts/owner-post-installable-handoff.sh --self-test   # preserve wiring units
+#   SKIP_DAY1=1 …  # caller already ran day1-after-publish (finish/cut)
+#   bash scripts/owner-post-installable-handoff.sh --self-test   # preserve + day1 chain units
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -36,8 +37,17 @@ if [[ "${1:-}" == "--self-test" ]]; then
     echo "owner-post-installable-handoff: self-test FAIL — LAND_PARKS failure must PARTIAL/exit 2 (not final OK)" >&2
     exit 1
   fi
+  # Actions-alternate / handoff-only re-entry must flip adopter docs (finish already does).
+  if ! grep -qF 'day1-after-publish.sh' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — must chain day1-after-publish after Installable" >&2
+    exit 1
+  fi
+  if ! grep -qF 'PARTIAL — Installable OK but adopter docs still git-shaped' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — git-shaped docs after day1 must PARTIAL (not final OK)" >&2
+    exit 1
+  fi
   bash "$ROOT/scripts/lib/preserve-day1-docs.sh" --self-test
-  echo "owner-post-installable-handoff: self-test OK — preserve wired for LAND_PARKS + fail-closed PARTIAL"
+  echo "owner-post-installable-handoff: self-test OK — preserve + day1 chain + fail-closed PARTIAL"
   exit 0
 fi
 
@@ -55,6 +65,17 @@ if [[ "$DRY_RUN" == "1" ]]; then
   echo "== DRY_RUN: Installable probe (may be absent) =="
   bash scripts/check-installable.sh >/tmp/pl-handoff-installable.log 2>&1 || true
   tail -6 /tmp/pl-handoff-installable.log | sed 's/^/  /' || true
+  echo
+  echo "== DRY_RUN: day1 after-publish rehearsal =="
+  # Absent crate → day1 PARTIAL/2. Capture so bars/cut-path DRY_RUN cannot abort.
+  day1_rc=0
+  DRY_RUN=1 bash scripts/day1-after-publish.sh || day1_rc=$?
+  if [[ "$day1_rc" -eq 2 ]]; then
+    echo "owner-post-installable-handoff: PARTIAL — day1 DRY_RUN not yet Installable (expected pre-token; rehearsal held)"
+  elif [[ "$day1_rc" -ne 0 ]]; then
+    echo "owner-post-installable-handoff: FAIL — day1 DRY_RUN rc=${day1_rc}" >&2
+    exit "$day1_rc"
+  fi
   echo
   echo "== DRY_RUN: adopter pin honesty =="
   bash scripts/check-adopter-pin.sh
@@ -88,6 +109,24 @@ fi
 
 echo "== 1) Installable =="
 bash scripts/check-installable.sh
+
+echo
+echo "== 1b) Day1 (README/ADOPTION crates.io flip) =="
+# Actions-alternate / handoff-only re-entry must not OK with git-shaped adopter docs.
+# Finish/cut already run day1; re-run is idempotent. SKIP_DAY1=1 skips when caller
+# just flipped docs in-process.
+if [[ "${SKIP_DAY1:-0}" == "1" ]]; then
+  echo "owner-post-installable-handoff: SKIP_DAY1=1 — caller already ran day1-after-publish"
+else
+  bash scripts/day1-after-publish.sh
+fi
+if ! grep -qE '^partitionline = "[0-9]' README.md; then
+  echo "owner-post-installable-handoff: PARTIAL — Installable OK but adopter docs still git-shaped" >&2
+  echo "  Day1 must flip README/ADOPTION to crates.io before handoff can OK." >&2
+  echo "  Re-enter: bash scripts/day1-after-publish.sh" >&2
+  echo "  Then: bash scripts/owner-post-installable-handoff.sh" >&2
+  exit 2
+fi
 
 echo
 echo "== 2) Adopter pin (crates.io-shaped docs) =="
