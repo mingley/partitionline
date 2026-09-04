@@ -169,6 +169,8 @@ bash scripts/audit-civilization-bars.sh
 
 echo
 echo "owner-cut-release: OK — ${name} ${ver} is Installable on crates.io"
-echo "owner-cut-release: commit the README crates.io line if day1 changed it, then"
-echo "  configure crates.io Trusted Publishing for release.yml (drop long-lived secret)."
+echo "owner-cut-release: commit the README crates.io line if day1 changed it, then:"
+echo "  bash scripts/owner-post-installable-handoff.sh"
+echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # TP + parks + bars"
+echo "  # or stepwise Trusted Publishing UI for release.yml (drop long-lived secret)."
 exit 0
