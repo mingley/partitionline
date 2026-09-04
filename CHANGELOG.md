@@ -12,8 +12,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `scripts/lib/crates-io.sh`: shared Installable probe (crates.io API + sparse
   index fallback; required User-Agent — CDN returns empty 403 without one).
   Wired into `check-installable`, `check-merge-ready`, and `owner-status`.
-- `scripts/check-merge-ready.sh`: `git merge-tree` “changed in both” conflict
-  probe vs `origin/main`; owner next steps prefer `owner-cut-release.sh`.
+- `scripts/check-merge-ready.sh`: `git merge-tree --write-tree` conflict probe
+  vs `origin/main` (flush-left `changed in both` fallback; avoids doc/script
+  false positives); owner next steps prefer `owner-cut-release.sh`.
 
 - `examples/kip848`: KIP-848 next-gen consumer group join (`ConsumerGroup::join_consumer_topics`).
   Broker smoke runs it on Kafka 4.x (`REQUIRE_KIP848=1` default). Join now sends an
