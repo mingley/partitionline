@@ -160,6 +160,24 @@ name = "consume_intercept"
 [[example]]
 name = "bench_latency"
 
+[[example]]
+name = "share"
+
+[[example]]
+name = "cooperative"
+
+[[example]]
+name = "metrics"
+
+[[example]]
+name = "offsets"
+
+[[example]]
+name = "pause"
+
+[[example]]
+name = "wakeup"
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

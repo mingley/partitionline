@@ -57,6 +57,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Migration guide git pin → `v0.1.0-rc.3`; guide documents KIP-848 empty
+  `TopicPartitions` join + `examples/kip848`. Cargo.toml lists remaining
+  examples (`share`, `cooperative`, `metrics`, `offsets`, `pause`, `wakeup`)
+  so the packaged crate surface matches README.
 - ADOPTION owner unblock: `main` Actions recovered; remaining cancel targets
   are stale tip/tag queues (not an eternal `main` queue).
 
