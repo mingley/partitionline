@@ -80,7 +80,16 @@ echo "== ci-branch-lite: post-cut parks stack rehearsal =="
 bash scripts/check-post-cut-parks-stack.sh
 
 echo "== ci-branch-lite: day1 after-publish rehearsal (no crates.io wait) =="
-DRY_RUN=1 bash scripts/day1-after-publish.sh
+# Absent crate + DRY_RUN exits PARTIAL/2 by design — capture so set -e cannot
+# abort tip Verifiable (or greenwash) while Installable waits on the token.
+day1_rc=0
+DRY_RUN=1 bash scripts/day1-after-publish.sh || day1_rc=$?
+if [[ "$day1_rc" -eq 2 ]]; then
+  echo "ci-branch-lite: PARTIAL — day1 DRY_RUN not yet Installable (expected pre-token; rehearsal held)"
+elif [[ "$day1_rc" -ne 0 ]]; then
+  echo "ci-branch-lite: FAIL — day1 DRY_RUN rc=${day1_rc}" >&2
+  exit "$day1_rc"
+fi
 
 echo "== ci-branch-lite: Actions hygiene (stale queue surface) =="
 # Informational (always exit 0). Tip Verifiable surfaces zombie RC-release /
@@ -119,4 +128,8 @@ FULL=0 PRE_PUBLISH=1 bash scripts/audit-civilization-bars.sh
 echo "== ci-branch-lite: docs =="
 bash scripts/ci-docs.sh
 
+if [[ "${day1_rc:-0}" -eq 2 ]]; then
+  echo "ci-branch-lite: ok with PARTIAL — tip Verifiable proxy held; Installable still blocked on CARGO_REGISTRY_TOKEN"
+  exit 0
+fi
 echo "ci-branch-lite: ok (tip Verifiable proxy; full matrix via PR/main/dispatch)"
