@@ -151,4 +151,7 @@ if [[ "$ENABLE_TP" == "1" && "$tp_rc" -ne 0 ]]; then
   echo "  Re-enter: bash scripts/owner-enable-trusted-publishing.sh" >&2
   exit 2
 fi
-echo "owner-post-installable-handoff: OK — ${name} ${ver} post-Installable handoff complete"
+# Automated handoff steps succeeded. Trusted Publishing UI remains an owner action
+# (helper only checks workflow shape — never claim TP is configured).
+echo "owner-post-installable-handoff: OK — ${name} ${ver} post-Installable automated handoff complete"
+echo "owner-post-installable-handoff: Trusted Publishing UI still owner (crates.io settings) if not already configured"
