@@ -1,7 +1,7 @@
 ---
 name: Protocol map
 about: Map a Java / Apache Kafka protocol helper into this crate
-labels: protocol
+labels: enhancement
 ---
 
 **Java type / method**

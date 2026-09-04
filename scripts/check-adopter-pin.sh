@@ -24,7 +24,18 @@ cd "$ROOT"
 
 # Crates.io install stanza — Installable path already landed.
 if grep -qE '^partitionline = "[0-9]' README.md; then
-  echo "check-adopter-pin: ok (README uses crates.io version dep)"
+  # Day-1 must also flip ADOPTION off the pre-publish "remaining owner step" story.
+  if grep -qiE 'remaining owner step|crates\.io publish is the remaining' docs/ADOPTION.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/ADOPTION.md still says publish is remaining" >&2
+    echo "  Re-run: bash scripts/post-publish-adoption.sh (wired into day1-after-publish)" >&2
+    exit 1
+  fi
+  if ! grep -qE 'partitionline = "[0-9]' docs/ADOPTION.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/ADOPTION.md lacks a crates.io version dep" >&2
+    echo "  Re-run: bash scripts/post-publish-adoption.sh" >&2
+    exit 1
+  fi
+  echo "check-adopter-pin: ok (README + ADOPTION use crates.io version dep)"
   exit 0
 fi
 
