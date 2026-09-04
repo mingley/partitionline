@@ -138,7 +138,13 @@ if [[ "$broker_ok" -eq 0 ]]; then
     && SKIP_DOCKER=1 bash scripts/ci-broker-smoke.sh >/tmp/pl-broker.log 2>&1 \
     && grep -q 'ci-broker-smoke: ok' /tmp/pl-broker.log; then
     ok "broker smoke (native Kafka)"
-    bash scripts/ci-native-kafka.sh stop >/dev/null 2>&1 || true
+    # Leave shared native broker up for later integrity/latency (Lab A / tip chain).
+    # Stopping here forced Connection refused between broker → integrity and
+    # greenwashed as a soft miss under agent load. Opt-in old behavior:
+    # STOP_NATIVE_AFTER_BROKER=1.
+    if [[ "${STOP_NATIVE_AFTER_BROKER:-0}" == "1" ]]; then
+      bash scripts/ci-native-kafka.sh stop >/dev/null 2>&1 || true
+    fi
   else
     if [[ "${REQUIRE_BROKER:-}" == "1" ]]; then
       bad "broker smoke; see /tmp/pl-broker.log /tmp/pl-native-kafka.log"
