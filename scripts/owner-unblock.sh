@@ -70,6 +70,7 @@ echo "  # After Installable, finish chains owner-land-post-cut-parks by default:
 echo "  #   1) dev/verifiable-auth-integrity-fuzz-b686 (Actions auth+integrity + CGHeartbeat fuzz)"
 echo "  #   2) dev/scram-crypto-bumps-b686 (SCRAM crypto + flate2 bumps)"
 echo "  #   3) dev/lz4-flex-bump-b686 (lz4_flex 0.11 → 0.14)"
+echo "  #   4) dev/actions-checkout-bump-b686 (actions/checkout → v7)"
 echo "  # MERGE_PARKED_VERIFIABLE=0 / MERGE_POST_CUT_PARKS=0 skips parks land"
 echo "  # FF-merges civilization → main (includes any tip-ahead docs/scripts), cargo publish,"
 echo "  # day1, proves Installable. Real cuts default REQUIRE_MAIN_CI=1 — wait for"
