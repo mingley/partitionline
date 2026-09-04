@@ -2013,7 +2013,9 @@ impl ConsumerGroup {
             subscribed_topic_names: Some(self.topics.clone()),
             subscribed_topic_regex: None,
             server_assignor: None,
-            topic_partitions: None,
+            // Broker rejects null TopicPartitions on join ("must be empty when
+            // (re-)joining"); send an empty array instead of null/unchanged.
+            topic_partitions: Some(Vec::new()),
         };
         let body = coord_roundtrip(
             &mut self.coord,

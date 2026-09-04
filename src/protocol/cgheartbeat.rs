@@ -307,7 +307,10 @@ pub fn decode_consumer_group_heartbeat_response<B: Buf>(
         buf::skip_tagged_fields(buf)?;
         parts
     };
-    buf::skip_tagged_fields(buf)?;
+    // Some broker error responses omit trailing tagged fields; accept EOF as empty.
+    if buf.has_remaining() {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(ConsumerGroupHeartbeatResponse {
         throttle_time_ms,
         error_code,
@@ -385,6 +388,30 @@ mod tests {
     }
 
     #[test]
+
+    #[test]
+    fn join_encodes_empty_topic_partitions_array_not_null() {
+        // Kafka rejects null TopicPartitions on join ("must be empty when (re-)joining").
+        let req = ConsumerGroupHeartbeatRequest {
+            group_id: "g".into(),
+            member_id: String::new(),
+            member_epoch: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            instance_id: None,
+            rack_id: None,
+            rebalance_timeout_ms: 300_000,
+            subscribed_topic_names: Some(vec!["t".into()]),
+            subscribed_topic_regex: None,
+            server_assignor: None,
+            topic_partitions: Some(Vec::new()),
+        };
+        let mut buf = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut buf, 1, &req).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_consumer_group_heartbeat_request(&mut cur, 1).unwrap();
+        assert_eq!(decoded.topic_partitions.as_ref().map(|v| v.len()), Some(0));
+        assert!(cur.is_empty());
+    }
+
     fn consumer_group_heartbeat_v0_roundtrip_join() {
         let req = join_req();
         let mut buf = BytesMut::new();
