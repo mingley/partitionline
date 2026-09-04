@@ -2,6 +2,7 @@
 # One-shot owner finish for civilization Installable (WP-0.5).
 #
 # Once CARGO_REGISTRY_TOKEN is available in this environment, this script:
+#   0a. Runs honesty self-tests (registry token units + tip Verifiable PARTIAL exits)
 #   1. Confirms tip merge-readiness
 #   2. Best-effort cancels stuck Actions (agents often 403 — non-fatal)
 #   3. Fast-forwards main to the civilization tip (MERGE_CIVILIZATION=1)
@@ -59,6 +60,13 @@ tag="v${ver}"
 echo "owner-finish-installable: ${name} ${ver}"
 echo
 
+echo "== 0a) Honesty self-tests (no token required) =="
+# Cut path must not drift: registry probe units + tip Verifiable PARTIAL exit codes.
+# These are executable (not grep-only) and run before Installable short-circuit / token gate.
+bash scripts/check-registry-token.sh --self-test
+bash scripts/ci-tip-verifiable-broker.sh --self-test
+
+echo
 echo "== 0) Already Installable? =="
 if bash scripts/check-installable.sh; then
   echo "owner-finish-installable: crates.io already has ${name} ${ver}"
