@@ -37,7 +37,7 @@ echo
 echo "If publishing locally instead (token in env):"
 echo "  cargo publish --dry-run && cargo publish"
 echo
-echo "Until crates.io lands, adopters pin git tag v0.1.0-rc.4 (not floating main)."
+echo "Until crates.io lands, adopters pin git tag v0.1.0-rc.5 (not floating main)."
 echo
 
 echo "== 4) Day-1 after crates.io shows partitionline 0.1.0 =="

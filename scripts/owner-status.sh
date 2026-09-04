@@ -60,6 +60,12 @@ if [[ -n "$(git status --porcelain 2>/dev/null || true)" ]]; then
 else
   echo "  working tree: clean"
 fi
+if bash scripts/check-adopter-pin.sh >/tmp/pl-owner-adopter-pin.log 2>&1; then
+  echo "  adopter pin: $(tail -1 /tmp/pl-owner-adopter-pin.log)"
+else
+  echo "  adopter pin: FAIL (see /tmp/pl-owner-adopter-pin.log)"
+  tail -5 /tmp/pl-owner-adopter-pin.log | sed 's/^/    /' || true
+fi
 if bash scripts/ci-branch-lite.sh >/tmp/pl-owner-branch-lite.log 2>&1; then
   echo "  branch-lite (local Actions mirror): ok"
 else
