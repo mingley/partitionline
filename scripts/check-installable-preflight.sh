@@ -98,6 +98,18 @@ bash scripts/lib/preserve-day1-docs.sh --self-test
 if bash scripts/check-installable.sh >/tmp/pl-preflight-installable.log 2>&1; then
   echo "check-installable-preflight: ALREADY_INSTALLABLE — crates.io has ${name} ${ver}"
   tail -5 /tmp/pl-preflight-installable.log | sed 's/^/  /'
+  # Installable ≠ post-cut complete. Surface parks-on-main so ALREADY_INSTALLABLE
+  # cannot soft-OK unfinished park land (handoff re-entry still required).
+  echo "== parks on main (post-Installable honesty) =="
+  parks_main_rc=0
+  bash scripts/check-parks-on-main.sh || parks_main_rc=$?
+  if [[ "$parks_main_rc" -eq 2 ]]; then
+    echo "check-installable-preflight: PARTIAL — Installable OK but parks not on main"
+    echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    echo "  Or: bash scripts/owner-finish-installable.sh  # already-Installable short-circuit"
+  elif [[ "$parks_main_rc" -ne 0 ]]; then
+    echo "check-installable-preflight: WARN — parks-on-main probe rc=${parks_main_rc}" >&2
+  fi
   exit 2
 fi
 # check-installable fails when absent — that is expected pre-cut.

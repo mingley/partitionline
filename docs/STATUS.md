@@ -70,6 +70,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Tip-proxy handoff DRY_RUN (2026-09-04):** `ci-branch-lite` and `ci-publish-ready` now rehearse `owner-post-installable-handoff` DRY_RUN (with `HANDOFF_FROM_BARS=1`) and capture `handoff_rc` like cut-path — tip Verifiable / token-day publish-ready cannot ignore parks-on-main PARTIAL. Bars gate. Still not a Suite HOLD lift.
 
+**Shared parks-on-main probe + fast owner-status (2026-09-04):** `scripts/check-parks-on-main.sh` is the shared ancestor-of-main probe (handoff DRY_RUN + live). Preflight `ALREADY_INSTALLABLE` surfaces `PARTIAL` when parks remain off main (Installable ≠ post-cut complete). `owner-status` live-probes parks-on-main and skips branch-lite/full bars when `CARGO_REGISTRY_TOKEN` is unset unless `OWNER_STATUS_FULL=1` (token-ask path stays usable). Self-test + bars gate. Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

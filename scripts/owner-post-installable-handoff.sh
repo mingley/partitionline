@@ -58,10 +58,12 @@ if [[ "${1:-}" == "--self-test" ]]; then
   # DRY_RUN must probe parks-on-main (not only stack). Already-Installable DRY_RUN
   # exits PARTIAL/2; pre-token holds exit 0 with a PARTIAL note (like day1).
   if ! grep -qF 'DRY_RUN: parks on main' "$ROOT/scripts/owner-post-installable-handoff.sh" \
-    || ! grep -qF 'PARTIAL — parks not on main (DRY_RUN' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
-    echo "owner-post-installable-handoff: self-test FAIL — DRY_RUN must probe parks-on-main (Installable→exit 2)" >&2
+    || ! grep -qF 'PARTIAL — parks not on main (DRY_RUN' "$ROOT/scripts/owner-post-installable-handoff.sh" \
+    || ! grep -qF 'check-parks-on-main.sh' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — DRY_RUN must probe parks-on-main via check-parks-on-main.sh (Installable→exit 2)" >&2
     exit 1
   fi
+  bash "$ROOT/scripts/check-parks-on-main.sh" --self-test
   bash "$ROOT/scripts/lib/preserve-day1-docs.sh" --self-test
   echo "owner-post-installable-handoff: self-test OK — preserve + day1 chain + parks-on-main + fail-closed PARTIAL"
   exit 0
@@ -118,44 +120,29 @@ if [[ "$DRY_RUN" == "1" ]]; then
   bash scripts/check-post-cut-parks-stack.sh
   echo
   echo "== DRY_RUN: parks on main =="
-  # Stack check ≠ landed. Mirror live parks-on-main probe so already-Installable
-  # DRY_RUN cannot soft-green unfinished post-cut land. Pre-token parks pending
-  # is expected — hold exit 0 with PARTIAL note (same pattern as day1).
-  PARKED_BRANCHES="${PARKED_BRANCHES:-dev/verifiable-auth-integrity-fuzz-b686 dev/scram-crypto-bumps-b686 dev/lz4-flex-bump-b686 dev/actions-checkout-bump-b686}"
-  git fetch origin main ${PARKED_BRANCHES} >/dev/null 2>&1 || true
-  dry_parks_pending=()
-  for parked in ${PARKED_BRANCHES}; do
-    if ! git rev-parse -q --verify "origin/${parked}" >/dev/null; then
-      dry_parks_pending+=("${parked} (missing)")
-      continue
-    fi
-    if ! git merge-base --is-ancestor "origin/${parked}" origin/main; then
-      dry_parks_pending+=("${parked}")
-    fi
-  done
-  dry_installable=0
-  if bash scripts/check-installable.sh >/dev/null 2>&1; then
-    dry_installable=1
-  fi
-  if [[ "${#dry_parks_pending[@]}" -eq 0 ]]; then
-    echo "owner-post-installable-handoff: parks are on origin/main"
+  # Stack check ≠ landed. Shared probe so already-Installable DRY_RUN cannot
+  # soft-green unfinished post-cut land. Pre-token parks pending is expected —
+  # hold exit 0 with PARTIAL note (same pattern as day1).
+  dry_parks_rc=0
+  bash scripts/check-parks-on-main.sh || dry_parks_rc=$?
+  if [[ "$dry_parks_rc" -eq 0 ]]; then
+    : # probe printed OK
+  elif [[ "$dry_parks_rc" -eq 1 ]]; then
+    echo "owner-post-installable-handoff: FAIL — parks-on-main probe rc=1" >&2
+    exit 1
   elif [[ "${ALLOW_PARKS_PENDING:-0}" == "1" ]]; then
-    echo "owner-post-installable-handoff: WARN — ALLOW_PARKS_PENDING=1; parks still off main (deferred):"
-    for p in "${dry_parks_pending[@]}"; do
-      echo "  - ${p}"
-    done
-  elif [[ "$dry_installable" -eq 1 ]]; then
-    echo "owner-post-installable-handoff: PARTIAL — parks not on main (DRY_RUN; already Installable)" >&2
-    for p in "${dry_parks_pending[@]}"; do
-      echo "  - ${p}" >&2
-    done
-    echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh" >&2
-    exit 2
+    echo "owner-post-installable-handoff: WARN — ALLOW_PARKS_PENDING=1; parks still off main (deferred)"
   else
+    dry_installable=0
+    if bash scripts/check-installable.sh >/dev/null 2>&1; then
+      dry_installable=1
+    fi
+    if [[ "$dry_installable" -eq 1 ]]; then
+      echo "owner-post-installable-handoff: PARTIAL — parks not on main (DRY_RUN; already Installable)" >&2
+      echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh" >&2
+      exit 2
+    fi
     echo "owner-post-installable-handoff: PARTIAL — parks not on main (DRY_RUN; expected pre-token; rehearsal held)"
-    for p in "${dry_parks_pending[@]}"; do
-      echo "  - ${p}"
-    done
     echo "  After Installable: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
   fi
   echo
@@ -237,25 +224,11 @@ echo "== 7) Parks on main (post-cut land honesty) =="
 # Stack check proves tip⊆parks merge readiness. Final OK still requires each park
 # to be an ancestor of origin/main — otherwise Actions-alternate / LAND_PARKS=0
 # handoff greenwashes unfinished post-cut land.
-PARKED_BRANCHES="${PARKED_BRANCHES:-dev/verifiable-auth-integrity-fuzz-b686 dev/scram-crypto-bumps-b686 dev/lz4-flex-bump-b686 dev/actions-checkout-bump-b686}"
-git fetch origin main ${PARKED_BRANCHES} >/dev/null 2>&1 || true
-parks_pending=()
-for parked in ${PARKED_BRANCHES}; do
-  if ! git rev-parse -q --verify "origin/${parked}" >/dev/null; then
-    parks_pending+=("${parked} (missing)")
-    continue
-  fi
-  if ! git merge-base --is-ancestor "origin/${parked}" origin/main; then
-    parks_pending+=("${parked}")
-  fi
-done
-if [[ "${#parks_pending[@]}" -eq 0 ]]; then
-  echo "owner-post-installable-handoff: parks are on origin/main"
-else
-  echo "owner-post-installable-handoff: parks not yet on origin/main:"
-  for p in "${parks_pending[@]}"; do
-    echo "  - ${p}"
-  done
+parks_on_main_rc=0
+bash scripts/check-parks-on-main.sh || parks_on_main_rc=$?
+if [[ "$parks_on_main_rc" -eq 1 ]]; then
+  echo "owner-post-installable-handoff: FAIL — parks-on-main probe rc=1" >&2
+  exit 1
 fi
 
 echo
@@ -274,7 +247,7 @@ if [[ "$ENABLE_TP" == "1" && "$tp_rc" -ne 0 ]]; then
   echo "  Re-enter: bash scripts/owner-enable-trusted-publishing.sh" >&2
   exit 2
 fi
-if [[ "${#parks_pending[@]}" -ne 0 && "${ALLOW_PARKS_PENDING:-0}" != "1" ]]; then
+if [[ "$parks_on_main_rc" -eq 2 && "${ALLOW_PARKS_PENDING:-0}" != "1" ]]; then
   echo "owner-post-installable-handoff: PARTIAL — Installable OK but parks not on main" >&2
   echo "  Post-cut parks still pending on origin/main — handoff must not final-OK." >&2
   echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh" >&2
@@ -282,7 +255,7 @@ if [[ "${#parks_pending[@]}" -ne 0 && "${ALLOW_PARKS_PENDING:-0}" != "1" ]]; the
   echo "  Intentional deferral: ALLOW_PARKS_PENDING=1 bash scripts/owner-post-installable-handoff.sh" >&2
   exit 2
 fi
-if [[ "${#parks_pending[@]}" -ne 0 && "${ALLOW_PARKS_PENDING:-0}" == "1" ]]; then
+if [[ "$parks_on_main_rc" -eq 2 && "${ALLOW_PARKS_PENDING:-0}" == "1" ]]; then
   echo "owner-post-installable-handoff: WARN — ALLOW_PARKS_PENDING=1; parks still off main (deferred)"
 fi
 # Automated handoff steps succeeded. Trusted Publishing UI remains an owner action
