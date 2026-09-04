@@ -65,6 +65,7 @@ echo "== 0a) Honesty self-tests (no token required) =="
 # These are executable (not grep-only) and run before Installable short-circuit / token gate.
 bash scripts/check-registry-token.sh --self-test
 bash scripts/ci-tip-verifiable-broker.sh --self-test
+bash scripts/check-parks-refresh-cut-guards.sh
 
 echo
 echo "== 0) Already Installable? =="

@@ -15,6 +15,9 @@ echo
 echo "== check-cut-path: registry token probe self-test =="
 bash scripts/check-registry-token.sh --self-test
 
+echo "== check-cut-path: parks-refresh cut guards (restore main/caller) =="
+bash scripts/check-parks-refresh-cut-guards.sh
+
 echo
 echo "== check-cut-path: registry token probe =="
 tok_rc=0
