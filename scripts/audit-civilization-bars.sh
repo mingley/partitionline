@@ -168,6 +168,15 @@ if grep -qiE 'tracing|metrics|prometheus' docs/guide.md; then
 else
   bad "guide missing metrics/tracing path"
 fi
+# Parks auto-refresh must restore main/caller before cut/publish (token-day footgun).
+if [[ -x scripts/check-parks-refresh-cut-guards.sh ]] \
+  && bash scripts/check-parks-refresh-cut-guards.sh >/tmp/pl-parks-refresh-guards.log 2>&1 \
+  && grep -qF -- 'check-parks-refresh-cut-guards.sh' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'check-parks-refresh-cut-guards.sh' scripts/check-cut-path.sh; then
+  ok "parks-refresh cut guards (restore main/caller; wired into finish + cut-path)"
+else
+  bad "parks-refresh cut guards missing or unwired; see /tmp/pl-parks-refresh-guards.log"
+fi
 
 # --- 4. Honest ---
 echo
