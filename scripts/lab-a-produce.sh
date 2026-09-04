@@ -12,7 +12,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 BOOTSTRAP="${KAFKA_BOOTSTRAP:-127.0.0.1:9092}"
-TOPIC="${KAFKA_TOPIC:-plbench}"
+# Prefer TOPIC= for operators; KAFKA_TOPIC remains the wire env for examples.
+TOPIC="${TOPIC:-${KAFKA_TOPIC:-plbench}}"
 COUNT="${COUNT:-8000000}"
 PAYLOAD_BYTES="${PAYLOAD_BYTES:-100}"
 ACKS="${ACKS:-1}"

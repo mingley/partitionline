@@ -49,6 +49,8 @@ First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
   fails the gate if any reappear).
 - CI: `dev/**` branch pushes run a single `branch-lite` job; full matrix on
   pull_request, `main`, and `workflow_dispatch` so scarce runners can finish.
+- Lab A harness accepts `TOPIC=` as well as `KAFKA_TOPIC=`; STATUS notes a
+  fresh unsigned latency-gate + HW==acked smoke sample (not a Suite HOLD lift).
 - Broker smoke: Kafka CI matrix uses `apache/kafka:4.1.0`; Docker 4.x starts with
   share coordinator RF=1 and upgrades `share.version=1`; `REQUIRE_SHARE=1` fails
   the job if share cannot fetch records on 4.x. Civilization-check only counts
