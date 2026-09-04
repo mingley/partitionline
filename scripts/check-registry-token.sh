@@ -120,6 +120,38 @@ interpret_probe() {
 }
 
 if [[ "${1:-}" == "--self-test" ]]; then
+  # Local units first (no network): whitespace/misname helpers must stay honest.
+  # shellcheck source=scripts/lib/cargo-registry-token.sh
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cargo-registry-token.sh"
+  echo "check-registry-token: self-test — whitespace-only TOKEN must become unset"
+  CARGO_REGISTRY_TOKEN='   '
+  export CARGO_REGISTRY_TOKEN
+  pl_normalize_cargo_registry_token "check-registry-token-self-test"
+  if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+    echo "check-registry-token: self-test FAIL — whitespace-only TOKEN still set" >&2
+    exit 1
+  fi
+  echo "check-registry-token: self-test — leading/trailing space must be trimmed"
+  CARGO_REGISTRY_TOKEN='  abcd  '
+  export CARGO_REGISTRY_TOKEN
+  pl_normalize_cargo_registry_token "check-registry-token-self-test"
+  if [[ "${CARGO_REGISTRY_TOKEN:-}" != "abcd" ]]; then
+    echo "check-registry-token: self-test FAIL — expected trimmed token len=4, got len=${#CARGO_REGISTRY_TOKEN}" >&2
+    exit 1
+  fi
+  unset CARGO_REGISTRY_TOKEN
+  echo "check-registry-token: self-test — TOKEN_FILE whitespace loads then normalizes to unset"
+  _pl_st_tf="$(mktemp)"
+  printf '  \n' >"${_pl_st_tf}"
+  CARGO_REGISTRY_TOKEN_FILE="${_pl_st_tf}"
+  export CARGO_REGISTRY_TOKEN_FILE
+  pl_prepare_cargo_registry_token "check-registry-token-self-test"
+  rm -f "${_pl_st_tf}"
+  unset CARGO_REGISTRY_TOKEN_FILE
+  if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+    echo "check-registry-token: self-test FAIL — whitespace TOKEN_FILE left TOKEN set" >&2
+    exit 1
+  fi
   echo "check-registry-token: self-test — fake token must be rejected"
   # shellcheck disable=SC2034
   IFS=$'\t' read -r code body_snip < <(probe_once "cio_partitionline_self_test_invalid_token")
@@ -127,7 +159,7 @@ if [[ "${1:-}" == "--self-test" ]]; then
     echo "check-registry-token: self-test FAIL — fake token was accepted" >&2
     exit 1
   fi
-  echo "check-registry-token: self-test OK — fake token rejected (http=${code})"
+  echo "check-registry-token: self-test OK — normalize units + fake token rejected (http=${code})"
   exit 0
 fi
 
