@@ -142,6 +142,8 @@ PUBLISH_LOCAL="$PUBLISH_LOCAL" bash scripts/owner-cut-release.sh
 echo
 echo "== 6) Prove Installable =="
 bash scripts/check-installable.sh
+echo "owner-finish-installable: verify adopter crates.io consumer compiles"
+bash scripts/verify-crates-io-consumer.sh
 bash scripts/audit-civilization-bars.sh
 
 echo
