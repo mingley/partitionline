@@ -26,10 +26,12 @@ stop after a successful `cargo package` dry-run. Owner one-shot checklist:
 
 ### Preferred: GitHub Actions tag publish
 
-One-time setup:
+One-time setup (first crates.io cut):
 
 1. Create a crates.io API token (publish-update for `partitionline`).
 2. Add repository secret `CARGO_REGISTRY_TOKEN` (Settings → Secrets → Actions).
+   Required for the **first** publish — Trusted Publishing can only be
+   configured after the crate exists on crates.io.
 3. Ensure CHANGELOG has a dated `0.1.0` (or next) section and README is ready
    to show the crates.io dependency line after the run.
 
@@ -49,6 +51,20 @@ character), not regex. The Release-notes step must keep shell strings indented
 under `run: |` (a flush-left multiline string is invalid YAML and used to create
 empty-job `release` failures on branch pushes). A job-level `if` also skips
 non-tag evaluations.
+
+Auth: the job requests `id-token: write` and tries
+[`rust-lang/crates-io-auth-action`](https://github.com/rust-lang/crates-io-auth-action)
+(OIDC Trusted Publishing) first, then falls back to `CARGO_REGISTRY_TOKEN`.
+See [crates.io Trusted Publishing](https://crates.io/docs/trusted-publishing).
+
+### After 0.1.0: prefer OIDC (no long-lived Actions token)
+
+1. crates.io → `partitionline` → Settings → Trusted Publishing → Add.
+2. Platform: GitHub. Owner: `mingley`. Repository: `partitionline`.
+   Workflow filename: `release.yml`.
+3. Re-tag / next release: OIDC should mint a ~30-minute token; the secret
+   becomes optional. Remove `CARGO_REGISTRY_TOKEN` from Actions secrets once
+   a trusted-publishing publish has succeeded.
 
 ### Manual publish
 
