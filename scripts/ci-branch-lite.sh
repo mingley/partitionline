@@ -30,6 +30,10 @@ cargo test --test fuzz_decode_smoke
 echo "== ci-branch-lite: adopter pin =="
 bash scripts/check-adopter-pin.sh
 
+echo "== ci-branch-lite: MSRV (Installable) =="
+# Declared rust-version must actually compile/test — not just a Cargo.toml string.
+bash scripts/ci-msrv.sh
+
 echo "== ci-branch-lite: path adopter consumer (pre-crates.io) =="
 # Proves day1 registry consumer will compile once 0.1.0 exists (API surface).
 MODE=path bash scripts/verify-crates-io-consumer.sh
