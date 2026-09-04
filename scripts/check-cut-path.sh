@@ -30,6 +30,10 @@ echo "== check-cut-path: tip-delta (docs/scripts-only vs main) =="
 bash scripts/check-tip-delta.sh
 
 echo
+echo "== check-cut-path: MSRV (Installable) =="
+bash scripts/ci-msrv.sh
+
+echo
 echo "== check-cut-path: post-cut parks refresh DRY_RUN (chain-safe) =="
 # Proves tip→Verifiable→SCRAM→lz4→checkout refresh stays idempotent before cut.
 # Do not merge tip into each park in parallel — that forks the tip⊆… chain.
