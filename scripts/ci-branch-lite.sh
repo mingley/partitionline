@@ -107,7 +107,15 @@ bash scripts/check-merge-ready.sh
 echo "== ci-branch-lite: first-publish Actions alternate (DRY_RUN visibility) =="
 # Prove first-publish.yml remains workflow_dispatch-visible on main (Actions
 # alternate when token is Actions-secret-only). DRY_RUN=1 does not dispatch.
-DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh
+# Already-Installable → PARTIAL/2 (refuse re-dispatch soft-OK); capture like day1.
+dispatch_rc=0
+DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh || dispatch_rc=$?
+if [[ "$dispatch_rc" -eq 2 ]]; then
+  echo "ci-branch-lite: PARTIAL — first-publish DRY_RUN already Installable (re-dispatch refused; handoff re-entry)"
+elif [[ "$dispatch_rc" -ne 0 ]]; then
+  echo "ci-branch-lite: FAIL — first-publish DRY_RUN rc=${dispatch_rc}" >&2
+  exit "$dispatch_rc"
+fi
 
 echo "== ci-branch-lite: tip Verifiable PARTIAL exit self-test =="
 # Prove finalize exit codes (ok=0 / PARTIAL=2 / soft PARTIAL=0) before live broker.
@@ -128,8 +136,8 @@ FULL=0 PRE_PUBLISH=1 bash scripts/audit-civilization-bars.sh
 echo "== ci-branch-lite: docs =="
 bash scripts/ci-docs.sh
 
-if [[ "${day1_rc:-0}" -eq 2 ]]; then
-  echo "ci-branch-lite: ok with PARTIAL — tip Verifiable proxy held; Installable still blocked on CARGO_REGISTRY_TOKEN"
+if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 ]]; then
+  echo "ci-branch-lite: ok with PARTIAL — tip Verifiable proxy held; Installable still blocked on CARGO_REGISTRY_TOKEN (or post-cut re-entry)"
   exit 0
 fi
 echo "ci-branch-lite: ok (tip Verifiable proxy; full matrix via PR/main/dispatch)"

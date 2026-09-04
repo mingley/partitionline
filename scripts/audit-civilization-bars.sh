@@ -262,6 +262,11 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'day1_rc' scripts/ci-branch-lite.sh \
   && grep -qF 'day1_rc' scripts/ci-publish-ready.sh \
   && grep -qF 'finish_rc' scripts/check-cut-path.sh \
+  && grep -qF 'dispatch_rc' scripts/check-cut-path.sh \
+  && grep -qF 'dispatch_rc' scripts/ci-branch-lite.sh \
+  && grep -qF 'PARTIAL — already Installable' scripts/owner-dispatch-first-publish.sh \
+  && bash scripts/owner-dispatch-first-publish.sh --self-test >/tmp/pl-dispatch-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-dispatch-self-test.log \
   && grep -qF 'check-installable-preflight.sh' scripts/owner-request-registry-token.sh \
   && grep -qF 'READY_EXCEPT_TOKEN' scripts/owner-request-registry-token.sh \
   && grep -qF 'parks stack stale' scripts/owner-request-registry-token.sh \
