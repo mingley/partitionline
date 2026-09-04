@@ -140,6 +140,9 @@ done
 
 echo
 echo "civilization-check: pass=$pass fail=$fail skip=$skip"
+echo
+echo "== Owner blocker probe (informational) =="
+bash scripts/owner-status.sh || true
 if [[ "$fail" -gt 0 ]]; then
   exit 1
 fi

@@ -6,12 +6,13 @@ on:
   pull_request:
   workflow_dispatch:
 
-# One CI group per ref. Always cancel superseded runs on feature branches and
-# PRs so scarce runners are not held by stale queues. Never cancel mid-run on
-# main (release verification).
+# One CI group per ref. Always cancel superseded runs — including on main —
+# so a stuck queued job cannot hold the only org runner for hours (seen
+# org-wide during civilization). Prefer a fresh main matrix over an eternal
+# queue behind a dead predecessor.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: true
 
 jobs:
   # Branch pushes (dev/**): one light job so a single free runner can finish.

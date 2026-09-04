@@ -15,7 +15,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `examples/sasl` accepts optional `TLS_CA_PEM` / `TLS_SERVER_NAME` for the
   production SASL_SSL path.
 - `scripts/owner-status.sh` prints Installable/Verifiable blocker status
-  (token, crates.io, Actions tip/main).
+  (token, crates.io, Actions tip/main); wired into civilization-check and
+  publish-ready as an informational footer.
+- CI concurrency cancels superseded runs on `main` too, so a stuck queued
+  `main` job cannot permanently block the next push after merge.
 
 ### Changed
 

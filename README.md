@@ -12,6 +12,10 @@ partitionline = { git = "https://github.com/mingley/partitionline" }
 # After publish: partitionline = "0.1"
 ```
 
+**Status (WP-0.5):** local civilization-check is green; crates.io publish waits on
+owner `CARGO_REGISTRY_TOKEN` + Actions capacity. Probe anytime:
+`bash scripts/owner-status.sh` (see `docs/ADOPTION.md`).
+
 ## Produce
 
 ```rust,no_run

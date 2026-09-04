@@ -38,6 +38,9 @@ REQUIRE_BROKER="${REQUIRE_BROKER:-0}" bash scripts/ci-civilization-check.sh
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 echo
 echo "ci-publish-ready: ok for partitionline ${ver}"
+echo
+bash scripts/owner-status.sh || true
+echo
 echo "Next (owner):"
 echo "  1. Ensure CARGO_REGISTRY_TOKEN is set (env + GitHub Actions secret)"
 echo "  2. Merge to main"
