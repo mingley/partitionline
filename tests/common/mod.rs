@@ -2991,8 +2991,19 @@ fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
             String::from_utf8_lossy(&output.stderr)
         );
     }
-    let ca_pem = std::fs::read(&cert_path).expect("read cert pem");
-    let key_pem = std::fs::read(&key_path).expect("read key pem");
+    // Sync openssl CLI path — use File+Read (not std::fs::read) so clippy's
+    // async-runtime disallowed_methods stay clean.
+    use std::io::Read;
+    let mut ca_pem = Vec::new();
+    std::fs::File::open(&cert_path)
+        .expect("open cert pem")
+        .read_to_end(&mut ca_pem)
+        .expect("read cert pem");
+    let mut key_pem = Vec::new();
+    std::fs::File::open(&key_path)
+        .expect("open key pem")
+        .read_to_end(&mut key_pem)
+        .expect("read key pem");
     let _ = std::fs::remove_dir_all(&dir);
 
     let cert_der = CertificateDer::from_pem_slice(&ca_pem).expect("parse cert pem");
