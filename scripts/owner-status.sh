@@ -132,10 +132,17 @@ else
   echo "  adopter pin: FAIL (see /tmp/pl-owner-adopter-pin.log)"
   tail -5 /tmp/pl-owner-adopter-pin.log | sed 's/^/    /' || true
 fi
-if bash scripts/ci-branch-lite.sh >/tmp/pl-owner-branch-lite.log 2>&1; then
-  echo "  branch-lite (local Actions mirror): ok"
+# Full tip Verifiable + bars take many minutes (broker chain). While Installable
+# waits only on CARGO_REGISTRY_TOKEN, default to a fast snapshot so the owner ask
+# path stays usable. OWNER_STATUS_FULL=1 restores the heavy local mirror.
+if [[ -z "${CARGO_REGISTRY_TOKEN:-}" && "${OWNER_STATUS_FULL:-0}" != "1" ]]; then
+  echo "  branch-lite (local Actions mirror): skipped (TOKEN unset; OWNER_STATUS_FULL=1 to run)"
 else
-  echo "  branch-lite (local Actions mirror): FAIL (see /tmp/pl-owner-branch-lite.log)"
+  if bash scripts/ci-branch-lite.sh >/tmp/pl-owner-branch-lite.log 2>&1; then
+    echo "  branch-lite (local Actions mirror): ok"
+  else
+    echo "  branch-lite (local Actions mirror): FAIL (see /tmp/pl-owner-branch-lite.log)"
+  fi
 fi
 echo
 if bash scripts/check-merge-ready.sh >/tmp/pl-owner-merge-ready.log 2>&1; then
@@ -150,6 +157,18 @@ if bash scripts/check-post-cut-parks-stack.sh >/tmp/pl-owner-parks-stack.log 2>&
 else
   echo "  post-cut parks stack: FAIL (see /tmp/pl-owner-parks-stack.log)"
   echo "  fix: bash scripts/refresh-post-cut-parks.sh   # tip→Verifiable→SCRAM→lz4→checkout"
+fi
+# Stack ≠ landed. Live parks-on-main probe (same honesty as handoff).
+parks_main_rc=0
+bash scripts/check-parks-on-main.sh >/tmp/pl-owner-parks-main.log 2>&1 || parks_main_rc=$?
+if [[ "$parks_main_rc" -eq 0 ]]; then
+  echo "  parks on main: ok"
+elif [[ "$parks_main_rc" -eq 2 ]]; then
+  echo "  parks on main: PARTIAL — not yet ancestors of origin/main"
+  grep -E '^  - |Re-enter:' /tmp/pl-owner-parks-main.log | sed 's/^/    /' || true
+  echo "    LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+else
+  echo "  parks on main: FAIL rc=${parks_main_rc} (see /tmp/pl-owner-parks-main.log)"
 fi
 if bash scripts/check-parks-refresh-cut-guards.sh >/tmp/pl-owner-parks-guards.log 2>&1; then
   echo "  parks-refresh cut guards: ok (finish restores main; publish-ready restores caller)"
@@ -169,7 +188,9 @@ fi
 
 echo
 echo "== Civilization bars =="
-if bash scripts/audit-civilization-bars.sh >/tmp/pl-owner-bars.log 2>&1; then
+if [[ -z "${CARGO_REGISTRY_TOKEN:-}" && "${OWNER_STATUS_FULL:-0}" != "1" ]]; then
+  echo "  bars: skipped (TOKEN unset; OWNER_STATUS_FULL=1 to run; PRE_PUBLISH=1 bash scripts/audit-civilization-bars.sh)"
+elif bash scripts/audit-civilization-bars.sh >/tmp/pl-owner-bars.log 2>&1; then
   echo "  bars: $(tail -1 /tmp/pl-owner-bars.log)"
 else
   echo "  bars: NOT COMPLETE (see summary)"
