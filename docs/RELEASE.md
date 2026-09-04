@@ -73,7 +73,7 @@ If the token is only in **GitHub Actions** secrets (not Cloud Agent):
 1. Merge/FF civilization tip → `main` first — GitHub only lists
    `workflow_dispatch` workflows from the default branch, so
    `first-publish.yml` is not runnable until it exists on `main`.
-Tip workflow header stays soft ("publish") until Installable; parked checkout park documents **publish-new** (`check-post-cut-parks-stack` gates tip soft + park publish-new).
+Tip `first-publish.yml` must match `main` while Installable is unmet (`check-post-cut-parks-stack` gates tip↔main match + park **publish-new**). Main may already document **publish-new** for the Actions alternate; tip must not drift the workflow header.
 2. Cancel stuck queued runs (`bash scripts/owner-cancel-stuck-runs.sh`).
 3. Actions secret `CARGO_REGISTRY_TOKEN` must include crates.io **`publish-new`**
    (+ usually `publish-update`) — same scope rule as the in-env cut.
