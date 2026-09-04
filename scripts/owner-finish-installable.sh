@@ -94,7 +94,18 @@ fi
 
 echo
 echo "== 1) Token =="
-if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+# Load TOKEN_FILE into *this* shell so cargo publish after the probe sees it.
+# (check-registry-token alone runs in a subshell — its export would not stick.)
+# shellcheck source=scripts/lib/cargo-registry-token.sh
+source "$ROOT/scripts/lib/cargo-registry-token.sh"
+pl_load_cargo_registry_token_file "owner-finish-installable"
+pl_warn_misnamed_cargo_registry_token "owner-finish-installable"
+
+tok_rc=0
+bash scripts/check-registry-token.sh || tok_rc=$?
+if [[ "$tok_rc" -eq 0 ]]; then
+  echo "owner-finish-installable: CARGO_REGISTRY_TOKEN accepted for publish-new auth"
+elif [[ "$tok_rc" -eq 2 || -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   if [[ "$DRY_RUN" == "1" ]]; then
     echo "owner-finish-installable: CARGO_REGISTRY_TOKEN unset — DRY_RUN=1 continues (rehearsal only)"
   else
@@ -109,7 +120,8 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     # shellcheck source=scripts/lib/cursor-env-secrets-url.sh
     source "$ROOT/scripts/lib/cursor-env-secrets-url.sh"
     echo "       Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL" >&2
-    echo "       Name exactly CARGO_REGISTRY_TOKEN; restart/re-run agent after save." >&2
+    echo "       Name exactly CARGO_REGISTRY_TOKEN (not CARGO_TOKEN / CRATES_IO_TOKEN);" >&2
+    echo "       restart/re-run agent after save. Or: CARGO_REGISTRY_TOKEN_FILE=/path." >&2
     echo "  3. Also add Actions secret CARGO_REGISTRY_TOKEN (release.yml / first-publish.yml)" >&2
     echo "  4. Re-run: bash scripts/owner-finish-installable.sh" >&2
     echo >&2
@@ -125,8 +137,9 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     exit 1
   fi
 else
-  echo "owner-finish-installable: CARGO_REGISTRY_TOKEN is set (len=${#CARGO_REGISTRY_TOKEN})"
-  REQUIRE_TOKEN=1 bash scripts/check-registry-token.sh
+  echo "owner-finish-installable: CARGO_REGISTRY_TOKEN set but crates.io rejected it" >&2
+  echo "  Recreate with publish-new (+ publish-update); see check-registry-token output." >&2
+  exit 1
 fi
 
 echo
