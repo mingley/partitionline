@@ -10,9 +10,13 @@
 #   bash scripts/owner-land-post-cut-parks.sh
 #   DRY_RUN=1 bash scripts/owner-land-post-cut-parks.sh
 #   ALLOW_BEFORE_INSTALLABLE=1 …
+#   REQUIRE_PARKS=1 …   # missing park is FAIL (tip Verifiable gate)
 #   PARKED_BRANCHES="dev/foo-b686 dev/bar-b686" …
 #   TARGET_BRANCH=dev/civilization-plan-b686 DRY_RUN=1 ALLOW_BEFORE_INSTALLABLE=1 …
 #     # rehearse stack onto tip before cut (finish FFs tip→main first)
+#
+# DRY_RUN uses a disposable git worktree (never `checkout -f` on the caller's
+# branch) so tip WIP / Verifiable gate edits are not discarded mid-edit.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -20,6 +24,7 @@ cd "$ROOT"
 
 DRY_RUN="${DRY_RUN:-0}"
 ALLOW_BEFORE_INSTALLABLE="${ALLOW_BEFORE_INSTALLABLE:-0}"
+REQUIRE_PARKS="${REQUIRE_PARKS:-0}"
 TARGET_BRANCH="${TARGET_BRANCH:-main}"
 PUSH="${PUSH:-1}"
 # Space-separated; override to land a subset.
@@ -42,53 +47,107 @@ else
   fi
 fi
 
-git fetch origin "${TARGET_BRANCH}"
+# Prefer local TARGET when it is ahead of origin (pre-push tip rehearsal).
+resolve_target_sha() {
+  local origin_sha="" local_sha=""
+  git fetch origin "${TARGET_BRANCH}" 2>/dev/null || true
+  if git rev-parse --verify "origin/${TARGET_BRANCH}" >/dev/null 2>&1; then
+    origin_sha="$(git rev-parse "origin/${TARGET_BRANCH}")"
+  fi
+  if git rev-parse --verify "${TARGET_BRANCH}" >/dev/null 2>&1; then
+    local_sha="$(git rev-parse "${TARGET_BRANCH}")"
+  fi
+  if [[ -n "$local_sha" && -n "$origin_sha" \
+      && "$local_sha" != "$origin_sha" ]] \
+      && git merge-base --is-ancestor "$origin_sha" "$local_sha"; then
+    echo "owner-land-post-cut-parks: local ${TARGET_BRANCH}=${local_sha:0:7} ahead of origin — using local" >&2
+    printf '%s' "$local_sha"
+    return 0
+  fi
+  if [[ -n "$origin_sha" ]]; then
+    printf '%s' "$origin_sha"
+    return 0
+  fi
+  if [[ -n "$local_sha" ]]; then
+    printf '%s' "$local_sha"
+    return 0
+  fi
+  echo "owner-land-post-cut-parks: cannot resolve ${TARGET_BRANCH}" >&2
+  return 1
+}
+
+TARGET_SHA="$(resolve_target_sha)"
+
 for b in ${PARKED_BRANCHES}; do
-  git fetch origin "$b" || {
+  if ! git fetch origin "$b"; then
+    if [[ "$REQUIRE_PARKS" == "1" ]]; then
+      echo "owner-land-post-cut-parks: FAIL — missing origin/${b} (REQUIRE_PARKS=1)" >&2
+      exit 1
+    fi
     echo "owner-land-post-cut-parks: WARN — missing origin/${b}; skipping" >&2
     continue
-  }
+  fi
 done
 
 # DRY_RUN must stack parks the same way a real land does. Per-park merge-tree
 # against bare TARGET hides conflicts that only appear after earlier parks land
 # (seen 2026-09-04: SCRAM CHANGELOG vs tip+Verifiable).
+# Use a worktree so we never `checkout -f` the caller's branch (that discarded
+# tip WIP while wiring this gate).
 dry_run_stack() {
-  local base_sha tmp fail=0 parked parked_sha orig_ref
-  orig_ref="$(git symbolic-ref -q --short HEAD 2>/dev/null || git rev-parse HEAD)"
-  base_sha="$(git rev-parse "origin/${TARGET_BRANCH}")"
-  tmp="tmp/post-cut-dry-run-$$"
-  git branch -D "$tmp" 2>/dev/null || true
-  git checkout -B "$tmp" "$base_sha" >/dev/null
+  local base_sha wt branch fail=0 parked parked_sha saw_park=0
+  base_sha="${TARGET_SHA}"
+  wt="$(mktemp -d /tmp/pl-post-cut-dry-XXXXXX)"
+  branch="tmp/post-cut-dry-run-$$"
+  git branch -D "$branch" 2>/dev/null || true
+  git worktree add -b "$branch" "$wt" "$base_sha" >/dev/null
+  cleanup() {
+    git worktree remove --force "$wt" 2>/dev/null || true
+    rm -rf "$wt"
+    git branch -D "$branch" 2>/dev/null || true
+  }
+  trap cleanup EXIT
   echo
-  echo "== DRY_RUN stacked merges from origin/${TARGET_BRANCH}=${base_sha:0:7} =="
-  for parked in ${PARKED_BRANCHES}; do
-    if ! git rev-parse "origin/${parked}" >/dev/null 2>&1; then
-      echo "owner-land-post-cut-parks: WARN — missing origin/${parked}; skipping" >&2
-      continue
+  echo "== DRY_RUN stacked merges from ${TARGET_BRANCH}=${base_sha:0:7} (worktree) =="
+  (
+    cd "$wt"
+    for parked in ${PARKED_BRANCHES}; do
+      if ! git rev-parse "origin/${parked}" >/dev/null 2>&1; then
+        if [[ "$REQUIRE_PARKS" == "1" ]]; then
+          echo "owner-land-post-cut-parks: FAIL — missing origin/${parked} (REQUIRE_PARKS=1)" >&2
+          exit 2
+        fi
+        echo "owner-land-post-cut-parks: WARN — missing origin/${parked}; skipping" >&2
+        continue
+      fi
+      saw_park=1
+      parked_sha="$(git rev-parse "origin/${parked}")"
+      echo
+      echo "== park ${parked} =="
+      echo "owner-land-post-cut-parks: base=${base_sha:0:7} park=${parked_sha:0:7}"
+      if git merge-base --is-ancestor "$parked_sha" "$base_sha"; then
+        echo "owner-land-post-cut-parks: ${parked} already contained"
+        continue
+      fi
+      if git merge --no-ff "origin/${parked}" -m "DRY_RUN merge ${parked}"; then
+        base_sha="$(git rev-parse HEAD)"
+        echo "owner-land-post-cut-parks: DRY_RUN merge clean → ${base_sha:0:7}"
+      else
+        echo "owner-land-post-cut-parks: DRY_RUN CONFLICT on ${parked}" >&2
+        git diff --name-only --diff-filter=U >&2 || true
+        git merge --abort 2>/dev/null || true
+        exit 3
+      fi
+    done
+    if [[ "$REQUIRE_PARKS" == "1" && "$saw_park" -eq 0 ]]; then
+      echo "owner-land-post-cut-parks: FAIL — no parks resolved (REQUIRE_PARKS=1)" >&2
+      exit 2
     fi
-    parked_sha="$(git rev-parse "origin/${parked}")"
-    echo
-    echo "== park ${parked} =="
-    echo "owner-land-post-cut-parks: base=${base_sha:0:7} park=${parked_sha:0:7}"
-    if git merge-base --is-ancestor "$parked_sha" "$base_sha"; then
-      echo "owner-land-post-cut-parks: ${parked} already contained"
-      continue
-    fi
-    if git merge --no-ff "origin/${parked}" -m "DRY_RUN merge ${parked}"; then
-      base_sha="$(git rev-parse HEAD)"
-      echo "owner-land-post-cut-parks: DRY_RUN merge clean → ${base_sha:0:7}"
-    else
-      echo "owner-land-post-cut-parks: DRY_RUN CONFLICT on ${parked}" >&2
-      git diff --name-only --diff-filter=U >&2 || true
-      git merge --abort 2>/dev/null || true
-      fail=1
-      break
-    fi
-  done
-  git checkout -f "$orig_ref" >/dev/null
-  git branch -D "$tmp" 2>/dev/null || true
-  if [[ "$fail" -ne 0 ]]; then
+  )
+  local rc=$?
+  trap - EXIT
+  cleanup
+  if [[ "$rc" -ne 0 ]]; then
     echo "owner-land-post-cut-parks: DRY_RUN failed — rebase parks onto tip before cut" >&2
     return 1
   fi
@@ -105,6 +164,7 @@ fi
 land_one() {
   local parked="$1"
   local target_sha parked_sha
+  git fetch origin "${TARGET_BRANCH}"
   target_sha="$(git rev-parse "origin/${TARGET_BRANCH}")"
   parked_sha="$(git rev-parse "origin/${parked}")"
   echo
@@ -132,7 +192,6 @@ land_one() {
     git push origin "${TARGET_BRANCH}"
     echo "owner-land-post-cut-parks: pushed ${TARGET_BRANCH} with ${parked}"
   fi
-  # Refresh target tip for next park.
   git fetch origin "${TARGET_BRANCH}"
 }
 
