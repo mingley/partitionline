@@ -118,11 +118,14 @@ fi
 # Cut path (`owner-finish-installable`) + Installable preflight must also run both honesty self-tests.
 if [[ -f scripts/ci-tip-verifiable-broker.sh ]] \
   && grep -q 'pl_tip_verifiable_finalize' scripts/ci-tip-verifiable-broker.sh \
+  && grep -q 'pl_tip_verifiable_interpret_integrity' scripts/ci-tip-verifiable-broker.sh \
+  && grep -qF 'latency gate failed (soft)' scripts/ci-tip-verifiable-broker.sh \
   && grep -qF -- '--self-test' scripts/ci-tip-verifiable-broker.sh \
   && grep -q 'TIP_VERIFIABLE_SOFT' scripts/ci-tip-verifiable-broker.sh \
   && grep -q 'pl_tip_verifiable_tooling_ready' scripts/ci-tip-verifiable-broker.sh \
   && bash scripts/ci-tip-verifiable-broker.sh --self-test >/tmp/pl-tip-verifiable-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-tip-verifiable-self-test.log \
+  && grep -q 'soft latency honesty' /tmp/pl-tip-verifiable-self-test.log \
   && [[ -f scripts/ci-branch-lite.sh ]] && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/ci-branch-lite.sh \
   && [[ -f scripts/check-cut-path.sh ]] && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/check-cut-path.sh \
   && [[ -f scripts/owner-finish-installable.sh ]] \
@@ -131,9 +134,9 @@ if [[ -f scripts/ci-tip-verifiable-broker.sh ]] \
   && [[ -f scripts/check-installable-preflight.sh ]] \
   && grep -qF -- 'check-registry-token.sh --self-test' scripts/check-installable-preflight.sh \
   && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/check-installable-preflight.sh; then
-  ok "tip Verifiable soft-skip honesty (--self-test PARTIAL exit 2; wired into branch-lite/cut-path/finish/preflight)"
+  ok "tip Verifiable soft-skip honesty (--self-test PARTIAL exit 2 + soft latency; wired into branch-lite/cut-path/finish/preflight)"
 else
-  bad "ci-tip-verifiable-broker soft-skip honesty missing (--self-test / finalize / tip proxy+finish+preflight wiring); see /tmp/pl-tip-verifiable-self-test.log"
+  bad "ci-tip-verifiable-broker soft-skip honesty missing (--self-test / finalize / soft latency / tip proxy+finish+preflight wiring); see /tmp/pl-tip-verifiable-self-test.log"
 fi
 fuzz_n=0
 if [[ -d fuzz/fuzz_targets ]]; then
@@ -192,14 +195,18 @@ else
   bad "parks-refresh cut guards missing or unwired; see /tmp/pl-parks-refresh-guards.log"
 fi
 # day1 crates.io README/ADOPTION flips must survive parks land (stash pop can fail).
+# Live parks land now runs inside handoff (LAND_PARKS=1) as well as finish — both must preserve.
 if [[ -x scripts/lib/preserve-day1-docs.sh ]] \
   && bash scripts/lib/preserve-day1-docs.sh --self-test >/tmp/pl-day1-docs-preserve.log 2>&1 \
   && grep -qF -- 'preserve-day1-docs.sh' scripts/owner-finish-installable.sh \
   && grep -qF -- 'preserve-day1-docs.sh' scripts/check-installable-preflight.sh \
-  && grep -qF -- 'preserve-day1-docs.sh' scripts/check-cut-path.sh; then
-  ok "day1 docs preserve across parks (stash+backup; wired into finish + cut-path + preflight)"
+  && grep -qF -- 'preserve-day1-docs.sh' scripts/check-cut-path.sh \
+  && grep -qF -- 'preserve-day1-docs.sh' scripts/owner-post-installable-handoff.sh \
+  && grep -qF -- 'pl_day1_docs_begin' scripts/owner-post-installable-handoff.sh \
+  && grep -qF -- 'pl_day1_docs_end' scripts/owner-post-installable-handoff.sh; then
+  ok "day1 docs preserve across parks (stash+backup; wired into finish + cut-path + preflight + handoff)"
 else
-  bad "day1 docs preserve missing or unwired; see /tmp/pl-day1-docs-preserve.log"
+  bad "day1 docs preserve missing or unwired (finish/preflight/cut-path/handoff); see /tmp/pl-day1-docs-preserve.log"
 fi
 # Post-Installable handoff must exist for TP/parks re-entry (Actions-alternate + soft-fails).
 if [[ -x scripts/owner-post-installable-handoff.sh ]] \
@@ -210,10 +217,13 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF -- 'LAND_PARKS=' scripts/owner-finish-installable.sh \
   && grep -qF -- 'Post-Installable handoff' scripts/owner-finish-installable.sh \
   && grep -qF -- 'would run owner-post-installable-handoff' scripts/owner-finish-installable.sh \
+  && grep -qF -- '--self-test' scripts/owner-post-installable-handoff.sh \
+  && bash scripts/owner-post-installable-handoff.sh --self-test >/tmp/pl-handoff-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-handoff-self-test.log \
   && HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1; then
-  ok "post-Installable handoff (DRY_RUN; finish live+re-entry + cut-path + day1 + first-publish)"
+  ok "post-Installable handoff (DRY_RUN + --self-test preserve; finish live+re-entry + cut-path + day1 + first-publish)"
 else
-  bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log"
+  bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log /tmp/pl-handoff-self-test.log"
 fi
 
 # Cut-release bare must auto PUBLISH_LOCAL=1 when token is in-env (token-day footgun).

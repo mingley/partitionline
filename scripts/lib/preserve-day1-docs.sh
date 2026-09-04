@@ -130,7 +130,10 @@ pl_day1_docs_self_test() {
   echo "preserve-day1-docs: self-test OK"
 }
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+# CLI driver only when executed as main — not when sourced (including when the
+# --self-test subshell re-sources this file via an absolute path that makes
+# BASH_SOURCE[0] == $0 and would otherwise fall through to usage/exit 2).
+if ! (return 0 2>/dev/null); then
   ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
   if [[ "${1:-}" == "--self-test" ]]; then
     pl_day1_docs_self_test "$ROOT"
