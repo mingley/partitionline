@@ -7,7 +7,7 @@
 # Options to make first-publish.yml visible:
 #   A) Merge thin PR that adds only first-publish.yml onto main, or
 #   B) FF/merge full civilization tip → main
-# Then dispatch packages REF (default: civilization tip until tip is on main).
+# Then dispatch packages REF (default: main once tip is merged).
 #
 # Typical sequence:
 #   1. bash scripts/owner-cancel-stuck-runs.sh   # owner machine
@@ -18,7 +18,7 @@
 #
 # Usage:
 #   bash scripts/owner-dispatch-first-publish.sh
-#   REF=dev/civilization-plan-b686 bash scripts/owner-dispatch-first-publish.sh
+#   REF=main bash scripts/owner-dispatch-first-publish.sh
 #   DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh
 set -euo pipefail
 
