@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Tip: merge `main` `first-publish.yml` **publish-new** honesty; `check-post-cut-parks-stack` now requires tip↔main workflow match (not tip-soft-only) so tip-delta stays docs/scripts-only after the main Actions alternate landed.
 - Scripts/docs: shared `scripts/lib/cursor-env-secrets-url.sh` prints the Cloud Agent Environments → Secrets deep link (overridable via `PARTITIONLINE_CURSOR_ENV_SECRETS_URL`); wired into `owner-finish-installable` / `owner-unblock` / RELEASE so token injection is one click away.
 - Scripts: `ci-branch-lite` + `check-cut-path` run `DRY_RUN=1` `owner-enable-trusted-publishing` so tip Verifiable and cut-path rehearse the post-Installable OIDC UI checklist (crate may be absent); Installable preflight READY_EXCEPT_TOKEN messaging spells publish-new + Cursor/Actions secret paths.
 - Scripts: `check-cut-path` runs `DRY_RUN=1` `day1-after-publish` (README flip rehearsal) and `check-actions-hygiene` (stale queue surface); tip Verifiable (`ci-branch-lite`) also surfaces Actions hygiene before Installable preflight.
@@ -21,7 +22,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - Scripts: `ci-branch-lite` + `check-cut-path` run `ci-crate-consumer` so the packed `.crate` tarball is proven dependable (Installable packaging) before the token cut, not only via publish-ready.
 - Scripts: `ci-branch-lite` + `check-cut-path` run `ci-deny` so the Independent bar (no C Kafka/OpenSSL/zstd defaults) is tip-gated, not only in publish-ready.
 - Scripts: `ci-branch-lite` + `check-cut-path` run `ci-msrv` so Installable MSRV is exercised (compile+lib tests on declared rust-version), not only declared in Cargo.toml.
-- Scripts: `check-post-cut-parks-stack` requires tip `first-publish.yml` to stay soft (no `publish-new`) while Installable is unmet — publish-new honesty stays on the checkout park so tip-delta remains docs/scripts-only.
+- Scripts: `check-post-cut-parks-stack` requires tip `first-publish.yml` to match `main` while Installable is unmet (main may already document publish-new) + park publish-new — so tip-delta stays docs/scripts-only.
 - Scripts: `ci-branch-lite` + `check-cut-path` run `MODE=path` `verify-crates-io-consumer` so the day1 adopter compile proof is rehearsed before crates.io `0.1.0` exists.
 - Scripts: `ci-branch-lite` rehearses `refresh-post-cut-parks` DRY_RUN (tip→Verifiable→SCRAM→lz4→checkout) before the parks stack gate.
 - Scripts: `check-cut-path` rehearses `refresh-post-cut-parks` DRY_RUN (tip→Verifiable→SCRAM→lz4→checkout) before parks stack + publish dry-run.
