@@ -15,6 +15,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `scripts/check-merge-ready.sh`: `git merge-tree --write-tree` conflict probe
   vs `origin/main` (flush-left `changed in both` fallback; avoids doc/script
   false positives); owner next steps prefer `owner-cut-release.sh`.
+- `scripts/check-actions-hygiene.sh`: classifies stale queued Actions (RC-tag
+  release zombies vs tip CI leftovers); wired into `owner-status` /
+  `owner-unblock`. `owner-cancel-stuck-runs` labels the same classes.
 
 - `examples/kip848`: KIP-848 next-gen consumer group join (`ConsumerGroup::join_consumer_topics`).
   Broker smoke runs it on Kafka 4.x (`REQUIRE_KIP848=1` default). Join now sends an
