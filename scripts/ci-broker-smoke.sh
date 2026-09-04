@@ -298,8 +298,15 @@ run_examples() {
 if [[ "${SKIP_DOCKER:-}" == "1" ]]; then
   echo "ci-broker-smoke: SKIP_DOCKER=1; using existing broker at $BOOTSTRAP"
   if ! wait_tcp "$BOOTSTRAP"; then
-    echo "ci-broker-smoke: broker not reachable at $BOOTSTRAP" >&2
-    exit 1
+    # Agent Verifiable chains often stop Docker-less after auth/integrity and
+    # re-enter with SKIP_DOCKER=1; start native Kafka instead of hard-failing.
+    # shellcheck source=scripts/lib/ensure-broker.sh
+    source "$ROOT/scripts/lib/ensure-broker.sh"
+    export KAFKA_BOOTSTRAP="$BOOTSTRAP"
+    if ! pl_ensure_broker "ci-broker-smoke"; then
+      echo "ci-broker-smoke: broker not reachable at $BOOTSTRAP" >&2
+      exit 1
+    fi
   fi
   # Topic create via kafka CLI when available (PATH or common native install).
   topics_bin=""
