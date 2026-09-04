@@ -3144,6 +3144,7 @@
 //! and Schema Registry. Tracker: `docs/gaps.md`.
 
 #![forbid(unsafe_code)]
+#![deny(rustdoc::broken_intra_doc_links)]
 
 /// Admin client: topics, partitions, configs, ACLs, and the rest of Kafka admin.
 pub mod admin;
