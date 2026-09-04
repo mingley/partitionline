@@ -370,7 +370,7 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
 
-    use bytes::Buf;
+    use bytes::{Buf, BufMut};
 
     fn join_req() -> ConsumerGroupHeartbeatRequest {
         ConsumerGroupHeartbeatRequest {
@@ -408,6 +408,24 @@ mod tests {
         let decoded = decode_consumer_group_heartbeat_request(&mut cur, 1).unwrap();
         assert_eq!(decoded.topic_partitions.as_ref().map(|v| v.len()), Some(0));
         assert!(cur.is_empty());
+    }
+
+    #[test]
+    fn decode_accepts_error_response_without_trailing_tagged_fields() {
+        // Kafka 4.x INVALID_REQUEST bodies may omit the final tagged-fields
+        // length; previously we failed with "need 1 bytes, have 0".
+        let mut buf = BytesMut::new();
+        buf.put_i32(0); // throttle
+        buf.put_i16(42); // INVALID_REQUEST
+        buf::put_compact_string(&mut buf, Some("must be empty when (re-)joining")).unwrap();
+        buf::put_compact_string(&mut buf, None).unwrap(); // member_id
+        buf.put_i32(0); // member_epoch
+        buf.put_i32(5000); // heartbeat_interval_ms
+        buf::put_unsigned_varint(&mut buf, 0); // assignment null
+                                               // intentionally no trailing tagged fields
+        let decoded = decode_consumer_group_heartbeat_response(&mut &buf[..], 0).unwrap();
+        assert_eq!(decoded.error_code, 42);
+        assert!(decoded.assignment.is_none());
     }
 
     #[test]
