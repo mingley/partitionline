@@ -12,6 +12,7 @@
 #   bash scripts/owner-cut-release.sh
 #   PUBLISH_LOCAL=1 bash scripts/owner-cut-release.sh
 #   DRY_RUN=1 bash scripts/owner-cut-release.sh
+#   REQUIRE_ACTIONS_SECRET=1 bash scripts/owner-cut-release.sh  # fail if Actions secret missing
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -43,6 +44,32 @@ fi
 
 echo "== merge/tag readiness =="
 bash scripts/check-merge-ready.sh
+
+# Best-effort Actions secret probe (agents often get 403 — never fails the cut
+# unless REQUIRE_ACTIONS_SECRET=1). First crates.io publish needs the secret
+# until Trusted Publishing is configured post-0.1.0.
+if [[ "$PUBLISH_LOCAL" != "1" ]]; then
+  echo
+  echo "== Actions secret preflight (best-effort) =="
+  if command -v gh >/dev/null 2>&1; then
+    sec=""
+    sec_rc=0
+    sec="$(gh secret list 2>/dev/null)" && sec_rc=0 || sec_rc=$?
+    if [[ "$sec_rc" -ne 0 ]]; then
+      echo "owner-cut-release: note — cannot list Actions secrets (need repo admin; agents often 403)."
+      echo "  Owner: gh secret list | grep CARGO_REGISTRY_TOKEN"
+    elif printf '%s\n' "$sec" | grep -q '^CARGO_REGISTRY_TOKEN\b'; then
+      echo "owner-cut-release: Actions secret CARGO_REGISTRY_TOKEN is present"
+    else
+      echo "owner-cut-release: WARN — CARGO_REGISTRY_TOKEN not listed in Actions secrets." >&2
+      echo "  First publish will fail until the secret exists (or use PUBLISH_LOCAL=1)." >&2
+      if [[ "${REQUIRE_ACTIONS_SECRET:-0}" == "1" ]]; then
+        echo "owner-cut-release: REQUIRE_ACTIONS_SECRET=1 — refusing to cut." >&2
+        exit 1
+      fi
+    fi
+  fi
+fi
 
 if [[ "$SKIP_PUBLISH_READY" != "1" ]]; then
   echo
@@ -121,6 +148,10 @@ echo
 echo "== day1 (README flip + remaining owner steps) =="
 bash scripts/day1-after-publish.sh
 bash scripts/check-installable.sh
+
+echo
+echo "== civilization bars (post-publish) =="
+bash scripts/audit-civilization-bars.sh
 
 echo
 echo "owner-cut-release: OK — ${name} ${ver} is Installable on crates.io"
