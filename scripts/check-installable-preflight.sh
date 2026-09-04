@@ -3,7 +3,7 @@
 #
 # Exit codes:
 #   0  — READY_EXCEPT_TOKEN: structurally ready; only CARGO_REGISTRY_TOKEN / crates.io cut remains
-#   1  — other blockers (merge-ready fail, red main CI, metadata, etc.)
+#   1  — other blockers (merge-ready fail, red main CI, metadata, stale parks without token, etc.)
 #   2  — already Installable (crates.io has this version)
 #   3  — inconclusive main CI (still running); structural gates otherwise OK
 #
@@ -149,19 +149,19 @@ fi
 
 echo
 if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-  # Soft parks honesty: cut path hard-requires tip⊆parks; do not claim "token only"
-  # when parks are stale (refresh is tip-safe and unblocks the post-token cut).
+  # Fail closed: cut path hard-requires tip⊆parks. Soft-exit READY_EXCEPT_TOKEN while
+  # parks are stale greenwashes the token ask ("everything else is rehearsed").
   parks_rc=0
   bash scripts/check-post-cut-parks-stack.sh >/tmp/pl-preflight-parks.log 2>&1 || parks_rc=$?
   if [[ "$parks_rc" -ne 0 ]]; then
-    echo "check-installable-preflight: READY_EXCEPT_TOKEN (also parks stack stale — cut would fail after token)"
-    echo "  Structural + Verifiable gates OK; crates.io cut needs CARGO_REGISTRY_TOKEN AND refreshed parks."
-    echo "  Refresh: bash scripts/refresh-post-cut-parks.sh"
-    tail -8 /tmp/pl-preflight-parks.log | sed 's/^/  /' || true
-  else
-    echo "check-installable-preflight: READY_EXCEPT_TOKEN"
-    echo "  Structural + Verifiable + parks stack OK; crates.io cut blocked only on CARGO_REGISTRY_TOKEN."
+    echo "check-installable-preflight: FAIL — parks stack stale (also needs CARGO_REGISTRY_TOKEN)" >&2
+    echo "  Structural + Verifiable gates OK, but tip⊈parks — refresh before claiming READY_EXCEPT_TOKEN." >&2
+    echo "  Refresh: bash scripts/refresh-post-cut-parks.sh" >&2
+    tail -8 /tmp/pl-preflight-parks.log | sed 's/^/  /' >&2 || true
+    exit 1
   fi
+  echo "check-installable-preflight: READY_EXCEPT_TOKEN"
+  echo "  Structural + Verifiable + parks stack OK; crates.io cut blocked only on CARGO_REGISTRY_TOKEN."
   echo "  Token scope: first cut of a NEW crate needs crates.io publish-new (+ usually publish-update)."
   echo "  publish-update alone cannot create the crate. Trusted Publishing is configured after 0.1.0."
   echo "  One-screen owner ask: bash scripts/owner-request-registry-token.sh"
@@ -190,7 +190,7 @@ elif [[ "$tok_rc" -ne 0 ]]; then
 fi
 
 echo "== post-cut parks stack (token present) =="
-# When TOKEN was unset we only soft-warned; with TOKEN set, stale parks would fail the cut.
+# TOKEN unset already fail-closes on stale parks above; keep the hard check when TOKEN is set.
 if ! bash scripts/check-post-cut-parks-stack.sh; then
   echo "check-installable-preflight: FAIL — parks lag tip; refresh before cut" >&2
   echo "  bash scripts/refresh-post-cut-parks.sh" >&2

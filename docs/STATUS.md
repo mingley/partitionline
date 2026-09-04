@@ -52,6 +52,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Not-yet-Installable DRY_RUN PARTIAL + gated token ask (2026-09-04):** finish not-yet-Installable `DRY_RUN` captures cut/parks/handoff rcs and exits `PARTIAL`/2 on soft-fail (no final OK). `day1-after-publish` absent+`DRY_RUN` exits `PARTIAL`/2; `check-cut-path` captures day1/finish PARTIAL instead of greenwashing final OK. `owner-request-registry-token` runs preflight first and refuses a READY_EXCEPT_TOKEN claim when parks/merge-ready/prepare honesty fail. Still not a Suite HOLD lift.
 
+**Day1 PARTIAL tip-proxy + parks fail-closed (2026-09-04):** `ci-branch-lite` and `ci-publish-ready` now capture `day1-after-publish` DRY_RUN `PARTIAL`/exit 2 (same as cut-path) so tip Verifiable and token-day publish-ready cannot abort on the expected absent crate. Preflight refuses `READY_EXCEPT_TOKEN` (exit 1) when parks are stale without a token; token ask refuses the rehearsed claim on that path. Bars gate `day1_rc` in branch-lite + publish-ready. Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
