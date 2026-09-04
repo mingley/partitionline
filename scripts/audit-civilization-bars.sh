@@ -61,7 +61,7 @@ case "${PL_CRATES_PROBE_STATUS}" in
     ok "crates.io has ${name} ${ver} (${PL_CRATES_PROBE_DETAIL})"
     ;;
   absent)
-    iblk "crates.io missing ${name} ${ver} (${PL_CRATES_PROBE_DETAIL}) — need CARGO_REGISTRY_TOKEN + owner-finish-installable (or owner-cut-release)"
+    iblk "crates.io missing ${name} ${ver} (${PL_CRATES_PROBE_DETAIL}) — need CARGO_REGISTRY_TOKEN + owner-finish-installable (or first-publish.yml / owner-cut-release)"
     ;;
   *)
     bad "crates.io probe inconclusive (${PL_CRATES_PROBE_DETAIL})"

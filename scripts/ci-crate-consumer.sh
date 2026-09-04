@@ -5,9 +5,14 @@
 # Links the operator surface (produce / consume / group / share / admin /
 # SASL+TLS config types) so a crates.io tarball cannot silently drop a
 # civilization-critical public module.
+#
+# Shares the consumer main.rs with scripts/verify-crates-io-consumer.sh via
+# scripts/lib/adopter-consumer-main.sh so the two proofs cannot drift.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+# shellcheck source=lib/adopter-consumer-main.sh
+source "${ROOT}/scripts/lib/adopter-consumer-main.sh"
 
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
@@ -38,31 +43,7 @@ ${name} = { path = "$src" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 EOF
 
-# Keep type names in sync with src/lib.rs re-exports (operator surface).
-cat >"$cons/src/main.rs" <<EOF
-use ${name}::{
-    Admin, AdminConfig, Consumer, ConsumerConfig, ConsumerGroup, ProduceRecord, Producer,
-    ProducerConfig, Sasl, ShareGroup, TlsConfig,
-};
-
-#[tokio::main]
-async fn main() {
-    // Compile-only smoke: construct configs / records without connecting.
-    let _ = ProducerConfig::bootstrap(["127.0.0.1:9092"]);
-    let _ = ConsumerConfig::bootstrap(["127.0.0.1:9092"]);
-    let _ = AdminConfig::bootstrap(["127.0.0.1:9092"]);
-    let _ = ProduceRecord::to("ci-crate-consumer").value(&b"x"[..]);
-    let _ = Sasl::plain("ci", "ci");
-    let _ = TlsConfig::default();
-    // Keep operator types referenced so the packed crate cannot drop them.
-    let _ = std::any::type_name::<Producer>();
-    let _ = std::any::type_name::<Consumer>();
-    let _ = std::any::type_name::<ConsumerGroup>();
-    let _ = std::any::type_name::<ShareGroup>();
-    let _ = std::any::type_name::<Admin>();
-    println!("ci-crate-consumer: ok");
-}
-EOF
+pl_write_adopter_consumer_main "$cons/src/main.rs" "$name" "ci-crate-consumer"
 
 echo "ci-crate-consumer: cargo check downstream (operator surface)"
 (cd "$cons" && cargo check --quiet)

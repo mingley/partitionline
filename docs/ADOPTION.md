@@ -23,6 +23,9 @@ you prefer the Actions path):
    runs day1, and proves Installable. Or stepwise: merge
    `dev/civilization-plan-b686` → `main`, then
    `bash scripts/owner-cut-release.sh` (tags **`v0.1.0`** final only).
+   If the token is **Actions-only** (not in your shell): after canceling stuck
+   runs, Actions → **First publish** → `confirm=publish`
+   (`.github/workflows/first-publish.yml`).
 4. Commit the README crates.io line if day1 changed it; configure crates.io
    Trusted Publishing for `release.yml`.
 
