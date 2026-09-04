@@ -42,3 +42,17 @@ path = "fuzz_targets/decode_record_batches.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "decode_group_responses"
+path = "fuzz_targets/decode_group_responses.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "decode_share_fetch_response"
+path = "fuzz_targets/decode_share_fetch_response.rs"
+test = false
+doc = false
+bench = false

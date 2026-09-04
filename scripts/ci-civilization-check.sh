@@ -49,7 +49,9 @@ if cargo test --lib --quiet; then ok "cargo test --lib"; else bad "cargo test --
 if bash scripts/ci-deny.sh >/tmp/pl-deny.log 2>&1; then ok "cargo deny"; else bad "cargo deny; see /tmp/pl-deny.log"; fi
 if [[ -f fuzz/fuzz_targets/decode_fetch_response.rs \
    && -f fuzz/fuzz_targets/decode_produce_response.rs \
-   && -f fuzz/fuzz_targets/decode_metadata_response.rs ]]; then
+   && -f fuzz/fuzz_targets/decode_metadata_response.rs \
+   && -f fuzz/fuzz_targets/decode_group_responses.rs \
+   && -f fuzz/fuzz_targets/decode_share_fetch_response.rs ]]; then
   ok "fuzz targets present (>=3)"
 else
   bad "fuzz targets missing"

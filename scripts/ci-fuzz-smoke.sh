@@ -25,6 +25,8 @@ targets=(
   decode_produce_response
   decode_metadata_response
   decode_record_batches
+  decode_group_responses
+  decode_share_fetch_response
 )
 
 for t in "${targets[@]}"; do
