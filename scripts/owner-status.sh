@@ -137,10 +137,11 @@ main_sha="$(git rev-parse origin/main 2>/dev/null || true)"
 if [[ -n "$tip_sha" && -n "$main_sha" && "$tip_sha" != "$main_sha" ]]; then
   echo "  tip/main: tip ${tip_sha:0:7} ≠ main ${main_sha:0:7} (intentional while Installable waits)"
   echo "       DRY_RUN=1 bash scripts/owner-sync-main.sh   # show FF; CONFIRM=1 to push"
+  echo "       # refuses while main HEAD CI is running unless ALLOW_BUSY_MAIN=1"
 fi
 echo "  3. Actions-only alternate (first-publish.yml must be on main):"
 echo "       bash scripts/owner-cancel-stuck-runs.sh   # owner machine; agents 403"
-echo "       CONFIRM=1 bash scripts/owner-sync-main.sh # if tip ahead of main"
+echo "       CONFIRM=1 bash scripts/owner-sync-main.sh # if tip ahead; wait for idle main CI"
 echo "       bash scripts/owner-dispatch-first-publish.sh"
 echo "       # or: Actions → First publish → confirm=publish"
 echo "  4. Or stepwise tag path after cancel + tip on main:"

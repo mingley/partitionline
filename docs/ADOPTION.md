@@ -104,4 +104,7 @@ smoke. Same-day recheck: `SKIP_DOCKER=1` broker-smoke (kip848+share),
 latency gate p99≈71–86µs vs 500µs baseline — all unsigned; not a Suite HOLD
 lift. Later same day: local `KAFKA_IMAGE=apache/kafka:4.1.0` broker-smoke
 (kip848+share) green after the Docker `KAFKA_*` / `process.roles` fix; Actions
-`latency-gate` on `main` @ `910015f` also green (`LATENCY_LIMIT_US=5000`).
+`latency-gate` on `main` @ `910015f` also green (`LATENCY_LIMIT_US=5000`);
+Actions `broker-smoke` Kafka **4.1.0** green on that same SHA; Kafka **3.9.1**
+needed a soft-skip for optional kip848 `Protocol` truncate (`7051625` re-run
+`33848465892` in flight). Packed-crate downstream consumer gate green tip-side.
