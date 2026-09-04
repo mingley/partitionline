@@ -11,6 +11,7 @@
 #   DRY_RUN=1 bash scripts/owner-land-post-cut-parks.sh
 #   ALLOW_BEFORE_INSTALLABLE=1 …
 #   REQUIRE_PARKS=1 …   # missing park is FAIL (tip Verifiable gate)
+#   RUN_STACK_TESTS=1 … # DRY_RUN also cargo test --lib on stacked tree
 #   PARKED_BRANCHES="dev/foo-b686 dev/bar-b686" …
 #   TARGET_BRANCH=dev/civilization-plan-b686 DRY_RUN=1 ALLOW_BEFORE_INSTALLABLE=1 …
 #     # rehearse stack onto tip before cut (finish FFs tip→main first)
@@ -23,6 +24,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 DRY_RUN="${DRY_RUN:-0}"
+# When DRY_RUN stacks parks, optionally prove the stacked tree compiles/tests
+# (merge-clean alone can still leave a red post-cut main). Default off here;
+# check-post-cut-parks-stack enables it for the tip Verifiable gate.
+RUN_STACK_TESTS="${RUN_STACK_TESTS:-0}"
 ALLOW_BEFORE_INSTALLABLE="${ALLOW_BEFORE_INSTALLABLE:-0}"
 REQUIRE_PARKS="${REQUIRE_PARKS:-0}"
 TARGET_BRANCH="${TARGET_BRANCH:-main}"
@@ -146,6 +151,16 @@ dry_run_stack() {
       echo "owner-land-post-cut-parks: FAIL — no parks resolved (REQUIRE_PARKS=1)" >&2
       exit 2
     fi
+    if [[ "${RUN_STACK_TESTS}" == "1" ]]; then
+      echo
+      echo "== DRY_RUN stacked cargo test --lib =="
+      if ! cargo test --lib; then
+        echo "owner-land-post-cut-parks: FAIL — stacked parks tree failed cargo test --lib" >&2
+        echo "  Rebase/fix parks before Installable cut." >&2
+        exit 4
+      fi
+      echo "owner-land-post-cut-parks: stacked cargo test --lib OK"
+    fi
   )
   local rc=$?
   trap - EXIT
@@ -155,7 +170,11 @@ dry_run_stack() {
     return 1
   fi
   echo
-  echo "owner-land-post-cut-parks: DRY_RUN complete — stacked merges clean"
+  if [[ "${RUN_STACK_TESTS}" == "1" ]]; then
+    echo "owner-land-post-cut-parks: DRY_RUN complete — stacked merges clean + cargo test --lib OK"
+  else
+    echo "owner-land-post-cut-parks: DRY_RUN complete — stacked merges clean"
+  fi
   return 0
 }
 

@@ -16,7 +16,10 @@ cd "$ROOT"
 tip_br="${CIVILIZATION_TIP:-dev/civilization-plan-b686}"
 
 echo "check-post-cut-parks-stack: rehearsing parks onto ${tip_br}"
+# Default: prove stacked post-cut tree is not just merge-clean but test-green.
+RUN_STACK_TESTS="${RUN_STACK_TESTS:-1}"
 REQUIRE_PARKS=1 ALLOW_BEFORE_INSTALLABLE=1 TARGET_BRANCH="$tip_br" DRY_RUN=1 \
+  RUN_STACK_TESTS="$RUN_STACK_TESTS" \
   bash scripts/owner-land-post-cut-parks.sh
 
 # Park honesty: Actions first-publish alternate must document publish-new.
