@@ -9,8 +9,10 @@
 # Usage:
 #   bash scripts/owner-land-post-cut-parks.sh
 #   DRY_RUN=1 bash scripts/owner-land-post-cut-parks.sh
-#   ALLOW_BEFORE_INSTALLABLE=1 …   # not recommended
+#   ALLOW_BEFORE_INSTALLABLE=1 …
 #   PARKED_BRANCHES="dev/foo-b686 dev/bar-b686" …
+#   TARGET_BRANCH=dev/civilization-plan-b686 DRY_RUN=1 ALLOW_BEFORE_INSTALLABLE=1 …
+#     # rehearse stack onto tip before cut (finish FFs tip→main first)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -48,6 +50,58 @@ for b in ${PARKED_BRANCHES}; do
   }
 done
 
+# DRY_RUN must stack parks the same way a real land does. Per-park merge-tree
+# against bare TARGET hides conflicts that only appear after earlier parks land
+# (seen 2026-09-04: SCRAM CHANGELOG vs tip+Verifiable).
+dry_run_stack() {
+  local base_sha tmp fail=0 parked parked_sha orig_ref
+  orig_ref="$(git symbolic-ref -q --short HEAD 2>/dev/null || git rev-parse HEAD)"
+  base_sha="$(git rev-parse "origin/${TARGET_BRANCH}")"
+  tmp="tmp/post-cut-dry-run-$$"
+  git branch -D "$tmp" 2>/dev/null || true
+  git checkout -B "$tmp" "$base_sha" >/dev/null
+  echo
+  echo "== DRY_RUN stacked merges from origin/${TARGET_BRANCH}=${base_sha:0:7} =="
+  for parked in ${PARKED_BRANCHES}; do
+    if ! git rev-parse "origin/${parked}" >/dev/null 2>&1; then
+      echo "owner-land-post-cut-parks: WARN — missing origin/${parked}; skipping" >&2
+      continue
+    fi
+    parked_sha="$(git rev-parse "origin/${parked}")"
+    echo
+    echo "== park ${parked} =="
+    echo "owner-land-post-cut-parks: base=${base_sha:0:7} park=${parked_sha:0:7}"
+    if git merge-base --is-ancestor "$parked_sha" "$base_sha"; then
+      echo "owner-land-post-cut-parks: ${parked} already contained"
+      continue
+    fi
+    if git merge --no-ff "origin/${parked}" -m "DRY_RUN merge ${parked}"; then
+      base_sha="$(git rev-parse HEAD)"
+      echo "owner-land-post-cut-parks: DRY_RUN merge clean → ${base_sha:0:7}"
+    else
+      echo "owner-land-post-cut-parks: DRY_RUN CONFLICT on ${parked}" >&2
+      git diff --name-only --diff-filter=U >&2 || true
+      git merge --abort 2>/dev/null || true
+      fail=1
+      break
+    fi
+  done
+  git checkout -f "$orig_ref" >/dev/null
+  git branch -D "$tmp" 2>/dev/null || true
+  if [[ "$fail" -ne 0 ]]; then
+    echo "owner-land-post-cut-parks: DRY_RUN failed — rebase parks onto tip before cut" >&2
+    return 1
+  fi
+  echo
+  echo "owner-land-post-cut-parks: DRY_RUN complete — stacked merges clean"
+  return 0
+}
+
+if [[ "$DRY_RUN" == "1" ]]; then
+  dry_run_stack
+  exit $?
+fi
+
 land_one() {
   local parked="$1"
   local target_sha parked_sha
@@ -67,10 +121,6 @@ land_one() {
     return 1
   fi
   echo "owner-land-post-cut-parks: merge-tree clean → $(tr -d '\n' </tmp/pl-post-cut-tree | head -c 12)"
-  if [[ "$DRY_RUN" == "1" ]]; then
-    echo "owner-land-post-cut-parks: DRY_RUN=1 — would merge --no-ff origin/${parked} into ${TARGET_BRANCH}"
-    return 0
-  fi
   git checkout "${TARGET_BRANCH}"
   git pull --ff-only origin "${TARGET_BRANCH}"
   if git merge-base --is-ancestor "$parked_sha" HEAD; then
@@ -92,12 +142,6 @@ for b in ${PARKED_BRANCHES}; do
     fail=1
   fi
 done
-
-if [[ "$DRY_RUN" == "1" ]]; then
-  echo
-  echo "owner-land-post-cut-parks: DRY_RUN complete"
-  exit "$fail"
-fi
 
 if [[ "$fail" -ne 0 ]]; then
   echo "owner-land-post-cut-parks: completed with failures — inspect PRs for remaining parks" >&2
