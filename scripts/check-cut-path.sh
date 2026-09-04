@@ -80,6 +80,15 @@ echo
 echo "== check-cut-path: merge/tag readiness =="
 bash scripts/check-merge-ready.sh
 
+echo
+echo "== check-cut-path: first-publish Actions alternate (DRY_RUN visibility) =="
+# GitHub only lists workflow_dispatch from the default branch. Prove
+# first-publish.yml stays visible on main so the Actions-secret alternate
+# path remains owner-dispatchable once CARGO_REGISTRY_TOKEN is an Actions secret.
+# DRY_RUN=1 does not dispatch (agents often 403 on workflow_dispatch anyway).
+DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh
+
+echo
 echo "== check-cut-path: finish DRY_RUN (tip-aware parks, hard-fail) =="
 DRY_RUN=1 bash scripts/owner-finish-installable.sh
 
