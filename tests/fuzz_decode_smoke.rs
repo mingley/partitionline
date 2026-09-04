@@ -15,8 +15,18 @@ use partitionline::protocol::buf::{
     get_compact_string, get_varint, get_varlong, put_compact_string, put_varint, put_varlong,
 };
 use partitionline::protocol::fetch::decode_fetch_response;
+use partitionline::protocol::group::{
+    decode_heartbeat_response, decode_join_group_response, decode_offset_commit_response,
+    decode_sync_group_response,
+};
 use partitionline::protocol::header::{decode_request_header, decode_response_header};
+use partitionline::protocol::idem::decode_init_producer_id_response;
 use partitionline::protocol::records::decode_record_batches;
+use partitionline::protocol::share::decode_share_fetch_response;
+use partitionline::protocol::txn::{
+    decode_add_partitions_to_txn_response, decode_end_txn_response,
+    decode_txn_offset_commit_response,
+};
 
 /// Deterministic xorshift for reproducible corpus expansion.
 fn xorshift(state: &mut u64) -> u64 {
@@ -54,6 +64,41 @@ fn assert_no_panic_metadata(bytes: &[u8], version: i16) {
     drop(decode_metadata_response(&mut cur, version));
 }
 
+fn assert_no_panic_group_and_share(bytes: &[u8]) {
+    // Mirror fuzz/fuzz_targets/decode_group_responses.rs version sets.
+    for version in [2_i16, 3, 4, 5, 6, 7, 8, 9] {
+        let mut cur = bytes;
+        drop(decode_join_group_response(&mut cur, version));
+        let mut cur = bytes;
+        drop(decode_offset_commit_response(&mut cur, version));
+    }
+    for version in [0_i16, 1, 2, 3, 4, 5] {
+        let mut cur = bytes;
+        drop(decode_sync_group_response(&mut cur, version));
+    }
+    for version in [0_i16, 1, 2, 3, 4] {
+        let mut cur = bytes;
+        drop(decode_heartbeat_response(&mut cur, version));
+    }
+    for version in [0_i16, 1] {
+        let mut cur = bytes;
+        drop(decode_share_fetch_response(&mut cur, version));
+    }
+}
+
+fn assert_no_panic_txn(bytes: &[u8]) {
+    for version in [0_i16, 1, 2, 3, 4] {
+        let mut cur = bytes;
+        drop(decode_init_producer_id_response(&mut cur, version));
+        let mut cur = bytes;
+        drop(decode_add_partitions_to_txn_response(&mut cur, version));
+        let mut cur = bytes;
+        drop(decode_end_txn_response(&mut cur, version));
+        let mut cur = bytes;
+        drop(decode_txn_offset_commit_response(&mut cur, version));
+    }
+}
+
 #[test]
 fn empty_and_short_buffers_do_not_panic() {
     for version in [4_i16, 7, 11, 12, 16, 17] {
@@ -68,6 +113,10 @@ fn empty_and_short_buffers_do_not_panic() {
         assert_no_panic_metadata(&[], version);
         assert_no_panic_metadata(&[1, 2, 3, 4], version);
     }
+    assert_no_panic_group_and_share(&[]);
+    assert_no_panic_group_and_share(&[0xff; 7]);
+    assert_no_panic_txn(&[]);
+    assert_no_panic_txn(&[0x80, 0x01, 0x00]);
     let mut empty = &[][..];
     drop(decode_request_header(&mut empty));
     let mut empty = &[][..];
@@ -90,6 +139,8 @@ fn random_blobs_do_not_panic_hot_decoders() {
             for version in [1_i16, 9, 12, 13] {
                 assert_no_panic_metadata(&data, version);
             }
+            assert_no_panic_group_and_share(&data);
+            assert_no_panic_txn(&data);
             let mut cur = data.as_slice();
             drop(decode_record_batches(&mut cur));
             let mut cur = data.as_slice();

@@ -29,8 +29,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   combined produce→HW→fetch integrity; `scripts/ci-integrity-smoke.sh` small-
   count local/CI smoke (+ unsigned latency) wired into civilization-check.
   `lab-a-fetch.sh` now also requires HW delta == acked.
-- `scripts/ci-branch-lite.sh` locally mirrors the former Actions tip gate
-  (fmt/clippy/lib/docs); wired into civilization-check and owner-status.
+- `tests/fuzz_decode_smoke.rs` also hammers group / share / txn response
+  decoders (not only fetch/produce/metadata). `scripts/ci-branch-lite.sh` and
+  civilization-check now **run** that smoke (tip Verifiable no longer
+  `--lib`-only); optional short libFuzzer smoke when nightly+g++ are present.
 - CI: `dev/**` tip pushes no longer auto-queue (org runner starvation /
   perpetual tip re-queue); full matrix on PR/`main`/`workflow_dispatch` only.
 - Git install pin `v0.1.0-rc.2` (README / ADOPTION) for adopters before
