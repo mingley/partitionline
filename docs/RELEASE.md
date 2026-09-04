@@ -50,6 +50,7 @@ From a **clean `main`** checkout with `CARGO_REGISTRY_TOKEN` exported:
 bash scripts/ci-publish-ready.sh
 bash scripts/owner-publish.sh
 bash scripts/day1-after-publish.sh    # verifies crates.io + flips README
+# or: bash scripts/check-installable.sh  # Installable bar probe only
 git tag "v$(sed -n 's/^version = \"\(.*\)\"/\1/p' Cargo.toml | head -1)"
 git push origin "v$(sed -n 's/^version = \"\(.*\)\"/\1/p' Cargo.toml | head -1)"
 ```
