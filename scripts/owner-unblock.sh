@@ -29,6 +29,11 @@ echo
 echo "Especially cancel zombie-rc-release runs (RC tags must not publish) and"
 echo "stale tip CI queued from before tip auto-CI was disabled."
 echo
+echo "If hygiene WARN'd about missing label 'dependencies' (Dependabot):"
+echo "  gh label create dependencies --repo mingley/partitionline \\"
+echo "    --description 'Pull requests that update a dependency file' --color 0366d6"
+echo "  (agents 403 on label create — owner-only; unblocks Dependabot label noise)"
+echo
 
 echo "== 3) Merge/tag readiness (no token required) =="
 bash scripts/check-merge-ready.sh || true
