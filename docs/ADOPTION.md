@@ -8,9 +8,12 @@ need a memory-safe Kafka stack with no C in the default feature set.
 Civilization **Installable** is blocked only on credentials and merge:
 
 1. Add `CARGO_REGISTRY_TOKEN` (Cloud Agent env + GitHub Actions secret).
-2. Restore GitHub Actions runners (branch-lite currently queues with no capacity).
-3. Merge `dev/civilization-plan-b686` → `main`, tag `v0.1.0` (or `workflow_dispatch`
-   on that tag), confirm https://crates.io/crates/partitionline.
+2. Restore GitHub Actions runners — **org-wide**, not just this branch: `main`
+   has had a run stuck `queued` for ~22h, and `dev/**` `branch-lite` also
+   never leaves the queue. Agent cannot cancel runs (403).
+3. Merge `dev/civilization-plan-b686` → `main`, tag `v0.1.0` (or
+   `workflow_dispatch` on that tag), confirm https://crates.io/crates/partitionline
+   (`bash scripts/check-installable.sh` should exit 0).
 4. Run `bash scripts/day1-after-publish.sh` and commit the README crates.io line.
 
 ## Install (today)
