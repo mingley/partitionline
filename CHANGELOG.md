@@ -22,7 +22,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   operator surface (Producer/Consumer/ConsumerGroup/ShareGroup/Admin +
   SASL/TLS config), not only Producer.
 - `scripts/ci-civilization-check.sh`: Installable section uses shared crates.io
-  probe, day1 README `DRY_RUN` preflight, merge-ready gate, and actions hygiene.
+  probe, day1 README `DRY_RUN` preflight, merge-ready gate, and actions hygiene;
+  ends with `PRE_PUBLISH=1` civilization-bars audit.
 - `scripts/audit-civilization-bars.sh`: evidence audit for the six CIVILIZATION
   success bars (PASS/PARTIAL/BLOCKED/FAIL); wired into `owner-status`.
   `PRE_PUBLISH=1` treats Installable BLOCKED as expected so publish-ready can
