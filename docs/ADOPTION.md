@@ -19,14 +19,13 @@ has the civilization tip + `first-publish.yml`):
    ```bash
    bash scripts/owner-finish-installable.sh
    ```
-   Fast-forwards `main` to the civilization tip, `cargo publish`es locally,
-   runs day1, and proves Installable. Or stepwise: merge
-   `dev/civilization-plan-b686` → `main`, then
+   Publishes from current `main` (civilization tip already landed), runs day1,
+   and proves Installable. Or stepwise:
    `bash scripts/owner-cut-release.sh` (tags **`v0.1.0`** final only).
-   If the token is **Actions-only** (not in your shell): first merge/FF
-   civilization → `main` (workflow_dispatch is only listed from the default
-   branch), cancel stuck runs, then either Actions → **First publish** →
-   `confirm=publish` or `bash scripts/owner-dispatch-first-publish.sh`.
+   If the token is **Actions-only** (not in your shell): cancel stuck runs,
+   then Actions → **First publish** → `confirm=publish` or
+   `bash scripts/owner-dispatch-first-publish.sh`
+   (`.github/workflows/first-publish.yml` is already on `main`).
 4. Commit the README crates.io line if day1 changed it; configure crates.io
    Trusted Publishing for `release.yml`.
 
