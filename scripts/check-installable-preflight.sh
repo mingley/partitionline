@@ -33,6 +33,8 @@ bash scripts/ci-tip-verifiable-broker.sh --self-test
 bash scripts/check-parks-refresh-cut-guards.sh
 # Documented git pin must cargo-check while Installable waits (Adoptable before crates.io).
 MODE=git bash scripts/verify-crates-io-consumer.sh
+# day1 README/ADOPTION must survive parks land even if stash pop fails.
+bash scripts/lib/preserve-day1-docs.sh --self-test
 
 # Already published?
 if bash scripts/check-installable.sh >/tmp/pl-preflight-installable.log 2>&1; then

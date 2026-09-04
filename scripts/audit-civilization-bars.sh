@@ -191,6 +191,16 @@ if [[ -x scripts/check-parks-refresh-cut-guards.sh ]] \
 else
   bad "parks-refresh cut guards missing or unwired; see /tmp/pl-parks-refresh-guards.log"
 fi
+# day1 crates.io README/ADOPTION flips must survive parks land (stash pop can fail).
+if [[ -x scripts/lib/preserve-day1-docs.sh ]] \
+  && bash scripts/lib/preserve-day1-docs.sh --self-test >/tmp/pl-day1-docs-preserve.log 2>&1 \
+  && grep -qF -- 'preserve-day1-docs.sh' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'preserve-day1-docs.sh' scripts/check-installable-preflight.sh \
+  && grep -qF -- 'preserve-day1-docs.sh' scripts/check-cut-path.sh; then
+  ok "day1 docs preserve across parks (stash+backup; wired into finish + cut-path + preflight)"
+else
+  bad "day1 docs preserve missing or unwired; see /tmp/pl-day1-docs-preserve.log"
+fi
 
 # --- 4. Honest ---
 echo
