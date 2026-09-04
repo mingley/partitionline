@@ -285,6 +285,13 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'REQUIRE_PARKS=1' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'DRY_RUN: parks on main' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — parks not on main (DRY_RUN' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'check-parks-on-main.sh' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'check-parks-on-main.sh' scripts/check-installable-preflight.sh \
+  && grep -qF 'check-parks-on-main.sh' scripts/owner-status.sh \
+  && grep -qF 'PARTIAL — Installable OK but parks not on main' scripts/check-installable-preflight.sh \
+  && grep -qF 'OWNER_STATUS_FULL' scripts/owner-status.sh \
+  && bash scripts/check-parks-on-main.sh --self-test >/tmp/pl-parks-on-main-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-parks-on-main-self-test.log \
   && grep -qF 'parks not on main' scripts/owner-status.sh \
   && grep -qF 'parks not on main' scripts/owner-unblock.sh \
   && bash scripts/owner-post-installable-handoff.sh --self-test >/tmp/pl-handoff-self-test.log 2>&1 \
