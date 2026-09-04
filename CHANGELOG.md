@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: tip Verifiable soft-skip honesty — `ci-tip-verifiable-broker` prints `ok` only when broker+auth+integrity all pass; mid-chain soft-skips print `PARTIAL` (not evidence). Capable envs (Java/openssl/keytool/python3 + Kafka) auto-set `REQUIRE_BROKER=1` / `REQUIRE_AUTH=1` unless `TIP_VERIFIABLE_SOFT=1`. Bars audit gates the pattern.
 - Scripts: Verifiable bar now requires tip live-broker scripts (`ci-tip-verifiable-broker`, integrity/latency, `ensure-broker`) wired into `ci-branch-lite` / `check-cut-path`; `ci-civilization-check` no longer stops the shared native broker after broker-smoke (avoids integrity Connection refused / soft-miss greenwash). Opt-in old stop: `STOP_NATIVE_AFTER_BROKER=1`.
 - Scripts: tip Verifiable (`ci-branch-lite` / `check-cut-path`) now runs `ci-tip-verifiable-broker` (ensure-broker → broker-smoke kip848+share → auth → integrity/latency) with soft-skip honesty when tooling/broker is absent — tip Verifiable is no longer fmt/clippy/lib-only while Installable waits.
 - Scripts: `owner-finish-installable` missing-token path prints `owner-request-registry-token` inline so the publish-new Secrets ask is unavoidable.

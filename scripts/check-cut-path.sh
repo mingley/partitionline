@@ -109,7 +109,7 @@ bash scripts/check-actions-hygiene.sh
 echo
 echo "== check-cut-path: tip live-broker Verifiable =="
 # Same tip Verifiable broker chain as ci-branch-lite — soft-skips honestly when
-# no broker/tooling; fails on real smoke breaks (no greenwash).
+# no broker/tooling; `ok` only on full pass (PARTIAL/SKIP are not evidence).
 bash scripts/ci-tip-verifiable-broker.sh
 
 echo
