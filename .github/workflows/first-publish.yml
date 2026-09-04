@@ -1,0 +1,112 @@
+# First crates.io publish for partitionline 0.1.0 (owner-only).
+#
+# Use when CARGO_REGISTRY_TOKEN is available as a GitHub Actions secret but not
+# in a local/Cloud Agent shell. Prefer scripts/owner-finish-installable.sh when
+# the token is already in-environment (faster; bypasses Actions queue starvation).
+#
+# Required:
+#   - confirm input must be exactly "publish"
+#   - repository secret CARGO_REGISTRY_TOKEN (crates.io API token with publish)
+#   - tip branch merge-ready; prefer running from main after civilization FF-merge
+#
+# This workflow does NOT cut tags or run day1. After a green publish:
+#   1. Confirm https://crates.io/crates/partitionline/0.1.0
+#   2. bash scripts/check-installable.sh
+#   3. bash scripts/day1-after-publish.sh (or owner-finish-installable day1 steps)
+#   4. bash scripts/audit-civilization-bars.sh  # no PRE_PUBLISH
+
+name: First publish (crates.io)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type publish to confirm crates.io upload of partitionline 0.1.0'
+        required: true
+        type: string
+      ref:
+        description: 'Git ref to package (branch, tag, or SHA). Prefer main after civilization merge.'
+        required: false
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: first-publish-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: cargo publish partitionline 0.1.0
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'publish'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Preflight — package must match 0.1.0
+        run: |
+          set -euo pipefail
+          ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          if [[ "$ver" != "0.1.0" ]]; then
+            echo "::error::Expected partitionline 0.1.0 on ref; got ${ver}"
+            exit 1
+          fi
+          cargo package -p partitionline
+          echo "package preflight OK for partitionline ${ver}"
+
+      - name: crates.io already published?
+        id: exists
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+            echo "::error::CARGO_REGISTRY_TOKEN secret is missing"
+            exit 1
+          fi
+          # Soft probe: if 0.1.0 is already on the index, succeed without re-publish.
+          if curl -fsSA 'partitionline-first-publish/1' \
+              'https://crates.io/api/v1/crates/partitionline/0.1.0' >/dev/null 2>&1; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "partitionline 0.1.0 already on crates.io — skipping publish"
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: cargo publish
+        if: steps.exists.outputs.already != 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          # --no-verify: package step already built; matches release.yml first-cut path.
+          cargo publish -p partitionline --no-verify
+          echo "published partitionline 0.1.0 to crates.io"
+
+      - name: Post-publish probe
+        run: |
+          set -euo pipefail
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsSA 'partitionline-first-publish/1' \
+                'https://crates.io/api/v1/crates/partitionline/0.1.0' >/tmp/pl-first-publish.json; then
+              ok=1
+              break
+            fi
+            echo "waiting for crates.io index (${i}/30)..."
+            sleep 10
+          done
+          if [[ "$ok" -ne 1 ]]; then
+            echo "::error::crates.io API does not yet show partitionline 0.1.0"
+            exit 1
+          fi
+          echo "crates.io API confirms partitionline 0.1.0"
+          echo "Owner follow-up: bash scripts/day1-after-publish.sh && bash scripts/audit-civilization-bars.sh"

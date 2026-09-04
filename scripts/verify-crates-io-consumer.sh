@@ -11,6 +11,9 @@
 # Registry mode is wired into day1-after-publish / owner-finish-installable.
 # Path mode is wired into ci-publish-ready so day1 cannot fail on type drift.
 #
+# Shares the consumer main.rs with scripts/ci-crate-consumer.sh via
+# scripts/lib/adopter-consumer-main.sh so the two proofs cannot drift.
+#
 # Usage:
 #   bash scripts/verify-crates-io-consumer.sh
 #   MODE=path bash scripts/verify-crates-io-consumer.sh
@@ -18,6 +21,8 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+# shellcheck source=lib/adopter-consumer-main.sh
+source "${ROOT}/scripts/lib/adopter-consumer-main.sh"
 
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 ver="${VER:-$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)}"
@@ -60,30 +65,7 @@ ${dep_line}
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 EOF
 
-# Keep type names in sync with src/lib.rs re-exports / ci-crate-consumer.sh.
-cat >"$cons/src/main.rs" <<EOF
-use ${name}::{
-    Admin, AdminConfig, Consumer, ConsumerConfig, ConsumerGroup, ProduceRecord, Producer,
-    ProducerConfig, Sasl, ShareGroup, TlsConfig,
-};
-
-#[tokio::main]
-async fn main() {
-    // Compile-only smoke: construct configs / records without connecting.
-    let _ = ProducerConfig::bootstrap(["127.0.0.1:9092"]);
-    let _ = ConsumerConfig::bootstrap(["127.0.0.1:9092"]);
-    let _ = AdminConfig::bootstrap(["127.0.0.1:9092"]);
-    let _ = ProduceRecord::to("crates-io-consumer").value(&b"x"[..]);
-    let _ = Sasl::plain("ci", "ci");
-    let _ = TlsConfig::default();
-    let _ = std::any::type_name::<Producer>();
-    let _ = std::any::type_name::<Consumer>();
-    let _ = std::any::type_name::<ConsumerGroup>();
-    let _ = std::any::type_name::<ShareGroup>();
-    let _ = std::any::type_name::<Admin>();
-    println!("verify-crates-io-consumer: ok");
-}
-EOF
+pl_write_adopter_consumer_main "$cons/src/main.rs" "$name" "crates-io-consumer"
 
 echo "verify-crates-io-consumer: cargo check (${mode}) for ${name} ${ver}"
 (cd "$cons" && cargo check --quiet)

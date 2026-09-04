@@ -58,8 +58,12 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "Installable cannot finish without a crates.io publish token." >&2
   echo "  1. Create a crates.io token (publish-update for ${name})" >&2
   echo "  2. Add it as Cloud Agent secret CARGO_REGISTRY_TOKEN" >&2
-  echo "  3. Also add Actions secret CARGO_REGISTRY_TOKEN (release.yml fallback)" >&2
+  echo "  3. Also add Actions secret CARGO_REGISTRY_TOKEN (release.yml / first-publish.yml)" >&2
   echo "  4. Re-run: bash scripts/owner-finish-installable.sh" >&2
+  echo >&2
+  echo "If the token is only an Actions secret (not in this shell):" >&2
+  echo "  After canceling stuck runs → Actions → First publish → confirm=publish" >&2
+  echo "  (workflow: .github/workflows/first-publish.yml; prefer this script when in-env)" >&2
   echo >&2
   echo "Meanwhile (no token required):" >&2
   echo "  bash scripts/owner-unblock.sh" >&2
