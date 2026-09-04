@@ -118,5 +118,15 @@ if ! bash scripts/check-registry-token.sh; then
   echo "check-installable-preflight: FAIL — CARGO_REGISTRY_TOKEN set but crates.io rejected it" >&2
   exit 1
 fi
+
+echo "== post-cut parks stack (token present) =="
+# When TOKEN was unset we only soft-warned; with TOKEN set, stale parks would fail the cut.
+if ! bash scripts/check-post-cut-parks-stack.sh; then
+  echo "check-installable-preflight: FAIL — parks lag tip; refresh before cut" >&2
+  echo "  bash scripts/refresh-post-cut-parks.sh" >&2
+  echo "  (owner-finish-installable also auto-refreshes, then restores main)" >&2
+  exit 1
+fi
+
 echo "check-installable-preflight: READY — token present; run bash scripts/owner-finish-installable.sh"
 exit 0
