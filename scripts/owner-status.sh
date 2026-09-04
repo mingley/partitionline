@@ -184,7 +184,9 @@ if [[ "${preflight_already:-0}" -eq 1 ]]; then
   echo "  Re-enter post-cut: bash scripts/owner-finish-installable.sh"
   echo "    (or LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh)"
   echo "  Finish uses SKIP_HANDOFF=1 into cut so parks/TP land once after secret sync."
-  echo "  If finish/cut exited PARTIAL: re-enter handoff — do not re-publish."
+  echo "  If finish/cut exited PARTIAL (parks/TP): re-enter handoff — do not re-publish."
+  echo "  If PARTIAL was Actions secret not synced:"
+  echo "    gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
   echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
 else
   echo "  0. Token missing? one screen: bash scripts/owner-request-registry-token.sh"
@@ -218,6 +220,7 @@ else
   echo "  5. bash scripts/check-installable.sh   # must exit 0"
   echo "  6. After Installable (any cut path): bash scripts/owner-post-installable-handoff.sh"
   echo "       LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # TP+parks+bars"
-  echo "       # If cut/finish exited PARTIAL: re-enter handoff — do not re-cut"
+  echo "       # If cut/finish exited PARTIAL (parks/TP): re-enter handoff — do not re-cut"
+  echo "       # If PARTIAL was Actions secret: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
   echo "  7. Or stepwise: bash scripts/owner-enable-trusted-publishing.sh  # after crates.io 0.1.0"
 fi
