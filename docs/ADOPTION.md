@@ -34,8 +34,9 @@ bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish
    runs day1, and proves Installable. After Installable, finish chains
    `owner-land-post-cut-parks.sh` by default (`MERGE_PARKED_VERIFIABLE=0` /
    `MERGE_POST_CUT_PARKS=0` to skip): Verifiable auth/integrity Actions +
-   ConsumerGroupHeartbeat fuzz, then SCRAM crypto + flate2 1.1.10
-   (`dev/verifiable-auth-integrity-fuzz-b686`, `dev/scram-crypto-bumps-b686`).
+   ConsumerGroupHeartbeat fuzz, then SCRAM crypto + flate2 1.1.10, then
+   `lz4_flex` 0.11 → 0.14 (`dev/verifiable-auth-integrity-fuzz-b686`,
+   `dev/scram-crypto-bumps-b686`, `dev/lz4-flex-bump-b686`).
    Parks stay off tip so the token cut remains docs/scripts-only /
    one-shot `PUBLISH_LOCAL`. Or stepwise:
    `bash scripts/owner-cut-release.sh` (tags **`v0.1.0`** final only).
@@ -121,7 +122,8 @@ needed a soft-skip for optional kip848 `Protocol` truncate (`7051625` re-run
 ## Dependabot vs post-cut parks
 
 Dependabot PRs for flate2 1.1.10 and SCRAM crypto (hmac/pbkdf2/sha2) overlap
-parked `dev/scram-crypto-bumps-b686`. **Do not merge those lockfile bumps onto
+parked `dev/scram-crypto-bumps-b686`; `lz4_flex` 0.14 is parked on
+`dev/lz4-flex-bump-b686`. **Do not merge those lockfile bumps onto
 tip/`main` while Installable waits** — they break docs/scripts-only tip-delta and
 cancel-in-progress main CI. After crates.io `0.1.0`, land via
 `bash scripts/owner-land-post-cut-parks.sh` (or finish's default chain) and close
