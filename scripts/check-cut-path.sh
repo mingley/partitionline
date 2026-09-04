@@ -107,6 +107,10 @@ echo "== check-cut-path: Actions hygiene (stale queue surface) =="
 bash scripts/check-actions-hygiene.sh
 
 echo
+echo "== check-cut-path: tip Verifiable PARTIAL exit self-test =="
+# Prove finalize exit codes before the live broker rehearsal.
+bash scripts/ci-tip-verifiable-broker.sh --self-test
+
 echo "== check-cut-path: tip live-broker Verifiable =="
 # Same tip Verifiable broker chain as ci-branch-lite — soft-skips honestly when
 # no broker/tooling; `ok` only on full pass. Early SKIP exit 0; PARTIAL exit 2

@@ -100,6 +100,10 @@ echo "== ci-branch-lite: first-publish Actions alternate (DRY_RUN visibility) ==
 # alternate when token is Actions-secret-only). DRY_RUN=1 does not dispatch.
 DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh
 
+echo "== ci-branch-lite: tip Verifiable PARTIAL exit self-test =="
+# Prove finalize exit codes (ok=0 / PARTIAL=2 / soft PARTIAL=0) before live broker.
+bash scripts/ci-tip-verifiable-broker.sh --self-test
+
 echo "== ci-branch-lite: tip live-broker Verifiable =="
 # Tip pushes skip Actions. Without a live broker chain, tip "Verifiable" was
 # fmt/clippy/lib-only. Soft-skips honestly when no broker/tooling; never greenwashes
