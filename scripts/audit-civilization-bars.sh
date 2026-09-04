@@ -67,11 +67,20 @@ case "${PL_CRATES_PROBE_STATUS}" in
     bad "crates.io probe inconclusive (${PL_CRATES_PROBE_DETAIL})"
     ;;
 esac
-if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-  iblk "CARGO_REGISTRY_TOKEN unset (first publish / Actions secret)"
-else
-  ok "CARGO_REGISTRY_TOKEN present in environment"
-fi
+# Probe auth — do not PASS on presence alone (publish-update-only / garbage tokens).
+tok_rc=0
+bash scripts/check-registry-token.sh >/tmp/pl-audit-token.log 2>&1 || tok_rc=$?
+case "$tok_rc" in
+  0)
+    ok "CARGO_REGISTRY_TOKEN accepted by crates.io for publish-new auth"
+    ;;
+  2)
+    iblk "CARGO_REGISTRY_TOKEN unset (first publish / Actions secret; needs publish-new)"
+    ;;
+  *)
+    iblk "CARGO_REGISTRY_TOKEN rejected by crates.io (recreate with publish-new; see check-registry-token)"
+    ;;
+esac
 
 # --- 2. Verifiable ---
 echo

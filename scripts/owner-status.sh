@@ -10,11 +10,22 @@ echo "owner-status: partitionline ${ver}"
 echo
 
 echo "== Installable =="
-if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-  echo "OK  CARGO_REGISTRY_TOKEN is set (len=${#CARGO_REGISTRY_TOKEN})"
-else
-  echo "BLOCKED  CARGO_REGISTRY_TOKEN unset (export for Cloud Agent + Actions secret)"
-fi
+# Presence alone is not enough: publish-update-only / garbage tokens must not look OK.
+tok_rc=0
+bash scripts/check-registry-token.sh >/tmp/pl-owner-token.log 2>&1 || tok_rc=$?
+case "$tok_rc" in
+  0)
+    echo "OK  CARGO_REGISTRY_TOKEN accepted by crates.io for publish-new auth (len=${#CARGO_REGISTRY_TOKEN})"
+    ;;
+  2)
+    echo "BLOCKED  CARGO_REGISTRY_TOKEN unset (export for Cloud Agent + Actions secret)"
+    echo "         First cut needs publish-new (+ publish-update); publish-update alone cannot create the crate."
+    ;;
+  *)
+    echo "BLOCKED  CARGO_REGISTRY_TOKEN rejected by crates.io (see scripts/check-registry-token.sh)"
+    tail -5 /tmp/pl-owner-token.log 2>/dev/null | sed 's/^/         /' || true
+    ;;
+esac
 # Compact preflight verdict (does not fail owner-status).
 if bash scripts/check-installable-preflight.sh >/tmp/pl-owner-preflight.log 2>&1; then
   echo "  preflight: $(grep -E 'READY_EXCEPT_TOKEN|READY —' /tmp/pl-owner-preflight.log | tail -1)"
