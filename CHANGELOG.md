@@ -46,12 +46,17 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `--lib`-only); optional short libFuzzer smoke when nightly+g++ are present.
 - CI: `dev/**` tip pushes no longer auto-queue (org runner starvation /
   perpetual tip re-queue); full matrix on PR/`main`/`workflow_dispatch` only.
-- Git install pin `v0.1.0-rc.2` (README / ADOPTION) for adopters before
-  crates.io; does not trigger `release.yml` (final `vX.Y.Z` only).
+- Git install pin `v0.1.0-rc.3` (README / ADOPTION) for adopters before
+  crates.io; does not trigger `release.yml` (final `vX.Y.Z` only). Includes
+  KIP-848 join fix, OIDC + mTLS auth smoke, and tip Verifiable decode smoke
+  since `v0.1.0-rc.2`.
 - `scripts/post-publish-readme.sh` also rewrites the README status blurb so
   day-1 after crates.io does not leave a “waits on publish” line behind.
 
 ### Changed
+
+- ADOPTION owner unblock: `main` Actions recovered; remaining cancel targets
+  are stale tip/tag queues (not an eternal `main` queue).
 
 - Mock TLS fixtures use the `openssl` CLI instead of `rcgen`, dropping
   `time` from the dependency graph and clearing the `RUSTSEC-2026-0009`
