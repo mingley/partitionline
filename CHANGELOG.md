@@ -59,6 +59,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- `scripts/owner-cut-release.sh` one-shot owner cut on clean `main` (tag → Actions publish → crates.io wait → day1; `PUBLISH_LOCAL=1` / `DRY_RUN=1`). Wired into `owner-unblock` and RELEASE.md.
 - `ci-publish-ready` and `owner-status` also run `check-merge-ready` so the
   merge→tag path is visible in the same probes as Installable/Verifiable.
 - Tip re-verified auth smoke (SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC + mTLS fail-closed) on 2026-09-04.

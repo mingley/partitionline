@@ -37,6 +37,8 @@ One-time setup (first crates.io cut):
 
 Before merging/tagging, run `bash scripts/check-merge-ready.sh` (add `FULL=1` for tip Verifiable proxy). Does not require a token.
 
+One-shot on clean `main`: `bash scripts/owner-cut-release.sh` (pushes `vX.Y.Z`, waits for crates.io, runs day1). `PUBLISH_LOCAL=1` uses `owner-publish` instead of Actions; `DRY_RUN=1` prints actions only.
+
 Then (on `main`, after civilization is merged):
 
 ```bash
