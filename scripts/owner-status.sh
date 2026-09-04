@@ -47,9 +47,52 @@ else
   fi
   echo "-- main (latest 2) --"
   gh run list --branch main --limit 2 2>/dev/null || echo "WARN  gh run list main failed"
-  echo "-- civilization tip (latest 2) --"
+  echo "-- tip branch (HEAD-aware) --"
   branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
-  gh run list --branch "$branch" --limit 2 2>/dev/null || echo "WARN  gh run list ${branch} failed"
+  head_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+  echo "  HEAD ${head_sha:0:7} on ${branch}"
+  # Prefer runs for this exact SHA so a fixed tip is not shadowed by an older
+  # empty-job release failure on the same branch name.
+  if command -v python3 >/dev/null 2>&1; then
+    if gh run list --branch "$branch" --limit 30 \
+      --json databaseId,status,conclusion,name,event,headSha,displayTitle,createdAt \
+      >/tmp/pl-owner-tip-runs.json 2>/dev/null; then
+      HEAD_SHA="$head_sha" python3 - <<'PY' || echo "WARN  could not interpret tip run list"
+import json, os
+head = os.environ.get("HEAD_SHA", "")
+try:
+    runs = json.load(open("/tmp/pl-owner-tip-runs.json"))
+except Exception:
+    print("WARN  could not parse gh run list JSON")
+    raise SystemExit(0)
+if not isinstance(runs, list):
+    print("WARN  unexpected gh run list JSON shape")
+    raise SystemExit(0)
+match = [r for r in runs if r.get("headSha") == head]
+if match:
+    print(f"  runs for HEAD ({len(match)}):")
+    for r in match[:5]:
+        print(
+            f"    {r.get('status')}\t{r.get('conclusion') or ''}\t"
+            f"{r.get('name')}\t{r.get('event')}\t{r.get('databaseId')}\t"
+            f"{(r.get('displayTitle') or '')[:60]}"
+        )
+else:
+    print("  no Actions runs for this HEAD yet (tip auto-CI may be disabled)")
+    print("  latest on branch (may be older SHAs):")
+    for r in runs[:2]:
+        sha = (r.get("headSha") or "")[:7]
+        print(
+            f"    {sha}\t{r.get('status')}\t{r.get('conclusion') or ''}\t"
+            f"{r.get('name')}\t{r.get('event')}\t{r.get('databaseId')}"
+        )
+PY
+    else
+      echo "WARN  gh run list ${branch} failed"
+    fi
+  else
+    gh run list --branch "$branch" --limit 2 2>/dev/null || echo "WARN  gh run list ${branch} failed"
+  fi
 fi
 
 echo

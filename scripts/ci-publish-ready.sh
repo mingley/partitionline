@@ -39,6 +39,9 @@ tail -2 /tmp/pl-readme-flip-dry.log
 echo "== adopter pin =="
 bash scripts/check-adopter-pin.sh
 
+echo "== workflow YAML =="
+bash scripts/check-workflows.sh
+
 echo "== civilization check =="
 REQUIRE_BROKER="${REQUIRE_BROKER:-0}" bash scripts/ci-civilization-check.sh
 
