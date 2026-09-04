@@ -23,6 +23,11 @@ PUBLISH_LOCAL="${PUBLISH_LOCAL:-0}"
 SKIP_PUBLISH_READY="${SKIP_PUBLISH_READY:-0}"
 WAIT_CRATES_ATTEMPTS="${WAIT_CRATES_ATTEMPTS:-36}" # ~6 minutes at 10s
 
+# TOKEN_FILE + whitespace normalize into this shell before PUBLISH_LOCAL probe/publish.
+# shellcheck source=scripts/lib/cargo-registry-token.sh
+source "$ROOT/scripts/lib/cargo-registry-token.sh"
+pl_prepare_cargo_registry_token "owner-cut-release"
+
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 tag="v${ver}"
@@ -68,6 +73,7 @@ if [[ "$PUBLISH_LOCAL" != "1" ]]; then
     else
       echo "owner-cut-release: WARN — CARGO_REGISTRY_TOKEN not listed in Actions secrets." >&2
       echo "  First publish will fail until the secret exists (or use PUBLISH_LOCAL=1)." >&2
+      echo "  Prefer: bash scripts/owner-finish-installable.sh (syncs secret before tag when PUBLISH_LOCAL=0)." >&2
       if [[ "${REQUIRE_ACTIONS_SECRET:-0}" == "1" ]]; then
         echo "owner-cut-release: REQUIRE_ACTIONS_SECRET=1 — refusing to cut." >&2
         exit 1

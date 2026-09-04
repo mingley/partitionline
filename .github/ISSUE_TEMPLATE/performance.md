@@ -1,7 +1,7 @@
 ---
 name: Performance claim
 about: Benchmark or regression note (honesty required)
-labels: performance
+labels: enhancement
 ---
 
 **Claim** (one sentence)
