@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: `ci-branch-lite` + `check-cut-path` run `MODE=path` `verify-crates-io-consumer` so the day1 adopter compile proof is rehearsed before crates.io `0.1.0` exists.
 - Scripts: `ci-branch-lite` rehearses `refresh-post-cut-parks` DRY_RUN (tip→Verifiable→SCRAM→lz4→checkout) before the parks stack gate.
 - Scripts: `check-cut-path` rehearses `refresh-post-cut-parks` DRY_RUN (tip→Verifiable→SCRAM→lz4→checkout) before parks stack + publish dry-run.
 - Docs: same-day native Verifiable recheck on tip (broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈207µs after under-load miss ≈1049µs, fuzz decode smoke) recorded unsigned; not a Suite HOLD lift.
