@@ -145,6 +145,20 @@ bash scripts/check-installable.sh
 bash scripts/audit-civilization-bars.sh
 
 echo
+echo "== 7) Best-effort sync Actions secret for later tag publishes =="
+if command -v gh >/dev/null 2>&1; then
+  if printf '%s' "${CARGO_REGISTRY_TOKEN}" | gh secret set CARGO_REGISTRY_TOKEN 2>/tmp/pl-finish-secret.log; then
+    echo "owner-finish-installable: Actions secret CARGO_REGISTRY_TOKEN synced"
+  else
+    echo "owner-finish-installable: note — could not set Actions secret (need admin; agents often 403)"
+    tail -3 /tmp/pl-finish-secret.log 2>/dev/null | sed 's/^/  /' || true
+    echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
+  fi
+else
+  echo "owner-finish-installable: note — gh not available; set Actions secret manually"
+fi
+
+echo
 echo "owner-finish-installable: OK — ${name} ${ver} is Installable"
 echo "owner-finish-installable: commit README crates.io line if day1 changed it"
 echo "owner-finish-installable: then crates.io → Trusted Publishing → release.yml"
