@@ -39,6 +39,8 @@ echo
 
 echo "== 3c) Post-cut parks stack (tip→Verifiable→SCRAM) =="
 bash scripts/check-post-cut-parks-stack.sh || true
+echo "  If stack FAIL (parks lagged tip / chain broken):"
+echo "    bash scripts/refresh-post-cut-parks.sh"
 echo
 
 echo "== 4) Publish path (after token; Verifiable already green on main) =="
