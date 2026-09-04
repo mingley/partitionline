@@ -22,6 +22,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Tip Verifiable PARTIAL --self-test (2026-09-04, tip `25d4456`):** `ci-tip-verifiable-broker --self-test` proves finalize ok/exit0, PARTIAL/exit2, soft PARTIAL/exit0; wired into tip proxies + bars. Live recheck: integrity COUNT=2000, latency quiet p99≈86µs — still **unsigned**, still not a Suite HOLD lift.
 
+**Finish-path honesty self-tests (2026-09-04, tip `54b5bc6`):** `owner-finish-installable` step 0a runs registry-token + tip Verifiable `--self-test` before Installable short-circuit / token gate; bars gate the finish wiring — still **unsigned** tip Verifiable evidence only, still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
