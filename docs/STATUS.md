@@ -34,6 +34,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Day1 docs preserve across parks (2026-09-04):** `scripts/lib/preserve-day1-docs.sh` backs up README/ADOPTION before parks land and restores from filesystem if stash pop fails; wired into finish + cut-path + preflight honesty — token-day footgun closed without lifting Suite HOLD.
 
+**Post-Installable handoff (2026-09-04):** `scripts/owner-post-installable-handoff.sh` re-enters Installable + adopter pin + registry consumer + full bars + Trusted Publishing + optional parks land after any cut path (finish, Actions first-publish, or soft-failed TP/parks). `DRY_RUN=1` rehearsed in cut-path + bars (`HANDOFF_FROM_BARS=1` avoids bars↔handoff recursion) — still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

@@ -45,7 +45,13 @@ bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish
    `bash scripts/owner-dispatch-first-publish.sh`
    (`.github/workflows/first-publish.yml` is already on `main`).
 4. Commit the README crates.io line if day1 changed it; configure crates.io
-   Trusted Publishing for `release.yml`.
+   Trusted Publishing for `release.yml`. After Installable (any cut path),
+   re-enter TP + parks + full bars anytime with:
+   ```bash
+   bash scripts/owner-post-installable-handoff.sh
+   LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks skipped
+   DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh      # rehearse before cut
+   ```
 
 ## Install (today)
 
