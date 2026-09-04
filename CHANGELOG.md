@@ -21,6 +21,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Fixed
 
+- Docs/scripts: first-cut token guidance requires crates.io `publish-new` (not only `publish-update`) so a wrong-scoped token cannot silently block Installable.
 - Scripts/docs: `check-trusted-publishing-ready` validates release.yml OIDC shape; ADOPTION warns not to merge Dependabot flate2/SCRAM bumps onto tip before Installable (covered by post-cut SCRAM park); Verifiable park refreshed onto tip.
 - Scripts: finish DRY_RUN hard-fails dirty post-cut parks stacks (no `|| true` greenwash); `check-cut-path` + owner-unblock surface tip→Verifiable→SCRAM stack gate.
 - Scripts: post-cut parks DRY_RUN uses a disposable worktree (no `checkout -f` on tip) so tip WIP is not discarded; tip Verifiable proxy hard-fails on dirty tip→Verifiable→SCRAM stacks (`check-post-cut-parks-stack`).

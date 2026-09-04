@@ -28,7 +28,11 @@ stop after a successful `cargo package` dry-run. Owner one-shot checklist:
 
 One-time setup (first crates.io cut):
 
-1. Create a crates.io API token (publish-update for `partitionline`).
+1. Create a crates.io API token at https://crates.io/settings/tokens — for the
+   **first** cut of a new crate select **`publish-new`** (and usually also
+   **`publish-update`** for later versions). `publish-update` alone cannot
+   create `partitionline` on crates.io. After 0.1.0 exists, prefer Trusted
+   Publishing and keep only a short-lived or narrowly scoped token as backup.
 2. Add repository secret `CARGO_REGISTRY_TOKEN` (Settings → Secrets → Actions).
    Required for the **first** publish — Trusted Publishing can only be
    configured after the crate exists on crates.io.
