@@ -115,6 +115,7 @@ fi
 # Soft-skip must not claim tip Verifiable `ok` after mid-chain skips (PARTIAL).
 # PARTIAL must exit 2 by default so set -e tip proxies cannot greenwash.
 # Prefer executable --self-test over grep-only (finalize exit codes cannot drift).
+# Cut path (`owner-finish-installable`) must also run both honesty self-tests.
 if [[ -f scripts/ci-tip-verifiable-broker.sh ]] \
   && grep -q 'pl_tip_verifiable_finalize' scripts/ci-tip-verifiable-broker.sh \
   && grep -qF -- '--self-test' scripts/ci-tip-verifiable-broker.sh \
@@ -123,10 +124,13 @@ if [[ -f scripts/ci-tip-verifiable-broker.sh ]] \
   && bash scripts/ci-tip-verifiable-broker.sh --self-test >/tmp/pl-tip-verifiable-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-tip-verifiable-self-test.log \
   && [[ -f scripts/ci-branch-lite.sh ]] && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/ci-branch-lite.sh \
-  && [[ -f scripts/check-cut-path.sh ]] && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/check-cut-path.sh; then
-  ok "tip Verifiable soft-skip honesty (--self-test PARTIAL exit 2; wired into branch-lite/cut-path)"
+  && [[ -f scripts/check-cut-path.sh ]] && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/check-cut-path.sh \
+  && [[ -f scripts/owner-finish-installable.sh ]] \
+  && grep -qF -- 'check-registry-token.sh --self-test' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/owner-finish-installable.sh; then
+  ok "tip Verifiable soft-skip honesty (--self-test PARTIAL exit 2; wired into branch-lite/cut-path/finish)"
 else
-  bad "ci-tip-verifiable-broker soft-skip honesty missing (--self-test / finalize / tip proxy wiring); see /tmp/pl-tip-verifiable-self-test.log"
+  bad "ci-tip-verifiable-broker soft-skip honesty missing (--self-test / finalize / tip proxy+finish wiring); see /tmp/pl-tip-verifiable-self-test.log"
 fi
 fuzz_n=0
 if [[ -d fuzz/fuzz_targets ]]; then
