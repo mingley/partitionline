@@ -53,6 +53,8 @@ First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
   fresh unsigned latency-gate + HW==acked smoke sample (not a Suite HOLD lift).
 - `scripts/check-installable.sh` probes crates.io for the Installable bar;
   ADOPTION notes Actions is stuck org-wide (`main` queued for hours).
+- `ci-broker-smoke`: when Docker overlay fails but `$KAFKA_BOOTSTRAP` is already
+  up, fall back to that broker automatically (same path as `SKIP_DOCKER=1`).
 - Broker smoke: Kafka CI matrix uses `apache/kafka:4.1.0`; Docker 4.x starts with
   share coordinator RF=1 and upgrades `share.version=1`; `REQUIRE_SHARE=1` fails
   the job if share cannot fetch records on 4.x. Civilization-check only counts

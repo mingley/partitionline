@@ -285,7 +285,14 @@ if kafka_image_is_4x; then
 fi
 if ! docker run "${docker_run_args[@]}" "$KAFKA_IMAGE"; then
   echo "ci-broker-smoke: docker run failed (overlay often broken in nested VMs)." >&2
-  echo "ci-broker-smoke: start a native broker and re-run with SKIP_DOCKER=1" >&2
+  # Verifiable fallback: if a broker is already listening, use it (same as SKIP_DOCKER=1).
+  if wait_tcp "$BOOTSTRAP"; then
+    echo "ci-broker-smoke: $BOOTSTRAP is up — falling back to existing broker" >&2
+    trap - EXIT
+    cleanup || true
+    SKIP_DOCKER=1 exec bash "$0" "$@"
+  fi
+  echo "ci-broker-smoke: no broker at $BOOTSTRAP; start native Kafka or set SKIP_DOCKER=1" >&2
   if [[ "${CI:-}" == "true" ]]; then
     exit 1
   fi
