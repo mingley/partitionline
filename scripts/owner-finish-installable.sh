@@ -65,6 +65,7 @@ if bash scripts/check-installable.sh; then
   echo "owner-finish-installable: running day1 + bars audit"
   if [[ "$DRY_RUN" == "1" ]]; then
     echo "owner-finish-installable: DRY_RUN=1 — would run day1-after-publish + audit-civilization-bars"
+    echo "owner-finish-installable: DRY_RUN=1 — would then run owner-enable-trusted-publishing.sh"
     if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
       echo "owner-finish-installable: DRY_RUN=1 — would then run owner-land-post-cut-parks.sh"
       # Hard-fail: soft-skipping parks here lied about cut readiness.
@@ -74,6 +75,12 @@ if bash scripts/check-installable.sh; then
   fi
   bash scripts/day1-after-publish.sh
   bash scripts/audit-civilization-bars.sh
+  echo
+  echo "== Trusted Publishing (post-Installable) =="
+  bash scripts/owner-enable-trusted-publishing.sh || {
+    echo "owner-finish-installable: WARN — Trusted Publishing helper failed; Installable still OK" >&2
+    echo "  Retry: bash scripts/owner-enable-trusted-publishing.sh" >&2
+  }
   if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
     echo
     echo "== Land parked Verifiable on main =="
@@ -283,11 +290,19 @@ fi
 echo
 echo "owner-finish-installable: OK — ${name} ${ver} is Installable"
 echo "owner-finish-installable: commit README crates.io line if day1 changed it"
-echo "owner-finish-installable: then: bash scripts/check-trusted-publishing-ready.sh"
+
+echo
+echo "== 8) Trusted Publishing (post-Installable) =="
+# Prints exact crates.io UI steps so later tags can drop the long-lived token.
+# Non-fatal: Installable is already proven above.
+bash scripts/owner-enable-trusted-publishing.sh || {
+  echo "owner-finish-installable: WARN — Trusted Publishing helper failed; Installable still OK" >&2
+  echo "  Retry: bash scripts/owner-enable-trusted-publishing.sh" >&2
+}
 
 if [[ "${MERGE_POST_CUT_PARKS}" == "1" ]]; then
   echo
-  echo "== 8) Land parked Verifiable on main =="
+  echo "== 9) Land parked Verifiable on main =="
   echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=1 — landing post-cut parks (Verifiable + flate2 + SCRAM crypto + lz4_flex + actions/checkout)"
   # Installable already proven above; merge script rechecks crates.io.
   if bash scripts/owner-land-post-cut-parks.sh; then
