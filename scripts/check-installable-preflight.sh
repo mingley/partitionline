@@ -80,10 +80,14 @@ echo
 if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "check-installable-preflight: READY_EXCEPT_TOKEN"
   echo "  Structural + Verifiable gates OK; crates.io cut blocked only on CARGO_REGISTRY_TOKEN."
-  echo "  Next: export CARGO_REGISTRY_TOKEN (Cloud Agent + Actions), then:"
+  echo "  Token scope: first cut of a NEW crate needs crates.io publish-new (+ usually publish-update)."
+  echo "  publish-update alone cannot create the crate. Trusted Publishing is configured after 0.1.0."
+  echo "  Next: set Cloud Agent secret CARGO_REGISTRY_TOKEN (Cursor → Environments → Secrets),"
+  echo "        also add Actions secret CARGO_REGISTRY_TOKEN, restart agent, then:"
   echo "        bash scripts/owner-finish-installable.sh"
   echo "        # publishes 0.1.0 then chains post-cut parks land by default"
   echo "        # (MERGE_PARKED_VERIFIABLE=0 to skip Verifiable+flate2+SCRAM+lz4+checkout parks land)"
+  echo "  Actions-only alternate: bash scripts/owner-dispatch-first-publish.sh (owner machine; agents 403)."
   exit 0
 fi
 
