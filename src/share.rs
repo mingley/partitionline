@@ -42,7 +42,7 @@ pub use crate::protocol::share::{
 
 /// Share-group acknowledgement (Java `AcknowledgeType`, KIP-932).
 ///
-/// [`Display`] is Java `AcknowledgeType.toString` (`accept`). Wire gap `0`
+/// [`std::fmt::Display`] is Java `AcknowledgeType.toString` (`accept`). Wire gap `0`
 /// is not a Java `AcknowledgeType` ([`crate::protocol::share::ACK_GAP`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
@@ -93,7 +93,7 @@ impl fmt::Display for AcknowledgeType {
 
 /// Java `ShareRequestMetadata` (share session member id and epoch).
 ///
-/// [`Display`] is Java `toString` (`(memberId=..., epoch=INITIAL)`). Member
+/// [`std::fmt::Display`] is Java `toString` (`(memberId=..., epoch=INITIAL)`). Member
 /// id is Java `Uuid` ([`Uuid`] `Display` is base64url). ShareFetch /
 /// ShareAcknowledge encode still take `member_id: &str` and
 /// `share_session_epoch: i32`; [`ShareGroup`] uses [`Self::INITIAL_EPOCH`] /
@@ -718,7 +718,7 @@ impl ShareGroup {
     /// ShareFetch / ShareAcknowledge counters and poll latency since join
     /// (min/mean/max and p50/p99).
     ///
-    /// [`ShareMetrics::topics`] is one row per topic that returned at least
+    /// [`crate::ShareMetrics::topics`] is one row per topic that returned at least
     /// one record.
     #[must_use]
     pub fn metrics(&self) -> crate::ShareMetrics {

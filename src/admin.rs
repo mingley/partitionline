@@ -330,7 +330,7 @@ impl AdminConfig {
 
 /// Topic to create (`CreateTopics`). Java `NewTopic`.
 ///
-/// [`Display`] is Java `NewTopic.toString`. Negative partition count or
+/// [`std::fmt::Display`] is Java `NewTopic.toString`. Negative partition count or
 /// replication factor prints `default`. Empty assignments and configs
 /// print `null`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -512,7 +512,7 @@ impl fmt::Display for NewTopic {
 /// this offset are deleted; records at or after it are kept.
 /// [`crate::protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`] is Java
 /// `DeleteRecordsRequest.HIGH_WATERMARK` (truncate to the high watermark).
-/// [`Display`] is Java `RecordsToDelete.toString`.
+/// [`std::fmt::Display`] is Java `RecordsToDelete.toString`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RecordsToDelete {
     offset: i64,
@@ -611,7 +611,7 @@ impl From<DeletedRecords> for (i64, i16) {
 /// Kafka `org.apache.kafka.common.Uuid` (16 bytes; `toString` is base64url).
 ///
 /// Wire TopicId / ClientInstanceId stay `[u8; 16]`. [`Self::from_string`] /
-/// [`Display`] match Java `fromString` / `toString` (`URL_SAFE` without
+/// [`std::fmt::Display`] match Java `fromString` / `toString` (`URL_SAFE` without
 /// padding). [`Self::random_uuid`] is Java `randomUuid`. Kafka 4.1 Raft
 /// voter APIs are not spoken.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -715,7 +715,7 @@ impl Uuid {
     /// Java `Uuid.randomUuid` (RFC 4122 variant 2 version 4).
     ///
     /// Never returns [`Self::ZERO`], [`Self::ONE`] /
-    /// [`Self::METADATA_TOPIC_ID`], or a UUID whose [`Display`]
+    /// [`Self::METADATA_TOPIC_ID`], or a UUID whose [`std::fmt::Display`]
     /// (base64url) starts with `-`.
     #[must_use]
     pub fn random_uuid() -> Self {
@@ -1314,7 +1314,7 @@ where
 
 /// Increase a topic's partition count (`CreatePartitions`). Java `NewPartitions`.
 ///
-/// [`Display`] is Java `NewPartitions.toString` (no topic name; `None`
+/// [`std::fmt::Display`] is Java `NewPartitions.toString` (no topic name; `None`
 /// assignments print `null`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewPartitions {
@@ -1895,7 +1895,7 @@ impl ReassignmentResult {
 /// Flattened ongoing reassignment from ListPartitionReassignments
 /// (Java `PartitionReassignment`).
 ///
-/// [`Display`] is Java `PartitionReassignment.toString` (no topic or
+/// [`std::fmt::Display`] is Java `PartitionReassignment.toString` (no topic or
 /// partition; those are the `listPartitionReassignments` map keys).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OngoingReassignment {
@@ -1957,7 +1957,7 @@ impl fmt::Display for OngoingReassignment {
 
 /// One finalized-feature update for `Admin::update_features`.
 ///
-/// [`Display`] is Java `FeatureUpdate.toString` (no feature name; that is
+/// [`std::fmt::Display`] is Java `FeatureUpdate.toString` (no feature name; that is
 /// the `updateFeatures` map key). Unknown upgrade-type codes print
 /// `UNKNOWN`. Java `FeatureUpdate` constructor rejects maxVersionLevel 0
 /// with [`UPGRADE_TYPE_UPGRADE`] and a negative maxVersionLevel; this crate
@@ -2084,7 +2084,7 @@ impl FeatureUpdateResult {
 
 /// Supported version range from [`Admin::describe_features`] (Java `SupportedVersionRange`).
 ///
-/// [`Display`] is Java `SupportedVersionRange.toString` (no feature name;
+/// [`std::fmt::Display`] is Java `SupportedVersionRange.toString` (no feature name;
 /// that is the `supportedFeatures` map key). Java constructor requires a
 /// non-negative min through max; [`Self::new`] checks that.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2146,7 +2146,7 @@ impl fmt::Display for SupportedVersionRange {
 
 /// Finalized version range from [`Admin::describe_features`] (Java `FinalizedVersionRange`).
 ///
-/// [`Display`] is Java `FinalizedVersionRange.toString` (no feature name;
+/// [`std::fmt::Display`] is Java `FinalizedVersionRange.toString` (no feature name;
 /// that is the `finalizedFeatures` map key). Java constructor requires
 /// non-negative min/max and max at least min; [`Self::new`] checks that.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2215,7 +2215,7 @@ impl fmt::Display for FinalizedVersionRange {
 /// There is no DescribeFeatures api key. Java and this client re-issue
 /// ApiVersions v3–v4 and read KIP-482 tagged fields.
 ///
-/// [`Display`] is Java `FeatureMetadata.toString` (crate vec order;
+/// [`std::fmt::Display`] is Java `FeatureMetadata.toString` (crate vec order;
 /// empty epoch prints a space; omits `zk_migration_ready`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureMetadata {
@@ -2504,7 +2504,7 @@ impl FencedProducer {
 /// [`crate::TransactionResult::Abort`] (`transactionResult` false)
 /// to the Metadata partition leader.
 ///
-/// [`Display`] is Java `AbortTransactionSpec.toString`.
+/// [`std::fmt::Display`] is Java `AbortTransactionSpec.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AbortTransactionSpec {
     /// Topic name.
@@ -2630,7 +2630,7 @@ impl From<String> for MemberToRemove {
 /// `partitions: None` is every committed partition (OffsetFetch null
 /// Topics). Empty `partitions` is a no-op for that group.
 ///
-/// [`Display`] is Java `ListConsumerGroupOffsetsSpec.toString`
+/// [`std::fmt::Display`] is Java `ListConsumerGroupOffsetsSpec.toString`
 /// (`topicPartitions=null` when [`Self::all`]).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ListConsumerGroupOffsetsSpec {

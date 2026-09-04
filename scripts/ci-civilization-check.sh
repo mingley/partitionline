@@ -22,6 +22,11 @@ if bash scripts/ci-msrv.sh >/tmp/pl-msrv.log 2>&1; then
 else
   bad "MSRV toolchain check; see /tmp/pl-msrv.log"
 fi
+if bash scripts/ci-docs.sh >/tmp/pl-docs.log 2>&1; then
+  ok "rustdoc builds (docs.rs smoke)"
+else
+  bad "rustdoc build; see /tmp/pl-docs.log"
+fi
 if cargo package --allow-dirty --quiet; then ok "cargo package"; else bad "cargo package"; fi
 if bash scripts/ci-crate-consumer.sh >/tmp/pl-crate-consumer.log 2>&1; then
   ok "packed crate downstream consumer"

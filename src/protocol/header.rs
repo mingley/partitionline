@@ -26,7 +26,7 @@ use crate::error::{Error, Result};
 
 /// Kafka request header (`api_key` through `client_id`, plus tagged fields when flexible).
 ///
-/// [`Display`] is Java `RequestHeader.toString`:
+/// [`std::fmt::Display`] is Java `RequestHeader.toString`:
 /// `RequestHeader(apiKey=PRODUCE, apiVersion=9, clientId=client, correlationId=1, headerVersion=2)`.
 /// `apiKey` is the Kafka 4.0 `ApiKeys` enum name (not `ApiMessageType.name`).
 /// Null `clientId` prints `null`; an empty id prints empty.

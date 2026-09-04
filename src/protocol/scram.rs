@@ -1,22 +1,13 @@
 //! SASL SCRAM-SHA-256 and SCRAM-SHA-512 (RFC 5802 / RFC 7677) as used by Kafka.
 //! Password hashing is PBKDF2-HMAC of the selected hash. No C SASL library.
 //!
-//! [`sasl_name`] / [`username`] / [`xor`] / [`auth_message`] / [`to_bytes`] /
-//! [`normalize`] are Java `ScramFormatter.saslName` / `username` / `xor` /
-//! `authMessage` / `toBytes` / `normalize` (`=` then `,`; leftover `=` after
-//! decoding `=3D` is [`Error::protocol`]). [`ScramAlg::hmac`] /
-//! [`ScramAlg::hash`] / [`ScramAlg::hi`] / [`ScramAlg::salted_password`] /
-//! [`ScramAlg::client_key`] / [`ScramAlg::stored_key`] /
-//! [`ScramAlg::stored_key_from_proof`] / [`ScramAlg::server_key`] /
-//! [`ScramAlg::client_signature`] / [`ScramAlg::client_proof`] /
-//! [`ScramAlg::server_signature`] are Java
-//! `ScramFormatter.hmac` / `hash` / `hi` / `saltedPassword` / `clientKey` /
-//! `storedKey` / `serverKey` / `clientSignature` / `clientProof` /
-//! `serverSignature`. [`ScramAlg::hash_algorithm`] /
-//! [`ScramAlg::mac_algorithm`] / [`ScramAlg::min_iterations`] /
-//! [`ScramAlg::max_iterations`] / [`ScramAlg::from_mechanism_name`] /
-//! [`ScramAlg::mechanism_names`] / [`ScramAlg::is_scram`] are Java internals
-//! `ScramMechanism` (unknown name is `None`; this is not admin
+//! Helpers `sasl_name` / `username` / `xor` / `auth_message` / `to_bytes` /
+//! `normalize` match Java `ScramFormatter` (`=` then `,`; leftover `=` after
+//! decoding `=3D` is `Error::protocol`). `ScramAlg` methods (`hmac`, `hash`,
+//! `hi`, `salted_password`, `client_key`, `stored_key`, `stored_key_from_proof`,
+//! `server_key`, `client_signature`, `client_proof`, `server_signature`) match
+//! Java `ScramFormatter` helpers. `from_mechanism_name` / `is_scram` match
+//! Java `ScramMechanism` name lookup (unknown → `None`; not admin
 //! `ScramMechanism.fromMechanismName`, which returns `UNKNOWN`).
 
 use hmac::{Hmac, Mac};
@@ -209,7 +200,7 @@ impl ScramAlg {
     /// Java `ScramFormatter.clientProof`.
     ///
     /// `xor` of `clientKey` and [`Self::client_signature`]. Length mismatch is
-    /// [`Error::protocol`].
+    /// [`crate::Error::protocol`].
     pub fn client_proof(
         self,
         salted_password: &[u8],
@@ -256,7 +247,7 @@ pub fn sasl_name(username: &str) -> String {
     username.replace('=', "=3D").replace(',', "=2C")
 }
 
-/// Java `ScramFormatter.username`. Leftover `=` is [`Error::protocol`]
+/// Java `ScramFormatter.username`. Leftover `=` is [`crate::Error::protocol`]
 /// (`Invalid username: …`).
 pub fn username(sasl_name: &str) -> Result<String> {
     let with_commas = sasl_name.replace("=2C", ",");
@@ -266,7 +257,7 @@ pub fn username(sasl_name: &str) -> Result<String> {
     Ok(with_commas.replace("=3D", "="))
 }
 
-/// Java `ScramFormatter.xor`. Length mismatch is [`Error::protocol`]
+/// Java `ScramFormatter.xor`. Length mismatch is [`crate::Error::protocol`]
 /// (`Argument arrays must be of the same length`).
 pub fn xor(first: &[u8], second: &[u8]) -> Result<Vec<u8>> {
     if first.len() != second.len() {

@@ -7,11 +7,6 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
-### Changed
-
-- Lab A produce harness exits non-zero unless broker HW sum equals acked each run.
-- Civilization/publish-ready gates verify a downstream crate can depend on the packed `.crate`.
-
 ## [0.1.0] - 2026-09-04
 
 First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
@@ -45,7 +40,11 @@ First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
 
 ### Changed
 
-- Broker smoke: Kafka CI matrix uses `apache/kafka:4.1.0`; Docker 4.x starts with
+- Lab A produce harness exits non-zero unless broker HW sum equals acked each run.
+- Civilization/publish-ready gates verify a downstream crate can depend on the packed `.crate`.
+- Release workflow accepts `workflow_dispatch` on an existing `v*` tag; rustdoc/`ci-docs` smoke is part of publish-ready.
+- Fixed broken rustdoc `[Display]` intra-doc links (now `std::fmt::Display`).
+ Kafka CI matrix uses `apache/kafka:4.1.0`; Docker 4.x starts with
   share coordinator RF=1 and upgrades `share.version=1`; `REQUIRE_SHARE=1` fails
   the job if share cannot fetch records on 4.x. Civilization-check only counts
   broker smoke when the log contains `ci-broker-smoke: ok` (Docker soft-skips

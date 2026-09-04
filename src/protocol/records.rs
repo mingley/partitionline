@@ -93,7 +93,7 @@ impl Records {
     /// Fewer than [`Self::HEADER_SIZE_UP_TO_MAGIC`] bytes is `None` (the size
     /// field is not validated). Size below Java `LegacyRecord.RECORD_OVERHEAD_V0`
     /// (14) or magic outside 0 through [`RecordBatch::CURRENT_MAGIC_VALUE`] is
-    /// [`Error::protocol`] (`CorruptRecordException`). The returned size includes
+    /// [`crate::Error::protocol`] (`CorruptRecordException`). The returned size includes
     /// [`Self::LOG_OVERHEAD`].
     pub fn first_batch_size(buffer: &[u8]) -> Result<Option<i32>> {
         let header_up_to_magic = buf::usize_from_i32(Self::HEADER_SIZE_UP_TO_MAGIC)?;
@@ -107,7 +107,7 @@ impl Records {
     ///
     /// Sum of complete batch sizes (including [`Self::LOG_OVERHEAD`]). A
     /// truncated trailing batch is ignored. Header corruption uses the same
-    /// [`Error::protocol`] messages as [`Self::first_batch_size`].
+    /// [`crate::Error::protocol`] messages as [`Self::first_batch_size`].
     pub fn valid_bytes(buffer: &[u8]) -> Result<i32> {
         let mut offset = 0;
         let mut bytes = 0i32;
@@ -169,7 +169,7 @@ fn next_batch_size(buffer: &[u8], max_message_size: i32) -> Result<Option<i32>> 
 ///
 /// zstd is not implemented (the usual ecosystem codec is C).
 ///
-/// [`Display`] is Java `CompressionType.toString` (`gzip`).
+/// [`std::fmt::Display`] is Java `CompressionType.toString` (`gzip`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[repr(i16)]
 pub enum Compression {
@@ -471,7 +471,7 @@ fn be_i32_at(buf: &[u8], offset: usize) -> Result<i32> {
 
 /// Java `ControlRecordType` (control-record key `type`).
 ///
-/// [`Display`] is Java `ControlRecordType.toString` (`ABORT` / `COMMIT` /
+/// [`std::fmt::Display`] is Java `ControlRecordType.toString` (`ABORT` / `COMMIT` /
 /// `LEADER_CHANGE` / `SNAPSHOT_HEADER` / `SNAPSHOT_FOOTER` / `KRAFT_VERSION` /
 /// `KRAFT_VOTERS` / `UNKNOWN`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -594,7 +594,7 @@ impl fmt::Display for ControlRecordType {
 
 /// One record inside a magic-v2 batch.
 ///
-/// [`Display`] is Java `DefaultRecord.toString` (`key=N bytes`; null is
+/// [`std::fmt::Display`] is Java `DefaultRecord.toString` (`key=N bytes`; null is
 /// `0 bytes`, not `keySize` `-1`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Record {
@@ -1316,7 +1316,7 @@ impl RecordBatch {
     /// [`Records::SIZE_OFFSET`]).
     ///
     /// Uses wrapping add (Java `int` overflow). Short size field is
-    /// [`Error::protocol`] `need 4 bytes`. Distinct from [`Self::size_in_bytes`],
+    /// [`crate::Error::protocol`] `need 4 bytes`. Distinct from [`Self::size_in_bytes`],
     /// which encodes this batch.
     pub fn encoded_size_in_bytes(buffer: &[u8]) -> Result<i32> {
         let size_off = buf::usize_from_i32(Records::SIZE_OFFSET)?;
@@ -1355,7 +1355,7 @@ impl RecordBatch {
     ///
     /// Uses wrapping add (Java `long` overflow). Distinct from
     /// [`Self::last_offset`], which uses `count - 1`. Short base-offset or
-    /// last-offset-delta fields are [`Error::protocol`] `need N bytes`.
+    /// last-offset-delta fields are [`crate::Error::protocol`] `need N bytes`.
     pub fn encoded_last_offset(buffer: &[u8]) -> Result<i64> {
         let base_off = buf::usize_from_i32(Records::OFFSET_OFFSET)?;
         let base = Self::read_i64_be(buffer, base_off)?;
@@ -1389,7 +1389,7 @@ impl RecordBatch {
     /// subtract). Does not recompute CRC (base offset is before
     /// [`Self::ATTRIBUTES_OFFSET`]). Distinct from mutating this batch's
     /// [`Self::base_offset`]. Short last-offset-delta is
-    /// [`Error::protocol`] `need 4 bytes`.
+    /// [`crate::Error::protocol`] `need 4 bytes`.
     pub fn set_last_offset(buffer: &mut [u8], last_offset: i64) -> Result<()> {
         let delta_off = buf::usize_from_i32(Self::LAST_OFFSET_DELTA_OFFSET)?;
         let delta = buf::read_int_be(buffer, delta_off)?;
@@ -1404,7 +1404,7 @@ impl RecordBatch {
     /// not read). Otherwise [`Self::increment_sequence`] of the base sequence
     /// and header `lastOffsetDelta`. Distinct from [`Self::last_sequence`],
     /// which uses `count - 1`. Short sequence or delta fields are
-    /// [`Error::protocol`] `need 4 bytes`.
+    /// [`crate::Error::protocol`] `need 4 bytes`.
     pub fn encoded_last_sequence(buffer: &[u8]) -> Result<i32> {
         let seq_off = buf::usize_from_i32(Self::BASE_SEQUENCE_OFFSET)?;
         let base_sequence = buf::read_int_be(buffer, seq_off)?;
@@ -1426,7 +1426,7 @@ impl RecordBatch {
     /// Unset [`ATTR_DELETE_HORIZON`] is `None` without reading
     /// [`Self::BASE_TIMESTAMP_OFFSET`]. Otherwise the stored base timestamp.
     /// Distinct from [`Self::delete_horizon_ms`], which uses this batch's
-    /// fields. Short attributes or timestamp fields are [`Error::protocol`]
+    /// fields. Short attributes or timestamp fields are [`crate::Error::protocol`]
     /// `need N bytes`.
     pub fn encoded_delete_horizon_ms(buffer: &[u8]) -> Result<Option<i64>> {
         let attributes = Self::encoded_attributes(buffer)?;
@@ -1440,7 +1440,7 @@ impl RecordBatch {
     /// Java `DefaultRecordBatch.isTransactional` on a buffer.
     ///
     /// Distinct from [`Self::is_transactional`], which uses this batch's
-    /// attributes. Short attributes field is [`Error::protocol`] `need 2 bytes`.
+    /// attributes. Short attributes field is [`crate::Error::protocol`] `need 2 bytes`.
     pub fn encoded_is_transactional(buffer: &[u8]) -> Result<bool> {
         Ok(Self::encoded_attributes(buffer)? & ATTR_TRANSACTIONAL != 0)
     }
@@ -1448,7 +1448,7 @@ impl RecordBatch {
     /// Java `DefaultRecordBatch.isControlBatch` on a buffer.
     ///
     /// Distinct from [`Self::is_control_batch`], which uses this batch's
-    /// attributes. Short attributes field is [`Error::protocol`] `need 2 bytes`.
+    /// attributes. Short attributes field is [`crate::Error::protocol`] `need 2 bytes`.
     pub fn encoded_is_control_batch(buffer: &[u8]) -> Result<bool> {
         Ok(Self::encoded_attributes(buffer)? & ATTR_CONTROL != 0)
     }
@@ -1456,7 +1456,7 @@ impl RecordBatch {
     /// Java `DefaultRecordBatch.timestampType` on a buffer.
     ///
     /// Distinct from [`Self::timestamp_type`], which uses this batch's
-    /// attributes. Short attributes field is [`Error::protocol`] `need 2 bytes`.
+    /// attributes. Short attributes field is [`crate::Error::protocol`] `need 2 bytes`.
     pub fn encoded_timestamp_type(buffer: &[u8]) -> Result<TimestampType> {
         Ok(TimestampType::from_attributes(Self::encoded_attributes(
             buffer,
@@ -1467,7 +1467,7 @@ impl RecordBatch {
     /// greater than [`Self::NO_PRODUCER_ID`]).
     ///
     /// Distinct from [`Self::has_producer_id`], which uses this batch's
-    /// producer id. Short producer-id field is [`Error::protocol`]
+    /// producer id. Short producer-id field is [`crate::Error::protocol`]
     /// `need 8 bytes`.
     pub fn encoded_has_producer_id(buffer: &[u8]) -> Result<bool> {
         let off = buf::usize_from_i32(Self::PRODUCER_ID_OFFSET)?;
@@ -1479,7 +1479,7 @@ impl RecordBatch {
     ///
     /// Magic-v2 is always `Some` (Java never returns null). Distinct from
     /// [`Self::count_or_null`], which uses `records.len()`. Short count field
-    /// is [`Error::protocol`] `need 4 bytes`.
+    /// is [`crate::Error::protocol`] `need 4 bytes`.
     pub fn encoded_count_or_null(buffer: &[u8]) -> Result<Option<i32>> {
         let off = buf::usize_from_i32(Self::RECORDS_COUNT_OFFSET)?;
         Ok(Some(buf::read_int_be(buffer, off)?))
@@ -1502,7 +1502,7 @@ impl RecordBatch {
     /// Declared size ([`Self::encoded_size_in_bytes`]) below
     /// [`Self::RECORD_BATCH_OVERHEAD`] is `false`. Otherwise the stored CRC must
     /// match CRC32-C of the bytes from [`Self::ATTRIBUTES_OFFSET`] to the end of
-    /// `buffer`. Short size or CRC fields are [`Error::protocol`] `need 4 bytes`.
+    /// `buffer`. Short size or CRC fields are [`crate::Error::protocol`] `need 4 bytes`.
     pub fn is_valid(buffer: &[u8]) -> Result<bool> {
         if Self::encoded_size_in_bytes(buffer)? < Self::RECORD_BATCH_OVERHEAD {
             return Ok(false);
@@ -1519,11 +1519,11 @@ impl RecordBatch {
     /// Java `DefaultRecordBatch.ensureValid`.
     ///
     /// Declared size ([`Self::encoded_size_in_bytes`]) below
-    /// [`Self::RECORD_BATCH_OVERHEAD`] is [`Error::protocol`] matching Java
+    /// [`Self::RECORD_BATCH_OVERHEAD`] is [`crate::Error::protocol`] matching Java
     /// `CorruptRecordException` (`Record batch is corrupt`). Otherwise a CRC
-    /// mismatch is [`Error::protocol`] `Record is corrupt` (stored vs computed
+    /// mismatch is [`crate::Error::protocol`] `Record is corrupt` (stored vs computed
     /// over bytes from [`Self::ATTRIBUTES_OFFSET`] to the end of `buffer`).
-    /// Short size or CRC fields are [`Error::protocol`] `need 4 bytes`.
+    /// Short size or CRC fields are [`crate::Error::protocol`] `need 4 bytes`.
     /// Distinct from [`decode_record_batch`], which CRC-checks the declared
     /// body only.
     pub fn ensure_valid(buffer: &[u8]) -> Result<()> {

@@ -1577,7 +1577,7 @@ fn encode_share_fetch_response_full(
 /// `records`. Kafka 4.0 `nullableVersions` is `0+`; Kafka 4.1
 /// `nullableVersions` is `0` only (v1 not nullable). Compact null is
 /// empty on v0 (Java `recordsOrFail` / `MemoryRecords.EMPTY`). v1 null
-/// is [`Error::protocol`] (Java generated `non-nullable field records
+/// is [`crate::Error::protocol`] (Java generated `non-nullable field records
 /// was serialized as null`). Encode still writes empty, not null.
 #[expect(
     clippy::type_complexity,

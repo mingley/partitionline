@@ -40,7 +40,7 @@ pub enum Error {
     /// or [`crate::ProducerConfig::buffer_memory`].
     ///
     /// Java `KafkaProducer.ensureValidRecordSize` checks `max.request.size`
-    /// first, then `buffer.memory`. [`Display`] is Java
+    /// first, then `buffer.memory`. [`std::fmt::Display`] is Java
     /// `RecordTooLargeException`. For [`Self::MAX_REQUEST_SIZE_CONFIG`]:
     /// `The message is {size} bytes when serialized which is larger than {max},
     /// which is the value of the max.request.size configuration.` For
@@ -679,7 +679,7 @@ fn errors_for_code(code: i16) -> i16 {
 ///
 /// [`Self::NONE`] is code [`NONE`] with a null message. [`Self::from_code`]
 /// is Java `ApiError(short, String)`: unknown codes become
-/// [`UNKNOWN_SERVER_ERROR`] (Java `Errors.forCode`). [`Display`] is Java
+/// [`UNKNOWN_SERVER_ERROR`] (Java `Errors.forCode`). [`std::fmt::Display`] is Java
 /// `ApiError.toString` (`ApiError(error=NONE, message=null)`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ApiError {

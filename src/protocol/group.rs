@@ -22,7 +22,7 @@ pub const MIN_BATCHED_VERSION: i16 = 4;
 
 /// Java `FindCoordinatorRequest.CoordinatorType`.
 ///
-/// [`Display`] is Java `CoordinatorType.toString` (`GROUP`). [`Self::from_id`]
+/// [`std::fmt::Display`] is Java `CoordinatorType.toString` (`GROUP`). [`Self::from_id`]
 /// is Java `CoordinatorType.forId` (unknown is `None`; Java throws).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CoordinatorType {
@@ -540,7 +540,7 @@ impl ConsumerProtocol {
 /// `ConsumerProtocolSubscription` (classic JoinGroup member metadata).
 ///
 /// [`ConsumerProtocol::serialize_subscription`] is Java
-/// `ConsumerProtocol.serializeSubscription`. [`Display`] is Java
+/// `ConsumerProtocol.serializeSubscription`. [`std::fmt::Display`] is Java
 /// `Subscription.toString` (`groupInstanceId` is always `null`; this type
 /// does not store it. User data is omitted when null).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -637,7 +637,7 @@ impl fmt::Display for ConsumerProtocolSubscription {
 /// `ConsumerProtocolAssignment` (classic SyncGroup member assignment).
 ///
 /// [`ConsumerProtocol::serialize_assignment`] is Java
-/// `ConsumerProtocol.serializeAssignment`. [`Display`] is Java
+/// `ConsumerProtocol.serializeAssignment`. [`std::fmt::Display`] is Java
 /// `Assignment.toString` (comma-space `topic-partition` list; user data
 /// is omitted when null).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2990,7 +2990,7 @@ impl OffsetFetchTopic {
 /// `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
 /// `PartitionData.hasError` / `UNKNOWN_PARTITION` / `UNAUTHORIZED_PARTITION`
 /// / `OffsetFetchRequest.getErrorResponse` partition body.
-/// [`Display`] is Java `PartitionData.toString`.
+/// [`std::fmt::Display`] is Java `PartitionData.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchedOffset {
     /// Partition index.
@@ -3216,7 +3216,7 @@ impl OffsetFetchResponse {
     /// `groupLevelErrors` is empty, so the v0–v7 path runs on empty
     /// Topics). v8+ with groups uses the first matching `group_id`
     /// (Java `stream().filter().collect().get(0)`). A missing group is
-    /// [`Error::protocol`] (Java `IndexOutOfBoundsException`). A later
+    /// [`crate::Error::protocol`] (Java `IndexOutOfBoundsException`). A later
     /// partition overwrites the same pair (Java `HashMap.put`). Values
     /// are [`FetchedOffset`] (Java `PartitionData` plus the partition
     /// index).
@@ -3318,7 +3318,7 @@ impl OffsetFetchResponse {
     /// grouping is [`Self::from_partition_data`]. A group in `errors`
     /// but not in `response_data` is omitted (Java iterates
     /// `responseData.entrySet`). A group in `response_data` missing from
-    /// `errors` is [`Error::protocol`] (Java `NullPointerException` on
+    /// `errors` is [`crate::Error::protocol`] (Java `NullPointerException` on
     /// `errors.get`). Group order is iterator order (Java outer
     /// `HashMap.entrySet` order is unspecified). Throttle is the JSON
     /// default (`0`). [`Self::encode_from_groups_partition_data`] writes
@@ -3576,7 +3576,7 @@ impl OffsetFetchRequest {
     /// Java `OffsetFetchRequest.isAllPartitionsForGroup`.
     ///
     /// First matching `GroupId` (Java `stream.filter` then `List.get(0)`).
-    /// A missing group is [`Error::protocol`] (Java
+    /// A missing group is [`crate::Error::protocol`] (Java
     /// `IndexOutOfBoundsException`). Duplicate ids keep the first.
     /// `None` Topics is every committed partition. `Some` empty is not.
     /// Looks at `groups` as-is (the v8+ Groups field) and does not apply
@@ -3739,7 +3739,7 @@ impl OffsetFetchRequest {
     /// v1 fills each request partition via [`FetchedOffset::error`]
     /// (`INVALID_OFFSET` / `NO_METADATA`); duplicate `(topic, partition)`
     /// keys are unique (Java `HashMap.put`). Null Topics is
-    /// [`Error::protocol`] (Java `NullPointerException`). v2–v7 omit
+    /// [`crate::Error::protocol`] (Java `NullPointerException`). v2–v7 omit
     /// partitions (top-level ErrorCode). Below v8 is the
     /// [`Self::groups`] singleton (extra groups dropped). v8+ is one empty
     /// Topics group per unique GroupId; duplicate ids keep the first

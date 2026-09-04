@@ -5,9 +5,18 @@ name: release
 #   1. crates.io → Account → New Token (scope: publish-update for partitionline)
 #   2. GitHub → Settings → Secrets → Actions → CARGO_REGISTRY_TOKEN
 #   3. git tag v0.1.0 && git push origin v0.1.0
+#
+# Optional: Actions → release → Run workflow (workflow_dispatch) after the
+# matching tag already exists on the tip you intend to publish.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing version tag to publish (e.g. v0.1.0)"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -17,10 +26,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
       - name: Verify tag matches Cargo.toml
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            tag="${{ inputs.tag }}"
+            tag="${tag#v}"
+          else
+            tag="${GITHUB_REF_NAME#v}"
+          fi
           ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           echo "tag=$tag cargo=$ver"
           test "$tag" = "$ver"
@@ -54,4 +70,4 @@ jobs:
             sleep 10
           done
           test "$ok" = "1"
-          echo "Owner follow-up: bash scripts/post-publish-readme.sh && commit README on main."
+          echo "Owner follow-up: bash scripts/day1-after-publish.sh && commit README on main."

@@ -20,6 +20,9 @@ bash scripts/ci-deny.sh
 echo "== msrv =="
 bash scripts/ci-msrv.sh
 
+echo "== docs =="
+bash scripts/ci-docs.sh
+
 echo "== package =="
 cargo package
 

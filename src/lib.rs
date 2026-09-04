@@ -283,7 +283,7 @@
 //! partition; `Some` empty is not);
 //! [`protocol::group::OffsetFetchRequest::is_all_partitions_for_group`] is Java
 //! `OffsetFetchRequest.isAllPartitionsForGroup` (first matching GroupId;
-//! missing group is [`Error::protocol`]; `None` Topics is every committed
+//! missing group is [`crate::Error::protocol`]; `None` Topics is every committed
 //! partition);
 //! [`protocol::group::OffsetFetchRequest::group_ids_to_partitions`] is Java
 //! `OffsetFetchRequest.groupIdsToPartitions` (group id to
@@ -336,7 +336,7 @@
 //! [`protocol::group::FetchedOffset::NO_METADATA`]);
 //! [`protocol::group::OffsetFetchResponse::partition_data_map`] is Java
 //! `OffsetFetchResponse.partitionDataMap` (v1–v7 ignore `group_id`; v8+
-//! first matching group; missing group is [`Error::protocol`]; a later
+//! first matching group; missing group is [`crate::Error::protocol`]; a later
 //! partition overwrites);
 //! [`protocol::group::OffsetFetchResponse::from_partition_data`] is Java
 //! `OffsetFetchResponse` constructor from a partition map (group by name;
@@ -350,7 +350,7 @@
 //! v0–v7);
 //! [`protocol::group::OffsetFetchResponse::from_groups_partition_data`] is Java
 //! `OffsetFetchResponse` constructor from group errors and partition maps
-//! (v8+; a group missing from `errors` is [`Error::protocol`]; a group
+//! (v8+; a group missing from `errors` is [`crate::Error::protocol`]; a group
 //! only in `errors` is omitted);
 //! [`protocol::group::OffsetFetchResponse::encode_from_groups_partition_data`] is Java
 //! `OffsetFetchResponse(int, Map, Map)` encode (Groups are
@@ -368,7 +368,7 @@
 //! (empty Topics; request partitions are not copied);
 //! [`protocol::group::OffsetFetchRequest::error_response`] is Java
 //! `OffsetFetchRequest.getErrorResponse` (v1 fills unique partitions;
-//! null Topics is [`Error::protocol`]; v2–v7 omit partitions; below v8
+//! null Topics is [`crate::Error::protocol`]; v2–v7 omit partitions; below v8
 //! is the `groups` singleton; v8+ unique GroupId; `error_results` keeps
 //! duplicate ids);
 //! v3+ round-trips ThrottleTimeMs; below v3 encode omits it even when
@@ -537,7 +537,7 @@
 //! [`protocol::scram::xor`] / [`protocol::scram::auth_message`] /
 //! [`protocol::scram::to_bytes`] / [`protocol::scram::normalize`] are Java
 //! `ScramFormatter.saslName` / `username` / `xor` / `authMessage` /
-//! `toBytes` / `normalize` (`=` then `,`; leftover `=` is [`Error::protocol`];
+//! `toBytes` / `normalize` (`=` then `,`; leftover `=` is [`crate::Error::protocol`];
 //! length mismatch is Java `Argument arrays must be of the same length`;
 //! `authMessage` is `a,b,c`),
 //! [`protocol::scram::ScramAlg::hmac`] / [`protocol::scram::ScramAlg::hash`] /
@@ -653,7 +653,7 @@
 //! MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`);
 //! MaxBytes is JSON `0+` (decode returns it; encode already takes `max_bytes`; JSON default `0x7fffffff`);
 //! Records is JSON `records` (Kafka 4.0 `nullableVersions` `0+`; Kafka 4.1 `nullableVersions` `0` only;
-//! decode accepts compact null as empty on v0; v1 null is [`Error::protocol`]; encode still writes `MemoryRecords.EMPTY` not null);
+//! decode accepts compact null as empty on v0; v1 null is [`crate::Error::protocol`]; encode still writes `MemoryRecords.EMPTY` not null);
 //! AcquisitionLockTimeoutMs
 //! JSON `1+` after ErrorMessage;
 //! [`protocol::share::encode_share_fetch_response_with_acquisition_lock_timeout`]
@@ -925,7 +925,7 @@
 //! [`protocol::admin::DeleteGroupsResponse::errors`] /
 //! [`protocol::admin::DeleteGroupsResponse::get`] are Java
 //! `DeleteGroupsResponse.errors` / `get` (group id to `errorCode`; missing
-//! id is [`Error::protocol`]);
+//! id is [`crate::Error::protocol`]);
 //! [`protocol::admin::DeleteGroupsRequest::error_result_collection`] is Java
 //! `DeleteGroupsRequest.getErrorResultCollection` (each id through
 //! [`DeletableGroupResult::new`]);
@@ -941,7 +941,7 @@
 //! [`protocol::admin::DescribeClientQuotasRequest::filter`] is Java
 //! `DescribeClientQuotasRequest.filter` (`ofEntity` / `ofDefaultEntity` /
 //! `ofEntityType`, then `containsOnly` or `contains`; unknown MatchType
-//! is [`Error::protocol`]);
+//! is [`crate::Error::protocol`]);
 //! [`protocol::admin::DescribeClientQuotasRequest::from_filter`] is Java
 //! `DescribeClientQuotasRequest.Builder` from a filter (MatchType from
 //! [`ClientQuotaFilterComponent::matched`]; leftover Match on
@@ -1170,7 +1170,7 @@
 //! encode still writes throttle `0`);
 //! [`protocol::admin::IncrementalAlterConfigsRequest::from_configs`] is Java
 //! `IncrementalAlterConfigsRequest.Builder` from a resource list and
-//! configs map (missing `Map.get` is [`Error::protocol`]; mapKey first
+//! configs map (missing `Map.get` is [`crate::Error::protocol`]; mapKey first
 //! stays; extra map entries omitted);
 //! [`protocol::admin::IncrementalAlterConfigsRequest::error_response`] is Java
 //! `IncrementalAlterConfigsRequest.getErrorResponse` (copies names / types;
@@ -1190,7 +1190,7 @@
 //! resource types are UNKNOWN; each value is [`ConfigEntry::new`]);
 //! [`protocol::admin::AlterConfigsRequest::from_configs`] is Java
 //! `AlterConfigsRequest.Builder` from a configs map (null Value is
-//! [`Error::protocol`]; mapKey first stays);
+//! [`crate::Error::protocol`]; mapKey first stays);
 //! [`protocol::admin::AlterConfigsRequest::error_response`] is Java
 //! `AlterConfigsRequest.getErrorResponse` (copies names / types;
 //! `ErrorMessage` stays JSON-null; always writes the `throttleTimeMs`
@@ -1881,7 +1881,7 @@
 //! `error` is always `None` on v8+ even when groups have errors);
 //! [`protocol::group::OffsetFetchResponse::partition_data_map`] is Java
 //! `OffsetFetchResponse.partitionDataMap` (v1–v7 ignore `group_id`; v8+
-//! first matching group; missing group is [`Error::protocol`]; a later
+//! first matching group; missing group is [`crate::Error::protocol`]; a later
 //! partition overwrites).
 //! [`protocol::group::OffsetFetchResponse::from_partition_data`] is Java
 //! `OffsetFetchResponse` constructor from a partition map (group by name;
@@ -1895,7 +1895,7 @@
 //! v0–v7).
 //! [`protocol::group::OffsetFetchResponse::from_groups_partition_data`] is Java
 //! `OffsetFetchResponse` constructor from group errors and partition maps
-//! (v8+; a group missing from `errors` is [`Error::protocol`]; a group
+//! (v8+; a group missing from `errors` is [`crate::Error::protocol`]; a group
 //! only in `errors` is omitted).
 //! [`protocol::group::OffsetFetchResponse::encode_from_groups_partition_data`] is Java
 //! `OffsetFetchResponse(int, Map, Map)` encode (Groups are
@@ -2014,13 +2014,13 @@
 //! [`SecurityProtocol::from_id`] / [`SecurityProtocol::from_name`] /
 //! [`SecurityProtocol::names`] are Java `SecurityProtocol.id` / `forId` /
 //! `forName` / `names` (unknown id is `None`; unknown name is
-//! [`Error::protocol`]). [`SecurityProtocol`] `Display` is Java
+//! [`crate::Error::protocol`]). [`SecurityProtocol`] `Display` is Java
 //! `SecurityProtocol.toString` (`PLAINTEXT`). [`ListenerName::new`] /
 //! [`ListenerName::for_security_protocol`] / [`ListenerName::normalised`] /
 //! [`ListenerName::value`] / [`ListenerName::config_prefix`] /
 //! [`ListenerName::sasl_mechanism_config_prefix`] /
 //! [`ListenerName::sasl_mechanism_prefix`] are Java `ListenerName`
-//! (`toUpperCase`; blank is [`Error::protocol`]). [`ListenerName`] `Display`
+//! (`toUpperCase`; blank is [`crate::Error::protocol`]). [`ListenerName`] `Display`
 //! is Java `ListenerName.toString` (`ListenerName(PLAINTEXT)`).
 //! [`Endpoint::new`] / [`Endpoint::listener_name`] /
 //! [`Endpoint::security_protocol`] / [`Endpoint::host`] / [`Endpoint::port`]
@@ -2054,10 +2054,10 @@
 //! length; `DefaultRecord` header-key size).
 //! [`protocol::buf::to_32_bit_field`] / [`protocol::buf::from_32_bit_field`]
 //! are Java `Utils.to32BitField` / `from32BitField` (bits `0..=31`;
-//! out of range is [`Error::protocol`]).
+//! out of range is [`crate::Error::protocol`]).
 //! [`protocol::buf::is_blank`] / [`protocol::buf::replace_suffix`] are Java
 //! `Utils.isBlank` / `replaceSuffix` (`None` is null; trim is code units at
-//! or below U+0020; missing suffix is [`Error::protocol`]).
+//! or below U+0020; missing suffix is [`crate::Error::protocol`]).
 //! [`protocol::buf::entries_with_prefix`] /
 //! [`protocol::buf::entries_with_prefix_matching`] are Java
 //! `Utils.entriesWithPrefix` (two-argument form strips the prefix and omits
@@ -2065,7 +2065,7 @@
 //! [`protocol::buf::parse_map`] / [`protocol::buf::mk_string`] are Java
 //! `Utils.parseMap` / `mkString` (empty is an empty map; trailing empty
 //! elements are discarded; later `=` stays in the value; duplicate keys
-//! last-win; a missing `=` is [`Error::protocol`]; empty `mkString` is
+//! last-win; a missing `=` is [`crate::Error::protocol`]; empty `mkString` is
 //! begin then end).
 //! [`protocol::buf::union`] / [`protocol::buf::intersection`] /
 //! [`protocol::buf::diff`] are Java `Utils.union` / `intersection` / `diff`
@@ -2076,7 +2076,7 @@
 //! `second` returns whether `first` is empty; otherwise every element of
 //! `first` is compared and timing depends only on its length).
 //! [`protocol::buf::require`] / [`protocol::buf::require_message`] are Java
-//! `Utils.require` (failure is [`Error::protocol`]; the one-argument form
+//! `Utils.require` (failure is [`crate::Error::protocol`]; the one-argument form
 //! is `requirement failed`).
 //! [`protocol::buf::min`] / [`protocol::buf::max`] / [`protocol::buf::min_i16`]
 //! are Java `Utils.min(long, long...)` / `Utils.max(long, long...)` /
@@ -2092,21 +2092,21 @@
 //! [`protocol::buf::write_unsigned_int_le`] are Java `ByteUtils.readUnsignedInt`
 //! / `writeUnsignedInt` (sequential and indexed Buffer forms) / `readIntBE` /
 //! `readUnsignedIntLE` / `writeUnsignedIntLE` (offset forms; short buffer is
-//! [`Error::protocol`] `need 4 bytes`).
+//! [`crate::Error::protocol`] `need 4 bytes`).
 //! [`protocol::buf::read_bytes`] / [`protocol::buf::read_bytes_at`] are Java
 //! `Utils.readBytes` (sequential `ByteBuffer` form: negative length is `None`;
-//! offset form is absolute; short buffer is [`Error::protocol`] `need N bytes`).
+//! offset form is absolute; short buffer is [`crate::Error::protocol`] `need N bytes`).
 //! [`protocol::buf::size_delimited`] is Java `Utils.sizeDelimited` (negative
-//! size is `None`; short buffer is [`Error::protocol`] `need N bytes`).
+//! size is `None`; short buffer is [`crate::Error::protocol`] `need N bytes`).
 //! [`RecordBatch::size_in_bytes`] encodes this batch (including compression).
 //! [`RecordBatch::encoded_size_in_bytes`] is Java
 //! `DefaultRecordBatch.sizeInBytes()` on a buffer (`LOG_OVERHEAD` plus the
-//! length field; wrapping add; short size field is [`Error::protocol`]
+//! length field; wrapping add; short size field is [`crate::Error::protocol`]
 //! `need 4 bytes`). [`RecordBatch::encoded_last_offset`] /
 //! [`RecordBatch::encoded_next_offset`] are Java
 //! `DefaultRecordBatch.lastOffset` / `nextOffset` on a buffer (`baseOffset`
 //! plus `lastOffsetDelta`; wrapping add; short fields are
-//! [`Error::protocol`] `need N bytes`). [`RecordBatch::encoded_last_sequence`]
+//! [`crate::Error::protocol`] `need N bytes`). [`RecordBatch::encoded_last_sequence`]
 //! is Java `DefaultRecordBatch.lastSequence` on a buffer (`NO_SEQUENCE` skips
 //! the delta; otherwise `incrementSequence` of the stored base and
 //! `lastOffsetDelta`). [`RecordBatch::encoded_delete_horizon_ms`] is Java
@@ -2115,10 +2115,10 @@
 //! / [`RecordBatch::encoded_is_control_batch`] /
 //! [`RecordBatch::encoded_timestamp_type`] are Java
 //! `DefaultRecordBatch.isTransactional` / `isControlBatch` / `timestampType`
-//! on a buffer (short attributes field is [`Error::protocol`] `need 2 bytes`).
+//! on a buffer (short attributes field is [`crate::Error::protocol`] `need 2 bytes`).
 //! [`RecordBatch::encoded_has_producer_id`] is Java
 //! `AbstractRecordBatch.hasProducerId` on a buffer (producer id greater than
-//! [`RecordBatch::NO_PRODUCER_ID`]; short field is [`Error::protocol`]
+//! [`RecordBatch::NO_PRODUCER_ID`]; short field is [`crate::Error::protocol`]
 //! `need 8 bytes`).
 //! [`RecordBatch::encoded_count_or_null`] is Java
 //! `DefaultRecordBatch.countOrNull` on a buffer (header records count;
@@ -2132,7 +2132,7 @@
 //! [`RecordBatch::is_valid`] is Java `DefaultRecordBatch.isValid` (declared
 //! size below overhead is `false`; otherwise stored CRC32-C must match bytes
 //! from [`RecordBatch::ATTRIBUTES_OFFSET`]; short size/CRC fields are
-//! [`Error::protocol`] `need 4 bytes`).
+//! [`crate::Error::protocol`] `need 4 bytes`).
 //! [`RecordBatch::ensure_valid`] is Java `DefaultRecordBatch.ensureValid` on
 //! a buffer (size below overhead is `Record batch is corrupt`; CRC of bytes
 //! from [`RecordBatch::ATTRIBUTES_OFFSET`] to the slice end; not used by
@@ -2161,7 +2161,7 @@
 //! [`protocol::records::Records::first_batch_size`] /
 //! [`protocol::records::Records::valid_bytes`] are Java
 //! `MemoryRecords.firstBatchSize` / `validBytes` (short header is `None`;
-//! undersized or invalid magic is [`Error::protocol`]; `validBytes` sums
+//! undersized or invalid magic is [`crate::Error::protocol`]; `validBytes` sums
 //! complete batches and ignores a truncated tail).
 //! Magic-v2 record decode matches Java `DefaultRecord.readFrom`
 //! `InvalidRecordException` messages (negative header count, header count
@@ -2303,7 +2303,7 @@
 //! encode still writes throttle `0`).
 //! [`protocol::admin::IncrementalAlterConfigsRequest::from_configs`] is Java
 //! `IncrementalAlterConfigsRequest.Builder` from a resource list and
-//! configs map (missing `Map.get` is [`Error::protocol`]; mapKey first
+//! configs map (missing `Map.get` is [`crate::Error::protocol`]; mapKey first
 //! stays; extra map entries omitted).
 //! [`protocol::admin::IncrementalAlterConfigsRequest::error_response`] is Java
 //! `IncrementalAlterConfigsRequest.getErrorResponse` (copies names / types;
@@ -2326,7 +2326,7 @@
 //! resource types are UNKNOWN; each value is [`ConfigEntry::new`]).
 //! [`protocol::admin::AlterConfigsRequest::from_configs`] is Java
 //! `AlterConfigsRequest.Builder` from a configs map (null Value is
-//! [`Error::protocol`]; mapKey first stays).
+//! [`crate::Error::protocol`]; mapKey first stays).
 //! [`Admin::alter_configs_with`] is Java `alterConfigs(Map)` with a
 //! [`Config`] value. [`DescribeConfigsResult::config`] is the Java
 //! `describeConfigs` result `Config` (`entries` / `get`).
@@ -2535,7 +2535,7 @@
 //! `DescribeClusterResult.nodes` / `controller` ([`Node`] is Java
 //! `org.apache.kafka.common.Node`, an alias of [`DescribeClusterBroker`]).
 //! [`protocol::admin::DescribeClusterResponse::nodes`] is Java
-//! `DescribeClusterResponse.nodes` (duplicate broker id is [`Error::protocol`]).
+//! `DescribeClusterResponse.nodes` (duplicate broker id is [`crate::Error::protocol`]).
 //! [`protocol::admin::DescribeClusterResponse::error_counts`] is Java
 //! `DescribeClusterResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`).
@@ -2556,7 +2556,7 @@
 //! `UpdateFeaturesRequest.getFeature` / `featureUpdates` (v0 is
 //! `AllowDowngrade` → `SAFE_DOWNGRADE` / `UPGRADE`; v1+ is
 //! `UpgradeType.fromCode`, unknown codes become `0`; missing name is
-//! [`Error::protocol`]; duplicate names all become the first match;
+//! [`crate::Error::protocol`]; duplicate names all become the first match;
 //! encode still writes FeatureUpdates as-is).
 //! [`protocol::admin::UpdateFeaturesResponse::create_with_errors`] /
 //! [`protocol::admin::UpdateFeaturesResponse::error`] /
@@ -2768,7 +2768,7 @@
 //! [`ClientQuotaEntity::IP`] match Java `ClientQuotaEntity` constants.
 //! [`protocol::admin::DescribeClientQuotasRequest::filter`] is Java
 //! `DescribeClientQuotasRequest.filter` (unknown MatchType is
-//! [`Error::protocol`]).
+//! [`crate::Error::protocol`]).
 //! [`protocol::admin::DescribeClientQuotasRequest::from_filter`] is Java
 //! `DescribeClientQuotasRequest.Builder` from a filter (MatchType from
 //! [`ClientQuotaFilterComponent::matched`]; leftover Match on

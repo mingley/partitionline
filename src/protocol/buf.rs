@@ -28,11 +28,11 @@
 //! Java `ByteUtils.readUnsignedInt` / `writeUnsignedInt` (sequential and
 //! indexed Buffer forms) / `readIntBE` / `readUnsignedIntLE` /
 //! `writeUnsignedIntLE` (offset forms; short buffer is
-//! [`Error::protocol`] `need 4 bytes`). [`read_bytes`] / [`read_bytes_at`]
+//! [`crate::Error::protocol`] `need 4 bytes`). [`read_bytes`] / [`read_bytes_at`]
 //! are Java `Utils.readBytes` (sequential `ByteBuffer` form: negative length
-//! is `None`; offset form is absolute; short buffer is [`Error::protocol`]
+//! is `None`; offset form is absolute; short buffer is [`crate::Error::protocol`]
 //! `need N bytes`). [`size_delimited`] is Java `Utils.sizeDelimited`
-//! (negative size is `None`; short buffer is [`Error::protocol`]
+//! (negative size is `None`; short buffer is [`crate::Error::protocol`]
 //! `need N bytes`).
 
 use std::collections::{HashMap, HashSet};
@@ -210,7 +210,7 @@ pub fn is_blank(s: Option<&str>) -> bool {
 
 /// Java `Utils.replaceSuffix`.
 ///
-/// When `s` does not end with `old_suffix`, this is [`Error::protocol`]
+/// When `s` does not end with `old_suffix`, this is [`crate::Error::protocol`]
 /// (`Expected string to end with … but string is …`).
 pub fn replace_suffix(s: &str, old_suffix: &str, new_suffix: &str) -> Result<String> {
     match s.strip_suffix(old_suffix) {
@@ -257,9 +257,9 @@ pub fn entries_with_prefix_matching<V: Clone>(
 /// element is split on `key_value_separator` with limit `2` (later
 /// separators stay in the value). Duplicate keys last-win (`HashMap.put`).
 /// A missing key-value separator is Java `ArrayIndexOutOfBoundsException`
-/// ([`Error::protocol`] `Index 1 out of bounds for length 1`). Separators
+/// ([`crate::Error::protocol`] `Index 1 out of bounds for length 1`). Separators
 /// are literal substrings (Java `String.split` regex; `,` and `=` match
-/// Java). Empty separators are [`Error::protocol`].
+/// Java). Empty separators are [`crate::Error::protocol`].
 pub fn parse_map(
     map_str: &str,
     key_value_separator: &str,
@@ -408,14 +408,14 @@ fn equal_constant_time_chars(first: &[u16], second: &[u16]) -> bool {
 
 /// Java `Utils.require(boolean)`.
 ///
-/// Failure is [`Error::protocol`] (`requirement failed`).
+/// Failure is [`crate::Error::protocol`] (`requirement failed`).
 pub fn require(requirement: bool) -> Result<()> {
     require_message(requirement, "requirement failed")
 }
 
 /// Java `Utils.require(boolean, String)`.
 ///
-/// Failure is [`Error::protocol`] with `error_message`.
+/// Failure is [`crate::Error::protocol`] with `error_message`.
 pub fn require_message(requirement: bool, error_message: &str) -> Result<()> {
     if requirement {
         Ok(())
@@ -467,7 +467,7 @@ fn check_range(i: i8) -> Result<u8> {
 
 /// Java `Utils.to32BitField`.
 ///
-/// Each value must be `0..=31`. Out of range is [`Error::protocol`]
+/// Each value must be `0..=31`. Out of range is [`crate::Error::protocol`]
 /// (`out of range: i>31` / `i<0`).
 pub fn to_32_bit_field(bytes: impl IntoIterator<Item = i8>) -> Result<i32> {
     let mut value = 0i32;
@@ -1011,7 +1011,7 @@ pub fn write_unsigned_int_le(buffer: &mut [u8], offset: usize, value: i32) -> Re
 /// Java `Utils.readBytes(ByteBuffer, int bytesToRead)`.
 ///
 /// Negative length is `None` (Java null). Zero is empty. Short buffer is
-/// [`Error::protocol`] `need N bytes`.
+/// [`crate::Error::protocol`] `need N bytes`.
 pub fn read_bytes<B: Buf>(buf: &mut B, bytes_to_read: i32) -> Result<Option<Bytes>> {
     if bytes_to_read < 0 {
         return Ok(None);
@@ -1023,7 +1023,7 @@ pub fn read_bytes<B: Buf>(buf: &mut B, bytes_to_read: i32) -> Result<Option<Byte
 
 /// Java `Utils.readBytes(ByteBuffer, int offset, int length)` (absolute).
 ///
-/// Short buffer is [`Error::protocol`] `need N bytes`.
+/// Short buffer is [`crate::Error::protocol`] `need N bytes`.
 pub fn read_bytes_at(buffer: &[u8], offset: usize, length: usize) -> Result<Vec<u8>> {
     let have = buffer.len();
     let end = offset
@@ -1039,7 +1039,7 @@ pub fn read_bytes_at(buffer: &[u8], offset: usize, length: usize) -> Result<Vec<
 ///
 /// Reads an indexed big-endian INT32 size at `start` (the size field is not
 /// consumed). Negative size is `None`. Otherwise the slice is the following
-/// `size` bytes. A short buffer is [`Error::protocol`] (`need N bytes`).
+/// `size` bytes. A short buffer is [`crate::Error::protocol`] (`need N bytes`).
 pub fn size_delimited(buffer: &[u8], start: usize) -> Result<Option<&[u8]>> {
     let size = read_int_be(buffer, start)?;
     if size < 0 {

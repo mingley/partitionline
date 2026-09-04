@@ -99,7 +99,7 @@ pub const fn replica_id_from_data(replica_id: i32, replica_state_replica_id: i32
 /// `epoch` `-1`): close any session and do not create one.
 /// [`encode_fetch_request_with_session`] writes this value on v7+. Below
 /// v7 SessionId / SessionEpoch are omitted even when this is not
-/// LEGACY; decode fills [`Self::LEGACY`]. [`Display`] is Java `toString`
+/// LEGACY; decode fills [`Self::LEGACY`]. [`std::fmt::Display`] is Java `toString`
 /// (`(sessionId=INVALID, epoch=FINAL)`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FetchMetadata {

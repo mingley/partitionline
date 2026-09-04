@@ -361,7 +361,7 @@ fn members_for_topic(member_subs: &[(String, Vec<String>)], topic: &str) -> Vec<
 
 /// This member's identity in a consumer group (Java `ConsumerGroupMetadata`).
 ///
-/// [`Display`] is Java `ConsumerGroupMetadata.toString` (`GroupMetadata(...)`).
+/// [`std::fmt::Display`] is Java `ConsumerGroupMetadata.toString` (`GroupMetadata(...)`).
 /// Missing [`Self::group_instance_id`] prints as Java `Optional.orElse("")`.
 /// [`Self::new`] uses [`Self::UNKNOWN_GENERATION_ID`] /
 /// [`Self::UNKNOWN_MEMBER_ID`] (Java `JoinGroupRequest`).
@@ -439,7 +439,7 @@ impl fmt::Display for ConsumerGroupMetadata {
 
 /// Java `org.apache.kafka.clients.consumer.GroupProtocol` (`group.protocol`).
 ///
-/// [`Display`] is Java `GroupProtocol.toString` (`CLASSIC`). [`Self::of`] is
+/// [`std::fmt::Display`] is Java `GroupProtocol.toString` (`CLASSIC`). [`Self::of`] is
 /// Java `GroupProtocol.of` (unknown is `None`; Java throws).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GroupProtocol {

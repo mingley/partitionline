@@ -90,7 +90,7 @@ impl EndTxnResponse {
 /// Java `TransactionResult` (EndTxn committed flag / WriteTxnMarkers
 /// `transactionResult`).
 ///
-/// [`Display`] is Java `TransactionResult.toString` (`ABORT` / `COMMIT`).
+/// [`std::fmt::Display`] is Java `TransactionResult.toString` (`ABORT` / `COMMIT`).
 /// [`Self::id`] is the public Java `id` field. [`Self::from_id`] is Java
 /// `TransactionResult.forId`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -1213,7 +1213,7 @@ impl TxnOffsetCommitResponse {
 
 /// One partition in TxnOffsetCommit v0–5.
 ///
-/// [`Display`] is Java `TxnOffsetCommitRequest.CommittedOffset.toString`.
+/// [`std::fmt::Display`] is Java `TxnOffsetCommitRequest.CommittedOffset.toString`.
 /// [`Self::leader_epoch`] is Java `CommittedOffset.leaderEpoch` (`None`
 /// when [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1716,7 +1716,7 @@ pub struct WritableTxnMarkerTopic {
 /// v0 is classic. v1 is flexible (Kafka 4.0 baseline). v2
 /// `TransactionVersion` (KIP-1228) is not spoken.
 ///
-/// [`Display`] is Java `WriteTxnMarkersRequest.TxnMarkerEntry.toString`.
+/// [`std::fmt::Display`] is Java `WriteTxnMarkersRequest.TxnMarkerEntry.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WritableTxnMarker {
     /// Producer id.

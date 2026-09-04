@@ -17,7 +17,7 @@ const LATENCY_WINDOW: usize = 1024;
 /// [`Self::count`] is `0`. Percentiles are the last 1024 samples (not a
 /// lifetime HDR histogram). Global snapshots are not split by topic;
 /// [`ProducerMetrics::topics`] / [`ConsumerMetrics::topics`] /
-/// [`ShareMetrics::topics`] are. [`AdminMetrics`] has no per-topic rows.
+/// [`ShareMetrics`] field `topics` are. [`AdminMetrics`] has no per-topic rows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct LatencyStats {
     /// Samples recorded.
@@ -132,7 +132,7 @@ fn write_java_double(f: &mut fmt::Formatter<'_>, v: f64) -> fmt::Result {
 
 /// Java `org.apache.kafka.common.metrics.Quota`.
 ///
-/// [`Display`] is Java `Quota.toString` (`upper=1.0` / `lower=1.0`).
+/// [`std::fmt::Display`] is Java `Quota.toString` (`upper=1.0` / `lower=1.0`).
 /// [`Self::acceptable`] is at or below the bound for an upper bound and at
 /// or above for a lower bound.
 #[derive(Debug, Clone, Copy, PartialEq)]

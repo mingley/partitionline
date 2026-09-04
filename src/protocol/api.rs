@@ -1038,7 +1038,7 @@ impl PartitionMetadata {
 /// (zero TopicId, JSON default `AUTHORIZED_OPERATIONS_OMITTED`).
 /// [`Self::with_topic_id`] is Java
 /// `MetadataResponse.TopicMetadata(Errors, String, Uuid, boolean, List, int)`.
-/// [`Display`] is Java `MetadataResponse.TopicMetadata.toString`. Nested
+/// [`std::fmt::Display`] is Java `MetadataResponse.TopicMetadata.toString`. Nested
 /// `PartitionMetadata.toString` uses this topic's name (`null` when
 /// [`Self::name`] is `None`) so the crate type does not store a
 /// `TopicPartition`.
@@ -2149,7 +2149,7 @@ pub struct ProducePartitionData {
 
 /// One record that caused a Produce batch to be dropped (KIP-467).
 ///
-/// Java `ProduceResponse.RecordError`. [`Display`] is Java
+/// Java `ProduceResponse.RecordError`. [`std::fmt::Display`] is Java
 /// `RecordError.toString` (`message=null` when [`Self::message`] is `None`;
 /// otherwise the text is single-quoted). Duplicate `batchIndex` values are
 /// kept (`ArrayList`).

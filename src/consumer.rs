@@ -839,7 +839,7 @@ impl fmt::Display for TopicPartition {
 
 /// Topic id plus topic-partition (Java `TopicIdPartition`).
 ///
-/// [`Display`] is Java `TopicIdPartition.toString` (`topicId:topic-partition`).
+/// [`std::fmt::Display`] is Java `TopicIdPartition.toString` (`topicId:topic-partition`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TopicIdPartition {
     /// Topic id.

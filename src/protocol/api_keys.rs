@@ -252,7 +252,7 @@ pub const fn has_id(id: i16) -> bool {
     name(id).is_some()
 }
 
-/// Java `ApiKeys.forId`. Unknown ids are [`Error::protocol`]
+/// Java `ApiKeys.forId`. Unknown ids are [`crate::Error::protocol`]
 /// (`Unexpected api key: {id}`).
 pub fn for_id(id: i16) -> Result<&'static str> {
     name(id).ok_or_else(|| Error::protocol(format!("Unexpected api key: {id}")))

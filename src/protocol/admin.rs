@@ -21,7 +21,7 @@ pub const SCRAM_SHA_512: i8 = 2;
 
 /// Kafka SCRAM mechanism (`ScramMechanism` on the wire).
 ///
-/// [`Display`] is Java `ScramMechanism.toString` (`SCRAM_SHA_256`).
+/// [`std::fmt::Display`] is Java `ScramMechanism.toString` (`SCRAM_SHA_256`).
 /// [`Self::mechanism_name`] is the SASL name (`SCRAM-SHA-256`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
@@ -534,7 +534,7 @@ impl TopicResult {
 
 /// One config entry on a CreateTopics v5+ response (KIP-525).
 ///
-/// [`Display`] is Java `ConfigEntry.toString` (type and documentation are
+/// [`std::fmt::Display`] is Java `ConfigEntry.toString` (type and documentation are
 /// unknown). [`Debug`] redacts [`Self::value`] when [`Self::is_sensitive`]
 /// is set.
 #[derive(Clone, PartialEq, Eq)]
@@ -2080,7 +2080,7 @@ pub const ALTER_CONFIG_SUBTRACT: i8 = 3;
 
 /// Java `AlterConfigOp.OpType` (IncrementalAlterConfigs ConfigOperation).
 ///
-/// [`Display`] is Java `AlterConfigOp.OpType.toString` (`SET`).
+/// [`std::fmt::Display`] is Java `AlterConfigOp.OpType.toString` (`SET`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
 pub enum AlterConfigOpType {
@@ -2411,7 +2411,7 @@ pub fn decode_create_partitions_response<B: Buf>(
 
 /// One incremental config change (`AlterConfigOp`).
 ///
-/// [`Display`] is Java `AlterConfigOp.toString`. Unknown op ids print
+/// [`std::fmt::Display`] is Java `AlterConfigOp.toString`. Unknown op ids print
 /// `null`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterConfig {
@@ -2713,7 +2713,7 @@ impl IncrementalAlterConfigsRequest {
     ///
     /// Iterates `resources`. Ops come from `configs` keyed by
     /// `(type, name)`. A resource missing from `configs` is
-    /// [`Error::protocol`] (Java `NullPointerException` on `Map.get`).
+    /// [`crate::Error::protocol`] (Java `NullPointerException` on `Map.get`).
     /// A configs entry whose resource is not in `resources` is omitted.
     /// Duplicate `(type, name)` in `resources`: later `Resources.add` is
     /// ignored (Java mapKey `ResourceType`+`ResourceName`; first stays).
@@ -3050,7 +3050,7 @@ impl AlterConfigsRequest {
     /// Duplicate `(type, name)`: later `Resources.add` is ignored (Java
     /// mapKey `ResourceType`+`ResourceName`; first stays). Duplicate
     /// config names: later `Configs.add` is ignored (mapKey `Name` only;
-    /// first stays). A `None` value is [`Error::protocol`] (Java
+    /// first stays). A `None` value is [`crate::Error::protocol`] (Java
     /// `ConfigEntry` constructor `NullPointerException` on Value). Inverse
     /// of [`Self::configs`]. `ValidateOnly` is not part of this helper.
     pub fn from_configs<'a, I>(configs: I) -> Result<Vec<AlterConfigsResource>>
@@ -3763,7 +3763,7 @@ pub const ENDPOINT_TYPE_CONTROLLERS: i8 = 2;
 
 /// DescribeCluster `EndpointType` (KIP-919). `1` = brokers, `2` = controllers.
 ///
-/// [`Display`] is Java `EndpointType.toString` (`BROKER`).
+/// [`std::fmt::Display`] is Java `EndpointType.toString` (`BROKER`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
 pub enum EndpointType {
@@ -3958,7 +3958,7 @@ pub type Node = DescribeClusterBroker;
 
 /// Kafka cluster id wrapper (Java `ClusterResource`).
 ///
-/// [`Display`] is Java `ClusterResource.toString`
+/// [`std::fmt::Display`] is Java `ClusterResource.toString`
 /// (`ClusterResource(clusterId=...)`). Missing id prints `null`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ClusterResource {
@@ -4131,7 +4131,7 @@ impl DescribeClusterResponse {
     /// Java `DescribeClusterResponse.nodes`.
     ///
     /// Brokers keyed by id (Java `Collectors.toMap(Node::id)`). A
-    /// duplicate broker id is [`Error::protocol`] (Java
+    /// duplicate broker id is [`crate::Error::protocol`] (Java
     /// `IllegalStateException`). Unlike
     /// [`super::api::MetadataResponse::brokers_by_id`], this does not
     /// overwrite.
@@ -5074,7 +5074,7 @@ pub const UPGRADE_TYPE_UNSAFE_DOWNGRADE: i8 = 3;
 /// UpdateFeatures `UpgradeType` (v1+). `1` = upgrade, `2` = safe downgrade,
 /// `3` = unsafe downgrade.
 ///
-/// [`Display`] is Java `FeatureUpdate.UpgradeType.toString` (`UPGRADE`,
+/// [`std::fmt::Display`] is Java `FeatureUpdate.UpgradeType.toString` (`UPGRADE`,
 /// `SAFE_DOWNGRADE`, `UNSAFE_DOWNGRADE`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
@@ -5349,7 +5349,7 @@ impl UpdateFeaturesRequest {
     /// Java `UpdateFeaturesRequest.getFeature`.
     ///
     /// First matching `Feature` name (Java `FeatureUpdates.find`). A
-    /// missing name is [`Error::protocol`] (Java NPE on the null
+    /// missing name is [`crate::Error::protocol`] (Java NPE on the null
     /// `FeatureUpdateKey`). v0 rewrites `UpgradeType` from
     /// `AllowDowngrade` (`true` is [`UPGRADE_TYPE_SAFE_DOWNGRADE`],
     /// `false` is [`UPGRADE_TYPE_UPGRADE`]) and ignores a stored
@@ -5836,7 +5836,7 @@ pub fn decode_alter_user_scram_credentials_response<B: Buf>(
 /// One SCRAM mechanism + iteration count (DescribeUserScramCredentials v0).
 ///
 /// Fixture metadata only. This is not a credential store and does not
-/// carry salt or salted password. [`Display`] is Java
+/// carry salt or salted password. [`std::fmt::Display`] is Java
 /// `ScramCredentialInfo.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScramCredentialInfo {
@@ -5881,7 +5881,7 @@ impl fmt::Display for ScramCredentialInfo {
 
 /// Per-user result of DescribeUserScramCredentials v0.
 ///
-/// [`Display`] is Java `UserScramCredentialsDescription.toString`.
+/// [`std::fmt::Display`] is Java `UserScramCredentialsDescription.toString`.
 /// [`Self::error`] / [`Self::error_results`] are Java
 /// `DescribeUserScramCredentialsRequest.getErrorResponse` one result /
 /// `nCopies`. Request user names are not copied (`User` stays the JSON
@@ -6175,7 +6175,7 @@ pub fn decode_describe_user_scram_credentials_response<B: Buf>(
 ///
 /// Java `ClientQuotaEntity` is a type-to-name map; this is one map entry.
 /// [`Self::USER`] / [`Self::CLIENT_ID`] / [`Self::IP`] match the Java
-/// constants. [`Display`] is Java `ClientQuotaEntity.toString` for this
+/// constants. [`std::fmt::Display`] is Java `ClientQuotaEntity.toString` for this
 /// one pair (`entries={user=alice}`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaEntity {
@@ -6237,7 +6237,7 @@ pub const QUOTA_MATCH_ANY: i8 = 2;
 /// One filter component in DescribeClientQuotas (api 48).
 ///
 /// [`Self::of_entity`] / [`Self::of_default_entity`] / [`Self::of_entity_type`]
-/// are Java `ClientQuotaFilterComponent` factories. [`Display`] is Java
+/// are Java `ClientQuotaFilterComponent` factories. [`std::fmt::Display`] is Java
 /// `ClientQuotaFilterComponent.toString` (`match` is `Optional[name]`,
 /// `Optional.empty`, or `null`).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -6325,7 +6325,7 @@ impl fmt::Display for ClientQuotaFilterComponent {
 /// [`Self::all`] is empty components and `strict = false`.
 /// [`Self::contains`] is those components and `strict = false`.
 /// [`Self::contains_only`] is those components and `strict = true`.
-/// [`Display`] is Java `ClientQuotaFilter.toString`.
+/// [`std::fmt::Display`] is Java `ClientQuotaFilter.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaFilter {
     components: Vec<ClientQuotaFilterComponent>,
@@ -6386,7 +6386,7 @@ impl fmt::Display for ClientQuotaFilter {
 /// [`Self::filter`] rebuilds [`ClientQuotaFilter`] from request
 /// Components and Strict (Java `ofEntity` / `ofDefaultEntity` /
 /// `ofEntityType`, then `containsOnly` or `contains`). Unknown
-/// MatchType is [`Error::protocol`] (`Unexpected match type: …`).
+/// MatchType is [`crate::Error::protocol`] (`Unexpected match type: …`).
 /// [`Self::from_filter`] is Java `DescribeClientQuotasRequest.Builder`
 /// from a filter (MatchType from [`ClientQuotaFilterComponent::matched`]).
 pub struct DescribeClientQuotasRequest;
@@ -6404,7 +6404,7 @@ impl DescribeClientQuotasRequest {
     /// Exact MatchType uses Match as the entity name (a null Match is
     /// the empty name; official Java `ofEntity` NPEs). Default and
     /// specified MatchType ignore Match. Unknown MatchType is
-    /// [`Error::protocol`] (`Unexpected match type: {id}`).
+    /// [`crate::Error::protocol`] (`Unexpected match type: {id}`).
     pub fn filter(
         components: &[ClientQuotaFilterComponent],
         strict: bool,
@@ -6667,7 +6667,7 @@ impl DescribeClientQuotasResponse {
 
 /// One quota key to set or remove (AlterClientQuotas).
 ///
-/// `value` is ignored when `remove` is true. [`Display`] is Java
+/// `value` is ignored when `remove` is true. [`std::fmt::Display`] is Java
 /// `ClientQuotaAlteration.Op.toString`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClientQuotaOp {
@@ -6730,7 +6730,7 @@ impl fmt::Display for ClientQuotaOp {
 
 /// One entity plus its ops in AlterClientQuotas.
 ///
-/// [`Display`] is Java `ClientQuotaAlteration.toString`. The entity list
+/// [`std::fmt::Display`] is Java `ClientQuotaAlteration.toString`. The entity list
 /// prints as one `ClientQuotaEntity(entries={...})` map.
 /// [`Self::error_result`] is Java `AlterClientQuotasRequest.getErrorResponse`
 /// one entry (copy entity type/name; `ErrorMessage` stays the JSON default,
@@ -7353,7 +7353,7 @@ pub fn decode_describe_client_quotas_response<B: Buf>(
 ///
 /// Java `ProducerState`. [`Self::coordinator_epoch`] /
 /// [`Self::current_txn_start_offset`] are `None` when the wire value is
-/// negative (Java `OptionalInt` / `OptionalLong`). [`Display`] is Java
+/// negative (Java `OptionalInt` / `OptionalLong`). [`std::fmt::Display`] is Java
 /// `ProducerState.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActiveProducer {
@@ -7451,7 +7451,7 @@ impl fmt::Display for ActiveProducer {
 /// at the top of the response body.
 ///
 /// [`Self::error`] is Java `DescribeProducersRequest.getErrorResponse`
-/// partition body. [`Display`] is Java
+/// partition body. [`std::fmt::Display`] is Java
 /// `DescribeProducersResult.PartitionProducerState.toString`
 /// (`activeProducers` only).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -8273,7 +8273,7 @@ fn list_transactions_flexible(version: i16) -> Result<bool> {
 /// Java `TransactionListing`. This is not [`TransactionState`]
 /// (DescribeTransactions api 65).
 ///
-/// [`Display`] is Java `TransactionListing.toString`. The state is the
+/// [`std::fmt::Display`] is Java `TransactionListing.toString`. The state is the
 /// broker string, not a crate enum.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionListing {
@@ -8793,7 +8793,7 @@ impl ConsumerGroupTopicPartitions {
 
 /// Current or target assignment for one described member.
 ///
-/// [`Display`] is Java `MemberAssignment.toString` (comma-no-space
+/// [`std::fmt::Display`] is Java `MemberAssignment.toString` (comma-no-space
 /// `topic-partition` list).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ConsumerGroupAssignment {
@@ -8837,7 +8837,7 @@ impl fmt::Display for ConsumerGroupAssignment {
 /// `member_type` is v1+ (`-1` unknown, `0` classic, `1` consumer).
 /// v0 decode fills `-1`.
 ///
-/// [`Display`] is Java `MemberDescription.toString`.
+/// [`std::fmt::Display`] is Java `MemberDescription.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerGroupMember {
     /// Group member id.
@@ -10140,7 +10140,7 @@ impl From<GroupState> for String {
 /// Java `GroupListing`. There is no per-group ErrorCode. The response
 /// error sits at the top of the body (after throttle on v1+).
 /// `group_state` is v4+; `group_type` is v5+.
-/// [`Display`] is Java `GroupListing.toString`. Empty `group_type` /
+/// [`std::fmt::Display`] is Java `GroupListing.toString`. Empty `group_type` /
 /// `group_state` (pre-v5 / pre-v4) print `none`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListedGroup {
@@ -10612,7 +10612,7 @@ impl DeleteGroupsResponse {
     /// Java `DeleteGroupsResponse.get`.
     ///
     /// Per-group `errorCode` for `group`. Missing id is
-    /// [`Error::protocol`] (`could not find group` plus the id).
+    /// [`crate::Error::protocol`] (`could not find group` plus the id).
     pub fn get(results: &[DeletableGroupResult], group: &str) -> Result<i16> {
         results
             .iter()
@@ -10792,7 +10792,7 @@ impl ShareGroupTopicPartitions {
 
 /// Current assignment for one described share-group member.
 ///
-/// [`Display`] is Java `ShareMemberAssignment.toString` (comma-no-space
+/// [`std::fmt::Display`] is Java `ShareMemberAssignment.toString` (comma-no-space
 /// `topic-partition` list).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ShareGroupAssignment {
@@ -10837,7 +10837,7 @@ impl fmt::Display for ShareGroupAssignment {
 /// Assignment. There is no InstanceId, SubscribedTopicRegex,
 /// TargetAssignment, or MemberType.
 ///
-/// [`Display`] is Java `ShareMemberDescription.toString` (memberId,
+/// [`std::fmt::Display`] is Java `ShareMemberDescription.toString` (memberId,
 /// clientId, host, assignment; omits rack, epoch, and subscriptions).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareGroupMember {
@@ -12658,7 +12658,7 @@ impl DescribedTopicPartitions {
 
 /// Java `org.apache.kafka.common.TopicPartitionInfo`.
 ///
-/// [`Display`] is Java `TopicPartitionInfo.toString`.
+/// [`std::fmt::Display`] is Java `TopicPartitionInfo.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicPartitionInfo {
     /// Partition index.
@@ -13119,7 +13119,7 @@ pub fn decode_describe_topic_partitions_response<B: Buf>(
 ///
 /// There is no per-resource ErrorCode. The response error sits at the
 /// top of the body, after throttle. `resource_type` is v1+; v0 decode
-/// fills `RESOURCE_CLIENT_METRICS` (16). [`Display`] is Java
+/// fills `RESOURCE_CLIENT_METRICS` (16). [`std::fmt::Display`] is Java
 /// `ConfigResource.toString` (`listConfigResources` returns
 /// `ConfigResource`).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14953,7 +14953,7 @@ pub const INVALID_OFFSET_LAG: i64 = -1;
 /// Java `ReplicaInfo`. Official JSON has no partition ErrorCode. Fields
 /// are PartitionIndex, PartitionSize, OffsetLag, IsFutureKey.
 ///
-/// [`Display`] is Java `ReplicaInfo.toString` (no partition index; that
+/// [`std::fmt::Display`] is Java `ReplicaInfo.toString` (no partition index; that
 /// is the `replicaInfos` map key).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeLogDirsPartition {
@@ -15495,7 +15495,7 @@ fn write_java_delegation_token<T: fmt::Display>(
 ///
 /// Official JSON `CreatableRenewers` has PrincipalType and
 /// PrincipalName only. There is no per-renewer ErrorCode.
-/// [`Display`] is Java `KafkaPrincipal.toString` (`type:name`).
+/// [`std::fmt::Display`] is Java `KafkaPrincipal.toString` (`type:name`).
 /// [`Self::USER_TYPE`] / [`Self::anonymous`] are Java
 /// `KafkaPrincipal.USER_TYPE` / `ANONYMOUS`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16600,7 +16600,7 @@ pub fn decode_expire_delegation_token_response<B: Buf>(
 /// One owner principal in a DescribeDelegationToken (api 41) request.
 ///
 /// Official JSON `Owners` has PrincipalType and PrincipalName only.
-/// There is no per-owner ErrorCode. [`Display`] is Java
+/// There is no per-owner ErrorCode. [`std::fmt::Display`] is Java
 /// `KafkaPrincipal.toString` (`type:name`). [`Self::USER_TYPE`] /
 /// [`Self::anonymous`] are Java `KafkaPrincipal.USER_TYPE` / `ANONYMOUS`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16718,7 +16718,7 @@ impl Default for DescribeDelegationTokenRequest {
 /// One renewer principal on a described delegation token.
 ///
 /// Official JSON `Renewers` has PrincipalType and PrincipalName only.
-/// There is no per-renewer ErrorCode. [`Display`] is Java
+/// There is no per-renewer ErrorCode. [`std::fmt::Display`] is Java
 /// `KafkaPrincipal.toString` (`type:name`). [`Self::USER_TYPE`] /
 /// [`Self::anonymous`] are Java `KafkaPrincipal.USER_TYPE` / `ANONYMOUS`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16772,7 +16772,7 @@ impl fmt::Display for DescribedDelegationTokenRenewer {
 /// has no per-token ErrorCode. v3 adds TokenRequesterPrincipalType /
 /// TokenRequesterPrincipalName (decode fills empty on v1–v2).
 ///
-/// [`Display`] is Java `DelegationToken.toString` (nested
+/// [`std::fmt::Display`] is Java `DelegationToken.toString` (nested
 /// `TokenInformation.toString`; `hmac=[*******]`). [`Debug`] also
 /// redacts [`Self::hmac`].
 #[derive(Clone, PartialEq, Eq)]

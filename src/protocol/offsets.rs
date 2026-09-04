@@ -97,7 +97,7 @@ impl From<OffsetSpec> for i64 {
 
 /// One partition in a ListOffsets response.
 ///
-/// Getters and [`Display`] match Java `ListOffsetsResult.ListOffsetsResultInfo`.
+/// Getters and [`std::fmt::Display`] match Java `ListOffsetsResult.ListOffsetsResultInfo`.
 /// [`Self::leader_epoch`] is `None` when the wire value is
 /// [`Self::UNKNOWN_EPOCH`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

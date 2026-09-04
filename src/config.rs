@@ -134,7 +134,7 @@ impl From<Acks> for i16 {
 
 /// Fetch isolation. Matches Kafka `isolation.level`.
 ///
-/// [`Display`] is Java `IsolationLevel.toString` (`read_uncommitted`).
+/// [`std::fmt::Display`] is Java `IsolationLevel.toString` (`read_uncommitted`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[repr(i8)]
 pub enum IsolationLevel {
@@ -193,7 +193,7 @@ impl fmt::Display for IsolationLevel {
 /// Java `org.apache.kafka.common.security.auth.SecurityProtocol`.
 ///
 /// Channel type: PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL.
-/// [`Display`] is Java `SecurityProtocol.toString` / the `name` field
+/// [`std::fmt::Display`] is Java `SecurityProtocol.toString` / the `name` field
 /// (`PLAINTEXT`). This crate still configures TLS via [`TlsConfig`] and
 /// SASL via [`Sasl`]; the enum is the Java id/name mapping.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -240,7 +240,7 @@ impl SecurityProtocol {
     }
 
     /// Java `SecurityProtocol.forName` (`toUpperCase`; unknown is
-    /// [`Error::protocol`], Java `IllegalArgumentException` from `valueOf`).
+    /// [`crate::Error::protocol`], Java `IllegalArgumentException` from `valueOf`).
     pub fn from_name(name: &str) -> Result<Self> {
         if name.eq_ignore_ascii_case("PLAINTEXT") {
             Ok(Self::Plaintext)
@@ -273,7 +273,7 @@ impl fmt::Display for SecurityProtocol {
 
 /// Java `org.apache.kafka.common.network.ListenerName`.
 ///
-/// [`Display`] is Java `ListenerName.toString` (`ListenerName(PLAINTEXT)`).
+/// [`std::fmt::Display`] is Java `ListenerName.toString` (`ListenerName(PLAINTEXT)`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ListenerName {
     value: String,
@@ -295,7 +295,7 @@ impl ListenerName {
     }
 
     /// Java `ListenerName.normalised` (`toUpperCase`; blank is
-    /// [`Error::protocol`], Java `ConfigException`).
+    /// [`crate::Error::protocol`], Java `ConfigException`).
     pub fn normalised(value: &str) -> Result<Self> {
         if crate::protocol::buf::is_blank(Some(value)) {
             return Err(Error::protocol(
@@ -343,7 +343,7 @@ impl fmt::Display for ListenerName {
 /// Java `org.apache.kafka.common.Endpoint`.
 ///
 /// Broker listener endpoint. Java `listenerName` may be null on clients
-/// (`None` here). [`Display`] is Java `Endpoint.toString`.
+/// (`None` here). [`std::fmt::Display`] is Java `Endpoint.toString`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Endpoint {
     listener_name: Option<String>,
@@ -414,7 +414,7 @@ impl fmt::Display for Endpoint {
 /// Kafka `auto.offset.reset`. Java defaults to [`Self::Latest`]. This crate
 /// defaults to [`Self::Earliest`] so a new group reads the existing log.
 ///
-/// [`Display`] is Java `OffsetResetStrategy.toString` (`earliest`).
+/// [`std::fmt::Display`] is Java `OffsetResetStrategy.toString` (`earliest`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AutoOffsetReset {
     /// Log start (offset `0` when the broker has no committed offset).
