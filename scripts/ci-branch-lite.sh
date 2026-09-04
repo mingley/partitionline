@@ -30,6 +30,10 @@ cargo test --test fuzz_decode_smoke
 echo "== ci-branch-lite: adopter pin =="
 bash scripts/check-adopter-pin.sh
 
+echo "== ci-branch-lite: path adopter consumer (pre-crates.io) =="
+# Proves day1 registry consumer will compile once 0.1.0 exists (API surface).
+MODE=path bash scripts/verify-crates-io-consumer.sh
+
 echo "== ci-branch-lite: workflow YAML =="
 bash scripts/check-workflows.sh
 
