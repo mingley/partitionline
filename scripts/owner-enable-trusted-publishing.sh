@@ -42,8 +42,10 @@ echo "  5. After that success, delete/rotate the long-lived CARGO_REGISTRY_TOKEN
 echo "  6. Rehearse anytime: bash scripts/check-trusted-publishing-ready.sh"
 echo
 echo "Related post-cut steps (if not already done by owner-finish-installable):"
-echo "  bash scripts/owner-land-post-cut-parks.sh"
-echo "  bash scripts/day1-after-publish.sh"
+echo "  Preferred one-shot: bash scripts/owner-post-installable-handoff.sh"
+echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+echo "  Or stepwise: bash scripts/owner-land-post-cut-parks.sh"
+echo "              bash scripts/day1-after-publish.sh"
 echo "  # close Dependabot PRs superseded by parks (#87–#92)"
 echo
 if [[ "$DRY_RUN" == "1" ]]; then
