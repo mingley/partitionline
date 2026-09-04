@@ -31,9 +31,10 @@ async fn main() -> partitionline::Result<()> {
 
     let mut cfg = ProducerConfig::bootstrap([bootstrap]).sasl(sasl);
     if let Ok(ca_path) = std::env::var("TLS_CA_PEM") {
-        let mut tls = TlsConfig::default().ca_pem(tokio::fs::read(&ca_path).await.map_err(
-            |e| partitionline::Error::protocol(format!("read TLS_CA_PEM {ca_path}: {e}")),
-        )?);
+        let mut tls =
+            TlsConfig::default().ca_pem(tokio::fs::read(&ca_path).await.map_err(|e| {
+                partitionline::Error::protocol(format!("read TLS_CA_PEM {ca_path}: {e}"))
+            })?);
         if let Ok(name) = std::env::var("TLS_SERVER_NAME") {
             if !name.is_empty() {
                 tls = tls.server_name(name);
