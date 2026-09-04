@@ -53,24 +53,31 @@ fi
 echo
 echo "== 1) Token =="
 if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-  echo "owner-finish-installable: CARGO_REGISTRY_TOKEN is NOT set" >&2
-  echo >&2
-  echo "Installable cannot finish without a crates.io publish token." >&2
-  echo "  1. Create a crates.io token (publish-update for ${name})" >&2
-  echo "  2. Add it as Cloud Agent secret CARGO_REGISTRY_TOKEN" >&2
-  echo "  3. Also add Actions secret CARGO_REGISTRY_TOKEN (release.yml / first-publish.yml)" >&2
-  echo "  4. Re-run: bash scripts/owner-finish-installable.sh" >&2
-  echo >&2
-  echo "If the token is only an Actions secret (not in this shell):" >&2
-  echo "  After canceling stuck runs → Actions → First publish → confirm=publish" >&2
-  echo "  (workflow: .github/workflows/first-publish.yml; prefer this script when in-env)" >&2
-  echo >&2
-  echo "Meanwhile (no token required):" >&2
-  echo "  bash scripts/owner-unblock.sh" >&2
-  echo "  bash scripts/owner-cancel-stuck-runs.sh   # owner machine; agents 403" >&2
-  exit 1
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "owner-finish-installable: CARGO_REGISTRY_TOKEN unset — DRY_RUN=1 continues (rehearsal only)"
+  else
+    echo "owner-finish-installable: CARGO_REGISTRY_TOKEN is NOT set" >&2
+    echo >&2
+    echo "Installable cannot finish without a crates.io publish token." >&2
+    echo "  1. Create a crates.io token (publish-update for ${name})" >&2
+    echo "  2. Add it as Cloud Agent secret CARGO_REGISTRY_TOKEN" >&2
+    echo "  3. Also add Actions secret CARGO_REGISTRY_TOKEN (release.yml / first-publish.yml)" >&2
+    echo "  4. Re-run: bash scripts/owner-finish-installable.sh" >&2
+    echo >&2
+    echo "If the token is only an Actions secret (not in this shell):" >&2
+    echo "  After canceling stuck runs → Actions → First publish → confirm=publish" >&2
+    echo "  (workflow: .github/workflows/first-publish.yml; prefer this script when in-env)" >&2
+    echo "  or: bash scripts/owner-dispatch-first-publish.sh" >&2
+    echo >&2
+    echo "Meanwhile (no token required):" >&2
+    echo "  bash scripts/owner-unblock.sh" >&2
+    echo "  bash scripts/owner-cancel-stuck-runs.sh   # owner machine; agents 403" >&2
+    echo "  DRY_RUN=1 bash scripts/owner-finish-installable.sh  # rehearse merge/cut" >&2
+    exit 1
+  fi
+else
+  echo "owner-finish-installable: CARGO_REGISTRY_TOKEN is set (len=${#CARGO_REGISTRY_TOKEN})"
 fi
-echo "owner-finish-installable: CARGO_REGISTRY_TOKEN is set (len=${#CARGO_REGISTRY_TOKEN})"
 
 echo
 echo "== 2) Merge/tag readiness =="

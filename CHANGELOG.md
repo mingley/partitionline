@@ -30,6 +30,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `scripts/owner-dispatch-first-publish.sh`: owner helper to
   `gh workflow run first-publish.yml` after tip is on `main` (dispatch is
   only listed from the default branch).
+- `owner-finish-installable.sh`: `DRY_RUN=1` rehearses merge/cut without a
+  token; `check-merge-ready` next steps detect when HEAD already matches
+  `main` (skip FF; point at first-publish dispatch).
 - `scripts/lib/adopter-consumer-main.sh`: shared operator-surface consumer
   used by `ci-crate-consumer` and `verify-crates-io-consumer` so packed-crate
   and crates.io proofs cannot drift.
