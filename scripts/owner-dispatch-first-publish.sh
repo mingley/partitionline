@@ -62,7 +62,25 @@ if [[ "$DRY_RUN" == "1" ]]; then
   exit 0
 fi
 
-gh workflow run "$WORKFLOW" -f confirm=publish -f "ref=${REF}"
+dispatch_err="$(mktemp)"
+if ! gh workflow run "$WORKFLOW" -f confirm=publish -f "ref=${REF}" >"$dispatch_err" 2>&1; then
+  echo "owner-dispatch-first-publish: FAIL — could not dispatch ${WORKFLOW}" >&2
+  cat "$dispatch_err" >&2 || true
+  if grep -Eqi '403|Resource not accessible by integration|not accessible' "$dispatch_err"; then
+    echo >&2
+    echo "Cloud Agents / limited tokens often cannot workflow_dispatch (HTTP 403)." >&2
+    echo "Owner remediations (pick one):" >&2
+    echo "  A) Add CARGO_REGISTRY_TOKEN to the Cloud Agent env, then:" >&2
+    echo "       bash scripts/owner-finish-installable.sh" >&2
+    echo "  B) From an owner machine with Actions write:" >&2
+    echo "       REF=${REF} bash scripts/owner-dispatch-first-publish.sh" >&2
+    echo "     or Actions → First publish → confirm=publish (ref=${REF})" >&2
+    echo "  C) Add CARGO_REGISTRY_TOKEN as an Actions secret, then do B." >&2
+  fi
+  rm -f "$dispatch_err"
+  exit 1
+fi
+rm -f "$dispatch_err"
 echo "owner-dispatch-first-publish: dispatched. Watch:"
 echo "  gh run list --workflow=${WORKFLOW} --limit 5"
 echo "After green: bash scripts/check-installable.sh && bash scripts/day1-after-publish.sh"

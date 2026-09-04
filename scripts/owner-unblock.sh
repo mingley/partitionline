@@ -74,8 +74,10 @@ echo "  DRY_RUN=1 bash scripts/owner-cut-release.sh"
 echo
 echo "If the token is Actions-only (not in this shell):"
 echo "  1. Merge/FF civilization → main (first-publish.yml must exist on default branch)"
+echo "     # or dispatch with REF=<tip-sha> without FF when tip is docs/scripts-only"
 echo "  2. bash scripts/owner-cancel-stuck-runs.sh"
-echo "  3. bash scripts/owner-dispatch-first-publish.sh"
+echo "  3. From an owner machine (Cloud Agents get HTTP 403 on workflow_dispatch):"
+echo "       bash scripts/owner-dispatch-first-publish.sh"
 echo "     # or: Actions → First publish → confirm=publish"
 echo "  Prefer owner-finish-installable.sh when the token is already in-env."
 echo

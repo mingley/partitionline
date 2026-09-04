@@ -48,6 +48,9 @@ bash scripts/check-adopter-pin.sh
 echo "== workflow YAML =="
 bash scripts/check-workflows.sh
 
+echo "== tip-delta classifier (cut/sync trust guard) =="
+bash scripts/check-tip-delta.sh
+
 echo "== merge/tag readiness =="
 bash scripts/check-merge-ready.sh
 
