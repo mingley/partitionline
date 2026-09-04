@@ -9,6 +9,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Added
 
+- Auth smoke covers **OIDC client_credentials** (local `scripts/oidc-token-stub.py`)
+  and **mTLS** (SSL listener with `ssl.client.auth=required`; `examples/tls`
+  accepts `TLS_CLIENT_CERT_PEM` / `TLS_CLIENT_KEY_PEM`). X.509 v3 client certs
+  required for rustls. Wired into `scripts/ci-auth-smoke.sh` / civilization-check.
+
 - `scripts/ci-auth-smoke.sh`: native Kafka SASL_SSL + SCRAM-SHA-256/512 +
   OAUTHBEARER (unsecured JWT) smoke (private CA, isolated ports,
   `examples/sasl` / `examples/oauth` with `TLS_CA_PEM`); TLS-only produce must
