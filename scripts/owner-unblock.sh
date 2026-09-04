@@ -26,8 +26,9 @@ echo "  bash scripts/owner-cancel-stuck-runs.sh"
 echo
 
 echo "== 3) Publish path (after token + clean Actions) =="
+echo "Tracking issue: https://github.com/mingley/partitionline/issues/86"
 echo "Preferred (docs/RELEASE.md): merge civilization → main, then tag final only:"
-echo "  # merge PR for dev/civilization-plan-b686 → main"
+echo "  # open/merge PR: dev/civilization-plan-b686 → main"
 echo "  git fetch origin main && git checkout main && git pull origin main"
 echo "  git tag -a v0.1.0 -m 'partitionline 0.1.0'"
 echo "  git push origin v0.1.0"
@@ -36,10 +37,13 @@ echo
 echo "If publishing locally instead (token in env):"
 echo "  cargo publish --dry-run && cargo publish"
 echo
+echo "Until crates.io lands, adopters pin git tag v0.1.0-rc.3 (not floating main)."
+echo
 
 echo "== 4) Day-1 after crates.io shows partitionline 0.1.0 =="
 echo "  bash scripts/day1-after-publish.sh"
 echo "  bash scripts/check-installable.sh"
+echo "  # day1 flips README via post-publish-readme.sh (DRY_RUN=1 preflight in publish-ready)"
 echo
 echo "Installable is proven only when crates.io returns partitionline 0.1.0"
 echo "and check-installable.sh exits 0."

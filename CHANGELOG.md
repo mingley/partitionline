@@ -50,8 +50,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   crates.io; does not trigger `release.yml` (final `vX.Y.Z` only). Includes
   KIP-848 join fix, OIDC + mTLS auth smoke, and tip Verifiable decode smoke
   since `v0.1.0-rc.2`.
-- `scripts/post-publish-readme.sh` also rewrites the README status blurb so
-  day-1 after crates.io does not leave a “waits on publish” line behind.
+- `scripts/post-publish-readme.sh` `DRY_RUN=1` preflight (wired into
+  `ci-publish-ready`) so day-1 README flip cannot silently break before
+  crates.io exists. `owner-unblock` points at release issue #86 and the
+  `v0.1.0-rc.3` interim git pin.
 
 ### Changed
 
