@@ -39,6 +39,10 @@ bash scripts/check-tip-delta.sh
 echo "== ci-branch-lite: crates.io token probe self-test =="
 bash scripts/check-registry-token.sh --self-test
 
+echo "== ci-branch-lite: post-cut parks refresh DRY_RUN (chain-safe) =="
+# tip→Verifiable→SCRAM→lz4→checkout; never merge tip into each park in parallel.
+DRY_RUN=1 bash scripts/refresh-post-cut-parks.sh
+
 echo "== ci-branch-lite: post-cut parks stack rehearsal =="
 bash scripts/check-post-cut-parks-stack.sh
 
