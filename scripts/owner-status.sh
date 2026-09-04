@@ -115,6 +115,13 @@ else
   echo "  branch-lite (local Actions mirror): FAIL (see /tmp/pl-owner-branch-lite.log)"
 fi
 echo
+if bash scripts/check-merge-ready.sh >/tmp/pl-owner-merge-ready.log 2>&1; then
+  echo "  merge-ready: $(grep -E '^check-merge-ready: OK' /tmp/pl-owner-merge-ready.log | tail -1)"
+else
+  echo "  merge-ready: FAIL (see /tmp/pl-owner-merge-ready.log)"
+  grep -E '^(FAIL|WARN|check-merge-ready:)' /tmp/pl-owner-merge-ready.log | tail -12 | sed 's/^/    /' || true
+fi
+
 echo "owner-status: next"
 echo "  0. One-shot checklist: bash scripts/owner-unblock.sh"
 echo "  1. Set CARGO_REGISTRY_TOKEN (Cloud + Actions)"

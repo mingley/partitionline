@@ -42,6 +42,9 @@ bash scripts/check-adopter-pin.sh
 echo "== workflow YAML =="
 bash scripts/check-workflows.sh
 
+echo "== merge/tag readiness =="
+bash scripts/check-merge-ready.sh
+
 echo "== civilization check =="
 REQUIRE_BROKER="${REQUIRE_BROKER:-0}" bash scripts/ci-civilization-check.sh
 
