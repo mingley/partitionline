@@ -908,10 +908,12 @@ pub fn encode_share_group_heartbeat_response(
     buf::put_string(buf, flexible, resp.member_id.as_deref())?;
     buf.put_i32(resp.member_epoch);
     buf.put_i32(resp.heartbeat_interval_ms);
+    // Nullable struct marker is INT8: -1 null, 1 present (Kafka MessageGenerator;
+    // not an unsigned varint). Present `1` coincides with unsigned varint 1.
     match &resp.assignment {
-        None => buf::put_unsigned_varint(buf, 0),
+        None => buf.put_i8(-1),
         Some(parts) => {
-            buf::put_unsigned_varint(buf, 1);
+            buf.put_i8(1);
             buf::put_array_len(buf, flexible, Some(parts.len()))?;
             for t in parts {
                 buf.extend_from_slice(&t.topic_id);
@@ -948,9 +950,13 @@ pub fn decode_share_group_heartbeat_response<B: Buf>(
     let member_id = buf::get_string(buf, flexible)?;
     let member_epoch = buf::get_i32(buf)?;
     let heartbeat_interval_ms = buf::get_i32(buf)?;
-    let present = buf::get_unsigned_varint(buf)?;
-    let assignment = if present == 0 {
+    let present = buf::get_i8(buf)?;
+    let assignment = if present < 0 {
         None
+    } else if present != 1 {
+        return Err(Error::protocol(format!(
+            "invalid ShareGroupHeartbeat Assignment marker {present}"
+        )));
     } else {
         let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut parts = Vec::with_capacity(n);

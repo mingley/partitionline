@@ -183,8 +183,8 @@ Execute in this sequence unless blocked:
 
 | Package | Status | Notes |
 |---|---|---|
-| WP-0 Public crate identity | **in progress** | 0.1–0.4 done; `cargo package` + `cargo publish --dry-run` green; docs.rs metadata; release workflow ready. **0.5 blocked on owner `CARGO_REGISTRY_TOKEN`** (crate name free on crates.io). |
-| WP-1 Real-broker CI | **done** | `broker-smoke` matrix `apache/kafka:3.9.1` + `4.0.0`; native Kafka fallback; smoke covers roundtrip/produce/admin/txn/**group/eos**. |
+| WP-0 Public crate identity | **in progress** | 0.1–0.4 done; `cargo package` + `cargo publish --dry-run` green; docs.rs metadata; release workflow + `scripts/owner-publish.sh` / `post-publish-readme.sh` ready. **0.5 blocked on owner `CARGO_REGISTRY_TOKEN`** (crate name free on crates.io; GitHub Actions also stuck queued). |
+| WP-1 Real-broker CI | **done** | `broker-smoke` matrix `apache/kafka:3.9.1` + `4.1.0`; Docker 4.x enables share coordinator + upgrades `share.version=1`; native Kafka fallback; smoke covers roundtrip/produce/admin/txn/**group/eos/share** (`REQUIRE_SHARE=1` on 4.x). |
 | WP-2 Adversarial trust | **done** | security.md + audit CI + `cargo deny` + PEM via rustls-pki-types + decode OOM guards + fuzz smoke + libFuzzer. |
 | WP-3 Operator docs | **done** | guide.md (incl. recipes) + migrate-from-rdkafka.md + ADOPTION.md + README links. |
 | WP-4 Observability | **done** | Metrics in guide; `tracing` feature; Prometheus text example. |

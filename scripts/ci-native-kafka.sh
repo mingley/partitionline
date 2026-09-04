@@ -6,9 +6,12 @@
 #   bash scripts/ci-native-kafka.sh start
 #   SKIP_DOCKER=1 bash scripts/ci-broker-smoke.sh
 #   bash scripts/ci-native-kafka.sh stop
+#
+# Defaults to Kafka 4.1.0 so KIP-932 share groups work (group.share.enable +
+# share.version feature level 1). Override with KAFKA_VERSION=3.9.1 for older.
 set -euo pipefail
 
-KVER="${KAFKA_VERSION:-3.9.1}"
+KVER="${KAFKA_VERSION:-4.1.0}"
 KDIR="${KAFKA_HOME:-/tmp/kafka_${KVER}}"
 PROPS="${KAFKA_PROPS:-/tmp/partitionline-kraft.properties}"
 LOGDIR="${KAFKA_LOG_DIRS:-/tmp/partitionline-kraft-logs}"
@@ -47,7 +50,25 @@ offsets.topic.replication.factor=1
 transaction.state.log.replication.factor=1
 transaction.state.log.min.isr=1
 group.initial.rebalance.delay.ms=0
+unstable.api.versions.enable=true
+group.share.enable=true
+share.coordinator.state.topic.replication.factor=1
+share.coordinator.state.topic.min.isr=1
 EOF
+}
+
+upgrade_share_feature() {
+  # Kafka 4.1 ships share.version supported=1 but finalized=0 until upgraded.
+  # Without level 1, ShareGroupHeartbeat works but ShareFetch returns no records.
+  if [[ ! -x "$KDIR/bin/kafka-features.sh" ]]; then
+    return 0
+  fi
+  if "$KDIR/bin/kafka-features.sh" --bootstrap-server "$BOOTSTRAP" upgrade --feature share.version=1 >/tmp/pl-share-feature.log 2>&1; then
+    echo "ci-native-kafka: share.version=1"
+  else
+    # 3.x or already at level 1 — not fatal for classic smoke.
+    echo "ci-native-kafka: share.version upgrade skipped (see /tmp/pl-share-feature.log)"
+  fi
 }
 
 cmd="${1:-start}"
@@ -57,6 +78,7 @@ case "$cmd" in
     write_props
     if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
       echo "ci-native-kafka: already running pid=$(cat "$PIDFILE") bootstrap=$BOOTSTRAP"
+      upgrade_share_feature || true
       exit 0
     fi
     rm -rf "$LOGDIR"
@@ -67,6 +89,7 @@ case "$cmd" in
     echo "ci-native-kafka: waiting for $BOOTSTRAP"
     for _ in $(seq 1 60); do
       if "$KDIR/bin/kafka-topics.sh" --bootstrap-server "$BOOTSTRAP" --list >/dev/null 2>&1; then
+        upgrade_share_feature || true
         echo "ci-native-kafka: ready pid=$(cat "$PIDFILE")"
         exit 0
       fi

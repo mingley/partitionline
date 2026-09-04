@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
+use parking_lot::Mutex;
 use tokio::sync::watch;
 
 use crate::consumer::{Consumer, ConsumerConfig};
@@ -19,7 +20,7 @@ use crate::net::BrokerConn;
 use crate::protocol::api_keys::{
     pick_version, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
 };
-use crate::protocol::group::COORDINATOR_SHARE;
+use crate::protocol::group::COORDINATOR_GROUP;
 use crate::protocol::records::{
     write_java_optional, write_java_optional_bytes, write_java_record_headers, Header,
     TimestampType,
@@ -505,6 +506,8 @@ pub struct ShareGroup {
     share_acknowledge_version: i16,
     hb_err: Arc<AtomicI16>,
     hb_epoch: Arc<AtomicI32>,
+    /// Pending assignment from the background heartbeat task.
+    hb_assignment: Arc<Mutex<Option<Vec<ShareTopicPartitions>>>>,
     hb_stop: watch::Sender<bool>,
     fetch_rounds: u64,
     records_fetched: u64,
@@ -513,22 +516,6 @@ pub struct ShareGroup {
     records_acknowledged: u64,
     fetch_latency: crate::metrics::LatencyTracker,
     topic_metrics: HashMap<String, crate::metrics::FetchTopicTracker>,
-}
-
-fn new_member_id() -> Result<String> {
-    let mut raw = [0u8; 8];
-    getrandom::getrandom(&mut raw).map_err(|_| Error::protocol("share member id rng"))?;
-    let mut hex = String::with_capacity(16);
-    const DIGITS: &[u8; 16] = b"0123456789abcdef";
-    for b in raw {
-        let hi = usize::from(b >> 4);
-        let lo = usize::from(b & 0x0f);
-        if let (Some(&h), Some(&l)) = (DIGITS.get(hi), DIGITS.get(lo)) {
-            hex.push(char::from(h));
-            hex.push(char::from(l));
-        }
-    }
-    Ok(format!("s-{hex}"))
 }
 
 fn spoken_share_acknowledge(version: i16) -> Result<i16> {
@@ -622,12 +609,20 @@ impl ShareGroup {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support ShareAcknowledge v0-1".into())
             })?;
-        let coord = discover_coord(&cfg, &group_id, COORDINATOR_SHARE).await?;
-        let member_id = new_member_id()?;
+        // Membership uses the group coordinator (Java ShareConsumer / DescribeShareGroups).
+        // CoordinatorType.SHARE is only for share-partition state keys
+        // (`groupId:topicId:partition`), not the group id alone (KIP-932).
+
+        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
+
+        // Kafka 4.1 ShareGroupHeartbeat requires a client-generated member id
+        // for the process lifetime. ShareFetch parses it as a base64url Uuid.
+        let member_id = Uuid::random_uuid().to_string();
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_epoch = Arc::new(AtomicI32::new(
             ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
         ));
+        let hb_assignment = Arc::new(Mutex::new(None));
         let (hb_stop, hb_rx) = watch::channel(false);
         let mut g = Self {
             consumer,
@@ -646,6 +641,7 @@ impl ShareGroup {
             share_acknowledge_version,
             hb_err,
             hb_epoch,
+            hb_assignment,
             hb_stop,
             fetch_rounds: 0,
             records_fetched: 0,
@@ -659,7 +655,9 @@ impl ShareGroup {
             g.topics = g.matching_topic_names().await?;
             g.last_match_refresh = Instant::now();
         }
+
         g.heartbeat_join().await?;
+
         g.spawn_heartbeat(hb_rx);
         Ok(g)
     }
@@ -761,56 +759,87 @@ impl ShareGroup {
 
     async fn heartbeat_join(&mut self) -> Result<()> {
         let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
         self.consumer.refresh_topics(&self.topics).await?;
         let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
-        let req = ShareGroupHeartbeatRequest {
-            group_id: self.group_id.clone(),
-            member_id: self.member_id.clone(),
-            member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
-            rack_id: self.cfg.rack.clone(),
-            subscribed_topic_names: Some(self.topics.clone()),
-        };
-        let body = self
-            .coord
-            .roundtrip(
-                SHARE_GROUP_HEARTBEAT,
-                version,
-                |buf| encode_share_group_heartbeat_request(buf, version, &req),
-                timeout,
-            )
-            .await?;
-        let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
-        if resp.error_code != 0 {
-            return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat"));
-        }
-        if let Some(id) = resp.member_id {
-            if !id.is_empty() {
-                self.member_id = id;
+
+        let mut first = true;
+        loop {
+            let req = ShareGroupHeartbeatRequest {
+                group_id: self.group_id.clone(),
+                member_id: self.member_id.clone(),
+                member_epoch: if first {
+                    ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+                } else {
+                    self.member_epoch
+                },
+                rack_id: self.cfg.rack.clone(),
+                // Re-send subscription until assignment arrives so the
+                // coordinator can resolve topic ids (KIP-932).
+                subscribed_topic_names: Some(self.topics.clone()),
+            };
+            let body = self
+                .coord
+                .roundtrip(
+                    SHARE_GROUP_HEARTBEAT,
+                    version,
+                    |buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    timeout,
+                )
+                .await?;
+
+            let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
+
+            if resp.error_code != 0 {
+                return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat"));
             }
-        }
-        self.member_epoch = resp.member_epoch;
-        self.apply_share_assignment(resp.assignment.as_deref());
-        if self.assigned.is_empty() {
-            if let Some(topic) = self.topics.first() {
-                self.assigned.push((topic.clone(), 0));
-                let _ = self.topic_ids.entry(topic.clone()).or_insert([0u8; 16]);
+            if let Some(id) = resp.member_id {
+                if !id.is_empty() {
+                    self.member_id = id;
+                }
             }
+            if resp.member_epoch > 0 {
+                self.member_epoch = resp.member_epoch;
+            }
+            self.apply_share_assignment(resp.assignment.as_deref());
+            self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
+            self.hb_err.store(0, Ordering::SeqCst);
+            if !self.assigned.is_empty() {
+                return Ok(());
+            }
+            if Instant::now() >= deadline {
+                // Join succeeded; poll waits for assignment (Java ShareConsumer).
+                return Ok(());
+            }
+            first = false;
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            if Instant::now() >= deadline {
+                return Ok(());
+            }
+            self.consumer.refresh_topics(&self.topics).await?;
         }
-        self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
-        self.hb_err.store(0, Ordering::SeqCst);
-        Ok(())
     }
 
     fn apply_share_assignment(&mut self, assignment: Option<&[ShareTopicPartitions]>) {
-        self.assigned.clear();
-        self.topic_ids.clear();
         let Some(assigned) = assignment else {
             return;
         };
+        // Empty assignment vector means "no partitions right now" — clear.
+        self.assigned.clear();
+        self.topic_ids.clear();
+        if assigned.is_empty() {
+            return;
+        }
         let id_to_name = self.consumer.topic_id_names();
+        let name_to_id = self.consumer.topic_name_ids();
         for tp in assigned {
+            if tp.topic_id == [0u8; 16] {
+                continue;
+            }
             let name = id_to_name.get(&tp.topic_id).cloned().or_else(|| {
-                if self.topics.len() == 1 || tp.topic_id == [0u8; 16] {
+                // Single-topic subscribe: map the only name when metadata
+                // has not yet indexed this id.
+                if self.topics.len() == 1 {
                     self.topics.first().cloned()
                 } else {
                     None
@@ -819,11 +848,80 @@ impl ShareGroup {
             let Some(name) = name else {
                 continue;
             };
-            let _ = self.topic_ids.insert(name.clone(), tp.topic_id);
+            let topic_id = name_to_id.get(&name).copied().unwrap_or(tp.topic_id);
+            if topic_id == [0u8; 16] {
+                continue;
+            }
+            let _ = self.topic_ids.insert(name.clone(), topic_id);
             for p in &tp.partitions {
                 self.assigned.push((name.clone(), *p));
             }
         }
+    }
+
+    fn apply_pending_assignment(&mut self) {
+        let pending = self.hb_assignment.lock().take();
+        if let Some(assignment) = pending {
+            self.apply_share_assignment(Some(assignment.as_slice()));
+        }
+    }
+
+    async fn ensure_assignment(&mut self, deadline: Instant) -> Result<()> {
+        self.apply_pending_assignment();
+        if !self.assigned.is_empty() {
+            return Ok(());
+        }
+        let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
+        let timeout = self.cfg.request_timeout;
+        while self.assigned.is_empty() {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            let hb = self.hb_err.load(Ordering::SeqCst);
+            if hb != 0 {
+                return Err(Error::broker(hb, "ShareGroupHeartbeat"));
+            }
+            self.apply_pending_assignment();
+            if !self.assigned.is_empty() {
+                return Ok(());
+            }
+            self.consumer.refresh_topics(&self.topics).await?;
+            let req = ShareGroupHeartbeatRequest {
+                group_id: self.group_id.clone(),
+                member_id: self.member_id.clone(),
+                member_epoch: self.member_epoch,
+                rack_id: self.cfg.rack.clone(),
+                subscribed_topic_names: Some(self.topics.clone()),
+            };
+            let body = self
+                .coord
+                .roundtrip(
+                    SHARE_GROUP_HEARTBEAT,
+                    version,
+                    |buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    timeout,
+                )
+                .await?;
+            let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
+            if resp.error_code != 0 {
+                return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat"));
+            }
+            if let Some(id) = resp.member_id {
+                if !id.is_empty() {
+                    self.member_id = id;
+                }
+            }
+            if resp.member_epoch > 0 {
+                self.member_epoch = resp.member_epoch;
+                self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
+            }
+            self.apply_share_assignment(resp.assignment.as_deref());
+            if !self.assigned.is_empty() {
+                return Ok(());
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        Ok(())
     }
 
     /// Fetch records from assigned share partitions.
@@ -846,6 +944,7 @@ impl ShareGroup {
         }
         let started = Instant::now();
         let deadline = started + self.cfg.request_timeout;
+        self.ensure_assignment(deadline).await?;
         let mut attempt = 0u32;
         loop {
             match self.poll_leaders().await {
@@ -972,7 +1071,14 @@ impl ShareGroup {
             let epoch = self.session_epoch(node);
             let mut by_id: HashMap<[u8; 16], Vec<i32>> = HashMap::new();
             for (topic, p) in &tps {
-                let id = self.topic_ids.get(topic).copied().unwrap_or([0u8; 16]);
+                let id = self
+                    .topic_ids
+                    .get(topic)
+                    .copied()
+                    .filter(|id| *id != [0u8; 16])
+                    .ok_or_else(|| {
+                        Error::protocol(format!("share assignment missing topic id for {topic}"))
+                    })?;
                 by_id.entry(id).or_default().push(*p);
             }
             let topics: Vec<ShareFetchTopic> = by_id
@@ -1013,7 +1119,7 @@ impl ShareGroup {
                     timeout,
                 )
                 .await;
-            let mut body = match body {
+            let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     self.reset_node_session(node);
@@ -1021,15 +1127,18 @@ impl ShareGroup {
                 }
                 Err(e) => return Err(e),
             };
-            let (fetched, .., error_code) = match decode_share_fetch_response(&mut body, version) {
-                Ok(decoded) => decoded,
-                Err(e) => {
-                    if share_session_reset(&e) || share_leader_retriable(&e) {
-                        self.reset_node_session(node);
+
+            let (fetched, .., error_code) =
+                match decode_share_fetch_response(&mut body.clone(), version) {
+                    Ok(decoded) => decoded,
+                    Err(e) => {
+                        if share_session_reset(&e) || share_leader_retriable(&e) {
+                            self.reset_node_session(node);
+                        }
+                        return Err(e);
                     }
-                    return Err(e);
-                }
-            };
+                };
+
             if error_code != 0 {
                 let e = Error::broker(error_code, "ShareFetch");
                 if share_session_reset(&e) || share_leader_retriable(&e) {
@@ -1107,6 +1216,7 @@ impl ShareGroup {
             self.assigned.clear();
             self.topic_ids.clear();
             self.share_epochs.clear();
+            *self.hb_assignment.lock() = None;
             return Ok(());
         }
         self.topic_match = None;
@@ -1117,7 +1227,7 @@ impl ShareGroup {
         self.topics.clear();
         self.topic_ids.clear();
         self.share_epochs.clear();
-        self.member_id.clear();
+        self.member_id = Uuid::random_uuid().to_string();
         self.member_epoch = ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH;
         self.hb_epoch.store(
             ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
@@ -1172,7 +1282,7 @@ impl ShareGroup {
             self.heartbeat_join().await?;
             return Ok(());
         }
-        self.member_id = new_member_id()?;
+        self.member_id = Uuid::random_uuid().to_string();
         let (hb_stop, hb_rx) = watch::channel(false);
         self.hb_stop = hb_stop;
         self.heartbeat_join().await?;
@@ -1262,7 +1372,14 @@ impl ShareGroup {
                 if !node_tps.iter().any(|(t, p)| t == topic && p == part) {
                     continue;
                 }
-                let id = self.topic_ids.get(topic).copied().unwrap_or([0u8; 16]);
+                let id = self
+                    .topic_ids
+                    .get(topic)
+                    .copied()
+                    .filter(|id| *id != [0u8; 16])
+                    .ok_or_else(|| {
+                        Error::protocol(format!("share assignment missing topic id for {topic}"))
+                    })?;
                 match topics.iter_mut().find(|t| t.topic_id == id) {
                     Some(slot) => slot.partitions.push((*part, batches.clone())),
                     None => topics.push(ShareAckTopic {
@@ -1389,13 +1506,14 @@ impl ShareGroup {
             &mut self.coord,
             &self.cfg,
             &self.group_id,
-            COORDINATOR_SHARE,
+            COORDINATOR_GROUP,
             SHARE_GROUP_HEARTBEAT,
             version,
             |buf| encode_share_group_heartbeat_request(buf, version, &req),
             timeout,
         )
         .await?;
+
         let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat leave"));
@@ -1426,6 +1544,7 @@ impl ShareGroup {
         let member_id = self.member_id.clone();
         let hb_err = self.hb_err.clone();
         let hb_epoch = self.hb_epoch.clone();
+        let hb_assignment = self.hb_assignment.clone();
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
@@ -1445,7 +1564,7 @@ impl ShareGroup {
                             conn = None;
                         }
                         if conn.is_none() {
-                            conn = discover_coord(&cfg, &group_id, COORDINATOR_SHARE).await.ok();
+                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
                         }
                         let Some(c) = conn.as_mut() else {
                             continue;
@@ -1483,6 +1602,9 @@ impl ShareGroup {
                                         hb_err.store(resp.error_code, Ordering::SeqCst);
                                         if resp.member_epoch > 0 {
                                             hb_epoch.store(resp.member_epoch, Ordering::SeqCst);
+                                        }
+                                        if let Some(assignment) = resp.assignment {
+                                            *hb_assignment.lock() = Some(assignment);
                                         }
                                     }
                                 }

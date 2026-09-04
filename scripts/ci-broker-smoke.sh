@@ -3,9 +3,10 @@
 # Used by CI (broker-smoke job) and local verification.
 #
 # Env:
-#   KAFKA_IMAGE      default apache/kafka:3.9.1 (CI also runs apache/kafka:4.0.0)
+#   KAFKA_IMAGE      default apache/kafka:3.9.1 (CI also runs apache/kafka:4.1.0)
 #   KAFKA_BOOTSTRAP  default 127.0.0.1:9092
 #   SKIP_DOCKER=1    use an already-running broker at KAFKA_BOOTSTRAP (no Docker)
+#   REQUIRE_SHARE=1  fail if share smoke cannot fetch (default on Kafka 4.x images)
 #   CI=true          fail if docker is missing (unless SKIP_DOCKER=1)
 set -euo pipefail
 
@@ -18,6 +19,20 @@ BOOTSTRAP="${KAFKA_BOOTSTRAP:-127.0.0.1:9092}"
 TOPIC="${KAFKA_TOPIC:-pl-ci-smoke}"
 OUT_TOPIC="${KAFKA_OUTPUT_TOPIC:-pl-ci-smoke-out}"
 
+kafka_image_is_4x() {
+  [[ "$KAFKA_IMAGE" =~ :4\. ]] || [[ "$KAFKA_IMAGE" =~ /kafka:4 ]]
+}
+
+# KIP-932 share needs ShareFetch + finalized share.version=1.
+# Default: require on 4.x images; allow soft-skip on 3.x.
+if [[ -z "${REQUIRE_SHARE:-}" ]]; then
+  if kafka_image_is_4x; then
+    REQUIRE_SHARE=1
+  else
+    REQUIRE_SHARE=0
+  fi
+fi
+
 wait_tcp() {
   local host="${1%:*}" port="${1##*:}" i
   for i in $(seq 1 90); do
@@ -27,6 +42,53 @@ wait_tcp() {
     sleep 2
   done
   return 1
+}
+
+find_topics_bin() {
+  if command -v kafka-topics.sh >/dev/null 2>&1; then
+    command -v kafka-topics.sh
+    return 0
+  fi
+  local cand
+  for cand in \
+    /tmp/kafka_4.1.0/bin/kafka-topics.sh \
+    /tmp/kafka_4.0.0/bin/kafka-topics.sh \
+    /tmp/kafka_3.9.1/bin/kafka-topics.sh \
+    "${KAFKA_HOME:-}/bin/kafka-topics.sh"; do
+    if [[ -x "$cand" ]]; then
+      echo "$cand"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Finalize share.version=1 when the CLI is available (Docker or native).
+upgrade_share_feature() {
+  local mode="$1" # docker | native
+  local log=/tmp/pl-share-feature-smoke.log
+  if [[ "$mode" == "docker" ]]; then
+    if docker exec "$BROKER_NAME" /opt/kafka/bin/kafka-features.sh \
+      --bootstrap-server localhost:9092 upgrade --feature share.version=1 >"$log" 2>&1; then
+      echo "ci-broker-smoke: share.version=1"
+      return 0
+    fi
+  else
+    local features_bin="" topics_bin
+    if topics_bin="$(find_topics_bin)"; then
+      features_bin="${topics_bin%/*}/kafka-features.sh"
+    fi
+    if [[ -x "$features_bin" ]]; then
+      if "$features_bin" --bootstrap-server "$BOOTSTRAP" upgrade --feature share.version=1 >"$log" 2>&1; then
+        echo "ci-broker-smoke: share.version=1"
+        return 0
+      fi
+    else
+      return 0
+    fi
+  fi
+  # Already at level 1, or 3.x without the feature — not fatal here.
+  echo "ci-broker-smoke: share.version upgrade skipped (see $log)"
 }
 
 # group/eos examples loop forever — succeed if they print progress before timeout.
@@ -57,6 +119,10 @@ run_examples() {
   export KAFKA_OUTPUT_TOPIC="$OUT_TOPIC"
   export KAFKA_GROUP="pl-ci-group"
   export KAFKA_TRANSACTIONAL_ID="pl-ci-txn"
+
+  # Build once so timed paths (share/group/eos) are not racing cargo compile.
+  echo "== build examples =="
+  cargo build --release --examples
 
   echo "== roundtrip =="
   cargo run --release --example roundtrip
@@ -114,6 +180,56 @@ run_examples() {
     echo "ci-broker-smoke: eos not ready yet; retry $attempt"
     sleep 3
   done
+
+  # Cooperative-sticky rebalance path (KIP-429).
+  echo "== cooperative =="
+  cargo run --release --example produce >/dev/null
+  export KAFKA_GROUP="pl-ci-coop"
+  for attempt in 1 2 3 4 5 6; do
+    if run_until_progress "cooperative" '@[0-9]+' cargo run --release --example cooperative; then
+      break
+    fi
+    if [[ "$attempt" -eq 6 ]]; then
+      echo "ci-broker-smoke: cooperative example failed after retries" >&2
+      exit 1
+    fi
+    echo "ci-broker-smoke: cooperative not ready yet; retry $attempt"
+    sleep 3
+  done
+
+  # KIP-932 share groups need Kafka 4.x ShareFetch + share.version=1.
+  # Default share.auto.offset.reset is latest, so produce while the share
+  # member is already polling (not only beforehand).
+  echo "== share =="
+  export KAFKA_GROUP="pl-ci-share"
+  share_log="$(mktemp)"
+  set +e
+  timeout 45s cargo run --release --example share >"$share_log" 2>&1 &
+  share_pid=$!
+  set -e
+  sleep 4
+  cargo run --release --example produce >/dev/null || true
+  cargo run --release --example produce >/dev/null || true
+  set +e
+  wait "$share_pid"
+  share_rc=$?
+  set -e
+  if grep -E -- '@[0-9]+' "$share_log" >/dev/null; then
+    echo "ci-broker-smoke: share ok"
+  elif [[ "$REQUIRE_SHARE" == "1" ]]; then
+    echo "ci-broker-smoke: share failed (REQUIRE_SHARE=1, rc=$share_rc); log:" >&2
+    cat "$share_log" >&2 || true
+    rm -f "$share_log"
+    exit 1
+  elif grep -qiE 'Unsupported|does not support Share' "$share_log"; then
+    echo "ci-broker-smoke: share skipped (broker lacks ShareFetch; use Kafka 4.x + share.version=1)"
+  else
+    echo "ci-broker-smoke: share failed (rc=$share_rc); log:" >&2
+    cat "$share_log" >&2 || true
+    rm -f "$share_log"
+    exit 1
+  fi
+  rm -f "$share_log"
 }
 
 if [[ "${SKIP_DOCKER:-}" == "1" ]]; then
@@ -124,16 +240,16 @@ if [[ "${SKIP_DOCKER:-}" == "1" ]]; then
   fi
   # Topic create via kafka CLI when available (PATH or common native install).
   topics_bin=""
-  if command -v kafka-topics.sh >/dev/null 2>&1; then
-    topics_bin="$(command -v kafka-topics.sh)"
-  elif [[ -x /tmp/kafka_3.9.1/bin/kafka-topics.sh ]]; then
-    topics_bin=/tmp/kafka_3.9.1/bin/kafka-topics.sh
-  fi
-  if [[ -n "$topics_bin" ]]; then
+  if topics_bin="$(find_topics_bin)"; then
     "$topics_bin" --bootstrap-server "$BOOTSTRAP" --create --if-not-exists \
       --topic "$TOPIC" --partitions 1 --replication-factor 1 || true
     "$topics_bin" --bootstrap-server "$BOOTSTRAP" --create --if-not-exists \
       --topic "$OUT_TOPIC" --partitions 1 --replication-factor 1 || true
+  fi
+  upgrade_share_feature native || true
+  # Native Kafka 4.x share smoke should be required when features CLI is present.
+  if [[ "$REQUIRE_SHARE" != "1" ]] && [[ -x /tmp/kafka_4.1.0/bin/kafka-features.sh || -x /tmp/kafka_4.0.0/bin/kafka-features.sh ]]; then
+    REQUIRE_SHARE=1
   fi
   run_examples
   echo "ci-broker-smoke: ok (existing broker $BOOTSTRAP)"
@@ -156,7 +272,18 @@ trap cleanup EXIT
 
 cleanup
 # Official apache/kafka image defaults to KRaft and advertises localhost:9092.
-if ! docker run -d --name "$BROKER_NAME" -p 9092:9092 "$KAFKA_IMAGE"; then
+# For 4.x, enable share coordinator state topic RF=1 and (on 4.0/4.1) the
+# temporary group.share.enable flag; then finalize share.version=1 after ready.
+docker_run_args=(-d --name "$BROKER_NAME" -p 9092:9092)
+if kafka_image_is_4x; then
+  docker_run_args+=(
+    -e KAFKA_GROUP_SHARE_ENABLE=true
+    -e KAFKA_UNSTABLE_API_VERSIONS_ENABLE=true
+    -e KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR=1
+    -e KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR=1
+  )
+fi
+if ! docker run "${docker_run_args[@]}" "$KAFKA_IMAGE"; then
   echo "ci-broker-smoke: docker run failed (overlay often broken in nested VMs)." >&2
   echo "ci-broker-smoke: start a native broker and re-run with SKIP_DOCKER=1" >&2
   if [[ "${CI:-}" == "true" ]]; then
@@ -179,6 +306,10 @@ if [[ "$ready" != "1" ]]; then
   echo "ci-broker-smoke: broker did not become ready" >&2
   docker logs "$BROKER_NAME" >&2 || true
   exit 1
+fi
+
+if kafka_image_is_4x; then
+  upgrade_share_feature docker || true
 fi
 
 docker exec "$BROKER_NAME" /opt/kafka/bin/kafka-topics.sh \

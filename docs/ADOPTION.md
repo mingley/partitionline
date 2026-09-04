@@ -26,9 +26,10 @@ partitionline = "0.1"
 2. Classic or cooperative groups (`examples/group`, `examples/cooperative`).
 3. TLS (`rustls`) and SCRAM or OIDC as required (`examples/tls`, `examples/sasl`).
 4. Transactions / EOS if you need them (`examples/txn`, `examples/eos`).
-5. Scrape `Producer` / `Consumer` / `Admin` / `ShareGroup` metrics; optional
+5. Share groups on Kafka 4.1+ with `share.version=1` (`examples/share`).
+6. Scrape `Producer` / `Consumer` / `Admin` / `ShareGroup` metrics; optional
    `tracing` feature for spans (`docs/guide.md`).
-6. Read defaults that differ from Java (`auto.offset.reset=Earliest`, etc.).
+7. Read defaults that differ from Java (`auto.offset.reset=Earliest`, etc.).
 
 ## Known adoption gaps (honest)
 
