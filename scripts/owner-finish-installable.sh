@@ -17,6 +17,8 @@
 #   DRY_RUN=1 bash scripts/owner-finish-installable.sh
 #   PUBLISH_LOCAL=0 bash scripts/owner-finish-installable.sh   # tag → Actions instead
 #   MERGE_CIVILIZATION=0 bash scripts/owner-finish-installable.sh  # require already-on-main
+#   ALLOW_RED_MAIN=1 …   # override red main CI refuse (not recommended)
+#   REQUIRE_MAIN_CI=1 …  # also refuse when main CI is inconclusive
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -82,6 +84,29 @@ fi
 echo
 echo "== 2) Merge/tag readiness =="
 bash scripts/check-merge-ready.sh
+
+echo
+echo "== 2b) Main CI (Verifiable) =="
+# Red main CI refuses the cut (ALLOW_RED_MAIN=1 to override).
+# Inconclusive warns by default; REQUIRE_MAIN_CI=1 hard-gates that too.
+ci_rc=0
+bash scripts/check-main-ci.sh || ci_rc=$?
+if [[ "$ci_rc" -eq 1 ]]; then
+  if [[ "${ALLOW_RED_MAIN:-0}" == "1" ]]; then
+    echo "owner-finish-installable: ALLOW_RED_MAIN=1 — continuing despite red main CI" >&2
+  else
+    echo "owner-finish-installable: main HEAD CI is red — refusing Installable cut" >&2
+    echo "  Wait for green CI, or set ALLOW_RED_MAIN=1 to override (not recommended)." >&2
+    echo "  Probe: bash scripts/check-main-ci.sh" >&2
+    exit 1
+  fi
+elif [[ "$ci_rc" -eq 2 ]]; then
+  if [[ "${REQUIRE_MAIN_CI:-0}" == "1" ]]; then
+    echo "owner-finish-installable: REQUIRE_MAIN_CI=1 and main CI inconclusive — refusing" >&2
+    exit 1
+  fi
+  echo "owner-finish-installable: main CI inconclusive — continuing (set REQUIRE_MAIN_CI=1 to hard-gate)"
+fi
 
 if [[ "$CANCEL_STUCK" == "1" ]]; then
   echo
