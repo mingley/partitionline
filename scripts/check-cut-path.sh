@@ -12,6 +12,10 @@ echo "== check-cut-path: Installable preflight =="
 bash scripts/check-installable-preflight.sh
 
 echo
+echo "== check-cut-path: registry token probe self-test =="
+bash scripts/check-registry-token.sh --self-test
+
+echo
 echo "== check-cut-path: registry token probe =="
 tok_rc=0
 bash scripts/check-registry-token.sh || tok_rc=$?
