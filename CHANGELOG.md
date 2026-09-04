@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: `check-post-cut-parks-stack` also gates park chain (Verifiable⊆SCRAM⊆lz4⊆checkout) so parallel tip refreshes cannot fork CHANGELOG histories that only conflict at stacked land time.
 - Scripts/docs: rebuild lz4 + actions/checkout post-cut parks stacked on SCRAM (SCRAM⊆lz4⊆checkout) so tip→Verifiable→SCRAM→lz4→checkout DRY_RUN stays merge-clean after tip-is-ancestor gate; tip stays docs/scripts-only.
 - Scripts: `check-post-cut-parks-stack` gates tip-is-ancestor of every post-cut park (catches parks lagging tip after docs/scripts commits) before stacked DRY_RUN merge + `cargo test --lib`.
 - Dependencies: flate2 1.1.9→1.1.10 (gzip write header/footer infinite-loop fix; miniz_oxide 0.8→0.9). Parked off tip until after Installable (lockfile breaks docs-only tip-delta).
