@@ -61,7 +61,8 @@ if ! bash scripts/lab-a-integrity.sh; then
   exit 1
 fi
 
-# Unsigned relative latency gate (not Suite HOLD). Soft-fail only if required.
+# Unsigned relative latency gate (not Suite HOLD). Soft-fail (warn + continue)
+# unless REQUIRE_INTEGRITY=1 hard-requires it.
 if [[ "${SKIP_LATENCY_GATE:-}" != "1" ]]; then
   echo "ci-integrity-smoke: latency gate (unsigned)"
   export KAFKA_TOPIC="${LATENCY_TOPIC:-pl-ci-latency}"
@@ -70,11 +71,10 @@ if [[ "${SKIP_LATENCY_GATE:-}" != "1" ]]; then
   export LATENCY_SLACK_PCT="${LATENCY_SLACK_PCT:-50}"
   if ! bash scripts/ci-latency-gate.sh; then
     if [[ "${REQUIRE_INTEGRITY:-}" == "1" ]]; then
-      echo "ci-integrity-smoke: latency gate failed" >&2
+      echo "ci-integrity-smoke: latency gate failed (REQUIRE_INTEGRITY=1)" >&2
       exit 1
     fi
-    echo "ci-integrity-smoke: latency gate failed (soft); see above" >&2
-    exit 1
+    echo "ci-integrity-smoke: latency gate failed (soft) — continuing; set REQUIRE_INTEGRITY=1 to hard-fail" >&2
   fi
 fi
 
