@@ -4,9 +4,12 @@
 //! `SASL_MECHANISM` defaults to `SCRAM-SHA-256`. `KAFKA_USERNAME` /
 //! `KAFKA_PASSWORD` default to `alice` / `secret`.
 //!
+//! Set `TLS_CA_PEM` (and optionally `TLS_SERVER_NAME`) to use SASL over TLS
+//! (`SASL_SSL`) — the common production path. See `scripts/ci-auth-smoke.sh`.
+//!
 //! For OAUTHBEARER / OIDC, see `examples/oauth.rs`.
 
-use partitionline::{ProduceRecord, Producer, ProducerConfig, Sasl};
+use partitionline::{ProduceRecord, Producer, ProducerConfig, Sasl, TlsConfig};
 
 #[tokio::main]
 async fn main() -> partitionline::Result<()> {
@@ -26,7 +29,20 @@ async fn main() -> partitionline::Result<()> {
         }
     };
 
-    let producer = Producer::new(ProducerConfig::bootstrap([bootstrap]).sasl(sasl)).await?;
+    let mut cfg = ProducerConfig::bootstrap([bootstrap]).sasl(sasl);
+    if let Ok(ca_path) = std::env::var("TLS_CA_PEM") {
+        let mut tls = TlsConfig::default().ca_pem(tokio::fs::read(&ca_path).await.map_err(
+            |e| partitionline::Error::protocol(format!("read TLS_CA_PEM {ca_path}: {e}")),
+        )?);
+        if let Ok(name) = std::env::var("TLS_SERVER_NAME") {
+            if !name.is_empty() {
+                tls = tls.server_name(name);
+            }
+        }
+        cfg = cfg.tls(tls);
+    }
+
+    let producer = Producer::new(cfg).await?;
     let md = producer
         .send(ProduceRecord::to(topic).value(&b"hello over sasl"[..]))
         .await?;

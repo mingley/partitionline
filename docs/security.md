@@ -32,6 +32,10 @@ advisories when enabled). Do not open a public issue with exploit details.
 - Mock protocol tests exercise encode/decode extensively.
 - Real-broker smoke (`scripts/ci-broker-smoke.sh`) checks live produce/fetch
   against Apache Kafka in CI when Docker is available.
+- Auth smoke (`scripts/ci-auth-smoke.sh`) boots an isolated KRaft broker with
+  SASL_SSL + SCRAM-SHA-256, produces via `examples/sasl` (rustls), and checks
+  that TLS-without-SASL fails closed. Soft-skips without Java/openssl/Kafka
+  unless `REQUIRE_AUTH=1`.
 - Dependency advisories: CI `audit` job (`cargo audit`) and `deny` job
   (`cargo deny` via `deny.toml` / `scripts/ci-deny.sh`).
 - Supply-chain bans: `rdkafka` / `rdkafka-sys`, OpenSSL, `native-tls`,
