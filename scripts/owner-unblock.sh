@@ -18,11 +18,16 @@ echo "== 1) Current status =="
 bash scripts/owner-status.sh || true
 echo
 
-echo "== 2) Stale queued Actions (dry-run) =="
+echo "== 2) Stale queued Actions (dry-run + hygiene) =="
+bash scripts/check-actions-hygiene.sh || true
+echo
 DRY_RUN=1 bash scripts/owner-cancel-stuck-runs.sh || true
 echo
 echo "If targets listed above: cancel them as repo owner, then re-run this script."
 echo "  bash scripts/owner-cancel-stuck-runs.sh"
+echo
+echo "Especially cancel zombie-rc-release runs (RC tags must not publish) and"
+echo "stale tip CI queued from before tip auto-CI was disabled."
 echo
 
 echo "== 3) Merge/tag readiness (no token required) =="

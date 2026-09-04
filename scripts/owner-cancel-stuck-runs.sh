@@ -50,11 +50,29 @@ if [[ "${#cancels[@]}" -eq 0 ]]; then
 fi
 
 echo "Targets (${#cancels[@]}):"
+rc_zombies=0
+tip_zombies=0
 for line in "${cancels[@]}"; do
   IFS='|' read -r id branch event title url <<<"$line"
-  echo "  run ${id}  branch=${branch}  event=${event}  ${title}"
+  note=""
+  if [[ "$branch" =~ (-rc\.|-alpha\.|-beta\.|-pre) ]] && [[ "${title,,}" == *release* || "$event" == "push" ]]; then
+    # release.yml on tip is final-tag-only; RC tag pushes that still sit
+    # queued are pre-filter zombies starving runners.
+    if [[ "$branch" =~ ^v[0-9] ]]; then
+      note="  [zombie-rc-tag — safe to cancel; final-only release filter]"
+      rc_zombies=$((rc_zombies + 1))
+    fi
+  fi
+  if [[ "$branch" == dev/* ]]; then
+    note="  [stale tip run — tip auto-CI disabled; safe to cancel]"
+    tip_zombies=$((tip_zombies + 1))
+  fi
+  echo "  run ${id}  branch=${branch}  event=${event}  ${title}${note}"
   echo "    ${url}"
 done
+if (( rc_zombies + tip_zombies > 0 )); then
+  echo "Note: ${rc_zombies} RC-tag zombie(s), ${tip_zombies} tip-branch stale run(s) — cancelling frees runners for main/release."
+fi
 
 emit_cancel_lines() {
   echo "----"

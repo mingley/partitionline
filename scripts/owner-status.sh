@@ -35,6 +35,7 @@ else
   echo "queued runs (repo, up to 50): ${queued}"
   if [[ "$queued" != "?" && "$queued" != "0" ]]; then
     echo "  owner: bash scripts/owner-cancel-stuck-runs.sh   # or DRY_RUN=1 first"
+    bash scripts/check-actions-hygiene.sh || true
   fi
   echo "-- main (latest 2) --"
   gh run list --branch main --limit 2 2>/dev/null || echo "WARN  gh run list main failed"
