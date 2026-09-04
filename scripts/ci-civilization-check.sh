@@ -45,7 +45,7 @@ else
 fi
 
 echo "== Verifiable =="
-# Local mirror of Actions branch-lite (fmt/clippy/lib/docs) — evidence when GH is queued.
+# Local mirror of Actions branch-lite (fmt/clippy/lib/fuzz_decode_smoke/docs) — evidence when GH is queued.
 if bash scripts/ci-branch-lite.sh >/tmp/pl-branch-lite.log 2>&1; then
   ok "branch-lite gate (local mirror of Actions tip job)"
 else
@@ -58,9 +58,29 @@ if [[ -f fuzz/fuzz_targets/decode_fetch_response.rs \
    && -f fuzz/fuzz_targets/decode_metadata_response.rs \
    && -f fuzz/fuzz_targets/decode_group_responses.rs \
    && -f fuzz/fuzz_targets/decode_share_fetch_response.rs ]]; then
-  ok "fuzz targets present (>=3)"
+  ok "fuzz targets present (>=5: fetch/produce/metadata/group/share)"
 else
   bad "fuzz targets missing"
+fi
+# Stable adversarial decode smoke (no nightly/libFuzzer). branch-lite also runs this.
+if cargo test --test fuzz_decode_smoke --quiet >/tmp/pl-fuzz-decode.log 2>&1; then
+  ok "fuzz decode smoke (group/share/txn + hot paths; no panic)"
+else
+  bad "fuzz decode smoke; see /tmp/pl-fuzz-decode.log"
+fi
+# Optional short libFuzzer smoke when toolchain is present (nightly + g++).
+if command -v g++ >/dev/null 2>&1 && rustup toolchain list 2>/dev/null | grep -q nightly; then
+  if FUZZ_SECONDS="${FUZZ_SECONDS:-5}" bash scripts/ci-fuzz-smoke.sh >/tmp/pl-fuzz-libfuzzer.log 2>&1; then
+    ok "libFuzzer smoke (short)"
+  else
+    if [[ "${REQUIRE_FUZZ:-}" == "1" ]]; then
+      bad "libFuzzer smoke; see /tmp/pl-fuzz-libfuzzer.log"
+    else
+      ski "libFuzzer smoke (failed soft); see /tmp/pl-fuzz-libfuzzer.log"
+    fi
+  fi
+else
+  ski "libFuzzer smoke (need nightly + g++; stable decode smoke still required)"
 fi
 broker_ok=0
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then

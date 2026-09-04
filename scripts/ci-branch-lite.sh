@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tip Verifiable gate (fmt / clippy / lib tests / docs).
+# Tip Verifiable gate (fmt / clippy / lib tests / fuzz decode smoke / docs).
 # Mirrors what used to be the Actions `branch-lite` job. Tip (`dev/**`) pushes
 # no longer auto-queue CI while org runners are starved — run this locally
 # (also wired into civilization-check / owner-status). Full matrix: open a PR,
@@ -20,6 +20,12 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 echo "== ci-branch-lite: lib tests =="
 cargo test --lib
+
+# Integration adversarial decode smoke (group/share/txn + hot paths).
+# Actions `test` uses --all-targets; tip previously only ran --lib, so this
+# WP-2 surface never executed under the local Verifiable proxy.
+echo "== ci-branch-lite: fuzz decode smoke =="
+cargo test --test fuzz_decode_smoke
 
 echo "== ci-branch-lite: docs =="
 bash scripts/ci-docs.sh

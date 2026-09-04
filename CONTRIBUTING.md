@@ -17,7 +17,7 @@ GitHub Actions: `dev/**` tip pushes do **not** auto-queue CI (org runners were
 starved by perpetual tip `branch-lite` re-queues). Tip gate locally:
 
 ```
-bash scripts/ci-branch-lite.sh   # fmt, clippy, lib tests, docs
+bash scripts/ci-branch-lite.sh   # fmt, clippy, lib + fuzz_decode_smoke, docs
 ```
 
 Full matrix (MSRV, broker smoke, fuzz, deny, package, …) runs on pull requests,
