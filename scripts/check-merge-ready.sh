@@ -147,11 +147,19 @@ else
   warn "origin/main not available locally — fetch before merge"
 fi
 
-if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-  warn "CARGO_REGISTRY_TOKEN unset (needed for first crates.io publish / Actions secret)"
-else
-  ok "CARGO_REGISTRY_TOKEN is set in this environment"
-fi
+tok_rc=0
+bash scripts/check-registry-token.sh >/tmp/pl-merge-token.log 2>&1 || tok_rc=$?
+case "$tok_rc" in
+  0)
+    ok "CARGO_REGISTRY_TOKEN accepted by crates.io for publish-new auth"
+    ;;
+  2)
+    warn "CARGO_REGISTRY_TOKEN unset (needed for first crates.io publish / Actions secret; needs publish-new)"
+    ;;
+  *)
+    bad "CARGO_REGISTRY_TOKEN rejected by crates.io (recreate with publish-new; see check-registry-token)"
+    ;;
+esac
 
 # shellcheck source=scripts/lib/crates-io.sh
 source "$ROOT/scripts/lib/crates-io.sh"
