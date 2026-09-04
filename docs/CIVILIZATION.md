@@ -169,16 +169,28 @@ without a deployment need written here.
 
 ## Priority order for the next agents
 
-Execute in this sequence unless blocked:
+Execute in this sequence unless blocked. Tip is docs/scripts-only vs `main`
+while Installable waits — do not tip→main docs thrash and do not merge
+Dependabot lockfile/src/workflow bumps onto tip before crates.io `0.1.0`.
 
-1. **WP-0.1 → WP-0.4** (publish readiness)
-2. **WP-1.1 → WP-1.4** (real broker CI)
-3. **WP-3.1 → WP-3.2** (adoption docs)
-4. **WP-2.1 → WP-2.4** (fuzz + audit)
-5. **WP-4.1 → WP-4.2** (observability)
-6. **WP-0.5** (publish when owner can)
-7. **WP-5** then **WP-6** as evidence and demand dictate
-8. **WP-7** in parallel whenever touching `.github` / CONTRIBUTING
+1. **WP-0.5 (Installable cut)** — owner sets Cloud Agent secret `CARGO_REGISTRY_TOKEN`
+   with crates.io scope **`publish-new`** (+ usually `publish-update`), then:
+   `bash scripts/owner-finish-installable.sh`
+   (Secrets deep link + ask: `bash scripts/owner-request-registry-token.sh`).
+   Prefer this over more tip Installable scaffolding — cut path is rehearsed
+   (`READY_EXCEPT_TOKEN`). Bare `owner-cut-release` auto-defaults `PUBLISH_LOCAL=1`
+   when the token is in-env.
+2. **Post-Installable handoff** — Trusted Publishing + parks + full bars:
+   `bash scripts/owner-post-installable-handoff.sh`
+   (`LAND_PARKS=1` to land post-cut parks; day1 README/ADOPTION preserved via
+   `preserve-day1-docs`; handoff `--self-test` gates that wiring).
+3. **Tip Verifiable honesty while waiting** — unsigned live-broker evidence via
+   `bash scripts/ci-tip-verifiable-broker.sh` (soft-skips/`PARTIAL` must not
+   greenwash; soft latency miss is `PARTIAL`, not `ok`). Never lift Suite HOLD
+   without signed Lab A.
+4. **WP-5 / WP-6** as evidence and adopter demand dictate (signed Suite HOLD
+   external; schema companion after core publish).
+5. **WP-7** in parallel whenever touching `.github` / CONTRIBUTING.
 
 ## Progress
 
