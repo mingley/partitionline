@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: `ci-broker-smoke` `SKIP_DOCKER=1` path now uses `ensure-broker` to start native Kafka when 9092 is down (agent Verifiable re-entry after auth/integrity) instead of hard-failing.
 - Scripts: shared `scripts/lib/ensure-broker.sh` starts native Kafka when 9092 is down; `ci-latency-gate` uses it before benching, and `ci-integrity-smoke` no longer stops a shared native broker on EXIT (so agent Verifiable chains integrity → latency without Connection refused).
 - Scripts: `ci-broker-smoke` auto-starts native Kafka (`ci-native-kafka.sh`) when Docker overlay mounts fail in nested Cloud Agent VMs, so local Verifiable does not soft-skip the broker gate.
 - Docs: same-day native Verifiable recheck on tip `3a1b00a` (broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈147–161µs after under-load miss ≈1007µs, fuzz decode smoke) recorded unsigned; not a Suite HOLD lift.
