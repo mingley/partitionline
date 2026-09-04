@@ -35,7 +35,9 @@ One-time setup (first crates.io cut):
    Publishing and keep only a short-lived or narrowly scoped token as backup.
 2. Add repository secret `CARGO_REGISTRY_TOKEN` (Settings → Secrets → Actions).
    Probe without printing: `bash scripts/check-registry-token.sh` (exit 2 = missing,
-   0 = crates.io accepted the token, 1 = rejected).
+   0 = crates.io accepted the token for publish-new auth via a structured
+   empty-tarball PUT that cannot create a crate, 1 = rejected).
+   `bash scripts/check-registry-token.sh --self-test` proves fake tokens fail.
    Required for the **first** publish — Trusted Publishing can only be
    configured after the crate exists on crates.io.
 3. Ensure CHANGELOG has a dated `0.1.0` (or next) section and README is ready
