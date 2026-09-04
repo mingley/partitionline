@@ -101,10 +101,13 @@ fi
 
 if [[ "$PUBLISH_LOCAL" == "1" ]]; then
   if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-    echo "owner-cut-release: PUBLISH_LOCAL=1 requires CARGO_REGISTRY_TOKEN in the environment." >&2
-    exit 1
-  fi
-  if [[ "$DRY_RUN" == "1" ]]; then
+    if [[ "$DRY_RUN" == "1" ]]; then
+      echo "owner-cut-release: DRY_RUN=1 — would require CARGO_REGISTRY_TOKEN then owner-publish + push ${tag}"
+    else
+      echo "owner-cut-release: PUBLISH_LOCAL=1 requires CARGO_REGISTRY_TOKEN in the environment." >&2
+      exit 1
+    fi
+  elif [[ "$DRY_RUN" == "1" ]]; then
     echo "owner-cut-release: DRY_RUN=1 — would run owner-publish.sh then push ${tag}"
   else
     # owner-publish already runs day1 by default; avoid double day1 below.
