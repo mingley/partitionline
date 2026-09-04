@@ -74,14 +74,16 @@ pl_tip_verifiable_finalize() {
 }
 
 # Interpret integrity-smoke log into integ_ok / soft_skip / fail.
-# Soft latency miss must not count as full integrity ok even if smoke prints ok.
+# Soft latency miss must not count as full integrity ok (leaf prints PARTIAL/exit 2;
+# older logs may still print ok after soft — refuse either way).
 # Args: log_path; sets globals tip_integ_ok tip_integ_soft tip_integ_fail_msg
 pl_tip_verifiable_interpret_integrity() {
   local log="$1"
   tip_integ_ok=0
   tip_integ_soft=0
   tip_integ_fail_msg=""
-  if grep -q 'latency gate failed (soft)' "$log"; then
+  if grep -q 'latency gate failed (soft)' "$log" \
+    || grep -q 'ci-integrity-smoke: PARTIAL' "$log"; then
     tip_integ_soft=1
     tip_integ_fail_msg=""
     return 0
@@ -134,7 +136,8 @@ pl_tip_verifiable_quiet_retry_integrity() {
       echo "ci-tip-verifiable-broker: quiet latency recheck ok (unsigned; not a Suite HOLD lift)"
       return 0
     fi
-    if grep -q 'latency gate failed (soft)' "$log"; then
+    if grep -q 'latency gate failed (soft)' "$log" \
+      || grep -q 'ci-integrity-smoke: PARTIAL' "$log"; then
       echo "ci-tip-verifiable-broker: quiet recheck still soft-latency miss"
       continue
     fi
@@ -191,8 +194,8 @@ if [[ "${1:-}" == "--self-test" ]]; then
   cat >"$soft_lat_log" <<'EOF'
 ci-integrity-smoke: Lab A integrity COUNT=2000
 ci-integrity-smoke: latency gate (unsigned)
-ci-integrity-smoke: latency gate failed (soft) — continuing; set REQUIRE_INTEGRITY=1 to hard-fail
-ci-integrity-smoke: ok (unsigned; not a Suite HOLD lift)
+ci-integrity-smoke: latency gate failed (soft) — Lab A integrity held; latency not full evidence (set REQUIRE_INTEGRITY=1 to hard-fail)
+ci-integrity-smoke: PARTIAL — Lab A integrity ok but latency soft-miss (unsigned; not a Suite HOLD lift)
 EOF
   tip_integ_ok=0
   tip_integ_soft=0
@@ -280,9 +283,11 @@ EOF
 #!/usr/bin/env bash
 cat <<'SOFT'
 ci-integrity-smoke: Lab A integrity COUNT=2000
-ci-integrity-smoke: latency gate failed (soft) — continuing; set REQUIRE_INTEGRITY=1 to hard-fail
-ci-integrity-smoke: ok (unsigned; not a Suite HOLD lift)
+ci-integrity-smoke: latency gate failed (soft) — Lab A integrity held; latency not full evidence (set REQUIRE_INTEGRITY=1 to hard-fail)
+ci-integrity-smoke: PARTIAL — Lab A integrity ok but latency soft-miss (unsigned; not a Suite HOLD lift)
 SOFT
+# Soft leaf exits 2 — quiet retry must not promote on non-zero alone.
+exit 2
 EOF
   chmod +x "$quiet_dir/soft.sh"
   tip_integ_ok=0
@@ -405,8 +410,9 @@ fi
 if [[ "$tip_integ_ok" == "1" ]]; then
   echo "ci-tip-verifiable-broker: integrity-smoke ok (unsigned; not a Suite HOLD lift)"
   integ_ok=1
-elif grep -q 'latency gate failed (soft)' /tmp/pl-tip-integrity.log; then
-  # Soft latency under load: Lab A integrity may still pass and smoke still print ok.
+elif grep -q 'latency gate failed (soft)' /tmp/pl-tip-integrity.log \
+  || grep -q 'ci-integrity-smoke: PARTIAL' /tmp/pl-tip-integrity.log; then
+  # Soft latency under load: Lab A integrity may still pass; leaf prints PARTIAL/exit 2.
   # Tip Verifiable refuses full ok without a clean quiet recheck.
   if [[ "$REQUIRE_INTEGRITY" == "1" ]]; then
     echo "ci-tip-verifiable-broker: FAIL — latency soft-miss (REQUIRE_INTEGRITY=1)" >&2

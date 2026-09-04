@@ -93,7 +93,16 @@ if bash scripts/check-installable.sh; then
     exit 0
   fi
   bash scripts/day1-after-publish.sh
-  LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh
+  handoff_rc=0
+  LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+  if [[ "$handoff_rc" -eq 2 ]]; then
+    echo "owner-finish-installable: PARTIAL — ${name} ${ver} already Installable; handoff soft-failed"
+    echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    exit 2
+  elif [[ "$handoff_rc" -ne 0 ]]; then
+    echo "owner-finish-installable: FAIL — post-Installable handoff rc=${handoff_rc}" >&2
+    exit "$handoff_rc"
+  fi
   exit 0
 fi
 
@@ -356,9 +365,19 @@ if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
   land_parks=1
 fi
 echo "owner-finish-installable: LAND_PARKS=${land_parks} owner-post-installable-handoff"
-LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh
+handoff_rc=0
+LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
 
 echo
+if [[ "$handoff_rc" -eq 2 ]]; then
+  echo "owner-finish-installable: PARTIAL — ${name} ${ver} is Installable but handoff soft-failed"
+  echo "owner-finish-installable: commit README + docs/ADOPTION.md crates.io lines if day1 changed them"
+  echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+  exit 2
+elif [[ "$handoff_rc" -ne 0 ]]; then
+  echo "owner-finish-installable: FAIL — post-Installable handoff rc=${handoff_rc}" >&2
+  exit "$handoff_rc"
+fi
 echo "owner-finish-installable: OK — ${name} ${ver} is Installable"
 echo "owner-finish-installable: commit README + docs/ADOPTION.md crates.io lines if day1 changed them"
 echo "owner-finish-installable: re-enter anytime with:"
