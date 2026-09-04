@@ -79,6 +79,8 @@ Tip workflow header stays soft ("publish") until Installable; parked checkout pa
    `main`), or `bash scripts/owner-dispatch-first-publish.sh`.
    Cut-path and tip Verifiable rehearse visibility with
    `DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh` (no dispatch).
+   Cut-path also rehearses `DRY_RUN=1 bash scripts/day1-after-publish.sh` and
+   surfaces stale Actions queues via `bash scripts/check-actions-hygiene.sh`.
 
 Prefer `bash scripts/owner-finish-installable.sh` when the token is already
 in-env — it FF-merges, publishes locally, and does not wait on runners.
