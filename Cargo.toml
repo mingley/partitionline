@@ -98,7 +98,7 @@ flate2 = { version = "1", default-features = false, features = ["rust_backend"] 
 getrandom = "0.2"
 hmac = "0.12"
 lz4_flex = "0.11"
-pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
+pbkdf2 = { version = "0.13", default-features = false, features = ["hmac"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 sha2 = "0.10"
 snap = "1"
