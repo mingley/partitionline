@@ -14,6 +14,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   INT8 `-1`, and use the group coordinator for membership. Share smoke needs
   `group.share.enable` and finalized `share.version=1`.
 
+### Changed
+
+- Broker smoke: Kafka CI matrix uses `apache/kafka:4.1.0`; Docker 4.x starts with
+  share coordinator RF=1 and upgrades `share.version=1`; `REQUIRE_SHARE=1` fails
+  the job if share cannot fetch records on 4.x.
+
 ## [0.1.0] - 2026-09-03
 
 First crates.io-ready baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
@@ -34,7 +40,7 @@ First crates.io-ready baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
 - Operator docs: guide, rdkafka migration, security, release policy,
   API stability, civilization plan.
 - CI: mock tests (MSRV 1.85 + stable), clippy, audit, cargo-deny, `cargo package`,
-  broker-smoke (Kafka 3.9.1 + 4.0.0), fuzz-smoke, latency-gate.
+  broker-smoke (Kafka 3.9.1 + 4.1.0), fuzz-smoke, latency-gate.
 - libFuzzer targets under `fuzz/`; decode allocation DoS guards.
 - TLS PEM parsing via `rustls-pki-types` (no archived `rustls-pemfile`).
 
