@@ -38,6 +38,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Cut-release PUBLISH_LOCAL auto-default (2026-09-04):** bare `owner-cut-release` (stepwise docs) now defaults to `PUBLISH_LOCAL=1` when `CARGO_REGISTRY_TOKEN` is in-env and `PUBLISH_LOCAL` is unset — closing the token-day footgun where an in-env token was ignored and the cut waited on starved Actions. Explicit `PUBLISH_LOCAL=0` still forces tag → `release.yml`. Gated by `--self-test` in cut-path + bars — still not a Suite HOLD lift.
 
+**Cut-release owner-helper comments (2026-09-04):** `owner-unblock` / `owner-status` / merge-ready / publish-ready no longer steer bare `owner-cut-release` as tag→Actions; comments match the in-env auto `PUBLISH_LOCAL=1` default. Gated in cut-path + bars — still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
