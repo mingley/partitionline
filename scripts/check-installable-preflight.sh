@@ -10,10 +10,63 @@
 # Env:
 #   REQUIRE_MAIN_CI=1  treat inconclusive main CI (exit 3) as failure (exit 1) — default 0
 #   SKIP_MAIN_CI=1     skip the main CI probe entirely
+#
+# Usage:
+#   bash scripts/check-installable-preflight.sh
+#   bash scripts/check-installable-preflight.sh --self-test
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+
+# shellcheck source=scripts/lib/cargo-registry-token.sh
+source "$ROOT/scripts/lib/cargo-registry-token.sh"
+
+if [[ "${1:-}" == "--self-test" ]]; then
+  echo "check-installable-preflight: self-test — must prepare TOKEN (file/whitespace/misname) before READY_EXCEPT_TOKEN"
+  if ! grep -qF 'pl_prepare_cargo_registry_token' "$ROOT/scripts/check-installable-preflight.sh"; then
+    echo "check-installable-preflight: self-test FAIL — missing pl_prepare_cargo_registry_token" >&2
+    exit 1
+  fi
+  if ! grep -qF 'cargo-registry-token.sh' "$ROOT/scripts/check-installable-preflight.sh"; then
+    echo "check-installable-preflight: self-test FAIL — must source cargo-registry-token.sh" >&2
+    exit 1
+  fi
+  # Whitespace-only must become unset (else READY_EXCEPT_TOKEN is skipped and probe "rejects").
+  CARGO_REGISTRY_TOKEN='   '
+  export CARGO_REGISTRY_TOKEN
+  pl_prepare_cargo_registry_token "preflight-self-test" >/tmp/pl-preflight-prep.log 2>&1 || true
+  if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+    echo "check-installable-preflight: self-test FAIL — whitespace TOKEN still set after prepare" >&2
+    exit 1
+  fi
+  # Misname must WARN when exact TOKEN unset.
+  unset CARGO_REGISTRY_TOKEN || true
+  CARGO_TOKEN='fake-misname-for-self-test'
+  export CARGO_TOKEN
+  pl_prepare_cargo_registry_token "preflight-self-test" >/tmp/pl-preflight-misname.log 2>&1 || true
+  if ! grep -q 'misnamed token' /tmp/pl-preflight-misname.log; then
+    echo "check-installable-preflight: self-test FAIL — misname WARN missing" >&2
+    exit 1
+  fi
+  unset CARGO_TOKEN || true
+  # TOKEN_FILE must load into this shell.
+  _pl_tf="$(mktemp)"
+  printf 'file-token-self-test' >"$_pl_tf"
+  unset CARGO_REGISTRY_TOKEN || true
+  CARGO_REGISTRY_TOKEN_FILE="$_pl_tf"
+  export CARGO_REGISTRY_TOKEN_FILE
+  pl_prepare_cargo_registry_token "preflight-self-test" >/tmp/pl-preflight-file.log 2>&1 || true
+  rm -f "$_pl_tf"
+  unset CARGO_REGISTRY_TOKEN_FILE || true
+  if [[ "${CARGO_REGISTRY_TOKEN:-}" != "file-token-self-test" ]]; then
+    echo "check-installable-preflight: self-test FAIL — TOKEN_FILE did not load (got len=${#CARGO_REGISTRY_TOKEN})" >&2
+    exit 1
+  fi
+  unset CARGO_REGISTRY_TOKEN || true
+  echo "check-installable-preflight: self-test OK — prepare wires whitespace/misname/TOKEN_FILE before READY_EXCEPT_TOKEN"
+  exit 0
+fi
 
 REQUIRE_MAIN_CI="${REQUIRE_MAIN_CI:-0}"
 SKIP_MAIN_CI="${SKIP_MAIN_CI:-0}"
@@ -24,10 +77,15 @@ ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 echo "check-installable-preflight: ${name} ${ver}"
 echo
 
+# Normalize TOKEN_FILE / whitespace / misnames into *this* shell before any
+# READY_EXCEPT_TOKEN claim (raw [[ -z TOKEN ]] greenwashes Secrets typos).
+pl_prepare_cargo_registry_token "check-installable-preflight"
+
 echo "== honesty self-tests (no token required) =="
 # READY_EXCEPT_TOKEN must not be claimable if probe/PARTIAL units regress.
 # Same executable units as cut-path / owner-finish-installable step 0a.
 bash scripts/check-registry-token.sh --self-test
+bash scripts/check-installable-preflight.sh --self-test
 bash scripts/ci-tip-verifiable-broker.sh --self-test
 # Parks auto-refresh must restore main/caller before cut/publish (token-day footgun).
 bash scripts/check-parks-refresh-cut-guards.sh
@@ -120,8 +178,14 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
 fi
 
 echo "== registry token =="
-if ! bash scripts/check-registry-token.sh; then
-  echo "check-installable-preflight: FAIL — CARGO_REGISTRY_TOKEN set but crates.io rejected it" >&2
+tok_rc=0
+bash scripts/check-registry-token.sh || tok_rc=$?
+if [[ "$tok_rc" -eq 2 ]]; then
+  # Prepare should have cleared whitespace; unset mid-flight is still EXCEPT_TOKEN.
+  echo "check-installable-preflight: READY_EXCEPT_TOKEN (token unset after prepare)"
+  exit 0
+elif [[ "$tok_rc" -ne 0 ]]; then
+  echo "check-installable-preflight: FAIL — CARGO_REGISTRY_TOKEN set but crates.io rejected it (rc=${tok_rc})" >&2
   exit 1
 fi
 
