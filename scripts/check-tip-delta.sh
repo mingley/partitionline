@@ -40,6 +40,8 @@ expect_code() {
 echo "check-tip-delta: unit checks"
 expect_docs "docs/CIVILIZATION.md"
 expect_docs "scripts/owner-finish-installable.sh"
+expect_docs "scripts/owner-merge-parked-verifiable.sh"
+expect_docs "scripts/owner-land-post-cut-parks.sh"
 expect_docs "scripts/lib/tip-delta.sh"
 expect_docs "CHANGELOG.md"
 expect_docs "README.md"

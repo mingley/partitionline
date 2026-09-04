@@ -9,6 +9,7 @@ Civilization **Installable** is blocked only on credentials. Probe anytime:
 
 ```bash
 bash scripts/check-installable-preflight.sh   # READY_EXCEPT_TOKEN when cut-ready
+bash scripts/check-cut-path.sh                # preflight + tip-delta + parks stack + finish DRY_RUN
 bash scripts/owner-status.sh
 bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish path
 ```
@@ -26,11 +27,15 @@ bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish
    first cut):
    ```bash
    bash scripts/owner-finish-installable.sh
-
-After Installable lands, merge parked Verifiable work (`dev/verifiable-auth-integrity-fuzz-b686`: Actions `auth-smoke` + `integrity-smoke`, ConsumerGroupHeartbeat fuzz). Kept off tip so the token cut stays docs/scripts-only / one-shot `PUBLISH_LOCAL`.
    ```
    Fast-forwards tip → `main` once (if tip is ahead), publishes locally,
-   runs day1, and proves Installable. Or stepwise:
+   runs day1, and proves Installable. After Installable, finish chains
+   `owner-land-post-cut-parks.sh` by default (`MERGE_PARKED_VERIFIABLE=0` /
+   `MERGE_POST_CUT_PARKS=0` to skip): Verifiable auth/integrity Actions +
+   ConsumerGroupHeartbeat fuzz, then SCRAM crypto + flate2 1.1.10
+   (`dev/verifiable-auth-integrity-fuzz-b686`, `dev/scram-crypto-bumps-b686`).
+   Parks stay off tip so the token cut remains docs/scripts-only /
+   one-shot `PUBLISH_LOCAL`. Or stepwise:
    `bash scripts/owner-cut-release.sh` (tags **`v0.1.0`** final only).
    If the token is **Actions-only** (not in your shell): cancel stuck runs,
    then Actions → **First publish** → `confirm=publish` or

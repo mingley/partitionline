@@ -54,6 +54,9 @@ bash scripts/check-workflows.sh
 echo "== tip-delta classifier (cut/sync trust guard) =="
 bash scripts/check-tip-delta.sh
 
+echo "== post-cut parks stack rehearsal =="
+bash scripts/check-post-cut-parks-stack.sh
+
 echo "== merge/tag readiness =="
 bash scripts/check-merge-ready.sh
 

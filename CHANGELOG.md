@@ -9,6 +9,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: `owner-land-post-cut-parks.sh` lands Verifiable + flate2 + SCRAM crypto parks after Installable; `owner-finish-installable` chains it by default.
+- Scripts: READY_EXCEPT_TOKEN / owner-status / owner-unblock note that `owner-finish-installable` chains parked Verifiable merge by default.
+- Scripts: `owner-finish-installable` defaults to chaining `owner-merge-parked-verifiable` after Installable (`MERGE_PARKED_VERIFIABLE=0` skips).
+- Scripts: `owner-merge-parked-verifiable.sh` lands post-Installable Actions auth+integrity + ConsumerGroupHeartbeat fuzz from parked branch.
 - Docs/scripts: post-cut Verifiable handoff for parked `dev/verifiable-auth-integrity-fuzz-b686` (Actions auth+integrity jobs + ConsumerGroupHeartbeat fuzz); tip stays docs/scripts-only until Installable.
 - Docs: same-day native Verifiable recheck (broker kip848+share, auth matrix,
   integrity COUNT=2000, latency gate p99≈71–86µs) recorded in STATUS /
@@ -16,6 +20,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Fixed
 
+- Scripts: finish DRY_RUN hard-fails dirty post-cut parks stacks (no `|| true` greenwash); `check-cut-path` + owner-unblock surface tip→Verifiable→SCRAM stack gate.
+- Scripts: post-cut parks DRY_RUN uses a disposable worktree (no `checkout -f` on tip) so tip WIP is not discarded; tip Verifiable proxy hard-fails on dirty tip→Verifiable→SCRAM stacks (`check-post-cut-parks-stack`).
+- Scripts: tip Verifiable proxy (`ci-branch-lite` / `ci-publish-ready`) hard-fails when parked post-cut branches no longer stack-clean onto tip (`check-post-cut-parks-stack`); lander DRY_RUN prefers local tip when ahead of origin and honors `REQUIRE_PARKS=1`.
+- Scripts: `owner-land-post-cut-parks` DRY_RUN now performs real stacked merges (per-park merge-tree vs bare target hid tip→Verifiable→SCRAM CHANGELOG conflicts); SCRAM/flate2 park rebased onto tip for clean post-cut land.
 - Soft-skip honesty: optional kip848/share broker soft-skips only on Unsupported*/truncated-Protocol signals; civilization-check fails unexpected auth/integrity errors instead of SKIP-greenwashing.
 - CI broker-smoke: when `REQUIRE_KIP848=0` / `REQUIRE_SHARE=0` (Kafka 3.9 matrix), soft-skip kip848/share on truncated `Protocol` decode errors instead of hard-failing — KIP-848/share remain required on 4.x. Optional kip848 also stops retrying immediately on `Protocol(need N bytes)` so 3.9 matrix cells do not wait out six timeouts.
 - CI: stop injecting partial `KAFKA_*` env on `apache/kafka:4.x` Docker (was breaking KRaft format with missing `process.roles`); enable share via post-ready `share.version=1` upgrade only.
