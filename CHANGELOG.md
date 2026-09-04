@@ -24,7 +24,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 ### Added
 
 - `.github/workflows/first-publish.yml`: workflow_dispatch first crates.io
-  cut when `CARGO_REGISTRY_TOKEN` is an Actions secret (confirm=publish).
+  cut when `CARGO_REGISTRY_TOKEN` is an Actions secret (confirm=publish);
+  documented in ADOPTION / RELEASE / owner-finish-installable as the
+  Actions-only alternate to the in-env finish script.
 - `scripts/lib/adopter-consumer-main.sh`: shared operator-surface consumer
   used by `ci-crate-consumer` and `verify-crates-io-consumer` so packed-crate
   and crates.io proofs cannot drift.
