@@ -16,11 +16,13 @@ Civilization **Installable** is blocked only on credentials and merge:
    Local civilization-check includes broker + SASL_SSL PLAIN + SCRAM-256/512 +
    OAUTHBEARER + OIDC + mTLS. After merge, `ci.yml` cancels in-progress on
    `main` so the next push can clear a stuck predecessor.
-3. Merge `dev/civilization-plan-b686` → `main`, tag **`v0.1.0`** (final only —
-   not `-rc`; `release.yml` ignores prerelease tags), confirm
-   https://crates.io/crates/partitionline (`bash scripts/check-installable.sh`
-   should exit 0).
-4. Run `bash scripts/day1-after-publish.sh` and commit the README crates.io line.
+3. Merge `dev/civilization-plan-b686` → `main`, then on clean `main` run
+   `bash scripts/owner-cut-release.sh` (tags **`v0.1.0`** final only —
+   not `-rc`; `release.yml` ignores prerelease tags; waits for crates.io;
+   runs day1). Confirm https://crates.io/crates/partitionline
+   (`bash scripts/check-installable.sh` should exit 0).
+4. Commit the README crates.io line if day1 changed it; configure crates.io
+   Trusted Publishing for `release.yml`.
 
 Probe current blockers anytime:
 
