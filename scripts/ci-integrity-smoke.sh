@@ -78,8 +78,10 @@ if ! bash scripts/lab-a-integrity.sh; then
   exit 1
 fi
 
-# Unsigned relative latency gate (not Suite HOLD). Soft-fail (warn + continue)
-# unless REQUIRE_INTEGRITY=1 hard-requires it.
+# Unsigned relative latency gate (not Suite HOLD). Soft-miss must not print
+# final `ok` (civilization-check / tip Verifiable must not greenwash under load).
+# REQUIRE_INTEGRITY=1 hard-fails soft miss. Otherwise exit 2 + PARTIAL.
+latency_soft=0
 if [[ "${SKIP_LATENCY_GATE:-}" != "1" ]]; then
   echo "ci-integrity-smoke: latency gate (unsigned)"
   export KAFKA_TOPIC="${LATENCY_TOPIC:-pl-ci-latency}"
@@ -91,8 +93,14 @@ if [[ "${SKIP_LATENCY_GATE:-}" != "1" ]]; then
       echo "ci-integrity-smoke: latency gate failed (REQUIRE_INTEGRITY=1)" >&2
       exit 1
     fi
-    echo "ci-integrity-smoke: latency gate failed (soft) — continuing; set REQUIRE_INTEGRITY=1 to hard-fail" >&2
+    echo "ci-integrity-smoke: latency gate failed (soft) — Lab A integrity held; latency not full evidence (set REQUIRE_INTEGRITY=1 to hard-fail)" >&2
+    latency_soft=1
   fi
+fi
+
+if [[ "$latency_soft" == "1" ]]; then
+  echo "ci-integrity-smoke: PARTIAL — Lab A integrity ok but latency soft-miss (unsigned; not a Suite HOLD lift)"
+  exit 2
 fi
 
 echo "ci-integrity-smoke: ok (unsigned; not a Suite HOLD lift)"
