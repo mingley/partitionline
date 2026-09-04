@@ -49,23 +49,18 @@ fi
 
 # Soft-guard: if Installable is still unmet and tip delta is docs/scripts-only,
 # refuse by default so agents do not restart broker-smoke for changelog thrash.
-# owner-finish-installable FF's once at cut time.
+# owner-finish-installable FF's once at cut time (docs-only tip is OK to publish
+# because main Verifiable already covers the library bytes).
 if [[ "$ALLOW_DOCS_THRASH" != "1" ]]; then
   # shellcheck source=scripts/lib/crates-io.sh
   source "$ROOT/scripts/lib/crates-io.sh"
+  # shellcheck source=scripts/lib/tip-delta.sh
+  source "$ROOT/scripts/lib/tip-delta.sh"
   name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
   ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
   pl_crates_probe_version "$name" "$ver" "partitionline-owner-sync-main/1"
   if [[ "$PL_CRATES_PROBE_STATUS" == "absent" ]]; then
-    mapfile -t changed < <(git diff --name-only "$main_sha" "$tip_sha")
-    non_docs=0
-    for f in "${changed[@]}"; do
-      case "$f" in
-        docs/*|scripts/*|CHANGELOG.md|README.md|.github/PULL_REQUEST_TEMPLATE.md|.github/ISSUE_TEMPLATE/*) ;;
-        *) non_docs=1; break ;;
-      esac
-    done
-    if [[ "$non_docs" -eq 0 ]]; then
+    if pl_tip_delta_is_docs_only "$main_sha" "$tip_sha"; then
       echo "owner-sync-main: refusing docs/scripts-only tip→main while crates.io ${name} ${ver} is absent" >&2
       echo "  Every sync restarts the full broker-smoke matrix (cancel-in-progress)." >&2
       echo "  Leave tip ahead; owner-finish-installable will FF once at cut time." >&2

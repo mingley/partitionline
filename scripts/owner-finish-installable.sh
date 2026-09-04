@@ -19,6 +19,7 @@
 #   MERGE_CIVILIZATION=0 bash scripts/owner-finish-installable.sh  # require already-on-main
 #   ALLOW_RED_MAIN=1 …        # override red main CI refuse (not recommended)
 #   REQUIRE_MAIN_CI=0 …       # allow inconclusive main CI (default: require green when not DRY_RUN)
+#   ALLOW_UNVERIFIED_TIP=1 …  # allow PUBLISH_LOCAL of tip code not yet on green main (not recommended)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -42,6 +43,7 @@ PUBLISH_LOCAL="${PUBLISH_LOCAL:-1}"
 MERGE_CIVILIZATION="${MERGE_CIVILIZATION:-1}"
 CIVILIZATION_BRANCH="${CIVILIZATION_BRANCH:-dev/civilization-plan-b686}"
 CANCEL_STUCK="${CANCEL_STUCK:-1}"
+ALLOW_UNVERIFIED_TIP="${ALLOW_UNVERIFIED_TIP:-0}"
 
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
@@ -136,10 +138,38 @@ echo
 echo "== 4) Ensure clean main has civilization tip =="
 git fetch origin main "${CIVILIZATION_BRANCH}"
 
+# shellcheck source=scripts/lib/tip-delta.sh
+source "$ROOT/scripts/lib/tip-delta.sh"
+
+tip_sha="$(git rev-parse "origin/${CIVILIZATION_BRANCH}")"
+main_sha="$(git rev-parse origin/main)"
+echo "owner-finish-installable: origin/main=${main_sha:0:7} tip=${tip_sha:0:7}"
+
+# Trust rule: PUBLISH_LOCAL after FF is only safe when tip delta is docs/scripts
+# (library bytes already Verifiable-green on main) OR tip == main. Non-docs tip
+# drift must land on main and get green CI before the crates.io cut.
+tip_code_unverified=0
+if [[ "$main_sha" != "$tip_sha" ]] && ! pl_tip_delta_is_docs_only "$main_sha" "$tip_sha"; then
+  tip_code_unverified=1
+fi
+if [[ "$tip_code_unverified" -eq 1 && "$PUBLISH_LOCAL" == "1" && "$ALLOW_UNVERIFIED_TIP" != "1" ]]; then
+  echo "owner-finish-installable: refusing PUBLISH_LOCAL — tip has non-docs commits not on main" >&2
+  echo "  Pre-FF main CI does not cover tip library/workflow changes." >&2
+  echo "  1. CONFIRM=1 bash scripts/owner-sync-main.sh   # FF tip→main (code delta)" >&2
+  echo "  2. Wait until bash scripts/check-main-ci.sh is green on the new main HEAD" >&2
+  echo "  3. MERGE_CIVILIZATION=0 bash scripts/owner-finish-installable.sh" >&2
+  echo "  Override (not recommended): ALLOW_UNVERIFIED_TIP=1" >&2
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "owner-finish-installable: DRY_RUN=1 — would refuse here; continuing rehearsal" >&2
+  else
+    exit 1
+  fi
+fi
+if [[ "$tip_code_unverified" -eq 1 && "$ALLOW_UNVERIFIED_TIP" == "1" ]]; then
+  echo "owner-finish-installable: ALLOW_UNVERIFIED_TIP=1 — publishing tip code without tip-SHA Verifiable" >&2
+fi
+
 if [[ "$MERGE_CIVILIZATION" == "1" ]]; then
-  tip_sha="$(git rev-parse "origin/${CIVILIZATION_BRANCH}")"
-  main_sha="$(git rev-parse origin/main)"
-  echo "owner-finish-installable: origin/main=${main_sha:0:7} tip=${tip_sha:0:7}"
   if [[ "$main_sha" == "$tip_sha" ]]; then
     echo "owner-finish-installable: main already at civilization tip"
   else
@@ -148,6 +178,9 @@ if [[ "$MERGE_CIVILIZATION" == "1" ]]; then
       echo "owner-finish-installable: origin/main is not an ancestor of ${CIVILIZATION_BRANCH}" >&2
       echo "owner-finish-installable: open/merge a PR instead of fast-forward." >&2
       exit 1
+    fi
+    if [[ "$tip_code_unverified" -eq 0 ]]; then
+      echo "owner-finish-installable: tip delta is docs/scripts-only — FF+publish is Verifiable-safe"
     fi
     if [[ "$DRY_RUN" == "1" ]]; then
       echo "owner-finish-installable: DRY_RUN=1 — would fast-forward main to ${tip_sha:0:7}"
