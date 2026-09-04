@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Shared Cursor Cloud Agent env Secrets URL for Installable token injection.
+# Default ends in `/secrets` so post-login redirect lands on the Secrets tab.
 # Override with PARTITIONLINE_CURSOR_ENV_SECRETS_URL when the env moves.
 #
 # Usage (from other scripts):
