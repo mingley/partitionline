@@ -85,11 +85,23 @@ if bash scripts/check-installable.sh; then
     DRY_RUN=1 bash scripts/day1-after-publish.sh
     echo "owner-finish-installable: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
     # Parks dry-run inside handoff is stack-check only; keep REQUIRE_PARKS land rehearsal
-    # so soft-skipping parks here cannot lie about cut readiness.
+    # so soft-skipping parks here cannot lie about cut readiness. Capture rc so DRY_RUN
+    # can still surface PARTIAL (handoff DRY_RUN itself always exits 0).
+    parks_rc=0
     if [[ "$land_parks" == "1" ]]; then
-      DRY_RUN=1 REQUIRE_PARKS=1 bash scripts/owner-land-post-cut-parks.sh
+      DRY_RUN=1 REQUIRE_PARKS=1 bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?
     fi
-    LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh
+    handoff_rc=0
+    LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+    if [[ "$parks_rc" -ne 0 || "$handoff_rc" -eq 2 ]]; then
+      echo "owner-finish-installable: PARTIAL — already-Installable DRY_RUN soft-failed (parks_rc=${parks_rc} handoff_rc=${handoff_rc})"
+      echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+      exit 2
+    elif [[ "$handoff_rc" -ne 0 ]]; then
+      echo "owner-finish-installable: FAIL — already-Installable DRY_RUN handoff rc=${handoff_rc}" >&2
+      exit "$handoff_rc"
+    fi
+    echo "owner-finish-installable: DRY_RUN OK — already Installable path rehearsed"
     exit 0
   fi
   bash scripts/day1-after-publish.sh
