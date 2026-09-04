@@ -59,6 +59,10 @@ echo "== ci-branch-lite: Trusted Publishing workflow shape =="
 # OIDC release.yml shape must stay tip-gated; first cut still needs CARGO_REGISTRY_TOKEN.
 bash scripts/check-trusted-publishing-ready.sh
 
+echo "== ci-branch-lite: Trusted Publishing enable rehearsal (DRY_RUN) =="
+# Post-Installable OIDC UI checklist + shape; DRY_RUN allows absent crate.
+DRY_RUN=1 bash scripts/owner-enable-trusted-publishing.sh
+
 echo "== ci-branch-lite: workflow YAML =="
 bash scripts/check-workflows.sh
 
