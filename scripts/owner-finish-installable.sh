@@ -395,4 +395,9 @@ else
   echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=0 — skipped post-cut parks land"
   echo "  Later: bash scripts/owner-land-post-cut-parks.sh"
 fi
+
+echo
+echo "owner-finish-installable: re-verify / resume TP+parks anytime with:"
+echo "  bash scripts/owner-post-installable-handoff.sh"
+echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks were skipped/failed"
 exit 0

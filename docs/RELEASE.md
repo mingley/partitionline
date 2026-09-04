@@ -133,6 +133,16 @@ Probe anytime: `bash scripts/check-trusted-publishing-ready.sh`
 Owner one-shot after first cut: `bash scripts/owner-enable-trusted-publishing.sh`
 (`REQUIRE_INSTALLABLE=1` after crates.io cut).
 
+Re-enter the full post-Installable path (Installable + adopter pin + registry
+consumer + bars + Trusted Publishing + optional parks land) anytime — including
+after an Actions-alternate cut or when finish soft-failed TP/parks:
+
+```bash
+bash scripts/owner-post-installable-handoff.sh
+LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh
+DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh   # cut-path rehearses this
+```
+
 1. crates.io → `partitionline` → Settings → Trusted Publishing → Add.
 2. Platform: GitHub. Owner: `mingley`. Repository: `partitionline`.
    Workflow filename: `release.yml`.

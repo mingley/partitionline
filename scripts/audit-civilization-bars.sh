@@ -201,6 +201,15 @@ if [[ -x scripts/lib/preserve-day1-docs.sh ]] \
 else
   bad "day1 docs preserve missing or unwired; see /tmp/pl-day1-docs-preserve.log"
 fi
+# Post-Installable handoff must exist for TP/parks re-entry (Actions-alternate + soft-fails).
+if [[ -x scripts/owner-post-installable-handoff.sh ]] \
+  && grep -qF -- 'owner-post-installable-handoff.sh' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'owner-post-installable-handoff.sh' scripts/check-cut-path.sh \
+  && HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1; then
+  ok "post-Installable handoff (DRY_RUN; wired into finish + cut-path)"
+else
+  bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log"
+fi
 
 # --- 4. Honest ---
 echo
