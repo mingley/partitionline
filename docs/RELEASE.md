@@ -38,7 +38,7 @@ One-time setup (first crates.io cut):
      (name exactly `CARGO_REGISTRY_TOKEN`; restart/re-run the agent after save so
      `owner-finish-installable` can PUBLISH_LOCAL without waiting on Actions).
      Direct link (override with `PARTITIONLINE_CURSOR_ENV_SECRETS_URL` if the env
-     moves): https://cursor.com/dashboard/cloud-agents/environments/e/55ff85be-9e3a-11f1-a7d1-d6b4613131ce
+     moves): https://cursor.com/dashboard/cloud-agents/environments/e/55ff85be-9e3a-11f1-a7d1-d6b4613131ce/secrets
    - **GitHub Actions** repository secret (Settings → Secrets → Actions) for
      `release.yml` / `first-publish.yml`.
    Probe without printing: `bash scripts/check-registry-token.sh` (exit 2 = missing,
