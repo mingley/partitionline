@@ -226,6 +226,11 @@ run_examples() {
     if grep -qiE 'UnsupportedVersion|Unsupported|UNKNOWN_SERVER_ERROR|does not support|ConsumerGroupHeartbeat|InvalidRequest|API version' "$kip848_log"; then
       break
     fi
+    # Truncated Protocol bodies on 3.9 are terminal when KIP-848 is optional —
+    # do not burn six retries before the soft-skip path.
+    if [[ "${REQUIRE_KIP848:-0}" != "1" ]] && grep -qiE 'Protocol\(|need [0-9]+ bytes|have 0' "$kip848_log"; then
+      break
+    fi
     echo "ci-broker-smoke: kip848 not ready yet; retry $attempt"
     sleep 3
   done
