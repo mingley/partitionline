@@ -23,6 +23,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   SASL/TLS config), not only Producer.
 - `scripts/ci-civilization-check.sh`: Installable section uses shared crates.io
   probe, day1 README `DRY_RUN` preflight, merge-ready gate, and actions hygiene.
+- `scripts/audit-civilization-bars.sh`: evidence audit for the six CIVILIZATION
+  success bars (PASS/PARTIAL/BLOCKED/FAIL); wired into `owner-status`.
 
 - `examples/kip848`: KIP-848 next-gen consumer group join (`ConsumerGroup::join_consumer_topics`).
   Broker smoke runs it on Kafka 4.x (`REQUIRE_KIP848=1` default). Join now sends an

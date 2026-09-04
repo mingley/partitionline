@@ -114,6 +114,16 @@ else
   grep -E '^(FAIL|WARN|check-merge-ready:)' /tmp/pl-owner-merge-ready.log | tail -12 | sed 's/^/    /' || true
 fi
 
+echo
+echo "== Civilization bars =="
+if bash scripts/audit-civilization-bars.sh >/tmp/pl-owner-bars.log 2>&1; then
+  echo "  bars: $(tail -1 /tmp/pl-owner-bars.log)"
+else
+  echo "  bars: NOT COMPLETE (see summary)"
+  grep -E '^(PASS|PARTIAL|BLOCKED|FAIL|audit-civilization-bars:)' /tmp/pl-owner-bars.log \
+    | grep -E 'BLOCKED|FAIL|audit-civilization-bars:' | tail -8 | sed 's/^/    /' || true
+fi
+
 echo "owner-status: next"
 echo "  0. One-shot checklist: bash scripts/owner-unblock.sh"
 echo "  1. Set CARGO_REGISTRY_TOKEN (Cloud + Actions)"
