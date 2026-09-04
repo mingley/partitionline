@@ -2958,14 +2958,7 @@ fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
     let cert_path = dir.join("cert.pem");
     let output = Command::new("openssl")
         .args([
-            "req",
-            "-x509",
-            "-newkey",
-            "rsa:2048",
-            "-nodes",
-            "-days",
-            "1",
-            "-keyout",
+            "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-keyout",
         ])
         .arg(&key_path)
         .arg("-out")
