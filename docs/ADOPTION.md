@@ -102,5 +102,6 @@ native broker smoke and SASL_SSL PLAIN + SCRAM + OAUTHBEARER + OIDC + mTLS auth
 smoke. Same-day recheck: `SKIP_DOCKER=1` broker-smoke (kip848+share),
 `REQUIRE_AUTH=1` auth-smoke, integrity COUNT=2000 HW==acked+consumed==seeded,
 latency gate p99≈71–86µs vs 500µs baseline — all unsigned; not a Suite HOLD
-lift. GitHub Actions still cannot confirm Verifiable until org runners leave
-`queued`.
+lift. Later same day: local `KAFKA_IMAGE=apache/kafka:4.1.0` broker-smoke
+(kip848+share) green after the Docker `KAFKA_*` / `process.roles` fix; Actions
+`latency-gate` on `main` @ `910015f` also green (`LATENCY_LIMIT_US=5000`).

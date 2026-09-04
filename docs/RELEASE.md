@@ -44,13 +44,13 @@ Fastest first cut when `CARGO_REGISTRY_TOKEN` is already in the environment
 bash scripts/owner-finish-installable.sh
 # DRY_RUN=1 to rehearse; PUBLISH_LOCAL=0 to tag → release.yml instead
 # ALLOW_RED_MAIN=1 overrides a red main CI refuse (not recommended)
-# REQUIRE_MAIN_CI=1 also refuses when main CI is still inconclusive
+# REQUIRE_MAIN_CI defaults to 1 on real cuts (0 on DRY_RUN); set 0 to override
 ```
 
 That fast-forwards `main` to the civilization tip, publishes locally, runs
 day1, and proves Installable. Before cut it probes main CI via
-`scripts/check-main-ci.sh` so a known-red Verifiable tip cannot silently
-ship.
+`scripts/check-main-ci.sh` so a known-red or still-running Verifiable tip
+cannot silently ship (real cuts require terminal green unless overridden).
 
 If the token is only in **GitHub Actions** secrets (not Cloud Agent):
 

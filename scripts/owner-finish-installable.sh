@@ -17,14 +17,25 @@
 #   DRY_RUN=1 bash scripts/owner-finish-installable.sh
 #   PUBLISH_LOCAL=0 bash scripts/owner-finish-installable.sh   # tag → Actions instead
 #   MERGE_CIVILIZATION=0 bash scripts/owner-finish-installable.sh  # require already-on-main
-#   ALLOW_RED_MAIN=1 …   # override red main CI refuse (not recommended)
-#   REQUIRE_MAIN_CI=1 …  # also refuse when main CI is inconclusive
+#   ALLOW_RED_MAIN=1 …        # override red main CI refuse (not recommended)
+#   REQUIRE_MAIN_CI=0 …       # allow inconclusive main CI (default: require green when not DRY_RUN)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 DRY_RUN="${DRY_RUN:-0}"
+# Real Installable cuts require terminal green main CI by default. DRY_RUN keeps
+# the soft warn so rehearsal works while CI is still queued. Set REQUIRE_MAIN_CI=0
+# to override (not recommended for the first crates.io cut).
+if [[ -z "${REQUIRE_MAIN_CI:-}" ]]; then
+  if [[ "$DRY_RUN" == "1" ]]; then
+    REQUIRE_MAIN_CI=0
+  else
+    REQUIRE_MAIN_CI=1
+  fi
+fi
+export REQUIRE_MAIN_CI
 # Default local publish when a token is in-env — avoids the starved Actions queue
 # for the first crates.io cut. Set PUBLISH_LOCAL=0 to push a tag for release.yml.
 PUBLISH_LOCAL="${PUBLISH_LOCAL:-1}"
@@ -101,11 +112,12 @@ if [[ "$ci_rc" -eq 1 ]]; then
     exit 1
   fi
 elif [[ "$ci_rc" -eq 2 ]]; then
-  if [[ "${REQUIRE_MAIN_CI:-0}" == "1" ]]; then
+  if [[ "${REQUIRE_MAIN_CI}" == "1" ]]; then
     echo "owner-finish-installable: REQUIRE_MAIN_CI=1 and main CI inconclusive — refusing" >&2
+    echo "  Wait for green main CI (bash scripts/check-main-ci.sh), or REQUIRE_MAIN_CI=0 to override." >&2
     exit 1
   fi
-  echo "owner-finish-installable: main CI inconclusive — continuing (set REQUIRE_MAIN_CI=1 to hard-gate)"
+  echo "owner-finish-installable: main CI inconclusive — continuing (REQUIRE_MAIN_CI=0)"
 fi
 
 if [[ "$CANCEL_STUCK" == "1" ]]; then
