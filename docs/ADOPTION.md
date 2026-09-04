@@ -39,10 +39,10 @@ first release lands, pin a **tag** (not floating `main`):
 
 ```toml
 [dependencies]
-partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.5" }
+partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.6" }
 ```
 
-`v0.1.0-rc.5` tracks the civilization tip (rc.4 plus `scripts/check-adopter-pin.sh` so git pins cannot silently lag tip). Prefer this over floating `main`. After crates.io `0.1.0`, switch to:
+`v0.1.0-rc.6` tracks the civilization tip (rc.5 plus owner-publish→day1 chaining and refreshed native Kafka 4.1 broker smoke including kip848/share). Prefer this over floating `main`. After crates.io `0.1.0`, switch to:
 
 ```toml
 [dependencies]

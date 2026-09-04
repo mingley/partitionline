@@ -40,5 +40,17 @@ bash scripts/ci-publish-ready.sh
 cargo publish
 
 echo "owner-publish: published partitionline ${ver}"
-echo "owner-publish: next — tag v${ver}, push tag, flip README to crates.io dep,"
-echo "  confirm https://crates.io/crates/partitionline"
+echo "owner-publish: confirm https://crates.io/crates/partitionline"
+
+# Manual publish path: flip README once the index sees the crate.
+# Tag → Actions remains preferred (docs/RELEASE.md); set RUN_DAY1_AFTER_PUBLISH=0 to skip.
+if [[ "${RUN_DAY1_AFTER_PUBLISH:-1}" == "1" ]]; then
+  echo "owner-publish: running day1-after-publish (README flip + installable probe)"
+  bash scripts/day1-after-publish.sh
+  echo "owner-publish: commit the README crates.io line, then tag if release.yml did not:"
+  echo "  git add README.md && git commit -m \"README: crates.io ${ver}\""
+  echo "  git tag -a v${ver} -m \"partitionline ${ver}\" && git push origin main v${ver}"
+else
+  echo "owner-publish: next — tag v${ver}, push tag (or rely on release.yml),"
+  echo "  bash scripts/day1-after-publish.sh, commit README"
+fi
