@@ -354,6 +354,18 @@ if ! docker run "${docker_run_args[@]}" "$KAFKA_IMAGE"; then
     cleanup || true
     SKIP_DOCKER=1 exec bash "$0" "$@"
   fi
+  # Nested Cloud Agent VMs often cannot mount overlayfs. Prefer native Apache
+  # Kafka under /tmp (scripts/ci-native-kafka.sh) over soft-skipping Verifiable.
+  if [[ "${ALLOW_NATIVE_FALLBACK:-1}" == "1" ]] \
+      && [[ -x "$ROOT/scripts/ci-native-kafka.sh" ]]; then
+    echo "ci-broker-smoke: trying native Kafka via scripts/ci-native-kafka.sh start" >&2
+    if bash "$ROOT/scripts/ci-native-kafka.sh" start; then
+      trap - EXIT
+      cleanup || true
+      SKIP_DOCKER=1 exec bash "$0" "$@"
+    fi
+    echo "ci-broker-smoke: native Kafka start failed; see /tmp/partitionline-kafka.log" >&2
+  fi
   echo "ci-broker-smoke: no broker at $BOOTSTRAP; start native Kafka or set SKIP_DOCKER=1" >&2
   if [[ "${CI:-}" == "true" ]]; then
     exit 1

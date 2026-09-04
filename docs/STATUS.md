@@ -10,6 +10,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Native Verifiable recheck (2026-09-04, tip `d296897`):** native Kafka 4.1 broker-smoke (kip848+share) green; `REQUIRE_AUTH=1` auth-smoke SASL_SSL PLAIN+SCRAM-256/512+OAUTHBEARER+OIDC+mTLS fail-closed green; Lab A integrity COUNT=2000 HW==acked and consumed==seeded green; latency gate quiet p99≈220µs (pass vs 750µs) after under-agent-load miss ≈837µs; fuzz decode smoke green — still **unsigned**, still not a Suite HOLD lift. Named gaps stay closed: ElectLeaders (43), DescribeLogDirs v5, DescribeQuorum (55), Add/Remove/UpdateRaftVoter (80–82).
 
+**Native Verifiable recheck (2026-09-04, tip `3a1b00a`):** native Kafka 4.1 broker-smoke (kip848+share) green; `REQUIRE_AUTH=1` auth-smoke SASL_SSL PLAIN+SCRAM-256/512+OAUTHBEARER+OIDC+mTLS fail-closed green; Lab A integrity COUNT=2000 HW==acked and consumed==seeded green; latency quiet p99≈147–161µs (pass vs 750µs) after under-agent-load miss ≈1007µs; fuzz decode smoke green — still **unsigned**, still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
