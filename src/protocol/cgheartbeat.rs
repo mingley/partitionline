@@ -388,8 +388,6 @@ mod tests {
     }
 
     #[test]
-
-    #[test]
     fn join_encodes_empty_topic_partitions_array_not_null() {
         // Kafka rejects null TopicPartitions on join ("must be empty when (re-)joining").
         let req = ConsumerGroupHeartbeatRequest {
@@ -412,6 +410,7 @@ mod tests {
         assert!(cur.is_empty());
     }
 
+    #[test]
     fn consumer_group_heartbeat_v0_roundtrip_join() {
         let req = join_req();
         let mut buf = BytesMut::new();
