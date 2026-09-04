@@ -77,6 +77,8 @@ Tip workflow header stays soft ("publish") until Installable; parked checkout pa
    (+ usually `publish-update`) — same scope rule as the in-env cut.
 4. Actions → **First publish** → `confirm=publish` (optional `ref`, default
    `main`), or `bash scripts/owner-dispatch-first-publish.sh`.
+   Cut-path and tip Verifiable rehearse visibility with
+   `DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh` (no dispatch).
 
 Prefer `bash scripts/owner-finish-installable.sh` when the token is already
 in-env — it FF-merges, publishes locally, and does not wait on runners.

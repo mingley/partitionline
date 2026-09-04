@@ -86,6 +86,11 @@ echo "== ci-branch-lite: merge/tag readiness =="
 # Structural merge+tag readiness (version, CHANGELOG, release.yml, tip/main tree).
 bash scripts/check-merge-ready.sh
 
+echo "== ci-branch-lite: first-publish Actions alternate (DRY_RUN visibility) =="
+# Prove first-publish.yml remains workflow_dispatch-visible on main (Actions
+# alternate when token is Actions-secret-only). DRY_RUN=1 does not dispatch.
+DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh
+
 echo "== ci-branch-lite: civilization bars (PRE_PUBLISH) =="
 # Prove all bars except Installable credentials before the token cut.
 # FULL=0: avoid recursion when FULL=1 audit nests this script.
