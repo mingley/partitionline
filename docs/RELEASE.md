@@ -44,20 +44,25 @@ Workflow: `.github/workflows/release.yml` (fmt / clippy / test / package / publi
 
 ### Manual publish
 
+From a **clean `main`** checkout with `CARGO_REGISTRY_TOKEN` exported:
+
 ```bash
-cargo fmt --all -- --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-targets
-cargo package
-# review the .crate contents
-cargo publish
+bash scripts/ci-publish-ready.sh
+bash scripts/owner-publish.sh
+bash scripts/post-publish-readme.sh   # flips README to crates.io dep; commit
+git tag "v$(sed -n 's/^version = \"\(.*\)\"/\1/p' Cargo.toml | head -1)"
+git push origin "v$(sed -n 's/^version = \"\(.*\)\"/\1/p' Cargo.toml | head -1)"
 ```
+
+Or run the individual `cargo fmt` / `clippy` / `test` / `package` / `publish`
+steps yourself. Prefer the tag → Actions path when runners are healthy.
 
 After publish:
 
 1. Tag `vX.Y.Z` matching `Cargo.toml` (if not already tagged by Actions).
 2. Move CHANGELOG `[Unreleased]` into `[X.Y.Z]` if anything remains.
-3. Point README install at crates.io (not git) if the release job did not.
+3. Point README install at crates.io (`scripts/post-publish-readme.sh`) if the
+   release job did not.
 
 ## Honesty
 

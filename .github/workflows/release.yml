@@ -39,3 +39,19 @@ jobs:
             exit 1
           fi
           cargo publish --no-verify
+      - name: Confirm crates.io
+        run: |
+          ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsSA 'partitionline-ci/1' \
+              "https://crates.io/api/v1/crates/partitionline/${ver}" >/tmp/pl-crate.json; then
+              echo "crates.io has partitionline ${ver}"
+              ok=1
+              break
+            fi
+            echo "waiting for crates.io index (${i}/30)..."
+            sleep 10
+          done
+          test "$ok" = "1"
+          echo "Owner follow-up: bash scripts/post-publish-readme.sh && commit README on main."

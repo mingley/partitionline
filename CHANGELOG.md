@@ -7,22 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
-### Fixed
+## [0.1.0] - 2026-09-04
 
-- KIP-932 share groups on Kafka 4.1: join with a client Uuid member id, wait for
-  a real heartbeat assignment (no zero topic id), decode null Assignment as
-  INT8 `-1`, and use the group coordinator for membership. Share smoke needs
-  `group.share.enable` and finalized `share.version=1`.
-
-### Changed
-
-- Broker smoke: Kafka CI matrix uses `apache/kafka:4.1.0`; Docker 4.x starts with
-  share coordinator RF=1 and upgrades `share.version=1`; `REQUIRE_SHARE=1` fails
-  the job if share cannot fetch records on 4.x.
-
-## [0.1.0] - 2026-09-03
-
-First crates.io-ready baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
+First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
 
 ### Added
 
@@ -43,6 +30,21 @@ First crates.io-ready baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
   broker-smoke (Kafka 3.9.1 + 4.1.0), fuzz-smoke, latency-gate.
 - libFuzzer targets under `fuzz/`; decode allocation DoS guards.
 - TLS PEM parsing via `rustls-pki-types` (no archived `rustls-pemfile`).
+
+### Fixed
+
+- KIP-932 share groups on Kafka 4.1: join with a client Uuid member id, wait for
+  a real heartbeat assignment (no zero topic id), decode null Assignment as
+  INT8 `-1`, and use the group coordinator for membership. Share smoke needs
+  `group.share.enable` and finalized `share.version=1`.
+
+### Changed
+
+- Broker smoke: Kafka CI matrix uses `apache/kafka:4.1.0`; Docker 4.x starts with
+  share coordinator RF=1 and upgrades `share.version=1`; `REQUIRE_SHARE=1` fails
+  the job if share cannot fetch records on 4.x. Civilization-check only counts
+  broker smoke when the log contains `ci-broker-smoke: ok` (Docker soft-skips
+  are not evidence).
 
 ### Security
 
