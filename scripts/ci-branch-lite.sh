@@ -33,6 +33,12 @@ bash scripts/check-adopter-pin.sh
 echo "== ci-branch-lite: workflow YAML =="
 bash scripts/check-workflows.sh
 
+echo "== ci-branch-lite: tip-delta classifier (cut/sync trust guard) =="
+bash scripts/check-tip-delta.sh
+
+echo "== ci-branch-lite: day1 after-publish rehearsal (no crates.io wait) =="
+DRY_RUN=1 bash scripts/day1-after-publish.sh
+
 echo "== ci-branch-lite: docs =="
 bash scripts/ci-docs.sh
 
