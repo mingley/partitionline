@@ -59,6 +59,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- `scripts/check-adopter-pin.sh` allows docs/scripts tip drift without a new rc;
+  library/`Cargo.toml` changes since the pin still fail the gate.
+
 - `scripts/owner-publish.sh` runs `day1-after-publish` by default after a
   successful manual `cargo publish` (`RUN_DAY1_AFTER_PUBLISH=0` to skip).
 - Migration guide git pin → `v0.1.0-rc.6`; guide documents KIP-848 empty
