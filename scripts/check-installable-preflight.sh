@@ -31,6 +31,8 @@ bash scripts/check-registry-token.sh --self-test
 bash scripts/ci-tip-verifiable-broker.sh --self-test
 # Parks auto-refresh must restore main/caller before cut/publish (token-day footgun).
 bash scripts/check-parks-refresh-cut-guards.sh
+# Documented git pin must cargo-check while Installable waits (Adoptable before crates.io).
+MODE=git bash scripts/verify-crates-io-consumer.sh
 
 # Already published?
 if bash scripts/check-installable.sh >/tmp/pl-preflight-installable.log 2>&1; then
