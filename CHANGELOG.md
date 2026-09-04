@@ -7,6 +7,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+### Changed
+
+- Lab A produce harness exits non-zero unless broker HW sum equals acked each run.
+- Civilization/publish-ready gates verify a downstream crate can depend on the packed `.crate`.
+
 ## [0.1.0] - 2026-09-04
 
 First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).

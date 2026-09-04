@@ -136,7 +136,7 @@ standard service without reading `design.md` wire notes.
 
 | ID | Task | Acceptance |
 |---|---|---|
-| WP-5.1 | Automate Lab A produce bench harness script (topic recreate, HW check, three-run median) | `scripts/lab-a-produce.sh`; refuses to print win unless HW equals sent |
+| WP-5.1 | Automate Lab A produce bench harness script (topic recreate, HW check, three-run median) | `scripts/lab-a-produce.sh`; **exits non-zero unless HW sum equals acked** each run |
 | WP-5.2 | Keep fetch/latency this-VM results clearly **unsigned** until signed process exists | STATUS.md / benchmark.md labels unchanged unless signed |
 | WP-5.3 | Add latency regression gate: produce-ack p99 threshold on CI broker (relative, not vs C) | CI fails on large regressions vs recorded baseline file |
 
@@ -188,8 +188,8 @@ Execute in this sequence unless blocked:
 | WP-2 Adversarial trust | **done** | security.md + audit CI + `cargo deny` + PEM via rustls-pki-types + decode OOM guards + fuzz smoke + libFuzzer. |
 | WP-3 Operator docs | **done** | guide.md (incl. recipes) + migrate-from-rdkafka.md + ADOPTION.md + README links. |
 | WP-4 Observability | **done** | Metrics in guide; `tracing` feature; Prometheus text example. |
-| WP-5 Perf honesty | **in progress** | Lab A script (Docker or native `kafka-topics.sh`) + `latency-gate` CI (unsigned). 2026-09-04 native gate sample recorded in STATUS (not a Suite HOLD lift). Signed Suite HOLD still external. |
-| WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md + `docs/schema-companion.md` design (crate waits on crates.io). |
+| WP-5 Perf honesty | **in progress** | Lab A script enforces **HW sum == acked** each run (Docker or native kafka tools); `latency-gate` CI (unsigned). 2026-09-04 native gate sample in STATUS (not a Suite HOLD lift). Signed Suite HOLD still external. |
+| WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md + `docs/schema-companion.md` design (crate waits on crates.io). Packed-crate downstream consumer gate in civilization/publish-ready. |
 | WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish; civilization-check; `scripts/ci-publish-ready.sh`. |
 
 ## Success criteria (civilization bar)

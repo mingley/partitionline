@@ -23,6 +23,9 @@ bash scripts/ci-msrv.sh
 echo "== package =="
 cargo package
 
+echo "== crate consumer =="
+bash scripts/ci-crate-consumer.sh
+
 echo "== publish dry-run =="
 cargo publish --dry-run
 

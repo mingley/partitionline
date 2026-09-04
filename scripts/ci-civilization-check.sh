@@ -23,6 +23,11 @@ else
   bad "MSRV toolchain check; see /tmp/pl-msrv.log"
 fi
 if cargo package --allow-dirty --quiet; then ok "cargo package"; else bad "cargo package"; fi
+if bash scripts/ci-crate-consumer.sh >/tmp/pl-crate-consumer.log 2>&1; then
+  ok "packed crate downstream consumer"
+else
+  bad "packed crate downstream consumer; see /tmp/pl-crate-consumer.log"
+fi
 if cargo publish --dry-run --allow-dirty >/tmp/pl-publish-dry.log 2>&1; then
   ok "cargo publish --dry-run"
 else
