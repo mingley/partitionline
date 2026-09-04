@@ -280,7 +280,7 @@ fi
 echo
 echo "owner-finish-installable: OK — ${name} ${ver} is Installable"
 echo "owner-finish-installable: commit README crates.io line if day1 changed it"
-echo "owner-finish-installable: then crates.io → Trusted Publishing → release.yml"
+echo "owner-finish-installable: then: bash scripts/check-trusted-publishing-ready.sh"
 
 if [[ "${MERGE_POST_CUT_PARKS}" == "1" ]]; then
   echo
