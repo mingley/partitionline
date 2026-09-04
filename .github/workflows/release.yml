@@ -1,25 +1,33 @@
 name: release
 
-# Publishes to crates.io when a version tag is pushed.
+# Publishes to crates.io when a *final* version tag is pushed (vX.Y.Z only).
+# Prerelease / RC tags (v0.1.0-rc.1, v0.1.0-alpha.1, …) are for git install
+# pins only — they must not queue a publish job (wastes Actions capacity and
+# cannot match Cargo.toml when version is 0.1.0).
+#
 # Owner setup (one-time):
 #   1. crates.io → Account → New Token (scope: publish-update for partitionline)
 #   2. GitHub → Settings → Secrets → Actions → CARGO_REGISTRY_TOKEN
-#   3. git tag v0.1.0 && git push origin v0.1.0
+#   3. Merge civilization → main, then: git tag v0.1.0 && git push origin v0.1.0
 #
 # Optional: Actions → release → Run workflow (workflow_dispatch) after the
-# matching tag already exists on the tip you intend to publish.
+# matching final tag already exists on the tip you intend to publish.
 on:
   push:
-    tags: ["v*"]
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing version tag to publish (e.g. v0.1.0)"
+        description: "Existing final version tag to publish (e.g. v0.1.0)"
         required: true
         type: string
 
 permissions:
   contents: read
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   publish:
@@ -29,7 +37,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
-      - name: Verify tag matches Cargo.toml
+      - name: Verify tag matches Cargo.toml (final versions only)
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             tag="${{ inputs.tag }}"
@@ -37,6 +45,13 @@ jobs:
           else
             tag="${GITHUB_REF_NAME#v}"
           fi
+          case "$tag" in
+            *-*|*+*)
+              echo "Refusing prerelease/build tag '$tag' — crates.io publish is for final vX.Y.Z only." >&2
+              echo "Use a git tag like v0.1.0-rc.1 for install pins; tag v0.1.0 to publish." >&2
+              exit 1
+              ;;
+          esac
           ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           echo "tag=$tag cargo=$ver"
           test "$tag" = "$ver"

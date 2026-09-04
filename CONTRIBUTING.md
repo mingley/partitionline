@@ -23,7 +23,7 @@ Real-broker smoke (Docker required; skipped locally if Docker is missing unless 
 ```
 bash scripts/ci-broker-smoke.sh
 # optional: KAFKA_IMAGE=apache/kafka:4.0.0 bash scripts/ci-broker-smoke.sh
-# TLS + SCRAM (isolated ports; needs local Kafka/Java/openssl):
+# TLS + PLAIN/SCRAM/OAUTHBEARER (isolated ports; needs local Kafka/Java/openssl):
 bash scripts/ci-auth-smoke.sh
 ```
 

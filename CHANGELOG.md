@@ -36,6 +36,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 - Mock TLS fixture reads cert/key PEMs via `File` + `Read` instead of
   `std::fs::read`, restoring `clippy::disallowed_methods` / publish-ready.
+- `release.yml` only runs on final `vX.Y.Z` tags (not `v0.1.0-rc.*`), so git
+  RC install pins do not queue crates.io publish jobs or burn Actions capacity.
 
 ## [0.1.0] - 2026-09-04
 

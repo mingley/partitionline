@@ -32,10 +32,12 @@ One-time setup:
 3. Ensure CHANGELOG has a dated `0.1.0` (or next) section and README is ready
    to show the crates.io dependency line after the run.
 
-Then:
+Then (on `main`, after civilization is merged):
 
 ```bash
-# on main, version already set in Cargo.toml
+# Final version only — must match Cargo.toml exactly (e.g. 0.1.0 → v0.1.0).
+# Do not use v0.1.0-rc.1 here: RC tags are git install pins and do not
+# trigger release.yml (filter is vX.Y.Z only).
 git tag v0.1.0
 git push origin v0.1.0
 ```

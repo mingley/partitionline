@@ -86,10 +86,10 @@ if [[ "$broker_ok" -eq 0 ]]; then
     fi
   fi
 fi
-# TLS + SCRAM (SASL_SSL) path — isolated ports; soft-skips without Java/Kafka.
+# TLS + PLAIN/SCRAM/OAUTHBEARER (SASL_SSL) — isolated ports; soft-skips without Java/Kafka.
 if bash scripts/ci-auth-smoke.sh >/tmp/pl-auth.log 2>&1 \
   && grep -q 'ci-auth-smoke: ok' /tmp/pl-auth.log; then
-  ok "auth smoke (TLS + SCRAM SASL_SSL)"
+  ok "auth smoke (TLS + PLAIN/SCRAM/OAUTHBEARER SASL_SSL)"
 elif grep -q 'ci-auth-smoke: skipping' /tmp/pl-auth.log; then
   if [[ "${REQUIRE_AUTH:-}" == "1" ]]; then
     bad "auth smoke skipped; see /tmp/pl-auth.log"
