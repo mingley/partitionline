@@ -43,9 +43,11 @@ if [[ "$ok" != "1" ]]; then
     DRY_RUN=1 bash scripts/post-publish-readme.sh
     DRY_RUN=1 bash scripts/post-publish-adoption.sh
     echo
-    echo "day1-after-publish: DRY_RUN complete — publish first, then re-run without DRY_RUN"
-    echo "  Preferred cut: bash scripts/owner-finish-installable.sh"
-    exit 0
+    # Absent crate + DRY_RUN is rehearsal evidence, not Installable success.
+    # Exit PARTIAL/2 so cut-path / set -e proxies cannot print final OK as if published.
+    echo "day1-after-publish: PARTIAL — not yet Installable (crates.io missing ${ver}; DRY_RUN rehearsal only)" >&2
+    echo "  Preferred cut: bash scripts/owner-finish-installable.sh" >&2
+    exit 2
   fi
   echo "day1-after-publish: publish first (docs/RELEASE.md / scripts/owner-publish.sh)." >&2
   exit 1
