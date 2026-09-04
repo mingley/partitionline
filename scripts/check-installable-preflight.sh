@@ -82,8 +82,8 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "  Structural + Verifiable gates OK; crates.io cut blocked only on CARGO_REGISTRY_TOKEN."
   echo "  Next: export CARGO_REGISTRY_TOKEN (Cloud Agent + Actions), then:"
   echo "        bash scripts/owner-finish-installable.sh"
-  echo "        # publishes 0.1.0 then chains parked Verifiable merge by default"
-  echo "        # (MERGE_PARKED_VERIFIABLE=0 to skip auth/integrity Actions land)"
+  echo "        # publishes 0.1.0 then chains post-cut parks land by default"
+  echo "        # (MERGE_PARKED_VERIFIABLE=0 to skip Verifiable+flate2+SCRAM parks land)"
   exit 0
 fi
 

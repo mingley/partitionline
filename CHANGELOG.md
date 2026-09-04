@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: `owner-land-post-cut-parks.sh` lands Verifiable + flate2 + SCRAM crypto parks after Installable; `owner-finish-installable` chains it by default.
 - Scripts: READY_EXCEPT_TOKEN / owner-status / owner-unblock note that `owner-finish-installable` chains parked Verifiable merge by default.
 - Scripts: `owner-finish-installable` defaults to chaining `owner-merge-parked-verifiable` after Installable (`MERGE_PARKED_VERIFIABLE=0` skips).
 - Scripts: `owner-merge-parked-verifiable.sh` lands post-Installable Actions auth+integrity + ConsumerGroupHeartbeat fuzz from parked branch.

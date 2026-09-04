@@ -7,7 +7,7 @@
 #   3. Fast-forwards main to the civilization tip (MERGE_CIVILIZATION=1)
 #   4. Cuts vX.Y.Z via PUBLISH_LOCAL=1 by default (bypasses starved Actions)
 #   5. Runs day1 + check-installable + audit-civilization-bars
-#   6. Optionally merges parked Verifiable (MERGE_PARKED_VERIFIABLE=1 default)
+#   6. Optionally lands parked post-cut parks (MERGE_PARKED_VERIFIABLE=1 default)
 #
 # Prefer this over hand-assembling merge → tag → Actions when the Cloud Agent
 # (or owner shell) already has the crates.io token. Actions + OIDC remain the
@@ -46,9 +46,11 @@ MERGE_CIVILIZATION="${MERGE_CIVILIZATION:-1}"
 CIVILIZATION_BRANCH="${CIVILIZATION_BRANCH:-dev/civilization-plan-b686}"
 CANCEL_STUCK="${CANCEL_STUCK:-1}"
 ALLOW_UNVERIFIED_TIP="${ALLOW_UNVERIFIED_TIP:-0}"
-# After a successful Installable prove, land parked Verifiable work on main
-# (Actions auth+integrity + ConsumerGroupHeartbeat fuzz). Set 0 to skip.
+# After a successful Installable prove, land parked post-cut parks on main
+# (Verifiable auth/integrity/fuzz + flate2 gzip fix + SCRAM crypto bumps).
+# Set 0 to skip. Alias: MERGE_PARKED_VERIFIABLE still honored.
 MERGE_PARKED_VERIFIABLE="${MERGE_PARKED_VERIFIABLE:-1}"
+MERGE_POST_CUT_PARKS="${MERGE_POST_CUT_PARKS:-$MERGE_PARKED_VERIFIABLE}"
 
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
@@ -63,20 +65,20 @@ if bash scripts/check-installable.sh; then
   echo "owner-finish-installable: running day1 + bars audit"
   if [[ "$DRY_RUN" == "1" ]]; then
     echo "owner-finish-installable: DRY_RUN=1 — would run day1-after-publish + audit-civilization-bars"
-    if [[ "${MERGE_PARKED_VERIFIABLE:-1}" == "1" ]]; then
-      echo "owner-finish-installable: DRY_RUN=1 — would then run owner-merge-parked-verifiable.sh"
-      DRY_RUN=1 bash scripts/owner-merge-parked-verifiable.sh || true
+    if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
+      echo "owner-finish-installable: DRY_RUN=1 — would then run owner-land-post-cut-parks.sh"
+      DRY_RUN=1 bash scripts/owner-land-post-cut-parks.sh || true
     fi
     exit 0
   fi
   bash scripts/day1-after-publish.sh
   bash scripts/audit-civilization-bars.sh
-  if [[ "${MERGE_PARKED_VERIFIABLE:-1}" == "1" ]]; then
+  if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
     echo
     echo "== Land parked Verifiable on main =="
-    bash scripts/owner-merge-parked-verifiable.sh || {
-      echo "owner-finish-installable: WARN — parked Verifiable merge failed; Installable still OK" >&2
-      echo "  Retry: bash scripts/owner-merge-parked-verifiable.sh" >&2
+    bash scripts/owner-land-post-cut-parks.sh || {
+      echo "owner-finish-installable: WARN — post-cut parks land failed; Installable still OK" >&2
+      echo "  Retry: bash scripts/owner-land-post-cut-parks.sh" >&2
     }
   fi
   exit 0
@@ -232,9 +234,9 @@ if [[ "$DRY_RUN" == "1" ]]; then
     bash scripts/owner-cut-release.sh
   echo
   echo "owner-finish-installable: DRY_RUN complete — no merge/tag/publish performed"
-  if [[ "${MERGE_PARKED_VERIFIABLE:-1}" == "1" ]]; then
-    echo "owner-finish-installable: DRY_RUN=1 — would then run owner-merge-parked-verifiable.sh"
-    DRY_RUN=1 ALLOW_BEFORE_INSTALLABLE=1 bash scripts/owner-merge-parked-verifiable.sh || true
+  if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
+    echo "owner-finish-installable: DRY_RUN=1 — would then run owner-land-post-cut-parks.sh"
+    DRY_RUN=1 ALLOW_BEFORE_INSTALLABLE=1 bash scripts/owner-land-post-cut-parks.sh || true
   fi
   exit 0
 fi
@@ -267,20 +269,20 @@ echo "owner-finish-installable: OK — ${name} ${ver} is Installable"
 echo "owner-finish-installable: commit README crates.io line if day1 changed it"
 echo "owner-finish-installable: then crates.io → Trusted Publishing → release.yml"
 
-if [[ "${MERGE_PARKED_VERIFIABLE}" == "1" ]]; then
+if [[ "${MERGE_POST_CUT_PARKS}" == "1" ]]; then
   echo
   echo "== 8) Land parked Verifiable on main =="
-  echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=1 — merging auth+integrity Actions + cgheartbeat fuzz"
+  echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=1 — landing post-cut parks (Verifiable + flate2 + SCRAM crypto)"
   # Installable already proven above; merge script rechecks crates.io.
-  if bash scripts/owner-merge-parked-verifiable.sh; then
-    echo "owner-finish-installable: parked Verifiable landed on main"
+  if bash scripts/owner-land-post-cut-parks.sh; then
+    echo "owner-finish-installable: post-cut parks landed on main"
   else
-    echo "owner-finish-installable: WARN — parked Verifiable merge failed; Installable still OK" >&2
-    echo "  Retry: bash scripts/owner-merge-parked-verifiable.sh" >&2
+    echo "owner-finish-installable: WARN — post-cut parks land failed; Installable still OK" >&2
+    echo "  Retry: bash scripts/owner-land-post-cut-parks.sh" >&2
     echo "  Skip later: MERGE_PARKED_VERIFIABLE=0 bash scripts/owner-finish-installable.sh" >&2
   fi
 else
-  echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=0 — skipped parked Verifiable merge"
-  echo "  Later: bash scripts/owner-merge-parked-verifiable.sh"
+  echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=0 — skipped post-cut parks land"
+  echo "  Later: bash scripts/owner-land-post-cut-parks.sh"
 fi
 exit 0
