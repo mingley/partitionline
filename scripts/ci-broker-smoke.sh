@@ -114,6 +114,51 @@ run_examples() {
     echo "ci-broker-smoke: eos not ready yet; retry $attempt"
     sleep 3
   done
+
+  # Cooperative-sticky rebalance path (KIP-429).
+  echo "== cooperative =="
+  cargo run --release --example produce >/dev/null
+  export KAFKA_GROUP="pl-ci-coop"
+  for attempt in 1 2 3 4 5 6; do
+    if run_until_progress "cooperative" '@[0-9]+' cargo run --release --example cooperative; then
+      break
+    fi
+    if [[ "$attempt" -eq 6 ]]; then
+      echo "ci-broker-smoke: cooperative example failed after retries" >&2
+      exit 1
+    fi
+    echo "ci-broker-smoke: cooperative not ready yet; retry $attempt"
+    sleep 3
+  done
+
+  # KIP-932 share groups need Kafka 4.x ShareFetch + share.version=1.
+  # Default share.auto.offset.reset is latest, so produce while the share
+  # member is already polling (not only beforehand).
+  echo "== share =="
+  export KAFKA_GROUP="pl-ci-share"
+  share_log="$(mktemp)"
+  set +e
+  timeout 45s cargo run --release --example share >"$share_log" 2>&1 &
+  share_pid=$!
+  set -e
+  sleep 4
+  cargo run --release --example produce >/dev/null || true
+  cargo run --release --example produce >/dev/null || true
+  set +e
+  wait "$share_pid"
+  share_rc=$?
+  set -e
+  if grep -E -- '@[0-9]+' "$share_log" >/dev/null; then
+    echo "ci-broker-smoke: share ok"
+  elif grep -qiE 'Unsupported|does not support Share' "$share_log"; then
+    echo "ci-broker-smoke: share skipped (broker lacks ShareFetch; use Kafka 4.x + share.version=1)"
+  else
+    echo "ci-broker-smoke: share failed (rc=$share_rc); log:" >&2
+    cat "$share_log" >&2 || true
+    rm -f "$share_log"
+    exit 1
+  fi
+  rm -f "$share_log"
 }
 
 if [[ "${SKIP_DOCKER:-}" == "1" ]]; then

@@ -38,13 +38,21 @@ Supply-chain (`deny.toml`):
 bash scripts/ci-deny.sh
 ```
 
+Civilization bar self-check (package + deny + docs gates; broker optional):
+
+```
+bash scripts/ci-civilization-check.sh
+```
+
 Before a crates.io cut (owner token required for the real publish):
 
 ```
 bash scripts/ci-publish-ready.sh
 ```
 
-When Docker overlay is unavailable (common in nested VMs), use a native broker:
+When Docker overlay is unavailable (common in nested VMs), use a native broker
+(defaults to Kafka 4.1 with `group.share.enable` and `share.version=1` so KIP-932
+share smoke can run):
 
 ```
 bash scripts/ci-native-kafka.sh start
