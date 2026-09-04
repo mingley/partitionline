@@ -4,17 +4,21 @@
 # the token is already exported (no Actions queue wait).
 #
 # GitHub only lists workflow_dispatch workflows from the *default* branch.
-# So tip must already be on main (or the workflow file must exist on main)
-# before this dispatch works. Typical sequence:
+# Options to make first-publish.yml visible:
+#   A) Merge thin PR that adds only first-publish.yml onto main, or
+#   B) FF/merge full civilization tip → main
+# Then dispatch packages REF (default: civilization tip until tip is on main).
+#
+# Typical sequence:
 #   1. bash scripts/owner-cancel-stuck-runs.sh   # owner machine
-#   2. Merge/FF dev/civilization-plan-b686 → main
+#   2. Land first-publish.yml on main (thin PR or full tip FF)
 #   3. bash scripts/owner-dispatch-first-publish.sh
 #   4. bash scripts/check-installable.sh
 #   5. bash scripts/day1-after-publish.sh
 #
 # Usage:
 #   bash scripts/owner-dispatch-first-publish.sh
-#   REF=main bash scripts/owner-dispatch-first-publish.sh
+#   REF=dev/civilization-plan-b686 bash scripts/owner-dispatch-first-publish.sh
 #   DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh
 set -euo pipefail
 
@@ -22,7 +26,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 DRY_RUN="${DRY_RUN:-0}"
-REF="${REF:-main}"
+REF="${REF:-dev/civilization-plan-b686}"
 CONFIRM="${CONFIRM:-publish}"
 WORKFLOW="${WORKFLOW:-first-publish.yml}"
 
