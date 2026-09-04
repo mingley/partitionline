@@ -129,3 +129,12 @@ tip/`main` while Installable waits** — they break docs/scripts-only tip-delta 
 cancel-in-progress main CI. After crates.io `0.1.0`, land via
 `bash scripts/owner-land-post-cut-parks.sh` (or finish's default chain) and close
 the overlapping Dependabot PRs (#87 lz4_flex, #88–#91 sha2/flate2/pbkdf2/hmac, #92 actions/checkout).
+
+Executable gate (wired into cut-path + bars + actions hygiene):
+
+```bash
+bash scripts/check-dependabot-parks-coverage.sh
+```
+
+Unmapped open Dependabot cargo/Actions bumps fail the check so stewardship cannot
+drift while Installable waits.
