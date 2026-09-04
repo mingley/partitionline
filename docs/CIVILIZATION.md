@@ -94,8 +94,8 @@ steps.
 | WP-1.3 | Matrix at least one Kafka 3.9 and one 4.x broker image | Matrix documented in workflow comments |
 | WP-1.4 | Keep mock suite as default fast path; broker suite labeled / separate job | `cargo test` without Docker still passes locally |
 
-**Agent notes:** Prefer generating TLS/SASL fixtures in CI (rcgen already a
-dev-dep). Do not commit live secrets.
+**Agent notes:** Prefer generating TLS/SASL fixtures in CI (`openssl` CLI for
+mock TLS; see `tests/common/mod.rs`). Do not commit live secrets.
 
 ### WP-2 — Adversarial protocol trust
 

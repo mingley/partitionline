@@ -14,11 +14,7 @@ all-features = true
 [advisories]
 version = 2
 yanked = "deny"
-ignore = [
-    # Dev-only via rcgen. Patched time (>=0.3.47) needs rustc 1.88; MSRV is 1.85.
-    # Production/default feature graph does not depend on `time`.
-    { id = "RUSTSEC-2026-0009", reason = "dev-only (rcgen); MSRV 1.85 blocks patched time" },
-]
+ignore = []
 
 [licenses]
 version = 2

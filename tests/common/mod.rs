@@ -2940,13 +2940,65 @@ pub async fn wait_pred(what: &str, mut pred: impl FnMut() -> bool) {
 }
 
 fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
-    let pair = rcgen::generate_simple_self_signed(["localhost".into(), "127.0.0.1".into()])
-        .expect("rcgen");
-    let ca_pem = pair.cert.pem().into_bytes();
-    let cert_der = rustls::pki_types::CertificateDer::from(pair.cert.der().to_vec());
-    let key_der = rustls::pki_types::PrivateKeyDer::Pkcs8(
-        rustls::pki_types::PrivatePkcs8KeyDer::from(pair.key_pair.serialize_der()),
-    );
+    // Ephemeral self-signed cert via openssl CLI — avoids the rcgen→time
+    // RUSTSEC-2026-0009 advisory that cannot be patched under MSRV 1.85.
+    use rustls::pki_types::pem::PemObject;
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+    use std::process::Command;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT: AtomicU64 = AtomicU64::new(1);
+    let dir = std::env::temp_dir().join(format!(
+        "partitionline-tls-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(&dir).expect("tls temp dir");
+    let key_path = dir.join("key.pem");
+    let cert_path = dir.join("cert.pem");
+    let output = Command::new("openssl")
+        .args([
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-nodes",
+            "-days",
+            "1",
+            "-keyout",
+        ])
+        .arg(&key_path)
+        .arg("-out")
+        .arg(&cert_path)
+        .args([
+            "-subj",
+            "/CN=localhost",
+            "-addext",
+            "subjectAltName=DNS:localhost,IP:127.0.0.1",
+            // rustls rejects CA:TRUE leaves (CaUsedAsEndEntity).
+            "-addext",
+            "basicConstraints=critical,CA:FALSE",
+            "-addext",
+            "keyUsage=critical,digitalSignature,keyEncipherment",
+            "-addext",
+            "extendedKeyUsage=serverAuth",
+        ])
+        .output()
+        .expect("spawn openssl");
+    if !output.status.success() {
+        let _ = std::fs::remove_dir_all(&dir);
+        panic!(
+            "openssl req failed: {}\nstderr:\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let ca_pem = std::fs::read(&cert_path).expect("read cert pem");
+    let key_pem = std::fs::read(&key_path).expect("read key pem");
+    let _ = std::fs::remove_dir_all(&dir);
+
+    let cert_der = CertificateDer::from_pem_slice(&ca_pem).expect("parse cert pem");
+    let key_der = PrivateKeyDer::from_pem_slice(&key_pem).expect("parse key pem");
     let server = rustls::ServerConfig::builder()
         .with_no_client_auth()
         .with_single_cert(vec![cert_der], key_der)

@@ -69,7 +69,8 @@ bash scripts/ci-native-kafka.sh stop
 
 Please do not add librdkafka, or C compression libraries, as default dependencies. This crate forbids `unsafe`.
 
-MSRV is 1.85. `rcgen` pulls `time`; keep `time` at **0.3.41** in `Cargo.lock` (`0.3.55` needs rustc 1.88).
+MSRV is 1.85. Mock TLS fixtures use the `openssl` CLI (not `rcgen`) so the
+dev graph stays free of `time` / RUSTSEC-2026-0009 without raising MSRV.
 
 Do not claim Suite HOLD / signed bench wins without the process in `docs/STATUS.md` and `docs/benchmark.md`.
 

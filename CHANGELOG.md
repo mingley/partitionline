@@ -15,6 +15,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `examples/sasl` accepts optional `TLS_CA_PEM` / `TLS_SERVER_NAME` for the
   production SASL_SSL path.
 
+### Changed
+
+- Mock TLS fixtures use the `openssl` CLI instead of `rcgen`, dropping
+  `time` from the dependency graph and clearing the `RUSTSEC-2026-0009`
+  ignore in `deny.toml` / `.cargo/audit.toml` without raising MSRV.
+
 ## [0.1.0] - 2026-09-04
 
 First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
@@ -85,5 +91,4 @@ First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
 - Defaults that differ from Java: `auto.offset.reset=Earliest`,
   `allow.auto.create.topics=false`, shorter `delivery.timeout.ms` /
   `max.block.ms` (see README).
-- Dev-dep `time` (via `rcgen`) stays on 0.3.41 for MSRV 1.85; advisory
-  `RUSTSEC-2026-0009` ignored until an MSRV bump (see `deny.toml`).
+- Mock TLS fixtures use the `openssl` CLI (no `rcgen` / `time` in the graph).
