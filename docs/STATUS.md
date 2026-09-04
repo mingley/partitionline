@@ -40,6 +40,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Cut-release owner-helper comments (2026-09-04):** `owner-unblock` / `owner-status` / merge-ready / publish-ready no longer steer bare `owner-cut-release` as tag→Actions; comments match the in-env auto `PUBLISH_LOCAL=1` default. Gated in cut-path + bars — still not a Suite HOLD lift.
 
+**Tip Verifiable soft-latency honesty (2026-09-04):** `ci-tip-verifiable-broker` treats integrity `latency gate failed (soft)` as `PARTIAL` (exit 2) even when `ci-integrity-smoke` still prints `ok` — under-agent-load soft-misses can no longer greenwash tip Verifiable. `--self-test` covers the soft-latency interpret path; bars gate it. Handoff `--self-test` + bars also require day1 README/ADOPTION preserve on `LAND_PARKS=1`. Agent priority list in `docs/CIVILIZATION.md` now leads with WP-0.5 token cut — still **unsigned**, still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
