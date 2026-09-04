@@ -32,6 +32,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   (broker + SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER) while GitHub Actions
   remains queued.
 
+### Fixed
+
+- Mock TLS fixture reads cert/key PEMs via `File` + `Read` instead of
+  `std::fs::read`, restoring `clippy::disallowed_methods` / publish-ready.
+
 ## [0.1.0] - 2026-09-04
 
 First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
