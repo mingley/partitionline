@@ -1097,6 +1097,17 @@ mod tests {
     }
 
     #[test]
+    fn flexible_response_header_consumes_empty_tagged_fields() {
+        let mut buf = BytesMut::new();
+        encode_response_header(&mut buf, CONSUMER_GROUP_HEARTBEAT, 0, 9).unwrap();
+        assert_eq!(buf.len(), 5);
+        let mut cur = &buf[..];
+        let header = decode_response_header(&mut cur, CONSUMER_GROUP_HEARTBEAT, 0).unwrap();
+        assert_eq!(header.correlation_id, 9);
+        assert_eq!(cur.remaining(), 0);
+    }
+
+    #[test]
     fn share_group_heartbeat_v0_and_v1_are_flexible() {
         // Official Kafka 4.0 JSON: validVersions "0", flexibleVersions "0+".
         // Official Kafka 4.1 JSON: validVersions "1" (v0 removed).
