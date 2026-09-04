@@ -62,6 +62,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **First-publish already-Installable PARTIAL (2026-09-04):** `owner-dispatch-first-publish` refuses re-dispatch when crates.io already has the version (`PARTIAL`/exit 2 → handoff re-entry). Prevents soft-green no-op against `first-publish.yml`'s already-exists skip. Tip proxies capture `dispatch_rc`; self-test + bars gate. Still not a Suite HOLD lift.
 
+**Handoff parks-on-main PARTIAL (2026-09-04):** bare `owner-post-installable-handoff` (`LAND_PARKS=0`) no longer final-OKs while post-cut parks are off `origin/main`. Probes each park is an ancestor of main; exits `PARTIAL`/2 unless landed or `ALLOW_PARKS_PENDING=1`. `LAND_PARKS=1` now uses `REQUIRE_PARKS=1`. Self-test + bars gate. Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
