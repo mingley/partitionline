@@ -59,6 +59,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- `release.yml` prefers crates.io **Trusted Publishing** (OIDC via
+  `rust-lang/crates-io-auth-action`, `id-token: write`) and falls back to
+  `CARGO_REGISTRY_TOKEN` for the first publish. RELEASE.md / owner-unblock /
+  day1 document the post-0.1.0 migration off long-lived Actions secrets.
 - Tip Verifiable gates (`ci-branch-lite` / `ci-publish-ready`) run
   `scripts/check-workflows.sh` so invalid workflow YAML (the flush-left
   `run: |` class that empty-failed `release` on branch pushes) cannot regress

@@ -30,7 +30,10 @@ bash scripts/post-publish-readme.sh
 echo
 echo "day1-after-publish: next owner steps"
 echo "  1. Review and commit README crates.io dep + status blurb + crates.io/docs.rs badges"
-echo "  2. Ensure GitHub Actions secret CARGO_REGISTRY_TOKEN is set for future tags"
+echo "  2. Prefer crates.io Trusted Publishing for later tags (Settings → Trusted"
+echo "     Publishing → GitHub: mingley/partitionline, workflow release.yml)."
+echo "     Keep Actions secret CARGO_REGISTRY_TOKEN until an OIDC publish succeeds,"
+echo "     then remove the long-lived secret."
 echo "  3. Confirm docs.rs build for partitionline ${ver}"
 echo "  4. Comment on adoption survey #85 that crates.io install works"
 echo "  5. Update docs/CIVILIZATION.md WP-0 → done when MSRV CI is also green"

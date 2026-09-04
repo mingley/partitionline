@@ -14,10 +14,21 @@ name: release
 # (invalid YAML). Defense in depth: job-level `if` + input-safe expressions
 # so a spurious push evaluation stays a no-op instead of a red X.
 #
+# Auth (civilization-grade):
+#   Prefer crates.io Trusted Publishing (OIDC, short-lived token) via
+#   rust-lang/crates-io-auth-action. Fall back to repository secret
+#   CARGO_REGISTRY_TOKEN — required for the *first* crates.io publish
+#   (Trusted Publishing can only be configured after the crate exists).
+#   Docs: https://crates.io/docs/trusted-publishing
+#
 # Owner setup (one-time):
 #   1. crates.io → Account → New Token (scope: publish-update for partitionline)
 #   2. GitHub → Settings → Secrets → Actions → CARGO_REGISTRY_TOKEN
 #   3. Merge civilization → main, then: git tag v0.1.0 && git push origin v0.1.0
+#   4. After 0.1.0 exists: crates.io → partitionline → Settings → Trusted
+#      Publishing → Add GitHub (owner mingley, repo partitionline,
+#      workflow release.yml). Later tags can publish without the long-lived
+#      Actions secret.
 #
 # Optional: Actions → release → Run workflow (workflow_dispatch) after the
 # matching final tag already exists on the tip you intend to publish.
@@ -31,8 +42,11 @@ on:
         required: true
         type: string
 
+# contents: write — GitHub Release notes step
+# id-token: write — OIDC exchange for crates.io trusted publishing
 permissions:
   contents: write
+  id-token: write
 
 # Prefer github.event.inputs (empty on push) over bare inputs.* so a ghost
 # branch-push evaluation cannot fail while resolving the concurrency group.
@@ -87,12 +101,25 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
           cargo test --all-targets
           cargo package
+      - name: Authenticate to crates.io (OIDC trusted publishing)
+        id: cratesio-auth
+        continue-on-error: true
+        uses: rust-lang/crates-io-auth-action@v1
       - name: Publish
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          OIDC_TOKEN: ${{ steps.cratesio-auth.outputs.token }}
+          SECRET_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
-          if [ -z "${CARGO_REGISTRY_TOKEN}" ]; then
-            echo "CARGO_REGISTRY_TOKEN secret is not set; cannot publish." >&2
+          if [ -n "${OIDC_TOKEN}" ]; then
+            export CARGO_REGISTRY_TOKEN="${OIDC_TOKEN}"
+            echo "auth=oidc (crates.io trusted publishing, short-lived)"
+          elif [ -n "${SECRET_TOKEN}" ]; then
+            export CARGO_REGISTRY_TOKEN="${SECRET_TOKEN}"
+            echo "auth=secret (CARGO_REGISTRY_TOKEN; required for first publish)"
+          else
+            echo "Neither OIDC trusted publishing nor CARGO_REGISTRY_TOKEN is available." >&2
+            echo "First publish: set Actions secret CARGO_REGISTRY_TOKEN." >&2
+            echo "Later: crates.io → Settings → Trusted Publishing → workflow release.yml" >&2
             exit 1
           fi
           cargo publish --no-verify
@@ -112,6 +139,7 @@ jobs:
           done
           test "$ok" = "1"
           echo "Owner follow-up: bash scripts/day1-after-publish.sh && commit README on main."
+          echo "Then configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret."
       - name: GitHub Release notes
         env:
           GH_TOKEN: ${{ github.token }}
@@ -131,7 +159,8 @@ jobs:
               "" \
               "Owner follow-up on main:" \
               "  bash scripts/day1-after-publish.sh" \
-              "  # commit README crates.io dep + badges, then push")"
+              "  # commit README crates.io dep + badges, then push" \
+              "  # then: crates.io Trusted Publishing → release.yml")"
           fi
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "GitHub release ${tag} already exists"
