@@ -11,6 +11,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 - Dependencies: flate2 1.1.9→1.1.10 (gzip write header/footer infinite-loop fix; miniz_oxide 0.8→0.9). Parked off tip until after Installable (lockfile breaks docs-only tip-delta).
 - Dependencies: SCRAM stack hmac 0.12→0.13, pbkdf2 0.12→0.13, sha2 0.10→0.11 (KeyInit import). Parked off tip until after Installable; auth-smoke green.
+- Scripts/docs: park `actions/checkout` v7 on `dev/actions-checkout-bump-b686` and append it to post-cut land order (after Verifiable + SCRAM + lz4); tip stays docs/scripts-only until Installable.
 - Scripts/docs: park `lz4_flex` 0.11→0.14 on `dev/lz4-flex-bump-b686` and wire it into post-cut parks land order (after Verifiable + SCRAM); tip stays docs/scripts-only until Installable.
 - Docs/scripts: same-day native Verifiable recheck on tip (broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈126–203µs after under-load miss) recorded unsigned; owner-status + publish-ready surface post-cut parks stack and Trusted Publishing shape.
 - Scripts: `owner-land-post-cut-parks.sh` lands Verifiable + flate2 + SCRAM crypto parks after Installable; `owner-finish-installable` chains it by default.

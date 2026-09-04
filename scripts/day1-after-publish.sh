@@ -76,8 +76,8 @@ echo "  3. Confirm docs.rs build for partitionline ${ver}"
 echo "  4. Comment on adoption survey #85 that crates.io install works"
 echo "  5. Update docs/CIVILIZATION.md WP-0 → done when MSRV CI is also green"
 echo "  6. Only then consider partitionline-schema companion (WP-6.3)"
-echo "  7. Land parked Verifiable: bash scripts/owner-land-post-cut-parks.sh"
-echo "     (Verifiable auth/integrity/fuzz + flate2 gzip fix + SCRAM crypto bumps)"
+echo "  7. Land parked post-cut parks: bash scripts/owner-land-post-cut-parks.sh"
+echo "     (Verifiable auth/integrity/fuzz + flate2 + SCRAM + lz4_flex + actions/checkout v7)"
 if [[ "$DRY_RUN" == "1" ]]; then
   echo
   echo "day1-after-publish: DRY_RUN complete — no README commit performed"
