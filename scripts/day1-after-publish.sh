@@ -10,8 +10,7 @@ echo "day1-after-publish: expecting crates.io partitionline ${ver}"
 
 ok=0
 for i in $(seq 1 30); do
-  if curl -fsSA 'partitionline-day1/1' \
-    "https://crates.io/api/v1/crates/partitionline/${ver}" >/tmp/pl-day1.json; then
+  if bash scripts/check-installable.sh >/tmp/pl-day1-installable.log 2>&1; then
     ok=1
     break
   fi
@@ -19,6 +18,7 @@ for i in $(seq 1 30); do
   sleep 10
 done
 if [[ "$ok" != "1" ]]; then
+  cat /tmp/pl-day1-installable.log >&2 || true
   echo "day1-after-publish: crates.io does not yet have partitionline ${ver}" >&2
   echo "day1-after-publish: publish first (docs/RELEASE.md / scripts/owner-publish.sh)." >&2
   exit 1
