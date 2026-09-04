@@ -95,25 +95,25 @@ done
 # Use a worktree so we never `checkout -f` the caller's branch (that discarded
 # tip WIP while wiring this gate).
 dry_run_stack() {
-  # NOTE: do not rely on `local` vars inside EXIT trap — bash can unset them
-  # before the trap runs under `set -u`, which previously aborted cleanup.
+  # EXIT traps run after locals are torn down under `set -u` — keep cleanup
+  # paths in globals for the trap body.
   local base_sha fail=0 parked parked_sha saw_park=0
-  local cleanup_wt cleanup_branch
   base_sha="${TARGET_SHA}"
-  cleanup_wt="$(mktemp -d /tmp/pl-post-cut-dry-XXXXXX)"
-  cleanup_branch="tmp/post-cut-dry-run-$$"
-  git branch -D "$cleanup_branch" 2>/dev/null || true
-  git worktree add -b "$cleanup_branch" "$cleanup_wt" "$base_sha" >/dev/null
+  PL_POST_CUT_DRY_WT="$(mktemp -d /tmp/pl-post-cut-dry-XXXXXX)"
+  PL_POST_CUT_DRY_BRANCH="tmp/post-cut-dry-run-$$"
+  git branch -D "$PL_POST_CUT_DRY_BRANCH" 2>/dev/null || true
+  git worktree add -b "$PL_POST_CUT_DRY_BRANCH" "$PL_POST_CUT_DRY_WT" "$base_sha" >/dev/null
   cleanup() {
-    git worktree remove --force "${cleanup_wt}" 2>/dev/null || true
-    rm -rf "${cleanup_wt}"
-    git branch -D "${cleanup_branch}" 2>/dev/null || true
+    git worktree remove --force "${PL_POST_CUT_DRY_WT:-}" 2>/dev/null || true
+    rm -rf "${PL_POST_CUT_DRY_WT:-}"
+    git branch -D "${PL_POST_CUT_DRY_BRANCH:-}" 2>/dev/null || true
+    unset PL_POST_CUT_DRY_WT PL_POST_CUT_DRY_BRANCH
   }
   trap cleanup EXIT
   echo
   echo "== DRY_RUN stacked merges from ${TARGET_BRANCH}=${base_sha:0:7} (worktree) =="
   (
-    cd "$cleanup_wt"
+    cd "$PL_POST_CUT_DRY_WT"
     for parked in ${PARKED_BRANCHES}; do
       if ! git rev-parse "origin/${parked}" >/dev/null 2>&1; then
         if [[ "$REQUIRE_PARKS" == "1" ]]; then
