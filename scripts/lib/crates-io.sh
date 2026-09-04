@@ -99,7 +99,15 @@ pl_crates_probe_version() {
   PL_CRATES_PROBE_DETAIL="api_http=${code}"
   if [[ "$code" == "200" ]]; then
     rm -f "$api_out"
-    PL_CRATES_PROBE_STATUS="present"
+    # API can lead the sparse index that `cargo` uses. Wait loops / day1 must
+    # not treat API-only as Installable-ready or adopter cargo-check flakes.
+    if pl_index_has_version "$name" "$ver" "$ua"; then
+      PL_CRATES_PROBE_DETAIL="api_http=200,index=present"
+      PL_CRATES_PROBE_STATUS="present"
+      return 0
+    fi
+    PL_CRATES_PROBE_DETAIL="api_http=200,index=absent"
+    PL_CRATES_PROBE_STATUS="unknown"
     return 0
   fi
   if [[ "$code" == "404" ]]; then
