@@ -13,10 +13,19 @@
 #   - Any other failure → FAIL (exit 1). Soft-skip must not greenwash breaks.
 #   - Final line is `ok` only when broker+auth+integrity all passed.
 #     Mid-chain soft-skips print `PARTIAL` (not evidence) — never `ok`.
+#   - PARTIAL exits 2 by default so tip proxies (`ci-branch-lite` / `check-cut-path`,
+#     which use `set -e`) cannot treat incomplete evidence as green. Early SKIP
+#     (no broker at all) stays exit 0. Opt-in: TIP_VERIFIABLE_SOFT=1 → PARTIAL
+#     exits 0 for constrained sandboxes that explicitly accept incomplete evidence.
 #
 # When Java/openssl/keytool/python3 and Kafka are present, defaults REQUIRE_BROKER=1
 # and REQUIRE_AUTH=1 so a capable agent VM cannot soft-skip into a fake green.
 # Opt out: TIP_VERIFIABLE_SOFT=1 (constrained sandboxes without wanting hard-fail).
+#
+# Exit codes:
+#   0 — full `ok`, or early SKIP (no broker), or PARTIAL under TIP_VERIFIABLE_SOFT=1
+#   1 — FAIL (smoke/tooling break)
+#   2 — PARTIAL (mid-chain soft-skip; not tip Verifiable evidence)
 #
 # Does not lift Suite HOLD. Integrity/latency remain unsigned.
 #
@@ -132,6 +141,10 @@ if [[ "$auth_ok" == "1" && "$integ_ok" == "1" ]]; then
   exit 0
 fi
 
-# Soft-skipped mid-chain: exit 0 but never claim ok (not Verifiable evidence).
+# Soft-skipped mid-chain: never claim ok (not Verifiable evidence).
+# Default exit 2 so set -e tip proxies fail closed; TIP_VERIFIABLE_SOFT=1 → exit 0.
 echo "ci-tip-verifiable-broker: PARTIAL — soft-skipped stage(s); not full tip Verifiable evidence (soft_skip=${soft_skip})"
-exit 0
+if [[ "${TIP_VERIFIABLE_SOFT:-0}" == "1" ]]; then
+  exit 0
+fi
+exit 2

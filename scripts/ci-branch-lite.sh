@@ -103,7 +103,8 @@ DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh
 echo "== ci-branch-lite: tip live-broker Verifiable =="
 # Tip pushes skip Actions. Without a live broker chain, tip "Verifiable" was
 # fmt/clippy/lib-only. Soft-skips honestly when no broker/tooling; never greenwashes
-# (`ok` only if broker+auth+integrity all pass; otherwise SKIP/PARTIAL/FAIL).
+# (`ok` only if broker+auth+integrity all pass; early SKIP exit 0; PARTIAL exit 2
+# fails this set -e proxy unless TIP_VERIFIABLE_SOFT=1).
 bash scripts/ci-tip-verifiable-broker.sh
 
 echo "== ci-branch-lite: civilization bars (PRE_PUBLISH) =="
