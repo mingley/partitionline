@@ -74,33 +74,26 @@ echo
 echo "== 0) Already Installable? =="
 if bash scripts/check-installable.sh; then
   echo "owner-finish-installable: crates.io already has ${name} ${ver}"
-  echo "owner-finish-installable: running day1 + bars audit"
+  echo "owner-finish-installable: Actions-alternate / re-entry — day1 then post-Installable handoff"
+  # day1 flips README/ADOPTION; handoff covers adopter pin, registry consumer, bars, TP, parks.
+  land_parks=0
+  if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
+    land_parks=1
+  fi
   if [[ "$DRY_RUN" == "1" ]]; then
-    echo "owner-finish-installable: DRY_RUN=1 — would run day1-after-publish + audit-civilization-bars"
-    echo "owner-finish-installable: DRY_RUN=1 — would then run owner-enable-trusted-publishing.sh"
-    if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
-      echo "owner-finish-installable: DRY_RUN=1 — would then run owner-land-post-cut-parks.sh"
-      # Hard-fail: soft-skipping parks here lied about cut readiness.
+    echo "owner-finish-installable: DRY_RUN=1 — would run day1-after-publish"
+    DRY_RUN=1 bash scripts/day1-after-publish.sh
+    echo "owner-finish-installable: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
+    # Parks dry-run inside handoff is stack-check only; keep REQUIRE_PARKS land rehearsal
+    # so soft-skipping parks here cannot lie about cut readiness.
+    if [[ "$land_parks" == "1" ]]; then
       DRY_RUN=1 REQUIRE_PARKS=1 bash scripts/owner-land-post-cut-parks.sh
     fi
+    LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh
     exit 0
   fi
   bash scripts/day1-after-publish.sh
-  bash scripts/audit-civilization-bars.sh
-  echo
-  echo "== Trusted Publishing (post-Installable) =="
-  bash scripts/owner-enable-trusted-publishing.sh || {
-    echo "owner-finish-installable: WARN — Trusted Publishing helper failed; Installable still OK" >&2
-    echo "  Retry: bash scripts/owner-enable-trusted-publishing.sh" >&2
-  }
-  if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
-    echo
-    echo "== Land parked Verifiable on main =="
-    bash scripts/owner-land-post-cut-parks.sh || {
-      echo "owner-finish-installable: WARN — post-cut parks land failed; Installable still OK" >&2
-      echo "  Retry: bash scripts/owner-land-post-cut-parks.sh" >&2
-    }
-  fi
+  LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh
   exit 0
 fi
 
