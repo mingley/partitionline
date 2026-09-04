@@ -36,6 +36,9 @@ echo "== day-1 README flip preflight =="
 DRY_RUN=1 bash scripts/post-publish-readme.sh >/tmp/pl-readme-flip-dry.log
 tail -2 /tmp/pl-readme-flip-dry.log
 
+echo "== adopter pin =="
+bash scripts/check-adopter-pin.sh
+
 echo "== civilization check =="
 REQUIRE_BROKER="${REQUIRE_BROKER:-0}" bash scripts/ci-civilization-check.sh
 

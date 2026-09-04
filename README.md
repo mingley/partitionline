@@ -8,7 +8,7 @@ A Kafka client written in Rust. It does not call into C or librdkafka.
 [dependencies]
 # crates.io publish is one owner step away (docs/RELEASE.md → tag v0.1.0).
 # Until then, pin a release-candidate tag (not floating main):
-partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.4" }
+partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.5" }
 # After publish: partitionline = "0.1"
 ```
 
