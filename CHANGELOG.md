@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: `check-registry-token --self-test` covers whitespace-only TOKEN / TOKEN_FILE normalize units (tip Verifiable + cut-path) before the fake-token network probe.
 - Scripts: `check-registry-token` / `owner-finish-installable` treat whitespace-only `CARGO_REGISTRY_TOKEN` as unset (and trim leading/trailing space) via `pl_normalize_cargo_registry_token` / `pl_prepare_cargo_registry_token`, so a blank Secrets paste cannot look "set" while Installable stays blocked.
 - Scripts: `lab-a-common` `prepare_broker` falls back to `ensure-broker` (native Kafka) when Docker overlay fails in nested Cloud Agent VMs, so direct Lab A integrity/produce/fetch no longer soft-skip without a broker.
 - Scripts: `ci-broker-smoke` `SKIP_DOCKER=1` path now uses `ensure-broker` to start native Kafka when 9092 is down (agent Verifiable re-entry after auth/integrity) instead of hard-failing.
