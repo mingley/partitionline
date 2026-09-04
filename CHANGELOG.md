@@ -7,6 +7,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+### Fixed
+
+- KIP-932 share groups on Kafka 4.1: join with a client Uuid member id, wait for
+  a real heartbeat assignment (no zero topic id), decode null Assignment as
+  INT8 `-1`, and use the group coordinator for membership. Share smoke needs
+  `group.share.enable` and finalized `share.version=1`.
+
 ## [0.1.0] - 2026-09-03
 
 First crates.io-ready baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
