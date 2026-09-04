@@ -236,7 +236,17 @@ if [[ "$DRY_RUN" == "1" ]]; then
   echo "owner-finish-installable: DRY_RUN complete — no merge/tag/publish performed"
   if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
     echo "owner-finish-installable: DRY_RUN=1 — would then run owner-land-post-cut-parks.sh"
-    DRY_RUN=1 ALLOW_BEFORE_INSTALLABLE=1 bash scripts/owner-land-post-cut-parks.sh || true
+    # Finish FFs tip→main before parks; rehearse stack on tip when tip is ahead.
+    tip_br="${CIVILIZATION_TIP:-dev/civilization-plan-b686}"
+    git fetch origin main "$tip_br" >/dev/null 2>&1 || true
+    if git rev-parse "origin/${tip_br}" >/dev/null 2>&1 \
+        && ! git merge-base --is-ancestor "origin/${tip_br}" origin/main; then
+      echo "owner-finish-installable: tip ahead of main — DRY_RUN parks against ${tip_br}"
+      DRY_RUN=1 ALLOW_BEFORE_INSTALLABLE=1 TARGET_BRANCH="$tip_br" \
+        bash scripts/owner-land-post-cut-parks.sh || true
+    else
+      DRY_RUN=1 ALLOW_BEFORE_INSTALLABLE=1 bash scripts/owner-land-post-cut-parks.sh || true
+    fi
   fi
   exit 0
 fi
