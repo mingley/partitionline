@@ -30,6 +30,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Dependabot ↔ parks coverage (2026-09-04):** `check-dependabot-parks-coverage` maps open Dependabot cargo/Actions bumps (#87–#92) to post-cut parks and fails on unmapped PRs; wired into cut-path, bars, and actions hygiene so tip stays docs/scripts-only while Installable waits — still not a Suite HOLD lift.
 
+**Git-tag adopter consumer (2026-09-04):** `MODE=git bash scripts/verify-crates-io-consumer.sh` cargo-checks the documented README/ADOPTION git pin (`v0.1.0-rc.6`) so pre-crates.io adopters are not lied to; wired into cut-path + Operable bars — still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

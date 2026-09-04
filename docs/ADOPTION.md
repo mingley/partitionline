@@ -64,6 +64,12 @@ partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.
 partitionline = "0.1"
 ```
 
+Prove the pin still compiles (wired into cut-path + civilization bars):
+
+```bash
+MODE=git bash scripts/verify-crates-io-consumer.sh
+```
+
 ## Pilot checklist
 
 1. Produce + fetch against your Kafka 3.9 / 4.x cluster (`examples/roundtrip`).
