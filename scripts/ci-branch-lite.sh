@@ -117,6 +117,19 @@ elif [[ "$dispatch_rc" -ne 0 ]]; then
   exit "$dispatch_rc"
 fi
 
+echo "== ci-branch-lite: post-Installable handoff rehearsal (DRY_RUN) =="
+# Same parks-on-main / day1 honesty as cut-path. HANDOFF_FROM_BARS=1 skips nested
+# bars (this proxy already runs PRE_PUBLISH bars below). Already-Installable +
+# parks-off-main → PARTIAL/2; pre-token holds exit 0 with PARTIAL note.
+handoff_rc=0
+HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+if [[ "$handoff_rc" -eq 2 ]]; then
+  echo "ci-branch-lite: PARTIAL — handoff DRY_RUN soft-failed (parks-on-main / day1 / TP; handoff re-entry)"
+elif [[ "$handoff_rc" -ne 0 ]]; then
+  echo "ci-branch-lite: FAIL — handoff DRY_RUN rc=${handoff_rc}" >&2
+  exit "$handoff_rc"
+fi
+
 echo "== ci-branch-lite: tip Verifiable PARTIAL exit self-test =="
 # Prove finalize exit codes (ok=0 / PARTIAL=2 / soft PARTIAL=0) before live broker.
 bash scripts/ci-tip-verifiable-broker.sh --self-test
@@ -136,7 +149,7 @@ FULL=0 PRE_PUBLISH=1 bash scripts/audit-civilization-bars.sh
 echo "== ci-branch-lite: docs =="
 bash scripts/ci-docs.sh
 
-if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 ]]; then
+if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 ]]; then
   echo "ci-branch-lite: ok with PARTIAL — tip Verifiable proxy held; Installable still blocked on CARGO_REGISTRY_TOKEN (or post-cut re-entry)"
   exit 0
 fi
