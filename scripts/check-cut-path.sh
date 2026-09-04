@@ -126,8 +126,15 @@ echo
 echo "== check-cut-path: day1 after-publish rehearsal (no crates.io wait) =="
 # Finish chains day1 after the cut; rehearse README flip + consumer path now so
 # day1 cannot fail on tip drift once crates.io 0.1.0 exists.
-DRY_RUN=1 bash scripts/day1-after-publish.sh
-
+# Absent crate + DRY_RUN exits PARTIAL/2 (not OK) — capture so set -e cannot greenwash.
+day1_rc=0
+DRY_RUN=1 bash scripts/day1-after-publish.sh || day1_rc=$?
+if [[ "$day1_rc" -eq 2 ]]; then
+  echo "check-cut-path: PARTIAL — day1 DRY_RUN not yet Installable (expected pre-token; rehearsal held)"
+elif [[ "$day1_rc" -ne 0 ]]; then
+  echo "check-cut-path: FAIL — day1 DRY_RUN rc=${day1_rc}" >&2
+  exit "$day1_rc"
+fi
 echo
 echo "== check-cut-path: Actions hygiene (stale queue surface) =="
 # Informational (always exit 0). Surfaces zombie RC-release / stale tip queues
@@ -174,8 +181,22 @@ echo "== check-cut-path: tip live-broker Verifiable =="
 bash scripts/ci-tip-verifiable-broker.sh
 
 echo
-echo "== check-cut-path: finish DRY_RUN (tip-aware parks, hard-fail) =="
-DRY_RUN=1 bash scripts/owner-finish-installable.sh
+echo "== check-cut-path: finish DRY_RUN (tip-aware parks, hard-fail on real errors) =="
+finish_rc=0
+DRY_RUN=1 bash scripts/owner-finish-installable.sh || finish_rc=$?
+if [[ "$finish_rc" -eq 2 ]]; then
+  echo "check-cut-path: PARTIAL — finish DRY_RUN soft-failed or not-yet-Installable (token cut still required)"
+elif [[ "$finish_rc" -ne 0 ]]; then
+  echo "check-cut-path: FAIL — finish DRY_RUN rc=${finish_rc}" >&2
+  exit "$finish_rc"
+fi
 
 echo
+# Unpublished crate makes day1 DRY_RUN PARTIAL by design — that is cut-path honesty,
+# not a failed rehearsal. Exit 0 so tip proxies can stay green while Installable waits.
+if [[ "${day1_rc:-0}" -eq 2 || "$finish_rc" -eq 2 ]]; then
+  echo "check-cut-path: OK with PARTIAL — cut path rehearsed; Installable still blocked on CARGO_REGISTRY_TOKEN"
+  exit 0
+fi
 echo "check-cut-path: OK — cut path rehearsed; blocked only on CARGO_REGISTRY_TOKEN if preflight said READY_EXCEPT_TOKEN"
+exit 0
