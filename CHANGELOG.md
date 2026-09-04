@@ -29,6 +29,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   perpetual tip re-queue); full matrix on PR/`main`/`workflow_dispatch` only.
 - Git install pin `v0.1.0-rc.2` (README / ADOPTION) for adopters before
   crates.io; does not trigger `release.yml` (final `vX.Y.Z` only).
+- `scripts/post-publish-readme.sh` also rewrites the README status blurb so
+  day-1 after crates.io does not leave a “waits on publish” line behind.
 
 ### Changed
 
