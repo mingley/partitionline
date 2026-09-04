@@ -71,6 +71,12 @@ echo "== check-cut-path: Trusted Publishing workflow shape =="
 bash scripts/check-trusted-publishing-ready.sh
 
 echo
+echo "== check-cut-path: Trusted Publishing enable rehearsal (DRY_RUN) =="
+# Finish chains owner-enable-trusted-publishing after Installable. Rehearse the
+# OIDC UI checklist + workflow shape now (crate may be absent under DRY_RUN).
+DRY_RUN=1 bash scripts/owner-enable-trusted-publishing.sh
+
+echo
 echo "== check-cut-path: civilization bars (PRE_PUBLISH) =="
 # Prove five bars green (Installable credentials may BLOCKED) before the cut.
 # FULL=0: keep this rehearsal leaf even if caller exported FULL=1.
