@@ -46,6 +46,15 @@ echo "== ci-branch-lite: packed crate consumer (Installable packaging) =="
 # Proves the .crate tarball itself is dependable (catches missing public modules).
 bash scripts/ci-crate-consumer.sh
 
+echo "== ci-branch-lite: cargo publish --dry-run =="
+# Proves the packed crate still uploads-shaped under tip Verifiable, not only cut-path.
+# Does not contact crates.io with credentials (dry-run aborts before upload).
+cargo publish --dry-run
+
+echo "== ci-branch-lite: Trusted Publishing workflow shape =="
+# OIDC release.yml shape must stay tip-gated; first cut still needs CARGO_REGISTRY_TOKEN.
+bash scripts/check-trusted-publishing-ready.sh
+
 echo "== ci-branch-lite: workflow YAML =="
 bash scripts/check-workflows.sh
 
