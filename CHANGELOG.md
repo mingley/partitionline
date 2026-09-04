@@ -28,6 +28,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   success bars (PASS/PARTIAL/BLOCKED/FAIL); wired into `owner-status`.
   `PRE_PUBLISH=1` treats Installable BLOCKED as expected so publish-ready can
   gate on the other five bars before the first crates.io cut.
+- `scripts/check-crate-metadata.sh`: crates.io package-shape gate (version,
+  description identity, keywords/categories, license files, include allowlist,
+  packed-crate omits scripts/fuzz); wired into merge-ready and publish-ready.
 - `scripts/owner-cut-release.sh`: best-effort Actions `CARGO_REGISTRY_TOKEN`
   preflight (`REQUIRE_ACTIONS_SECRET=1` to hard-fail); runs
   `audit-civilization-bars` after a successful cut.

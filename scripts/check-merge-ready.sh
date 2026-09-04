@@ -76,6 +76,13 @@ else
   cat /tmp/pl-merge-workflows.log >&2 || true
 fi
 
+if bash scripts/check-crate-metadata.sh >/tmp/pl-merge-crate-meta.log 2>&1; then
+  ok "crates.io metadata: $(tail -1 /tmp/pl-merge-crate-meta.log)"
+else
+  bad "crates.io metadata check failed (see /tmp/pl-merge-crate-meta.log)"
+  tail -20 /tmp/pl-merge-crate-meta.log >&2 || true
+fi
+
 if bash scripts/check-adopter-pin.sh >/tmp/pl-merge-adopter.log 2>&1; then
   ok "adopter pin: $(tail -1 /tmp/pl-merge-adopter.log)"
 else
