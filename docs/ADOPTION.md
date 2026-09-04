@@ -128,4 +128,4 @@ parked `dev/scram-crypto-bumps-b686`; `lz4_flex` 0.14 is parked on
 tip/`main` while Installable waits** — they break docs/scripts-only tip-delta and
 cancel-in-progress main CI. After crates.io `0.1.0`, land via
 `bash scripts/owner-land-post-cut-parks.sh` (or finish's default chain) and close
-the overlapping Dependabot PRs.
+the overlapping Dependabot PRs (#87 lz4_flex, #88–#91 sha2/flate2/pbkdf2/hmac, #92 actions/checkout).
