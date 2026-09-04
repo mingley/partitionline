@@ -22,7 +22,7 @@ First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
   features; see `docs/gaps.md` and `docs/zstd-spike.md`).
 - Java-shaped builders and rustdoc naming matching Java client calls.
 - Optional `tracing` feature (produce/fetch/poll/rejoin/txn spans).
-- Examples: produce, consume, group, txn, eos, admin, tls, sasl, share,
+- Examples: produce, consume, group, txn, eos, admin, tls, sasl, oauth, share,
   benches, interceptors, metrics (`FORMAT=prom`).
 - Operator docs: guide, rdkafka migration, security, release policy,
   API stability, civilization plan.
@@ -58,6 +58,8 @@ First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
 - Fuzz: Join/Sync/Heartbeat/OffsetCommit + ShareFetch decode targets; Lab A
   fetch integrity harness (`scripts/lab-a-fetch.sh`) requires consumed==seeded
   (unsigned; not a Suite HOLD lift).
+- `examples/oauth` for OAUTHBEARER (unsecured JWT) and OIDC client-credentials;
+  ADOPTION documents pinable `v0.1.0-rc.1` git install until crates.io lands.
 - Broker smoke: Kafka CI matrix uses `apache/kafka:4.1.0`; Docker 4.x starts with
   share coordinator RF=1 and upgrades `share.version=1`; `REQUIRE_SHARE=1` fails
   the job if share cannot fetch records on 4.x. Civilization-check only counts

@@ -186,7 +186,7 @@ Broker on `127.0.0.1:9092` (Docker `apache/kafka:3.9.1` is enough):
 cargo run --release --example roundtrip
 ```
 
-Also: `produce`, `consume`, `group`, `txn`, `admin`, `sasl`, `tls`, `eos`,
+Also: `produce`, `consume`, `group`, `txn`, `admin`, `sasl`, `oauth`, `tls`, `eos`,
 `offsets`, `share`, `wakeup`, `pause`, `metrics`, `cooperative`, `intercept`,
 `consume_intercept`.
 
