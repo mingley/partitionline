@@ -46,18 +46,22 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `--lib`-only); optional short libFuzzer smoke when nightly+g++ are present.
 - CI: `dev/**` tip pushes no longer auto-queue (org runner starvation /
   perpetual tip re-queue); full matrix on PR/`main`/`workflow_dispatch` only.
-- Git install pin `v0.1.0-rc.5` (README / ADOPTION / migrate guide) for
+- Git install pin `v0.1.0-rc.6` (README / ADOPTION / migrate guide) for
   adopters before crates.io; does not trigger `release.yml` (final `vX.Y.Z`
-  only). Advances `v0.1.0-rc.4` with `scripts/check-adopter-pin.sh` (wired into
-  branch-lite / publish-ready / owner-status) so git pins cannot silently lag tip.
+  only). Advances `v0.1.0-rc.5` with `owner-publish` → `day1-after-publish`
+  chaining and a refreshed native Kafka 4.1 broker smoke (kip848/share).
+- `scripts/check-adopter-pin.sh` (wired into branch-lite / publish-ready /
+  owner-status) so git pins cannot silently lag tip.
 - `scripts/post-publish-readme.sh` `DRY_RUN=1` preflight (wired into
   `ci-publish-ready`) so day-1 README flip cannot silently break before
   crates.io exists. `owner-unblock` points at release issue #86 and the
-  `v0.1.0-rc.5` interim git pin.
+  `v0.1.0-rc.6` interim git pin.
 
 ### Changed
 
-- Migration guide git pin → `v0.1.0-rc.5`; guide documents KIP-848 empty
+- `scripts/owner-publish.sh` runs `day1-after-publish` by default after a
+  successful manual `cargo publish` (`RUN_DAY1_AFTER_PUBLISH=0` to skip).
+- Migration guide git pin → `v0.1.0-rc.6`; guide documents KIP-848 empty
   `TopicPartitions` join + `examples/kip848`. Cargo.toml lists remaining
   examples (`share`, `cooperative`, `metrics`, `offsets`, `pause`, `wakeup`)
   so the packaged crate surface matches README.
