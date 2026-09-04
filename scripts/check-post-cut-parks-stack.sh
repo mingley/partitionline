@@ -16,6 +16,36 @@ cd "$ROOT"
 tip_br="${CIVILIZATION_TIP:-dev/civilization-plan-b686}"
 
 echo "check-post-cut-parks-stack: rehearsing parks onto ${tip_br}"
+
+# Tip must be an ancestor of every park. Merge-clean stacks can still hide
+# "parks lagged tip" drift after tip docs/scripts commits; refresh parks onto
+# tip before Installable so post-cut land does not surprise.
+PARKED_BRANCHES="${PARKED_BRANCHES:-dev/verifiable-auth-integrity-fuzz-b686 dev/scram-crypto-bumps-b686 dev/lz4-flex-bump-b686 dev/actions-checkout-bump-b686}"
+git fetch origin "$tip_br" >/dev/null 2>&1 || true
+tip_ref="origin/${tip_br}"
+if ! git rev-parse "$tip_ref" >/dev/null 2>&1; then
+  tip_ref="$tip_br"
+fi
+tip_sha="$(git rev-parse "$tip_ref")"
+ancestor_fail=0
+for parked in ${PARKED_BRANCHES}; do
+  git fetch origin "$parked" >/dev/null 2>&1 || true
+  if ! git rev-parse "origin/${parked}" >/dev/null 2>&1; then
+    echo "check-post-cut-parks-stack: FAIL — missing origin/${parked}" >&2
+    ancestor_fail=1
+    continue
+  fi
+  if ! git merge-base --is-ancestor "$tip_sha" "origin/${parked}"; then
+    echo "check-post-cut-parks-stack: FAIL — tip ${tip_sha:0:7} is not an ancestor of ${parked}" >&2
+    echo "  Refresh: checkout ${parked}, merge ${tip_br}, push — then re-run." >&2
+    ancestor_fail=1
+  fi
+done
+if [[ "$ancestor_fail" != "0" ]]; then
+  exit 1
+fi
+echo "check-post-cut-parks-stack: tip ${tip_sha:0:7} is ancestor of all parks"
+
 # Default: prove stacked post-cut tree is not just merge-clean but test-green.
 RUN_STACK_TESTS="${RUN_STACK_TESTS:-1}"
 REQUIRE_PARKS=1 ALLOW_BEFORE_INSTALLABLE=1 TARGET_BRANCH="$tip_br" DRY_RUN=1 \
