@@ -8,14 +8,14 @@ need a memory-safe Kafka stack with no C in the default feature set.
 Civilization **Installable** is blocked only on credentials and merge:
 
 1. Add `CARGO_REGISTRY_TOKEN` (Cloud Agent env + GitHub Actions secret).
-2. Restore GitHub Actions runners — **org-wide**: `main` has had a run stuck
-   `queued` for ~22.5h (run `33714516185`). Agent cannot cancel (403).
+2. Cancel stale tip/tag Actions still stuck in `queued` (agents get 403).
    **Owner:** `bash scripts/owner-cancel-stuck-runs.sh` (or `DRY_RUN=1` first).
-   Tip (`dev/**`) pushes no longer auto-queue CI (was thrashing starved runners);
-   local gate: `bash scripts/ci-branch-lite.sh`. Full matrix on PR/`main`/
-   `workflow_dispatch`. Local civilization-check includes broker + SASL_SSL
-   PLAIN + SCRAM-256/512 + OAUTHBEARER. After merge, `ci.yml` cancels
-   in-progress on `main` so the next push can clear a stuck predecessor.
+   `main` CI is green again (e.g. run `33714516185`). Tip (`dev/**`) pushes
+   no longer auto-queue CI (was thrashing starved runners); local gate:
+   `bash scripts/ci-branch-lite.sh`. Full matrix on PR/`main`/`workflow_dispatch`.
+   Local civilization-check includes broker + SASL_SSL PLAIN + SCRAM-256/512 +
+   OAUTHBEARER + OIDC + mTLS. After merge, `ci.yml` cancels in-progress on
+   `main` so the next push can clear a stuck predecessor.
 3. Merge `dev/civilization-plan-b686` → `main`, tag **`v0.1.0`** (final only —
    not `-rc`; `release.yml` ignores prerelease tags), confirm
    https://crates.io/crates/partitionline (`bash scripts/check-installable.sh`
@@ -39,12 +39,13 @@ first release lands, pin a **tag** (not floating `main`):
 
 ```toml
 [dependencies]
-partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.2" }
+partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.3" }
 ```
 
-`v0.1.0-rc.2` tracks the civilization tip (SASL_SSL PLAIN/SCRAM/OAUTHBEARER
-auth smoke, local branch-lite Verifiable proxy, tip pushes no longer thrash
-Actions). Prefer this over floating `main`. After crates.io `0.1.0`, switch to:
+`v0.1.0-rc.3` tracks the civilization tip (KIP-848 empty TopicPartitions join
+fix + live example, OIDC + mTLS auth smoke, SASL_SSL PLAIN/SCRAM/OAUTHBEARER,
+local branch-lite Verifiable proxy, tip pushes no longer thrash Actions).
+Prefer this over floating `main`. After crates.io `0.1.0`, switch to:
 
 ```toml
 [dependencies]
