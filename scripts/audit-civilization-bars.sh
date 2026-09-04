@@ -232,6 +232,22 @@ if grep -q "^## \\[${ver}\\]" CHANGELOG.md || grep -q "^## \\[0\\.1\\.0\\]" CHAN
 else
   bad "CHANGELOG missing ## [${ver}] section"
 fi
+# Open Dependabot cargo/Actions bumps must map to post-cut parks (tip stays docs/scripts-only).
+if [[ ! -x scripts/check-dependabot-parks-coverage.sh ]]; then
+  bad "missing scripts/check-dependabot-parks-coverage.sh"
+elif ! bash scripts/check-dependabot-parks-coverage.sh --self-test >/tmp/pl-dep-parks-self.log 2>&1; then
+  bad "Dependabot parks coverage --self-test failed; see /tmp/pl-dep-parks-self.log"
+else
+  dep_rc=0
+  bash scripts/check-dependabot-parks-coverage.sh >/tmp/pl-dep-parks.log 2>&1 || dep_rc=$?
+  if [[ "$dep_rc" -eq 0 ]]; then
+    ok "Dependabot ↔ post-cut parks coverage (open bumps mapped; tip-delta safe)"
+  elif [[ "$dep_rc" -eq 2 ]]; then
+    ok "Dependabot ↔ post-cut parks coverage soft-skipped (gh/API)"
+  else
+    bad "Dependabot parks coverage missing/unmapped; see /tmp/pl-dep-parks.log"
+  fi
+fi
 
 echo
 echo "audit-civilization-bars: pass=${pass} partial=${partial} blocked=${blocked} fail=${fail} installable_blocked=${installable_blocked}"
