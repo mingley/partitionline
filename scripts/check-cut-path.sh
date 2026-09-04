@@ -110,6 +110,21 @@ echo "== check-cut-path: Actions hygiene (stale queue surface) =="
 bash scripts/check-actions-hygiene.sh
 
 echo
+echo "== check-cut-path: Dependabot ↔ post-cut parks coverage =="
+# Hard-fail on unmapped open Dependabot cargo/Actions bumps (exit 1). Soft-skip
+# (exit 2: no gh) is OK for offline rehearsal. Do not merge Dependabot onto tip.
+bash scripts/check-dependabot-parks-coverage.sh --self-test
+dep_rc=0
+bash scripts/check-dependabot-parks-coverage.sh || dep_rc=$?
+if [[ "$dep_rc" -eq 1 ]]; then
+  echo "check-cut-path: FAIL — open Dependabot bump(s) lack post-cut park coverage" >&2
+  exit 1
+fi
+if [[ "$dep_rc" -eq 2 ]]; then
+  echo "check-cut-path: WARN — Dependabot parks coverage soft-skipped (gh/API)"
+fi
+
+echo
 echo "== check-cut-path: tip Verifiable PARTIAL exit self-test =="
 # Prove finalize exit codes before the live broker rehearsal.
 bash scripts/ci-tip-verifiable-broker.sh --self-test
