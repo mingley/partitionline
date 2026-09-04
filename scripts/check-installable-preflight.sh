@@ -67,7 +67,8 @@ else
     echo
     if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
       echo "check-installable-preflight: READY_EXCEPT_TOKEN (main CI still running — wait or REQUIRE_MAIN_CI=0)"
-      echo "  Next: export CARGO_REGISTRY_TOKEN, wait for green main CI, then:"
+      echo "  Next: bash scripts/owner-request-registry-token.sh"
+      echo "        then export CARGO_REGISTRY_TOKEN, wait for green main CI, then:"
       echo "        bash scripts/owner-finish-installable.sh"
       exit 3
     fi
@@ -82,6 +83,7 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "  Structural + Verifiable gates OK; crates.io cut blocked only on CARGO_REGISTRY_TOKEN."
   echo "  Token scope: first cut of a NEW crate needs crates.io publish-new (+ usually publish-update)."
   echo "  publish-update alone cannot create the crate. Trusted Publishing is configured after 0.1.0."
+  echo "  One-screen owner ask: bash scripts/owner-request-registry-token.sh"
   echo "  Next: set Cloud Agent secret CARGO_REGISTRY_TOKEN (Cursor → Environments → Secrets),"
   # shellcheck source=scripts/lib/cursor-env-secrets-url.sh
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cursor-env-secrets-url.sh"
