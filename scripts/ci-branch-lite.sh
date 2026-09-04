@@ -78,6 +78,11 @@ bash scripts/check-post-cut-parks-stack.sh
 echo "== ci-branch-lite: day1 after-publish rehearsal (no crates.io wait) =="
 DRY_RUN=1 bash scripts/day1-after-publish.sh
 
+echo "== ci-branch-lite: Actions hygiene (stale queue surface) =="
+# Informational (always exit 0). Tip Verifiable surfaces zombie RC-release /
+# stale tip queues that starve runners; cancel remains owner-only.
+bash scripts/check-actions-hygiene.sh
+
 echo "== ci-branch-lite: Installable preflight =="
 # Tip Verifiable must keep READY_EXCEPT_TOKEN (or READY) visible before PRE_PUBLISH bars.
 bash scripts/check-installable-preflight.sh
