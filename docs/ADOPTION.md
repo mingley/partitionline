@@ -38,7 +38,7 @@ partitionline = "0.1"
 | crates.io release | Owner token + tag `v0.1.0` (WP-0.5) |
 | zstd compression | Out of default features (C); see `docs/zstd-spike.md` |
 | Kerberos / GSSAPI | Out of default features (C) |
-| Schema Registry | Companion crate only after crates.io (`docs/gaps.md`) |
+| Schema Registry | Companion after crates.io; design in `docs/schema-companion.md` |
 | Signed Suite HOLD benches | External Lab A process (`docs/STATUS.md`) |
 
 Tell us what blocks a pilot: issue

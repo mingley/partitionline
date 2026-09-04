@@ -188,8 +188,8 @@ Execute in this sequence unless blocked:
 | WP-2 Adversarial trust | **done** | security.md + audit CI + `cargo deny` + PEM via rustls-pki-types + decode OOM guards + fuzz smoke + libFuzzer. |
 | WP-3 Operator docs | **done** | guide.md (incl. recipes) + migrate-from-rdkafka.md + ADOPTION.md + README links. |
 | WP-4 Observability | **done** | Metrics in guide; `tracing` feature; Prometheus text example. |
-| WP-5 Perf honesty | **in progress** | Lab A script + `latency-gate` CI (unsigned). Signed Suite HOLD still external. |
-| WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md. Schema companion waits on crates.io. |
+| WP-5 Perf honesty | **in progress** | Lab A script (Docker or native `kafka-topics.sh`) + `latency-gate` CI (unsigned). 2026-09-04 native gate sample recorded in STATUS (not a Suite HOLD lift). Signed Suite HOLD still external. |
+| WP-6 Adoption gaps | **in progress** | Template + zstd spike + feature matrix + survey [#85](https://github.com/mingley/partitionline/issues/85) + ADOPTION.md + `docs/schema-companion.md` design (crate waits on crates.io). |
 | WP-7 Stewardship | **done** | Issue/PR templates; CONTRIBUTING; CODEOWNERS; Dependabot; tag-publish; civilization-check; `scripts/ci-publish-ready.sh`. |
 
 ## Success criteria (civilization bar)

@@ -17,6 +17,9 @@ cargo test --all-targets
 echo "== deny =="
 bash scripts/ci-deny.sh
 
+echo "== msrv =="
+bash scripts/ci-msrv.sh
+
 echo "== package =="
 cargo package
 

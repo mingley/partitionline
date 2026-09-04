@@ -19,12 +19,26 @@ LINGER_MS="${LINGER_MS:-5}"
 WARMUP_SECS="${WARMUP_SECS:-0}"
 RUNS="${RUNS:-3}"
 
-if ! command -v docker >/dev/null 2>&1 && [[ -z "${SKIP_TOPIC_RESET:-}" ]]; then
-  echo "lab-a-produce: docker not found; set SKIP_TOPIC_RESET=1 to use an existing topic" >&2
-  exit 1
-fi
-
 BROKER_NAME="${BROKER_NAME:-pl-lab-a-kafka}"
+
+find_topics_bin() {
+  if command -v kafka-topics.sh >/dev/null 2>&1; then
+    command -v kafka-topics.sh
+    return 0
+  fi
+  local cand
+  for cand in \
+    /tmp/kafka_4.1.0/bin/kafka-topics.sh \
+    /tmp/kafka_4.0.0/bin/kafka-topics.sh \
+    /tmp/kafka_3.9.1/bin/kafka-topics.sh \
+    "${KAFKA_HOME:-}/bin/kafka-topics.sh"; do
+    if [[ -x "$cand" ]]; then
+      echo "$cand"
+      return 0
+    fi
+  done
+  return 1
+}
 
 ensure_broker() {
   if docker ps --format '{{.Names}}' | grep -qx "$BROKER_NAME"; then
@@ -47,16 +61,37 @@ ensure_broker() {
 }
 
 reset_topic() {
-  docker exec "$BROKER_NAME" /opt/kafka/bin/kafka-topics.sh \
-    --bootstrap-server localhost:9092 --delete --topic "$TOPIC" >/dev/null 2>&1 || true
-  sleep 2
-  docker exec "$BROKER_NAME" /opt/kafka/bin/kafka-topics.sh \
-    --bootstrap-server localhost:9092 \
-    --create --topic "$TOPIC" --partitions 6 --replication-factor 1
+  local topics_bin=""
+  if [[ -n "${USE_DOCKER_BROKER:-}" ]] || docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$BROKER_NAME"; then
+    docker exec "$BROKER_NAME" /opt/kafka/bin/kafka-topics.sh \
+      --bootstrap-server localhost:9092 --delete --topic "$TOPIC" >/dev/null 2>&1 || true
+    sleep 2
+    docker exec "$BROKER_NAME" /opt/kafka/bin/kafka-topics.sh \
+      --bootstrap-server localhost:9092 \
+      --create --topic "$TOPIC" --partitions 6 --replication-factor 1
+    return 0
+  fi
+  if topics_bin="$(find_topics_bin)"; then
+    "$topics_bin" --bootstrap-server "$BOOTSTRAP" --delete --topic "$TOPIC" >/dev/null 2>&1 || true
+    sleep 2
+    "$topics_bin" --bootstrap-server "$BOOTSTRAP" \
+      --create --topic "$TOPIC" --partitions 6 --replication-factor 1
+    return 0
+  fi
+  echo "lab-a-produce: no kafka-topics.sh and no docker broker for topic reset" >&2
+  echo "lab-a-produce: set SKIP_TOPIC_RESET=1 or start scripts/ci-native-kafka.sh" >&2
+  exit 1
 }
 
 if [[ -z "${SKIP_TOPIC_RESET:-}" ]]; then
-  ensure_broker
+  if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    ensure_broker
+  elif find_topics_bin >/dev/null; then
+    echo "lab-a-produce: using native kafka-topics.sh against $BOOTSTRAP"
+  else
+    echo "lab-a-produce: no docker and no kafka-topics.sh; set SKIP_TOPIC_RESET=1" >&2
+    exit 1
+  fi
 fi
 
 export KAFKA_BOOTSTRAP="$BOOTSTRAP"

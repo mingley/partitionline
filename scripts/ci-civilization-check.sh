@@ -17,6 +17,11 @@ ski() { echo "SKIP $*"; skip=$((skip + 1)); }
 echo "== Installable (pre-publish) =="
 if grep -q '^rust-version = "1\.85"' Cargo.toml; then ok "MSRV declared 1.85"; else bad "MSRV rust-version"; fi
 if grep -q '^documentation = "https://docs.rs/partitionline"' Cargo.toml; then ok "docs.rs URL"; else bad "docs.rs URL"; fi
+if bash scripts/ci-msrv.sh >/tmp/pl-msrv.log 2>&1; then
+  ok "MSRV toolchain check (rust-version)"
+else
+  bad "MSRV toolchain check; see /tmp/pl-msrv.log"
+fi
 if cargo package --allow-dirty --quiet; then ok "cargo package"; else bad "cargo package"; fi
 if cargo publish --dry-run --allow-dirty >/tmp/pl-publish-dry.log 2>&1; then
   ok "cargo publish --dry-run"
