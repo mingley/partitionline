@@ -9,7 +9,7 @@ Civilization **Installable** is blocked only on credentials. Probe anytime:
 
 ```bash
 bash scripts/check-installable-preflight.sh   # READY_EXCEPT_TOKEN when cut-ready
-bash scripts/check-cut-path.sh                # preflight + tip-delta + parks stack + finish DRY_RUN
+bash scripts/check-cut-path.sh                # preflight + tip-delta + parks stack + first-publish DRY_RUN visibility + finish DRY_RUN
 bash scripts/owner-status.sh
 bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish path
 ```
