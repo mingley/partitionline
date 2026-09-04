@@ -27,6 +27,10 @@
 #   bash scripts/check-registry-token.sh
 #   REQUIRE_TOKEN=1 bash scripts/check-registry-token.sh   # treat unset as FAIL
 #   bash scripts/check-registry-token.sh --self-test       # fake token must FAIL
+#   CARGO_REGISTRY_TOKEN_FILE=/path/to/token bash scripts/check-registry-token.sh
+#
+# When unset, also WARN if a common misnamed env var is set (CARGO_TOKEN,
+# CRATES_IO_TOKEN, …) — Secrets UI typos leave Installable stuck otherwise.
 set -euo pipefail
 
 REQUIRE_TOKEN="${REQUIRE_TOKEN:-0}"
@@ -127,10 +131,16 @@ if [[ "${1:-}" == "--self-test" ]]; then
   exit 0
 fi
 
+# Load TOKEN_FILE into *this* process (and callers that source the same helper).
+# shellcheck source=scripts/lib/cargo-registry-token.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cargo-registry-token.sh"
+pl_load_cargo_registry_token_file "check-registry-token"
+
 if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "check-registry-token: MISSING — CARGO_REGISTRY_TOKEN unset"
   echo "  First cut of a NEW crate: https://crates.io/settings/tokens"
   echo "  Enable scope publish-new (+ publish-update). publish-update alone cannot create the crate."
+  pl_warn_misnamed_cargo_registry_token "check-registry-token"
   if [[ "$REQUIRE_TOKEN" == "1" ]]; then
     exit 1
   fi

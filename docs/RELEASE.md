@@ -35,16 +35,19 @@ One-time setup (first crates.io cut):
    Publishing and keep only a short-lived or narrowly scoped token as backup.
 2. Add `CARGO_REGISTRY_TOKEN` in **two** places (same crates.io token value):
    - **Cursor Cloud Agent** → Cloud Agents → Environments → this env → Secrets
-     (name exactly `CARGO_REGISTRY_TOKEN`; restart/re-run the agent after save so
-     `owner-finish-installable` can PUBLISH_LOCAL without waiting on Actions).
+     (name exactly `CARGO_REGISTRY_TOKEN` — not `CARGO_TOKEN` / `CRATES_IO_TOKEN`;
+     restart/re-run the agent after save so `owner-finish-installable` can
+     PUBLISH_LOCAL without waiting on Actions). Or mount a file and export
+     `CARGO_REGISTRY_TOKEN_FILE=/path` (finish/probe load it into the shell).
      Direct link (override with `PARTITIONLINE_CURSOR_ENV_SECRETS_URL` if the env
      moves): https://cursor.com/dashboard/cloud-agents/environments/e/55ff85be-9e3a-11f1-a7d1-d6b4613131ce/secrets
    - **GitHub Actions** repository secret (Settings → Secrets → Actions) for
      `release.yml` / `first-publish.yml`.
    Probe without printing: `bash scripts/check-registry-token.sh` (exit 2 = missing,
    0 = crates.io accepted the token for publish-new auth via a structured
-   empty-tarball PUT that cannot create a crate, 1 = rejected).
-   `bash scripts/check-registry-token.sh --self-test` proves fake tokens fail.
+   empty-tarball PUT that cannot create a crate, 1 = rejected). Misnamed env
+   vars WARN with length-only hints. `bash scripts/check-registry-token.sh
+   --self-test` proves fake tokens fail.
    Required for the **first** publish — Trusted Publishing can only be
    configured after the crate exists on crates.io.
 3. Ensure CHANGELOG has a dated `0.1.0` (or next) section and README is ready
