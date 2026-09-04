@@ -15,9 +15,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Load TOKEN_FILE + normalize whitespace into *this* shell (standalone path;
+# owner-finish already prepares, but direct owner-publish must too).
+# shellcheck source=scripts/lib/cargo-registry-token.sh
+source "$ROOT/scripts/lib/cargo-registry-token.sh"
+pl_prepare_cargo_registry_token "owner-publish"
+
 if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "owner-publish: CARGO_REGISTRY_TOKEN is not set" >&2
-  echo "owner-publish: create a crates.io token and export it, then re-run." >&2
+  echo "owner-publish: create a crates.io token (or set CARGO_REGISTRY_TOKEN_FILE) and re-run." >&2
+  echo "  First cut of a NEW crate needs publish-new (+ publish-update)." >&2
   exit 1
 fi
 

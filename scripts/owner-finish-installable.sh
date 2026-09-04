@@ -255,6 +255,23 @@ if [[ "$PUBLISH_LOCAL" == "1" ]]; then
   echo "owner-finish-installable: PUBLISH_LOCAL=1 (token in-env; bypasses Actions queue)"
 else
   echo "owner-finish-installable: PUBLISH_LOCAL=0 (tag → release.yml)"
+  # Tag→Actions needs the secret *before* the tag push, not after the wait loop.
+  echo "owner-finish-installable: syncing Actions secret before tag cut (PUBLISH_LOCAL=0)"
+  if command -v gh >/dev/null 2>&1; then
+    if printf '%s' "${CARGO_REGISTRY_TOKEN}" | gh secret set CARGO_REGISTRY_TOKEN 2>/tmp/pl-finish-secret.log; then
+      echo "owner-finish-installable: Actions secret CARGO_REGISTRY_TOKEN synced (pre-cut)"
+    else
+      echo "owner-finish-installable: WARN — could not set Actions secret before tag (need admin; agents often 403)" >&2
+      tail -3 /tmp/pl-finish-secret.log 2>/dev/null | sed 's/^/  /' || true
+      echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\"" >&2
+      if [[ "${REQUIRE_ACTIONS_SECRET:-0}" == "1" ]]; then
+        echo "owner-finish-installable: REQUIRE_ACTIONS_SECRET=1 — refusing PUBLISH_LOCAL=0 cut" >&2
+        exit 1
+      fi
+    fi
+  else
+    echo "owner-finish-installable: WARN — gh not available; cannot sync Actions secret before tag" >&2
+  fi
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
@@ -296,6 +313,9 @@ bash scripts/audit-civilization-bars.sh
 
 echo
 echo "== 7) Best-effort sync Actions secret for later tag publishes =="
+if [[ "$PUBLISH_LOCAL" == "0" ]]; then
+  echo "owner-finish-installable: Actions secret already synced pre-cut (PUBLISH_LOCAL=0); refreshing best-effort"
+fi
 if command -v gh >/dev/null 2>&1; then
   if printf '%s' "${CARGO_REGISTRY_TOKEN}" | gh secret set CARGO_REGISTRY_TOKEN 2>/tmp/pl-finish-secret.log; then
     echo "owner-finish-installable: Actions secret CARGO_REGISTRY_TOKEN synced"
@@ -310,7 +330,7 @@ fi
 
 echo
 echo "owner-finish-installable: OK — ${name} ${ver} is Installable"
-echo "owner-finish-installable: commit README crates.io line if day1 changed it"
+echo "owner-finish-installable: commit README + docs/ADOPTION.md crates.io lines if day1 changed them"
 
 echo
 echo "== 8) Trusted Publishing (post-Installable) =="
@@ -325,13 +345,32 @@ if [[ "${MERGE_POST_CUT_PARKS}" == "1" ]]; then
   echo
   echo "== 9) Land parked Verifiable on main =="
   echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=1 — landing post-cut parks (Verifiable + flate2 + SCRAM crypto + lz4_flex + actions/checkout)"
-  # Installable already proven above; merge script rechecks crates.io.
+  # day1 may have dirtied README/ADOPTION; stash so park merges can checkout/pull cleanly.
+  day1_stash=""
+  if [[ -n "$(git status --porcelain -- README.md docs/ADOPTION.md 2>/dev/null || true)" ]]; then
+    echo "owner-finish-installable: stashing day1 README/ADOPTION edits before parks land"
+    git stash push -m "pl-finish-day1-docs" -- README.md docs/ADOPTION.md
+    day1_stash="$(git rev-parse -q --verify refs/stash || true)"
+  fi
+  parks_rc=0
   if bash scripts/owner-land-post-cut-parks.sh; then
     echo "owner-finish-installable: post-cut parks landed on main"
   else
+    parks_rc=1
     echo "owner-finish-installable: WARN — post-cut parks land failed; Installable still OK" >&2
     echo "  Retry: bash scripts/owner-land-post-cut-parks.sh" >&2
     echo "  Skip later: MERGE_PARKED_VERIFIABLE=0 bash scripts/owner-finish-installable.sh" >&2
+  fi
+  if [[ -n "$day1_stash" ]]; then
+    if git stash pop --quiet; then
+      echo "owner-finish-installable: restored day1 README/ADOPTION edits after parks"
+    else
+      echo "owner-finish-installable: WARN — could not auto-restore day1 docs stash; resolve manually:" >&2
+      echo "  git stash list | head" >&2
+    fi
+  fi
+  if [[ "$parks_rc" -ne 0 ]]; then
+    :
   fi
 else
   echo "owner-finish-installable: MERGE_PARKED_VERIFIABLE=0 — skipped post-cut parks land"
