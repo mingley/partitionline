@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+### Changed
+
+- Docs: same-day native Verifiable recheck (broker kip848+share, auth matrix,
+  integrity COUNT=2000, latency gate p99≈71–86µs) recorded in STATUS /
+  ADOPTION / CIVILIZATION — unsigned; not a Suite HOLD lift.
+
 ### Fixed
 
 - `release.yml`: add complementary `ghost-noop` job so branch-push evaluations

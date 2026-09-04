@@ -95,5 +95,9 @@ REQUIRE_AUTH=1 bash scripts/ci-auth-smoke.sh   # PLAIN + SCRAM + OAUTHBEARER + O
 ```
 
 Local evidence (2026-09-04): `ci-civilization-check.sh` **26/26** including
-native broker smoke and SASL_SSL PLAIN + SCRAM + OAUTHBEARER + OIDC + mTLS auth smoke. GitHub Actions
-still cannot confirm Verifiable until org runners leave `queued`.
+native broker smoke and SASL_SSL PLAIN + SCRAM + OAUTHBEARER + OIDC + mTLS auth
+smoke. Same-day recheck: `SKIP_DOCKER=1` broker-smoke (kip848+share),
+`REQUIRE_AUTH=1` auth-smoke, integrity COUNT=2000 HW==acked+consumed==seeded,
+latency gate p99≈71–86µs vs 500µs baseline — all unsigned; not a Suite HOLD
+lift. GitHub Actions still cannot confirm Verifiable until org runners leave
+`queued`.
