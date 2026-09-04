@@ -86,17 +86,27 @@ if git rev-parse "origin/${checkout_park}" >/dev/null 2>&1; then
   echo "check-post-cut-parks-stack: parked first-publish.yml documents publish-new"
 fi
 
-# Tip honesty while Installable is unmet: tip first-publish.yml must stay soft
-# ("publish") so tip-delta remains docs/scripts-only. publish-new wording lives
-# on the checkout park until post-cut land.
+# Tip honesty while Installable is unmet: tip first-publish.yml must match
+# origin/main so tip-delta stays docs/scripts-only. Main may already document
+# publish-new (Actions alternate); tip must not drift the workflow header.
+# Checkout park still gates publish-new independently above.
 if ! bash scripts/check-installable.sh >/dev/null 2>&1; then
   tip_fp=".github/workflows/first-publish.yml"
-  if [[ -f "$tip_fp" ]] && grep -q 'publish-new' "$tip_fp"; then
-    echo "check-post-cut-parks-stack: FAIL — tip ${tip_fp} already has publish-new" >&2
-    echo "  Keep that honesty on ${checkout_park} until after crates.io 0.1.0 (tip-delta)." >&2
-    exit 1
+  git fetch origin main >/dev/null 2>&1 || true
+  if git rev-parse origin/main >/dev/null 2>&1 && [[ -f "$tip_fp" ]]; then
+    if ! git diff --quiet origin/main -- "$tip_fp"; then
+      echo "check-post-cut-parks-stack: FAIL — tip ${tip_fp} differs from origin/main" >&2
+      echo "  Merge/rebase main into tip (or match header) so tip-delta stays docs/scripts-only." >&2
+      echo "  Park ${checkout_park} still owns post-cut workflow bumps until after crates.io 0.1.0." >&2
+      git diff --stat origin/main -- "$tip_fp" >&2 || true
+      exit 1
+    fi
+    if grep -q 'publish-new' "$tip_fp"; then
+      echo "check-post-cut-parks-stack: tip first-publish.yml matches main (publish-new; tip-delta safe)"
+    else
+      echo "check-post-cut-parks-stack: tip first-publish.yml matches main (soft; tip-delta safe)"
+    fi
   fi
-  echo "check-post-cut-parks-stack: tip first-publish.yml stays soft until Installable"
 fi
 
 echo "check-post-cut-parks-stack: OK"

@@ -6,7 +6,8 @@
 #
 # Required:
 #   - confirm input must be exactly "publish"
-#   - repository secret CARGO_REGISTRY_TOKEN (crates.io API token with publish)
+#   - repository secret CARGO_REGISTRY_TOKEN (crates.io API token with **publish-new** + publish-update;
+#     publish-update alone cannot create a new crate)
 #   - tip branch merge-ready; prefer running from main after civilization FF-merge
 #
 # This workflow does NOT cut tags or run day1. After a green publish:
