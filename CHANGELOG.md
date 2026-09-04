@@ -9,6 +9,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: `ci-broker-smoke` auto-starts native Kafka (`ci-native-kafka.sh`) when Docker overlay mounts fail in nested Cloud Agent VMs, so local Verifiable does not soft-skip the broker gate.
+- Docs: same-day native Verifiable recheck on tip `3a1b00a` (broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈147–161µs after under-load miss ≈1007µs, fuzz decode smoke) recorded unsigned; not a Suite HOLD lift.
 - Scripts/docs: `check-registry-token` / `owner-finish-installable` load `CARGO_REGISTRY_TOKEN_FILE` into the current shell and WARN on common misnamed env vars (`CARGO_TOKEN`, `CRATES_IO_TOKEN`, …) so Secrets UI typos cannot silently block Installable; shared helper `scripts/lib/cargo-registry-token.sh`.
 - Scripts/docs: Cursor env Secrets deep link defaults to `.../secrets` so login redirect lands on the Secrets tab for `CARGO_REGISTRY_TOKEN` injection.
 - Scripts: `check-actions-hygiene` probes for the GitHub `dependencies` label Dependabot expects and prints the owner `gh label create` one-shot (agents 403); surfaces in `owner-unblock` / cut-path hygiene.
