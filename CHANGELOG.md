@@ -9,6 +9,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: `check-cut-path` rehearses `refresh-post-cut-parks` DRY_RUN (tip→Verifiable→SCRAM→lz4→checkout) before parks stack + publish dry-run.
+- Docs: same-day native Verifiable recheck on tip (broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈207µs after under-load miss ≈1049µs, fuzz decode smoke) recorded unsigned; not a Suite HOLD lift.
 - Scripts: `refresh-post-cut-parks.sh` refreshes parks in land order (tip→Verifiable→SCRAM→lz4→checkout) so parallel tip merges cannot fork the tip⊆… chain; wired into owner-status / owner-unblock.
 - Scripts: `check-post-cut-parks-stack` also gates park chain (Verifiable⊆SCRAM⊆lz4⊆checkout) so parallel tip refreshes cannot fork CHANGELOG histories that only conflict at stacked land time.
 - Scripts/docs: rebuild lz4 + actions/checkout post-cut parks stacked on SCRAM (SCRAM⊆lz4⊆checkout) so tip→Verifiable→SCRAM→lz4→checkout DRY_RUN stays merge-clean after tip-is-ancestor gate; tip stays docs/scripts-only.
