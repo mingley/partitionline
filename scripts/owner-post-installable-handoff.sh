@@ -55,6 +55,13 @@ if [[ "${1:-}" == "--self-test" ]]; then
     echo "owner-post-installable-handoff: self-test FAIL — LAND_PARKS land must REQUIRE_PARKS=1" >&2
     exit 1
   fi
+  # DRY_RUN must probe parks-on-main (not only stack). Already-Installable DRY_RUN
+  # exits PARTIAL/2; pre-token holds exit 0 with a PARTIAL note (like day1).
+  if ! grep -qF 'DRY_RUN: parks on main' "$ROOT/scripts/owner-post-installable-handoff.sh" \
+    || ! grep -qF 'PARTIAL — parks not on main (DRY_RUN' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — DRY_RUN must probe parks-on-main (Installable→exit 2)" >&2
+    exit 1
+  fi
   bash "$ROOT/scripts/lib/preserve-day1-docs.sh" --self-test
   echo "owner-post-installable-handoff: self-test OK — preserve + day1 chain + parks-on-main + fail-closed PARTIAL"
   exit 0
@@ -109,6 +116,48 @@ if [[ "$DRY_RUN" == "1" ]]; then
   fi
   echo "== DRY_RUN: post-cut parks stack =="
   bash scripts/check-post-cut-parks-stack.sh
+  echo
+  echo "== DRY_RUN: parks on main =="
+  # Stack check ≠ landed. Mirror live parks-on-main probe so already-Installable
+  # DRY_RUN cannot soft-green unfinished post-cut land. Pre-token parks pending
+  # is expected — hold exit 0 with PARTIAL note (same pattern as day1).
+  PARKED_BRANCHES="${PARKED_BRANCHES:-dev/verifiable-auth-integrity-fuzz-b686 dev/scram-crypto-bumps-b686 dev/lz4-flex-bump-b686 dev/actions-checkout-bump-b686}"
+  git fetch origin main ${PARKED_BRANCHES} >/dev/null 2>&1 || true
+  dry_parks_pending=()
+  for parked in ${PARKED_BRANCHES}; do
+    if ! git rev-parse -q --verify "origin/${parked}" >/dev/null; then
+      dry_parks_pending+=("${parked} (missing)")
+      continue
+    fi
+    if ! git merge-base --is-ancestor "origin/${parked}" origin/main; then
+      dry_parks_pending+=("${parked}")
+    fi
+  done
+  dry_installable=0
+  if bash scripts/check-installable.sh >/dev/null 2>&1; then
+    dry_installable=1
+  fi
+  if [[ "${#dry_parks_pending[@]}" -eq 0 ]]; then
+    echo "owner-post-installable-handoff: parks are on origin/main"
+  elif [[ "${ALLOW_PARKS_PENDING:-0}" == "1" ]]; then
+    echo "owner-post-installable-handoff: WARN — ALLOW_PARKS_PENDING=1; parks still off main (deferred):"
+    for p in "${dry_parks_pending[@]}"; do
+      echo "  - ${p}"
+    done
+  elif [[ "$dry_installable" -eq 1 ]]; then
+    echo "owner-post-installable-handoff: PARTIAL — parks not on main (DRY_RUN; already Installable)" >&2
+    for p in "${dry_parks_pending[@]}"; do
+      echo "  - ${p}" >&2
+    done
+    echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh" >&2
+    exit 2
+  else
+    echo "owner-post-installable-handoff: PARTIAL — parks not on main (DRY_RUN; expected pre-token; rehearsal held)"
+    for p in "${dry_parks_pending[@]}"; do
+      echo "  - ${p}"
+    done
+    echo "  After Installable: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+  fi
   echo
   echo "owner-post-installable-handoff: DRY_RUN complete — after crates.io ${ver}:"
   echo "  bash scripts/owner-post-installable-handoff.sh"
