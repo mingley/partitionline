@@ -59,6 +59,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- `ci-publish-ready` and `owner-status` also run `check-merge-ready` so the
+  merge→tag path is visible in the same probes as Installable/Verifiable.
+- Tip re-verified auth smoke (SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC + mTLS fail-closed) on 2026-09-04.
 - Tip re-verified native Kafka 4.1 broker smoke (`ci-native-kafka` + kip848/share required) on 2026-09-04.
 - `scripts/check-merge-ready.sh` (wired into `owner-unblock`, documented in
   RELEASE.md) gates civilization → main → `vX.Y.Z` without requiring a token:
