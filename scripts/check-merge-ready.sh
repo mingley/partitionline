@@ -183,11 +183,14 @@ fi
 
 echo "check-merge-ready: OK — tip is structurally ready to merge and tag v${ver}"
 echo
-echo "Owner next (after CARGO_REGISTRY_TOKEN + healthy Actions):"
-echo "  1. Merge ${branch} → main (PR or fast-forward)"
-echo "  2. git fetch origin main && git checkout main && git pull origin main"
-echo "  3. bash scripts/owner-cut-release.sh"
-echo "     # or: git tag -a v${ver} -m '${name} ${ver}' && git push origin v${ver}"
-echo "     #     then bash scripts/day1-after-publish.sh && bash scripts/check-installable.sh"
-echo "  4. crates.io → Trusted Publishing → GitHub workflow release.yml"
+echo "Owner next (after CARGO_REGISTRY_TOKEN is in-env):"
+echo "  Preferred (bypasses starved Actions):"
+echo "    bash scripts/owner-finish-installable.sh"
+echo "  Or stepwise:"
+echo "    1. Merge ${branch} → main (PR or fast-forward)"
+echo "    2. git fetch origin main && git checkout main && git pull origin main"
+echo "    3. bash scripts/owner-cut-release.sh"
+echo "       # or: git tag -a v${ver} -m '${name} ${ver}' && git push origin v${ver}"
+echo "       #     then bash scripts/day1-after-publish.sh && bash scripts/check-installable.sh"
+echo "    4. crates.io → Trusted Publishing → GitHub workflow release.yml"
 exit 0
