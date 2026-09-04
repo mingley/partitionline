@@ -41,22 +41,24 @@ else
 fi
 broker_ok=0
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-  if bash scripts/ci-broker-smoke.sh >/tmp/pl-broker.log 2>&1; then
+  if bash scripts/ci-broker-smoke.sh >/tmp/pl-broker.log 2>&1 \
+    && grep -q 'ci-broker-smoke: ok' /tmp/pl-broker.log; then
     ok "broker smoke (docker)"
     broker_ok=1
-  elif grep -qiE 'overlay|invalid argument|failed to mount' /tmp/pl-broker.log; then
+  elif grep -qiE 'overlay|invalid argument|failed to mount|docker run failed' /tmp/pl-broker.log; then
     echo "(docker overlay unavailable; trying native Kafka fallback)"
   elif [[ "${REQUIRE_BROKER:-}" == "1" ]]; then
     bad "broker smoke; see /tmp/pl-broker.log"
     broker_ok=1
   else
-    bad "broker smoke; see /tmp/pl-broker.log"
-    broker_ok=1
+    # Soft-skip (exit 0 without "ok") is not evidence — fall through to native.
+    echo "(docker smoke soft-skipped; trying native Kafka fallback)"
   fi
 fi
 if [[ "$broker_ok" -eq 0 ]]; then
   if bash scripts/ci-native-kafka.sh start >/tmp/pl-native-kafka.log 2>&1 \
-    && SKIP_DOCKER=1 bash scripts/ci-broker-smoke.sh >/tmp/pl-broker.log 2>&1; then
+    && SKIP_DOCKER=1 bash scripts/ci-broker-smoke.sh >/tmp/pl-broker.log 2>&1 \
+    && grep -q 'ci-broker-smoke: ok' /tmp/pl-broker.log; then
     ok "broker smoke (native Kafka)"
     bash scripts/ci-native-kafka.sh stop >/dev/null 2>&1 || true
   else
