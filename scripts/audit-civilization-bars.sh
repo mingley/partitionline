@@ -120,12 +120,15 @@ if [[ -f scripts/ci-tip-verifiable-broker.sh ]] \
   && grep -q 'pl_tip_verifiable_finalize' scripts/ci-tip-verifiable-broker.sh \
   && grep -q 'pl_tip_verifiable_interpret_integrity' scripts/ci-tip-verifiable-broker.sh \
   && grep -qF 'latency gate failed (soft)' scripts/ci-tip-verifiable-broker.sh \
+  && grep -q 'pl_tip_verifiable_quiet_retry_integrity' scripts/ci-tip-verifiable-broker.sh \
+  && grep -q 'TIP_VERIFIABLE_QUIET_RETRIES' scripts/ci-tip-verifiable-broker.sh \
   && grep -qF -- '--self-test' scripts/ci-tip-verifiable-broker.sh \
   && grep -q 'TIP_VERIFIABLE_SOFT' scripts/ci-tip-verifiable-broker.sh \
   && grep -q 'pl_tip_verifiable_tooling_ready' scripts/ci-tip-verifiable-broker.sh \
   && bash scripts/ci-tip-verifiable-broker.sh --self-test >/tmp/pl-tip-verifiable-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-tip-verifiable-self-test.log \
   && grep -q 'soft latency honesty' /tmp/pl-tip-verifiable-self-test.log \
+  && grep -q 'quiet retry' /tmp/pl-tip-verifiable-self-test.log \
   && [[ -f scripts/ci-branch-lite.sh ]] && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/ci-branch-lite.sh \
   && [[ -f scripts/check-cut-path.sh ]] && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/check-cut-path.sh \
   && [[ -f scripts/owner-finish-installable.sh ]] \
@@ -134,9 +137,9 @@ if [[ -f scripts/ci-tip-verifiable-broker.sh ]] \
   && [[ -f scripts/check-installable-preflight.sh ]] \
   && grep -qF -- 'check-registry-token.sh --self-test' scripts/check-installable-preflight.sh \
   && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/check-installable-preflight.sh; then
-  ok "tip Verifiable soft-skip honesty (--self-test PARTIAL exit 2 + soft latency; wired into branch-lite/cut-path/finish/preflight)"
+  ok "tip Verifiable soft-skip honesty (--self-test PARTIAL exit 2 + soft latency + quiet retry; wired into branch-lite/cut-path/finish/preflight)"
 else
-  bad "ci-tip-verifiable-broker soft-skip honesty missing (--self-test / finalize / soft latency / tip proxy+finish+preflight wiring); see /tmp/pl-tip-verifiable-self-test.log"
+  bad "ci-tip-verifiable-broker soft-skip honesty missing (--self-test / finalize / soft latency / quiet retry / tip proxy+finish+preflight wiring); see /tmp/pl-tip-verifiable-self-test.log"
 fi
 fuzz_n=0
 if [[ -d fuzz/fuzz_targets ]]; then

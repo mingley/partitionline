@@ -13,6 +13,11 @@
 #   - Integrity soft latency miss (`latency gate failed (soft)`) → PARTIAL even when
 #     ci-integrity-smoke still prints `ok` (REQUIRE_INTEGRITY unset soft-continues).
 #     Tip Verifiable must not greenwash under-agent-load soft-misses as full `ok`.
+#   - Soft latency miss triggers a quiet integrity recheck by default (sleep + re-run)
+#     so tip proxies (`ci-branch-lite` / `check-cut-path`) can recover under agent load
+#     without greenwashing: only a clean recheck (no soft miss) may set integ ok.
+#     Opt out: TIP_VERIFIABLE_QUIET_RETRIES=0. Knobs: TIP_VERIFIABLE_QUIET_SLEEP_SECS
+#     (default 8), TIP_VERIFIABLE_QUIET_RETRIES (default 1).
 #   - Any other failure → FAIL (exit 1). Soft-skip must not greenwash breaks.
 #   - Final line is `ok` only when broker+auth+integrity all passed without soft latency.
 #     Mid-chain soft-skips print `PARTIAL` (not evidence) — never `ok`.
@@ -36,6 +41,7 @@
 #   bash scripts/ci-tip-verifiable-broker.sh
 #   REQUIRE_BROKER=1 REQUIRE_AUTH=1 bash scripts/ci-tip-verifiable-broker.sh
 #   TIP_VERIFIABLE_SOFT=1 bash scripts/ci-tip-verifiable-broker.sh
+#   TIP_VERIFIABLE_QUIET_RETRIES=0 bash scripts/ci-tip-verifiable-broker.sh  # no quiet recovery
 #   bash scripts/ci-tip-verifiable-broker.sh --self-test   # PARTIAL exit-code units
 set -euo pipefail
 
@@ -45,6 +51,8 @@ cd "$ROOT"
 REQUIRE_BROKER="${REQUIRE_BROKER:-0}"
 REQUIRE_AUTH="${REQUIRE_AUTH:-0}"
 REQUIRE_INTEGRITY="${REQUIRE_INTEGRITY:-0}"
+TIP_VERIFIABLE_QUIET_RETRIES="${TIP_VERIFIABLE_QUIET_RETRIES:-1}"
+TIP_VERIFIABLE_QUIET_SLEEP_SECS="${TIP_VERIFIABLE_QUIET_SLEEP_SECS:-8}"
 
 # Final gate: ok only when both auth+integrity passed; else PARTIAL (exit 2 unless soft).
 # Shared by live path and --self-test so exit-code honesty cannot drift.
@@ -87,6 +95,52 @@ pl_tip_verifiable_interpret_integrity() {
     return 0
   fi
   tip_integ_fail_msg="integrity-smoke; see ${log}"
+  return 1
+}
+
+# After a soft-latency miss, optionally wait and re-run integrity. Returns 0 and
+# sets tip_integ_ok=1 only when a quiet recheck is clean (no soft miss). Otherwise
+# leaves tip_integ_ok=0 / tip_integ_soft=1. Never promotes soft→ok without a clean log.
+# Args: log_path; optional integrity command (default: bash scripts/ci-integrity-smoke.sh).
+pl_tip_verifiable_quiet_retry_integrity() {
+  local log="$1"
+  local integ_cmd="${2:-bash scripts/ci-integrity-smoke.sh}"
+  local retries="${TIP_VERIFIABLE_QUIET_RETRIES:-1}"
+  local sleep_secs="${TIP_VERIFIABLE_QUIET_SLEEP_SECS:-8}"
+  local attempt=0
+  local eval_rc=0
+  # Do not leave `set -e` enabled on return — callers may be under `set +e` to
+  # capture a non-zero soft-miss status; flipping -e on here would abort them.
+  if [[ "$retries" -le 0 ]]; then
+    return 1
+  fi
+  while [[ "$attempt" -lt "$retries" ]]; do
+    attempt=$((attempt + 1))
+    echo "ci-tip-verifiable-broker: quiet latency recheck ${attempt}/${retries} (sleep ${sleep_secs}s; TIP_VERIFIABLE_QUIET_RETRIES=0 to skip)"
+    sleep "$sleep_secs"
+    set +e
+    # shellcheck disable=SC2086
+    eval "$integ_cmd" >"$log" 2>&1
+    eval_rc=$?
+    set +e
+    tip_integ_ok=0
+    tip_integ_soft=0
+    tip_integ_fail_msg=""
+    if ! pl_tip_verifiable_interpret_integrity "$log"; then
+      tip_integ_fail_msg="${tip_integ_fail_msg:-integrity-smoke quiet recheck failed (eval_rc=${eval_rc})}"
+      return 2
+    fi
+    if [[ "$tip_integ_ok" == "1" ]]; then
+      echo "ci-tip-verifiable-broker: quiet latency recheck ok (unsigned; not a Suite HOLD lift)"
+      return 0
+    fi
+    if grep -q 'latency gate failed (soft)' "$log"; then
+      echo "ci-tip-verifiable-broker: quiet recheck still soft-latency miss"
+      continue
+    fi
+    # Soft skip for other reasons (no broker) — stop retrying.
+    break
+  done
   return 1
 }
 
@@ -188,7 +242,78 @@ EOF
     exit 1
   fi
 
-  echo "ci-tip-verifiable-broker: self-test OK — finalize ok/PARTIAL exit 2/soft exit 0 + soft latency honesty"
+  echo "ci-tip-verifiable-broker: self-test — quiet retry recovers soft→clean without greenwash"
+  quiet_log="$(mktemp)"
+  quiet_dir="$(mktemp -d)"
+  # Quiet retry runs AFTER a soft miss was already observed — the recheck command
+  # must emit a clean log to promote. Soft→ok without a clean recheck is greenwash.
+  cat >"$quiet_dir/clean.sh" <<'EOF'
+#!/usr/bin/env bash
+cat <<'CLEAN'
+ci-integrity-smoke: Lab A integrity COUNT=2000
+ci-latency-gate: ok
+ci-integrity-smoke: ok (unsigned; not a Suite HOLD lift)
+CLEAN
+EOF
+  chmod +x "$quiet_dir/clean.sh"
+  tip_integ_ok=0
+  tip_integ_soft=1
+  TIP_VERIFIABLE_QUIET_RETRIES=1
+  TIP_VERIFIABLE_QUIET_SLEEP_SECS=0
+  set +e
+  pl_tip_verifiable_quiet_retry_integrity "$quiet_log" "bash $quiet_dir/clean.sh"
+  quiet_rc=$?
+  set -e
+  if [[ "$quiet_rc" -ne 0 || "$tip_integ_ok" -ne 1 ]]; then
+    rm -rf "$quiet_dir" "$quiet_log"
+    echo "ci-tip-verifiable-broker: self-test FAIL — quiet retry expected recover ok=1 rc=0, got ok=$tip_integ_ok rc=$quiet_rc" >&2
+    exit 1
+  fi
+  if grep -q 'latency gate failed (soft)' "$quiet_log"; then
+    rm -rf "$quiet_dir" "$quiet_log"
+    echo "ci-tip-verifiable-broker: self-test FAIL — quiet retry left soft-miss log as final" >&2
+    exit 1
+  fi
+
+  echo "ci-tip-verifiable-broker: self-test — quiet retry leaves soft miss as PARTIAL when recheck still soft"
+  cat >"$quiet_dir/soft.sh" <<'EOF'
+#!/usr/bin/env bash
+cat <<'SOFT'
+ci-integrity-smoke: Lab A integrity COUNT=2000
+ci-integrity-smoke: latency gate failed (soft) — continuing; set REQUIRE_INTEGRITY=1 to hard-fail
+ci-integrity-smoke: ok (unsigned; not a Suite HOLD lift)
+SOFT
+EOF
+  chmod +x "$quiet_dir/soft.sh"
+  tip_integ_ok=0
+  tip_integ_soft=1
+  TIP_VERIFIABLE_QUIET_RETRIES=1
+  TIP_VERIFIABLE_QUIET_SLEEP_SECS=0
+  set +e
+  pl_tip_verifiable_quiet_retry_integrity "$quiet_log" "bash $quiet_dir/soft.sh"
+  quiet_rc=$?
+  set -e
+  if [[ "$quiet_rc" -eq 0 || "$tip_integ_ok" -eq 1 ]]; then
+    rm -rf "$quiet_dir" "$quiet_log"
+    echo "ci-tip-verifiable-broker: self-test FAIL — soft recheck must not promote (rc=$quiet_rc ok=$tip_integ_ok)" >&2
+    exit 1
+  fi
+
+  echo "ci-tip-verifiable-broker: self-test — quiet retry opt-out must not promote soft miss"
+  tip_integ_ok=0
+  tip_integ_soft=1
+  TIP_VERIFIABLE_QUIET_RETRIES=0
+  set +e
+  pl_tip_verifiable_quiet_retry_integrity "$quiet_log" "bash $quiet_dir/clean.sh"
+  quiet_rc=$?
+  set -e
+  rm -rf "$quiet_dir" "$quiet_log"
+  if [[ "$quiet_rc" -eq 0 || "$tip_integ_ok" -eq 1 ]]; then
+    echo "ci-tip-verifiable-broker: self-test FAIL — QUIET_RETRIES=0 must not recover soft miss (rc=$quiet_rc ok=$tip_integ_ok)" >&2
+    exit 1
+  fi
+
+  echo "ci-tip-verifiable-broker: self-test OK — finalize ok/PARTIAL exit 2/soft exit 0 + soft latency honesty + quiet retry"
   exit 0
 fi
 
@@ -282,14 +407,28 @@ if [[ "$tip_integ_ok" == "1" ]]; then
   integ_ok=1
 elif grep -q 'latency gate failed (soft)' /tmp/pl-tip-integrity.log; then
   # Soft latency under load: Lab A integrity may still pass and smoke still print ok.
-  # Tip Verifiable refuses full ok — PARTIAL only (quiet recheck for evidence).
+  # Tip Verifiable refuses full ok without a clean quiet recheck.
   if [[ "$REQUIRE_INTEGRITY" == "1" ]]; then
     echo "ci-tip-verifiable-broker: FAIL — latency soft-miss (REQUIRE_INTEGRITY=1)" >&2
     tail -40 /tmp/pl-tip-integrity.log >&2 || true
     exit 1
   fi
-  echo "ci-tip-verifiable-broker: SKIP — latency gate soft-miss (not full tip Verifiable evidence; recheck quiet)"
-  soft_skip=1
+  set +e
+  pl_tip_verifiable_quiet_retry_integrity /tmp/pl-tip-integrity.log
+  quiet_rc=$?
+  set -e
+  if [[ "$quiet_rc" -eq 2 ]]; then
+    echo "ci-tip-verifiable-broker: FAIL — ${tip_integ_fail_msg:-integrity quiet recheck}" >&2
+    tail -40 /tmp/pl-tip-integrity.log >&2 || true
+    exit 1
+  fi
+  if [[ "$quiet_rc" -eq 0 && "$tip_integ_ok" == "1" ]]; then
+    echo "ci-tip-verifiable-broker: integrity-smoke ok after quiet latency recheck (unsigned; not a Suite HOLD lift)"
+    integ_ok=1
+  else
+    echo "ci-tip-verifiable-broker: SKIP — latency gate soft-miss after quiet recheck (not full tip Verifiable evidence)"
+    soft_skip=1
+  fi
 elif [[ "$tip_integ_soft" == "1" ]]; then
   if [[ "$REQUIRE_INTEGRITY" == "1" || "$REQUIRE_BROKER" == "1" ]]; then
     echo "ci-tip-verifiable-broker: FAIL — integrity-smoke skipped (required)" >&2
