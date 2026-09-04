@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Real-broker TLS + SASL (SASL_SSL) smoke against native Apache Kafka.
-# Generates a private CA, boots an isolated KRaft broker with SCRAM-SHA-256/512
-# and OAUTHBEARER (unsecured JWT validator), creates a SCRAM user over a
-# PLAINTEXT admin listener, then produces via examples/sasl and examples/oauth
-# with TLS_CA_PEM set (SASL_SSL). Soft-skips when Java/openssl/keytool/Kafka are
-# missing unless REQUIRE_AUTH=1.
+# Generates a private CA, boots an isolated KRaft broker with PLAIN,
+# SCRAM-SHA-256/512, and OAUTHBEARER (unsecured JWT validator), creates a
+# SCRAM user over a PLAINTEXT admin listener, then produces via examples/sasl
+# and examples/oauth with TLS_CA_PEM set. Soft-skips when Java/openssl/keytool/
+# Kafka are missing unless REQUIRE_AUTH=1.
 #
 # Usage:
 #   bash scripts/ci-auth-smoke.sh
@@ -30,7 +30,7 @@ SCRAM_USER="${AUTH_USERNAME:-alice}"
 SCRAM_PASS="${AUTH_PASSWORD:-secret-change-me}"
 OAUTH_PRINCIPAL="${AUTH_OAUTH_PRINCIPAL:-alice}"
 STOREPASS="${AUTH_STORE_PASS:-changeit}"
-# Kafka ships the unsecured JWT validator under internals.unsecured (test/dev).
+# Class path confirmed in kafka-clients 3.9/4.0/4.1 jars (test/dev unsecured JWT).
 OAUTH_VALIDATOR="org.apache.kafka.common.security.oauthbearer.internals.unsecured.OAuthBearerUnsecuredValidatorCallbackHandler"
 
 soft_skip() {
@@ -121,7 +121,11 @@ ssl.truststore.location=${CERTDIR}/kafka.truststore.p12
 ssl.truststore.password=${STOREPASS}
 ssl.truststore.type=PKCS12
 ssl.endpoint.identification.algorithm=
-sasl.enabled.mechanisms=SCRAM-SHA-256,SCRAM-SHA-512,OAUTHBEARER
+sasl.enabled.mechanisms=PLAIN,SCRAM-SHA-256,SCRAM-SHA-512,OAUTHBEARER
+listener.name.sasl_ssl.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+  username="${SCRAM_USER}" \
+  password="${SCRAM_PASS}" \
+  user_${SCRAM_USER}="${SCRAM_PASS}";
 listener.name.sasl_ssl.scram-sha-256.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required;
 listener.name.sasl_ssl.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required;
 listener.name.sasl_ssl.oauthbearer.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;
@@ -175,6 +179,10 @@ export KAFKA_PASSWORD="$SCRAM_PASS"
 export TLS_CA_PEM="$CA_PEM"
 export TLS_SERVER_NAME="localhost"
 
+echo "== SASL_SSL produce (PLAIN + rustls) =="
+export SASL_MECHANISM="PLAIN"
+cargo run --release --example sasl
+
 echo "== SASL_SSL produce (SCRAM-SHA-256 + rustls) =="
 export SASL_MECHANISM="SCRAM-SHA-256"
 cargo run --release --example sasl
@@ -185,7 +193,6 @@ cargo run --release --example sasl
 
 echo "== SASL_SSL produce (OAUTHBEARER unsecured JWT + rustls) =="
 export SASL_OAUTH_PRINCIPAL="$OAUTH_PRINCIPAL"
-# Clear OIDC vars so examples/oauth takes the unsecured JWT path.
 env -u OIDC_TOKEN_URL -u OIDC_CLIENT_ID -u OIDC_CLIENT_SECRET \
   cargo run --release --example oauth
 
@@ -204,4 +211,4 @@ if grep -E -- '@[0-9]+' /tmp/pl-auth-tls-only.log >/dev/null; then
 fi
 echo "ci-auth-smoke: TLS-only correctly failed (rc=${tls_only_rc})"
 
-echo "ci-auth-smoke: ok (SASL_SSL SCRAM-SHA-256/512 + OAUTHBEARER @ ${SSL_BOOTSTRAP})"
+echo "ci-auth-smoke: ok (SASL_SSL PLAIN + SCRAM-SHA-256/512 + OAUTHBEARER @ ${SSL_BOOTSTRAP})"
