@@ -23,7 +23,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
@@ -86,3 +86,27 @@ jobs:
           done
           test "$ok" = "1"
           echo "Owner follow-up: bash scripts/day1-after-publish.sh && commit README on main."
+      - name: GitHub Release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          tag="v${ver}"
+          # Prefer an existing annotated tag body; otherwise write a short crates.io pointer.
+          body="$(git tag -l --format='%(contents)' "$tag" 2>/dev/null | sed '/^$/d' | head -40)"
+          if [ -z "$body" ]; then
+            body="partitionline ${ver}
+
+Published to crates.io: https://crates.io/crates/partitionline/${ver}
+Docs: https://docs.rs/partitionline/${ver}
+
+Owner follow-up on main:
+  bash scripts/day1-after-publish.sh
+  # commit README crates.io dep + badges, then push"
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "GitHub release ${tag} already exists"
+          else
+            gh release create "$tag" --title "partitionline ${ver}" --notes "$body"
+            echo "created GitHub release ${tag}"
+          fi
