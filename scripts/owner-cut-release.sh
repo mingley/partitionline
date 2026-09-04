@@ -278,7 +278,7 @@ pl_cut_run_handoff() {
     echo "owner-cut-release: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
     LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
   else
-    LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+    SKIP_DAY1="${SKIP_DAY1:-0}" LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
   fi
   if [[ "$handoff_rc" -eq 2 ]]; then
     echo "owner-cut-release: PARTIAL — ${name} ${ver} is Installable on crates.io but handoff soft-failed"
@@ -325,6 +325,8 @@ echo "== day1 (README flip + remaining owner steps) =="
 bash scripts/day1-after-publish.sh
 bash scripts/check-installable.sh
 
+# day1 already flipped adopter docs; handoff must not re-run day1 as a second flip.
+SKIP_DAY1=1
 pl_cut_sync_actions_secret
 
 handoff_rc=0

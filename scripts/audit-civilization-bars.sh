@@ -267,6 +267,9 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'parks stack stale' scripts/owner-request-registry-token.sh \
   && grep -qF -- '--self-test' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — Installable OK but parks land failed' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'day1-after-publish.sh' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'PARTIAL — Installable OK but adopter docs still git-shaped' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'SKIP_DAY1=1' scripts/owner-finish-installable.sh \
   && bash scripts/owner-post-installable-handoff.sh --self-test >/tmp/pl-handoff-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-handoff-self-test.log \
   && grep -q 'fail-closed PARTIAL' /tmp/pl-handoff-self-test.log \
