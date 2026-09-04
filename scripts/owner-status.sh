@@ -15,24 +15,15 @@ if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
 else
   echo "BLOCKED  CARGO_REGISTRY_TOKEN unset (export for Cloud Agent + Actions secret)"
 fi
-code="$(curl -sS -o /tmp/pl-owner-crates.json -w '%{http_code}' \
-  -H 'User-Agent: partitionline-owner-status' \
-  'https://crates.io/api/v1/crates/partitionline' || true)"
-if [[ "$code" == "200" ]]; then
-  if command -v python3 >/dev/null 2>&1; then
-    python3 - <<'PY'
-import json
-d=json.load(open("/tmp/pl-owner-crates.json"))
-vers=[v.get("num") for v in d.get("versions",[])[:5]]
-print("OK  crates.io has partitionline; recent:", ", ".join(vers) or "(none)")
-PY
-  else
-    echo "OK  crates.io has partitionline (HTTP 200)"
-  fi
-elif [[ "$code" == "404" ]]; then
-  echo "BLOCKED  crates.io: partitionline does not exist yet (need publish)"
+# shellcheck source=scripts/lib/crates-io.sh
+source "$ROOT/scripts/lib/crates-io.sh"
+pl_crates_probe_version "partitionline" "$ver" "partitionline-owner-status/1"
+if [[ "$PL_CRATES_PROBE_STATUS" == "present" ]]; then
+  echo "OK  crates.io has partitionline ${ver} (${PL_CRATES_PROBE_DETAIL})"
+elif [[ "$PL_CRATES_PROBE_STATUS" == "absent" ]]; then
+  echo "BLOCKED  crates.io: partitionline ${ver} does not exist yet (need publish; ${PL_CRATES_PROBE_DETAIL})"
 else
-  echo "WARN  crates.io HTTP ${code} (see /tmp/pl-owner-crates.json)"
+  echo "WARN  crates.io probe inconclusive (${PL_CRATES_PROBE_DETAIL})"
 fi
 
 echo
@@ -127,6 +118,7 @@ echo "  0. One-shot checklist: bash scripts/owner-unblock.sh"
 echo "  1. Set CARGO_REGISTRY_TOKEN (Cloud + Actions)"
 echo "  2. Restore Actions runners: bash scripts/owner-cancel-stuck-runs.sh"
 echo "     (needs Actions write; agents usually get 403 — owner must run it)"
-echo "  3. Merge civilization → main, tag v${ver} (docs/RELEASE.md)"
-echo "  4. bash scripts/day1-after-publish.sh"
-echo "  5. bash scripts/check-installable.sh   # must exit 0"
+echo "  3. Merge civilization → main, then on clean main:"
+echo "       bash scripts/owner-cut-release.sh   # tag → publish → day1"
+echo "  4. bash scripts/check-installable.sh   # must exit 0"
+echo "  5. crates.io → Trusted Publishing → release.yml"
