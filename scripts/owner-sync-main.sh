@@ -10,6 +10,7 @@
 #   CONFIRM=1 bash scripts/owner-sync-main.sh
 #   DRY_RUN=1 bash scripts/owner-sync-main.sh
 #   TIP=dev/civilization-plan-b686 CONFIRM=1 bash scripts/owner-sync-main.sh
+#   ALLOW_BUSY_MAIN=1 …  # push even when main HEAD CI is still running (cancels it)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -18,6 +19,7 @@ cd "$ROOT"
 DRY_RUN="${DRY_RUN:-0}"
 CONFIRM="${CONFIRM:-0}"
 TIP="${TIP:-dev/civilization-plan-b686}"
+ALLOW_BUSY_MAIN="${ALLOW_BUSY_MAIN:-0}"
 
 git fetch origin main "$TIP"
 
@@ -39,6 +41,21 @@ fi
 
 echo "owner-sync-main: note — main CI cancel-in-progress=true; this push cancels any in-flight main CI."
 echo "owner-sync-main: prefer syncing once before owner-finish-installable, not on every tip commit."
+
+# Refuse to cancel an in-flight Verifiable run on the current main HEAD unless
+# explicitly overridden. Red main CI is allowed (that is how fixes land).
+ci_rc=0
+bash scripts/check-main-ci.sh || ci_rc=$?
+if [[ "$ci_rc" -eq 2 ]]; then
+  if [[ "$ALLOW_BUSY_MAIN" == "1" ]]; then
+    echo "owner-sync-main: ALLOW_BUSY_MAIN=1 — continuing despite in-flight main CI" >&2
+  else
+    echo "owner-sync-main: main HEAD CI is still running — refusing tip→main sync" >&2
+    echo "  Wait for it to finish (bash scripts/check-main-ci.sh), then re-run." >&2
+    echo "  Or set ALLOW_BUSY_MAIN=1 to cancel in-flight CI intentionally." >&2
+    exit 1
+  fi
+fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "owner-sync-main: DRY_RUN=1 — would: git push origin ${tip_sha}:main"
