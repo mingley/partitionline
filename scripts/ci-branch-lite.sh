@@ -100,6 +100,11 @@ echo "== ci-branch-lite: first-publish Actions alternate (DRY_RUN visibility) ==
 # alternate when token is Actions-secret-only). DRY_RUN=1 does not dispatch.
 DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh
 
+echo "== ci-branch-lite: tip live-broker Verifiable =="
+# Tip pushes skip Actions. Without a live broker chain, tip "Verifiable" was
+# fmt/clippy/lib-only. Soft-skips honestly when no broker/tooling; never greenwashes.
+bash scripts/ci-tip-verifiable-broker.sh
+
 echo "== ci-branch-lite: civilization bars (PRE_PUBLISH) =="
 # Prove all bars except Installable credentials before the token cut.
 # FULL=0: avoid recursion when FULL=1 audit nests this script.
