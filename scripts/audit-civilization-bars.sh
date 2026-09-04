@@ -277,10 +277,15 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'SKIP_DAY1=1' scripts/owner-finish-installable.sh \
   && grep -qF 'PARTIAL — Installable OK but parks not on main' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'REQUIRE_PARKS=1' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'DRY_RUN: parks on main' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'PARTIAL — parks not on main (DRY_RUN' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'parks not on main' scripts/owner-status.sh \
+  && grep -qF 'parks not on main' scripts/owner-unblock.sh \
   && bash scripts/owner-post-installable-handoff.sh --self-test >/tmp/pl-handoff-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-handoff-self-test.log \
   && grep -q 'fail-closed PARTIAL' /tmp/pl-handoff-self-test.log \
-  && HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1; then
+  && HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1 \
+  && grep -q 'PARTIAL — parks not on main (DRY_RUN; expected pre-token' /tmp/pl-handoff-dry.log; then
   ok "post-Installable handoff (DRY_RUN + fail-closed PARTIAL; finish+cut-release chain + cut-path + day1 + first-publish)"
 else
   bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log /tmp/pl-handoff-self-test.log"
