@@ -216,6 +216,13 @@ else
   bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log"
 fi
 
+# Cut-release bare must auto PUBLISH_LOCAL=1 when token is in-env (token-day footgun).
+if bash scripts/owner-cut-release.sh --self-test >/tmp/pl-cut-publish-local-auto.log 2>&1; then
+  ok "cut-release PUBLISH_LOCAL auto-default (token in-env → local publish)"
+else
+  bad "cut-release PUBLISH_LOCAL auto-default missing/broken; see /tmp/pl-cut-publish-local-auto.log"
+fi
+
 # --- 4. Honest ---
 echo
 echo "== 4. Honest (labeled benches; no false Suite HOLD lift) =="
