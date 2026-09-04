@@ -38,6 +38,11 @@ echo "  git tag -a v0.1.0 -m 'partitionline 0.1.0'"
 echo "  git push origin v0.1.0"
 echo "  # release.yml: OIDC trusted publishing if configured, else CARGO_REGISTRY_TOKEN"
 echo
+echo "One-shot after merge to main (preferred):"
+echo "  bash scripts/owner-cut-release.sh          # tag → Actions → day1"
+echo "  PUBLISH_LOCAL=1 bash scripts/owner-cut-release.sh  # manual cargo publish"
+echo "  DRY_RUN=1 bash scripts/owner-cut-release.sh"
+echo
 echo "If publishing locally instead (token in env):"
 echo "  cargo publish --dry-run && cargo publish"
 echo
