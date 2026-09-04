@@ -49,8 +49,11 @@ echo "  bash scripts/owner-cut-release.sh          # tag → Actions → day1"
 echo "  PUBLISH_LOCAL=1 bash scripts/owner-cut-release.sh  # manual cargo publish"
 echo "  DRY_RUN=1 bash scripts/owner-cut-release.sh"
 echo
-echo "If the token is Actions-only (not in this shell): after canceling stuck runs,"
-echo "  Actions → First publish → confirm=publish  (.github/workflows/first-publish.yml)"
+echo "If the token is Actions-only (not in this shell):"
+echo "  1. Merge/FF civilization → main (first-publish.yml must exist on default branch)"
+echo "  2. bash scripts/owner-cancel-stuck-runs.sh"
+echo "  3. bash scripts/owner-dispatch-first-publish.sh"
+echo "     # or: Actions → First publish → confirm=publish"
 echo "  Prefer owner-finish-installable.sh when the token is already in-env."
 echo
 echo "Until crates.io lands, adopters pin git tag v0.1.0-rc.6 (not floating main)."

@@ -27,6 +27,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   cut when `CARGO_REGISTRY_TOKEN` is an Actions secret (confirm=publish);
   documented in ADOPTION / RELEASE / owner-finish-installable as the
   Actions-only alternate to the in-env finish script.
+- `scripts/owner-dispatch-first-publish.sh`: owner helper to
+  `gh workflow run first-publish.yml` after tip is on `main` (dispatch is
+  only listed from the default branch).
 - `scripts/lib/adopter-consumer-main.sh`: shared operator-surface consumer
   used by `ci-crate-consumer` and `verify-crates-io-consumer` so packed-crate
   and crates.io proofs cannot drift.
