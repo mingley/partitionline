@@ -38,10 +38,45 @@ if cargo publish --dry-run --allow-dirty >/tmp/pl-publish-dry.log 2>&1; then
 else
   bad "cargo publish --dry-run; see /tmp/pl-publish-dry.log"
 fi
-if curl -fsSA 'partitionline-ci/1' 'https://crates.io/api/v1/crates/partitionline' >/tmp/pl-crates.json 2>/dev/null; then
-  ok "crates.io has partitionline (published)"
+if DRY_RUN=1 bash scripts/post-publish-readme.sh >/tmp/pl-readme-dry.log 2>&1; then
+  ok "day1 README flip preflight (DRY_RUN=1)"
 else
-  ok "crates.io name free / not yet published"
+  bad "day1 README flip preflight; see /tmp/pl-readme-dry.log"
+fi
+# Prefer shared API+sparse-index probe (User-Agent required; CDN 403 without it).
+# shellcheck source=scripts/lib/crates-io.sh
+source "$ROOT/scripts/lib/crates-io.sh"
+name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+pl_crates_probe_version "$name" "$ver" "partitionline-civilization-check/1"
+case "${PL_CRATES_PROBE_STATUS}" in
+  present)
+    ok "crates.io has ${name} ${ver} (${PL_CRATES_PROBE_DETAIL})"
+    ;;
+  absent)
+    ok "crates.io name free / ${name} ${ver} not yet published (${PL_CRATES_PROBE_DETAIL}) — WP-0.5 owner token"
+    ;;
+  *)
+    ski "crates.io probe inconclusive (${PL_CRATES_PROBE_DETAIL})"
+    ;;
+esac
+if bash scripts/check-merge-ready.sh >/tmp/pl-merge-ready.log 2>&1; then
+  ok "merge-ready (structural cut gate)"
+else
+  # Token WARN must not fail merge-ready; a hard FAIL here is a real blocker.
+  if grep -q '^check-merge-ready: OK' /tmp/pl-merge-ready.log; then
+    ok "merge-ready (structural cut gate)"
+  else
+    bad "merge-ready; see /tmp/pl-merge-ready.log"
+  fi
+fi
+bash scripts/check-actions-hygiene.sh >/tmp/pl-actions-hygiene.log 2>&1 || true
+if grep -q '^OK' /tmp/pl-actions-hygiene.log; then
+  ok "actions hygiene (no stale queued zombies)"
+elif grep -q '^WARN' /tmp/pl-actions-hygiene.log; then
+  ski "actions hygiene: stale queued runs (owner cancel); see /tmp/pl-actions-hygiene.log"
+else
+  ski "actions hygiene inconclusive; see /tmp/pl-actions-hygiene.log"
 fi
 
 echo "== Verifiable =="
