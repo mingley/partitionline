@@ -23,6 +23,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Fixed
 
+- Docs: CIVILIZATION live tip SHA + [#86](https://github.com/mingley/partitionline/issues/86) cut path aligned to publish-new + `owner-finish-installable` (issue body no longer steers to publish-update-only / owner-cut-release).
 - Scripts: `owner-status` / `audit-civilization-bars` / `check-merge-ready` probe crates.io publish-new auth (not token presence alone) so publish-update-only or garbage tokens cannot greenwash Installable readiness; `owner-unblock` surfaces both post-cut parks and the token probe.
 - Docs: CIVILIZATION tip SHA + post-cut parks list (Verifiable + SCRAM/flate2) aligned with live cut path and structured registry-token probe.
 - Scripts: `check-registry-token` probes crates.io publish-new auth via PUT `/api/v1/crates/new` with a structured empty-tarball body (not `/api/v1/me`, which 403s publish-only tokens; not an empty body, which 400s before auth and false-accepts); `--self-test` proves fake tokens fail; wired into preflight, cut-path, finish, and `ci-branch-lite`.
