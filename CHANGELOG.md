@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: `check-installable-preflight` surfaces `owner-request-registry-token` on READY_EXCEPT_TOKEN so the one-screen publish-new ask is the default next step.
 - Scripts/docs: `owner-request-registry-token.sh` one-screen Installable token ask (Secrets deep link + publish-new scope + finish path); wired from `owner-status` / `owner-unblock`. CIVILIZATION post-cut parks tip ancestor stamp → `bb2506c`.
 - Docs: same-day native Verifiable recheck on tip `67072a5` (broker kip848+share, auth matrix, integrity COUNT=2000, latency quiet p99≈150µs after under-load ≈380µs, fuzz decode smoke) recorded unsigned; not a Suite HOLD lift.
 - Scripts: `check-registry-token --self-test` covers whitespace-only TOKEN / TOKEN_FILE normalize units (tip Verifiable + cut-path) before the fake-token network probe.
