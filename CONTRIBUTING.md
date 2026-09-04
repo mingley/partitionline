@@ -38,10 +38,10 @@ Supply-chain (`deny.toml`):
 bash scripts/ci-deny.sh
 ```
 
-Civilization bar self-check (package + deny + docs gates; broker optional):
+Before a crates.io cut (owner token required for the real publish):
 
 ```
-bash scripts/ci-civilization-check.sh
+bash scripts/ci-publish-ready.sh
 ```
 
 When Docker overlay is unavailable (common in nested VMs), use a native broker:
