@@ -24,6 +24,12 @@ ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 echo "check-installable-preflight: ${name} ${ver}"
 echo
 
+echo "== honesty self-tests (no token required) =="
+# READY_EXCEPT_TOKEN must not be claimable if probe/PARTIAL units regress.
+# Same executable units as cut-path / owner-finish-installable step 0a.
+bash scripts/check-registry-token.sh --self-test
+bash scripts/ci-tip-verifiable-broker.sh --self-test
+
 # Already published?
 if bash scripts/check-installable.sh >/tmp/pl-preflight-installable.log 2>&1; then
   echo "check-installable-preflight: ALREADY_INSTALLABLE — crates.io has ${name} ${ver}"

@@ -24,6 +24,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Finish-path honesty self-tests (2026-09-04, tip `54b5bc6`):** `owner-finish-installable` step 0a runs registry-token + tip Verifiable `--self-test` before Installable short-circuit / token gate; bars gate the finish wiring — still **unsigned** tip Verifiable evidence only, still not a Suite HOLD lift.
 
+**Preflight honesty self-tests (2026-09-04, tip `TIPSHA`):** `check-installable-preflight` runs registry-token + tip Verifiable `--self-test` before `READY_EXCEPT_TOKEN`; bars gate preflight wiring alongside finish/cut-path — still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
