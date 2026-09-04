@@ -44,8 +44,9 @@ partitionline = "0.1"
 
 1. Produce + fetch against your Kafka 3.9 / 4.x cluster (`examples/roundtrip`).
 2. Classic or cooperative groups (`examples/group`, `examples/cooperative`).
-3. TLS (`rustls`) and SCRAM or OIDC as required (`examples/tls`, `examples/sasl`,
-   `examples/oauth`).
+3. TLS (`rustls`) and SCRAM-SHA-256/512 or OIDC as required (`examples/tls`,
+   `examples/sasl` with `TLS_CA_PEM` for SASL_SSL, `examples/oauth`).
+   Real-broker check: `REQUIRE_AUTH=1 bash scripts/ci-auth-smoke.sh`.
 4. Transactions / EOS if you need them (`examples/txn`, `examples/eos`).
 5. Share groups on Kafka 4.1+ with `share.version=1` (`examples/share`).
 6. Scrape `Producer` / `Consumer` / `Admin` / `ShareGroup` metrics; optional
@@ -74,4 +75,10 @@ bash scripts/ci-civilization-check.sh
 bash scripts/ci-native-kafka.sh start
 SKIP_DOCKER=1 bash scripts/ci-broker-smoke.sh
 bash scripts/ci-native-kafka.sh stop
+# TLS + SCRAM (isolated ports; needs local Kafka/Java/openssl):
+REQUIRE_AUTH=1 bash scripts/ci-auth-smoke.sh   # SCRAM-SHA-256 and SCRAM-SHA-512
 ```
+
+Local evidence (2026-09-04): `ci-civilization-check.sh` **26/26** including
+native broker smoke and SASL_SSL SCRAM-256/512 auth smoke. GitHub Actions
+still cannot confirm Verifiable until org runners leave `queued`.
