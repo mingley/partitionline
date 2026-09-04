@@ -64,6 +64,10 @@ If the token is only in **GitHub Actions** secrets (not Cloud Agent):
 Prefer `bash scripts/owner-finish-installable.sh` when the token is already
 in-env — it FF-merges, publishes locally, and does not wait on runners.
 
+To FF tip → `main` without cutting: `CONFIRM=1 bash scripts/owner-sync-main.sh`.
+That refuses while main HEAD CI is still running (protects in-flight Verifiable)
+unless `ALLOW_BUSY_MAIN=1`.
+
 One-shot on clean `main` (tag → Actions): `bash scripts/owner-cut-release.sh`
 (pushes `vX.Y.Z`, waits for crates.io, runs day1, then
 `audit-civilization-bars`). `PUBLISH_LOCAL=1` uses `owner-publish` instead of
