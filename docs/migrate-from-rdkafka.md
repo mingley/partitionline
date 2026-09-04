@@ -63,6 +63,7 @@ default feature set.
 | Commit | `commit_message` | `commit_with_metadata(recs.next_offsets())` |
 | Transactions | init / begin / send_offsets / commit | same names on `Producer`; see `examples/eos.rs` |
 | Create topic | admin create | `Admin::create_topics` |
+| Elect preferred / unclean leaders | (Java `Admin.electLeaders` / `kafka-leader-election.sh`) | `Admin::elect_leaders` / `elect_leaders_timeout` |
 
 ## Intentional differences
 

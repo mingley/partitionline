@@ -10,7 +10,8 @@
 //! AlterReplicaLogDirs, DescribeLogDirs, CreateDelegationToken,
 //! RenewDelegationToken, ExpireDelegationToken, DescribeDelegationToken.
 //!
-//! ACL codecs live in [`crate::protocol::acl`].
+//! ACL codecs live in [`crate::protocol::acl`]. ElectLeaders (api 43)
+//! codecs live in [`crate::protocol::elect`].
 
 use std::collections::{BTreeSet, HashMap};
 use std::fmt;

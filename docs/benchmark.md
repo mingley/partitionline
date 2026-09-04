@@ -423,8 +423,10 @@ It is **not** a vs-C 2.15.0 claim. It is **not** a Suite HOLD lift.
 
 Fetch v11 `RackId` is a non-nullable STRING (Apache JSON / kafka-protocol
 0.18.0). This tree encodes an empty string when no rack is set. Kafka
-3.9.1 rejects a null `rackId`. No new admin API. ElectLeaders /
-DescribeLogDirs v5 / DescribeQuorum / raft voters stay closed.
+3.9.1 rejects a null `rackId`. No new admin API in that measurement.
+DescribeLogDirs v5 / DescribeQuorum / raft voters stay closed. ElectLeaders
+(43) is spoken in this tree (`Admin::elect_leaders`); the unsigned fetch
+writeup did not exercise it.
 
 #### Reproduce
 
@@ -555,8 +557,9 @@ Fetch-request (partitionline only; not vs rdkafka):
 | 3 | 417 | 108 | 422 | 10,008 |
 | **median** | 417 | **121** | **751** | 10,008 |
 
-No new admin API. ElectLeaders / DescribeLogDirs v5 / DescribeQuorum /
-raft voters stay closed.
+No new admin API in that measurement. DescribeLogDirs v5 / DescribeQuorum /
+raft voters stay closed. ElectLeaders (43) is spoken in this tree
+(`Admin::elect_leaders`); the unsigned latency writeup did not exercise it.
 
 #### Reproduce
 

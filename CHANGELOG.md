@@ -26,6 +26,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Added
 
+- Admin: ElectLeaders (api 43, KIP-183 / KIP-460) v0–2. `Admin::elect_leaders`
+  / `elect_leaders_timeout` elect preferred or unclean partition leaders
+  (`ElectionType`; `None` elects every partition). Lands on the Metadata
+  controller with `NOT_CONTROLLER` retry. Unclean on v0 is
+  `UnsupportedVersionException`. Optional at `Admin::new`.
 - `.github/workflows/first-publish.yml`: workflow_dispatch first crates.io
   cut when `CARGO_REGISTRY_TOKEN` is an Actions secret (confirm=publish);
   documented in ADOPTION / RELEASE / owner-finish-installable as the
