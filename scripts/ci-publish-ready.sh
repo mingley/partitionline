@@ -59,7 +59,18 @@ echo "== tip-delta classifier (cut/sync trust guard) =="
 bash scripts/check-tip-delta.sh
 
 echo "== post-cut parks stack rehearsal =="
-bash scripts/check-post-cut-parks-stack.sh
+parks_rc=0
+bash scripts/check-post-cut-parks-stack.sh || parks_rc=$?
+if [[ "$parks_rc" -ne 0 ]]; then
+  if [[ "${AUTO_REFRESH_PARKS:-0}" == "1" ]]; then
+    echo "ci-publish-ready: parks lag tip — AUTO_REFRESH_PARKS=1 refreshing chain"
+    bash scripts/refresh-post-cut-parks.sh
+    bash scripts/check-post-cut-parks-stack.sh
+  else
+    echo "ci-publish-ready: parks stack failed (set AUTO_REFRESH_PARKS=1 to refresh, or: bash scripts/refresh-post-cut-parks.sh)" >&2
+    exit "$parks_rc"
+  fi
+fi
 
 echo "== Trusted Publishing workflow shape =="
 bash scripts/check-trusted-publishing-ready.sh
