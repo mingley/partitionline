@@ -12,7 +12,8 @@
 #   LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh  # also land post-cut parks
 #   ENABLE_TP=0 bash scripts/owner-post-installable-handoff.sh   # skip Trusted Publishing helper
 #   SKIP_DAY1=1 …  # caller already ran day1-after-publish (finish/cut)
-#   bash scripts/owner-post-installable-handoff.sh --self-test   # preserve + day1 chain units
+#   ALLOW_PARKS_PENDING=1 …  # OK even if parks not yet ancestors of main (defer land)
+#   bash scripts/owner-post-installable-handoff.sh --self-test   # preserve + day1 + parks-on-main
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -46,8 +47,16 @@ if [[ "${1:-}" == "--self-test" ]]; then
     echo "owner-post-installable-handoff: self-test FAIL — git-shaped docs after day1 must PARTIAL (not final OK)" >&2
     exit 1
   fi
+  if ! grep -qF 'PARTIAL — Installable OK but parks not on main' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — parks-not-on-main must PARTIAL (not final OK)" >&2
+    exit 1
+  fi
+  if ! grep -qF 'REQUIRE_PARKS=1' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — LAND_PARKS land must REQUIRE_PARKS=1" >&2
+    exit 1
+  fi
   bash "$ROOT/scripts/lib/preserve-day1-docs.sh" --self-test
-  echo "owner-post-installable-handoff: self-test OK — preserve + day1 chain + fail-closed PARTIAL"
+  echo "owner-post-installable-handoff: self-test OK — preserve + day1 chain + parks-on-main + fail-closed PARTIAL"
   exit 0
 fi
 
@@ -161,7 +170,7 @@ if [[ "$LAND_PARKS" == "1" ]]; then
   # shellcheck source=scripts/lib/preserve-day1-docs.sh
   source "$ROOT/scripts/lib/preserve-day1-docs.sh"
   pl_day1_docs_begin
-  bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?
+  REQUIRE_PARKS=1 bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?
   pl_day1_docs_end
   if [[ "$parks_rc" -ne 0 ]]; then
     echo "owner-post-installable-handoff: WARN — parks land failed (Installable still OK)" >&2
@@ -175,7 +184,33 @@ else
 fi
 
 echo
-echo "== 7) Remaining honesty =="
+echo "== 7) Parks on main (post-cut land honesty) =="
+# Stack check proves tip⊆parks merge readiness. Final OK still requires each park
+# to be an ancestor of origin/main — otherwise Actions-alternate / LAND_PARKS=0
+# handoff greenwashes unfinished post-cut land.
+PARKED_BRANCHES="${PARKED_BRANCHES:-dev/verifiable-auth-integrity-fuzz-b686 dev/scram-crypto-bumps-b686 dev/lz4-flex-bump-b686 dev/actions-checkout-bump-b686}"
+git fetch origin main ${PARKED_BRANCHES} >/dev/null 2>&1 || true
+parks_pending=()
+for parked in ${PARKED_BRANCHES}; do
+  if ! git rev-parse -q --verify "origin/${parked}" >/dev/null; then
+    parks_pending+=("${parked} (missing)")
+    continue
+  fi
+  if ! git merge-base --is-ancestor "origin/${parked}" origin/main; then
+    parks_pending+=("${parked}")
+  fi
+done
+if [[ "${#parks_pending[@]}" -eq 0 ]]; then
+  echo "owner-post-installable-handoff: parks are on origin/main"
+else
+  echo "owner-post-installable-handoff: parks not yet on origin/main:"
+  for p in "${parks_pending[@]}"; do
+    echo "  - ${p}"
+  done
+fi
+
+echo
+echo "== 8) Remaining honesty =="
 echo "owner-post-installable-handoff: Suite HOLD remains until signed Lab A (docs/STATUS.md)."
 echo "owner-post-installable-handoff: Schema Registry stays a companion after core publish"
 echo "  (docs/schema-companion.md)."
@@ -189,6 +224,17 @@ if [[ "$ENABLE_TP" == "1" && "$tp_rc" -ne 0 ]]; then
   echo "owner-post-installable-handoff: PARTIAL — Installable OK but Trusted Publishing helper failed (rc=${tp_rc})" >&2
   echo "  Re-enter: bash scripts/owner-enable-trusted-publishing.sh" >&2
   exit 2
+fi
+if [[ "${#parks_pending[@]}" -ne 0 && "${ALLOW_PARKS_PENDING:-0}" != "1" ]]; then
+  echo "owner-post-installable-handoff: PARTIAL — Installable OK but parks not on main" >&2
+  echo "  Post-cut parks still pending on origin/main — handoff must not final-OK." >&2
+  echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh" >&2
+  echo "  Or: bash scripts/owner-land-post-cut-parks.sh" >&2
+  echo "  Intentional deferral: ALLOW_PARKS_PENDING=1 bash scripts/owner-post-installable-handoff.sh" >&2
+  exit 2
+fi
+if [[ "${#parks_pending[@]}" -ne 0 && "${ALLOW_PARKS_PENDING:-0}" == "1" ]]; then
+  echo "owner-post-installable-handoff: WARN — ALLOW_PARKS_PENDING=1; parks still off main (deferred)"
 fi
 # Automated handoff steps succeeded. Trusted Publishing UI remains an owner action
 # (helper only checks workflow shape — never claim TP is configured).
