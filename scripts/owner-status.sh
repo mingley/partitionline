@@ -129,6 +129,17 @@ else
   grep -E '^(FAIL|WARN|check-merge-ready:)' /tmp/pl-owner-merge-ready.log | tail -12 | sed 's/^/    /' || true
 fi
 
+if bash scripts/check-post-cut-parks-stack.sh >/tmp/pl-owner-parks-stack.log 2>&1; then
+  echo "  post-cut parks stack: ok"
+else
+  echo "  post-cut parks stack: FAIL (see /tmp/pl-owner-parks-stack.log)"
+fi
+if bash scripts/check-trusted-publishing-ready.sh >/tmp/pl-owner-tp.log 2>&1; then
+  echo "  trusted-publishing shape: $(grep -E 'OK|INFO|FAIL' /tmp/pl-owner-tp.log | tail -1)"
+else
+  echo "  trusted-publishing shape: FAIL (see /tmp/pl-owner-tp.log)"
+fi
+
 echo
 echo "== Civilization bars =="
 if bash scripts/audit-civilization-bars.sh >/tmp/pl-owner-bars.log 2>&1; then
