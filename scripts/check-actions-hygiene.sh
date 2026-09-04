@@ -114,4 +114,16 @@ else
   echo "      --color 0366d6"
 fi
 
+echo
+echo "check-actions-hygiene: Dependabot ↔ post-cut parks coverage"
+# Informational here (hygiene always exits 0). cut-path / bars hard-gate the same
+# script so unmapped Dependabot cannot silently escape stewardship.
+dep_rc=0
+bash scripts/check-dependabot-parks-coverage.sh || dep_rc=$?
+if [[ "$dep_rc" -eq 1 ]]; then
+  echo "WARN  Dependabot parks coverage failed — see above (cut-path will hard-fail)"
+elif [[ "$dep_rc" -eq 2 ]]; then
+  echo "WARN  Dependabot parks coverage soft-skipped (gh/API)"
+fi
+
 exit 0
