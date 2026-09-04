@@ -31,17 +31,20 @@ bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish
    bash scripts/owner-finish-installable.sh
    ```
    Fast-forwards tip → `main` once (if tip is ahead), publishes locally,
-   runs day1, and proves Installable. After Installable, finish chains
-   `owner-land-post-cut-parks.sh` by default (`MERGE_PARKED_VERIFIABLE=0` /
-   `MERGE_POST_CUT_PARKS=0` to skip): Verifiable auth/integrity Actions +
-   ConsumerGroupHeartbeat fuzz, then SCRAM crypto + flate2 1.1.10, then
-   `lz4_flex` 0.11 → 0.14 (`dev/verifiable-auth-integrity-fuzz-b686`,
+   runs day1, proves Installable, then chains
+   `owner-post-installable-handoff.sh` (Trusted Publishing checklist + full bars +
+   optional parks via `LAND_PARKS` from `MERGE_POST_CUT_PARKS` /
+   `MERGE_PARKED_VERIFIABLE`, default on): Verifiable auth/integrity Actions +
+   ConsumerGroupHeartbeat fuzz, then SCRAM crypto + flate2, then
+   `lz4_flex` bump, then `actions/checkout` bump
+   (`dev/verifiable-auth-integrity-fuzz-b686`,
    `dev/scram-crypto-bumps-b686`, `dev/lz4-flex-bump-b686`, `dev/actions-checkout-bump-b686`).
    Parks stay off tip so the token cut remains docs/scripts-only /
    one-shot `PUBLISH_LOCAL`. Or stepwise on clean `main` that already has the
    tip: `bash scripts/owner-cut-release.sh` (tags **`v0.1.0`** final only;
    when `CARGO_REGISTRY_TOKEN` is in-env and `PUBLISH_LOCAL` is unset, cut-release
-   defaults to local publish — set `PUBLISH_LOCAL=0` for tag → Actions).
+   defaults to local publish — set `PUBLISH_LOCAL=0` for tag → Actions;
+   cut-release also chains the same post-Installable handoff after day1).
    If the token is **Actions-only** (not in your shell): cancel stuck runs,
    then Actions → **First publish** → `confirm=publish` or
    `bash scripts/owner-dispatch-first-publish.sh`
@@ -51,9 +54,12 @@ bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish
    re-enter TP + parks + full bars anytime with:
    ```bash
    bash scripts/owner-post-installable-handoff.sh
-   LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks skipped
+   LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks skipped/soft-failed
    DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh      # rehearse before cut
    ```
+   Handoff prints final `OK` only when requested parks/TP steps succeed;
+   parks/TP soft-fail exits `PARTIAL` (2) so Installable is not confused with
+   a finished post-cut land.
 
 ## Install (today)
 
