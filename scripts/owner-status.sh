@@ -39,6 +39,8 @@ else
   fi
   echo "-- main (latest 2) --"
   gh run list --branch main --limit 2 2>/dev/null || echo "WARN  gh run list main failed"
+  echo "-- main HEAD CI probe --"
+  bash scripts/check-main-ci.sh || true
   echo "-- tip branch (HEAD-aware) --"
   branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
   head_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
