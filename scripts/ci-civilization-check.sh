@@ -148,6 +148,8 @@ if [[ "$broker_ok" -eq 0 ]]; then
   fi
 fi
 # TLS + PLAIN/SCRAM/OAUTHBEARER (SASL_SSL) — isolated ports; soft-skips without Java/Kafka.
+# Explicit "skipping" (missing tooling) may SKIP; any other failure is FAIL —
+# soft-skip must not greenwash broken auth.
 if bash scripts/ci-auth-smoke.sh >/tmp/pl-auth.log 2>&1 \
   && grep -q 'ci-auth-smoke: ok' /tmp/pl-auth.log; then
   ok "auth smoke (TLS + PLAIN/SCRAM/OAUTHBEARER SASL_SSL)"
@@ -158,11 +160,7 @@ elif grep -q 'ci-auth-smoke: skipping' /tmp/pl-auth.log; then
     ski "auth smoke (missing Java/openssl/Kafka tooling)"
   fi
 else
-  if [[ "${REQUIRE_AUTH:-}" == "1" ]]; then
-    bad "auth smoke; see /tmp/pl-auth.log"
-  else
-    ski "auth smoke (failed soft); see /tmp/pl-auth.log"
-  fi
+  bad "auth smoke; see /tmp/pl-auth.log"
 fi
 
 echo "== Operable =="
@@ -182,7 +180,9 @@ else
   bad "bench honesty labels missing"
 fi
 # Produce → HW == acked → fetch → consumed == seeded (+ unsigned latency gate).
-# Soft-skips without a broker unless REQUIRE_INTEGRITY=1.
+# Explicit "skipping" (no broker) may SKIP; any other failure is FAIL —
+# soft-skip must not greenwash integrity regressions. REQUIRE_INTEGRITY=1
+# still hard-fails the explicit skip path.
 if bash scripts/ci-integrity-smoke.sh >/tmp/pl-integrity.log 2>&1 \
   && grep -q 'ci-integrity-smoke: ok' /tmp/pl-integrity.log; then
   ok "Lab A integrity smoke (HW+fetch+latency; unsigned)"
@@ -193,11 +193,7 @@ elif grep -q 'ci-integrity-smoke: skipping' /tmp/pl-integrity.log; then
     ski "Lab A integrity smoke (no broker)"
   fi
 else
-  if [[ "${REQUIRE_INTEGRITY:-}" == "1" ]]; then
-    bad "Lab A integrity smoke; see /tmp/pl-integrity.log"
-  else
-    ski "Lab A integrity smoke (failed soft); see /tmp/pl-integrity.log"
-  fi
+  bad "Lab A integrity smoke; see /tmp/pl-integrity.log"
 fi
 
 echo "== Independent =="
