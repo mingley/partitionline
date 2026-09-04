@@ -326,17 +326,11 @@ trap cleanup EXIT
 
 cleanup
 # Official apache/kafka image defaults to KRaft and advertises localhost:9092.
-# For 4.x, enable share coordinator state topic RF=1 and (on 4.0/4.1) the
-# temporary group.share.enable flag; then finalize share.version=1 after ready.
+# Do NOT inject partial KAFKA_* env on 4.x — that switches the image into
+# env-driven config and fails storage format with missing process.roles
+# (seen on apache/kafka:4.1.0 in GHA). Start with image defaults, then
+# upgrade share.version=1 after ready (upgrade_share_feature).
 docker_run_args=(-d --name "$BROKER_NAME" -p 9092:9092)
-if kafka_image_is_4x; then
-  docker_run_args+=(
-    -e KAFKA_GROUP_SHARE_ENABLE=true
-    -e KAFKA_UNSTABLE_API_VERSIONS_ENABLE=true
-    -e KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR=1
-    -e KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR=1
-  )
-fi
 if ! docker run "${docker_run_args[@]}" "$KAFKA_IMAGE"; then
   echo "ci-broker-smoke: docker run failed (overlay often broken in nested VMs)." >&2
   # Verifiable fallback: if a broker is already listening, use it (same as SKIP_DOCKER=1).
