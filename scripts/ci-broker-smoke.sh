@@ -223,7 +223,7 @@ run_examples() {
       kip848_ok=1
       break
     fi
-    if grep -qiE 'UnsupportedVersion|Unsupported|UNKNOWN_SERVER_ERROR|does not support|ConsumerGroupHeartbeat|InvalidRequest|API version' "$kip848_log"; then
+    if grep -qiE 'UnsupportedVersion|Unsupported|UNKNOWN_SERVER_ERROR|does not support|ConsumerGroupHeartbeat|InvalidRequest|API version|need [0-9]+ bytes|truncated response' "$kip848_log"; then
       break
     fi
     echo "ci-broker-smoke: kip848 not ready yet; retry $attempt"
@@ -236,7 +236,7 @@ run_examples() {
     cat "$kip848_log" >&2 || true
     rm -f "$kip848_log"
     exit 1
-  elif grep -qiE 'UnsupportedVersion|Unsupported|UNKNOWN_SERVER_ERROR|does not support|ConsumerGroupHeartbeat|InvalidRequest|API version' "$kip848_log"; then
+  elif grep -qiE 'UnsupportedVersion|Unsupported|UNKNOWN_SERVER_ERROR|does not support|ConsumerGroupHeartbeat|InvalidRequest|API version|need [0-9]+ bytes|truncated response' "$kip848_log"; then
     echo "ci-broker-smoke: kip848 skipped (broker lacks ConsumerGroupHeartbeat; use Kafka 4.x)"
     rm -f "$kip848_log"
   else

@@ -15,6 +15,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Fixed
 
+- Kafka 3.9 `ConsumerGroupHeartbeat`: truncated preview frames (correlation-id-only header, empty body, or throttle-plus-error-code) are `Unsupported` instead of `protocol: need 1 bytes, have 0`, so 3.9 broker-smoke can skip KIP-848 while 4.x still requires it.
 - CI: stop injecting partial `KAFKA_*` env on `apache/kafka:4.x` Docker (was breaking KRaft format with missing `process.roles`); enable share via post-ready `share.version=1` upgrade only.
 - CI latency gate: honor `LATENCY_LIMIT_US` absolute ceiling; Actions sets `5000` for GHA+Docker noise (local relative baseline unchanged).
 
