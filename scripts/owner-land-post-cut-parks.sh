@@ -24,10 +24,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 DRY_RUN="${DRY_RUN:-0}"
-# When DRY_RUN stacks parks, optionally prove the stacked tree compiles/tests
-# (merge-clean alone can still leave a red post-cut main). Default off here;
-# check-post-cut-parks-stack enables it for the tip Verifiable gate.
-RUN_STACK_TESTS="${RUN_STACK_TESTS:-0}"
+# Prove stacked tree with cargo test --lib.
+# Real land defaults ON (post-cut main must not go red). DRY_RUN defaults OFF
+# here; check-post-cut-parks-stack enables RUN_STACK_TESTS=1 for tip gate.
+if [[ -z "${RUN_STACK_TESTS:-}" ]]; then
+  if [[ "$DRY_RUN" == "1" ]]; then
+    RUN_STACK_TESTS=0
+  else
+    RUN_STACK_TESTS=1
+  fi
+fi
 ALLOW_BEFORE_INSTALLABLE="${ALLOW_BEFORE_INSTALLABLE:-0}"
 REQUIRE_PARKS="${REQUIRE_PARKS:-0}"
 TARGET_BRANCH="${TARGET_BRANCH:-main}"
@@ -227,6 +233,19 @@ done
 if [[ "$fail" -ne 0 ]]; then
   echo "owner-land-post-cut-parks: completed with failures — inspect PRs for remaining parks" >&2
   exit 1
+fi
+
+if [[ "${RUN_STACK_TESTS}" == "1" ]]; then
+  echo
+  echo "== post-land cargo test --lib =="
+  git checkout "${TARGET_BRANCH}"
+  git pull --ff-only origin "${TARGET_BRANCH}" >/dev/null
+  if ! cargo test --lib; then
+    echo "owner-land-post-cut-parks: FAIL — post-land cargo test --lib failed on ${TARGET_BRANCH}" >&2
+    echo "  Parks are on ${TARGET_BRANCH}; fix forward — do not leave main red." >&2
+    exit 1
+  fi
+  echo "owner-land-post-cut-parks: post-land cargo test --lib OK"
 fi
 
 echo
