@@ -50,6 +50,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Preflight TOKEN prepare + PARTIAL re-entry (2026-09-04):** `check-installable-preflight` runs `pl_prepare_cargo_registry_token` before any `READY_EXCEPT_TOKEN` claim (whitespace→unset, `TOKEN_FILE` load, misname WARN) with `--self-test` gated in bars. Finish already-Installable `DRY_RUN` captures parks rehearsal rc and can exit `PARTIAL`/2. `owner-status` surfaces misname WARNs + PARTIAL bar lines and branches next-steps on `ALREADY_INSTALLABLE`; `owner-unblock` documents SKIP_HANDOFF + PARTIAL re-entry (do not re-cut). Still not a Suite HOLD lift.
 
+**Not-yet-Installable DRY_RUN PARTIAL + gated token ask (2026-09-04):** finish not-yet-Installable `DRY_RUN` captures cut/parks/handoff rcs and exits `PARTIAL`/2 on soft-fail (no final OK). `day1-after-publish` absent+`DRY_RUN` exits `PARTIAL`/2; `check-cut-path` captures day1/finish PARTIAL instead of greenwashing final OK. `owner-request-registry-token` runs preflight first and refuses a READY_EXCEPT_TOKEN claim when parks/merge-ready/prepare honesty fail. Still not a Suite HOLD lift.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

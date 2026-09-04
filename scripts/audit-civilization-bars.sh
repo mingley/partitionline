@@ -251,7 +251,13 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF -- 'SKIP_HANDOFF' scripts/owner-cut-release.sh \
   && grep -qF -- 'SKIP_HANDOFF=1' scripts/owner-finish-installable.sh \
   && grep -qF 'PARTIAL — already-Installable DRY_RUN soft-failed' scripts/owner-finish-installable.sh \
+  && grep -qF 'PARTIAL — not-yet-Installable DRY_RUN soft-failed' scripts/owner-finish-installable.sh \
   && grep -qF 'parks_rc' scripts/owner-finish-installable.sh \
+  && grep -qF 'PARTIAL — not yet Installable' scripts/day1-after-publish.sh \
+  && grep -qF 'day1_rc' scripts/check-cut-path.sh \
+  && grep -qF 'finish_rc' scripts/check-cut-path.sh \
+  && grep -qF 'check-installable-preflight.sh' scripts/owner-request-registry-token.sh \
+  && grep -qF 'READY_EXCEPT_TOKEN' scripts/owner-request-registry-token.sh \
   && grep -qF -- '--self-test' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — Installable OK but parks land failed' scripts/owner-post-installable-handoff.sh \
   && bash scripts/owner-post-installable-handoff.sh --self-test >/tmp/pl-handoff-self-test.log 2>&1 \

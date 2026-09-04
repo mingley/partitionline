@@ -3,6 +3,9 @@
 # Does not publish. Safe anytime. Prefer this over scrolling owner-unblock when the
 # only remaining gap is CARGO_REGISTRY_TOKEN.
 #
+# Refuses to claim READY_EXCEPT_TOKEN unless check-installable-preflight agrees
+# (stale parks / red merge-ready / prepare honesty must not greenwash the ask).
+#
 # Usage:
 #   bash scripts/owner-request-registry-token.sh
 set -euo pipefail
@@ -20,7 +23,37 @@ echo "========================================"
 echo " ${name} ${ver} — request CARGO_REGISTRY_TOKEN"
 echo "========================================"
 echo
-echo "Installable is READY_EXCEPT_TOKEN. Everything else for the first cut is rehearsed."
+
+# Honesty first: only claim READY_EXCEPT_TOKEN when preflight says so.
+pf_rc=0
+bash scripts/check-installable-preflight.sh >/tmp/pl-request-preflight.log 2>&1 || pf_rc=$?
+case "$pf_rc" in
+  0)
+    if ! grep -q 'READY_EXCEPT_TOKEN' /tmp/pl-request-preflight.log; then
+      echo "owner-request-registry-token: PARTIAL — preflight exit 0 but READY_EXCEPT_TOKEN missing" >&2
+      tail -12 /tmp/pl-request-preflight.log | sed 's/^/  /' >&2 || true
+      exit 2
+    fi
+    echo "Installable is READY_EXCEPT_TOKEN. Everything else for the first cut is rehearsed."
+    ;;
+  2)
+    echo "Installable is ALREADY_INSTALLABLE (crates.io has ${name} ${ver})."
+    echo "No token ask needed for first cut. Re-enter: bash scripts/owner-post-installable-handoff.sh"
+    exit 0
+    ;;
+  3)
+    echo "Installable is READY_EXCEPT_TOKEN (main CI still running — wait or REQUIRE_MAIN_CI=0)."
+    echo "Token ask still valid once CI is green; structural gates otherwise OK."
+    ;;
+  *)
+    echo "owner-request-registry-token: refusing READY_EXCEPT_TOKEN claim — preflight exit ${pf_rc}" >&2
+    echo "  Fix blockers below, then re-run this ask (do not inject a token into a broken cut path)." >&2
+    tail -20 /tmp/pl-request-preflight.log | sed 's/^/  /' >&2 || true
+    echo "  Probe: bash scripts/check-installable-preflight.sh" >&2
+    exit 1
+    ;;
+esac
+
 echo "crates.io still lacks ${name} ${ver}. The cut needs a crates.io token with"
 echo "scope publish-new (+ publish-update). publish-update alone cannot create the crate."
 echo
@@ -54,6 +87,10 @@ case "$tok_rc" in
     ;;
   2)
     echo "STATUS: CARGO_REGISTRY_TOKEN is unset in this shell."
+    # Surface Secrets typos that leave Installable stuck (length-only).
+    if grep -q 'misnamed token' /tmp/pl-request-token.log 2>/dev/null; then
+      grep 'misnamed token\|Rename to exactly' /tmp/pl-request-token.log | sed 's/^/  /' || true
+    fi
     ;;
   *)
     echo "STATUS: CARGO_REGISTRY_TOKEN is set but crates.io rejected it."
