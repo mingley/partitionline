@@ -18,6 +18,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `scripts/check-actions-hygiene.sh`: classifies stale queued Actions (RC-tag
   release zombies vs tip CI leftovers); wired into `owner-status` /
   `owner-unblock`. `owner-cancel-stuck-runs` labels the same classes.
+- `scripts/ci-crate-consumer.sh`: packed-crate downstream check now links the
+  operator surface (Producer/Consumer/ConsumerGroup/ShareGroup/Admin +
+  SASL/TLS config), not only Producer.
+- `scripts/ci-civilization-check.sh`: Installable section uses shared crates.io
+  probe, day1 README `DRY_RUN` preflight, merge-ready gate, and actions hygiene.
 
 - `examples/kip848`: KIP-848 next-gen consumer group join (`ConsumerGroup::join_consumer_topics`).
   Broker smoke runs it on Kafka 4.x (`REQUIRE_KIP848=1` default). Join now sends an
