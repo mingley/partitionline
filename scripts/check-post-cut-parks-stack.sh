@@ -85,4 +85,18 @@ if git rev-parse "origin/${checkout_park}" >/dev/null 2>&1; then
   fi
   echo "check-post-cut-parks-stack: parked first-publish.yml documents publish-new"
 fi
+
+# Tip honesty while Installable is unmet: tip first-publish.yml must stay soft
+# ("publish") so tip-delta remains docs/scripts-only. publish-new wording lives
+# on the checkout park until post-cut land.
+if ! bash scripts/check-installable.sh >/dev/null 2>&1; then
+  tip_fp=".github/workflows/first-publish.yml"
+  if [[ -f "$tip_fp" ]] && grep -q 'publish-new' "$tip_fp"; then
+    echo "check-post-cut-parks-stack: FAIL — tip ${tip_fp} already has publish-new" >&2
+    echo "  Keep that honesty on ${checkout_park} until after crates.io 0.1.0 (tip-delta)." >&2
+    exit 1
+  fi
+  echo "check-post-cut-parks-stack: tip first-publish.yml stays soft until Installable"
+fi
+
 echo "check-post-cut-parks-stack: OK"
