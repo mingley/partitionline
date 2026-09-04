@@ -67,7 +67,9 @@ If the token is only in **GitHub Actions** secrets (not Cloud Agent):
    `workflow_dispatch` workflows from the default branch, so
    `first-publish.yml` is not runnable until it exists on `main`.
 2. Cancel stuck queued runs (`bash scripts/owner-cancel-stuck-runs.sh`).
-3. Actions → **First publish** → `confirm=publish` (optional `ref`, default
+3. Actions secret `CARGO_REGISTRY_TOKEN` must include crates.io **`publish-new`**
+   (+ usually `publish-update`) — same scope rule as the in-env cut.
+4. Actions → **First publish** → `confirm=publish` (optional `ref`, default
    `main`), or `bash scripts/owner-dispatch-first-publish.sh`.
 
 Prefer `bash scripts/owner-finish-installable.sh` when the token is already
