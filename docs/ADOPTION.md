@@ -11,13 +11,16 @@ Civilization **Installable** is blocked only on credentials and merge:
 2. Restore GitHub Actions runners — **org-wide**, not just this branch: `main`
    has had a run stuck `queued` for ~22.5h (run `33714516185`), and `dev/**`
    `branch-lite` also never leaves the queue. Agent cannot cancel runs (403).
-   Local `ci-civilization-check.sh` is green (**26/26**, 2026-09-04) including
-   broker + SASL_SSL SCRAM-256/512. After merge, `ci.yml` now sets
-   `cancel-in-progress: true` on `main` as well so the next `main` push can
+   Cancel obsolete queued `release` jobs for RC tags like `v0.1.0-rc.1` (they
+   cannot publish while `Cargo.toml` is `0.1.0` and only hold runners). Local
+   `ci-civilization-check.sh` is green (**26/26**, 2026-09-04) including
+   broker + SASL_SSL PLAIN + SCRAM-256/512 + OAUTHBEARER. After merge, `ci.yml`
+   sets `cancel-in-progress: true` on `main` as well so the next `main` push can
    cancel that stuck queued predecessor instead of lining up behind it.
-3. Merge `dev/civilization-plan-b686` → `main`, tag `v0.1.0` (or
-   `workflow_dispatch` on that tag), confirm https://crates.io/crates/partitionline
-   (`bash scripts/check-installable.sh` should exit 0).
+3. Merge `dev/civilization-plan-b686` → `main`, tag **`v0.1.0`** (final only —
+   not `-rc`; `release.yml` ignores prerelease tags), confirm
+   https://crates.io/crates/partitionline (`bash scripts/check-installable.sh`
+   should exit 0).
 4. Run `bash scripts/day1-after-publish.sh` and commit the README crates.io line.
 
 Probe current blockers anytime:
