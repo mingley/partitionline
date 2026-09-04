@@ -19,7 +19,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 - `scripts/owner-finish-installable.sh`: one-shot Installable finish once
   `CARGO_REGISTRY_TOKEN` is in-env — FF-merge civilization → `main`, local
-  `cargo publish` (bypasses starved Actions), day1, prove Installable.
+  `cargo publish` (bypasses starved Actions), day1, prove Installable; after
+  success, best-effort `gh secret set CARGO_REGISTRY_TOKEN` for later tags.
+  `owner-status` / `ci-publish-ready` / bars audit point at this path first.
 - `scripts/lib/crates-io.sh`: shared Installable probe (crates.io API + sparse
   index fallback; required User-Agent — CDN returns empty 403 without one).
   Wired into `check-installable`, `check-merge-ready`, and `owner-status`.
