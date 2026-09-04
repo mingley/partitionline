@@ -51,6 +51,9 @@ echo
 echo "== 4) Publish path (after token; Verifiable already green on main) =="
 echo "Tracking issue: https://github.com/mingley/partitionline/issues/86"
 echo
+echo "Token missing? Start here (one screen):"
+echo "  bash scripts/owner-request-registry-token.sh"
+echo
 # Live tip/main relationship — do not hardcode "matches main" (tip often stays
 # ahead on docs/scripts while Installable waits; thrash guard refuses sync).
 git fetch origin main dev/civilization-plan-b686 >/dev/null 2>&1 || true
