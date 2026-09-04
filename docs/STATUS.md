@@ -16,7 +16,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Native Verifiable recheck (2026-09-04, tip `3a1b00a`):** native Kafka 4.1 broker-smoke (kip848+share) green; `REQUIRE_AUTH=1` auth-smoke SASL_SSL PLAIN+SCRAM-256/512+OAUTHBEARER+OIDC+mTLS fail-closed green; Lab A integrity COUNT=2000 HW==acked and consumed==seeded green; latency quiet p99≈147–161µs (pass vs 750µs) after under-agent-load miss ≈1007µs; fuzz decode smoke green — still **unsigned**, still not a Suite HOLD lift.
 
-**Tip live-broker Verifiable + soft-skip honesty (2026-09-04, tip `60d4023` + `ci-tip-verifiable-broker` PARTIAL/auto-REQUIRE):** native Kafka 4.1 broker-smoke (kip848+share) green; auth-smoke SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC+mTLS fail-closed green; Lab A integrity COUNT=2000 HW==acked and consumed==seeded green; latency quiet p99≈96µs (pass vs 750µs) — still **unsigned**, still not a Suite HOLD lift. Tip Verifiable now refuses to print `ok` after mid-chain soft-skips (`PARTIAL` only); capable envs auto-`REQUIRE_BROKER`/`REQUIRE_AUTH`.
+**Tip live-broker Verifiable + soft-skip honesty (2026-09-04, tip `f581359` + `ci-tip-verifiable-broker` PARTIAL/auto-REQUIRE):** native Kafka 4.1 broker-smoke (kip848+share) green; auth-smoke SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC+mTLS fail-closed green; Lab A integrity COUNT=2000 HW==acked and consumed==seeded green; latency quiet p99≈96µs (pass vs 750µs) — still **unsigned**, still not a Suite HOLD lift. Tip Verifiable now refuses to print `ok` after mid-chain soft-skips (`PARTIAL` only); capable envs auto-`REQUIRE_BROKER`/`REQUIRE_AUTH`.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
