@@ -54,14 +54,19 @@ else
   # Prefer runs for this exact SHA so a fixed tip is not shadowed by an older
   # empty-job release failure on the same branch name.
   if command -v python3 >/dev/null 2>&1; then
-    gh run list --branch "$branch" --limit 30 --json databaseId,status,conclusion,name,event,headSha,displayTitle,createdAt 2>/dev/null \
-      | HEAD_SHA="$head_sha" python3 - <<'PY' || echo "WARN  gh run list ${branch} failed"
-import json, os, sys
+    if gh run list --branch "$branch" --limit 30 \
+      --json databaseId,status,conclusion,name,event,headSha,displayTitle,createdAt \
+      >/tmp/pl-owner-tip-runs.json 2>/dev/null; then
+      HEAD_SHA="$head_sha" python3 - <<'PY' || echo "WARN  could not interpret tip run list"
+import json, os
 head = os.environ.get("HEAD_SHA", "")
 try:
-    runs = json.load(sys.stdin)
+    runs = json.load(open("/tmp/pl-owner-tip-runs.json"))
 except Exception:
     print("WARN  could not parse gh run list JSON")
+    raise SystemExit(0)
+if not isinstance(runs, list):
+    print("WARN  unexpected gh run list JSON shape")
     raise SystemExit(0)
 match = [r for r in runs if r.get("headSha") == head]
 if match:
@@ -82,6 +87,9 @@ else:
             f"{r.get('name')}\t{r.get('event')}\t{r.get('databaseId')}"
         )
 PY
+    else
+      echo "WARN  gh run list ${branch} failed"
+    fi
   else
     gh run list --branch "$branch" --limit 2 2>/dev/null || echo "WARN  gh run list ${branch} failed"
   fi
