@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts: `ci-branch-lite` + `check-cut-path` run `ci-crate-consumer` so the packed `.crate` tarball is proven dependable (Installable packaging) before the token cut, not only via publish-ready.
 - Scripts: `ci-branch-lite` + `check-cut-path` run `ci-deny` so the Independent bar (no C Kafka/OpenSSL/zstd defaults) is tip-gated, not only in publish-ready.
 - Scripts: `ci-branch-lite` + `check-cut-path` run `ci-msrv` so Installable MSRV is exercised (compile+lib tests on declared rust-version), not only declared in Cargo.toml.
 - Scripts: `check-post-cut-parks-stack` requires tip `first-publish.yml` to stay soft (no `publish-new`) while Installable is unmet — publish-new honesty stays on the checkout park so tip-delta remains docs/scripts-only.
