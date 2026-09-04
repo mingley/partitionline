@@ -32,6 +32,9 @@ bash scripts/check-crate-metadata.sh
 echo "== crate consumer =="
 bash scripts/ci-crate-consumer.sh
 
+echo "== adopter crates.io consumer rehearsal (path) =="
+MODE=path bash scripts/verify-crates-io-consumer.sh
+
 echo "== publish dry-run =="
 cargo publish --dry-run
 

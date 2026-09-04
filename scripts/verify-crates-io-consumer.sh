@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
-# Prove Installable the way an adopter experiences it: depend on the crates.io
-# release and cargo-check the operator surface (produce/consume/group/share/
-# admin + SASL/TLS config types). Does not publish.
+# Prove Installable the way an adopter experiences it: depend on partitionline
+# and cargo-check the operator surface (produce/consume/group/share/admin +
+# SASL/TLS config types). Does not publish.
 #
-# Requires partitionline ${ver} to already be on crates.io (check-installable).
-# Wired into day1-after-publish and owner-finish-installable after the first cut.
+# Modes:
+#   MODE=registry (default) — require crates.io ${ver}, depend via registry
+#   MODE=path               — pre-publish rehearsal against this workspace
+#                             (catches API drift before the first cut)
+#
+# Registry mode is wired into day1-after-publish / owner-finish-installable.
+# Path mode is wired into ci-publish-ready so day1 cannot fail on type drift.
 #
 # Usage:
 #   bash scripts/verify-crates-io-consumer.sh
+#   MODE=path bash scripts/verify-crates-io-consumer.sh
 #   VER=0.1.0 bash scripts/verify-crates-io-consumer.sh
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,15 +21,29 @@ cd "$ROOT"
 
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 ver="${VER:-$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)}"
+mode="${MODE:-registry}"
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
-echo "verify-crates-io-consumer: expecting crates.io ${name} ${ver}"
+case "$mode" in
+  registry|path) ;;
+  *)
+    echo "verify-crates-io-consumer: MODE must be registry or path (got '$mode')" >&2
+    exit 1
+    ;;
+esac
 
-if ! bash scripts/check-installable.sh >/tmp/pl-verify-installable.log 2>&1; then
-  cat /tmp/pl-verify-installable.log >&2 || true
-  echo "verify-crates-io-consumer: FAIL — ${name} ${ver} not Installable yet" >&2
-  exit 1
+if [[ "$mode" == "registry" ]]; then
+  echo "verify-crates-io-consumer: expecting crates.io ${name} ${ver}"
+  if ! bash scripts/check-installable.sh >/tmp/pl-verify-installable.log 2>&1; then
+    cat /tmp/pl-verify-installable.log >&2 || true
+    echo "verify-crates-io-consumer: FAIL — ${name} ${ver} not Installable yet" >&2
+    exit 1
+  fi
+  dep_line="${name} = \"=${ver}\""
+else
+  echo "verify-crates-io-consumer: MODE=path pre-publish rehearsal against ${ROOT}"
+  dep_line="${name} = { path = \"${ROOT}\" }"
 fi
 
 cons="$tmpdir/consumer"
@@ -36,7 +56,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-${name} = "=${ver}"
+${dep_line}
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 EOF
 
@@ -65,8 +85,13 @@ async fn main() {
 }
 EOF
 
-echo "verify-crates-io-consumer: cargo check against crates.io ${name} ${ver}"
+echo "verify-crates-io-consumer: cargo check (${mode}) for ${name} ${ver}"
 (cd "$cons" && cargo check --quiet)
+
+if [[ "$mode" == "path" ]]; then
+  echo "verify-crates-io-consumer: ok (path rehearsal — day1 registry consumer will compile)"
+  exit 0
+fi
 
 if ! grep -q "^name = \"${name}\"$" "$cons/Cargo.lock"; then
   echo "verify-crates-io-consumer: FAIL — ${name} missing from consumer Cargo.lock" >&2
