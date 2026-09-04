@@ -22,6 +22,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Fixed
 
+- Scripts: post-cut parks DRY_RUN cleanup uses globals under `set -u` so conflict exits do not abort worktree teardown.
 - Docs: CIVILIZATION live tip SHA + [#86](https://github.com/mingley/partitionline/issues/86) cut path aligned to publish-new + `owner-finish-installable` (issue body no longer steers to publish-update-only / owner-cut-release).
 - Scripts: `owner-status` / `audit-civilization-bars` / `check-merge-ready` probe crates.io publish-new auth (not token presence alone) so publish-update-only or garbage tokens cannot greenwash Installable readiness; `owner-unblock` surfaces both post-cut parks and the token probe.
 - Docs: CIVILIZATION tip SHA + post-cut parks list (Verifiable + SCRAM/flate2) aligned with live cut path and structured registry-token probe.
