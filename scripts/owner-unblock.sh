@@ -34,12 +34,18 @@ echo "== 3) Merge/tag readiness (no token required) =="
 bash scripts/check-merge-ready.sh || true
 echo
 
-echo "== 4) Publish path (after token + clean Actions) =="
+echo "== 4) Publish path (after token; Verifiable already green on main) =="
 echo "Tracking issue: https://github.com/mingley/partitionline/issues/86"
+echo
+echo "As of 2026-09-04: main CI is green through Kafka 3.9.1 + 4.1.0 broker-smoke"
+echo "and latency-gate (soft-skip kip848 on 3.9). PRE_PUBLISH bars: only Installable"
+echo "blocked. Tip matches main. Remaining owner action is CARGO_REGISTRY_TOKEN."
 echo
 echo "Fastest once CARGO_REGISTRY_TOKEN is in this environment (bypasses starved Actions):"
 echo "  bash scripts/owner-finish-installable.sh"
-echo "  # FF-merges civilization → main, cargo publish locally, day1, proves Installable"
+echo "  # FF-merges civilization → main (no-op if already aligned), cargo publish,"
+echo "  # day1, proves Installable. Real cuts default REQUIRE_MAIN_CI=1 — wait for"
+echo "  # green main CI if a docs/scripts push is still running, or override with 0."
 echo "  DRY_RUN=1 bash scripts/owner-finish-installable.sh"
 echo
 echo "Or stepwise (docs/RELEASE.md): merge civilization → main, then tag final only:"
