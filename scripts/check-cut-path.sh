@@ -89,6 +89,18 @@ echo "== check-cut-path: first-publish Actions alternate (DRY_RUN visibility) ==
 DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh
 
 echo
+echo "== check-cut-path: day1 after-publish rehearsal (no crates.io wait) =="
+# Finish chains day1 after the cut; rehearse README flip + consumer path now so
+# day1 cannot fail on tip drift once crates.io 0.1.0 exists.
+DRY_RUN=1 bash scripts/day1-after-publish.sh
+
+echo
+echo "== check-cut-path: Actions hygiene (stale queue surface) =="
+# Informational (always exit 0). Surfaces zombie RC-release / stale tip queues
+# that starve runners before the owner cut; cancel remains owner-only (403 to agents).
+bash scripts/check-actions-hygiene.sh
+
+echo
 echo "== check-cut-path: finish DRY_RUN (tip-aware parks, hard-fail) =="
 DRY_RUN=1 bash scripts/owner-finish-installable.sh
 
