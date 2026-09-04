@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts/docs: `owner-enable-trusted-publishing` post-Installable helper verifies release.yml OIDC shape and prints exact crates.io Trusted Publishing UI steps; wired into day1 / owner-status / RELEASE.
 - Scripts: `check-cut-path` runs `cargo publish --dry-run` so Installable rehearsal proves package upload shape before `CARGO_REGISTRY_TOKEN` arrives.
 - Scripts/docs: park `actions/checkout` v7 on `dev/actions-checkout-bump-b686` and append it to post-cut land order (after Verifiable + SCRAM + lz4); tip stays docs/scripts-only until Installable.
 - Scripts/docs: park `lz4_flex` 0.11→0.14 on `dev/lz4-flex-bump-b686` and wire it into post-cut parks land order (after Verifiable + SCRAM); tip stays docs/scripts-only until Installable.
