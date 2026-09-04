@@ -51,6 +51,10 @@ echo "== ci-branch-lite: cargo publish --dry-run =="
 # Does not contact crates.io with credentials (dry-run aborts before upload).
 cargo publish --dry-run
 
+echo "== ci-branch-lite: crates.io metadata shape =="
+# Declared package metadata must stay publish-shaped under tip Verifiable.
+bash scripts/check-crate-metadata.sh
+
 echo "== ci-branch-lite: Trusted Publishing workflow shape =="
 # OIDC release.yml shape must stay tip-gated; first cut still needs CARGO_REGISTRY_TOKEN.
 bash scripts/check-trusted-publishing-ready.sh
@@ -73,6 +77,10 @@ bash scripts/check-post-cut-parks-stack.sh
 
 echo "== ci-branch-lite: day1 after-publish rehearsal (no crates.io wait) =="
 DRY_RUN=1 bash scripts/day1-after-publish.sh
+
+echo "== ci-branch-lite: Installable preflight =="
+# Tip Verifiable must keep READY_EXCEPT_TOKEN (or READY) visible before PRE_PUBLISH bars.
+bash scripts/check-installable-preflight.sh
 
 echo "== ci-branch-lite: civilization bars (PRE_PUBLISH) =="
 # Prove all bars except Installable credentials before the token cut.
