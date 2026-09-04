@@ -43,7 +43,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `scripts/owner-dispatch-first-publish.sh`: owner helper to
   `gh workflow run first-publish.yml` after tip is on `main` (dispatch is
   only listed from the default branch).
-- `scripts/owner-sync-main.sh`: explicit tip→main FF with `CONFIRM=1` (avoids cancel-in-progress thrash on main CI while Installable waits). Refuses when main HEAD CI is still running unless `ALLOW_BUSY_MAIN=1`.
+- `scripts/owner-sync-main.sh`: explicit tip→main FF with `CONFIRM=1` (avoids cancel-in-progress thrash on main CI while Installable waits). Refuses when main HEAD CI is still running unless `ALLOW_BUSY_MAIN=1`. Also refuses docs/scripts-only tip→main while crates.io cut is still absent unless `ALLOW_DOCS_THRASH=1` (leave tip ahead; `owner-finish-installable` FF's once at cut).
 
 - `owner-finish-installable.sh`: `DRY_RUN=1` rehearses merge/cut without a
   token; `check-merge-ready` next steps detect when HEAD already matches

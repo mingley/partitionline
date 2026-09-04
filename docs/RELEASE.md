@@ -67,7 +67,9 @@ in-env — it FF-merges, publishes locally, and does not wait on runners.
 
 To FF tip → `main` without cutting: `CONFIRM=1 bash scripts/owner-sync-main.sh`.
 That refuses while main HEAD CI is still running (protects in-flight Verifiable)
-unless `ALLOW_BUSY_MAIN=1`.
+unless `ALLOW_BUSY_MAIN=1`. While crates.io `0.1.0` is still absent, it also
+refuses docs/scripts-only tip→main unless `ALLOW_DOCS_THRASH=1` — leave tip
+ahead and let `owner-finish-installable` FF once at cut time.
 
 One-shot on clean `main` (tag → Actions): `bash scripts/owner-cut-release.sh`
 (pushes `vX.Y.Z`, waits for crates.io, runs day1, then
