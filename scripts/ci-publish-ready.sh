@@ -26,6 +26,9 @@ bash scripts/ci-docs.sh
 echo "== package =="
 cargo package
 
+echo "== crate metadata (crates.io shape) =="
+bash scripts/check-crate-metadata.sh
+
 echo "== crate consumer =="
 bash scripts/ci-crate-consumer.sh
 
