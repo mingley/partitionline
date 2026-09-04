@@ -23,9 +23,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `scripts/owner-cancel-stuck-runs.sh` cancels queued Actions runs older than
   15 minutes (`DRY_RUN=1` supported); wired from `owner-status` / ADOPTION for
   the org-wide runner starvation case (agents get 403 — owner must run it).
-- `scripts/ci-branch-lite.sh` locally mirrors the Actions `branch-lite` job
-  (fmt/clippy/lib/docs); wired into civilization-check and owner-status so
-  Verifiable evidence exists when org runners stay queued.
+- `scripts/ci-branch-lite.sh` locally mirrors the former Actions tip gate
+  (fmt/clippy/lib/docs); wired into civilization-check and owner-status.
+- CI: `dev/**` tip pushes no longer auto-queue (org runner starvation /
+  perpetual tip re-queue); full matrix on PR/`main`/`workflow_dispatch` only.
 
 ### Changed
 

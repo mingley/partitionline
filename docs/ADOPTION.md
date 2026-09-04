@@ -8,17 +8,14 @@ need a memory-safe Kafka stack with no C in the default feature set.
 Civilization **Installable** is blocked only on credentials and merge:
 
 1. Add `CARGO_REGISTRY_TOKEN` (Cloud Agent env + GitHub Actions secret).
-2. Restore GitHub Actions runners — **org-wide**, not just this branch: `main`
-   has had a run stuck `queued` for ~22.5h (run `33714516185`), and `dev/**`
-   `branch-lite` also never leaves the queue. Agent cannot cancel runs (403).
-   **Owner:** `bash scripts/owner-cancel-stuck-runs.sh` (or `DRY_RUN=1` first)
-   cancels queued runs older than 15 minutes — including obsolete `release`
-   jobs for RC tags like `v0.1.0-rc.1` (they cannot publish while `Cargo.toml`
-   is `0.1.0` and only hold runners). Local `ci-civilization-check.sh` is green
-   (**26/26**, 2026-09-04) including broker + SASL_SSL PLAIN + SCRAM-256/512 +
-   OAUTHBEARER. After merge, `ci.yml` sets `cancel-in-progress: true` on `main`
-   as well so the next `main` push can cancel a stuck queued predecessor
-   instead of lining up behind it.
+2. Restore GitHub Actions runners — **org-wide**: `main` has had a run stuck
+   `queued` for ~22.5h (run `33714516185`). Agent cannot cancel (403).
+   **Owner:** `bash scripts/owner-cancel-stuck-runs.sh` (or `DRY_RUN=1` first).
+   Tip (`dev/**`) pushes no longer auto-queue CI (was thrashing starved runners);
+   local gate: `bash scripts/ci-branch-lite.sh`. Full matrix on PR/`main`/
+   `workflow_dispatch`. Local civilization-check includes broker + SASL_SSL
+   PLAIN + SCRAM-256/512 + OAUTHBEARER. After merge, `ci.yml` cancels
+   in-progress on `main` so the next push can clear a stuck predecessor.
 3. Merge `dev/civilization-plan-b686` → `main`, tag **`v0.1.0`** (final only —
    not `-rc`; `release.yml` ignores prerelease tags), confirm
    https://crates.io/crates/partitionline (`bash scripts/check-installable.sh`

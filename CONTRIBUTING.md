@@ -13,10 +13,16 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 ```
 
-GitHub Actions: pushes to `dev/**` run a single `branch-lite` job (fmt, clippy,
-lib tests, docs). The full matrix (MSRV, broker smoke, fuzz, deny, package, …)
-runs on pull requests, `main`, and `workflow_dispatch`. Prefer opening a PR (or
-dispatching the workflow) when you need the full gate.
+GitHub Actions: `dev/**` tip pushes do **not** auto-queue CI (org runners were
+starved by perpetual tip `branch-lite` re-queues). Tip gate locally:
+
+```
+bash scripts/ci-branch-lite.sh   # fmt, clippy, lib tests, docs
+```
+
+Full matrix (MSRV, broker smoke, fuzz, deny, package, …) runs on pull requests,
+`main`, and `workflow_dispatch`. Open a PR (or dispatch the workflow) for the
+full gate. If Actions stay queued, owner: `bash scripts/owner-cancel-stuck-runs.sh`.
 
 Real-broker smoke (Docker required; skipped locally if Docker is missing unless `CI=true`):
 
