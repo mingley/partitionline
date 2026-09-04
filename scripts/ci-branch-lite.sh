@@ -82,6 +82,10 @@ echo "== ci-branch-lite: Installable preflight =="
 # Tip Verifiable must keep READY_EXCEPT_TOKEN (or READY) visible before PRE_PUBLISH bars.
 bash scripts/check-installable-preflight.sh
 
+echo "== ci-branch-lite: merge/tag readiness =="
+# Structural merge+tag readiness (version, CHANGELOG, release.yml, tip/main tree).
+bash scripts/check-merge-ready.sh
+
 echo "== ci-branch-lite: civilization bars (PRE_PUBLISH) =="
 # Prove all bars except Installable credentials before the token cut.
 # FULL=0: avoid recursion when FULL=1 audit nests this script.

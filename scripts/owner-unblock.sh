@@ -64,6 +64,12 @@ echo "and latency-gate (soft-skip kip848 on 3.9). PRE_PUBLISH bars: only Install
 echo "blocked. ${tip_main_note} Remaining owner action is CARGO_REGISTRY_TOKEN."
 echo "Probe: bash scripts/check-installable-preflight.sh   # expect READY_EXCEPT_TOKEN"
 echo
+echo "Inject token into this Cloud Agent (preferred for owner-finish-installable):"
+echo "  Cursor → Cloud Agents → Environments → this env → Secrets"
+echo "  Add CARGO_REGISTRY_TOKEN = crates.io token with publish-new (+ publish-update)"
+echo "  Save, then restart/re-run the agent so the shell receives the secret."
+echo "  Also set the same name as a GitHub Actions repository secret."
+echo
 echo "Fastest once CARGO_REGISTRY_TOKEN is in this environment (bypasses starved Actions):"
 echo "  bash scripts/check-registry-token.sh   # must exit 0 (publish-new auth; not presence-only)"
 echo "  bash scripts/check-cut-path.sh         # full cut rehearsal"
