@@ -32,9 +32,14 @@ echo
 
 branch="$(git rev-parse --abbrev-ref HEAD)"
 if [[ "$branch" != "main" && "${ALLOW_NON_MAIN_PUBLISH:-}" != "1" ]]; then
-  echo "owner-cut-release: refuse to cut from branch '${branch}' (need main)." >&2
-  echo "owner-cut-release: merge civilization → main first, or set ALLOW_NON_MAIN_PUBLISH=1." >&2
-  exit 1
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "owner-cut-release: DRY_RUN=1 on branch '${branch}' (not main) — rehearsal only; no tag/push."
+  else
+    echo "owner-cut-release: refuse to cut from branch '${branch}' (need main)." >&2
+    echo "owner-cut-release: merge civilization → main first, or set ALLOW_NON_MAIN_PUBLISH=1." >&2
+    echo "owner-cut-release: tip rehearsal: DRY_RUN=1 bash scripts/owner-cut-release.sh" >&2
+    exit 1
+  fi
 fi
 
 if [[ -n "$(git status --porcelain)" ]]; then
