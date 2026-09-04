@@ -65,7 +65,11 @@ if [[ "${1:-}" == "--self-test" ]]; then
   auto_from_token
   keep_explicit_zero
   grep -qF 'PUBLISH_LOCAL_EXPLICIT' "$ROOT/scripts/owner-cut-release.sh"     || { echo "owner-cut-release --self-test: FAIL — missing PUBLISH_LOCAL_EXPLICIT wiring" >&2; exit 1; }
-  echo "owner-cut-release: --self-test OK — token auto PUBLISH_LOCAL=1; explicit 0 preserved"
+  grep -qF 'owner-post-installable-handoff' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — must chain owner-post-installable-handoff after day1" >&2; exit 1; }
+  grep -qF 'LAND_PARKS' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — LAND_PARKS wiring missing for handoff chain" >&2; exit 1; }
+  echo "owner-cut-release: --self-test OK — token auto PUBLISH_LOCAL=1; explicit 0 preserved; handoff chained"
   exit 0
 fi
 
@@ -235,13 +239,29 @@ bash scripts/day1-after-publish.sh
 bash scripts/check-installable.sh
 
 echo
-echo "== civilization bars (post-publish) =="
-bash scripts/audit-civilization-bars.sh
+echo "== post-Installable handoff (TP + parks + bars) =="
+# Same chain finish uses — bare cut-release must not leave TP/parks as a sticky note.
+land_parks="${LAND_PARKS:-${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}}"
+handoff_rc=0
+if [[ "${DRY_RUN:-0}" == "1" ]]; then
+  echo "owner-cut-release: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
+  LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+else
+  LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+fi
 
 echo
+if [[ "$handoff_rc" -eq 2 ]]; then
+  echo "owner-cut-release: PARTIAL — ${name} ${ver} is Installable on crates.io but handoff soft-failed"
+  echo "owner-cut-release: commit the README crates.io line if day1 changed it."
+  echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+  exit 2
+elif [[ "$handoff_rc" -ne 0 ]]; then
+  echo "owner-cut-release: FAIL — post-Installable handoff rc=${handoff_rc}" >&2
+  exit "$handoff_rc"
+fi
 echo "owner-cut-release: OK — ${name} ${ver} is Installable on crates.io"
-echo "owner-cut-release: commit the README crates.io line if day1 changed it, then:"
-echo "  bash scripts/owner-post-installable-handoff.sh"
-echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # TP + parks + bars"
-echo "  # or stepwise Trusted Publishing UI for release.yml (drop long-lived secret)."
+echo "owner-cut-release: commit the README crates.io line if day1 changed it."
+echo "  Re-enter handoff anytime: bash scripts/owner-post-installable-handoff.sh"
+echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks/TP soft-failed"
 exit 0

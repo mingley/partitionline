@@ -189,9 +189,21 @@ fi
 # Explicit "skipping" (no broker) may SKIP; any other failure is FAIL —
 # soft-skip must not greenwash integrity regressions. REQUIRE_INTEGRITY=1
 # still hard-fails the explicit skip path.
-if bash scripts/ci-integrity-smoke.sh >/tmp/pl-integrity.log 2>&1 \
-  && grep -q 'ci-integrity-smoke: ok' /tmp/pl-integrity.log; then
+set +e
+bash scripts/ci-integrity-smoke.sh >/tmp/pl-integrity.log 2>&1
+integ_rc=$?
+set -e
+if [[ "$integ_rc" -eq 0 ]] && grep -q 'ci-integrity-smoke: ok' /tmp/pl-integrity.log \
+  && ! grep -q 'latency gate failed (soft)' /tmp/pl-integrity.log; then
   ok "Lab A integrity smoke (HW+fetch+latency; unsigned)"
+elif grep -q 'latency gate failed (soft)' /tmp/pl-integrity.log \
+  || grep -q 'ci-integrity-smoke: PARTIAL' /tmp/pl-integrity.log; then
+  # Soft latency under load is not full Verifiable evidence — never PASS as ok.
+  if [[ "${REQUIRE_INTEGRITY:-}" == "1" ]]; then
+    bad "Lab A integrity latency soft-miss (REQUIRE_INTEGRITY=1); see /tmp/pl-integrity.log"
+  else
+    ski "Lab A integrity smoke (latency soft-miss; unsigned — not full Verifiable evidence)"
+  fi
 elif grep -q 'ci-integrity-smoke: skipping' /tmp/pl-integrity.log; then
   if [[ "${REQUIRE_INTEGRITY:-}" == "1" ]]; then
     bad "Lab A integrity smoke skipped; see /tmp/pl-integrity.log"

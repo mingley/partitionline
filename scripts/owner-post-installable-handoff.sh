@@ -31,8 +31,13 @@ if [[ "${1:-}" == "--self-test" ]]; then
     echo "owner-post-installable-handoff: self-test FAIL — LAND_PARKS knob missing" >&2
     exit 1
   fi
+  if ! grep -qF 'PARTIAL — Installable OK but parks land failed' "$ROOT/scripts/owner-post-installable-handoff.sh" \
+    || ! grep -qF 'exit 2' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — LAND_PARKS failure must PARTIAL/exit 2 (not final OK)" >&2
+    exit 1
+  fi
   bash "$ROOT/scripts/lib/preserve-day1-docs.sh" --self-test
-  echo "owner-post-installable-handoff: self-test OK — preserve wired for LAND_PARKS"
+  echo "owner-post-installable-handoff: self-test OK — preserve wired for LAND_PARKS + fail-closed PARTIAL"
   exit 0
 fi
 
@@ -97,10 +102,12 @@ echo "== 4) Civilization bars (full — no PRE_PUBLISH) =="
 bash scripts/audit-civilization-bars.sh
 
 echo
+tp_rc=0
 if [[ "$ENABLE_TP" == "1" ]]; then
   echo "== 5) Trusted Publishing =="
   bash scripts/owner-enable-trusted-publishing.sh || {
-    echo "owner-post-installable-handoff: WARN — Trusted Publishing helper failed" >&2
+    tp_rc=$?
+    echo "owner-post-installable-handoff: WARN — Trusted Publishing helper failed (rc=${tp_rc})" >&2
     echo "  Retry: bash scripts/owner-enable-trusted-publishing.sh" >&2
   }
   echo
@@ -108,13 +115,13 @@ fi
 
 echo "== 6) Post-cut parks =="
 bash scripts/check-post-cut-parks-stack.sh
+parks_rc=0
 if [[ "$LAND_PARKS" == "1" ]]; then
   echo "owner-post-installable-handoff: LAND_PARKS=1 — landing parks onto main"
   # Preserve any uncommitted day1 README/ADOPTION edits across park merges.
   # shellcheck source=scripts/lib/preserve-day1-docs.sh
   source "$ROOT/scripts/lib/preserve-day1-docs.sh"
   pl_day1_docs_begin
-  parks_rc=0
   bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?
   pl_day1_docs_end
   if [[ "$parks_rc" -ne 0 ]]; then
@@ -134,4 +141,14 @@ echo "owner-post-installable-handoff: Suite HOLD remains until signed Lab A (doc
 echo "owner-post-installable-handoff: Schema Registry stays a companion after core publish"
 echo "  (docs/schema-companion.md)."
 echo
+if [[ "$LAND_PARKS" == "1" && "$parks_rc" -ne 0 ]]; then
+  echo "owner-post-installable-handoff: PARTIAL — Installable OK but parks land failed (rc=${parks_rc})" >&2
+  echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh" >&2
+  exit 2
+fi
+if [[ "$ENABLE_TP" == "1" && "$tp_rc" -ne 0 ]]; then
+  echo "owner-post-installable-handoff: PARTIAL — Installable OK but Trusted Publishing helper failed (rc=${tp_rc})" >&2
+  echo "  Re-enter: bash scripts/owner-enable-trusted-publishing.sh" >&2
+  exit 2
+fi
 echo "owner-post-installable-handoff: OK — ${name} ${ver} post-Installable handoff complete"
