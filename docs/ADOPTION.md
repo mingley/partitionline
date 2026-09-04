@@ -15,6 +15,8 @@ bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish
 ```
 
 1. Add `CARGO_REGISTRY_TOKEN` (Cloud Agent env + GitHub Actions secret).
+   First crates.io cut of a **new** crate needs token scope **`publish-new`**
+   (plus usually `publish-update`). `publish-update` alone cannot create the crate.
 2. Cancel stale tip/tag Actions still stuck in `queued` (agents get 403).
    **Owner:** `bash scripts/owner-cancel-stuck-runs.sh` (or `DRY_RUN=1` first).
    `main` HEAD CI is green (e.g. run `33850540606` on `6431785` — Kafka
