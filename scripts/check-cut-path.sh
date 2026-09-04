@@ -50,6 +50,10 @@ echo "== check-cut-path: cargo publish --dry-run =="
 cargo publish --dry-run
 
 echo
+echo "== check-cut-path: crates.io metadata shape =="
+bash scripts/check-crate-metadata.sh
+
+echo
 echo "== check-cut-path: path adopter consumer (pre-crates.io) =="
 # Day1 registry consumer rehearsal against this workspace (API surface).
 MODE=path bash scripts/verify-crates-io-consumer.sh
