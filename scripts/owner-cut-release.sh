@@ -72,6 +72,10 @@ if [[ "${1:-}" == "--self-test" ]]; then
     || { echo "owner-cut-release --self-test: FAIL — LAND_PARKS wiring missing for handoff chain" >&2; exit 1; }
   grep -qF 'SKIP_HANDOFF' "$ROOT/scripts/owner-cut-release.sh" \
     || { echo "owner-cut-release --self-test: FAIL — SKIP_HANDOFF knob missing (finish single-handoff)" >&2; exit 1; }
+  grep -qF 'secret_rc' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — secret_rc missing (bare-cut Actions secret PARTIAL)" >&2; exit 1; }
+  grep -qF 'PARTIAL — Installable OK but Actions secret not synced' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — Actions secret PARTIAL string missing" >&2; exit 1; }
   # DRY_RUN must rehearse handoff (or honor SKIP_HANDOFF) — never exit 0 before that.
   if ! awk '
     /owner-post-installable-handoff/ && !dry { hand_before=NR }
@@ -82,7 +86,7 @@ if [[ "${1:-}" == "--self-test" ]]; then
     echo "owner-cut-release --self-test: FAIL — DRY_RUN must reach handoff before DRY_RUN complete" >&2
     exit 1
   fi
-  echo "owner-cut-release: --self-test OK — token auto PUBLISH_LOCAL=1; explicit 0 preserved; handoff chained; DRY_RUN reaches handoff"
+  echo "owner-cut-release: --self-test OK — token auto PUBLISH_LOCAL=1; explicit 0 preserved; handoff chained; DRY_RUN reaches handoff; Actions secret PARTIAL gated"
   exit 0
 fi
 
@@ -224,8 +228,43 @@ fi
 
 # Post-cut handoff (TP + parks + bars). Finish sets SKIP_HANDOFF=1 so it can
 # sync Actions secrets once, then run a single handoff (no double parks land).
+# Bare cut (SKIP_HANDOFF=0) owns Actions secret sync here — same fail-closed
+# PARTIAL as finish when sync fails after Installable.
 SKIP_HANDOFF="${SKIP_HANDOFF:-0}"
 land_parks="${LAND_PARKS:-${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}}"
+secret_rc=0
+
+pl_cut_sync_actions_secret() {
+  # Finish owns secret sync when SKIP_HANDOFF=1. Bare cut must not soft-OK.
+  if [[ "$SKIP_HANDOFF" == "1" ]]; then
+    return 0
+  fi
+  echo
+  echo "== sync Actions secret for later tag publishes =="
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "owner-cut-release: DRY_RUN=1 — would sync Actions secret CARGO_REGISTRY_TOKEN"
+    return 0
+  fi
+  if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+    # Tag→Actions path may rely on a pre-set Actions secret; cannot sync from here.
+    echo "owner-cut-release: note — no in-env CARGO_REGISTRY_TOKEN to sync (Actions-only path)"
+    return 0
+  fi
+  if command -v gh >/dev/null 2>&1; then
+    if printf '%s' "${CARGO_REGISTRY_TOKEN}" | gh secret set CARGO_REGISTRY_TOKEN 2>/tmp/pl-cut-secret.log; then
+      echo "owner-cut-release: Actions secret CARGO_REGISTRY_TOKEN synced"
+    else
+      secret_rc=1
+      echo "owner-cut-release: WARN — could not set Actions secret (need admin; agents often 403)"
+      tail -3 /tmp/pl-cut-secret.log 2>/dev/null | sed 's/^/  /' || true
+      echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
+    fi
+  else
+    secret_rc=1
+    echo "owner-cut-release: WARN — gh not available; set Actions secret manually"
+    echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
+  fi
+}
 
 pl_cut_run_handoff() {
   local handoff_rc=0
@@ -255,7 +294,8 @@ pl_cut_run_handoff() {
 
 if [[ "$DRY_RUN" == "1" ]]; then
   echo
-  echo "owner-cut-release: DRY_RUN — skipping crates.io wait / day1; rehearsing handoff"
+  echo "owner-cut-release: DRY_RUN — skipping crates.io wait / day1; rehearsing secret sync + handoff"
+  pl_cut_sync_actions_secret
   pl_cut_run_handoff
   echo
   echo "owner-cut-release: DRY_RUN complete — no publish / day1 performed; handoff rehearsed (or SKIP_HANDOFF)"
@@ -285,10 +325,21 @@ echo "== day1 (README flip + remaining owner steps) =="
 bash scripts/day1-after-publish.sh
 bash scripts/check-installable.sh
 
+pl_cut_sync_actions_secret
+
 handoff_rc=0
 pl_cut_run_handoff || handoff_rc=$?
 if [[ "$handoff_rc" -ne 0 ]]; then
   exit "$handoff_rc"
+fi
+if [[ "$secret_rc" -ne 0 ]]; then
+  echo
+  echo "owner-cut-release: PARTIAL — Installable OK but Actions secret not synced"
+  echo "owner-cut-release: ${name} ${ver} is on crates.io; later tag/Actions cuts need the secret"
+  echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
+  echo "  Then: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks/TP still pending"
+  echo "owner-cut-release: commit the README crates.io line if day1 changed it."
+  exit 2
 fi
 echo
 echo "owner-cut-release: OK — ${name} ${ver} is Installable on crates.io"

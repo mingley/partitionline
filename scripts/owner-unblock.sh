@@ -117,9 +117,11 @@ echo
 
 echo "== 4b) After Installable / PARTIAL re-entry =="
 echo "  Finish calls cut with SKIP_HANDOFF=1, syncs Actions secrets, then one handoff"
-echo "  (bare owner-cut-release still chains handoff itself)."
+echo "  (bare owner-cut-release syncs Actions secret + chains handoff itself)."
 echo "  If finish/cut exited PARTIAL (parks/TP soft-fail): do NOT re-publish."
 echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+echo "  If PARTIAL was Actions secret not synced:"
+echo "    gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
 echo "  Or: bash scripts/owner-finish-installable.sh  # already-Installable short-circuit"
 echo
 
