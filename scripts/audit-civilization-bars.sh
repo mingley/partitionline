@@ -242,6 +242,8 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF -- 'would run owner-post-installable-handoff' scripts/owner-finish-installable.sh \
   && grep -qF -- 'owner-post-installable-handoff' scripts/owner-cut-release.sh \
   && grep -qF -- 'LAND_PARKS' scripts/owner-cut-release.sh \
+  && grep -qF -- 'SKIP_HANDOFF' scripts/owner-cut-release.sh \
+  && grep -qF -- 'SKIP_HANDOFF=1' scripts/owner-finish-installable.sh \
   && grep -qF -- '--self-test' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — Installable OK but parks land failed' scripts/owner-post-installable-handoff.sh \
   && bash scripts/owner-post-installable-handoff.sh --self-test >/tmp/pl-handoff-self-test.log 2>&1 \
@@ -255,8 +257,9 @@ fi
 
 # Cut-release bare must auto PUBLISH_LOCAL=1 when token is in-env (token-day footgun).
 if bash scripts/owner-cut-release.sh --self-test >/tmp/pl-cut-publish-local-auto.log 2>&1 \
-  && grep -q 'handoff chained' /tmp/pl-cut-publish-local-auto.log; then
-  ok "cut-release PUBLISH_LOCAL auto-default + post-Installable handoff chain"
+  && grep -q 'handoff chained' /tmp/pl-cut-publish-local-auto.log \
+  && grep -q 'DRY_RUN reaches handoff' /tmp/pl-cut-publish-local-auto.log; then
+  ok "cut-release PUBLISH_LOCAL auto-default + handoff chain + DRY_RUN reaches handoff + SKIP_HANDOFF for finish"
 else
   bad "cut-release PUBLISH_LOCAL auto-default / handoff chain missing/broken; see /tmp/pl-cut-publish-local-auto.log"
 fi
@@ -355,6 +358,9 @@ if [[ "$fail" -gt 0 ]]; then
 fi
 
 # Pre-publish gates: Installable BLOCKED is expected until crates.io lands.
+# Soft structural PARTIALs (e.g. MSRV label / deny.toml wording) stay allowed
+# under PRE_PUBLISH so token-day rehearsal is not blocked by doc-shape notes.
+# Full (non-PRE_PUBLISH) bars refuse final OK when any PARTIAL remains.
 if [[ "$PRE_PUBLISH" == "1" ]]; then
   other_blocked=$((blocked - installable_blocked))
   if [[ "$other_blocked" -gt 0 ]]; then
@@ -362,7 +368,15 @@ if [[ "$PRE_PUBLISH" == "1" ]]; then
     exit 1
   fi
   if [[ "$installable_blocked" -gt 0 ]]; then
-    echo "audit-civilization-bars: PRE_PUBLISH OK — bars green except Installable (owner token/cut)"
+    if [[ "$partial" -gt 0 ]]; then
+      echo "audit-civilization-bars: PRE_PUBLISH OK — bars green except Installable (owner token/cut); PARTIAL notes above"
+    else
+      echo "audit-civilization-bars: PRE_PUBLISH OK — bars green except Installable (owner token/cut)"
+    fi
+    exit 0
+  fi
+  if [[ "$partial" -gt 0 ]]; then
+    echo "audit-civilization-bars: PRE_PUBLISH OK — Installable proven; PARTIAL notes above (full bars would exit 2)"
     exit 0
   fi
   echo "audit-civilization-bars: PRE_PUBLISH OK — all six bars PASS (already Installable)"
@@ -377,8 +391,8 @@ if [[ "$blocked" -gt 0 ]]; then
   exit 1
 fi
 if [[ "$partial" -gt 0 ]]; then
-  echo "audit-civilization-bars: OK with PARTIAL notes (no FAIL/BLOCKED)"
-  exit 0
+  echo "audit-civilization-bars: PARTIAL — soft notes remain (no FAIL/BLOCKED; exit 2)" >&2
+  exit 2
 fi
 echo "audit-civilization-bars: OK — all six bars PASS"
 exit 0

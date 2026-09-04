@@ -15,6 +15,7 @@
 #   PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh # tag → release.yml
 #   PUBLISH_LOCAL=1 bash scripts/owner-cut-release.sh # force local publish
 #   DRY_RUN=1 bash scripts/owner-cut-release.sh
+#   SKIP_HANDOFF=1 …  # finish calls this so secret sync + one handoff stay in finish
 #   REQUIRE_ACTIONS_SECRET=1 bash scripts/owner-cut-release.sh  # fail if Actions secret missing
 #   bash scripts/owner-cut-release.sh --self-test
 set -euo pipefail
@@ -69,7 +70,19 @@ if [[ "${1:-}" == "--self-test" ]]; then
     || { echo "owner-cut-release --self-test: FAIL — must chain owner-post-installable-handoff after day1" >&2; exit 1; }
   grep -qF 'LAND_PARKS' "$ROOT/scripts/owner-cut-release.sh" \
     || { echo "owner-cut-release --self-test: FAIL — LAND_PARKS wiring missing for handoff chain" >&2; exit 1; }
-  echo "owner-cut-release: --self-test OK — token auto PUBLISH_LOCAL=1; explicit 0 preserved; handoff chained"
+  grep -qF 'SKIP_HANDOFF' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — SKIP_HANDOFF knob missing (finish single-handoff)" >&2; exit 1; }
+  # DRY_RUN must rehearse handoff (or honor SKIP_HANDOFF) — never exit 0 before that.
+  if ! awk '
+    /owner-post-installable-handoff/ && !dry { hand_before=NR }
+    /DRY_RUN complete/ { dry=NR }
+    /SKIP_HANDOFF/ { skip=NR }
+    END { exit (dry && hand_before && skip && hand_before < dry) ? 0 : 1 }
+  ' "$ROOT/scripts/owner-cut-release.sh"; then
+    echo "owner-cut-release --self-test: FAIL — DRY_RUN must reach handoff before DRY_RUN complete" >&2
+    exit 1
+  fi
+  echo "owner-cut-release: --self-test OK — token auto PUBLISH_LOCAL=1; explicit 0 preserved; handoff chained; DRY_RUN reaches handoff"
   exit 0
 fi
 
@@ -209,9 +222,43 @@ else
   fi
 fi
 
+# Post-cut handoff (TP + parks + bars). Finish sets SKIP_HANDOFF=1 so it can
+# sync Actions secrets once, then run a single handoff (no double parks land).
+SKIP_HANDOFF="${SKIP_HANDOFF:-0}"
+land_parks="${LAND_PARKS:-${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}}"
+
+pl_cut_run_handoff() {
+  local handoff_rc=0
+  if [[ "$SKIP_HANDOFF" == "1" ]]; then
+    echo "owner-cut-release: SKIP_HANDOFF=1 — TP/parks left to caller (finish single-handoff)"
+    return 0
+  fi
+  echo
+  echo "== post-Installable handoff (TP + parks + bars) =="
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "owner-cut-release: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
+    LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+  else
+    LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+  fi
+  if [[ "$handoff_rc" -eq 2 ]]; then
+    echo "owner-cut-release: PARTIAL — ${name} ${ver} is Installable on crates.io but handoff soft-failed"
+    echo "owner-cut-release: commit the README crates.io line if day1 changed it."
+    echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    return 2
+  elif [[ "$handoff_rc" -ne 0 ]]; then
+    echo "owner-cut-release: FAIL — post-Installable handoff rc=${handoff_rc}" >&2
+    return "$handoff_rc"
+  fi
+  return 0
+}
+
 if [[ "$DRY_RUN" == "1" ]]; then
   echo
-  echo "owner-cut-release: DRY_RUN complete — no publish / day1 performed"
+  echo "owner-cut-release: DRY_RUN — skipping crates.io wait / day1; rehearsing handoff"
+  pl_cut_run_handoff
+  echo
+  echo "owner-cut-release: DRY_RUN complete — no publish / day1 performed; handoff rehearsed (or SKIP_HANDOFF)"
   exit 0
 fi
 
@@ -238,28 +285,12 @@ echo "== day1 (README flip + remaining owner steps) =="
 bash scripts/day1-after-publish.sh
 bash scripts/check-installable.sh
 
-echo
-echo "== post-Installable handoff (TP + parks + bars) =="
-# Same chain finish uses — bare cut-release must not leave TP/parks as a sticky note.
-land_parks="${LAND_PARKS:-${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}}"
 handoff_rc=0
-if [[ "${DRY_RUN:-0}" == "1" ]]; then
-  echo "owner-cut-release: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
-  LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
-else
-  LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
-fi
-
-echo
-if [[ "$handoff_rc" -eq 2 ]]; then
-  echo "owner-cut-release: PARTIAL — ${name} ${ver} is Installable on crates.io but handoff soft-failed"
-  echo "owner-cut-release: commit the README crates.io line if day1 changed it."
-  echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
-  exit 2
-elif [[ "$handoff_rc" -ne 0 ]]; then
-  echo "owner-cut-release: FAIL — post-Installable handoff rc=${handoff_rc}" >&2
+pl_cut_run_handoff || handoff_rc=$?
+if [[ "$handoff_rc" -ne 0 ]]; then
   exit "$handoff_rc"
 fi
+echo
 echo "owner-cut-release: OK — ${name} ${ver} is Installable on crates.io"
 echo "owner-cut-release: commit the README crates.io line if day1 changed it."
 echo "  Re-enter handoff anytime: bash scripts/owner-post-installable-handoff.sh"
