@@ -6,10 +6,13 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Prefer the newest push on a branch; drop superseded queued runs.
+# One CI group per ref. Cancel in-progress/queued only on pull_request
+# synchronize (PR noise). On branch pushes, keep a queued run's place when
+# runners are scarce — cancel-in-progress:true was resetting the queue on
+# every agent push so jobs never left "queued".
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   fmt:
