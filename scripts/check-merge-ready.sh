@@ -103,16 +103,33 @@ if git rev-parse --verify origin/main >/dev/null 2>&1; then
   fi
   # Structural conflict probe (no working-tree change): catch hard merge blockers
   # before the owner opens the PR / fast-forwards main.
-  base="$(git merge-base HEAD origin/main 2>/dev/null || true)"
-  if [[ -n "$base" ]]; then
-    conflicted="$(git merge-tree "$base" origin/main HEAD 2>/dev/null | grep -c 'changed in both' || true)"
-    if [[ "$conflicted" != "0" ]]; then
-      bad "merge-tree reports ${conflicted} 'changed in both' path(s) vs origin/main — resolve before merge"
+  # Prefer `git merge-tree --write-tree` (Git ≥ 2.38). Fall back to the
+  # three-arg form, matching only a flush-left conflict header so CHANGELOG /
+  # script text that mentions the phrase does not false-positive.
+  if git merge-tree --write-tree origin/main HEAD >/tmp/pl-merge-tree.oid 2>/tmp/pl-merge-tree.err; then
+    ok "merge-tree --write-tree vs origin/main is clean"
+  elif git merge-tree --help >/dev/null 2>&1; then
+    # --write-tree exists but reported conflicts (or other failure).
+    if grep -q 'conflict' /tmp/pl-merge-tree.err 2>/dev/null \
+      || grep -q '^changed in both$' <(git merge-tree "$(git merge-base HEAD origin/main)" origin/main HEAD 2>/dev/null) ; then
+      bad "merge-tree reports conflicts vs origin/main — resolve before merge"
+      head -20 /tmp/pl-merge-tree.err >&2 || true
     else
-      ok "merge-tree vs origin/main reports no 'changed in both' conflicts"
+      warn "merge-tree --write-tree failed without clear conflict marker (see /tmp/pl-merge-tree.err)"
+      head -10 /tmp/pl-merge-tree.err >&2 || true
     fi
   else
-    warn "could not compute merge-base with origin/main"
+    base="$(git merge-base HEAD origin/main 2>/dev/null || true)"
+    if [[ -n "$base" ]]; then
+      conflicted="$(git merge-tree "$base" origin/main HEAD 2>/dev/null | grep -c '^changed in both$' || true)"
+      if [[ "$conflicted" != "0" ]]; then
+        bad "merge-tree reports ${conflicted} 'changed in both' path(s) vs origin/main — resolve before merge"
+      else
+        ok "merge-tree vs origin/main reports no 'changed in both' conflicts"
+      fi
+    else
+      warn "could not compute merge-base with origin/main"
+    fi
   fi
 else
   warn "origin/main not available locally — fetch before merge"
