@@ -66,6 +66,9 @@ echo "Probe: bash scripts/check-installable-preflight.sh   # expect READY_EXCEPT
 echo
 echo "Inject token into this Cloud Agent (preferred for owner-finish-installable):"
 echo "  Cursor → Cloud Agents → Environments → this env → Secrets"
+# shellcheck source=scripts/lib/cursor-env-secrets-url.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cursor-env-secrets-url.sh"
+echo "  Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL"
 echo "  Add CARGO_REGISTRY_TOKEN = crates.io token with publish-new (+ publish-update)"
 echo "  Save, then restart/re-run the agent so the shell receives the secret."
 echo "  Also set the same name as a GitHub Actions repository secret."

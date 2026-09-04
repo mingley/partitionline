@@ -165,6 +165,9 @@ fi
 echo "owner-status: next"
 echo "  0. One-shot checklist: bash scripts/owner-unblock.sh"
 echo "  1. Set CARGO_REGISTRY_TOKEN (Cloud Agent env + Actions secret; scope publish-new)"
+# shellcheck source=scripts/lib/cursor-env-secrets-url.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cursor-env-secrets-url.sh"
+echo "     Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL"
 echo "  1b. Rehearse cut path (no publish): bash scripts/check-cut-path.sh"
 echo "  2. Preferred once token is in-env (bypasses starved Actions):"
 echo "       bash scripts/owner-finish-installable.sh"

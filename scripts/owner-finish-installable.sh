@@ -106,6 +106,9 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     echo "     publish-update alone cannot create ${name} on crates.io." >&2
     echo "  2. Add Cloud Agent secret CARGO_REGISTRY_TOKEN:" >&2
     echo "       Cursor → Cloud Agents → Environments → this env → Secrets" >&2
+    # shellcheck source=scripts/lib/cursor-env-secrets-url.sh
+    source "$ROOT/scripts/lib/cursor-env-secrets-url.sh"
+    echo "       Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL" >&2
     echo "       Name exactly CARGO_REGISTRY_TOKEN; restart/re-run agent after save." >&2
     echo "  3. Also add Actions secret CARGO_REGISTRY_TOKEN (release.yml / first-publish.yml)" >&2
     echo "  4. Re-run: bash scripts/owner-finish-installable.sh" >&2
