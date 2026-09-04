@@ -175,7 +175,16 @@ echo
 echo "== check-cut-path: post-Installable handoff rehearsal (DRY_RUN) =="
 # After crates.io 0.1.0 (or Actions-alternate publish), owners re-enter via
 # owner-post-installable-handoff. Rehearse before the token cut.
-DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh
+# Capture rc: already-Installable + parks-off-main → PARTIAL/2 (must not set -e abort).
+# Pre-token parks pending holds exit 0 with a PARTIAL note (like day1).
+handoff_rc=0
+DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+if [[ "$handoff_rc" -eq 2 ]]; then
+  echo "check-cut-path: PARTIAL — handoff DRY_RUN soft-failed (parks-on-main / day1 / TP; handoff re-entry)"
+elif [[ "$handoff_rc" -ne 0 ]]; then
+  echo "check-cut-path: FAIL — handoff DRY_RUN rc=${handoff_rc}" >&2
+  exit "$handoff_rc"
+fi
 
 echo
 echo "== check-cut-path: tip Verifiable PARTIAL exit self-test =="
@@ -201,9 +210,9 @@ fi
 
 echo
 # Unpublished crate makes day1 DRY_RUN PARTIAL by design — that is cut-path honesty,
-# not a failed rehearsal. Already-Installable first-publish DRY_RUN PARTIAL is the
-# post-cut refuse-redispatch honesty. Exit 0 so tip proxies stay green while waiting.
-if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "$finish_rc" -eq 2 ]]; then
+# not a failed rehearsal. Already-Installable first-publish / handoff parks-on-main
+# DRY_RUN PARTIAL is post-cut honesty. Exit 0 so tip proxies stay green while waiting.
+if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 || "$finish_rc" -eq 2 ]]; then
   echo "check-cut-path: OK with PARTIAL — cut path rehearsed; Installable still blocked on CARGO_REGISTRY_TOKEN (or post-cut re-entry)"
   exit 0
 fi
