@@ -18,8 +18,8 @@
 #   2. Land first-publish.yml on main (thin PR or full tip FF)
 #   3. bash scripts/owner-dispatch-first-publish.sh
 #   4. bash scripts/check-installable.sh
-#   5. bash scripts/day1-after-publish.sh
-#   6. bash scripts/owner-post-installable-handoff.sh   # TP + parks + bars
+#   5. bash scripts/owner-post-installable-handoff.sh   # chains day1 + TP + parks + bars
+#   6. LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks pending
 #
 # Usage:
 #   bash scripts/owner-dispatch-first-publish.sh
