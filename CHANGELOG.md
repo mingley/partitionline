@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts/docs: rebuild lz4 + actions/checkout post-cut parks stacked on SCRAM (SCRAM⊆lz4⊆checkout) so tip→Verifiable→SCRAM→lz4→checkout DRY_RUN stays merge-clean after tip-is-ancestor gate; tip stays docs/scripts-only.
 - Scripts: `check-post-cut-parks-stack` gates tip-is-ancestor of every post-cut park (catches parks lagging tip after docs/scripts commits) before stacked DRY_RUN merge + `cargo test --lib`.
 - Scripts/docs: `owner-enable-trusted-publishing` post-Installable helper verifies release.yml OIDC shape and prints exact crates.io Trusted Publishing UI steps; wired into day1 / owner-status / RELEASE.
 - Scripts: `check-cut-path` runs `cargo publish --dry-run` so Installable rehearsal proves package upload shape before `CARGO_REGISTRY_TOKEN` arrives.
