@@ -59,6 +59,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Tip re-verified native Kafka 4.1 broker smoke (`ci-native-kafka` + kip848/share required) on 2026-09-04.
+- `scripts/check-merge-ready.sh` (wired into `owner-unblock`, documented in
+  RELEASE.md) gates civilization → main → `vX.Y.Z` without requiring a token:
+  final version + CHANGELOG section, release.yml OIDC/secret auth, workflow
+  YAML, adopter pin, and tip-vs-`main` ancestry (`FULL=1` adds branch-lite).
 - `release.yml` prefers crates.io **Trusted Publishing** (OIDC via
   `rust-lang/crates-io-auth-action`, `id-token: write`) and falls back to
   `CARGO_REGISTRY_TOKEN` for the first publish. RELEASE.md / owner-unblock /
