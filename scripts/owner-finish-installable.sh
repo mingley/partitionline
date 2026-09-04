@@ -263,6 +263,12 @@ if [[ "$parks_rc" -ne 0 ]]; then
   else
     bash scripts/refresh-post-cut-parks.sh
     bash scripts/check-post-cut-parks-stack.sh
+    # refresh-post-cut-parks leaves HEAD on the civilization tip; cut requires main.
+    if [[ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]]; then
+      echo "owner-finish-installable: restoring main after parks refresh (cut requires main)"
+      git checkout main
+      git pull --ff-only origin main
+    fi
   fi
 fi
 
