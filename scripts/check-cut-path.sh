@@ -20,6 +20,9 @@ echo "== check-cut-path: post-cut parks stack =="
 bash scripts/check-post-cut-parks-stack.sh
 
 echo
+echo "== check-cut-path: Trusted Publishing workflow shape =="
+bash scripts/check-trusted-publishing-ready.sh
+
 echo "== check-cut-path: finish DRY_RUN (tip-aware parks, hard-fail) =="
 DRY_RUN=1 bash scripts/owner-finish-installable.sh
 
