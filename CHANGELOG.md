@@ -59,6 +59,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Tip Verifiable gates (`ci-branch-lite` / `ci-publish-ready`) run
+  `scripts/check-workflows.sh` so invalid workflow YAML (the flush-left
+  `run: |` class that empty-failed `release` on branch pushes) cannot regress
+  unnoticed. `owner-status` prefers Actions runs for the exact HEAD SHA.
 - `release.yml` hardens the crates.io publish trigger: fix invalid YAML in the
   GitHub Release notes step (flush-left multiline string caused empty-job
   `release` failures on branch pushes), input-safe concurrency / checkout

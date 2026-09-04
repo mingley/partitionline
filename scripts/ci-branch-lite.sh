@@ -30,6 +30,9 @@ cargo test --test fuzz_decode_smoke
 echo "== ci-branch-lite: adopter pin =="
 bash scripts/check-adopter-pin.sh
 
+echo "== ci-branch-lite: workflow YAML =="
+bash scripts/check-workflows.sh
+
 echo "== ci-branch-lite: docs =="
 bash scripts/ci-docs.sh
 
