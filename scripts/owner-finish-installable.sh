@@ -114,6 +114,7 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   fi
 else
   echo "owner-finish-installable: CARGO_REGISTRY_TOKEN is set (len=${#CARGO_REGISTRY_TOKEN})"
+  REQUIRE_TOKEN=1 bash scripts/check-registry-token.sh
 fi
 
 echo

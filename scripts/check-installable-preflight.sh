@@ -87,5 +87,10 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   exit 0
 fi
 
+echo "== registry token =="
+if ! bash scripts/check-registry-token.sh; then
+  echo "check-installable-preflight: FAIL — CARGO_REGISTRY_TOKEN set but crates.io rejected it" >&2
+  exit 1
+fi
 echo "check-installable-preflight: READY — token present; run bash scripts/owner-finish-installable.sh"
 exit 0

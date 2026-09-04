@@ -34,6 +34,8 @@ One-time setup (first crates.io cut):
    create `partitionline` on crates.io. After 0.1.0 exists, prefer Trusted
    Publishing and keep only a short-lived or narrowly scoped token as backup.
 2. Add repository secret `CARGO_REGISTRY_TOKEN` (Settings → Secrets → Actions).
+   Probe without printing: `bash scripts/check-registry-token.sh` (exit 2 = missing,
+   0 = crates.io accepted the token, 1 = rejected).
    Required for the **first** publish — Trusted Publishing can only be
    configured after the crate exists on crates.io.
 3. Ensure CHANGELOG has a dated `0.1.0` (or next) section and README is ready
