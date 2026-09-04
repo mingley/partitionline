@@ -103,6 +103,7 @@ if bash scripts/check-installable.sh; then
     echo "owner-finish-installable: FAIL — post-Installable handoff rc=${handoff_rc}" >&2
     exit "$handoff_rc"
   fi
+  echo "owner-finish-installable: OK — ${name} ${ver} already Installable; handoff complete"
   exit 0
 fi
 
@@ -304,8 +305,10 @@ else
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
+  # SKIP_HANDOFF=1: cut rehearses publish/tag only; finish owns the single handoff.
   DRY_RUN=1 PUBLISH_LOCAL="$PUBLISH_LOCAL" \
     SKIP_PUBLISH_READY="${SKIP_PUBLISH_READY:-1}" \
+    SKIP_HANDOFF=1 \
     AUTO_REFRESH_PARKS=1 \
     bash scripts/owner-cut-release.sh
   echo
@@ -336,13 +339,15 @@ if [[ "$DRY_RUN" == "1" ]]; then
   exit 0
 fi
 
-PUBLISH_LOCAL="$PUBLISH_LOCAL" AUTO_REFRESH_PARKS=1 bash scripts/owner-cut-release.sh
+# SKIP_HANDOFF=1 so cut does not land parks/TP before Actions secret sync; finish
+# runs exactly one handoff below (avoids double parks land on token day).
+PUBLISH_LOCAL="$PUBLISH_LOCAL" SKIP_HANDOFF=1 AUTO_REFRESH_PARKS=1 bash scripts/owner-cut-release.sh
 
 echo
 echo "== 6) Best-effort sync Actions secret for later tag publishes =="
-# cut-release already ran day1 + Installable prove + bars. Keep Actions secret
-# sync here (handoff does not touch secrets), then one-shot TP + parks + re-verify
-# via owner-post-installable-handoff so live cut cannot drift from Actions re-entry.
+# cut-release already ran day1 + Installable prove. Keep Actions secret sync here
+# (handoff does not touch secrets), then one-shot TP + parks + re-verify via
+# owner-post-installable-handoff so live cut cannot drift from Actions re-entry.
 if [[ "$PUBLISH_LOCAL" == "0" ]]; then
   echo "owner-finish-installable: Actions secret already synced pre-cut (PUBLISH_LOCAL=0); refreshing best-effort"
 fi

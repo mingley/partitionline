@@ -49,7 +49,10 @@ echo "              bash scripts/day1-after-publish.sh"
 echo "  # close Dependabot PRs superseded by parks (#87–#92)"
 echo
 if [[ "$DRY_RUN" == "1" ]]; then
-  echo "owner-enable-trusted-publishing: DRY_RUN complete — configure UI after crates.io ${ver} exists"
+  echo "owner-enable-trusted-publishing: DRY_RUN complete — workflow shape checked; crates.io UI still owner"
   exit 0
 fi
-echo "owner-enable-trusted-publishing: OK — complete the UI steps above, then prefer OIDC for later tags"
+# Helper only proves workflow shape — crates.io UI is still an owner action.
+# Do not print final OK (handoff must not treat checklist printout as TP done).
+echo "owner-enable-trusted-publishing: INFO — workflow shape OK; crates.io Trusted Publishing UI still owner"
+echo "  After UI: prefer OIDC for later tags; keep CARGO_REGISTRY_TOKEN until one OIDC publish succeeds"
