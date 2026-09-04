@@ -54,7 +54,7 @@ partitionline = "0.1"
 ## Pilot checklist
 
 1. Produce + fetch against your Kafka 3.9 / 4.x cluster (`examples/roundtrip`).
-2. Classic or cooperative groups (`examples/group`, `examples/cooperative`).
+2. Classic, cooperative, or KIP-848 groups (`examples/group`, `examples/cooperative`, `examples/kip848` on Kafka 4.x).
 3. TLS (`rustls`, optional mTLS via `TLS_CLIENT_CERT_PEM` /
    `TLS_CLIENT_KEY_PEM` on `examples/tls`) and SCRAM-SHA-256/512 or OIDC as
    required (`examples/sasl` with `TLS_CA_PEM` for SASL_SSL, `examples/oauth`).

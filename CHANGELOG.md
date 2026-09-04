@@ -9,6 +9,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Added
 
+- `examples/kip848`: KIP-848 next-gen consumer group join (`ConsumerGroup::join_consumer_topics`).
+  Broker smoke runs it on Kafka 4.x (`REQUIRE_KIP848=1` default). Join now sends an
+  **empty** `TopicPartitions` array (null was rejected: "must be empty when (re-)joining").
+
 - Auth smoke covers **OIDC client_credentials** (local `scripts/oidc-token-stub.py`)
   and **mTLS** (SSL listener with `ssl.client.auth=required`; `examples/tls`
   accepts `TLS_CLIENT_CERT_PEM` / `TLS_CLIENT_KEY_PEM`). X.509 v3 client certs

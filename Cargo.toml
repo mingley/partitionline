@@ -131,6 +131,9 @@ name = "consume"
 name = "group"
 
 [[example]]
+name = "kip848"
+
+[[example]]
 name = "txn"
 
 [[example]]

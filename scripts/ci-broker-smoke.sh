@@ -7,7 +7,7 @@
 #   KAFKA_BOOTSTRAP  default 127.0.0.1:9092
 #   SKIP_DOCKER=1    use an already-running broker at KAFKA_BOOTSTRAP (no Docker)
 #   REQUIRE_SHARE=1  fail if share smoke cannot fetch (default on Kafka 4.x images)
-#   CI=true          fail if docker is missing (unless SKIP_DOCKER=1)
+#   REQUIRE_KIP848=1 fail if KIP-848 consumer-protocol smoke cannot fetch (default on 4.x)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -30,6 +30,15 @@ if [[ -z "${REQUIRE_SHARE:-}" ]]; then
     REQUIRE_SHARE=1
   else
     REQUIRE_SHARE=0
+  fi
+fi
+
+# KIP-848 next-gen groups need ConsumerGroupHeartbeat (Kafka 4.x).
+if [[ -z "${REQUIRE_KIP848:-}" ]]; then
+  if kafka_image_is_4x; then
+    REQUIRE_KIP848=1
+  else
+    REQUIRE_KIP848=0
   fi
 fi
 
@@ -197,6 +206,46 @@ run_examples() {
     sleep 3
   done
 
+  # KIP-848 next-gen consumer groups (ConsumerGroupHeartbeat; Kafka 4.x).
+  # Soft-skips on brokers that lack the API unless REQUIRE_KIP848=1.
+  echo "== kip848 =="
+  cargo run --release --example produce >/dev/null
+  export KAFKA_GROUP="pl-ci-kip848"
+  kip848_ok=0
+  kip848_log="$(mktemp)"
+  for attempt in 1 2 3 4 5 6; do
+    set +e
+    timeout 45s cargo run --release --example kip848 >"$kip848_log" 2>&1
+    kip848_rc=$?
+    set -e
+    if grep -E -- '@[0-9]+' "$kip848_log" >/dev/null; then
+      echo "ci-broker-smoke: kip848 ok"
+      kip848_ok=1
+      break
+    fi
+    if grep -qiE 'UnsupportedVersion|Unsupported|UNKNOWN_SERVER_ERROR|does not support|ConsumerGroupHeartbeat|InvalidRequest|API version' "$kip848_log"; then
+      break
+    fi
+    echo "ci-broker-smoke: kip848 not ready yet; retry $attempt"
+    sleep 3
+  done
+  if [[ "$kip848_ok" -eq 1 ]]; then
+    rm -f "$kip848_log"
+  elif [[ "${REQUIRE_KIP848:-0}" == "1" ]]; then
+    echo "ci-broker-smoke: kip848 failed (REQUIRE_KIP848=1, rc=${kip848_rc:-1}); log:" >&2
+    cat "$kip848_log" >&2 || true
+    rm -f "$kip848_log"
+    exit 1
+  elif grep -qiE 'UnsupportedVersion|Unsupported|UNKNOWN_SERVER_ERROR|does not support|ConsumerGroupHeartbeat|InvalidRequest|API version' "$kip848_log"; then
+    echo "ci-broker-smoke: kip848 skipped (broker lacks ConsumerGroupHeartbeat; use Kafka 4.x)"
+    rm -f "$kip848_log"
+  else
+    echo "ci-broker-smoke: kip848 failed (rc=${kip848_rc:-1}); log:" >&2
+    cat "$kip848_log" >&2 || true
+    rm -f "$kip848_log"
+    exit 1
+  fi
+
   # KIP-932 share groups need Kafka 4.x ShareFetch + share.version=1.
   # Default share.auto.offset.reset is latest, so produce while the share
   # member is already polling (not only beforehand).
@@ -247,9 +296,14 @@ if [[ "${SKIP_DOCKER:-}" == "1" ]]; then
       --topic "$OUT_TOPIC" --partitions 1 --replication-factor 1 || true
   fi
   upgrade_share_feature native || true
-  # Native Kafka 4.x share smoke should be required when features CLI is present.
-  if [[ "$REQUIRE_SHARE" != "1" ]] && [[ -x /tmp/kafka_4.1.0/bin/kafka-features.sh || -x /tmp/kafka_4.0.0/bin/kafka-features.sh ]]; then
-    REQUIRE_SHARE=1
+  # Native Kafka 4.x share / KIP-848 smoke should be required when features CLI is present.
+  if [[ -x /tmp/kafka_4.1.0/bin/kafka-features.sh || -x /tmp/kafka_4.0.0/bin/kafka-features.sh ]]; then
+    if [[ "$REQUIRE_SHARE" != "1" ]]; then
+      REQUIRE_SHARE=1
+    fi
+    if [[ "${REQUIRE_KIP848:-0}" != "1" ]]; then
+      REQUIRE_KIP848=1
+    fi
   fi
   run_examples
   echo "ci-broker-smoke: ok (existing broker $BOOTSTRAP)"
