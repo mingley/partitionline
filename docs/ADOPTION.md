@@ -26,6 +26,8 @@ bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish
    first cut):
    ```bash
    bash scripts/owner-finish-installable.sh
+
+After Installable lands, merge parked Verifiable work (`dev/verifiable-auth-integrity-fuzz-b686`: Actions `auth-smoke` + `integrity-smoke`, ConsumerGroupHeartbeat fuzz). Kept off tip so the token cut stays docs/scripts-only / one-shot `PUBLISH_LOCAL`.
    ```
    Fast-forwards tip → `main` once (if tip is ahead), publishes locally,
    runs day1, and proves Installable. Or stepwise:
