@@ -94,12 +94,11 @@ fi
 
 echo
 echo "== 1) Token =="
-# Load TOKEN_FILE into *this* shell so cargo publish after the probe sees it.
+# Load TOKEN_FILE + normalize whitespace into *this* shell so cargo publish sees it.
 # (check-registry-token alone runs in a subshell — its export would not stick.)
 # shellcheck source=scripts/lib/cargo-registry-token.sh
 source "$ROOT/scripts/lib/cargo-registry-token.sh"
-pl_load_cargo_registry_token_file "owner-finish-installable"
-pl_warn_misnamed_cargo_registry_token "owner-finish-installable"
+pl_prepare_cargo_registry_token "owner-finish-installable"
 
 tok_rc=0
 bash scripts/check-registry-token.sh || tok_rc=$?
