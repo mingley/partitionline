@@ -29,7 +29,7 @@ bash scripts/post-publish-readme.sh
 
 echo
 echo "day1-after-publish: next owner steps"
-echo "  1. Review and commit README crates.io dependency line"
+echo "  1. Review and commit README crates.io dep + status blurb"
 echo "  2. Ensure GitHub Actions secret CARGO_REGISTRY_TOKEN is set for future tags"
 echo "  3. Confirm docs.rs build for partitionline ${ver}"
 echo "  4. Comment on adoption survey #85 that crates.io install works"
