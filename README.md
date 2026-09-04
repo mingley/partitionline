@@ -7,8 +7,8 @@ A Kafka client written in Rust. It does not call into C or librdkafka.
 ```toml
 [dependencies]
 # crates.io publish is one owner step away (docs/RELEASE.md → tag v0.1.0).
-# Until then:
-partitionline = { git = "https://github.com/mingley/partitionline" }
+# Until then, pin a release-candidate tag (not floating main):
+partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.2" }
 # After publish: partitionline = "0.1"
 ```
 

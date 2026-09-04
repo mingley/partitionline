@@ -37,17 +37,12 @@ first release lands, pin a **tag** (not floating `main`):
 
 ```toml
 [dependencies]
-partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.1" }
+partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.2" }
 ```
 
-Floating `main` also works for tip-chasers:
-
-```toml
-[dependencies]
-partitionline = { git = "https://github.com/mingley/partitionline" }
-```
-
-After `v0.1.0` on crates.io:
+`v0.1.0-rc.2` tracks the civilization tip (SASL_SSL PLAIN/SCRAM/OAUTHBEARER
+auth smoke, local branch-lite Verifiable proxy, tip pushes no longer thrash
+Actions). Prefer this over floating `main`. After crates.io `0.1.0`, switch to:
 
 ```toml
 [dependencies]

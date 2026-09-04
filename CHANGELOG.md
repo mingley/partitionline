@@ -27,6 +27,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   (fmt/clippy/lib/docs); wired into civilization-check and owner-status.
 - CI: `dev/**` tip pushes no longer auto-queue (org runner starvation /
   perpetual tip re-queue); full matrix on PR/`main`/`workflow_dispatch` only.
+- Git install pin `v0.1.0-rc.2` (README / ADOPTION) for adopters before
+  crates.io; does not trigger `release.yml` (final `vX.Y.Z` only).
 
 ### Changed
 
@@ -98,7 +100,7 @@ First crates.io release baseline (publish via `docs/RELEASE.md` / tag `v0.1.0`).
   fetch integrity harness (`scripts/lab-a-fetch.sh`) requires consumed==seeded
   (unsigned; not a Suite HOLD lift).
 - `examples/oauth` for OAUTHBEARER (unsecured JWT) and OIDC client-credentials;
-  ADOPTION documents pinable `v0.1.0-rc.1` git install until crates.io lands.
+  ADOPTION documents pinable `v0.1.0-rc.2` git install until crates.io lands.
 - Broker smoke: Kafka CI matrix uses `apache/kafka:4.1.0`; Docker 4.x starts with
   share coordinator RF=1 and upgrades `share.version=1`; `REQUIRE_SHARE=1` fails
   the job if share cannot fetch records on 4.x. Civilization-check only counts
