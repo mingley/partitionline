@@ -9,6 +9,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- Scripts/docs: owner-finish / owner-unblock / RELEASE spell out Cursor Environments → Secrets for `CARGO_REGISTRY_TOKEN`; tip Verifiable + cut-path gate `check-merge-ready`.
 - Scripts: `ci-branch-lite` + `check-cut-path` run `check-crate-metadata`; tip Verifiable also runs `check-installable-preflight` so READY_EXCEPT_TOKEN stays tip-gated before the token cut.
 - Scripts: `ci-branch-lite` runs `cargo publish --dry-run` + `check-trusted-publishing-ready` so tip Verifiable proves upload shape and OIDC release.yml shape before the token cut.
 - Scripts: `ci-branch-lite` + `check-cut-path` run `PRE_PUBLISH=1` `audit-civilization-bars` so five civilization bars are tip-gated before the token cut (Installable credentials may remain BLOCKED).

@@ -76,6 +76,10 @@ echo "== check-cut-path: civilization bars (PRE_PUBLISH) =="
 # FULL=0: keep this rehearsal leaf even if caller exported FULL=1.
 FULL=0 PRE_PUBLISH=1 bash scripts/audit-civilization-bars.sh
 
+echo
+echo "== check-cut-path: merge/tag readiness =="
+bash scripts/check-merge-ready.sh
+
 echo "== check-cut-path: finish DRY_RUN (tip-aware parks, hard-fail) =="
 DRY_RUN=1 bash scripts/owner-finish-installable.sh
 
