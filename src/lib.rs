@@ -2811,8 +2811,8 @@
 //! argument).
 //! [`Admin::alter_user_scram_credentials_with`] is Java
 //! `alterUserScramCredentials(List)` ([`UserScramCredentialAlteration`]).
-//! [`AlterUserScramCredentialsResult::error`] /
-//! [`AlterUserScramCredentialsResult::error_results`] are Java
+//! [`protocol::admin::AlterUserScramCredentialsResult::error`] /
+//! [`protocol::admin::AlterUserScramCredentialsResult::error_results`] are Java
 //! `AlterUserScramCredentialsRequest.getErrorResponse` (one user /
 //! unique sorted names from Deletions and Upsertions). `ErrorMessage`
 //! stays the JSON default (null); official Java also sets the English

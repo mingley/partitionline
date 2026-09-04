@@ -1309,7 +1309,7 @@ impl Consumer {
 
     /// Assign one partition at `offset`. Replaces a previous offset for the same pair.
     ///
-    /// Java `assign` calls [`protocol::group::Topic::validate`] on the topic name.
+    /// Java `assign` calls [`crate::protocol::group::Topic::validate`] on the topic name.
     pub async fn assign(
         &mut self,
         topic: impl Into<String>,
@@ -1353,7 +1353,7 @@ impl Consumer {
     /// (`earliest` or `latest`). [`crate::AutoOffsetReset::None`] is an error
     /// (a manual consumer has no committed offsets). An empty list drops the
     /// assignment ([`Self::unassign`]). Each topic name is checked with
-    /// [`protocol::group::Topic::validate`].
+    /// [`crate::protocol::group::Topic::validate`].
     ///
     /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
     /// timeout, use [`Self::assign_partitions_timeout`].
@@ -1403,7 +1403,7 @@ impl Consumer {
 
     /// Assign every partition of `topic` at `offset` (from metadata).
     ///
-    /// Java `assign` calls [`protocol::group::Topic::validate`] on the topic name.
+    /// Java `assign` calls [`crate::protocol::group::Topic::validate`] on the topic name.
     pub async fn assign_topic(&mut self, topic: impl Into<String>, offset: i64) -> Result<()> {
         let topic = topic.into();
         Topic::validate(&topic)?;
@@ -2093,7 +2093,7 @@ impl Consumer {
 
     /// Fetch counters and round latency since connect (min/mean/max and p50/p99).
     ///
-    /// [`ConsumerMetrics::topics`] is one row per topic that returned at least
+    /// [`crate::ConsumerMetrics::topics`] is one row per topic that returned at least
     /// one record.
     #[must_use]
     pub fn metrics(&self) -> crate::ConsumerMetrics {

@@ -1413,7 +1413,7 @@ impl Producer {
 
     /// Produce counters and ack latency since connect (min/mean/max and p50/p99).
     ///
-    /// [`ProducerMetrics::topics`] is one row per topic that queued, acked, or
+    /// [`crate::ProducerMetrics::topics`] is one row per topic that queued, acked, or
     /// failed at least one record.
     #[must_use]
     pub fn metrics(&self) -> crate::ProducerMetrics {

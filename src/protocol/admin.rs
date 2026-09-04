@@ -1,7 +1,16 @@
-//! Admin Kafka protocol codecs: topics, configs, groups, quotas,
-//! transactions, telemetry, log dirs, and delegation tokens.
+//! Admin Kafka protocol codecs: CreateTopics, DeleteTopics, DescribeConfigs,
+//! UpdateFeatures, AlterUserScramCredentials, DescribeUserScramCredentials,
+//! AlterClientQuotas, DescribeClientQuotas, DescribeProducers,
+//! AllocateProducerIds, DescribeTransactions, ListTransactions,
+//! UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups,
+//! DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets,
+//! AlterShareGroupOffsets, DeleteShareGroupOffsets,
+//! DescribeTopicPartitions, ListConfigResources,
+//! GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
+//! AlterReplicaLogDirs, DescribeLogDirs, CreateDelegationToken,
+//! RenewDelegationToken, ExpireDelegationToken, DescribeDelegationToken.
 //!
-//! ACL codecs live in [`super::acl`].
+//! ACL codecs live in [`crate::protocol::acl`].
 
 use std::collections::{BTreeSet, HashMap};
 use std::fmt;

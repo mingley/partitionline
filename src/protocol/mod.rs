@@ -1,52 +1,21 @@
-/// ACL create/describe/delete codecs.
 pub mod acl;
-/// CreateTopics, DeleteTopics, DescribeConfigs, UpdateFeatures,
-/// AlterUserScramCredentials, DescribeUserScramCredentials,
-/// AlterClientQuotas, DescribeClientQuotas, DescribeProducers,
-/// AllocateProducerIds, DescribeTransactions, ListTransactions,
-/// UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups,
-/// DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets,
-/// AlterShareGroupOffsets, DeleteShareGroupOffsets,
-/// DescribeTopicPartitions, ListConfigResources,
-/// GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
-/// AlterReplicaLogDirs, DescribeLogDirs, CreateDelegationToken,
-/// RenewDelegationToken, ExpireDelegationToken,
-/// DescribeDelegationToken codecs.
 pub mod admin;
-/// ApiVersions, Metadata, Produce codecs.
 pub mod api;
-/// Kafka api key constants and version negotiation.
 pub mod api_keys;
-/// Classic and compact Kafka primitive codecs.
 pub mod buf;
-/// ConsumerGroupHeartbeat (KIP-848, v0–v1).
 pub mod cgheartbeat;
-/// OffsetForLeaderEpoch codec (v0–v4; Topics/Partitions of N).
 pub mod epoch;
-/// Fetch request and response codecs.
 pub mod fetch;
-/// Consumer group protocol codecs.
 pub mod group;
-/// Request and response headers.
 pub mod header;
-/// InitProducerId codec.
 pub mod idem;
-/// Unsecured OAUTHBEARER JWT.
 pub mod oauth;
-/// ListOffsets codecs.
 pub mod offsets;
-/// RFC 6749 client_credentials token fetch for OAUTHBEARER.
 pub mod oidc;
-/// RecordBatch magic-2 codec.
 pub mod records;
-/// SASL handshake (v0–v1) and authenticate (v0–v2).
 pub mod sasl;
-/// SCRAM-SHA-256 and SCRAM-SHA-512.
 pub mod scram;
-/// Share groups (KIP-932).
 pub mod share;
-/// AddPartitionsToTxn, AddOffsetsToTxn, EndTxn, WriteTxnMarkers, and
-/// TxnOffsetCommit codecs.
 pub mod txn;
 
 pub use api::{
