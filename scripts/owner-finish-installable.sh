@@ -111,18 +111,11 @@ elif [[ "$tok_rc" -eq 2 || -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     echo "owner-finish-installable: CARGO_REGISTRY_TOKEN is NOT set" >&2
     echo >&2
     echo "Installable cannot finish without a crates.io publish token." >&2
-    echo "  1. Create a crates.io token at https://crates.io/settings/tokens" >&2
-    echo "     First cut of a NEW crate needs scope publish-new (+ publish-update)." >&2
-    echo "     publish-update alone cannot create ${name} on crates.io." >&2
-    echo "  2. Add Cloud Agent secret CARGO_REGISTRY_TOKEN:" >&2
-    echo "       Cursor → Cloud Agents → Environments → this env → Secrets" >&2
-    # shellcheck source=scripts/lib/cursor-env-secrets-url.sh
-    source "$ROOT/scripts/lib/cursor-env-secrets-url.sh"
-    echo "       Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL" >&2
-    echo "       Name exactly CARGO_REGISTRY_TOKEN (not CARGO_TOKEN / CRATES_IO_TOKEN);" >&2
-    echo "       restart/re-run agent after save. Or: CARGO_REGISTRY_TOKEN_FILE=/path." >&2
-    echo "  3. Also add Actions secret CARGO_REGISTRY_TOKEN (release.yml / first-publish.yml)" >&2
-    echo "  4. Re-run: bash scripts/owner-finish-installable.sh" >&2
+    echo "One-screen owner ask:" >&2
+    echo "  bash scripts/owner-request-registry-token.sh" >&2
+    echo >&2
+    # Print the ask inline so the owner does not have to hunt for the helper.
+    bash scripts/owner-request-registry-token.sh >&2 || true
     echo >&2
     echo "If the token is only an Actions secret (not in this shell):" >&2
     echo "  After canceling stuck runs → Actions → First publish → confirm=publish" >&2
