@@ -14,6 +14,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   produce must fail closed. Wired into `scripts/ci-civilization-check.sh`.
 - `examples/sasl` accepts optional `TLS_CA_PEM` / `TLS_SERVER_NAME` for the
   production SASL_SSL path.
+- `scripts/owner-status.sh` prints Installable/Verifiable blocker status
+  (token, crates.io, Actions tip/main).
 
 ### Changed
 

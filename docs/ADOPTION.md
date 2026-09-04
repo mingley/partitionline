@@ -18,6 +18,12 @@ Civilization **Installable** is blocked only on credentials and merge:
    (`bash scripts/check-installable.sh` should exit 0).
 4. Run `bash scripts/day1-after-publish.sh` and commit the README crates.io line.
 
+Probe current blockers anytime:
+
+```bash
+bash scripts/owner-status.sh
+```
+
 ## Install (today)
 
 crates.io publish is the remaining owner step (`docs/RELEASE.md`). Until the
