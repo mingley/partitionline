@@ -58,6 +58,18 @@ elif [[ "$day1_rc" -ne 0 ]]; then
   exit "$day1_rc"
 fi
 
+echo "== post-Installable handoff rehearsal (DRY_RUN) =="
+# Token-day publish-ready must surface parks-on-main / day1 handoff honesty
+# (same as cut-path + branch-lite). Nested bars skipped — PRE_PUBLISH bars run below.
+handoff_rc=0
+HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+if [[ "$handoff_rc" -eq 2 ]]; then
+  echo "ci-publish-ready: PARTIAL — handoff DRY_RUN soft-failed (parks-on-main / day1 / TP; handoff re-entry)"
+elif [[ "$handoff_rc" -ne 0 ]]; then
+  echo "ci-publish-ready: FAIL — handoff DRY_RUN rc=${handoff_rc}" >&2
+  exit "$handoff_rc"
+fi
+
 echo "== adopter pin =="
 bash scripts/check-adopter-pin.sh
 
@@ -102,8 +114,8 @@ REQUIRE_BROKER="${REQUIRE_BROKER:-0}" bash scripts/ci-civilization-check.sh
 
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 echo
-if [[ "${day1_rc:-0}" -eq 2 ]]; then
-  echo "ci-publish-ready: ok with PARTIAL for partitionline ${ver} — day1 DRY_RUN not yet Installable (cut still publishes first)"
+if [[ "${day1_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 ]]; then
+  echo "ci-publish-ready: ok with PARTIAL for partitionline ${ver} — day1/handoff DRY_RUN soft notes (cut still publishes first; re-enter handoff post-cut)"
 else
   echo "ci-publish-ready: ok for partitionline ${ver}"
 fi
