@@ -1423,7 +1423,12 @@ fn node_endpoints_for(st: &State, leader_ids: impl IntoIterator<Item = i32>) -> 
 
 impl Mock {
     pub async fn start() -> Self {
-        Self::start_with_sasl(None).await
+        let mock = Self::start_with_sasl(None).await;
+        // Touch shared throttle knobs so they stay live across every test binary
+        // that embeds `tests/common` (clippy deny(allow_attributes) + dead_code).
+        mock.set_produce_throttle_ms(0);
+        mock.set_fetch_throttle_ms(0);
+        mock
     }
 
     pub async fn start_with_sasl(creds: Option<(String, String)>) -> Self {
@@ -1678,14 +1683,12 @@ impl Mock {
     }
 
     /// Set ProduceResponse `throttle_time_ms` for subsequent Produce RPCs.
-    #[allow(dead_code, reason = "used by tests/throttle_metrics.rs; other binaries share this mock")]
     pub fn set_produce_throttle_ms(&self, ms: i32) {
         let mut st = self.state.lock();
         st.produce_throttle_ms = ms;
     }
 
     /// Set FetchResponse `throttle_time_ms` for subsequent Fetch RPCs.
-    #[allow(dead_code, reason = "used by tests/throttle_metrics.rs; other binaries share this mock")]
     pub fn set_fetch_throttle_ms(&self, ms: i32) {
         let mut st = self.state.lock();
         st.fetch_throttle_ms = ms;
