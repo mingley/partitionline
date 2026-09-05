@@ -213,6 +213,19 @@ if grep -qF 'MODE=git' scripts/check-cut-path.sh \
 else
   bad "git-tag adopter consumer not wired into cut-path / preflight / finish / verify-crates-io-consumer"
 fi
+
+# Adopter-pin honesty: guide/migrate must not lead with crates.io while README is git-shaped.
+if [[ -x scripts/check-adopter-pin.sh ]] \
+  && grep -qF 'docs/guide.md' scripts/check-adopter-pin.sh \
+  && grep -qF 'leads with crates.io version while README is still git-shaped' scripts/check-adopter-pin.sh \
+  && bash scripts/check-adopter-pin.sh >/tmp/pl-adopter-pin.log 2>&1 \
+  && grep -qF 'tag = "v0.1.0-rc.6"' docs/guide.md \
+  && ! grep -qE '^partitionline = "[0-9]' docs/migrate-from-rdkafka.md \
+  && ! grep -qE '^partitionline = \{ version = "[0-9]' docs/guide.md; then
+  ok "adopter-pin honesty (README/ADOPTION/migrate/guide tag parity; no live crates.io lead pre-Installable)"
+else
+  bad "adopter-pin honesty missing/failed; see /tmp/pl-adopter-pin.log"
+fi
 # Parks auto-refresh must restore main/caller before cut/publish (token-day footgun).
 if [[ -x scripts/check-parks-refresh-cut-guards.sh ]] \
   && bash scripts/check-parks-refresh-cut-guards.sh >/tmp/pl-parks-refresh-guards.log 2>&1 \
