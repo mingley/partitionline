@@ -18,8 +18,15 @@ case "$tok_rc" in
     echo "OK  CARGO_REGISTRY_TOKEN accepted by crates.io for publish-new auth (len=${#CARGO_REGISTRY_TOKEN})"
     ;;
   2)
-    echo "BLOCKED  CARGO_REGISTRY_TOKEN unset (export for Cloud Agent + Actions secret)"
-    echo "         First cut needs publish-new (+ publish-update); publish-update alone cannot create the crate."
+    # Post-Installable: missing token is not an Installable blocker (check-registry-token
+    # already prints the honest future-cuts copy when crates.io has this version).
+    if grep -qF 'token only needed for future cuts' /tmp/pl-owner-token.log 2>/dev/null; then
+      echo "OK  CARGO_REGISTRY_TOKEN unset (Installable met; token only for future cuts / Actions)"
+      echo "         Recreate at https://crates.io/settings/tokens when cutting a later version."
+    else
+      echo "BLOCKED  CARGO_REGISTRY_TOKEN unset (export for Cloud Agent + Actions secret)"
+      echo "         First cut needs publish-new (+ publish-update); publish-update alone cannot create the crate."
+    fi
     # Surface Secrets typos that leave Installable stuck (length-only; never print values).
     if grep -q 'misnamed token' /tmp/pl-owner-token.log 2>/dev/null; then
       grep 'misnamed token\|Rename to exactly' /tmp/pl-owner-token.log | sed 's/^/         /' || true
@@ -132,11 +139,17 @@ else
   echo "  adopter pin: FAIL (see /tmp/pl-owner-adopter-pin.log)"
   tail -5 /tmp/pl-owner-adopter-pin.log | sed 's/^/    /' || true
 fi
-# Full tip Verifiable + bars take many minutes (broker chain). While Installable
-# waits only on CARGO_REGISTRY_TOKEN, default to a fast snapshot so the owner ask
-# path stays usable. OWNER_STATUS_FULL=1 restores the heavy local mirror.
-if [[ -z "${CARGO_REGISTRY_TOKEN:-}" && "${OWNER_STATUS_FULL:-0}" != "1" ]]; then
-  echo "  branch-lite (local Actions mirror): skipped (TOKEN unset; OWNER_STATUS_FULL=1 to run)"
+# Full tip Verifiable + bars take many minutes (broker chain). Default to a fast
+# snapshot; OWNER_STATUS_FULL=1 restores the heavy local mirror. After Installable,
+# missing token must not be the stated skip reason.
+if [[ "${OWNER_STATUS_FULL:-0}" != "1" ]]; then
+  if [[ "${preflight_already:-0}" -eq 1 ]]; then
+    echo "  branch-lite (local Actions mirror): skipped (fast path; Installable met — OWNER_STATUS_FULL=1 to run)"
+  elif [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+    echo "  branch-lite (local Actions mirror): skipped (TOKEN unset while Installable waits; OWNER_STATUS_FULL=1 to run)"
+  else
+    echo "  branch-lite (local Actions mirror): skipped (fast path; OWNER_STATUS_FULL=1 to run)"
+  fi
 else
   bl_rc=0
   bash scripts/ci-branch-lite.sh >/tmp/pl-owner-branch-lite.log 2>&1 || bl_rc=$?
@@ -207,8 +220,16 @@ fi
 
 echo
 echo "== Civilization bars =="
-if [[ -z "${CARGO_REGISTRY_TOKEN:-}" && "${OWNER_STATUS_FULL:-0}" != "1" ]]; then
-  echo "  bars: skipped (TOKEN unset; OWNER_STATUS_FULL=1 to run; PRE_PUBLISH=1 bash scripts/audit-civilization-bars.sh)"
+# Fast path skips bars unless OWNER_STATUS_FULL=1. After Installable, missing
+# token must not be the stated reason — Installable is already proven.
+if [[ "${OWNER_STATUS_FULL:-0}" != "1" ]]; then
+  if [[ "${preflight_already:-0}" -eq 1 ]]; then
+    echo "  bars: skipped (fast path; Installable met — OWNER_STATUS_FULL=1 to run; bash scripts/audit-civilization-bars.sh)"
+  elif [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+    echo "  bars: skipped (TOKEN unset while Installable waits; OWNER_STATUS_FULL=1 to run; PRE_PUBLISH=1 bash scripts/audit-civilization-bars.sh)"
+  else
+    echo "  bars: skipped (fast path; OWNER_STATUS_FULL=1 to run)"
+  fi
 elif bash scripts/audit-civilization-bars.sh >/tmp/pl-owner-bars.log 2>&1; then
   echo "  bars: $(tail -1 /tmp/pl-owner-bars.log)"
 else

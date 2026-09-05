@@ -196,6 +196,16 @@ if grep -qF 'crates.io already has this crate/version (Installable met)' scripts
 else
   bad "registry-token MISSING copy must note Installable-met → token only for future cuts"
 fi
+
+# owner-status must not label MISSING token as Installable-BLOCKED after crates.io has the version.
+if grep -qF 'OK  CARGO_REGISTRY_TOKEN unset (Installable met; token only for future cuts / Actions)' scripts/owner-status.sh \
+  && grep -qF 'token only needed for future cuts' scripts/owner-status.sh \
+  && grep -qF 'bars: skipped (fast path; Installable met' scripts/owner-status.sh \
+  && grep -qF 'TOKEN unset while Installable waits' scripts/owner-status.sh; then
+  ok "owner-status post-Installable token honesty (OK not BLOCKED; bars skip copy distinguishes Installable-met)"
+else
+  bad "owner-status must OK missing token when Installable met; bars skip must not blame token post-Installable"
+fi
 fuzz_n=0
 if [[ -d fuzz/fuzz_targets ]]; then
   fuzz_n="$(find fuzz/fuzz_targets -name '*.rs' | wc -l | tr -d ' ')"
