@@ -23,6 +23,22 @@ pub(crate) const DEFAULT_RECONNECT_BACKOFF_MAX: Duration = Duration::from_millis
 /// Kafka `connections.max.idle.ms` default (Java: 9 minutes).
 pub(crate) const DEFAULT_CONNECTIONS_MAX_IDLE: Duration = Duration::from_millis(9 * 60 * 1000);
 
+/// Debug wrapper for SASL `(username, password)` that never prints the password.
+pub(crate) struct RedactedUserPass<'a>(pub &'a Option<(String, String)>);
+
+impl fmt::Debug for RedactedUserPass<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            None => f.write_str("None"),
+            Some((user, _)) => f
+                .debug_tuple("Some")
+                .field(user)
+                .field(&"<redacted>")
+                .finish(),
+        }
+    }
+}
+
 /// True when a socket has been unused for at least `max_idle`.
 ///
 /// A zero `max_idle` never expires (this crate; Java 0 would close immediately).
@@ -452,7 +468,7 @@ impl fmt::Display for AutoOffsetReset {
 /// let _cfg = ProducerConfig::bootstrap(["127.0.0.1:9092"])
 ///     .sasl(Sasl::scram_sha256("alice", "secret"));
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Sasl {
     /// SASL PLAIN (`username`, `password`).
     Plain {
@@ -482,6 +498,33 @@ pub enum Sasl {
     },
     /// RFC 6749 `client_credentials` token URL, then OAUTHBEARER.
     Oidc(OidcConfig),
+}
+
+impl fmt::Debug for Sasl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Plain { username, .. } => f
+                .debug_struct("Plain")
+                .field("username", username)
+                .field("password", &"<redacted>")
+                .finish(),
+            Self::ScramSha256 { username, .. } => f
+                .debug_struct("ScramSha256")
+                .field("username", username)
+                .field("password", &"<redacted>")
+                .finish(),
+            Self::ScramSha512 { username, .. } => f
+                .debug_struct("ScramSha512")
+                .field("username", username)
+                .field("password", &"<redacted>")
+                .finish(),
+            Self::OauthBearer { principal } => f
+                .debug_struct("OauthBearer")
+                .field("principal", principal)
+                .finish(),
+            Self::Oidc(cfg) => f.debug_tuple("Oidc").field(cfg).finish(),
+        }
+    }
 }
 
 impl Sasl {

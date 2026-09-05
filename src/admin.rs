@@ -160,7 +160,7 @@ pub use crate::protocol::admin::{
 pub use crate::protocol::group::OffsetDeleteResult;
 
 /// Bootstrap, identity, SASL, and TLS for [`Admin`].
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AdminConfig {
     /// Bootstrap brokers, `host:port`.
     pub bootstrap: Vec<String>,
@@ -203,6 +203,37 @@ pub struct AdminConfig {
     pub sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
     /// rustls. No OpenSSL.
     pub tls: Option<TlsConfig>,
+}
+
+impl fmt::Debug for AdminConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AdminConfig")
+            .field("bootstrap", &self.bootstrap)
+            .field("client_id", &self.client_id)
+            .field("request_timeout", &self.request_timeout)
+            .field("connect_timeout", &self.connect_timeout)
+            .field("reconnect_backoff", &self.reconnect_backoff)
+            .field("reconnect_backoff_max", &self.reconnect_backoff_max)
+            .field("connections_max_idle", &self.connections_max_idle)
+            .field("retry_backoff", &self.retry_backoff)
+            .field("retry_backoff_max", &self.retry_backoff_max)
+            .field(
+                "sasl_plain",
+                &crate::config::RedactedUserPass(&self.sasl_plain),
+            )
+            .field(
+                "sasl_scram",
+                &crate::config::RedactedUserPass(&self.sasl_scram),
+            )
+            .field(
+                "sasl_scram_sha512",
+                &crate::config::RedactedUserPass(&self.sasl_scram_sha512),
+            )
+            .field("sasl_oauthbearer", &self.sasl_oauthbearer)
+            .field("sasl_oauthbearer_oidc", &self.sasl_oauthbearer_oidc)
+            .field("tls", &self.tls)
+            .finish()
+    }
 }
 
 impl Default for AdminConfig {

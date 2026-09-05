@@ -1,5 +1,6 @@
 //! TCP and TLS broker connections.
 
+use std::fmt;
 use std::future::poll_fn;
 use std::io;
 use std::pin::Pin;
@@ -107,7 +108,10 @@ pub(crate) fn reserve_frame(buf: &mut BytesMut, total: usize) {
 }
 
 /// rustls client settings. No OpenSSL.
-#[derive(Debug, Clone, Default)]
+///
+/// [`Debug`] never prints PEM bytes; the private key is always `<redacted>`
+/// (KL-06).
+#[derive(Clone, Default)]
 pub struct TlsConfig {
     /// PEM CA bundle. If `None`, Mozilla webpki-roots are used.
     pub ca_pem: Option<Vec<u8>>,
@@ -117,6 +121,32 @@ pub struct TlsConfig {
     pub client_key_pem: Option<Vec<u8>>,
     /// SNI and certificate hostname. Defaults to the bootstrap host (no port).
     pub server_name: Option<String>,
+}
+
+impl fmt::Debug for TlsConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TlsConfig")
+            .field(
+                "ca_pem",
+                &self
+                    .ca_pem
+                    .as_ref()
+                    .map(|p| format!("<pem {} bytes>", p.len())),
+            )
+            .field(
+                "client_cert_pem",
+                &self
+                    .client_cert_pem
+                    .as_ref()
+                    .map(|p| format!("<pem {} bytes>", p.len())),
+            )
+            .field(
+                "client_key_pem",
+                &self.client_key_pem.as_ref().map(|_| "<redacted>"),
+            )
+            .field("server_name", &self.server_name)
+            .finish()
+    }
 }
 
 impl TlsConfig {

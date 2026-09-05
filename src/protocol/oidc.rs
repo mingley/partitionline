@@ -2,6 +2,7 @@
 //!
 //! HTTP/1.1 POST over `tokio::net::TcpStream`. `https://` uses rustls.
 
+use std::fmt;
 use std::time::{Duration, Instant};
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -14,7 +15,9 @@ const MAX_RESPONSE: usize = 64 * 1024;
 const FORM_BODY: &str = "grant_type=client_credentials";
 
 /// OIDC-style client credentials used to POST for an access token.
-#[derive(Debug, Clone)]
+///
+/// [`Debug`] redacts [`Self::client_secret`] (KL-06).
+#[derive(Clone)]
 pub struct OidcConfig {
     /// Token endpoint, `http://` or `https://host:port/path`.
     pub token_url: String,
@@ -24,6 +27,17 @@ pub struct OidcConfig {
     pub client_secret: String,
     /// TLS for `https://` token URLs. `None` uses webpki-roots.
     pub tls: Option<crate::net::TlsConfig>,
+}
+
+impl fmt::Debug for OidcConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("OidcConfig")
+            .field("token_url", &self.token_url)
+            .field("client_id", &self.client_id)
+            .field("client_secret", &"<redacted>")
+            .field("tls", &self.tls)
+            .finish()
+    }
 }
 
 impl OidcConfig {

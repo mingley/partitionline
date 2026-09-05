@@ -22,6 +22,17 @@ inside the client, not broker or network trust problems.
 Prefer SCRAM or OIDC over PLAIN. Prefer TLS (or SASL_SSL) on any network you
 do not fully control.
 
+## Credential redaction
+
+`Debug` for [`Sasl`](../src/config.rs), [`OidcConfig`](../src/protocol/oidc.rs),
+[`TlsConfig`](../src/net.rs), and the producer/consumer/admin configs that embed
+them redacts passwords, OIDC `client_secret`, and mTLS private key PEMs as
+`<redacted>` (CA/cert PEMs print only a byte-length placeholder). This is a
+KL-06 honesty slice for log/span dumps — it does **not** cover error strings,
+metrics labels, or credential rotation/outage recovery.
+
+Mock coverage: `tests/credential_redact.rs`.
+
 ## Reporting
 
 Report security issues privately to the repository owner (see GitHub security

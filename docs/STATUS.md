@@ -166,6 +166,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-02 consumer close-commit honesty (2026-09-05, tip `3ec50d1`):** `ConsumerGroup::leave`/`close`/`unsubscribe` no longer auto-commit positions when `enable_auto_commit` is on; poll-interval auto-commit + explicit `commit*` unchanged. Tests: `tests/consumer_close_commit.rs`. Does **not** close full KL-02. Does **not** lift Suite HOLD.
 
+**KL-06 credential Debug redaction (2026-09-05, tip `PENDING`):** `Sasl` / `OidcConfig` / `TlsConfig` and producer/consumer/admin configs redact passwords, `client_secret`, and mTLS private key PEMs in `Debug`. Tests: `tests/credential_redact.rs`. Does **not** close full KL-06 (rotation/outage + error/span/metrics redaction remain). Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

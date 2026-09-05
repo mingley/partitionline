@@ -75,7 +75,7 @@ impl fmt::Debug for RebalanceListener {
 /// Fetch and group-member settings.
 ///
 /// Prefer the chainable builders. Raw fields remain writable.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ConsumerConfig {
     /// Bootstrap brokers, `host:port`.
     pub bootstrap: Vec<String>,
@@ -173,6 +173,55 @@ pub struct ConsumerConfig {
     pub allow_auto_topic_creation: bool,
     /// Fetch interceptors. Empty is a no-op.
     pub interceptors: crate::interceptor::ConsumerInterceptors,
+}
+
+impl fmt::Debug for ConsumerConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ConsumerConfig")
+            .field("bootstrap", &self.bootstrap)
+            .field("client_id", &self.client_id)
+            .field("request_timeout", &self.request_timeout)
+            .field("connect_timeout", &self.connect_timeout)
+            .field(
+                "sasl_plain",
+                &crate::config::RedactedUserPass(&self.sasl_plain),
+            )
+            .field(
+                "sasl_scram",
+                &crate::config::RedactedUserPass(&self.sasl_scram),
+            )
+            .field(
+                "sasl_scram_sha512",
+                &crate::config::RedactedUserPass(&self.sasl_scram_sha512),
+            )
+            .field("sasl_oauthbearer", &self.sasl_oauthbearer)
+            .field("sasl_oauthbearer_oidc", &self.sasl_oauthbearer_oidc)
+            .field("tls", &self.tls)
+            .field("max_wait_ms", &self.max_wait_ms)
+            .field("min_bytes", &self.min_bytes)
+            .field("max_bytes", &self.max_bytes)
+            .field("max_partition_fetch_bytes", &self.max_partition_fetch_bytes)
+            .field("isolation_level", &self.isolation_level)
+            .field("rack", &self.rack)
+            .field("group_instance_id", &self.group_instance_id)
+            .field("auto_offset_reset", &self.auto_offset_reset)
+            .field("max_poll_records", &self.max_poll_records)
+            .field("session_timeout_ms", &self.session_timeout_ms)
+            .field("heartbeat_interval", &self.heartbeat_interval)
+            .field("rebalance", &self.rebalance)
+            .field("enable_auto_commit", &self.enable_auto_commit)
+            .field("auto_commit_interval", &self.auto_commit_interval)
+            .field("max_poll_interval", &self.max_poll_interval)
+            .field("retry_backoff", &self.retry_backoff)
+            .field("retry_backoff_max", &self.retry_backoff_max)
+            .field("metadata_max_age", &self.metadata_max_age)
+            .field("reconnect_backoff", &self.reconnect_backoff)
+            .field("reconnect_backoff_max", &self.reconnect_backoff_max)
+            .field("connections_max_idle", &self.connections_max_idle)
+            .field("allow_auto_topic_creation", &self.allow_auto_topic_creation)
+            .field("interceptors", &self.interceptors)
+            .finish()
+    }
 }
 
 impl Default for ConsumerConfig {

@@ -170,6 +170,22 @@ if [[ -f tests/consumer_close_commit.rs && -f docs/guide.md ]] \
 else
   bad "KL-02 consumer close-commit honesty missing"
 fi
+
+# KL-06 slice: credential Debug redaction (passwords / client_secret / key PEM).
+if [[ -f tests/credential_redact.rs && -f docs/security.md ]] \
+  && grep -qF 'Credential redaction' docs/security.md \
+  && grep -qF 'sasl_plain_debug_redacts_password' tests/credential_redact.rs \
+  && grep -qF 'oidc_config_debug_redacts_client_secret' tests/credential_redact.rs \
+  && grep -qF 'tls_config_debug_redacts_client_key_pem' tests/credential_redact.rs \
+  && grep -qF 'producer_config_debug_redacts_embedded_secrets' tests/credential_redact.rs \
+  && grep -qF 'field("password", &"<redacted>")' src/config.rs \
+  && grep -qF 'field("client_secret", &"<redacted>")' src/protocol/oidc.rs \
+  && grep -qF 'client_key_pem' src/net.rs \
+  && grep -qF '"<redacted>"' src/net.rs; then
+  ok "KL-06 credential Debug redaction (Sasl/Oidc/Tls + config cascade; security.md)"
+else
+  bad "KL-06 credential Debug redaction missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

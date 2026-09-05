@@ -38,7 +38,7 @@ use crate::protocol::txn::{
 };
 
 /// Produce settings. Prefer the chainable builders; raw fields remain writable.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ProducerConfig {
     /// Bootstrap brokers, `host:port`.
     pub bootstrap: Vec<String>,
@@ -142,6 +142,55 @@ pub struct ProducerConfig {
     pub partitioner: PartitionerBox,
     /// Produce interceptors. Empty is a no-op.
     pub interceptors: crate::interceptor::ProducerInterceptors,
+}
+
+impl fmt::Debug for ProducerConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ProducerConfig")
+            .field("bootstrap", &self.bootstrap)
+            .field("client_id", &self.client_id)
+            .field("acks", &self.acks)
+            .field("linger", &self.linger)
+            .field("batch_records", &self.batch_records)
+            .field("batch_bytes", &self.batch_bytes)
+            .field("buffer_memory", &self.buffer_memory)
+            .field("max_request_size", &self.max_request_size)
+            .field("request_timeout", &self.request_timeout)
+            .field("delivery_timeout", &self.delivery_timeout)
+            .field("max_block", &self.max_block)
+            .field("retry_backoff", &self.retry_backoff)
+            .field("retry_backoff_max", &self.retry_backoff_max)
+            .field("metadata_max_age", &self.metadata_max_age)
+            .field("connect_timeout", &self.connect_timeout)
+            .field("reconnect_backoff", &self.reconnect_backoff)
+            .field("reconnect_backoff_max", &self.reconnect_backoff_max)
+            .field("connections_max_idle", &self.connections_max_idle)
+            .field("allow_auto_topic_creation", &self.allow_auto_topic_creation)
+            .field("compression", &self.compression)
+            .field(
+                "sasl_plain",
+                &crate::config::RedactedUserPass(&self.sasl_plain),
+            )
+            .field(
+                "sasl_scram",
+                &crate::config::RedactedUserPass(&self.sasl_scram),
+            )
+            .field(
+                "sasl_scram_sha512",
+                &crate::config::RedactedUserPass(&self.sasl_scram_sha512),
+            )
+            .field("sasl_oauthbearer", &self.sasl_oauthbearer)
+            .field("sasl_oauthbearer_oidc", &self.sasl_oauthbearer_oidc)
+            .field("connections", &self.connections)
+            .field("max_in_flight", &self.max_in_flight)
+            .field("enable_idempotence", &self.enable_idempotence)
+            .field("transactional_id", &self.transactional_id)
+            .field("transaction_timeout", &self.transaction_timeout)
+            .field("tls", &self.tls)
+            .field("partitioner", &self.partitioner)
+            .field("interceptors", &self.interceptors)
+            .finish()
+    }
 }
 
 impl Default for ProducerConfig {
