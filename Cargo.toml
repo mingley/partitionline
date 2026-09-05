@@ -168,6 +168,7 @@ name = "cooperative"
 
 [[example]]
 name = "metrics"
+path = "examples/metrics/main.rs"
 
 [[example]]
 name = "offsets"

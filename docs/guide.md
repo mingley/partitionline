@@ -133,8 +133,17 @@ Examples: `tls`, `sasl`. OIDC is `OidcConfig` on the SASL OAUTHBEARER path.
 `Admin::metrics` return counter snapshots plus latency min/mean/max and
 p50/p99 over the last 1024 samples. Scrape on your process interval (for
 example every 10–60s); these are process-local snapshots, not a push
-protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
-in `docs/CIVILIZATION.md` WP-4.2.
+protocol. See `examples/metrics` (`FORMAT=prom` for text exposition). Optional
+`tracing` hooks are tracked in `docs/CIVILIZATION.md` WP-4.2.
+
+### Optional Prometheus text exporter (no prom crate)
+
+`examples/metrics` can emit a minimal Prometheus exposition via `FORMAT=prom`.
+Formatting lives in `examples/metrics/prom_format.rs` and is covered by
+`tests/metrics_exporter.rs` without a live broker and **without** adding a
+prometheus crate to the core dependency graph. KL-07 Partial — not two
+independent human diagnosis runs, and not a Suite HOLD lift. Broader metric
+cookbooks (throttle/reconnect/queue-age) may land as sibling slices.
 
 ## Recipes
 

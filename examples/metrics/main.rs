@@ -2,8 +2,14 @@
 //!
 //! Broker on `KAFKA_BOOTSTRAP`. Topic `KAFKA_TOPIC` (default `partitionline`).
 //! Set `FORMAT=prom` for a minimal Prometheus exposition (no prom crate).
+//!
+//! Formatting lives in [`prom_format`] so tests can prove the exporter without
+//! a live broker (KL-07 optional-exporter Partial).
+
+mod prom_format;
 
 use partitionline::{Consumer, ProduceRecord, Producer, ProducerConfig};
+use prom_format::{format_consumer_prometheus, format_producer_prometheus};
 
 #[tokio::main]
 async fn main() -> partitionline::Result<()> {
@@ -21,15 +27,7 @@ async fn main() -> partitionline::Result<()> {
     let pm = producer.metrics();
 
     if format == "prom" {
-        println!("# HELP partitionline_produce_records_acked Produce records acked");
-        println!("# TYPE partitionline_produce_records_acked counter");
-        println!("partitionline_produce_records_acked {}", pm.records_acked);
-        println!("# HELP partitionline_produce_ack_p99_seconds Produce ack p99 latency");
-        println!("# TYPE partitionline_produce_ack_p99_seconds gauge");
-        println!(
-            "partitionline_produce_ack_p99_seconds {}",
-            (pm.ack_latency.p99_nanos as f64) / 1_000_000_000.0
-        );
+        print!("{}", format_producer_prometheus(&pm));
     } else {
         println!(
             "produced {}-{}@{} queued={} acked={} bytes={} ack_us={} p50_us={} p99_us={} topics={}",
@@ -52,15 +50,7 @@ async fn main() -> partitionline::Result<()> {
     let recs = consumer.fetch().await?;
     let cm = consumer.metrics();
     if format == "prom" {
-        println!("# HELP partitionline_fetch_rounds Fetch rounds completed");
-        println!("# TYPE partitionline_fetch_rounds counter");
-        println!("partitionline_fetch_rounds {}", cm.fetch_rounds);
-        println!("# HELP partitionline_fetch_p99_seconds Fetch round p99 latency");
-        println!("# TYPE partitionline_fetch_p99_seconds gauge");
-        println!(
-            "partitionline_fetch_p99_seconds {}",
-            (cm.fetch_latency.p99_nanos as f64) / 1_000_000_000.0
-        );
+        print!("{}", format_consumer_prometheus(&cm));
     } else {
         println!(
             "fetched {} records rounds={} bytes={} errors={} fetch_us={} p50_us={} p99_us={} topics={}",

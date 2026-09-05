@@ -184,6 +184,21 @@ else
   bad "KL-02 buffer ownership + mock overload soak missing"
 fi
 
+# KL-07 slice: optional Prometheus text exporter as example (no prom core dep).
+if [[ -f examples/metrics/prom_format.rs && -f examples/metrics/main.rs && -f tests/metrics_exporter.rs && -f docs/guide.md ]] \
+  && grep -qF 'Optional Prometheus text exporter (no prom crate)' docs/guide.md \
+  && grep -qF 'producer_prometheus_text_includes_acked_and_ack_p99' tests/metrics_exporter.rs \
+  && grep -qF 'consumer_prometheus_text_includes_fetch_rounds_and_p99' tests/metrics_exporter.rs \
+  && grep -qF 'format_producer_prometheus' examples/metrics/prom_format.rs \
+  && grep -qF 'FORMAT=prom' examples/metrics/main.rs \
+  && grep -qF 'prom_format.rs' docs/ROADMAP.md \
+  && ! grep -qE '^\s*prometheus' Cargo.toml \
+  && cargo test --test metrics_exporter --quiet >/tmp/pl-kl07-metrics-exporter.log 2>&1; then
+  ok "KL-07 optional Prometheus text exporter (example FORMAT=prom; no prom core dep; mock test)"
+else
+  bad "KL-07 optional Prometheus text exporter missing/failed; see /tmp/pl-kl07-metrics-exporter.log"
+fi
+
 # KL-06 slice: credential Debug redaction (passwords / client_secret / key PEM).
 if [[ -f tests/credential_redact.rs && -f docs/security.md ]] \
   && grep -qF 'Credential redaction' docs/security.md \
