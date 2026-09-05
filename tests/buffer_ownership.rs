@@ -7,6 +7,13 @@
     dead_code,
     reason = "tests/common mock helpers are shared; this file uses a subset"
 )]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    reason = "integration-test helpers; clippy.toml allow-*-in-tests covers #[test] only"
+)]
 
 mod common;
 
@@ -17,10 +24,12 @@ use std::time::Duration;
 use tokio::task::JoinSet;
 
 fn value_upper_bound(payload: &[u8]) -> usize {
-    usize::try_from(
-        Records::estimate_size_in_bytes_upper_bound(None, Some(payload), &[]).unwrap(),
-    )
-    .unwrap()
+    usize::try_from(Records::estimate_size_in_bytes_upper_bound(None, Some(payload), &[]).unwrap())
+        .unwrap()
+}
+
+fn buffered_usize(producer: &Producer) -> usize {
+    usize::try_from(producer.metrics().bytes_buffered).expect("bytes_buffered fits usize")
 }
 
 async fn warm_metadata(producer: &Producer) {
@@ -55,7 +64,7 @@ async fn saturating_try_send_never_exceeds_buffer_memory() {
         match producer.try_send(ProduceRecord::to("t").value(payload.clone())) {
             Ok(()) => {
                 accepted += 1;
-                let buffered = producer.metrics().bytes_buffered as usize;
+                let buffered = buffered_usize(&producer);
                 assert!(
                     buffered <= cap,
                     "bytes_buffered {buffered} exceeded buffer_memory {cap}"
@@ -63,7 +72,7 @@ async fn saturating_try_send_never_exceeds_buffer_memory() {
             }
             Err(Error::QueueFull) => {
                 rejected += 1;
-                let buffered = producer.metrics().bytes_buffered as usize;
+                let buffered = buffered_usize(&producer);
                 assert!(
                     buffered <= cap,
                     "QueueFull path left bytes_buffered {buffered} > {cap}"
@@ -73,15 +82,19 @@ async fn saturating_try_send_never_exceeds_buffer_memory() {
         }
     }
     assert!(accepted >= 1, "expected at least one accepted record");
-    assert!(rejected >= 1, "expected QueueFull once the cap is saturated");
     assert!(
-        producer.metrics().bytes_buffered as usize <= cap,
+        rejected >= 1,
+        "expected QueueFull once the cap is saturated"
+    );
+    assert!(
+        buffered_usize(&producer) <= cap,
         "post-loop bytes_buffered exceeded cap"
     );
 
     producer.flush().await.unwrap();
     assert_eq!(
-        producer.metrics().bytes_buffered, 0,
+        producer.metrics().bytes_buffered,
+        0,
         "flush must release all buffer_memory reservations"
     );
     producer.clone().close().await.unwrap();
@@ -116,8 +129,11 @@ async fn queue_full_under_overload_releases_no_orphan_bytes() {
                     Err(Error::QueueFull) => full += 1,
                     Err(other) => panic!("unexpected try_send error: {other:?}"),
                 }
-                let buffered = producer.metrics().bytes_buffered as usize;
-                assert!(buffered <= cap, "concurrent overload exceeded cap: {buffered}");
+                let buffered = buffered_usize(&producer);
+                assert!(
+                    buffered <= cap,
+                    "concurrent overload exceeded cap: {buffered}"
+                );
             }
             full
         });
@@ -132,13 +148,14 @@ async fn queue_full_under_overload_releases_no_orphan_bytes() {
         "concurrent hammering should observe QueueFull"
     );
     assert!(
-        producer.metrics().bytes_buffered as usize <= cap,
+        buffered_usize(producer.as_ref()) <= cap,
         "bytes_buffered drifted over cap after concurrent overload"
     );
 
     producer.flush().await.unwrap();
     assert_eq!(
-        producer.metrics().bytes_buffered, 0,
+        producer.metrics().bytes_buffered,
+        0,
         "flush after overload must leave no orphan buffer reservations"
     );
     producer.as_ref().clone().close().await.unwrap();
@@ -167,11 +184,12 @@ async fn send_timeout_when_buffer_full_and_max_block_expires() {
         .try_send(ProduceRecord::to("t").value(payload.clone()))
         .unwrap();
     let buffered = producer.metrics().bytes_buffered;
+    let buffered_n = usize::try_from(buffered).expect("bytes_buffered fits usize");
     assert!(
-        buffered as usize >= payload.len(),
+        buffered_n >= payload.len(),
         "accepted record must still hold buffer_memory (linger); got {buffered}"
     );
-    assert!(buffered as usize <= cap);
+    assert!(buffered_n <= cap);
 
     let err = producer
         .send(ProduceRecord::to("t").value(payload))
@@ -182,7 +200,8 @@ async fn send_timeout_when_buffer_full_and_max_block_expires() {
         "expected Timeout while blocked on buffer_memory, got {err:?}"
     );
     assert_eq!(
-        producer.metrics().bytes_buffered, buffered,
+        producer.metrics().bytes_buffered,
+        buffered,
         "timed-out send must not leave an extra reservation"
     );
 
