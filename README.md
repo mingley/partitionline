@@ -165,8 +165,9 @@ Security: [docs/security.md](docs/security.md).
 Release policy: [docs/RELEASE.md](docs/RELEASE.md).
 Roadmap & execution: [docs/CIVILIZATION.md](docs/CIVILIZATION.md) and [docs/ROADMAP.md](docs/ROADMAP.md).
 
-**Not a drop-in for `rd_kafka_*`.** Still missing vs librdkafka: zstd and
-Kerberos (C libraries), Schema Registry.
+**Not a drop-in for `rd_kafka_*`.** zstd and Kerberos/GSSAPI remain gaps;
+Schema Registry is a separate [companion design](docs/schema-companion.md),
+not a core-client production requirement.
 
 ## Features vs C stack
 
@@ -251,7 +252,7 @@ COUNT=10000 WARMUP=1000 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=0 \
 
 - [API & User Guide](docs/guide.md) — Producer, consumer, transactions, and admin guide.
 - [Feature Gaps vs librdkafka](docs/gaps.md) — Comprehensive client compatibility matrix.
-- [Kafka Leadership Roadmap](docs/ROADMAP.md) — Rigorous engineering strategy, baseline integrity audit, correctness scorecards, and production hardening.
+- [Kafka Leadership Roadmap](docs/ROADMAP.md) — Source-backed recovery steps, correctness gates, reproducible benchmarks and scoped production qualification.
 - [TODO & Task Tracker](TODO.md) — Prioritized engineering packet execution checklist (KL-01 through KL-08).
 - [Architecture & Design](docs/design.md) — Protocol engine and memory architecture.
 - [Benchmarks](docs/benchmark.md) — Performance measurements and test methodology.
