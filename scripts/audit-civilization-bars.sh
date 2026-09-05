@@ -234,6 +234,7 @@ if grep -qF 'post-publish-guide.sh' scripts/day1-after-publish.sh \
   && grep -qF 'post-publish-migrate.sh' scripts/ci-publish-ready.sh \
   && grep -qF 'docs/guide.md' scripts/lib/preserve-day1-docs.sh \
   && grep -qF 'docs/migrate-from-rdkafka.md' scripts/lib/preserve-day1-docs.sh \
+  && grep -qF 'README/ADOPTION/guide/migrate' scripts/lib/preserve-day1-docs.sh \
   && DRY_RUN=1 bash scripts/post-publish-guide.sh >/tmp/pl-guide-flip-bars.log 2>&1 \
   && DRY_RUN=1 bash scripts/post-publish-migrate.sh >/tmp/pl-migrate-flip-bars.log 2>&1 \
   && grep -q 'DRY_RUN ok' /tmp/pl-guide-flip-bars.log \
