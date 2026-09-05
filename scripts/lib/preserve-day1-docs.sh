@@ -59,7 +59,7 @@ pl_day1_docs_restore_from_backup() {
       cp -a "$PL_DAY1_DOCS_BACKUP_DIR/$p" "$p"
     fi
   done < <(pl_day1_docs_paths)
-  echo "preserve-day1-docs: restored day1 README/ADOPTION from filesystem backup"
+  echo "preserve-day1-docs: restored day1 docs (README/ADOPTION/guide/migrate) from filesystem backup"
   return 0
 }
 
@@ -67,7 +67,7 @@ pl_day1_docs_end() {
   local restored=0
   if [[ "${PL_DAY1_DOCS_STASHED}" == "1" ]]; then
     if git stash pop --quiet; then
-      echo "preserve-day1-docs: restored day1 README/ADOPTION via stash pop"
+      echo "preserve-day1-docs: restored day1 docs (README/ADOPTION/guide/migrate) via stash pop"
       restored=1
     else
       echo "preserve-day1-docs: WARN — stash pop failed; trying filesystem backup" >&2
