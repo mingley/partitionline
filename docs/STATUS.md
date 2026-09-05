@@ -127,7 +127,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 **Tip↔main unify after CI land (2026-09-05, tip `670e1ee`):** tip absorbed main CI green (`SKIP_LATENCY_GATE`, rustfmt, checkout v7) after tip-advance and main push diverged; crates.io description pure-Rust / no-C / no-librdkafka retained on tip. Does **not** lift Suite HOLD.
 
 
-**Owner-status post-Installable token honesty (2026-09-05, tip `670e1ee`):** `owner-status` no longer labels a missing `CARGO_REGISTRY_TOKEN` as Installable-BLOCKED when crates.io already has this version (OK + future-cuts copy); bars/branch-lite fast-path skip copy distinguishes Installable-met from token-wait. Bars gate the strings. Does **not** lift Suite HOLD. Token remains unset in this agent.
+**Owner-status post-Installable token honesty (2026-09-05, tip `486238b`):** `owner-status` no longer labels a missing `CARGO_REGISTRY_TOKEN` as Installable-BLOCKED when crates.io already has this version (OK + future-cuts copy); bars/branch-lite fast-path skip copy distinguishes Installable-met from token-wait. Bars gate the strings. Does **not** lift Suite HOLD. Token remains unset in this agent.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
