@@ -34,7 +34,11 @@ performance qualification and exact-HEAD evidence remain open.
 - [ ] **KL-08 release slice:** Select one serialized publisher gated on exact-SHA CI and package-consumer evidence; reconcile metadata and handoff checks and rehearse partial-release recovery without publishing.
   - [x] Serialized path: release-plz PR-only; owner-cut-release/release.yml exact-SHA CI + crate-consumer; soft-skip if version already on crates.io (2026-09-05). Remaining: support policy, adopter 24h/7d, traffic rollout.
   - [x] Partial-release recovery rehearsal (`scripts/rehearse-partial-release.sh --self-test`; no publish / no re-cut 0.1.0) (2026-09-05). KL-08 package stays open.
+<<<<<<< HEAD
   - [x] Support matrix doc (`docs/support.md`; CI brokers 3.9.1/4.1.0, MSRV 1.85, explicit non-promises) (2026-09-05). Adopter 24h/7d + promotion still open.
+=======
+  - [x] owner-publish skips cargo publish when crates.io already has the version; release.yml `actions: read` for exact-SHA `gh run list`; rehearsal fail-closes if skip ifs are removed (2026-09-05).
+>>>>>>> origin/main
 
 ## Qualification and leadership packages
 
