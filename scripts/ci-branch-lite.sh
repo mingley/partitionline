@@ -120,7 +120,7 @@ fi
 echo "== ci-branch-lite: post-Installable handoff rehearsal (DRY_RUN) =="
 # Same parks-on-main / day1 honesty as cut-path. HANDOFF_FROM_BARS=1 skips nested
 # bars (this proxy already runs PRE_PUBLISH bars below). Already-Installable +
-# parks-off-main → PARTIAL/2; pre-token holds exit 0 with PARTIAL note.
+# parks-off-main → PARTIAL/2; pre-token parks/day1 pending also PARTIAL/2.
 handoff_rc=0
 HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
 if [[ "$handoff_rc" -eq 2 ]]; then
