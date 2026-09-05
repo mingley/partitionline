@@ -185,7 +185,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 **KL-08 adopter exercise template (2026-09-05, tip `622dfa2`):** `docs/adopter-exercise.md` is the blank 24h/7d record format (`UNFILLED — not evidence`); linked from support.md + ADOPTION.md. Does **not** close full KL-08 (no filled adopter records, no traffic-shadow promotion/rollback proof). Does **not** lift Suite HOLD.
 
 
-**Lab A signoff template (2026-09-05, tip `PENDING`):** `docs/lab-a-signoff.md` is the blank Kernel Integrity signoff record (`UNFILLED — not evidence`); linked from CIVILIZATION WP-5 + benchmark.md. Does **not** lift Suite HOLD (no signed Lab A package).
+**Lab A signoff template (2026-09-05, tip `"3e66f9c"`):** `docs/lab-a-signoff.md` is the blank Kernel Integrity signoff record (`UNFILLED — not evidence`); linked from CIVILIZATION WP-5 + benchmark.md. Does **not** lift Suite HOLD (no signed Lab A package).
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
