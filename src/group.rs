@@ -2180,11 +2180,22 @@ impl ConsumerGroup {
                         {
                             break;
                         }
-                        if conn
-                            .as_ref()
-                            .is_some_and(|c| c.should_reconnect(cfg.connections_max_idle))
-                        {
-                            conn = None;
+                        if let Some(c) = conn.as_mut() {
+                            if crate::protocol::sasl::should_reconnect_after_reauth(
+                                c,
+                                cfg.sasl_plain.as_ref(),
+                                cfg.sasl_scram.as_ref(),
+                                cfg.sasl_scram_sha512.as_ref(),
+                                cfg.sasl_oauthbearer.as_deref(),
+                                cfg.sasl_oauthbearer_oidc.as_ref(),
+                                cfg.connections_max_idle,
+                                cfg.request_timeout,
+                            )
+                            .await
+                            .unwrap_or(true)
+                            {
+                                conn = None;
+                            }
                         }
                         if conn.is_none() {
                             conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
@@ -2287,11 +2298,22 @@ impl ConsumerGroup {
                         {
                             break;
                         }
-                        if conn
-                            .as_ref()
-                            .is_some_and(|c| c.should_reconnect(cfg.connections_max_idle))
-                        {
-                            conn = None;
+                        if let Some(c) = conn.as_mut() {
+                            if crate::protocol::sasl::should_reconnect_after_reauth(
+                                c,
+                                cfg.sasl_plain.as_ref(),
+                                cfg.sasl_scram.as_ref(),
+                                cfg.sasl_scram_sha512.as_ref(),
+                                cfg.sasl_oauthbearer.as_deref(),
+                                cfg.sasl_oauthbearer_oidc.as_ref(),
+                                cfg.connections_max_idle,
+                                cfg.request_timeout,
+                            )
+                            .await
+                            .unwrap_or(true)
+                            {
+                                conn = None;
+                            }
                         }
                         if conn.is_none() {
                             conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
@@ -2814,7 +2836,18 @@ pub(crate) async fn coord_roundtrip(
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
 ) -> Result<Bytes> {
-    if coord.should_reconnect(cfg.connections_max_idle) {
+    if crate::protocol::sasl::should_reconnect_after_reauth(
+        coord,
+        cfg.sasl_plain.as_ref(),
+        cfg.sasl_scram.as_ref(),
+        cfg.sasl_scram_sha512.as_ref(),
+        cfg.sasl_oauthbearer.as_deref(),
+        cfg.sasl_oauthbearer_oidc.as_ref(),
+        cfg.connections_max_idle,
+        cfg.request_timeout,
+    )
+    .await?
+    {
         *coord = open_coord(cfg, coord.addr()).await?;
     }
     let body = match coord

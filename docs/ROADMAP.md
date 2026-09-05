@@ -266,7 +266,8 @@ honest dependency footprint. Deferred features remain documented exclusions.
    Bounded transient OIDC retry (5xx/I/O/timeout; 2026-09-05).
    OIDC `expires_in` parse + broker `session_lifetime_ms` record on connect (2026-09-05).
       Auth-lifetime reconnect via `should_reconnect` (2026-09-05).
-   Mid-connection refresh/rotation / outage soak remains open.
+   Mid-connection `SaslAuthenticate` reauth via `should_reconnect_after_reauth` (2026-09-05).
+   Outage soak remains open.
 
 **Work surfaces:** [network](../src/net.rs), [OAuth](../src/protocol/oauth.rs),
 [OIDC](../src/protocol/oidc.rs), [auth smoke](../scripts/ci-auth-smoke.sh),

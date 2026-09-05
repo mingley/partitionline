@@ -527,12 +527,12 @@ pub struct BrokerConn {
     /// Absolute instant when the broker SASL session should be treated as
     /// expired, from SaslAuthenticate `session_lifetime_ms` (v1+). `None`
     /// when the broker omitted a positive lifetime (v0 or `0`). Recorded for
-    /// reconnect / future mid-connection reauth (KL-06); live-socket
-    /// `SaslAuthenticate` rotation is still open.
+    /// reconnect / mid-connection reauth (KL-06). Prefer live-socket
+    /// `SaslAuthenticate` via `should_reconnect_after_reauth` before dropping.
     pub(crate) sasl_session_expires_at: Option<Instant>,
     /// Absolute instant when the last OIDC access token should be treated as
     /// expired, from IdP `expires_in`. `None` when the IdP omitted
-    /// `expires_in`. Reconnect re-fetches; mid-connection reauth still open.
+    /// `expires_in`. Reconnect re-fetches; mid-connection reauth via SaslAuthenticate when possible.
     pub(crate) oidc_token_expires_at: Option<Instant>,
 }
 
@@ -701,9 +701,9 @@ impl BrokerConn {
     /// True when a recorded SASL session or OIDC token lifetime is within `skew`.
     ///
     /// Missing lifetimes (`None`) do **not** invent a reconnect deadline.
-    /// Callers recycle the TCP/TLS socket and re-run full SASL (and may
-    /// re-fetch OIDC). This is **not** mid-connection `SaslAuthenticate`
-    /// rotation (KL-06 still open).
+    /// Prefer [`crate::protocol::sasl::should_reconnect_after_reauth`] so
+    /// mid-connection `SaslAuthenticate` (KIP-368) can refresh without
+    /// dropping the socket; fall back to full reconnect on reauth failure.
     #[must_use]
     pub(crate) fn auth_lifetime_expired(&self, skew: Duration) -> bool {
         auth_lifetimes_need_refresh(
@@ -713,11 +713,15 @@ impl BrokerConn {
         )
     }
 
-    /// Idle budget exhausted **or** recorded auth lifetime within refresh skew.
+    /// Idle budget exhausted (Kafka `connections.max.idle.ms`).
+    ///
+    /// Auth-lifetime refresh is handled by
+    /// [`crate::protocol::sasl::should_reconnect_after_reauth`], which calls
+    /// this for the idle check and prefers mid-connection `SaslAuthenticate`
+    /// when only SASL/OIDC lifetime is near expiry.
     #[must_use]
     pub(crate) fn should_reconnect(&self, max_idle: Duration) -> bool {
         self.idle_expired(max_idle)
-            || self.auth_lifetime_expired(crate::protocol::oidc::OIDC_REFRESH_SKEW)
     }
 
     fn touch(&mut self) {

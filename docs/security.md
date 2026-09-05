@@ -50,11 +50,14 @@ OIDC `client_credentials` runs on each new SASL authenticate
 The client parses IdP `expires_in` into `OidcAccessToken::expires_at` when
 present and records broker `session_lifetime_ms` on the connection after a
 successful `SaslAuthenticate`. Missing/invalid `expires_in` yields `None` (no
-invented lifetime). Producer/consumer/admin/group paths call
-`BrokerConn::should_reconnect`, which recycles the socket when idle **or** when
-a recorded SASL/OIDC lifetime is within refresh skew — then full SASL (and
-possibly OIDC fetch) runs again. That is reconnect re-auth, **not** live-socket
-`SaslAuthenticate` rotation.
+invented lifetime). Producer/consumer/admin/group/share paths call
+`should_reconnect_after_reauth`, which:
+- recycles the socket when idle (`BrokerConn::should_reconnect`);
+- when a recorded SASL/OIDC lifetime is within refresh skew, prefers
+  mid-connection `SaslAuthenticate` only (KIP-368; no `SaslHandshake`) via
+  `reauthenticate`, including a fresh OIDC fetch when configured;
+- falls back to full reconnect (ApiVersions + handshake + authenticate) if
+  mid-connection reauth fails.
 `token_needs_refresh` / `auth_lifetimes_need_refresh` are available for callers
 that hold an `expires_at`.
 
@@ -62,7 +65,7 @@ Token-endpoint responses: non-200 → `Error::Protocol` with
 `oidc token endpoint HTTP {status}` only (no IdP body). A hung IdP surfaces
 `Error::Timeout` bounded by the caller's request timeout. Transient failures
 (HTTP 5xx, I/O, timeout) get **bounded** retries (3 attempts, short exponential
-backoff) inside that same timeout; HTTP 4xx fails immediately. Mid-connection refresh / rotation / outage soak still open (KL-06).
+backoff) inside that same timeout; HTTP 4xx fails immediately. Outage soak still open (KL-06).
 
 Unit coverage: `fetch_token_rejects_http_503_fail_closed`,
 `fetch_token_hang_times_out_fail_closed`,
@@ -72,7 +75,8 @@ Unit coverage: `fetch_token_rejects_http_503_fail_closed`,
 `oidc_token_missing_expires_in_is_none`,
 `token_needs_refresh_respects_skew`,
 `fetch_access_token_parses_expires_in_over_http` in `src/protocol/oidc.rs`;
-`auth_lifetimes_need_refresh_respects_skew_and_none` in `src/net.rs`.
+`auth_lifetimes_need_refresh_respects_skew_and_none` in `src/net.rs`;
+`count_sasl_mechs_rejects_multiple` in `src/protocol/sasl.rs`.
 
 ## Reporting
 

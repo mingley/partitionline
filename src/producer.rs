@@ -2676,9 +2676,17 @@ impl Worker {
             return Ok(());
         }
         if self.in_flight.is_empty()
-            && self
-                .conn
-                .should_reconnect(self.shared.cfg.connections_max_idle)
+            && crate::protocol::sasl::should_reconnect_after_reauth(
+                &mut self.conn,
+                self.shared.cfg.sasl_plain.as_ref(),
+                self.shared.cfg.sasl_scram.as_ref(),
+                self.shared.cfg.sasl_scram_sha512.as_ref(),
+                self.shared.cfg.sasl_oauthbearer.as_deref(),
+                self.shared.cfg.sasl_oauthbearer_oidc.as_ref(),
+                self.shared.cfg.connections_max_idle,
+                self.shared.cfg.request_timeout,
+            )
+            .await?
         {
             let addr = self.conn.addr().to_string();
             self.conn = open_conn(&addr, &self.shared.cfg).await?;

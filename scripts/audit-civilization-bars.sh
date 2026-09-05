@@ -232,7 +232,7 @@ if grep -qF '## Auth recovery (current behavior)' docs/security.md \
   && grep -qF 'fetch_token_hang_times_out_fail_closed' src/protocol/oidc.rs \
   && grep -qF 'fetch_token_retries_transient_503_then_succeeds' src/protocol/oidc.rs \
   && grep -qF 'fetch_token_does_not_retry_http_401' src/protocol/oidc.rs \
-  && grep -qF 'Mid-connection refresh / rotation / outage soak still open' docs/security.md; then
+  && grep -qF 'Outage soak still open (KL-06)' docs/security.md; then
   ok "KL-06 OIDC bounded transient retry + outage fail-closed (503/401/timeout tests; security.md)"
 else
   bad "KL-06 OIDC bounded transient retry / outage fail-closed missing"
@@ -251,10 +251,29 @@ if grep -qF 'OidcAccessToken' src/protocol/oidc.rs \
   && grep -qF 'parses IdP `expires_in`' docs/security.md \
   && grep -qF 'session_lifetime_ms' docs/security.md \
   && grep -qF 'should_reconnect' docs/security.md \
-  && grep -qF 'Mid-connection refresh / rotation / outage soak still open' docs/security.md; then
-  ok "KL-06 OIDC expires_in + session lifetime reconnect (not mid-connection reauth)"
+  && grep -qF 'should_reconnect_after_reauth' docs/security.md \
+  && grep -qF 'Outage soak still open (KL-06)' docs/security.md; then
+  ok "KL-06 OIDC expires_in + session lifetime + mid-connection reauth path"
 else
-  bad "KL-06 OIDC expires_in / session lifetime reconnect missing"
+  bad "KL-06 OIDC expires_in / session lifetime / mid-connection reauth missing"
+fi
+
+# KL-06 slice: mid-connection SaslAuthenticate reauth (KIP-368; no handshake).
+if grep -qF 'should_reconnect_after_reauth' src/protocol/sasl.rs \
+  && grep -qF 'pub async fn reauthenticate' src/protocol/sasl.rs \
+  && grep -qF 'reauthenticate_plain' src/protocol/sasl.rs \
+  && grep -qF 'reauthenticate_scram' src/protocol/sasl.rs \
+  && grep -qF 'reauthenticate_oauthbearer_token' src/protocol/sasl.rs \
+  && grep -qF 'should_reconnect_after_reauth' src/producer.rs \
+  && grep -qF 'should_reconnect_after_reauth' src/consumer.rs \
+  && grep -qF 'should_reconnect_after_reauth' src/admin.rs \
+  && grep -qF 'should_reconnect_after_reauth' src/group.rs \
+  && grep -qF 'should_reconnect_after_reauth' src/share.rs \
+  && grep -qF 'mid-connection `SaslAuthenticate`' docs/security.md \
+  && grep -qF 'Outage soak still open (KL-06)' docs/security.md; then
+  ok "KL-06 mid-connection SaslAuthenticate reauth (KIP-368; outage soak still open)"
+else
+  bad "KL-06 mid-connection SaslAuthenticate reauth missing"
 fi
 
 

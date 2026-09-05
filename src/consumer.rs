@@ -1674,7 +1674,18 @@ impl Consumer {
         topics: Option<&[String]>,
         timeout: Duration,
     ) -> Result<()> {
-        if self.conn.should_reconnect(self.cfg.connections_max_idle) {
+        if crate::protocol::sasl::should_reconnect_after_reauth(
+            &mut self.conn,
+            self.cfg.sasl_plain.as_ref(),
+            self.cfg.sasl_scram.as_ref(),
+            self.cfg.sasl_scram_sha512.as_ref(),
+            self.cfg.sasl_oauthbearer.as_deref(),
+            self.cfg.sasl_oauthbearer_oidc.as_ref(),
+            self.cfg.connections_max_idle,
+            self.cfg.request_timeout,
+        )
+        .await?
+        {
             let addr = self.conn.addr().to_string();
             self.conn = self.open_node_conn(&addr).await?;
         }
@@ -1789,12 +1800,21 @@ impl Consumer {
     }
 
     async fn connect_node(&mut self, node: i32) -> Result<()> {
-        if self
-            .conns
-            .get(&node)
-            .is_some_and(|c| c.should_reconnect(self.cfg.connections_max_idle))
-        {
-            let _ = self.conns.remove(&node);
+        if let Some(c) = self.conns.get_mut(&node) {
+            if crate::protocol::sasl::should_reconnect_after_reauth(
+                c,
+                self.cfg.sasl_plain.as_ref(),
+                self.cfg.sasl_scram.as_ref(),
+                self.cfg.sasl_scram_sha512.as_ref(),
+                self.cfg.sasl_oauthbearer.as_deref(),
+                self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                self.cfg.connections_max_idle,
+                self.cfg.request_timeout,
+            )
+            .await?
+            {
+                let _ = self.conns.remove(&node);
+            }
         }
         if self.conns.contains_key(&node) {
             return Ok(());
@@ -2180,7 +2200,18 @@ impl Consumer {
         let version = self.telemetry_version.ok_or_else(|| {
             Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
         })?;
-        if self.conn.should_reconnect(self.cfg.connections_max_idle) {
+        if crate::protocol::sasl::should_reconnect_after_reauth(
+            &mut self.conn,
+            self.cfg.sasl_plain.as_ref(),
+            self.cfg.sasl_scram.as_ref(),
+            self.cfg.sasl_scram_sha512.as_ref(),
+            self.cfg.sasl_oauthbearer.as_deref(),
+            self.cfg.sasl_oauthbearer_oidc.as_ref(),
+            self.cfg.connections_max_idle,
+            self.cfg.request_timeout,
+        )
+        .await?
+        {
             let addr = self.conn.addr().to_string();
             self.conn = self.open_node_conn(&addr).await?;
         }
