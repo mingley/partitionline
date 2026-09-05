@@ -51,12 +51,14 @@ if [[ "${1:-}" == "--self-test" ]]; then
     echo "owner-post-installable-handoff: self-test FAIL — DRY_RUN must PARTIAL on git-shaped docs when already Installable" >&2
     exit 1
   fi
-  if ! grep -qF 'pl_adopter_docs_crates_io_shaped' "$ROOT/scripts/owner-post-installable-handoff.sh" \
-    || ! grep -qF 'docs/guide.md' "$ROOT/scripts/owner-post-installable-handoff.sh" \
-    || ! grep -qF 'docs/migrate-from-rdkafka.md' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
-    echo "owner-post-installable-handoff: self-test FAIL — git-shaped gate must cover README+ADOPTION+guide+migrate" >&2
+  if ! grep -qF 'adopter-docs-shaped.sh' "$ROOT/scripts/owner-post-installable-handoff.sh" \
+    || ! grep -qF 'pl_adopter_docs_crates_io_shaped' "$ROOT/scripts/lib/adopter-docs-shaped.sh" \
+    || ! grep -qF 'docs/guide.md' "$ROOT/scripts/lib/adopter-docs-shaped.sh" \
+    || ! grep -qF 'docs/migrate-from-rdkafka.md' "$ROOT/scripts/lib/adopter-docs-shaped.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — git-shaped gate must cover README+ADOPTION+guide+migrate via adopter-docs-shaped.sh" >&2
     exit 1
   fi
+  bash "$ROOT/scripts/lib/adopter-docs-shaped.sh" --self-test
   if ! grep -qF 'PARTIAL — Installable OK but parks not on main' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
     echo "owner-post-installable-handoff: self-test FAIL — parks-not-on-main must PARTIAL (not final OK)" >&2
     exit 1
@@ -81,15 +83,9 @@ if [[ "${1:-}" == "--self-test" ]]; then
 fi
 
 
-# True when day1 adopter docs are crates.io-shaped across the full flip surface.
-pl_adopter_docs_crates_io_shaped() {
-  grep -qE '^partitionline = "[0-9]' README.md \
-    && grep -qE 'partitionline = "[0-9]' docs/ADOPTION.md \
-    && grep -qE 'partitionline = \{ version = "[0-9]' docs/guide.md \
-    && grep -qE '^partitionline = "[0-9]' docs/migrate-from-rdkafka.md \
-    && ! grep -qE '^partitionline = \{ git =' docs/guide.md \
-    && ! grep -qE '^partitionline = \{ git =' docs/migrate-from-rdkafka.md
-}
+# Shared four-file crates.io-shape probe (README + ADOPTION + guide + migrate).
+# shellcheck source=scripts/lib/adopter-docs-shaped.sh
+source "$ROOT/scripts/lib/adopter-docs-shaped.sh"
 
 DRY_RUN="${DRY_RUN:-0}"
 LAND_PARKS="${LAND_PARKS:-0}"

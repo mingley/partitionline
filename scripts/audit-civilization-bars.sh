@@ -321,9 +321,10 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'DRY_RUN: parks on main' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — parks not on main (DRY_RUN' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — Installable OK but adopter docs still git-shaped (DRY_RUN' scripts/owner-post-installable-handoff.sh \
-  && grep -qF 'pl_adopter_docs_crates_io_shaped' scripts/owner-post-installable-handoff.sh \
-  && grep -qF 'docs/guide.md' scripts/owner-post-installable-handoff.sh \
-  && grep -qF 'docs/migrate-from-rdkafka.md' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'adopter-docs-shaped.sh' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'pl_adopter_docs_crates_io_shaped' scripts/lib/adopter-docs-shaped.sh \
+  && grep -qF 'docs/guide.md' scripts/lib/adopter-docs-shaped.sh \
+  && grep -qF 'docs/migrate-from-rdkafka.md' scripts/lib/adopter-docs-shaped.sh \
   && grep -qF 'README + ADOPTION + guide + migrate' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'docs/guide.md + docs/migrate-from-rdkafka.md' scripts/owner-finish-installable.sh \
   && grep -qF 'README + ADOPTION + guide + migrate' scripts/owner-cut-release.sh \
@@ -372,8 +373,11 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -q 'self-test OK' /tmp/pl-handoff-self-test.log \
   && grep -q 'fail-closed PARTIAL' /tmp/pl-handoff-self-test.log \
   && { HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1; test $? -eq 2; } \
-  && grep -q 'PARTIAL — parks not on main (DRY_RUN; expected pre-token' /tmp/pl-handoff-dry.log \
-  && grep -q 'DRY_RUN complete with PARTIAL' /tmp/pl-handoff-dry.log; then
+  && { grep -q 'PARTIAL — parks not on main (DRY_RUN; expected pre-token' /tmp/pl-handoff-dry.log \
+       || grep -q 'PARTIAL — parks not on main (DRY_RUN; already Installable' /tmp/pl-handoff-dry.log; } \
+  && { grep -q 'DRY_RUN complete with PARTIAL' /tmp/pl-handoff-dry.log \
+       || grep -q 'PARTIAL — parks not on main (DRY_RUN; already Installable' /tmp/pl-handoff-dry.log; } \
+  then
   ok "post-Installable handoff (DRY_RUN + fail-closed PARTIAL/2; finish+cut-release chain + cut-path + day1 + first-publish)"
 else
   bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log /tmp/pl-handoff-self-test.log"
@@ -387,6 +391,28 @@ if bash scripts/owner-cut-release.sh --self-test >/tmp/pl-cut-publish-local-auto
   ok "cut-release PUBLISH_LOCAL auto-default + handoff chain + DRY_RUN reaches handoff + SKIP_HANDOFF for finish + Actions secret PARTIAL"
 else
   bad "cut-release PUBLISH_LOCAL auto-default / handoff chain / Actions secret PARTIAL missing/broken; see /tmp/pl-cut-publish-local-auto.log"
+fi
+
+# Cut DRY_RUN must not claim Installable when crate absent; capture dry_handoff_rc.
+if grep -qF 'PARTIAL — handoff soft-failed (not yet Installable' scripts/owner-cut-release.sh \
+  && grep -qF 'dry_handoff_rc' scripts/owner-cut-release.sh \
+  && grep -qF 'is Installable on crates.io but handoff soft-failed' scripts/owner-cut-release.sh; then
+  ok "cut-release handoff PARTIAL honesty (Installable-gated copy + dry_handoff_rc; no pre-token Installable lie)"
+else
+  bad "cut-release handoff PARTIAL honesty missing (must not claim Installable when crate absent)"
+fi
+
+# ALREADY_INSTALLABLE surfaces must probe four-file day1 shape (shared lib).
+if grep -qF 'adopter-docs-shaped.sh' scripts/check-installable-preflight.sh \
+  && grep -qF 'adopter docs still git-shaped' scripts/check-installable-preflight.sh \
+  && grep -qF 'adopter-docs-shaped.sh' scripts/owner-request-registry-token.sh \
+  && grep -qF 'adopter docs still git-shaped' scripts/owner-request-registry-token.sh \
+  && grep -qF 'Commit day1 crates.io lines if still dirty: README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md' scripts/owner-status.sh \
+  && bash scripts/lib/adopter-docs-shaped.sh --self-test >/tmp/pl-adopter-docs-shaped-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-adopter-docs-shaped-self-test.log; then
+  ok "ALREADY_INSTALLABLE day1 four-file honesty (preflight + token-ask + status; shared adopter-docs-shaped lib)"
+else
+  bad "ALREADY_INSTALLABLE day1 four-file honesty missing; see /tmp/pl-adopter-docs-shaped-self-test.log"
 fi
 
 

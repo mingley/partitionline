@@ -166,7 +166,7 @@ fi
 
 echo
 echo "== check-cut-path: day1 docs preserve across parks (stash+backup) =="
-# Finish stashes day1 README/ADOPTION before parks land; backup must restore if pop fails.
+# Finish stashes day1 README/ADOPTION/guide/migrate before parks land; backup must restore if pop fails.
 bash scripts/lib/preserve-day1-docs.sh --self-test
 grep -qF 'preserve-day1-docs.sh' scripts/owner-finish-installable.sh \
   || { echo "check-cut-path: FAIL — finish must source preserve-day1-docs.sh" >&2; exit 1; }
