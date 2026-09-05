@@ -14,6 +14,9 @@ use partitionline::protocol::api::{decode_metadata_response, decode_produce_resp
 use partitionline::protocol::buf::{
     get_compact_string, get_varint, get_varlong, put_compact_string, put_varint, put_varlong,
 };
+use partitionline::protocol::cgheartbeat::{
+    decode_consumer_group_heartbeat_request, decode_consumer_group_heartbeat_response,
+};
 use partitionline::protocol::fetch::decode_fetch_response;
 use partitionline::protocol::group::{
     decode_heartbeat_response, decode_join_group_response, decode_offset_commit_response,
@@ -22,9 +25,6 @@ use partitionline::protocol::group::{
 use partitionline::protocol::header::{decode_request_header, decode_response_header};
 use partitionline::protocol::idem::decode_init_producer_id_response;
 use partitionline::protocol::records::decode_record_batches;
-use partitionline::protocol::cgheartbeat::{
-    decode_consumer_group_heartbeat_request, decode_consumer_group_heartbeat_response,
-};
 use partitionline::protocol::share::decode_share_fetch_response;
 use partitionline::protocol::txn::{
     decode_add_partitions_to_txn_response, decode_end_txn_response,
@@ -88,7 +88,6 @@ fn assert_no_panic_group_and_share(bytes: &[u8]) {
         drop(decode_share_fetch_response(&mut cur, version));
     }
 }
-
 
 fn assert_no_panic_cgheartbeat(bytes: &[u8]) {
     // Mirror fuzz/fuzz_targets/decode_cgheartbeat_responses.rs version sets.

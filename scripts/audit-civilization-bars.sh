@@ -176,6 +176,18 @@ if [[ -f scripts/ci-integrity-smoke.sh ]] \
 else
   bad "integrity-smoke soft-latency honesty missing (must PARTIAL/exit 2 before final ok; never greenwash soft)"
 fi
+
+# CI integrity job: Lab A HW only; nested latency skipped (latency-gate job owns GHA ceiling).
+# Auth + integrity checkout pins match parks (v7).
+if grep -A20 '^  integrity-smoke:' .github/workflows/ci.yml | grep -qF 'SKIP_LATENCY_GATE: "1"' \
+  && grep -A20 '^  integrity-smoke:' .github/workflows/ci.yml | grep -qF 'actions/checkout@v7' \
+  && grep -A12 '^  auth-smoke:' .github/workflows/ci.yml | grep -qF 'actions/checkout@v7' \
+  && ! grep -A12 '^  auth-smoke:' .github/workflows/ci.yml | grep -qF 'actions/checkout@v5' \
+  && ! grep -A20 '^  integrity-smoke:' .github/workflows/ci.yml | grep -qF 'actions/checkout@v5'; then
+  ok "CI integrity/auth: checkout v7 + SKIP_LATENCY_GATE on integrity (latency-gate owns GHA latency)"
+else
+  bad "CI integrity/auth must use checkout v7; integrity-smoke must SKIP_LATENCY_GATE (avoid REQUIRE_INTEGRITY latency flake)"
+fi
 fuzz_n=0
 if [[ -d fuzz/fuzz_targets ]]; then
   fuzz_n="$(find fuzz/fuzz_targets -name '*.rs' | wc -l | tr -d ' ')"

@@ -178,7 +178,7 @@ jobs:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - name: Setup Java (Kafka broker)
         uses: actions/setup-java@v4
@@ -191,17 +191,21 @@ jobs:
           REQUIRE_AUTH: "1"
         run: bash scripts/ci-auth-smoke.sh
 
-  # Lab A integrity (HW==acked, consumed==seeded) + unsigned latency soft gate.
-  # Not a Suite HOLD lift.
+  # Lab A integrity (HW==acked, consumed==seeded). Not a Suite HOLD lift.
+  # Unsigned latency is the dedicated latency-gate job (GHA-noise ceiling).
+  # Nested latency inside integrity-smoke uses local/native 750µs relative
+  # limits and flakes under shared runners when REQUIRE_INTEGRITY=1 — skip it
+  # here so this job stays an integrity (HW) bar, not a duplicate latency bar.
   integrity-smoke:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - name: Integrity smoke
         env:
           CI: "true"
           REQUIRE_INTEGRITY: "1"
+          SKIP_LATENCY_GATE: "1"
           COUNT: "2000"
         run: bash scripts/ci-integrity-smoke.sh

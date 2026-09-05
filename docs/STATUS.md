@@ -105,6 +105,9 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Handoff DRY_RUN parks-on-main path (2026-09-05 01:49 UTC, tip pending):** bars accept handoff DRY_RUN exit 0 when parks already on main. Suite HOLD remains.
 
+
+**Main CI green: fmt + integrity/latency split (2026-09-05, tip pending):** `tests/fuzz_decode_smoke.rs` rustfmt (cgheartbeat import order). Actions `integrity-smoke` sets `SKIP_LATENCY_GATE=1` under `REQUIRE_INTEGRITY=1` so Lab A HW is not conflated with nested local 750µs latency under GHA load — unsigned latency stays the dedicated `latency-gate` job (`LATENCY_LIMIT_US=5000`). Auth/integrity checkout pinned to `@v7` (parks leftover `@v5`). Does **not** lift Suite HOLD. Broker-smoke 3.9.1 Docker pull reset on `95e3865` was infra flake (later main runs green for that job).
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
