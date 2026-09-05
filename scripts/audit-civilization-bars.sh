@@ -224,6 +224,20 @@ else
   bad "KL-06 metrics/span redaction honesty missing"
 fi
 
+# KL-07 slice: paused/blocked-consumer diagnosis via paused()+current_lag.
+if [[ -f tests/paused_partition_diagnosis.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (paused / blocked consumer)' docs/guide.md \
+  && grep -qF 'paused_partition_diagnoses_blocked_consumer_without_payload_logging' tests/paused_partition_diagnosis.rs \
+  && grep -qF 'Consumer::paused()' docs/guide.md \
+  && grep -qF 'current_lag' docs/guide.md \
+  && grep -qF 'tests/paused_partition_diagnosis.rs' docs/guide.md \
+  && grep -qF 'paused/blocked-consumer diagnosis' docs/ROADMAP.md \
+  && cargo test --test paused_partition_diagnosis --quiet >/tmp/pl-kl07-pause-diag.log 2>&1; then
+  ok "KL-07 paused-partition diagnosis (paused()+current_lag cookbook; mock proof)"
+else
+  bad "KL-07 paused-partition diagnosis missing/failed; see /tmp/pl-kl07-pause-diag.log"
+fi
+
 # KL-06 slice: OIDC bounded transient retry + outage fail-closed.
 if grep -qF '## Auth recovery (current behavior)' docs/security.md \
   && grep -qF 'bounded' docs/security.md \

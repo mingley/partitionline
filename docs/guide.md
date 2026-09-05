@@ -138,6 +138,22 @@ in `docs/CIVILIZATION.md` WP-4.2.
 
 ## Recipes
 
+### Diagnosis cookbook (paused / blocked consumer)
+
+When produce continues but fetch looks idle, check telemetry before logging
+payloads:
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Fetch returns nothing / partial set | `Consumer::paused()` non-empty | Operator or app paused partitions |
+| Lag stays high on one partition | `current_lag` > 0 **and** that TP is in `paused()` | Blocked by pause — resume before blaming the broker |
+| Lag high, `paused()` empty | `current_lag` rising; assignment present | Slow poll, wrong assignment, or broker-side issue |
+
+`pause` keeps the assignment; fetch skips paused partitions and holds already
+buffered records until `resume`. Mock proof: `tests/paused_partition_diagnosis.rs`.
+This is a KL-07 Partial — not two independent human diagnosis runs, and not a
+Suite HOLD lift.
+
 ### Backpressure
 
 Use `try_send`; on `QueueFull` / memory pressure, `flush` or wait, then
