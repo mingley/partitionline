@@ -136,6 +136,19 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (stale leader, telemetry not payloads)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Produce fails / flaps after a leadership change | `metrics().produce_errors` rising; `ack_latency` samples stall or spike | Stale leader / `NOT_LEADER_OR_FOLLOWER` — metadata refresh / fence, not bad payloads |
+| Produce slow but errors stay flat | `produce_errors == 0`; `bytes_buffered` high | Local linger/backlog — see queue-age recipes when present |
+| Consumer behind while produce looks healthy | `Consumer::current_lag` rising; `fetch_errors` flat or climbing | Blocked / slow consumer path — lag cookbook (sibling Partial) |
+
+Prefer `produce_errors` / `ack_latency` / `current_lag` over logging record bodies.
+Mock proof: `tests/stale_leader_diagnosis.rs`. KL-07 Partial — not two
+independent human diagnosis runs, and not a Suite HOLD lift. Throttle /
+reconnect / queue-age recipes remain separate slices.
+
 ## Recipes
 
 ### Backpressure

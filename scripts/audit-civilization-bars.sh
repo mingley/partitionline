@@ -184,6 +184,18 @@ else
   bad "KL-02 buffer ownership + mock overload soak missing"
 fi
 
+# KL-07 slice: stale-leader diagnosis via tip produce_errors (not payload dumps).
+if [[ -f tests/stale_leader_diagnosis.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (stale leader, telemetry not payloads)' docs/guide.md \
+  && grep -qF 'not_leader_exhaustion_surfaces_produce_errors_for_diagnosis' tests/stale_leader_diagnosis.rs \
+  && grep -qF 'healthy_produce_records_ack_latency_without_errors' tests/stale_leader_diagnosis.rs \
+  && grep -qF 'produce_errors' src/metrics.rs \
+  && grep -qF 'stale_leader_diagnosis.rs' docs/ROADMAP.md; then
+  ok "KL-07 stale-leader diagnosis cookbook (produce_errors on NOT_LEADER; guide+mock)"
+else
+  bad "KL-07 stale-leader diagnosis cookbook missing"
+fi
+
 # KL-06 slice: credential Debug redaction (passwords / client_secret / key PEM).
 if [[ -f tests/credential_redact.rs && -f docs/security.md ]] \
   && grep -qF 'Credential redaction' docs/security.md \
