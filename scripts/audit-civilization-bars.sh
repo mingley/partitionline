@@ -398,13 +398,19 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && bash scripts/owner-post-installable-handoff.sh --self-test >/tmp/pl-handoff-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-handoff-self-test.log \
   && grep -q 'fail-closed PARTIAL' /tmp/pl-handoff-self-test.log \
-  && { HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1; test $? -eq 2; } \
-  && { grep -q 'PARTIAL — parks not on main (DRY_RUN; expected pre-token' /tmp/pl-handoff-dry.log \
-       || grep -q 'PARTIAL — parks not on main (DRY_RUN; already Installable' /tmp/pl-handoff-dry.log; } \
-  && { grep -q 'DRY_RUN complete with PARTIAL' /tmp/pl-handoff-dry.log \
-       || grep -q 'PARTIAL — parks not on main (DRY_RUN; already Installable' /tmp/pl-handoff-dry.log; } \
-  then
-  ok "post-Installable handoff (DRY_RUN + fail-closed PARTIAL/2; finish+cut-release chain + cut-path + day1 + first-publish)"
+  && HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1; handoff_dry_rc=$? \
+  && { \
+       # Pre/post-Installable parks pending → PARTIAL/2 (fail-closed). \
+       { [[ "$handoff_dry_rc" -eq 2 ]] \
+         && { grep -q 'PARTIAL — parks not on main (DRY_RUN; expected pre-token' /tmp/pl-handoff-dry.log \
+              || grep -q 'PARTIAL — parks not on main (DRY_RUN; already Installable' /tmp/pl-handoff-dry.log; }; } \
+       || \
+       # Parks already on main after land → DRY_RUN complete exit 0. \
+       { [[ "$handoff_dry_rc" -eq 0 ]] \
+         && grep -q 'DRY_RUN complete' /tmp/pl-handoff-dry.log \
+         && grep -qE 'parks on main: OK|check-parks-on-main: OK' /tmp/pl-handoff-dry.log; } \
+     }; then
+  ok "post-Installable handoff (DRY_RUN fail-closed PARTIAL/2 while parks pending, or complete when parks on main; finish+cut-release chain + cut-path + day1 + first-publish)"
 else
   bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log /tmp/pl-handoff-self-test.log"
 fi
