@@ -579,3 +579,15 @@ COUNT=10000 WARMUP=1000 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=0 \
 
 `rdkafka_performance` C 2.15.0 was **not** present on this VM and was
 **not** run. Do not copy Lab A C numbers into this table.
+
+### CI latency policies (unsigned; not Lab A)
+
+Shared-runner smoke (`latency-gate`, `LATENCY_LIMIT_US=5000`) is not the
+same bar as local-native relative 750 µs (500 µs baseline + 50% slack) or
+Lab A / Kernel Integrity signoff. The nested integrity-job miss on
+[CI run 33938039612](https://github.com/mingley/partitionline/actions/runs/33938039612)
+(produce-ack p99 **1,344 µs** vs **750 µs**) is **historical**:
+`integrity-smoke` now sets `SKIP_LATENCY_GATE=1`. Raising a CI ceiling
+does not fix that miss. Suite HOLD stays. Machine-readable budgets:
+[latency-ci-policy.json](latency-ci-policy.json). Reproduce on a
+controlled host before treating any sample as qualification.

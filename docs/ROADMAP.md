@@ -101,6 +101,11 @@ New harnesses must be added and wired into CI before their package can close.
    item. Confirm the incoming formatting/CI-policy repairs, reproduce relevant
    latency configurations on controlled hardware, and distinguish harness noise
    from a client regression. Preserve integrity checks and historical failures.
+   **Partial (2026-09-05):** shared-runner vs local-native vs controlled-host
+   budgets recorded in [latency-ci-policy.json](latency-ci-policy.json);
+   nested 1,344/750 µs miss is historical (`SKIP_LATENCY_GATE` on integrity).
+   GHA 5000 µs and local 750 µs relative gate unchanged. Controlled-host
+   reproduce remains open. Not Done.
 2. Reconcile the requested versus actual broker identity and require explicit
    capability/result records. Address developer-host prerequisites: the broker
    script invokes GNU `timeout`; declare or provide a tested supported path
@@ -185,6 +190,10 @@ KL-02/03 before production-performance claims.
    mixed-load workloads. Compare pinned rust-rdkafka/librdkafka and Java, plus
    another Rust client when its semantics match. Preserve the existing Lab A
    contracts and compare separate producer, consumer and end-to-end results.
+   **Partial (2026-09-05):** CI vs local vs controlled-host budgets recorded
+   in [latency-ci-policy.json](latency-ci-policy.json). Shared-runner smoke
+   is not Lab A; unsigned samples must not lift Suite HOLD. Controlled-host
+   qualification remains open. Not Done.
 2. Match acks, idempotence, isolation, replication/ISR, compression, batch/linger,
    partition count/skew, keys, connections, in-flight bounds, TLS/SASL and payload
    distribution. Distinguish enqueue acceptance from broker acknowledgment and

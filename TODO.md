@@ -28,6 +28,7 @@ performance qualification and exact-HEAD evidence remain open.
 - [ ] **KL-01 recovery slice:** Reconcile status/handoff notes and incoming recovery fixes with committed code, assign unfinished work, confirm current required lanes, and make actual broker identity and platform prerequisites explicit.
   - [x] Actual broker identity stamp (`requested=` vs `actual=`) + portable `pl_timeout`/`gtimeout` path (2026-09-05). Remaining: protocol oracles, controlled latency reproduce, fuzz campaign metadata.
 - [ ] **KL-01/KL-04 latency slice:** Reproduce the failed gate on controlled hardware, distinguish noise from regression, and reconcile the separate CI smoke/performance budgets without blindly weakening thresholds.
+  - [x] Record shared-runner vs local-native vs controlled-host budgets (`docs/latency-ci-policy.json`; `ci-latency-gate.sh --self-test` + bars). Nested 1,344/750 µs miss is historical (`SKIP_LATENCY_GATE` on integrity). GHA 5000 µs and local 750 µs relative gate unchanged. Remaining: controlled-host reproduce. Parent KL-01/KL-04 packages stay open.
 - [ ] **KL-08 release slice:** Select one serialized publisher gated on exact-SHA CI and package-consumer evidence; reconcile metadata and handoff checks and rehearse partial-release recovery without publishing.
   - [x] Serialized path: release-plz PR-only; owner-cut-release/release.yml exact-SHA CI + crate-consumer; soft-skip if version already on crates.io (2026-09-05). Remaining: support policy, adopter 24h/7d, traffic rollout.
 

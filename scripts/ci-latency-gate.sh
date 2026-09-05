@@ -2,6 +2,10 @@
 # Produce-ack p99 regression gate against a live broker (WP-5.3).
 # Relative to docs/latency-baseline.json — not vs librdkafka C.
 #
+# Usage:
+#   bash scripts/ci-latency-gate.sh              # live broker + bench_latency
+#   bash scripts/ci-latency-gate.sh --self-test  # policy/CI honesty; no broker
+#
 # Env:
 #   KAFKA_BOOTSTRAP     default 127.0.0.1:9092
 #   KAFKA_TOPIC         default pl-ci-latency
@@ -12,6 +16,62 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+
+if [[ "${1:-}" == "--self-test" ]]; then
+  fail() { echo "ci-latency-gate --self-test: FAIL — $*" >&2; exit 1; }
+
+  # Integrity CI job must still skip the nested local 750µs gate under GHA.
+  grep -A20 '^  integrity-smoke:' .github/workflows/ci.yml | grep -qF 'SKIP_LATENCY_GATE: "1"' \
+    || fail "integrity-smoke must keep SKIP_LATENCY_GATE=1 (nested 1344/750 miss is historical, not fixed by nesting again)"
+
+  # Dedicated latency-gate job: GHA absolute ceiling stays 5000µs (do not raise).
+  grep -A40 '^  latency-gate:' .github/workflows/ci.yml | grep -qF 'LATENCY_LIMIT_US: "5000"' \
+    || fail "latency-gate must keep LATENCY_LIMIT_US=5000 (raising the GHA ceiling does not fix historical 1344/750)"
+
+  grep -qF 'Suite HOLD' docs/STATUS.md \
+    || fail "docs/STATUS.md must keep Suite HOLD language (unsigned samples do not lift it)"
+
+  [[ -f docs/latency-ci-policy.json ]] || fail "missing docs/latency-ci-policy.json"
+
+  python3 - <<'PY' || fail "policy/baseline/slack/GHA ceiling honesty"
+import json, re, pathlib, sys
+
+text = pathlib.Path(".github/workflows/ci.yml").read_text()
+m = re.search(r"(?ms)^  latency-gate:.*?(?=^  [a-z]|\Z)", text)
+job = m.group(0) if m else ""
+vals = [int(x) for x in re.findall(r'LATENCY_LIMIT_US:\s*"(\d+)"', job)]
+if vals != [5000]:
+    sys.stderr.write("LATENCY_LIMIT_US=%s (must be [5000]; a raise would fail here)\n" % (vals,))
+    sys.exit(1)
+
+script = pathlib.Path("scripts/ci-latency-gate.sh").read_text()
+ms = re.findall(r'^SLACK_PCT="\$\{LATENCY_SLACK_PCT:-(\d+)\}"', script, re.M)
+if ms != ["50"]:
+    sys.stderr.write("default slack %s (must be ['50'])\n" % (ms,))
+    sys.exit(1)
+
+b = json.load(open("docs/latency-baseline.json"))
+if int(b["produce_ack_p99_us"]) != 500:
+    sys.stderr.write("produce_ack_p99_us must stay 500\n")
+    sys.exit(1)
+
+p = json.load(open("docs/latency-ci-policy.json"))
+h = p["historical_nested_gate"]
+assert h["ci_run"] == "33938039612" and int(h["measured_p99_us"]) == 1344
+assert int(h["ceiling_us"]) == 750 and h["status"] == "historical"
+sr = p["shared_runner"]
+assert int(sr["baseline_p99_us"]) == 500 and int(sr["slack_pct"]) == 100
+assert int(sr["absolute_limit_us"]) == 5000
+ln = p["local_native"]
+assert int(ln["baseline_p99_us"]) == 500 and int(ln["slack_pct"]) == 50
+assert int(ln["relative_limit_us"]) == 750
+ch = p["controlled_host"]
+assert ch["ci_gate"] is False and ch["suite_hold"] is True
+PY
+
+  echo "ci-latency-gate: --self-test OK — SKIP_LATENCY_GATE=1; GHA 5000µs; local 500+50%=750; 1344/750 historical; Suite HOLD"
+  exit 0
+fi
 
 BASELINE="${LATENCY_BASELINE:-docs/latency-baseline.json}"
 BOOTSTRAP="${KAFKA_BOOTSTRAP:-127.0.0.1:9092}"

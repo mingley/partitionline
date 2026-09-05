@@ -1,0 +1,31 @@
+{
+  "description": "CI vs local vs controlled-host produce-ack latency budgets. Unsigned. Not Lab A. Not a Suite HOLD lift. Do not raise a ceiling to greenwash a miss.",
+  "historical_nested_gate": {
+    "ci_run": "33938039612",
+    "measured_p99_us": 1344,
+    "ceiling_us": 750,
+    "status": "historical",
+    "note": "integrity job nested latency under GHA load; now skipped via SKIP_LATENCY_GATE when REQUIRE_INTEGRITY=1"
+  },
+  "shared_runner": {
+    "job": "latency-gate",
+    "script": "scripts/ci-latency-gate.sh",
+    "baseline_p99_us": 500,
+    "slack_pct": 100,
+    "absolute_limit_us": 5000,
+    "rationale": "GHA+Docker noise ceiling; catastrophic regression only; unsigned; not Lab A"
+  },
+  "local_native": {
+    "script": "scripts/ci-latency-gate.sh",
+    "baseline_p99_us": 500,
+    "slack_pct": 50,
+    "relative_limit_us": 750,
+    "rationale": "default relative gate for native/local; still unsigned"
+  },
+  "controlled_host": {
+    "qualification": "Lab A / Kernel Integrity signoff",
+    "ci_gate": false,
+    "suite_hold": true,
+    "rationale": "unsigned shared-runner samples must not lift Suite HOLD"
+  }
+}

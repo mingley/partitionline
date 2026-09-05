@@ -230,6 +230,14 @@ else
   bad "CI integrity/auth must use checkout v7; integrity-smoke must SKIP_LATENCY_GATE (avoid REQUIRE_INTEGRITY latency flake)"
 fi
 
+# KL-01/KL-04: shared-runner vs local vs controlled-host latency budgets (do not raise GHA 5000).
+if [[ -f docs/latency-ci-policy.json ]] \
+  && bash scripts/ci-latency-gate.sh --self-test >/tmp/pl-latency-gate-self-test.log 2>&1; then
+  ok "KL-01/KL-04 latency CI policy (self-test + docs/latency-ci-policy.json; 1344/750 historical; Suite HOLD)"
+else
+  bad "KL-01/KL-04 latency policy self-test failed or docs/latency-ci-policy.json missing; see /tmp/pl-latency-gate-self-test.log"
+fi
+
 # Post-Installable: MISSING token copy must not pretend Installable is still blocked.
 if grep -qF 'crates.io already has this crate/version (Installable met)' scripts/check-registry-token.sh \
   && grep -qF 'token only needed for future cuts' scripts/check-registry-token.sh; then
