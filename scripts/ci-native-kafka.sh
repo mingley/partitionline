@@ -78,6 +78,10 @@ case "$cmd" in
     write_props
     if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
       echo "ci-native-kafka: already running pid=$(cat "$PIDFILE") bootstrap=$BOOTSTRAP"
+      # shellcheck source=scripts/lib/broker-identity.sh
+      source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/broker-identity.sh"
+      KAFKA_VERSION="$KVER" KAFKA_HOME="$KDIR" KAFKA_PIDFILE="$PIDFILE" pl_broker_identity_set_native
+      pl_broker_identity_print "ci-native-kafka"
       upgrade_share_feature || true
       exit 0
     fi
@@ -90,6 +94,10 @@ case "$cmd" in
     for _ in $(seq 1 60); do
       if "$KDIR/bin/kafka-topics.sh" --bootstrap-server "$BOOTSTRAP" --list >/dev/null 2>&1; then
         upgrade_share_feature || true
+        # shellcheck source=scripts/lib/broker-identity.sh
+        source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/broker-identity.sh"
+        KAFKA_VERSION="$KVER" KAFKA_HOME="$KDIR" KAFKA_PIDFILE="$PIDFILE" pl_broker_identity_set_native
+        pl_broker_identity_print "ci-native-kafka"
         echo "ci-native-kafka: ready pid=$(cat "$PIDFILE")"
         exit 0
       fi

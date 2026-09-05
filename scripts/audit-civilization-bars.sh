@@ -109,6 +109,19 @@ if [[ -f scripts/ci-broker-smoke.sh && -f scripts/ci-auth-smoke.sh ]]; then
 else
   bad "missing broker/auth smoke scripts"
 fi
+
+# KL-01 recovery slice: actual broker identity + portable timeout (no silent matrix drift).
+if [[ -f scripts/lib/pl-timeout.sh && -f scripts/lib/broker-identity.sh ]] \
+  && grep -q 'pl_timeout' scripts/ci-broker-smoke.sh \
+  && grep -q 'pl_timeout' scripts/ci-auth-smoke.sh \
+  && grep -q 'actual=\${PL_BROKER_ACTUAL}' scripts/ci-broker-smoke.sh \
+  && grep -q 'pl_broker_identity_set_docker' scripts/ci-broker-smoke.sh \
+  && grep -q 'pl_broker_identity_set_native' scripts/ci-native-kafka.sh \
+  && bash scripts/lib/broker-identity.sh --self-test >/tmp/pl-broker-identity-self-test.log 2>&1; then
+  ok "KL-01 broker identity + portable timeout (actual= stamp; pl_timeout; native/docker identity self-test)"
+else
+  bad "KL-01 broker identity/timeout missing or self-test failed; see /tmp/pl-broker-identity-self-test.log"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

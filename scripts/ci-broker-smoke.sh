@@ -6,12 +6,19 @@
 #   KAFKA_IMAGE      default apache/kafka:3.9.1 (CI also runs apache/kafka:4.1.0)
 #   KAFKA_BOOTSTRAP  default 127.0.0.1:9092
 #   SKIP_DOCKER=1    use an already-running broker at KAFKA_BOOTSTRAP (no Docker)
+#   Final ok lines stamp requested= vs actual= (docker:/native:/external:) so
+#   matrix cells cannot silently claim a Docker image after native fallback.
 #   REQUIRE_SHARE=1  fail if share smoke cannot fetch (default on Kafka 4.x images)
 #   REQUIRE_KIP848=1 fail if KIP-848 consumer-protocol smoke cannot fetch (default on 4.x)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+
+# shellcheck source=scripts/lib/pl-timeout.sh
+source "$ROOT/scripts/lib/pl-timeout.sh"
+# shellcheck source=scripts/lib/broker-identity.sh
+source "$ROOT/scripts/lib/broker-identity.sh"
 
 KAFKA_IMAGE="${KAFKA_IMAGE:-apache/kafka:3.9.1}"
 BROKER_NAME="${BROKER_NAME:-pl-ci-kafka}"
@@ -108,7 +115,7 @@ run_until_progress() {
   local log
   log="$(mktemp)"
   set +e
-  timeout 45s "$@" >"$log" 2>&1
+  pl_timeout 45s "$@" >"$log" 2>&1
   local rc=$?
   set -e
   if grep -E -- "$pattern" "$log" >/dev/null; then
@@ -215,7 +222,7 @@ run_examples() {
   kip848_log="$(mktemp)"
   for attempt in 1 2 3 4 5 6; do
     set +e
-    timeout 45s cargo run --release --example kip848 >"$kip848_log" 2>&1
+    pl_timeout 45s cargo run --release --example kip848 >"$kip848_log" 2>&1
     kip848_rc=$?
     set -e
     if grep -E -- '@[0-9]+' "$kip848_log" >/dev/null; then
@@ -263,7 +270,7 @@ run_examples() {
   export KAFKA_GROUP="pl-ci-share"
   share_log="$(mktemp)"
   set +e
-  timeout 45s cargo run --release --example share >"$share_log" 2>&1 &
+  pl_timeout 45s cargo run --release --example share >"$share_log" 2>&1 &
   share_pid=$!
   set -e
   sleep 4
@@ -327,7 +334,9 @@ if [[ "${SKIP_DOCKER:-}" == "1" ]]; then
     fi
   fi
   run_examples
-  echo "ci-broker-smoke: ok (existing broker $BOOTSTRAP)"
+  pl_broker_identity_resolve_existing "$BOOTSTRAP"
+  pl_broker_identity_print "ci-broker-smoke"
+  echo "ci-broker-smoke: ok (requested=${KAFKA_IMAGE} actual=${PL_BROKER_ACTUAL})"
   exit 0
 fi
 
@@ -411,4 +420,6 @@ docker exec "$BROKER_NAME" /opt/kafka/bin/kafka-topics.sh \
   --topic "$OUT_TOPIC" --partitions 1 --replication-factor 1
 
 run_examples
-echo "ci-broker-smoke: ok ($KAFKA_IMAGE)"
+pl_broker_identity_set_docker "$KAFKA_IMAGE"
+pl_broker_identity_print "ci-broker-smoke"
+echo "ci-broker-smoke: ok (requested=${KAFKA_IMAGE} actual=${PL_BROKER_ACTUAL})"

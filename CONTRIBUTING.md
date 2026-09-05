@@ -81,6 +81,11 @@ SKIP_DOCKER=1 bash scripts/ci-broker-smoke.sh
 bash scripts/ci-native-kafka.sh stop
 ```
 
+Broker/auth smokes stamp `requested=` vs `actual=` (docker / native / external) so
+a matrix cell cannot silently claim a Docker image after native fallback. Timed
+steps use `pl_timeout` (`scripts/lib/pl-timeout.sh`): GNU `timeout` or Homebrew
+`gtimeout` (`brew install coreutils`). There is no silent no-op path on macOS.
+
 Please do not add librdkafka, or C compression libraries, as default dependencies. This crate forbids `unsafe`.
 
 MSRV is 1.85. Mock TLS fixtures use the `openssl` CLI (not `rcgen`) so the

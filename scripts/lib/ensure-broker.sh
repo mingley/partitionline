@@ -47,6 +47,10 @@ pl_ensure_broker() {
   fi
 
   if pl_broker_tcp_ready "$bootstrap"; then
+    # shellcheck source=scripts/lib/broker-identity.sh
+    source "${root}/scripts/lib/broker-identity.sh"
+    pl_broker_identity_resolve_existing "$bootstrap"
+    pl_broker_identity_print "${prefix}"
     echo "${prefix}: broker already up at ${bootstrap}"
     return 0
   fi
@@ -79,6 +83,10 @@ pl_ensure_broker() {
     echo "${prefix}: native Kafka started but ${bootstrap} still closed" >&2
     return 1
   fi
+  # shellcheck source=scripts/lib/broker-identity.sh
+  source "${root}/scripts/lib/broker-identity.sh"
+  pl_broker_identity_set_native
+  pl_broker_identity_print "${prefix}"
   echo "${prefix}: native Kafka ready at ${bootstrap}"
   return 0
 }

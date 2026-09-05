@@ -150,6 +150,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Schema companion scaffold + finish registry wire (2026-09-05, tip `22999e1`):** `partitionline-schema` wire framing (magic+schema-id) landed workspace-excluded `publish=false`; `check-schema-companion-scaffold` gated in bars (requires lib unit tests). `owner-finish-installable` runs `MODE=registry` adopter consumer when Installable. Tip=main after FF. Does **not** publish the companion or lift Suite HOLD.
 
+**KL-01 broker identity + portable timeout (2026-09-05, tip `PENDING`):** broker/auth smokes stamp `requested=` vs `actual=` (docker/native/external); `pl_timeout` accepts GNU `timeout` or Homebrew `gtimeout` and fails closed otherwise; bars gate + identity `--self-test`. Does **not** close full KL-01 (oracles/fuzz campaigns remain). Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

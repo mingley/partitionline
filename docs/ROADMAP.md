@@ -105,6 +105,9 @@ New harnesses must be added and wired into CI before their package can close.
    capability/result records. Address developer-host prerequisites: the broker
    script invokes GNU `timeout`; declare or provide a tested supported path
    rather than assuming it exists on macOS.
+   **Partial (2026-09-05):** `scripts/lib/broker-identity.sh` stamps `actual=` on
+   broker/auth smoke; `scripts/lib/pl-timeout.sh` prefers `timeout` then
+   `gtimeout` (Homebrew coreutils) and fails closed with an install hint.
 3. Compare Produce, Fetch, Metadata and ListOffsets first against pinned
    Kafka Java clients/brokers 3.9.1 and 4.1.0; expand by API coverage and user
    demand. Compare decoded semantics and required fields, not arbitrary byte

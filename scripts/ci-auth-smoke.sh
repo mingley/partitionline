@@ -16,6 +16,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# shellcheck source=scripts/lib/pl-timeout.sh
+source "$ROOT/scripts/lib/pl-timeout.sh"
+
 KVER="${KAFKA_VERSION:-4.1.0}"
 KDIR="${KAFKA_HOME:-/tmp/kafka_${KVER}}"
 WORKDIR="${AUTH_SMOKE_DIR:-/tmp/partitionline-auth-smoke}"
@@ -260,7 +263,7 @@ unset OIDC_TOKEN_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET
 
 echo "== SSL-only produce (no SASL) against SASL_SSL should fail closed =="
 set +e
-timeout 20s env -u KAFKA_USERNAME -u KAFKA_PASSWORD -u SASL_MECHANISM \
+pl_timeout 20s env -u KAFKA_USERNAME -u KAFKA_PASSWORD -u SASL_MECHANISM \
   -u TLS_CLIENT_CERT_PEM -u TLS_CLIENT_KEY_PEM \
   KAFKA_BOOTSTRAP="$SSL_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
   TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost" \
@@ -282,7 +285,7 @@ TLS_CLIENT_CERT_PEM="$CLIENT_CERT_PEM" TLS_CLIENT_KEY_PEM="$CLIENT_KEY_PEM" \
 
 echo "== SSL without client cert against mTLS listener should fail closed =="
 set +e
-timeout 20s env -u TLS_CLIENT_CERT_PEM -u TLS_CLIENT_KEY_PEM \
+pl_timeout 20s env -u TLS_CLIENT_CERT_PEM -u TLS_CLIENT_KEY_PEM \
   KAFKA_BOOTSTRAP="$MTLS_BOOTSTRAP" KAFKA_TOPIC="$TOPIC" \
   TLS_CA_PEM="$CA_PEM" TLS_SERVER_NAME="localhost" \
   cargo run --release --example tls >/tmp/pl-auth-mtls-deny.log 2>&1
@@ -295,4 +298,8 @@ if grep -E -- '@[0-9]+' /tmp/pl-auth-mtls-deny.log >/dev/null; then
 fi
 echo "ci-auth-smoke: mTLS correctly denied bare TLS (rc=${mtls_deny_rc})"
 
-echo "ci-auth-smoke: ok (SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC + mTLS @ ${SSL_BOOTSTRAP} / ${MTLS_BOOTSTRAP})"
+# shellcheck source=scripts/lib/broker-identity.sh
+source "$ROOT/scripts/lib/broker-identity.sh"
+pl_broker_identity_set_native
+pl_broker_identity_print "ci-auth-smoke"
+echo "ci-auth-smoke: ok actual=${PL_BROKER_ACTUAL}  (SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC + mTLS @ ${SSL_BOOTSTRAP} / ${MTLS_BOOTSTRAP})"
