@@ -1257,6 +1257,10 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    /// Group rebalance callbacks observed (see [`crate::ConsumerMetrics::rebalances`]).
+    m_rebalances: AtomicU64,
+    m_partitions_revoked: AtomicU64,
+    m_partitions_assigned: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1346,6 +1350,9 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_rebalances: AtomicU64::new(0),
+            m_partitions_revoked: AtomicU64::new(0),
+            m_partitions_assigned: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -2152,7 +2159,25 @@ impl Consumer {
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
+            rebalances: self.m_rebalances.load(Ordering::Relaxed),
+            partitions_revoked: self.m_partitions_revoked.load(Ordering::Relaxed),
+            partitions_assigned: self.m_partitions_assigned.load(Ordering::Relaxed),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
+        }
+    }
+
+    /// Record a group assignment change for [`Self::metrics`] (KL-07 diagnosis).
+    pub(crate) fn note_rebalance(&self, revoked: usize, assigned: usize) {
+        let _ = self.m_rebalances.fetch_add(1, Ordering::Relaxed);
+        if revoked > 0 {
+            let _ = self
+                .m_partitions_revoked
+                .fetch_add(revoked as u64, Ordering::Relaxed);
+        }
+        if assigned > 0 {
+            let _ = self
+                .m_partitions_assigned
+                .fetch_add(assigned as u64, Ordering::Relaxed);
         }
     }
 

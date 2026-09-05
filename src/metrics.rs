@@ -338,6 +338,13 @@ pub struct ConsumerMetrics {
     pub fetch_errors: u64,
     /// End-to-end duration of each successful fetch round.
     pub fetch_latency: LatencyStats,
+    /// Group assignment changes observed (revoke and/or assign callbacks).
+    /// KL-07 rebalance diagnosis; includes first join assign and later reshuffles.
+    pub rebalances: u64,
+    /// Partitions passed as revoked across rebalance callbacks.
+    pub partitions_revoked: u64,
+    /// Partitions passed as assigned across rebalance callbacks.
+    pub partitions_assigned: u64,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
     pub topics: Vec<TopicFetchMetrics>,
 }
@@ -565,6 +572,9 @@ mod tests {
         assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
         assert_eq!(ConsumerMetrics::default().fetch_latency.count, 0);
+        assert_eq!(ConsumerMetrics::default().rebalances, 0);
+        assert_eq!(ConsumerMetrics::default().partitions_revoked, 0);
+        assert_eq!(ConsumerMetrics::default().partitions_assigned, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
         assert_eq!(ShareMetrics::default().bytes_fetched, 0);
         assert_eq!(ShareMetrics::default().fetch_errors, 0);

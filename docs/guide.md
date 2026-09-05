@@ -193,6 +193,23 @@ Mock coverage: `tests/consumer_close_commit.rs`.
 Prefer cooperative-sticky when partitions must move with less stop-the-world
 pause (`examples/cooperative.rs`). Handle `on_rebalance` for revoke/assign.
 
+### Diagnosing rebalance thrash
+
+When lag spikes or poll stalls line up with membership changes, check whether
+rebalances are thrashing:
+
+1. Sample `ConsumerGroup::metrics()` (or `Consumer::metrics()`) and record
+   `rebalances`, `partitions_revoked`, and `partitions_assigned`.
+2. Correlate counter jumps with broker group logs and lag growth.
+3. Sustained rebalance rate with oscillating revoke/assign usually means
+   session timeout / heartbeat / processing time mismatch — lengthen
+   `session_timeout_ms` or shorten work per poll; do not raise
+   `max_poll_interval_ms` blindly.
+4. An unsubscribe revoke without a matching assign is expected shutdown;
+   treat only mid-life revoke→assign pairs as thrash candidates.
+
+Mock contract: `tests/rebalance_metrics.rs`.
+
 ### Exactly-once consume → produce
 
 `examples/eos.rs`: read with `ReadCommitted`, produce inside a transaction,

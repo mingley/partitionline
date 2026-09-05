@@ -239,6 +239,19 @@ else
 fi
 
 
+
+# KL-07 slice: rebalance thrash counters + guide cookbook.
+if [[ -f tests/rebalance_metrics.rs && -f docs/guide.md && -f docs/ROADMAP.md ]] \
+  && grep -qF '### Diagnosing rebalance thrash' docs/guide.md \
+  && grep -qF 'rebalance_metrics_increment_on_first_assignment' tests/rebalance_metrics.rs \
+  && grep -qF 'rebalance_metrics_increment_on_unsubscribe_revoke' tests/rebalance_metrics.rs \
+  && grep -qF 'rebalances,partitions_revoked,partitions_assigned' docs/ROADMAP.md \
+  && grep -qF 'ConsumerMetrics::{rebalances,partitions_revoked,partitions_assigned}' docs/STATUS.md; then
+  ok "KL-07 rebalance metrics Partial (counters + guide thrash cookbook; mock assign/unsubscribe)"
+else
+  bad "KL-07 rebalance metrics Partial missing"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \
