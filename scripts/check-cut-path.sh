@@ -100,6 +100,10 @@ echo "== check-cut-path: packed crate consumer (Installable packaging) =="
 bash scripts/ci-crate-consumer.sh
 
 echo
+echo "== check-cut-path: roundtrip/intercept examples as packed-crate consumers =="
+bash scripts/ci-example-roundtrip-intercept-crate-consumers.sh
+
+echo
 echo "== check-cut-path: post-cut parks stack =="
 bash scripts/check-post-cut-parks-stack.sh
 

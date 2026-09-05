@@ -36,6 +36,9 @@ bash scripts/check-crate-metadata.sh
 echo "== crate consumer =="
 bash scripts/ci-crate-consumer.sh
 
+echo "== roundtrip/intercept examples as packed-crate consumers =="
+bash scripts/ci-example-roundtrip-intercept-crate-consumers.sh
+
 echo "== adopter crates.io consumer rehearsal (path) =="
 MODE=path bash scripts/verify-crates-io-consumer.sh
 

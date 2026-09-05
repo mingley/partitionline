@@ -239,6 +239,24 @@ else
 fi
 
 
+# KL-07 slice: roundtrip/intercept/consume_intercept as external packed-crate consumers.
+if [[ -f scripts/ci-example-roundtrip-intercept-crate-consumers.sh && -f examples/roundtrip.rs && -f examples/intercept.rs && -f examples/consume_intercept.rs && -f docs/guide.md ]] \
+  && grep -qF 'Roundtrip / interceptor examples as external package consumers' docs/guide.md \
+  && grep -qF 'ci-example-roundtrip-intercept-crate-consumers.sh' docs/guide.md \
+  && grep -qF 'examples/roundtrip.rs' scripts/ci-example-roundtrip-intercept-crate-consumers.sh \
+  && grep -qF 'examples/intercept.rs' scripts/ci-example-roundtrip-intercept-crate-consumers.sh \
+  && grep -qF 'examples/consume_intercept.rs' scripts/ci-example-roundtrip-intercept-crate-consumers.sh \
+  && grep -qF 'ci-example-roundtrip-intercept-crate-consumers.sh' scripts/ci-branch-lite.sh \
+  && grep -qF 'ci-example-roundtrip-intercept-crate-consumers.sh' scripts/check-cut-path.sh \
+  && grep -qF 'ci-example-roundtrip-intercept-crate-consumers.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'roundtrip/intercept/consume_intercept examples as external' docs/ROADMAP.md \
+  && bash scripts/ci-example-roundtrip-intercept-crate-consumers.sh --self-test >/tmp/pl-kl07-rti-ex-self.log 2>&1 \
+  && bash scripts/ci-example-roundtrip-intercept-crate-consumers.sh >/tmp/pl-kl07-rti-ex.log 2>&1; then
+  ok "KL-07 roundtrip/intercept external crate-consumers (packed .crate cargo check; guide+bars)"
+else
+  bad "KL-07 roundtrip/intercept external crate-consumers missing/failed; see /tmp/pl-kl07-rti-ex*.log"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \

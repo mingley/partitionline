@@ -7,6 +7,17 @@ Runnable paths assume a broker on `KAFKA_BOOTSTRAP` (default
 cargo run --release --example roundtrip
 ```
 
+### Roundtrip / interceptor examples as external package consumers
+
+`examples/roundtrip.rs`, `examples/intercept.rs`, and
+`examples/consume_intercept.rs` (migrate checklist smoke plus produce/fetch
+interceptor hooks) must compile as **downstream** bins against the packed
+`.crate`, not only as in-tree path dependencies. Proof:
+`bash scripts/ci-example-roundtrip-intercept-crate-consumers.sh` (wired into
+branch-lite / cut-path / publish-ready). Complements other external-consumer
+Partials when those land. This is a KL-07 Partial — not two-user diagnosis,
+and not a Suite HOLD lift.
+
 ## Produce
 
 ```rust,no_run

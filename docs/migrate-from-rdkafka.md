@@ -79,6 +79,9 @@ default feature set.
    intent (Earliest vs latest).
 4. If you used zstd or GSSAPI, plan compression/auth alternatives first.
 5. Compare metrics via `Producer::metrics` / `Consumer::metrics` during soak.
+6. Confirm migrate smoke + interceptor examples type-check as external package
+   consumers: `bash scripts/ci-example-roundtrip-intercept-crate-consumers.sh`
+   (no live broker required for the compile gate).
 
 ## Further reading
 
