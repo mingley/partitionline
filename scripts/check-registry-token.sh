@@ -170,8 +170,16 @@ pl_prepare_cargo_registry_token "check-registry-token"
 
 if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   echo "check-registry-token: MISSING — CARGO_REGISTRY_TOKEN unset"
-  echo "  First cut of a NEW crate: https://crates.io/settings/tokens"
-  echo "  Enable scope publish-new (+ publish-update). publish-update alone cannot create the crate."
+  # Post-Installable: missing token is not an Installable blocker while the
+  # version is already on crates.io — only needed for future cuts / Actions.
+  if [[ -x "$(dirname "${BASH_SOURCE[0]}")/check-installable.sh" ]] \
+    && bash "$(dirname "${BASH_SOURCE[0]}")/check-installable.sh" >/tmp/pl-tok-installable.log 2>&1; then
+    echo "  crates.io already has this crate/version (Installable met) — token only needed for future cuts / Actions."
+    echo "  Recreate at https://crates.io/settings/tokens (publish-update for later versions; publish-new only for a brand-new crate name)."
+  else
+    echo "  First cut of a NEW crate: https://crates.io/settings/tokens"
+    echo "  Enable scope publish-new (+ publish-update). publish-update alone cannot create the crate."
+  fi
   if [[ "$REQUIRE_TOKEN" == "1" ]]; then
     exit 1
   fi

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# One-screen owner ask for the Installable blocker: crates.io publish-new token.
+# One-screen owner ask for a crates.io token (publish-new for first cut of a NEW
+# crate name; publish-update for later versions once Installable is met).
 # Does not publish. Safe anytime. Prefer this over scrolling owner-unblock when the
 # only remaining gap is CARGO_REGISTRY_TOKEN.
 #
