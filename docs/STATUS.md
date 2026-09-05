@@ -152,7 +152,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-01 broker identity + portable timeout (2026-09-05, tip `d00fc56`):** broker/auth smokes stamp `requested=` vs `actual=` (docker/native/external); `pl_timeout` accepts GNU `timeout` or Homebrew `gtimeout` and fails closed otherwise; bars gate + identity `--self-test`. Does **not** close full KL-01 (oracles/fuzz campaigns remain). Does **not** lift Suite HOLD.
 
-**KL-08 release serialize (2026-09-05, tip `PENDING`):** release-plz PR-only; owner-cut-release / owner-publish / ci-publish-ready / release.yml require exact-SHA `check-main-ci` + crate-consumer; crates.io soft-skip if version present. Rehearse-only (no new cut). Does **not** lift Suite HOLD.
+**KL-08 release serialize (2026-09-05, tip `acb1153`):** release-plz PR-only; owner-cut-release / owner-publish / ci-publish-ready / release.yml require exact-SHA `check-main-ci` + crate-consumer; crates.io soft-skip if version present. Rehearse-only (no new cut). Does **not** lift Suite HOLD.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
