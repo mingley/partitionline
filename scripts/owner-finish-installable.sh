@@ -87,7 +87,7 @@ if bash scripts/check-installable.sh; then
     # Parks dry-run inside handoff is stack-check only; keep REQUIRE_PARKS land rehearsal
     # so soft-skipping parks here cannot lie about cut readiness. Capture rc so DRY_RUN
     # can still surface PARTIAL — handoff DRY_RUN exits 2 when already Installable and
-    # parks remain off main (pre-token holds exit 0 with a PARTIAL note).
+    # parks remain off main (handoff DRY_RUN exits PARTIAL/2; finish aggregates).
     parks_rc=0
     if [[ "$land_parks" == "1" ]]; then
       DRY_RUN=1 REQUIRE_PARKS=1 bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?

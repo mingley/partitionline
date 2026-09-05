@@ -71,4 +71,15 @@ if [[ "$fail" -ne 0 ]]; then
   echo "check-trusted-publishing-ready: FAIL — fix release.yml shape" >&2
   exit 1
 fi
-echo "check-trusted-publishing-ready: OK — release.yml is Trusted-Publishing-shaped"
+# Shape OK is not "Trusted Publishing done". Absent crate must not look finished.
+case "${PL_CRATES_PROBE_STATUS:-}" in
+  present)
+    echo "check-trusted-publishing-ready: OK — release.yml Trusted-Publishing-shaped; crate present (UI still owner)"
+    ;;
+  absent)
+    echo "check-trusted-publishing-ready: INFO — release.yml Trusted-Publishing-shaped; crate absent (expected pre-Installable; UI waits on first cut)"
+    ;;
+  *)
+    echo "check-trusted-publishing-ready: INFO — release.yml Trusted-Publishing-shaped; crates.io probe inconclusive"
+    ;;
+esac
