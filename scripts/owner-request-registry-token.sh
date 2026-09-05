@@ -56,7 +56,16 @@ case "$pf_rc" in
       echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh" >&2
       exit 2
     fi
-    echo "Re-enter handoff if TP/parks/day1 still pending: bash scripts/owner-post-installable-handoff.sh"
+    # shellcheck source=scripts/lib/adopter-docs-shaped.sh
+    source "$ROOT/scripts/lib/adopter-docs-shaped.sh"
+    if ! pl_adopter_docs_crates_io_shaped; then
+      echo "owner-request-registry-token: PARTIAL — Installable OK but adopter docs still git-shaped" >&2
+      echo "  Day1 must flip README + ADOPTION + guide + migrate to crates.io." >&2
+      echo "  Re-enter: bash scripts/day1-after-publish.sh" >&2
+      echo "  Then: bash scripts/owner-post-installable-handoff.sh" >&2
+      exit 2
+    fi
+    echo "Re-enter handoff if TP/parks still pending: bash scripts/owner-post-installable-handoff.sh"
     exit 0
     ;;
   3)
