@@ -12,6 +12,15 @@ partitionline stays on **0.x** until the API stability bar in
 MSRV is declared in `Cargo.toml` (`rust-version`). Raising MSRV is a minor
 bump on 0.x and must be called out in the CHANGELOG.
 
+
+## Publication path (KL-08)
+
+**Canonical publisher:** annotated tag `vX.Y.Z` → `.github/workflows/release.yml`, or
+`bash scripts/owner-cut-release.sh` (local publish / tag). Both require exact-SHA green
+`ci` (`scripts/check-main-ci.sh`) and package-consumer evidence (`scripts/ci-crate-consumer.sh`).
+
+**release-plz** opens version PRs only — it must not publish to crates.io (token presence
+must not enable auto-release). Do not re-cut `0.1.0`.
 ## Cadence
 
 Cut a crates.io release when there is a user-facing batch (fix, feature, or

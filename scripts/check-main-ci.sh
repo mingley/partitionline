@@ -10,6 +10,8 @@
 # Env:
 #   REQUIRE_MAIN_CI=1  treat inconclusive (exit 2) as failure (exit 1)
 #   MAIN_BRANCH        default main
+#   CHECK_SHA          optional exact commit to probe (default: origin/$MAIN_BRANCH).
+#                      Use for tag publish so the gate is the release SHA, not "latest main".
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -19,16 +21,20 @@ MAIN_BRANCH="${MAIN_BRANCH:-main}"
 REQUIRE_MAIN_CI="${REQUIRE_MAIN_CI:-0}"
 
 git fetch origin "${MAIN_BRANCH}" --quiet 2>/dev/null || true
-main_sha="$(git rev-parse "origin/${MAIN_BRANCH}" 2>/dev/null || true)"
+if [[ -n "${CHECK_SHA:-}" ]]; then
+  main_sha="$(git rev-parse "${CHECK_SHA}" 2>/dev/null || true)"
+else
+  main_sha="$(git rev-parse "origin/${MAIN_BRANCH}" 2>/dev/null || true)"
+fi
 if [[ -z "$main_sha" ]]; then
-  echo "check-main-ci: WARN — cannot resolve origin/${MAIN_BRANCH}"
+  echo "check-main-ci: WARN — cannot resolve ${CHECK_SHA:-origin/${MAIN_BRANCH}}"
   if [[ "$REQUIRE_MAIN_CI" == "1" ]]; then
     exit 1
   fi
   exit 2
 fi
 
-echo "check-main-ci: origin/${MAIN_BRANCH}=${main_sha:0:7}"
+echo "check-main-ci: sha=${main_sha:0:7} (branch=${MAIN_BRANCH}${CHECK_SHA:+ check_sha=${CHECK_SHA:0:7}})"
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "check-main-ci: SKIP — gh CLI not available"

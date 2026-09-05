@@ -43,6 +43,22 @@ fi
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 echo "owner-publish: publishing partitionline ${ver}"
 
+# KL-08: exact-SHA CI before local publish (soft when REQUIRE_MAIN_CI=0).
+if [[ -z "${REQUIRE_MAIN_CI:-}" ]]; then
+  REQUIRE_MAIN_CI=1
+fi
+export REQUIRE_MAIN_CI
+ci_rc=0
+CHECK_SHA="$(git rev-parse HEAD)" bash scripts/check-main-ci.sh || ci_rc=$?
+if [[ "$ci_rc" -eq 1 && "${ALLOW_RED_MAIN:-0}" != "1" ]]; then
+  echo "owner-publish: main CI red for this SHA — refusing publish" >&2
+  exit 1
+fi
+if [[ "$ci_rc" -eq 2 && "${REQUIRE_MAIN_CI}" == "1" ]]; then
+  echo "owner-publish: REQUIRE_MAIN_CI=1 and CI inconclusive — refusing" >&2
+  exit 1
+fi
+
 bash scripts/ci-publish-ready.sh
 cargo publish
 

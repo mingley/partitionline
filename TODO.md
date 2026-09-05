@@ -29,6 +29,7 @@ performance qualification and exact-HEAD evidence remain open.
   - [x] Actual broker identity stamp (`requested=` vs `actual=`) + portable `pl_timeout`/`gtimeout` path (2026-09-05). Remaining: protocol oracles, controlled latency reproduce, fuzz campaign metadata.
 - [ ] **KL-01/KL-04 latency slice:** Reproduce the failed gate on controlled hardware, distinguish noise from regression, and reconcile the separate CI smoke/performance budgets without blindly weakening thresholds.
 - [ ] **KL-08 release slice:** Select one serialized publisher gated on exact-SHA CI and package-consumer evidence; reconcile metadata and handoff checks and rehearse partial-release recovery without publishing.
+  - [x] Serialized path: release-plz PR-only; owner-cut-release/release.yml exact-SHA CI + crate-consumer; soft-skip if version already on crates.io (2026-09-05). Remaining: support policy, adopter 24h/7d, traffic rollout.
 
 ## Qualification and leadership packages
 

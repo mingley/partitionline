@@ -90,12 +90,25 @@ if ! awk '
     echo "owner-cut-release --self-test: FAIL — DRY_RUN must reach handoff before DRY_RUN complete" >&2
     exit 1
   fi
+  grep -qF 'check-main-ci.sh' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — KL-08 exact-SHA check-main-ci gate missing" >&2; exit 1; }
+  grep -qF 'REQUIRE_MAIN_CI' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — REQUIRE_MAIN_CI knob missing" >&2; exit 1; }
   echo "owner-cut-release: --self-test OK — token auto PUBLISH_LOCAL=1; explicit 0 preserved; handoff chained; DRY_RUN reaches handoff; Actions secret PARTIAL gated"
   exit 0
 fi
 
 
 DRY_RUN="${DRY_RUN:-0}"
+# Exact-SHA main CI gate (KL-08). Soft on DRY_RUN; hard on real cuts unless overridden.
+if [[ -z "${REQUIRE_MAIN_CI:-}" ]]; then
+  if [[ "${DRY_RUN:-0}" == "1" ]]; then
+    REQUIRE_MAIN_CI=0
+  else
+    REQUIRE_MAIN_CI=1
+  fi
+fi
+export REQUIRE_MAIN_CI
 # Distinguish unset (auto) from explicit PUBLISH_LOCAL=0 (tag→Actions).
 if [[ -z "${PUBLISH_LOCAL+x}" ]]; then
   PUBLISH_LOCAL_EXPLICIT=0
@@ -172,6 +185,28 @@ if [[ "$PUBLISH_LOCAL" != "1" ]]; then
       fi
     fi
   fi
+fi
+
+# KL-08: refuse to cut over a red/missing exact-SHA CI on this tip.
+echo
+echo "== exact-SHA main CI (KL-08) =="
+ci_rc=0
+CHECK_SHA="$(git rev-parse HEAD)" bash scripts/check-main-ci.sh || ci_rc=$?
+if [[ "$ci_rc" -eq 1 ]]; then
+  echo "owner-cut-release: main CI is red for this SHA — refusing cut." >&2
+  echo "  Probe: CHECK_SHA=$(git rev-parse HEAD) bash scripts/check-main-ci.sh" >&2
+  if [[ "${ALLOW_RED_MAIN:-0}" == "1" ]]; then
+    echo "owner-cut-release: ALLOW_RED_MAIN=1 — continuing despite red CI" >&2
+  else
+    exit 1
+  fi
+elif [[ "$ci_rc" -eq 2 ]]; then
+  if [[ "${REQUIRE_MAIN_CI}" == "1" ]]; then
+    echo "owner-cut-release: REQUIRE_MAIN_CI=1 and main CI inconclusive — refusing" >&2
+    echo "  Wait for green CI on this SHA, or REQUIRE_MAIN_CI=0 / DRY_RUN=1 to rehearse." >&2
+    exit 1
+  fi
+  echo "owner-cut-release: main CI inconclusive — continuing (REQUIRE_MAIN_CI=0)"
 fi
 
 if [[ "$SKIP_PUBLISH_READY" != "1" ]]; then

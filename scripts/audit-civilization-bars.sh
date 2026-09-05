@@ -122,6 +122,21 @@ if [[ -f scripts/lib/pl-timeout.sh && -f scripts/lib/broker-identity.sh ]] \
 else
   bad "KL-01 broker identity/timeout missing or self-test failed; see /tmp/pl-broker-identity-self-test.log"
 fi
+
+
+# KL-08: serialized publish path — release-plz PR-only; cut/release exact-SHA + consumer.
+if grep -qF 'command: release-pr' .github/workflows/release-plz.yml \
+  && ! grep -qE 'if:.*CARGO_REGISTRY_TOKEN' .github/workflows/release-plz.yml \
+  && grep -qF 'check-main-ci.sh' scripts/owner-cut-release.sh \
+  && grep -qF 'check-main-ci.sh' scripts/owner-publish.sh \
+  && grep -qF 'check-main-ci.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'ci-crate-consumer.sh' .github/workflows/release.yml \
+  && grep -qF 'CHECK_SHA=' .github/workflows/release.yml \
+  && bash scripts/owner-cut-release.sh --self-test >/tmp/pl-kl08-cut-self-test.log 2>&1; then
+  ok "KL-08 release serialize (release-plz PR-only; exact-SHA CI on cut/publish/release.yml; crate consumer)"
+else
+  bad "KL-08 release serialize missing/failed; see /tmp/pl-kl08-cut-self-test.log"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

@@ -277,6 +277,9 @@ for adoption and API stabilization. Optional KL-05 features do not gate everyone
    Reconcile [release policy](RELEASE.md), metadata checks and stale handoff
    scripts with actual state. Scope "no C" metadata to the Kafka implementation,
    not the entire TLS dependency graph. Rehearse without publishing.
+   **Partial (2026-09-05):** release-plz is PR-only (never auto-publish). Canonical publish is
+   tag → `release.yml` / `owner-cut-release` with exact-SHA `check-main-ci` + `ci-crate-consumer`.
+   Rehearse with `DRY_RUN=1`; do not cut a new version from this slice.
 2. Specify broker/API, OS/architecture, MSRV and feature support plus security
    response, upgrade and deprecation policies. Keep unsupported combinations
    explicit; existing Rust 1.85/stable CI is a starting point, not a new promise.

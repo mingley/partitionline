@@ -35,6 +35,21 @@ bash scripts/ci-crate-consumer.sh
 echo "== adopter crates.io consumer rehearsal (path) =="
 MODE=path bash scripts/verify-crates-io-consumer.sh
 
+echo "== exact-SHA main CI probe (KL-08; soft unless REQUIRE_MAIN_CI=1) =="
+ci_rc=0
+CHECK_SHA="$(git rev-parse HEAD)" bash scripts/check-main-ci.sh || ci_rc=$?
+if [[ "$ci_rc" -eq 1 ]]; then
+  echo "ci-publish-ready: FAIL — CI red for this SHA" >&2
+  exit 1
+fi
+if [[ "$ci_rc" -eq 2 && "${REQUIRE_MAIN_CI:-0}" == "1" ]]; then
+  echo "ci-publish-ready: FAIL — CI inconclusive and REQUIRE_MAIN_CI=1" >&2
+  exit 1
+fi
+if [[ "$ci_rc" -eq 2 ]]; then
+  echo "ci-publish-ready: WARN — CI inconclusive for this SHA (continuing; set REQUIRE_MAIN_CI=1 to hard-fail)"
+fi
+
 echo "== publish dry-run =="
 cargo publish --dry-run
 
