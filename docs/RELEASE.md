@@ -66,6 +66,11 @@ bash scripts/owner-finish-installable.sh
 # REQUIRE_MAIN_CI defaults to 1 on real cuts (0 on DRY_RUN); set 0 to override
 ```
 
+Preflight `READY_EXCEPT_TOKEN` means structural + Verifiable + tip⊆parks stack
+are OK; parks themselves stay off `origin/main` until after crates.io `0.1.0`
+(**expected pre-Installable** — not a cut blocker). Land parks via post-cut
+handoff after Installable.
+
 That fast-forwards `main` to the civilization tip, publishes locally, runs
 day1, and proves Installable. Before cut it probes main CI via
 `scripts/check-main-ci.sh` so a known-red or still-running Verifiable tip
