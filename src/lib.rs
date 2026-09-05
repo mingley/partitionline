@@ -3262,9 +3262,7 @@ pub use protocol::offsets::{
     OffsetSpec, EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP,
     LATEST_TIMESTAMP, MAX_TIMESTAMP,
 };
-pub use protocol::oidc::{
-    token_needs_refresh, OidcAccessToken, OidcConfig, OIDC_REFRESH_SKEW,
-};
+pub use protocol::oidc::{token_needs_refresh, OidcAccessToken, OidcConfig, OIDC_REFRESH_SKEW};
 pub use protocol::records::{
     Compression, ControlRecordType, EndTransactionMarker, Header, Record, RecordBatch,
     TimestampType,

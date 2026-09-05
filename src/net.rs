@@ -605,11 +605,13 @@ impl BrokerConn {
     ///
     /// `ms <= 0` clears the deadline (v0 responses and brokers that send `0`).
     pub(crate) fn record_sasl_session_lifetime(&mut self, session_lifetime_ms: i64) {
-        self.sasl_session_expires_at = if session_lifetime_ms > 0 {
-            Some(Instant::now() + Duration::from_millis(session_lifetime_ms as u64))
-        } else {
-            None
-        };
+        self.sasl_session_expires_at = u64::try_from(session_lifetime_ms).ok().and_then(|ms| {
+            if ms == 0 {
+                None
+            } else {
+                Some(Instant::now() + Duration::from_millis(ms))
+            }
+        });
     }
 
     /// Record IdP access-token expiry from a successful OIDC fetch.

@@ -429,11 +429,6 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
     Ok((status, body))
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
-pub(crate) fn access_token_from_json(json: &str) -> Result<String> {
-    Ok(oidc_access_token_from_json(json)?.access_token)
-}
-
 pub(crate) fn oidc_access_token_from_json(json: &str) -> Result<OidcAccessToken> {
     let rest = json
         .split_once("\"access_token\"")
@@ -464,17 +459,13 @@ pub(crate) fn oidc_access_token_from_json(json: &str) -> Result<OidcAccessToken>
 fn expires_at_from_json(json: &str) -> Option<Instant> {
     let rest = json.split_once("\"expires_in\"")?.1;
     let rest = rest.trim_start().strip_prefix(':')?.trim_start();
-    let num: String = rest
-        .chars()
-        .take_while(|c| c.is_ascii_digit())
-        .collect();
+    let num: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
     let secs: u64 = num.parse().ok()?;
     if secs == 0 {
         return None;
     }
     Some(Instant::now() + Duration::from_secs(secs))
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -504,12 +495,15 @@ mod tests {
     #[test]
     fn access_token_json_space_after_colon() {
         assert_eq!(
-            access_token_from_json("{\"access_token\": \"abc\",\"token_type\":\"Bearer\"}")
-                .unwrap(),
+            oidc_access_token_from_json("{\"access_token\": \"abc\",\"token_type\":\"Bearer\"}")
+                .unwrap()
+                .access_token,
             "abc"
         );
         assert_eq!(
-            access_token_from_json("{\"token_type\":\"Bearer\",\"access_token\":\"xyz\"}").unwrap(),
+            oidc_access_token_from_json("{\"token_type\":\"Bearer\",\"access_token\":\"xyz\"}")
+                .unwrap()
+                .access_token,
             "xyz"
         );
     }
@@ -733,7 +727,10 @@ mod tests {
             remaining > Duration::from_secs(100) && remaining <= Duration::from_secs(120),
             "expected ~120s lifetime, got {remaining:?}"
         );
-        assert!(!token_needs_refresh(tok.expires_at, Duration::from_secs(30)));
+        assert!(!token_needs_refresh(
+            tok.expires_at,
+            Duration::from_secs(30)
+        ));
     }
 
     #[test]
@@ -775,5 +772,4 @@ mod tests {
         let later = Some(Instant::now() + Duration::from_secs(600));
         assert!(!token_needs_refresh(later, Duration::from_secs(60)));
     }
-
 }
