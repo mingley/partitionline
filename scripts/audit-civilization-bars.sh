@@ -254,6 +254,19 @@ else
   bad "KL-08 support matrix honesty missing"
 fi
 
+# KL-07 slice: offset_fetch_ok/fail for committed-offset diagnosis.
+if [[ -f tests/offset_fetch_metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (OffsetFetch)' docs/guide.md \
+  && grep -qF 'offset_fetch_ok_metric_increments_on_successful_committed' tests/offset_fetch_metrics.rs \
+  && grep -qF 'pub offset_fetch_ok: u64' src/metrics.rs \
+  && grep -qF 'record_offset_fetch_ok' src/consumer.rs \
+  && grep -qF 'record_offset_fetch_fail' src/consumer.rs \
+  && grep -qF 'offset_fetch_metrics.rs' docs/ROADMAP.md; then
+  ok "KL-07 OffsetFetch diagnosis Partial (offset_fetch_ok/fail; guide+mock)"
+else
+  bad "KL-07 OffsetFetch diagnosis Partial missing"
+fi
+
 # KL-08 slice: adopter 24h/7d exercise template (UNFILLED — not evidence).
 if [[ -f docs/adopter-exercise.md ]] \
   && grep -qF 'UNFILLED — not evidence' docs/adopter-exercise.md \

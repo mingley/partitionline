@@ -493,6 +493,7 @@ struct State {
     share_fetch_not_leader: u32,
     offset_commit_calls: u32,
     offset_fetch_calls: u32,
+    offset_fetch_fail_left: u32,
     last_offset_commit_partitions: usize,
     last_offset_fetch_partitions: usize,
     last_offset_fetch_version: Option<i16>,
@@ -851,6 +852,7 @@ fn new_state(
         share_fetch_not_leader: 0,
         offset_commit_calls: 0,
         offset_fetch_calls: 0,
+        offset_fetch_fail_left: 0,
         last_offset_commit_partitions: 0,
         last_offset_fetch_partitions: 0,
         last_offset_fetch_version: None,
@@ -2664,6 +2666,12 @@ impl Mock {
 
     pub fn offset_fetch_calls(&self) -> u32 {
         self.state.lock().offset_fetch_calls
+    }
+
+    /// Next OffsetFetch partition response carries a non-retriable error once
+    /// (`GROUP_AUTHORIZATION_FAILED`) so the client exits without retry-looping.
+    pub fn offset_fetch_fail_once(&self) {
+        self.state.lock().offset_fetch_fail_left = 1;
     }
 
     pub fn last_offset_commit_partitions(&self) -> usize {
@@ -5997,6 +6005,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 nparts = nparts.saturating_add(t.partitions.len());
                                 let mut parts = Vec::with_capacity(t.partitions.len());
                                 for p in t.partitions {
+                                    let fail = st.offset_fetch_fail_left > 0;
+                                    if fail {
+                                        st.offset_fetch_fail_left =
+                                            st.offset_fetch_fail_left.saturating_sub(1);
+                                    }
                                     let (off, epoch, meta) = st
                                         .committed
                                         .get(&(g.group_id.clone(), t.topic.clone(), p))
@@ -6008,10 +6021,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         ));
                                     parts.push(FetchedOffset {
                                         partition: p,
-                                        offset: off,
+                                        offset: if fail {
+                                            FetchedOffset::INVALID_OFFSET
+                                        } else {
+                                            off
+                                        },
                                         leader_epoch: epoch,
                                         metadata: meta,
-                                        error_code: 0,
+                                        error_code: if fail {
+                                            error::GROUP_AUTHORIZATION_FAILED
+                                        } else {
+                                            0
+                                        },
                                     });
                                 }
                                 out.push(FetchedOffsetTopic {

@@ -285,6 +285,11 @@ and no secret exposure. Preserve existing audit/deny and security-reporting lane
    queue age/bytes, retries, broker throttle, reconnect, ack latency, lag,
    rebalance and transaction outcomes. Bound label cardinality; provide optional
    exporters as examples rather than mandatory core dependencies.
+   **Partial (2026-09-05):** `ConsumerMetrics::offset_fetch_ok` /
+   `offset_fetch_fail` count terminal OffsetFetch outcomes; guide cookbook +
+   mock `tests/offset_fetch_metrics.rs`. ListOffsets / Metadata / Leave /
+   FindCoordinator / heartbeat / join-sync / queue-age / throttle / reconnect /
+   lag recipes and two independent human diagnosis runs remain open. Not Done.
 3. Have two independent users follow the guide and diagnose a throttled broker,
    stale leader and blocked consumer using telemetry rather than payload logging.
 

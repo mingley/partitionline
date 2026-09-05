@@ -1058,6 +1058,28 @@ impl ConsumerGroup {
         topics: &[OffsetFetchTopic],
         timeout: Duration,
     ) -> Result<Vec<FetchedOffsetTopic>> {
+        let result = self.offset_fetch_inner(topics, timeout).await;
+        // Surface partition broker codes as terminal Err so ok/fail counters
+        // track diagnosis outcomes (not merely transport success).
+        let result = match result {
+            Ok(fetched) => match committed_offset_map(&fetched) {
+                Ok(_) => Ok(fetched),
+                Err(err) => Err(err),
+            },
+            Err(err) => Err(err),
+        };
+        match &result {
+            Ok(_) => self.consumer.record_offset_fetch_ok(),
+            Err(_) => self.consumer.record_offset_fetch_fail(),
+        }
+        result
+    }
+
+    async fn offset_fetch_inner(
+        &mut self,
+        topics: &[OffsetFetchTopic],
+        timeout: Duration,
+    ) -> Result<Vec<FetchedOffsetTopic>> {
         let version = spoken_offset_fetch(self.coord.offset_fetch_version)?;
         let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
         let (member_id, member_epoch) = if self.kip848 {
