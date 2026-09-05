@@ -75,7 +75,7 @@ echo "== 0) Already Installable? =="
 if bash scripts/check-installable.sh; then
   echo "owner-finish-installable: crates.io already has ${name} ${ver}"
   echo "owner-finish-installable: Actions-alternate / re-entry — day1 then post-Installable handoff"
-  # day1 flips README/ADOPTION; handoff covers adopter pin, registry consumer, bars, TP, parks.
+  # day1 flips README/ADOPTION/guide/migrate; handoff covers adopter pin, registry consumer, bars, TP, parks.
   land_parks=0
   if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
     land_parks=1
@@ -409,7 +409,7 @@ SKIP_DAY1=1 LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff
 echo
 if [[ "$handoff_rc" -eq 2 ]]; then
   echo "owner-finish-installable: PARTIAL — ${name} ${ver} is Installable but handoff soft-failed"
-  echo "owner-finish-installable: commit README + docs/ADOPTION.md crates.io lines if day1 changed them"
+  echo "owner-finish-installable: commit README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md crates.io lines if day1 changed them"
   echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
   exit 2
 elif [[ "$handoff_rc" -ne 0 ]]; then
@@ -421,11 +421,11 @@ if [[ "$secret_rc" -ne 0 ]]; then
   echo "owner-finish-installable: ${name} ${ver} is on crates.io; later tag/Actions cuts need the secret"
   echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"$CARGO_REGISTRY_TOKEN\""
   echo "  Then: bash scripts/owner-post-installable-handoff.sh   # if handoff/parks still pending"
-  echo "owner-finish-installable: commit README + docs/ADOPTION.md crates.io lines if day1 changed them"
+  echo "owner-finish-installable: commit README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md crates.io lines if day1 changed them"
   exit 2
 fi
 echo "owner-finish-installable: OK — ${name} ${ver} is Installable"
-echo "owner-finish-installable: commit README + docs/ADOPTION.md crates.io lines if day1 changed them"
+echo "owner-finish-installable: commit README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md crates.io lines if day1 changed them"
 echo "owner-finish-installable: re-enter anytime with:"
 echo "  bash scripts/owner-post-installable-handoff.sh"
 echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks were skipped/failed"

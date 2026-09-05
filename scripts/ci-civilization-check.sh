@@ -38,10 +38,10 @@ if cargo publish --dry-run --allow-dirty >/tmp/pl-publish-dry.log 2>&1; then
 else
   bad "cargo publish --dry-run; see /tmp/pl-publish-dry.log"
 fi
-if DRY_RUN=1 bash scripts/post-publish-readme.sh >/tmp/pl-readme-dry.log 2>&1; then
-  ok "day1 README flip preflight (DRY_RUN=1)"
+if DRY_RUN=1 bash scripts/post-publish-readme.sh >/tmp/pl-readme-dry.log 2>&1   && DRY_RUN=1 bash scripts/post-publish-adoption.sh >/tmp/pl-adoption-dry.log 2>&1   && DRY_RUN=1 bash scripts/post-publish-guide.sh >/tmp/pl-guide-dry.log 2>&1   && DRY_RUN=1 bash scripts/post-publish-migrate.sh >/tmp/pl-migrate-dry.log 2>&1; then
+  ok "day1 README/ADOPTION/guide/migrate flip preflight (DRY_RUN=1)"
 else
-  bad "day1 README flip preflight; see /tmp/pl-readme-dry.log"
+  bad "day1 four-file flip preflight; see /tmp/pl-{readme,adoption,guide,migrate}-dry.log"
 fi
 # Prefer shared API+sparse-index probe (User-Agent required; CDN 403 without it).
 # shellcheck source=scripts/lib/crates-io.sh

@@ -321,6 +321,15 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'docs/guide.md' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'docs/migrate-from-rdkafka.md' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'README + ADOPTION + guide + migrate' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'docs/guide.md + docs/migrate-from-rdkafka.md' scripts/owner-finish-installable.sh \
+  && grep -qF 'README + ADOPTION + guide + migrate' scripts/owner-cut-release.sh \
+  && grep -qF 'docs/guide.md docs/migrate-from-rdkafka.md' scripts/owner-publish.sh \
+  && grep -qF 'README/ADOPTION/guide/migrate crates.io lines (day1)' scripts/ci-publish-ready.sh \
+  && grep -qF 'day1 README/ADOPTION/guide/migrate flip preflight' scripts/ci-civilization-check.sh \
+  && grep -qF 'post-publish-guide.sh' scripts/ci-civilization-check.sh \
+  && grep -qF 'post-publish-migrate.sh' scripts/ci-civilization-check.sh \
+  && grep -qF 'pl_day1_docs_paths' scripts/lib/preserve-day1-docs.sh \
+  && grep -qF '_pl_day1_reset' scripts/lib/preserve-day1-docs.sh \
   && grep -qF 'Installable already met; post-cut re-entry' scripts/ci-publish-ready.sh \
   && grep -qF 'pre-token rehearsal; Installable still blocked' scripts/ci-publish-ready.sh \
   && grep -qF 'check-parks-on-main.sh' scripts/owner-post-installable-handoff.sh \

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Day-1 owner checklist after partitionline lands on crates.io (WP-0.5).
-# Does not publish. Verifies the crate, flips README, prints remaining steps.
+# Does not publish. Verifies the crate, flips README/ADOPTION/guide/migrate, prints remaining steps.
 #
 # Usage:
 #   bash scripts/day1-after-publish.sh
@@ -38,7 +38,7 @@ if [[ "$ok" != "1" ]]; then
   cat /tmp/pl-day1-installable.log >&2 || true
   echo "day1-after-publish: crates.io does not yet have partitionline ${ver}" >&2
   if [[ "$DRY_RUN" == "1" ]]; then
-    echo "day1-after-publish: DRY_RUN=1 — would verify crates.io consumer + flip README/ADOPTION after publish" >&2
+    echo "day1-after-publish: DRY_RUN=1 — would verify crates.io consumer + flip README/ADOPTION/guide/migrate after publish" >&2
     echo "day1-after-publish: rehearsing README + ADOPTION + guide + migrate flips (DRY_RUN=1)" >&2
     DRY_RUN=1 bash scripts/post-publish-readme.sh
     DRY_RUN=1 bash scripts/post-publish-adoption.sh
