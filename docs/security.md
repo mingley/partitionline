@@ -27,9 +27,13 @@ do not fully control.
 `Debug` for [`Sasl`](../src/config.rs), [`OidcConfig`](../src/protocol/oidc.rs),
 [`TlsConfig`](../src/net.rs), and the producer/consumer/admin configs that embed
 them redacts passwords, OIDC `client_secret`, and mTLS private key PEMs as
-`<redacted>` (CA/cert PEMs print only a byte-length placeholder). This is a
-KL-06 honesty slice for log/span dumps — it does **not** cover error strings,
-metrics labels, or credential rotation/outage recovery.
+`<redacted>` (CA/cert PEMs print only a byte-length placeholder).
+
+OIDC token-endpoint and OAUTHBEARER authenticate `Error` strings omit IdP/broker
+response bodies (status-only / fixed message) so `Display`/`Debug` cannot echo
+`client_secret` or token material from failure payloads. This is a KL-06 honesty
+slice for log/span/error dumps — it does **not** cover metrics labels, span field
+audits, or credential rotation/outage recovery.
 
 Mock coverage: `tests/credential_redact.rs`.
 

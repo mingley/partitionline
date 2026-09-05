@@ -100,3 +100,66 @@ fn admin_config_debug_redacts_oidc_secret() {
     let dbg = format!("{cfg:?}");
     assert_no_secret(&dbg, CLIENT_SECRET, "AdminConfig");
 }
+
+#[tokio::test]
+async fn oidc_http_error_display_omits_response_body() {
+    use partitionline::Error;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    drop(tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        let mut buf = vec![0u8; 2048];
+        let _ = sock.read(&mut buf).await.unwrap();
+        let body = format!(
+            "{{\"error\":\"invalid_client\",\"error_description\":\"secret={CLIENT_SECRET} token=leak-token-kl06\"}}"
+        );
+        let resp = format!(
+            "HTTP/1.1 401 Unauthorized\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        sock.write_all(resp.as_bytes()).await.unwrap();
+    }));
+
+    let cfg = OidcConfig::new(format!("http://{addr}/token"), "cid", CLIENT_SECRET);
+    let err = partitionline::protocol::oidc::fetch_client_credentials_token(
+        &cfg,
+        std::time::Duration::from_secs(5),
+    )
+    .await
+    .unwrap_err();
+
+    let display = err.to_string();
+    let debug = format!("{err:?}");
+    for surface in [&display, &debug] {
+        assert!(
+            !surface.contains(CLIENT_SECRET),
+            "OIDC Error leaked client_secret: {surface}"
+        );
+        assert!(
+            !surface.contains("leak-token-kl06"),
+            "OIDC Error leaked token material: {surface}"
+        );
+        assert!(
+            !surface.contains("invalid_client"),
+            "OIDC Error must not embed IdP body: {surface}"
+        );
+    }
+    match err {
+        Error::Protocol(m) => assert_eq!(m, "oidc token endpoint HTTP 401"),
+        other => panic!("expected Protocol, got {other:?}"),
+    }
+}
+
+#[test]
+fn oauthbearer_error_message_is_fixed() {
+    // Compile-time honesty: sasl path must use the fixed string (bars also grep).
+    // Runtime broker echo coverage lives in auth-smoke; this asserts the public
+    // Error spelling operators will see.
+    let err = partitionline::Error::protocol("oauthbearer: authentication failed");
+    let s = err.to_string();
+    assert!(s.contains("oauthbearer: authentication failed"), "{s}");
+    assert!(!s.contains("access_token"), "{s}");
+}

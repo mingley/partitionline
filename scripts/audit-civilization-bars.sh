@@ -200,6 +200,18 @@ else
   bad "KL-06 credential Debug redaction missing"
 fi
 
+# KL-06 slice: auth Error body hygiene (OIDC / OAUTHBEARER omit response bodies).
+if grep -qF 'oidc token endpoint HTTP {status}' src/protocol/oidc.rs \
+  && ! grep -qF 'oidc token endpoint HTTP {status}: {text}' src/protocol/oidc.rs \
+  && grep -qF 'oauthbearer: authentication failed' src/protocol/sasl.rs \
+  && ! grep -qF 'oauthbearer: {err}' src/protocol/sasl.rs \
+  && grep -qF 'oidc_http_error_display_omits_response_body' tests/credential_redact.rs \
+  && grep -qF 'OIDC token-endpoint and OAUTHBEARER' docs/security.md; then
+  ok "KL-06 auth Error body hygiene (OIDC/OAUTHBEARER; security.md)"
+else
+  bad "KL-06 auth Error body hygiene missing"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \

@@ -473,7 +473,8 @@ pub async fn authenticate_oauthbearer_token(
     // RFC 7628 / librdkafka: empty server-first = success. Non-empty is an
     // error JSON; send a final SOH then fail.
     if !bytes.is_empty() {
-        let err = String::from_utf8_lossy(&bytes).into_owned();
+        // Broker may echo token material in the failure JSON; do not put raw
+        // bytes into Error Display/Debug (KL-06 error hygiene).
         drop(
             conn.roundtrip_sasl(
                 SASL_AUTHENTICATE,
@@ -483,7 +484,7 @@ pub async fn authenticate_oauthbearer_token(
             )
             .await,
         );
-        return Err(Error::protocol(format!("oauthbearer: {err}")));
+        return Err(Error::protocol("oauthbearer: authentication failed"));
     }
     Ok(())
 }

@@ -117,8 +117,10 @@ pub async fn fetch_client_credentials_token(
     };
     let text = String::from_utf8_lossy(&body);
     if status != 200 {
+        // Do not embed IdP response bodies in Error — they can echo client_secret,
+        // tokens, or other credential-adjacent material (KL-06 error hygiene).
         return Err(Error::protocol(format!(
-            "oidc token endpoint HTTP {status}: {text}"
+            "oidc token endpoint HTTP {status}"
         )));
     }
     access_token_from_json(&text)
@@ -433,7 +435,14 @@ mod tests {
             .await
             .unwrap_err();
         match err {
-            Error::Protocol(m) => assert!(m.contains("401"), "{m}"),
+            Error::Protocol(m) => {
+                assert!(m.contains("401"), "{m}");
+                assert!(
+                    !m.contains("invalid_client"),
+                    "OIDC Error must not embed IdP response body: {m}"
+                );
+                assert_eq!(m, "oidc token endpoint HTTP 401");
+            }
             other => panic!("expected protocol 401, got {other}"),
         }
     }
