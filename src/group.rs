@@ -1452,7 +1452,7 @@ impl ConsumerGroup {
             return Ok(());
         }
         let version = spoken_offset_commit(self.coord.offset_commit_version)?;
-        let body = coord_roundtrip(
+        let body = match coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
@@ -1473,11 +1473,26 @@ impl ConsumerGroup {
             },
             timeout,
         )
-        .await?;
-        let err = decode_offset_commit_response(&mut body.clone(), version)?;
+        .await
+        {
+            Ok(body) => body,
+            Err(err) => {
+                self.consumer.record_offset_commit_fail();
+                return Err(err);
+            }
+        };
+        let err = match decode_offset_commit_response(&mut body.clone(), version) {
+            Ok(code) => code,
+            Err(err) => {
+                self.consumer.record_offset_commit_fail();
+                return Err(err);
+            }
+        };
         if err != 0 {
+            self.consumer.record_offset_commit_fail();
             return Err(Error::broker(err, "OffsetCommit"));
         }
+        self.consumer.record_offset_commit_ok();
         self.cfg.interceptors.on_commit(&offsets);
         Ok(())
     }

@@ -512,6 +512,7 @@ struct State {
     offset_commit_not_coordinator: u32,
     offset_commit_load_left: u32,
     offset_commit_load_in_progress: u32,
+    offset_commit_fail_left: u32,
     add_partitions_to_txn_calls: u32,
     last_add_partitions_to_txn: usize,
     last_add_partitions_to_txn_version: Option<i16>,
@@ -870,6 +871,7 @@ fn new_state(
         offset_commit_not_coordinator: 0,
         offset_commit_load_left: 0,
         offset_commit_load_in_progress: 0,
+        offset_commit_fail_left: 0,
         add_partitions_to_txn_calls: 0,
         last_add_partitions_to_txn: 0,
         last_add_partitions_to_txn_version: None,
@@ -2723,6 +2725,11 @@ impl Mock {
 
     pub fn offset_commit_load_in_progress(&self) -> u32 {
         self.state.lock().offset_commit_load_in_progress
+    }
+
+    /// Next OffsetCommit returns `GROUP_AUTHORIZATION_FAILED` once (non-retriable).
+    pub fn offset_commit_fail_once(&self) {
+        self.state.lock().offset_commit_fail_left = 1;
     }
 
     pub fn last_offset_fetch_partitions(&self) -> usize {
@@ -5921,7 +5928,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.offset_commit_calls = st.offset_commit_calls.saturating_add(1);
                 st.last_offset_commit_version = Some(header.api_version);
-                if st.offset_commit_load_left > 0 {
+                if st.offset_commit_fail_left > 0 {
+                    st.offset_commit_fail_left = st.offset_commit_fail_left.saturating_sub(1);
+                    encode_offset_commit_response(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        error::GROUP_AUTHORIZATION_FAILED,
+                    )
+                    .unwrap();
+                } else if st.offset_commit_load_left > 0 {
                     st.offset_commit_load_left = st.offset_commit_load_left.saturating_sub(1);
                     st.offset_commit_load_in_progress =
                         st.offset_commit_load_in_progress.saturating_add(1);

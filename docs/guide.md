@@ -136,6 +136,20 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (offset commit)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Commits succeed | `ConsumerGroup::metrics().offset_commit_ok` rising; `offset_commit_fail == 0` | Healthy sync/async/auto OffsetCommit path |
+| Commits rejected | `offset_commit_fail` rising; `offset_commit_ok` flat | Broker/group error (auth, illegal generation, unknown member) or transport failure |
+| No commit traffic | both counters stay 0 | No OffsetCommit attempted (manual assign-only, or commit never called) |
+
+`offset_commit_ok` / `offset_commit_fail` count OffsetCommit outcomes on
+`ConsumerMetrics` (via `ConsumerGroup::metrics`). Prefer them over dumping
+record payloads. Mock proof: `tests/offset_commit_metrics.rs`. KL-07 Partial —
+not two independent human diagnosis runs, and not a Suite HOLD lift. Produce
+retries / queue-age / lag / throttle / reconnect recipes are separate slices.
+
 ## Recipes
 
 ### Backpressure

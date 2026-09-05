@@ -340,6 +340,11 @@ pub struct ConsumerMetrics {
     pub fetch_latency: LatencyStats,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
     pub topics: Vec<TopicFetchMetrics>,
+    /// Successful OffsetCommit responses (sync, async, and auto-commit paths).
+    /// KL-07 diagnosis: distinguish commit health from fetch traffic.
+    pub offset_commit_ok: u64,
+    /// Failed OffsetCommit attempts (transport/protocol errors and broker codes).
+    pub offset_commit_fail: u64,
 }
 
 /// Fetch counters for one topic.
@@ -564,6 +569,8 @@ mod tests {
         assert_eq!(ProducerMetrics::default().ack_latency.p50_nanos, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
+        assert_eq!(ConsumerMetrics::default().offset_commit_ok, 0);
+        assert_eq!(ConsumerMetrics::default().offset_commit_fail, 0);
         assert_eq!(ConsumerMetrics::default().fetch_latency.count, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
         assert_eq!(ShareMetrics::default().bytes_fetched, 0);

@@ -266,6 +266,18 @@ if [[ -f docs/adopter-exercise.md ]] \
 else
   bad "KL-08 adopter exercise template missing"
 fi
+
+# KL-07 slice: offset_commit_ok/fail counters for OffsetCommit diagnosis.
+if [[ -f tests/offset_commit_metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (offset commit)' docs/guide.md \
+  && grep -qF 'offset_commit_ok_metric_increments_on_successful_commit' tests/offset_commit_metrics.rs \
+  && grep -qF 'pub offset_commit_ok: u64' src/metrics.rs \
+  && grep -qF 'record_offset_commit_ok' src/consumer.rs \
+  && grep -qF 'offset_commit_metrics.rs' docs/ROADMAP.md; then
+  ok "KL-07 offset-commit diagnosis Partial (offset_commit_ok/fail; guide+mock)"
+else
+  bad "KL-07 offset-commit diagnosis Partial missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"
