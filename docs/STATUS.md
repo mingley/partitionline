@@ -172,7 +172,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-06 auth Error body hygiene (2026-09-05, tip `69599c1`):** OIDC token-endpoint and OAUTHBEARER authenticate failures no longer embed IdP/broker response bodies in `Error` (`oidc token endpoint HTTP {status}` / `oauthbearer: authentication failed`). Extends `tests/credential_redact.rs`. Does **not** close full KL-06 (rotation/outage + span/metrics redaction remain). Does **not** lift Suite HOLD.
 
-**KL-06 metrics/span redaction honesty (2026-09-05, tip `PENDING`):** Metrics snapshots are counters+latency+topic names only; optional `tracing` instruments `skip(self)` so configs with credentials are not span fields. Tests: `metrics_debug_excludes_credential_material`, `tracing_instruments_skip_self_holding_configs`. Does **not** close full KL-06 (rotation/outage recovery remains). Does **not** lift Suite HOLD.
+**KL-06 metrics/span redaction honesty (2026-09-05, tip `e1a2647`):** Metrics snapshots are counters+latency+topic names only; optional `tracing` instruments `skip(self)` so configs with credentials are not span fields. Tests: `metrics_debug_excludes_credential_material`, `tracing_instruments_skip_self_holding_configs`. Does **not** close full KL-06 (rotation/outage recovery remains). Does **not** lift Suite HOLD.
 
 **KL-02 buffer ownership + mock overload soak (2026-09-05, tip `8bd64d3`):** saturating `try_send` keeps `metrics().bytes_buffered ≤ buffer_memory` and drains to 0 after flush/close; guide documents key+value queued-until-ack model. Tests: `tests/buffer_ownership.rs`. Does **not** close full KL-02 (no 2×/24h RSS or full encode/socket/task ownership). Does **not** lift Suite HOLD.
 
