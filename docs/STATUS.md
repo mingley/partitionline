@@ -89,7 +89,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Handoff git-shaped gate covers guide+migrate (2026-09-05):** `owner-post-installable-handoff` PARTIAL (live + already-Installable DRY_RUN) now requires crates.io-shaped README **and** ADOPTION/guide/migrate via `pl_adopter_docs_crates_io_shaped` — not README-only soft-green. Self-test + bars gate. Still not a Suite HOLD lift. Still blocked on `CARGO_REGISTRY_TOKEN` / crates.io 0.1.0.
 
-**Day1 four-file commit/copy honesty (2026-09-05, tip pending):** finish/cut/publish/unblock/publish-ready/civilization-check + ADOPTION/RELEASE/CIVILIZATION now tell the owner to commit **README + ADOPTION + guide + migrate** after day1 (not README-only). `preserve-day1-docs` stash-pop recovery resets the full four-file surface. Civilization-check rehearses all four `post-publish-*` DRY_RUNs. Does **not** publish `0.1.0` or lift Suite HOLD.
+**Day1 four-file commit/copy honesty (2026-09-05, tip `a991e68`):** finish/cut/publish/unblock/publish-ready/civilization-check + ADOPTION/RELEASE/CIVILIZATION now tell the owner to commit **README + ADOPTION + guide + migrate** after day1 (not README-only). `preserve-day1-docs` stash-pop recovery resets the full four-file surface. Civilization-check rehearses all four `post-publish-*` DRY_RUNs. Does **not** publish `0.1.0` or lift Suite HOLD.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
