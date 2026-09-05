@@ -132,6 +132,9 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **crates.io description drift honesty (2026-09-05, tip `9181ce6`):** `scripts/check-crates-io-description.sh` WARNs when the published crates.io description lags `Cargo.toml` identity (local names no-C / no-librdkafka; published page still weaker until the next cut). Wired into `owner-status`; bars gate the probe. Does **not** re-cut `0.1.0`. Does **not** lift Suite HOLD.
 
+
+**Post-Installable #86 close + unblock/plan honesty (2026-09-05, tip `0146b98`):** Closed crates.io first-cut tracking #86 (0.1.0 live). `owner-unblock` branches ALREADY_INSTALLABLE (Trusted Publishing / handoff / survey #85; do not re-cut) vs historical READY_EXCEPT_TOKEN. CIVILIZATION WP-6 + ROADMAP stop waiting on crates.io / default ruzstd P0. Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

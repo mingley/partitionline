@@ -48,12 +48,7 @@ echo "  If stack FAIL (parks lagged tip / chain broken):"
 echo "    bash scripts/refresh-post-cut-parks.sh"
 echo
 
-echo "== 4) Publish path (after token; Verifiable already green on main) =="
-echo "Tracking issue: https://github.com/mingley/partitionline/issues/86"
-echo
-echo "Token missing? Start here (one screen):"
-echo "  bash scripts/owner-request-registry-token.sh"
-echo
+echo "== 4) Publish / post-Installable path =="
 # Live tip/main relationship — do not hardcode "matches main" (tip often stays
 # ahead on docs/scripts while Installable waits; thrash guard refuses sync).
 git fetch origin main dev/civilization-plan-b686 >/dev/null 2>&1 || true
@@ -67,53 +62,76 @@ elif [[ -n "$tip_sha" && -n "$main_sha" ]]; then
 else
   tip_main_note="Tip/main relationship unknown (fetch failed)."
 fi
-echo "As of 2026-09-04: main CI is green through Kafka 3.9.1 + 4.1.0 broker-smoke"
-echo "and latency-gate (soft-skip kip848 on 3.9). PRE_PUBLISH bars: only Installable"
-echo "blocked. ${tip_main_note} Remaining owner action is CARGO_REGISTRY_TOKEN."
-echo "Probe: bash scripts/check-installable-preflight.sh   # expect READY_EXCEPT_TOKEN"
-echo
-echo "Inject token into this Cloud Agent (preferred for owner-finish-installable):"
-echo "  Cursor → Cloud Agents → Environments → this env → Secrets"
-# shellcheck source=scripts/lib/cursor-env-secrets-url.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cursor-env-secrets-url.sh"
-echo "  Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL"
-echo "  Add CARGO_REGISTRY_TOKEN = crates.io token with publish-new (+ publish-update)"
-echo "  Save, then restart/re-run the agent so the shell receives the secret."
-echo "  Also set the same name as a GitHub Actions repository secret."
-echo
-echo "Fastest once CARGO_REGISTRY_TOKEN is in this environment (bypasses starved Actions):"
-echo "  bash scripts/check-registry-token.sh   # must exit 0 (publish-new auth; not presence-only)"
-echo "  bash scripts/check-cut-path.sh         # full cut rehearsal"
-echo "  bash scripts/owner-finish-installable.sh"
-echo "  # After Installable, finish chains owner-land-post-cut-parks by default:"
-echo "  #   1) dev/verifiable-auth-integrity-fuzz-b686 (Actions auth+integrity + CGHeartbeat fuzz)"
-echo "  #   2) dev/scram-crypto-bumps-b686 (SCRAM crypto + flate2 bumps)"
-echo "  #   3) dev/lz4-flex-bump-b686 (lz4_flex 0.11 → 0.14)"
-echo "  #   4) dev/actions-checkout-bump-b686 (actions/checkout → v7)"
-echo "  # MERGE_PARKED_VERIFIABLE=0 / MERGE_POST_CUT_PARKS=0 skips parks land"
-echo "  # FF-merges civilization → main (includes any tip-ahead docs/scripts), cargo publish,"
-echo "  # day1, proves Installable. Real cuts default REQUIRE_MAIN_CI=1 — wait for"
-echo "  # green main CI if a docs/scripts push is still running, or override with 0."
-echo "  DRY_RUN=1 bash scripts/owner-finish-installable.sh"
-echo
-echo "Or stepwise (docs/RELEASE.md): merge civilization → main, then tag final only:"
-echo "  # open/merge PR: dev/civilization-plan-b686 → main"
-echo "  git fetch origin main && git checkout main && git pull origin main"
-echo "  bash scripts/owner-cut-release.sh          # token in-env → local publish (auto)"
-echo "  PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh  # force tag → Actions"
-echo "  DRY_RUN=1 bash scripts/owner-cut-release.sh"
-echo
-echo "If the token is Actions-only (not in this shell):"
-echo "  1. Merge/FF civilization → main (first-publish.yml must exist on default branch)"
-echo "     # or dispatch with REF=<tip-sha> without FF when tip is docs/scripts-only"
-echo "  2. bash scripts/owner-cancel-stuck-runs.sh"
-echo "  3. From an owner machine (Cloud Agents get HTTP 403 on workflow_dispatch):"
-echo "       bash scripts/owner-dispatch-first-publish.sh"
-echo "     # or: Actions → First publish → confirm=publish"
-echo "  Prefer owner-finish-installable.sh when the token is already in-env."
-echo
-echo "Until crates.io lands, adopters pin git tag v0.1.0-rc.6 (not floating main)."
-echo
+
+pf_rc=0
+bash scripts/check-installable-preflight.sh >/tmp/pl-unblock-preflight.log 2>&1 || pf_rc=$?
+if [[ "$pf_rc" -eq 2 ]] || grep -qF 'ALREADY_INSTALLABLE' /tmp/pl-unblock-preflight.log 2>/dev/null; then
+  echo "Installable is met (crates.io partitionline 0.1.0 live). Tracking #86 is closed — do not re-cut 0.1.0."
+  echo "${tip_main_note}"
+  echo "Probe: bash scripts/check-installable-preflight.sh   # expect ALREADY_INSTALLABLE"
+  echo "Token (optional): only for future cuts / Actions secret / Trusted Publishing rehearsals."
+  echo "  bash scripts/owner-request-registry-token.sh   # future-cut ask; not an Installable blocker"
+  echo "Owner next:"
+  echo "  1. Trusted Publishing UI (OIDC) — bash scripts/check-trusted-publishing-ready.sh"
+  echo "  2. Post-Installable re-entry: bash scripts/owner-post-installable-handoff.sh"
+  echo "  3. Adoption survey #85; Suite HOLD stays until signed Lab A"
+  echo "  4. If parks stack drifted after a tip move: bash scripts/refresh-post-cut-parks.sh"
+  echo "Adopters: prefer crates.io partitionline = \"0.1\" (git rc pins are historical)."
+  echo
+else
+  echo "Tracking issue (historical first-cut): https://github.com/mingley/partitionline/issues/86"
+  echo
+  echo "Token missing? Start here (one screen):"
+  echo "  bash scripts/owner-request-registry-token.sh"
+  echo
+  echo "As of 2026-09-04: main CI is green through Kafka 3.9.1 + 4.1.0 broker-smoke"
+  echo "and latency-gate (soft-skip kip848 on 3.9). PRE_PUBLISH bars: only Installable"
+  echo "blocked. ${tip_main_note} Remaining owner action is CARGO_REGISTRY_TOKEN."
+  echo "Probe: bash scripts/check-installable-preflight.sh   # expect READY_EXCEPT_TOKEN"
+  echo
+  echo "Inject token into this Cloud Agent (preferred for owner-finish-installable):"
+  echo "  Cursor → Cloud Agents → Environments → this env → Secrets"
+  # shellcheck source=scripts/lib/cursor-env-secrets-url.sh
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/cursor-env-secrets-url.sh"
+  echo "  Direct: $PARTITIONLINE_CURSOR_ENV_SECRETS_URL"
+  echo "  Add CARGO_REGISTRY_TOKEN = crates.io token with publish-new (+ publish-update)"
+  echo "  Save, then restart/re-run the agent so the shell receives the secret."
+  echo "  Also set the same name as a GitHub Actions repository secret."
+  echo
+  echo "Fastest once CARGO_REGISTRY_TOKEN is in this environment (bypasses starved Actions):"
+  echo "  bash scripts/check-registry-token.sh   # must exit 0 (publish-new auth; not presence-only)"
+  echo "  bash scripts/check-cut-path.sh         # full cut rehearsal"
+  echo "  bash scripts/owner-finish-installable.sh"
+  echo "  # After Installable, finish chains owner-land-post-cut-parks by default:"
+  echo "  #   1) dev/verifiable-auth-integrity-fuzz-b686 (Actions auth+integrity + CGHeartbeat fuzz)"
+  echo "  #   2) dev/scram-crypto-bumps-b686 (SCRAM crypto + flate2 bumps)"
+  echo "  #   3) dev/lz4-flex-bump-b686 (lz4_flex 0.11 → 0.14)"
+  echo "  #   4) dev/actions-checkout-bump-b686 (actions/checkout → v7)"
+  echo "  # MERGE_PARKED_VERIFIABLE=0 / MERGE_POST_CUT_PARKS=0 skips parks land"
+  echo "  # FF-merges civilization → main (includes any tip-ahead docs/scripts), cargo publish,"
+  echo "  # day1, proves Installable. Real cuts default REQUIRE_MAIN_CI=1 — wait for"
+  echo "  # green main CI if a docs/scripts push is still running, or override with 0."
+  echo "  DRY_RUN=1 bash scripts/owner-finish-installable.sh"
+  echo
+  echo "Or stepwise (docs/RELEASE.md): merge civilization → main, then tag final only:"
+  echo "  # open/merge PR: dev/civilization-plan-b686 → main"
+  echo "  git fetch origin main && git checkout main && git pull origin main"
+  echo "  bash scripts/owner-cut-release.sh          # token in-env → local publish (auto)"
+  echo "  PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh  # force tag → Actions"
+  echo "  DRY_RUN=1 bash scripts/owner-cut-release.sh"
+  echo
+  echo "If the token is Actions-only (not in this shell):"
+  echo "  1. Merge/FF civilization → main (first-publish.yml must exist on default branch)"
+  echo "     # or dispatch with REF=<tip-sha> without FF when tip is docs/scripts-only"
+  echo "  2. bash scripts/owner-cancel-stuck-runs.sh"
+  echo "  3. From an owner machine (Cloud Agents get HTTP 403 on workflow_dispatch):"
+  echo "       bash scripts/owner-dispatch-first-publish.sh"
+  echo "     # or: Actions → First publish → confirm=publish"
+  echo "  Prefer owner-finish-installable.sh when the token is already in-env."
+  echo
+  echo "Until crates.io lands, adopters pin git tag v0.1.0-rc.6 (not floating main)."
+  echo
+fi
 
 echo "== 4b) After Installable / PARTIAL re-entry =="
 echo "  Finish calls cut with SKIP_HANDOFF=1, syncs Actions secrets, then one handoff"

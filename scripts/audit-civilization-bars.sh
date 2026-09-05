@@ -207,6 +207,16 @@ else
   bad "owner-status must OK missing token when Installable met; bars skip must not blame token post-Installable"
 fi
 
+# owner-unblock must not steer first-cut token ask when Installable is already met.
+if grep -qF 'Tracking #86 is closed' scripts/owner-unblock.sh \
+  && grep -qF 'expect ALREADY_INSTALLABLE' scripts/owner-unblock.sh \
+  && grep -qF 'Trusted Publishing UI' scripts/owner-unblock.sh \
+  && grep -qF 'expect READY_EXCEPT_TOKEN' scripts/owner-unblock.sh; then
+  ok "owner-unblock post-Installable path (ALREADY_INSTALLABLE vs READY_EXCEPT_TOKEN; #86 closed)"
+else
+  bad "owner-unblock must branch ALREADY_INSTALLABLE (do not re-cut) vs READY_EXCEPT_TOKEN first-cut"
+fi
+
 # Post-Installable: crates.io description can lag Cargo.toml until the next cut — surface WARN, do not re-cut 0.1.0.
 if [[ -x scripts/check-crates-io-description.sh ]] \
   && grep -qF 'check-crates-io-description.sh' scripts/owner-status.sh \
