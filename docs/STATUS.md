@@ -138,6 +138,9 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Main CI green after #86 / unblock honesty (2026-09-05, tip `dc9e2ec`):** Actions `ci` on `main` HEAD green (fmt, clippy, test 1.85+stable, features, deny, package, audit, auth-smoke, integrity-smoke, latency-gate, fuzz-smoke, broker-smoke Kafka 3.9.1 + 4.1.0). Installable met; #86 closed; owner-unblock ALREADY_INSTALLABLE path live; civilization bars 47 PASS. Does **not** lift Suite HOLD (Lab A unsigned). Trusted Publishing UI still owner.
 
+
+**Handoff tip-ahead-of-parks honesty (2026-09-05, tip `d43a9a3`):** `owner-post-installable-handoff` DRY_RUN and live stack checks PARTIAL/exit 2 when parks are already on main but tip is not an ancestor of park heads (STATUS stamps), with `refresh-post-cut-parks` guidance — no hard FAIL that bricks bars after docs-only tip moves. Bars gate. Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

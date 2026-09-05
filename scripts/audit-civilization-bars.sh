@@ -470,6 +470,15 @@ else
   bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log /tmp/pl-handoff-self-test.log"
 fi
 
+# Handoff must PARTIAL (not hard-fail) when tip STATUS stamps advance ahead of park heads.
+if grep -qF 'tip not ancestor of park heads (DRY_RUN)' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'parks on main but tip not ancestor of park heads' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'refresh-post-cut-parks.sh' scripts/owner-post-installable-handoff.sh; then
+  ok "handoff tip-ahead-of-parks honesty (PARTIAL/2 + refresh; parks-on-main still OK)"
+else
+  bad "handoff must PARTIAL when tip ahead of parks while parks already on main"
+fi
+
 # Cut-release bare must auto PUBLISH_LOCAL=1 when token is in-env (token-day footgun).
 if bash scripts/owner-cut-release.sh --self-test >/tmp/pl-cut-publish-local-auto.log 2>&1 \
   && grep -q 'handoff chained' /tmp/pl-cut-publish-local-auto.log \

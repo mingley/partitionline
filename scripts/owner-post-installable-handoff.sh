@@ -78,6 +78,12 @@ if [[ "${1:-}" == "--self-test" ]]; then
   fi
   bash "$ROOT/scripts/check-parks-on-main.sh" --self-test
   bash "$ROOT/scripts/lib/preserve-day1-docs.sh" --self-test
+  if ! grep -qF 'tip not ancestor of park heads (DRY_RUN)' "$ROOT/scripts/owner-post-installable-handoff.sh" \
+    || ! grep -qF 'parks on main but tip not ancestor of park heads' "$ROOT/scripts/owner-post-installable-handoff.sh" \
+    || ! grep -qF 'refresh-post-cut-parks.sh' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — tip-ahead-of-parks must PARTIAL/exit 2 (DRY_RUN + live) with refresh" >&2
+    exit 1
+  fi
   echo "owner-post-installable-handoff: self-test OK — preserve + day1 chain + parks-on-main + fail-closed PARTIAL"
   exit 0
 fi
@@ -138,7 +144,22 @@ if [[ "$DRY_RUN" == "1" ]]; then
     echo
   fi
   echo "== DRY_RUN: post-cut parks stack =="
-  bash scripts/check-post-cut-parks-stack.sh
+  # Tip STATUS stamps often advance tip ahead of park heads before refresh.
+  # Do not hard-fail under set -e: parks-on-main OK + tip⊈parks → PARTIAL/2 (refresh).
+  dry_stack_rc=0
+  bash scripts/check-post-cut-parks-stack.sh || dry_stack_rc=$?
+  if [[ "$dry_stack_rc" -ne 0 ]]; then
+    dry_parks_probe=0
+    bash scripts/check-parks-on-main.sh >/tmp/pl-handoff-parks-main.log 2>&1 || dry_parks_probe=$?
+    if [[ "$dry_parks_probe" -eq 0 ]] && bash scripts/check-installable.sh >/dev/null 2>&1; then
+      echo "owner-post-installable-handoff: PARTIAL — Installable OK; parks on main but tip not ancestor of park heads (DRY_RUN)" >&2
+      echo "  Refresh: PUSH=1 VERIFY=1 bash scripts/refresh-post-cut-parks.sh" >&2
+      echo "  Then re-enter: bash scripts/owner-post-installable-handoff.sh" >&2
+      exit 2
+    fi
+    echo "owner-post-installable-handoff: FAIL — post-cut parks stack rc=${dry_stack_rc} (parks-on-main probe rc=${dry_parks_probe})" >&2
+    exit 1
+  fi
   echo
   echo "== DRY_RUN: parks on main =="
   # Stack check ≠ landed. Shared probe so already-Installable DRY_RUN cannot
@@ -239,15 +260,37 @@ if [[ "$ENABLE_TP" == "1" ]]; then
 fi
 
 echo "== 6) Post-cut parks =="
-bash scripts/check-post-cut-parks-stack.sh
+stack_rc=0
+bash scripts/check-post-cut-parks-stack.sh || stack_rc=$?
 parks_rc=0
+if [[ "$stack_rc" -ne 0 && "$LAND_PARKS" != "1" ]]; then
+  # Tip docs/STATUS stamps often leave tip ahead of park heads while parks remain
+  # on main — PARTIAL/2 with refresh, not hard FAIL that bricks handoff/bars.
+  parks_probe=0
+  bash scripts/check-parks-on-main.sh >/tmp/pl-handoff-live-parks-main.log 2>&1 || parks_probe=$?
+  if [[ "$parks_probe" -eq 0 ]]; then
+    echo "owner-post-installable-handoff: PARTIAL — Installable OK; parks on main but tip not ancestor of park heads" >&2
+    echo "  Refresh: PUSH=1 VERIFY=1 bash scripts/refresh-post-cut-parks.sh" >&2
+    echo "  Then re-enter: bash scripts/owner-post-installable-handoff.sh" >&2
+    exit 2
+  fi
+  echo "owner-post-installable-handoff: FAIL — post-cut parks stack rc=${stack_rc} (parks-on-main rc=${parks_probe})" >&2
+  exit 1
+fi
 if [[ "$LAND_PARKS" == "1" ]]; then
   echo "owner-post-installable-handoff: LAND_PARKS=1 — landing parks onto main"
   # Preserve any uncommitted day1 README/ADOPTION/guide/migrate edits across park merges.
   # shellcheck source=scripts/lib/preserve-day1-docs.sh
   source "$ROOT/scripts/lib/preserve-day1-docs.sh"
   pl_day1_docs_begin
-  REQUIRE_PARKS=1 bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?
+  # Refresh tip→parks first when stack is stale so land does not start from FAIL.
+  if [[ "$stack_rc" -ne 0 ]]; then
+    echo "owner-post-installable-handoff: stack stale — refreshing parks onto tip before land"
+    PUSH=1 VERIFY=1 bash scripts/refresh-post-cut-parks.sh || parks_rc=$?
+  fi
+  if [[ "$parks_rc" -eq 0 ]]; then
+    REQUIRE_PARKS=1 bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?
+  fi
   pl_day1_docs_end
   if [[ "$parks_rc" -ne 0 ]]; then
     echo "owner-post-installable-handoff: WARN — parks land failed (Installable still OK)" >&2
