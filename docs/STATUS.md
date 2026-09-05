@@ -123,6 +123,9 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Post-Installable token MISSING honesty (2026-09-05, tip `1afab91`):** `check-registry-token` MISSING path now distinguishes Installable-met (token only for future cuts / Actions) from first cut of a new crate name (still needs publish-new). Does **not** lift Suite HOLD. Token remains unset in this agent.
 
+
+**Tip↔main unify after CI land (2026-09-05, tip pending):** tip absorbed main CI green (`SKIP_LATENCY_GATE`, rustfmt, checkout v7) after tip-advance and main push diverged; crates.io description pure-Rust / no-C / no-librdkafka retained on tip. Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
