@@ -20,7 +20,7 @@ PL_DAY1_DOCS_BACKUP_DIR="${PL_DAY1_DOCS_BACKUP_DIR:-}"
 PL_DAY1_DOCS_STASHED="${PL_DAY1_DOCS_STASHED:-0}"
 
 pl_day1_docs_paths() {
-  printf '%s\n' README.md docs/ADOPTION.md
+  printf '%s\n' README.md docs/ADOPTION.md docs/guide.md docs/migrate-from-rdkafka.md
 }
 
 pl_day1_docs_dirty() {
@@ -33,7 +33,7 @@ pl_day1_docs_begin() {
   PL_DAY1_DOCS_BACKUP_DIR=""
   PL_DAY1_DOCS_STASHED=0
   if ! pl_day1_docs_dirty; then
-    echo "preserve-day1-docs: no dirty README/ADOPTION — nothing to preserve"
+    echo "preserve-day1-docs: no dirty day1 docs (README/ADOPTION/guide/migrate) — nothing to preserve"
     return 0
   fi
   PL_DAY1_DOCS_BACKUP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pl-day1-docs.XXXXXX")"
@@ -45,9 +45,9 @@ pl_day1_docs_begin() {
     fi
   done < <(pl_day1_docs_paths)
   echo "preserve-day1-docs: backed up day1 docs to ${PL_DAY1_DOCS_BACKUP_DIR}"
-  git stash push -m "pl-finish-day1-docs" -- README.md docs/ADOPTION.md
+  git stash push -m "pl-finish-day1-docs" -- README.md docs/ADOPTION.md docs/guide.md docs/migrate-from-rdkafka.md
   PL_DAY1_DOCS_STASHED=1
-  echo "preserve-day1-docs: stashed day1 README/ADOPTION before parks land"
+  echo "preserve-day1-docs: stashed day1 README/ADOPTION/guide/migrate before parks land"
 }
 
 pl_day1_docs_restore_from_backup() {
@@ -107,18 +107,24 @@ pl_day1_docs_self_test() {
     mkdir -p docs
     printf 'README pin git\n' >README.md
     printf 'ADOPTION pin git\n' >docs/ADOPTION.md
-    git add README.md docs/ADOPTION.md
+    printf 'guide pin git\n' >docs/guide.md
+    printf 'migrate pin git\n' >docs/migrate-from-rdkafka.md
+    git add README.md docs/ADOPTION.md docs/guide.md docs/migrate-from-rdkafka.md
     git commit -q -m "base"
     # Simulate day1 crates.io flip (dirty tree).
     printf 'README crates.io 0.1\n' >README.md
     printf 'ADOPTION crates.io 0.1\n' >docs/ADOPTION.md
+    printf 'guide crates.io 0.1\n' >docs/guide.md
+    printf 'migrate crates.io 0.1\n' >docs/migrate-from-rdkafka.md
     # shellcheck source=/dev/null
     source "$root/scripts/lib/preserve-day1-docs.sh"
     pl_day1_docs_begin
     # Simulate parks rewriting the files on a clean tree.
     printf 'README after parks\n' >README.md
     printf 'ADOPTION after parks\n' >docs/ADOPTION.md
-    git add README.md docs/ADOPTION.md
+    printf 'guide after parks\n' >docs/guide.md
+    printf 'migrate after parks\n' >docs/migrate-from-rdkafka.md
+    git add README.md docs/ADOPTION.md docs/guide.md docs/migrate-from-rdkafka.md
     git commit -q -m "parks"
     # Force the backup path: drop the stash without applying it.
     git stash drop --quiet
@@ -126,6 +132,8 @@ pl_day1_docs_self_test() {
     pl_day1_docs_end
     grep -qx 'README crates.io 0.1' README.md
     grep -qx 'ADOPTION crates.io 0.1' docs/ADOPTION.md
+    grep -qx 'guide crates.io 0.1' docs/guide.md
+    grep -qx 'migrate crates.io 0.1' docs/migrate-from-rdkafka.md
   )
   echo "preserve-day1-docs: self-test OK"
 }

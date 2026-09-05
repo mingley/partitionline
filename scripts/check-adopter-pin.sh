@@ -35,7 +35,27 @@ if grep -qE '^partitionline = "[0-9]' README.md; then
     echo "  Re-run: bash scripts/post-publish-adoption.sh" >&2
     exit 1
   fi
-  echo "check-adopter-pin: ok (README + ADOPTION use crates.io version dep)"
+  if ! grep -qE 'partitionline = \{ version = "[0-9]' docs/guide.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/guide.md lacks crates.io version+features dep" >&2
+    echo "  Re-run: bash scripts/post-publish-guide.sh" >&2
+    exit 1
+  fi
+  if grep -qE '^partitionline = \{ git =' docs/guide.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/guide.md still has a live git pin" >&2
+    echo "  Re-run: bash scripts/post-publish-guide.sh" >&2
+    exit 1
+  fi
+  if ! grep -qE '^partitionline = "[0-9]' docs/migrate-from-rdkafka.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/migrate-from-rdkafka.md lacks crates.io version dep" >&2
+    echo "  Re-run: bash scripts/post-publish-migrate.sh" >&2
+    exit 1
+  fi
+  if grep -qE '^partitionline = \{ git =' docs/migrate-from-rdkafka.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/migrate-from-rdkafka.md still has a live git pin" >&2
+    echo "  Re-run: bash scripts/post-publish-migrate.sh" >&2
+    exit 1
+  fi
+  echo "check-adopter-pin: ok (README + ADOPTION + guide + migrate use crates.io version dep)"
   exit 0
 fi
 

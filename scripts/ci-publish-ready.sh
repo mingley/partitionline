@@ -46,6 +46,14 @@ echo "== ADOPTION crates.io flip rehearsal =="
 DRY_RUN=1 bash scripts/post-publish-adoption.sh >/tmp/pl-adoption-flip-dry.log
 tail -2 /tmp/pl-adoption-flip-dry.log
 
+echo "== guide crates.io flip rehearsal =="
+DRY_RUN=1 bash scripts/post-publish-guide.sh >/tmp/pl-guide-flip-dry.log
+tail -2 /tmp/pl-guide-flip-dry.log
+
+echo "== migrate crates.io flip rehearsal =="
+DRY_RUN=1 bash scripts/post-publish-migrate.sh >/tmp/pl-migrate-flip-dry.log
+tail -2 /tmp/pl-migrate-flip-dry.log
+
 echo "== day-1 after-publish rehearsal (no crates.io wait) =="
 # Live cut runs this *before* publish. Absent crate + DRY_RUN is PARTIAL/2 —
 # capture so token-day owner-cut-release cannot abort on the expected miss.
