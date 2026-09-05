@@ -136,6 +136,16 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (offsetsForTimes)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Timestamp seek healthy | `Consumer::metrics().offsets_for_times_ok` rising; `offsets_for_times_fail == 0` | Batch timestamp→offset lookup succeeding |
+| Seek-by-time storms | `offsets_for_times_fail` rising | Broker ListOffsets error, timeout, or negative timestamp rejected |
+| No timestamp seeks | both counters stay 0 | `offsets_for_times` not called |
+
+`offsets_for_times_ok` / `offsets_for_times_fail` count terminal `offsets_for_times` batch outcomes on `ConsumerMetrics`. Prefer them over dumping payloads. Mock proof: `tests/offsets_for_times_metrics.rs`. KL-07 Partial — not two independent human diagnosis runs, and not a Suite HOLD lift.
+
 ## Recipes
 
 ### Backpressure

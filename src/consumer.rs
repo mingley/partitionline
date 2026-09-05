@@ -1257,6 +1257,8 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    m_offsets_for_times_ok: AtomicU64,
+    m_offsets_for_times_fail: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1346,6 +1348,8 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_offsets_for_times_ok: AtomicU64::new(0),
+            m_offsets_for_times_fail: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -2153,7 +2157,17 @@ impl Consumer {
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
+            offsets_for_times_ok: self.m_offsets_for_times_ok.load(Ordering::Relaxed),
+            offsets_for_times_fail: self.m_offsets_for_times_fail.load(Ordering::Relaxed),
         }
+    }
+
+    pub(crate) fn record_offsets_for_times_ok(&self) {
+        let _ = self.m_offsets_for_times_ok.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn record_offsets_for_times_fail(&self) {
+        let _ = self.m_offsets_for_times_fail.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
@@ -3085,6 +3099,21 @@ impl Consumer {
     /// [`Self::offsets_for_times`] with a one-shot timeout
     /// (Java `offsetsForTimes(Map, Duration)`).
     pub async fn offsets_for_times_timeout(
+        &mut self,
+        queries: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
+        timeout: Duration,
+    ) -> Result<Vec<(TopicPartition, Option<OffsetAndTimestamp>)>> {
+        let result = self
+            .offsets_for_times_timeout_inner(queries, timeout)
+            .await;
+        match &result {
+            Ok(_) => self.record_offsets_for_times_ok(),
+            Err(_) => self.record_offsets_for_times_fail(),
+        }
+        result
+    }
+
+    async fn offsets_for_times_timeout_inner(
         &mut self,
         queries: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
         timeout: Duration,

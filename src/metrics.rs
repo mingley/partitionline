@@ -340,6 +340,11 @@ pub struct ConsumerMetrics {
     pub fetch_latency: LatencyStats,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
     pub topics: Vec<TopicFetchMetrics>,
+    /// Successful [`crate::Consumer::offsets_for_times`] batch calls.
+    /// KL-07 diagnosis: timestamp→offset lookup health without dumping payloads.
+    pub offsets_for_times_ok: u64,
+    /// Failed [`crate::Consumer::offsets_for_times`] batch calls (validation or terminal RPC).
+    pub offsets_for_times_fail: u64,
 }
 
 /// Fetch counters for one topic.
@@ -565,6 +570,8 @@ mod tests {
         assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
         assert_eq!(ConsumerMetrics::default().fetch_latency.count, 0);
+        assert_eq!(ConsumerMetrics::default().offsets_for_times_ok, 0);
+        assert_eq!(ConsumerMetrics::default().offsets_for_times_fail, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
         assert_eq!(ShareMetrics::default().bytes_fetched, 0);
         assert_eq!(ShareMetrics::default().fetch_errors, 0);

@@ -267,6 +267,7 @@ struct State {
     list_offsets_calls: u32,
     list_offsets_not_leader: u32,
     last_list_offsets_version: Option<i16>,
+    list_offsets_fail_left: u32,
     last_delete_records_node: Option<i32>,
     last_delete_records_version: Option<i16>,
     last_delete_records_timeout: Option<i32>,
@@ -629,6 +630,7 @@ fn new_state(
         list_offsets_calls: 0,
         list_offsets_not_leader: 0,
         last_list_offsets_version: None,
+        list_offsets_fail_left: 0,
         last_delete_records_node: None,
         last_delete_records_version: None,
         last_delete_records_timeout: None,
@@ -1276,6 +1278,21 @@ fn list_offsets_partition_result(
             ),
         );
     }
+    if st.list_offsets_fail_left > 0 {
+        st.list_offsets_fail_left = st.list_offsets_fail_left.saturating_sub(1);
+        return (
+            true,
+            ListOffsetsResponsePartition::new(
+                partition,
+                ListOffsetsPartition {
+                    error_code: error::OFFSET_OUT_OF_RANGE,
+                    timestamp: ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+                    offset: ListOffsetsPartition::UNKNOWN_OFFSET,
+                    leader_epoch: ListOffsetsPartition::UNKNOWN_EPOCH,
+                },
+            ),
+        );
+    }
     let broker_epoch = st.partition_epochs.get(&key).copied().unwrap_or(0);
     let error_code = if current_epoch != -1 && current_epoch < broker_epoch {
         error::FENCED_LEADER_EPOCH
@@ -1816,6 +1833,12 @@ impl Mock {
 
     pub fn list_offsets_calls(&self) -> u32 {
         self.state.lock().list_offsets_calls
+    }
+
+    /// Next ListOffsets partition response carries a non-retriable error once
+    /// (`OFFSET_OUT_OF_RANGE`) so the client exits without retry-looping.
+    pub fn list_offsets_fail_once(&self) {
+        self.state.lock().list_offsets_fail_left = 1;
     }
 
     pub fn list_offsets_not_leader(&self) -> u32 {
