@@ -10,7 +10,7 @@
 //! Java `ScramMechanism` name lookup (unknown → `None`; not admin
 //! `ScramMechanism.fromMechanismName`, which returns `UNKNOWN`).
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use pbkdf2::pbkdf2_hmac;
 use sha2::{Digest, Sha256, Sha512};
 

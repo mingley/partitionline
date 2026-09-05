@@ -55,6 +55,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - Scripts: `check-post-cut-parks-stack` also gates park chain (Verifiable⊆SCRAM⊆lz4⊆checkout) so parallel tip refreshes cannot fork CHANGELOG histories that only conflict at stacked land time.
 - Scripts/docs: rebuild lz4 + actions/checkout post-cut parks stacked on SCRAM (SCRAM⊆lz4⊆checkout) so tip→Verifiable→SCRAM→lz4→checkout DRY_RUN stays merge-clean after tip-is-ancestor gate; tip stays docs/scripts-only.
 - Scripts: `check-post-cut-parks-stack` gates tip-is-ancestor of every post-cut park (catches parks lagging tip after docs/scripts commits) before stacked DRY_RUN merge + `cargo test --lib`.
+- Dependencies: flate2 1.1.9→1.1.10 (gzip write header/footer infinite-loop fix; miniz_oxide 0.8→0.9). Parked off tip until after Installable (lockfile breaks docs-only tip-delta).
+- Dependencies: SCRAM stack hmac 0.12→0.13, pbkdf2 0.12→0.13, sha2 0.10→0.11 (KeyInit import). Parked off tip until after Installable; auth-smoke green.
 - Scripts/docs: `owner-enable-trusted-publishing` post-Installable helper verifies release.yml OIDC shape and prints exact crates.io Trusted Publishing UI steps; wired into day1 / owner-status / RELEASE.
 - Scripts: `check-cut-path` runs `cargo publish --dry-run` so Installable rehearsal proves package upload shape before `CARGO_REGISTRY_TOKEN` arrives.
 - Scripts/docs: park `actions/checkout` v7 on `dev/actions-checkout-bump-b686` and append it to post-cut land order (after Verifiable + SCRAM + lz4); tip stays docs/scripts-only until Installable.
