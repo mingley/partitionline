@@ -136,6 +136,16 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (LeaveGroup)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Clean leave / unsubscribe | `ConsumerGroup::metrics().leave_ok` rising; `leave_fail == 0` | Healthy LeaveGroup (or KIP-848 leave heartbeat) |
+| Leave fence | `leave_fail` rising | UNKNOWN_MEMBER_ID / illegal generation / transport error on leave |
+| Silent abandon | both counters stuck at 0 while process exits | Leave path never ran (crash / kill -9 / dropped handle) |
+
+`leave_ok` / `leave_fail` count terminal LeaveGroup / leave-heartbeat outcomes on `ConsumerMetrics` (via `ConsumerGroup::metrics`). Prefer these over dumping payloads. Mock proof: `tests/leave_group_metrics.rs`. KL-07 Partial — not two independent human diagnosis runs, and not a Suite HOLD lift.
+
 ## Recipes
 
 ### Backpressure

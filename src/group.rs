@@ -1755,6 +1755,15 @@ impl ConsumerGroup {
 
     async fn leave_coordinator(&mut self, reason: &str) -> Result<()> {
         let timeout = self.cfg.request_timeout;
+        let result = self.leave_coordinator_inner(reason, timeout).await;
+        match &result {
+            Ok(()) => self.consumer.record_leave_ok(),
+            Err(_) => self.consumer.record_leave_fail(),
+        }
+        result
+    }
+
+    async fn leave_coordinator_inner(&mut self, reason: &str, timeout: Duration) -> Result<()> {
         if self.kip848 {
             let version =
                 spoken_consumer_group_heartbeat(self.coord.consumer_group_heartbeat_version)?;

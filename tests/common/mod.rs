@@ -398,6 +398,7 @@ struct State {
     last_leave_group_node: Option<i32>,
     last_leave_group_members: Option<Vec<LeaveGroupMember>>,
     last_leave_group_version: Option<i16>,
+    leave_group_fail_left: u32,
     last_sasl_handshake_version: Option<i16>,
     last_sasl_handshake_correlation: Option<i32>,
     last_sasl_authenticate_version: Option<i16>,
@@ -756,6 +757,7 @@ fn new_state(
         last_leave_group_node: None,
         last_leave_group_members: None,
         last_leave_group_version: None,
+        leave_group_fail_left: 0,
         last_sasl_handshake_version: None,
         last_sasl_handshake_correlation: None,
         last_sasl_authenticate_version: None,
@@ -2372,6 +2374,11 @@ impl Mock {
 
     pub fn last_leave_group_version(&self) -> Option<i16> {
         self.state.lock().last_leave_group_version
+    }
+
+    /// Next LeaveGroup returns a top-level UNKNOWN_MEMBER_ID once.
+    pub fn leave_group_fail_once(&self) {
+        self.state.lock().leave_group_fail_left = 1;
     }
 
     pub fn last_sasl_handshake_version(&self) -> Option<i16> {
@@ -5880,40 +5887,51 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_leave_group_version = Some(version);
                 st.last_leave_group_node = Some(node_id);
                 st.last_leave_group_members = Some(members.clone());
-                let results: Vec<LeaveGroupMemberResult> = members
-                    .into_iter()
-                    .map(|m| {
-                        if let Some(g) = st.groups.get_mut(&gid) {
-                            if !m.member_id.is_empty() {
-                                g.members.remove(&m.member_id);
-                                g.joined.remove(&m.member_id);
-                                let _ = g.instances.remove(&m.member_id);
-                            } else if let Some(ref iid) = m.group_instance_id {
-                                let ids: Vec<String> = g
-                                    .instances
-                                    .iter()
-                                    .filter(|(_, v)| *v == iid)
-                                    .map(|(k, _)| k.clone())
-                                    .collect();
-                                for id in ids {
-                                    g.members.remove(&id);
-                                    g.joined.remove(&id);
-                                    let _ = g.instances.remove(&id);
+                if st.leave_group_fail_left > 0 {
+                    st.leave_group_fail_left = st.leave_group_fail_left.saturating_sub(1);
+                    encode_leave_group_response_version(
+                        &mut body,
+                        version,
+                        error::UNKNOWN_MEMBER_ID,
+                        &[],
+                    )
+                    .unwrap();
+                } else {
+                    let results: Vec<LeaveGroupMemberResult> = members
+                        .into_iter()
+                        .map(|m| {
+                            if let Some(g) = st.groups.get_mut(&gid) {
+                                if !m.member_id.is_empty() {
+                                    g.members.remove(&m.member_id);
+                                    g.joined.remove(&m.member_id);
+                                    let _ = g.instances.remove(&m.member_id);
+                                } else if let Some(ref iid) = m.group_instance_id {
+                                    let ids: Vec<String> = g
+                                        .instances
+                                        .iter()
+                                        .filter(|(_, v)| *v == iid)
+                                        .map(|(k, _)| k.clone())
+                                        .collect();
+                                    for id in ids {
+                                        g.members.remove(&id);
+                                        g.joined.remove(&id);
+                                        let _ = g.instances.remove(&id);
+                                    }
                                 }
+                                g.generation += 1;
+                                g.joined.clear();
+                                g.assignments.clear();
                             }
-                            g.generation += 1;
-                            g.joined.clear();
-                            g.assignments.clear();
-                        }
-                        LeaveGroupMemberResult {
-                            member_id: m.member_id,
-                            group_instance_id: m.group_instance_id,
-                            error_code: 0,
-                        }
-                    })
-                    .collect();
-                st.assign_notify.notify_waiters();
-                encode_leave_group_response_version(&mut body, version, 0, &results).unwrap();
+                            LeaveGroupMemberResult {
+                                member_id: m.member_id,
+                                group_instance_id: m.group_instance_id,
+                                error_code: 0,
+                            }
+                        })
+                        .collect();
+                    st.assign_notify.notify_waiters();
+                    encode_leave_group_response_version(&mut body, version, 0, &results).unwrap();
+                }
             }
             OFFSET_COMMIT => {
                 let (gid, _m, topics, _retention, ..) =
