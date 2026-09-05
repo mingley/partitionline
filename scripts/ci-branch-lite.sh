@@ -150,7 +150,11 @@ echo "== ci-branch-lite: docs =="
 bash scripts/ci-docs.sh
 
 if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 ]]; then
-  echo "ci-branch-lite: ok with PARTIAL — tip Verifiable proxy held; Installable still blocked on CARGO_REGISTRY_TOKEN (or post-cut re-entry)"
+  if bash scripts/check-installable.sh >/dev/null 2>&1; then
+    echo "ci-branch-lite: ok with PARTIAL — tip Verifiable proxy held; Installable already met — post-cut re-entry (parks/day1/dispatch), not a token blocker"
+  else
+    echo "ci-branch-lite: ok with PARTIAL — tip Verifiable proxy held; Installable still blocked on CARGO_REGISTRY_TOKEN (pre-token rehearsal)"
+  fi
   exit 0
 fi
 echo "ci-branch-lite: ok (tip Verifiable proxy; full matrix via PR/main/dispatch)"

@@ -176,7 +176,7 @@ echo "== check-cut-path: post-Installable handoff rehearsal (DRY_RUN) =="
 # After crates.io 0.1.0 (or Actions-alternate publish), owners re-enter via
 # owner-post-installable-handoff. Rehearse before the token cut.
 # Capture rc: already-Installable + parks-off-main → PARTIAL/2 (must not set -e abort).
-# Pre-token parks pending holds exit 0 with a PARTIAL note (like day1).
+# Pre-token parks/day1 pending also exits PARTIAL/2 (aggregated; tip proxies stay exit 0 with PARTIAL).
 handoff_rc=0
 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
 if [[ "$handoff_rc" -eq 2 ]]; then
@@ -213,7 +213,11 @@ echo
 # not a failed rehearsal. Already-Installable first-publish / handoff parks-on-main
 # DRY_RUN PARTIAL is post-cut honesty. Exit 0 so tip proxies stay green while waiting.
 if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 || "$finish_rc" -eq 2 ]]; then
-  echo "check-cut-path: OK with PARTIAL — cut path rehearsed; Installable still blocked on CARGO_REGISTRY_TOKEN (or post-cut re-entry)"
+  if bash scripts/check-installable.sh >/dev/null 2>&1; then
+    echo "check-cut-path: OK with PARTIAL — cut path rehearsed; Installable already met — post-cut re-entry (parks/day1/dispatch/finish), not a token blocker"
+  else
+    echo "check-cut-path: OK with PARTIAL — cut path rehearsed; Installable still blocked on CARGO_REGISTRY_TOKEN (pre-token rehearsal)"
+  fi
   exit 0
 fi
 echo "check-cut-path: OK — cut path rehearsed; blocked only on CARGO_REGISTRY_TOKEN if preflight said READY_EXCEPT_TOKEN"
