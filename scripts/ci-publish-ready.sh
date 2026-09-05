@@ -36,6 +36,9 @@ bash scripts/check-crate-metadata.sh
 echo "== crate consumer =="
 bash scripts/ci-crate-consumer.sh
 
+echo "== group-evolution examples as packed-crate consumers =="
+bash scripts/ci-example-group-evolution-crate-consumers.sh
+
 echo "== adopter crates.io consumer rehearsal (path) =="
 MODE=path bash scripts/verify-crates-io-consumer.sh
 

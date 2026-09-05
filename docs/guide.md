@@ -83,6 +83,17 @@ On 4.0/4.1 also set `group.share.enable=true` until that temporary flag is
 removed upstream. Default `share.auto.offset.reset` is **latest** — produce
 while the share member is already polling.
 
+### Cooperative / KIP-848 / share examples as external package consumers
+
+`examples/cooperative.rs`, `examples/kip848.rs`, and `examples/share.rs`
+(KIP-429 cooperative-sticky, KIP-848 consumer protocol, KIP-932 share groups)
+must compile as **downstream** bins against the packed `.crate`, not only as
+in-tree path dependencies. Proof:
+`bash scripts/ci-example-group-evolution-crate-consumers.sh` (wired into
+branch-lite / cut-path / publish-ready). Complements classic `group` and other
+external-consumer Partials when those land. This is a KL-07 Partial — not
+two-user diagnosis, and not a Suite HOLD lift.
+
 ## Exactly-once (transactions)
 
 Use `transactional_id`, `init_transactions`, and

@@ -239,6 +239,24 @@ else
 fi
 
 
+# KL-07 slice: cooperative/kip848/share examples as external packed-crate consumers.
+if [[ -f scripts/ci-example-group-evolution-crate-consumers.sh && -f examples/cooperative.rs && -f examples/kip848.rs && -f examples/share.rs && -f docs/guide.md ]] \
+  && grep -qF 'Cooperative / KIP-848 / share examples as external package consumers' docs/guide.md \
+  && grep -qF 'ci-example-group-evolution-crate-consumers.sh' docs/guide.md \
+  && grep -qF 'examples/cooperative.rs' scripts/ci-example-group-evolution-crate-consumers.sh \
+  && grep -qF 'examples/kip848.rs' scripts/ci-example-group-evolution-crate-consumers.sh \
+  && grep -qF 'examples/share.rs' scripts/ci-example-group-evolution-crate-consumers.sh \
+  && grep -qF 'ci-example-group-evolution-crate-consumers.sh' scripts/ci-branch-lite.sh \
+  && grep -qF 'ci-example-group-evolution-crate-consumers.sh' scripts/check-cut-path.sh \
+  && grep -qF 'ci-example-group-evolution-crate-consumers.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'cooperative/kip848/share examples as external' docs/ROADMAP.md \
+  && bash scripts/ci-example-group-evolution-crate-consumers.sh --self-test >/tmp/pl-kl07-ge-ex-self.log 2>&1 \
+  && bash scripts/ci-example-group-evolution-crate-consumers.sh >/tmp/pl-kl07-ge-ex.log 2>&1; then
+  ok "KL-07 cooperative/kip848/share external crate-consumers (packed .crate cargo check; guide+bars)"
+else
+  bad "KL-07 cooperative/kip848/share external crate-consumers missing/failed; see /tmp/pl-kl07-ge-ex*.log"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \
