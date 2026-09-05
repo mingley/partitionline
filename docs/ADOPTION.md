@@ -53,8 +53,10 @@ bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish
    `bash scripts/owner-dispatch-first-publish.sh`
    (`.github/workflows/first-publish.yml` is already on `main`).
 4. Commit README + ADOPTION + guide + migrate crates.io lines if day1 changed them; configure crates.io
-   Trusted Publishing for `release.yml`. After Installable (any cut path),
-   re-enter TP + parks + full bars anytime with:
+   Trusted Publishing for `release.yml` (record the binding in
+   [trusted-publishing-owner.md](trusted-publishing-owner.md) — ships
+   **UNFILLED**; shape scripts do not prove UI binding). After Installable
+   (any cut path), re-enter TP + parks + full bars anytime with:
    ```bash
    bash scripts/owner-post-installable-handoff.sh
    LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks skipped/soft-failed

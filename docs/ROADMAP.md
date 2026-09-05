@@ -321,6 +321,9 @@ for adoption and API stabilization. Optional KL-05 features do not gate everyone
    and explicit non-promises. Linked from RELEASE/ADOPTION/api-stability. Does
    **not** close KL-08 (adopter 24h/7d records and promotion/rollback remain).
    Blank record format: [adopter-exercise.md](adopter-exercise.md) (UNFILLED — not evidence; 2026-09-05).
+   **Partial (2026-09-05):** [trusted-publishing-owner.md](trusted-publishing-owner.md)
+   is the blank crates.io Trusted Publishing UI binding record (UNFILLED —
+   not evidence). Workflow shape scripts remain separate; owner still clicks UI.
 3. Qualify two independent adopter workloads with 24-hour then 7-day runs.
    With operator approval, shadow into isolated topics/read-only consumers
    before a 1%/10%/50% traffic rollout. Never duplicate real downstream side

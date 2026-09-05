@@ -159,6 +159,10 @@ Probe anytime: `bash scripts/check-trusted-publishing-ready.sh`
 Owner one-shot after first cut: `bash scripts/owner-enable-trusted-publishing.sh`
 (`REQUIRE_INSTALLABLE=1` after crates.io cut).
 
+Blank owner binding record (crates.io UI still human): 
+[trusted-publishing-owner.md](trusted-publishing-owner.md) (**UNFILLED — not
+evidence**; workflow shape ≠ UI binding).
+
 Re-enter the full post-Installable path (Installable + adopter pin + registry
 consumer + bars + Trusted Publishing + optional parks land) anytime — including
 after an Actions-alternate cut or when finish soft-failed TP/parks:

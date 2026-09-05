@@ -266,6 +266,19 @@ if [[ -f docs/adopter-exercise.md ]] \
 else
   bad "KL-08 adopter exercise template missing"
 fi
+
+# Post-Installable: Trusted Publishing owner UI checklist (UNFILLED — not evidence).
+if [[ -f docs/trusted-publishing-owner.md ]] \
+  && grep -qF 'UNFILLED — not evidence' docs/trusted-publishing-owner.md \
+  && grep -qF 'crates.io UI still human' docs/trusted-publishing-owner.md \
+  && grep -qF 'Workflow shape can be green' docs/trusted-publishing-owner.md \
+  && grep -qF 'trusted-publishing-owner.md' docs/RELEASE.md \
+  && grep -qF 'trusted-publishing-owner.md' docs/ADOPTION.md \
+  && grep -qF 'UI still owner' scripts/check-trusted-publishing-ready.sh; then
+  ok "Trusted Publishing owner checklist (UNFILLED UI binding; RELEASE+ADOPTION links)"
+else
+  bad "Trusted Publishing owner checklist missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"
