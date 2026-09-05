@@ -139,10 +139,11 @@ let _cfg = ProducerConfig::bootstrap(["127.0.0.1:9092"])
 let _iso = IsolationLevel::ReadCommitted;
 ```
 
-TLS is `TlsConfig` (`rustls`, no OpenSSL). SASL PLAIN, SCRAM-SHA-256/512,
-and OAUTHBEARER (including OIDC) are supported. Compression is gzip, snappy,
-and lz4. Produce partitioning is murmur2 / round-robin; override it with
-`ProducerConfig::partitioner`.
+TLS is `TlsConfig` (`rustls` with `ring`, no OpenSSL; note that `ring` compiles
+assembly/C via `cc`, while partitionline protocol logic and client runtime are pure Rust).
+SASL PLAIN, SCRAM-SHA-256/512, and OAUTHBEARER (including OIDC) are supported.
+Compression is gzip, snappy, and lz4. Produce partitioning is murmur2 / round-robin;
+override it with `ProducerConfig::partitioner`.
 
 Defaults that differ from Java:
 
@@ -162,10 +163,11 @@ Adoption / pilot checklist: [docs/ADOPTION.md](docs/ADOPTION.md).
 Capability list vs librdkafka: [docs/gaps.md](docs/gaps.md).
 Security: [docs/security.md](docs/security.md).
 Release policy: [docs/RELEASE.md](docs/RELEASE.md).
-Roadmap: [docs/CIVILIZATION.md](docs/CIVILIZATION.md).
+Roadmap & execution: [docs/CIVILIZATION.md](docs/CIVILIZATION.md) and [docs/ROADMAP.md](docs/ROADMAP.md).
 
-**Not a drop-in for `rd_kafka_*`.** Still missing vs librdkafka: zstd and
-Kerberos (C libraries), Schema Registry.
+**Not a drop-in for `rd_kafka_*`.** zstd and Kerberos/GSSAPI remain gaps;
+Schema Registry is a separate [companion design](docs/schema-companion.md),
+not a core-client production requirement.
 
 ## Features vs C stack
 
@@ -173,7 +175,7 @@ Kerberos (C libraries), Schema Registry.
 |---|---|---|
 | Produce / fetch / groups / EOS / admin / share | yes | yes |
 | gzip / snappy / lz4 | yes (pure Rust) | yes (often C) |
-| TLS | rustls (no OpenSSL) | OpenSSL |
+| TLS | rustls (no OpenSSL; ring uses cc) | OpenSSL |
 | SASL PLAIN / SCRAM / OAUTHBEARER / OIDC | yes (pure Rust) | yes |
 | zstd | no (see [docs/zstd-spike.md](docs/zstd-spike.md)) | yes (`libzstd`) |
 | Kerberos / GSSAPI | no | yes (Cyrus) |
@@ -250,8 +252,8 @@ COUNT=10000 WARMUP=1000 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=0 \
 
 - [API & User Guide](docs/guide.md) — Producer, consumer, transactions, and admin guide.
 - [Feature Gaps vs librdkafka](docs/gaps.md) — Comprehensive client compatibility matrix.
-- [Production Readiness Roadmap](docs/ROADMAP.md) — Phased ramp to production GA (1.0.0).
-- [TODO & Task Tracker](TODO.md) — Prioritized engineering task checklist.
+- [Kafka Leadership Roadmap](docs/ROADMAP.md) — Source-backed recovery steps, correctness gates, reproducible benchmarks and scoped production qualification.
+- [TODO & Task Tracker](TODO.md) — Prioritized engineering packet execution checklist (KL-01 through KL-08).
 - [Architecture & Design](docs/design.md) — Protocol engine and memory architecture.
 - [Benchmarks](docs/benchmark.md) — Performance measurements and test methodology.
 - [Release Policy](docs/RELEASE.md) — Release criteria and publishing procedures.
