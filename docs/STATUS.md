@@ -184,7 +184,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-08 adopter exercise template (2026-09-05, tip `622dfa2`):** `docs/adopter-exercise.md` is the blank 24h/7d record format (`UNFILLED — not evidence`); linked from support.md + ADOPTION.md. Does **not** close full KL-08 (no filled adopter records, no traffic-shadow promotion/rollback proof). Does **not** lift Suite HOLD.
 
-**KL-07 transaction outcome metrics Partial (2026-09-05, tip `PENDING`):** `ProducerMetrics::{transactions_committed,transactions_aborted}` increment on successful EndTxn commit/abort; guide cookbook; `tests/txn_outcome_metrics.rs`. Does **not** close full KL-07 (queue-age/throttle/reconnect/lag/rebalance recipes and two independent human diagnosis runs remain). Does **not** lift Suite HOLD.
+**KL-07 transaction outcome metrics Partial (2026-09-05, tip `1c4b6fa`):** `ProducerMetrics::{transactions_committed,transactions_aborted}` increment on successful EndTxn commit/abort; guide cookbook; `tests/txn_outcome_metrics.rs`. Does **not** close full KL-07 (queue-age/throttle/reconnect/lag/rebalance recipes and two independent human diagnosis runs remain). Does **not** lift Suite HOLD.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
