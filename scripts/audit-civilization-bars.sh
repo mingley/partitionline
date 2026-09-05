@@ -266,6 +266,19 @@ if [[ -f docs/adopter-exercise.md ]] \
 else
   bad "KL-08 adopter exercise template missing"
 fi
+
+# KL-07 slice: join_ok/fail + sync_ok/fail for classic rebalance diagnosis.
+if [[ -f tests/join_sync_metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (join / sync)' docs/guide.md \
+  && grep -qF 'join_sync_ok_metrics_increment_on_successful_join' tests/join_sync_metrics.rs \
+  && grep -qF 'pub join_ok: u64' src/metrics.rs \
+  && grep -qF 'record_join_ok' src/consumer.rs \
+  && grep -qF 'record_sync_fail' src/group.rs \
+  && grep -qF 'join_sync_metrics.rs' docs/ROADMAP.md; then
+  ok "KL-07 join/sync diagnosis Partial (join_ok/fail + sync_ok/fail; guide+mock)"
+else
+  bad "KL-07 join/sync diagnosis Partial missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

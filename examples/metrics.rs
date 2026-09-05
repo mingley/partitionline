@@ -55,6 +55,18 @@ async fn main() -> partitionline::Result<()> {
         println!("# HELP partitionline_fetch_rounds Fetch rounds completed");
         println!("# TYPE partitionline_fetch_rounds counter");
         println!("partitionline_fetch_rounds {}", cm.fetch_rounds);
+        println!("# HELP partitionline_join_ok Classic JoinGroup successes");
+        println!("# TYPE partitionline_join_ok counter");
+        println!("partitionline_join_ok {}", cm.join_ok);
+        println!("# HELP partitionline_join_fail Classic JoinGroup failures");
+        println!("# TYPE partitionline_join_fail counter");
+        println!("partitionline_join_fail {}", cm.join_fail);
+        println!("# HELP partitionline_sync_ok Classic SyncGroup successes");
+        println!("# TYPE partitionline_sync_ok counter");
+        println!("partitionline_sync_ok {}", cm.sync_ok);
+        println!("# HELP partitionline_sync_fail Classic SyncGroup failures");
+        println!("# TYPE partitionline_sync_fail counter");
+        println!("partitionline_sync_fail {}", cm.sync_fail);
         println!("# HELP partitionline_fetch_p99_seconds Fetch round p99 latency");
         println!("# TYPE partitionline_fetch_p99_seconds gauge");
         println!(
@@ -63,11 +75,15 @@ async fn main() -> partitionline::Result<()> {
         );
     } else {
         println!(
-            "fetched {} records rounds={} bytes={} errors={} fetch_us={} p50_us={} p99_us={} topics={}",
+            "fetched {} records rounds={} bytes={} errors={} join_ok={} join_fail={} sync_ok={} sync_fail={} fetch_us={} p50_us={} p99_us={} topics={}",
             recs.len(),
             cm.fetch_rounds,
             cm.bytes_fetched,
             cm.fetch_errors,
+            cm.join_ok,
+            cm.join_fail,
+            cm.sync_ok,
+            cm.sync_fail,
             cm.fetch_latency.mean_nanos().unwrap_or(0) / 1000,
             cm.fetch_latency.p50_nanos / 1000,
             cm.fetch_latency.p99_nanos / 1000,

@@ -340,6 +340,15 @@ pub struct ConsumerMetrics {
     pub fetch_latency: LatencyStats,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
     pub topics: Vec<TopicFetchMetrics>,
+    /// Successful classic JoinGroup responses (error=0), including rejoins.
+    /// MEMBER_ID_REQUIRED retries are not counted. KL-07 join-storm diagnosis.
+    pub join_ok: u64,
+    /// Failed classic JoinGroup attempts (non-zero broker code or transport error).
+    pub join_fail: u64,
+    /// Successful classic SyncGroup responses (error=0).
+    pub sync_ok: u64,
+    /// Failed classic SyncGroup attempts (non-zero broker code or transport error).
+    pub sync_fail: u64,
 }
 
 /// Fetch counters for one topic.
@@ -564,6 +573,10 @@ mod tests {
         assert_eq!(ProducerMetrics::default().ack_latency.p50_nanos, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
+        assert_eq!(ConsumerMetrics::default().join_ok, 0);
+        assert_eq!(ConsumerMetrics::default().join_fail, 0);
+        assert_eq!(ConsumerMetrics::default().sync_ok, 0);
+        assert_eq!(ConsumerMetrics::default().sync_fail, 0);
         assert_eq!(ConsumerMetrics::default().fetch_latency.count, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
         assert_eq!(ShareMetrics::default().bytes_fetched, 0);

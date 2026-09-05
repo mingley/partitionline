@@ -1862,7 +1862,7 @@ impl ConsumerGroup {
         let version = spoken_join_group(self.coord.join_group_version)?;
         let reason = self.rebalance_reason.take();
         let (error, generation, protocol, leader, assigned_id, skip_assignment, members, ..) = loop {
-            let body = coord_roundtrip(
+            let body = match coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
                 &self.group_id,
@@ -1891,7 +1891,14 @@ impl ConsumerGroup {
                 },
                 timeout,
             )
-            .await?;
+            .await
+            {
+                Ok(body) => body,
+                Err(err) => {
+                    self.consumer.record_join_fail();
+                    return Err(err);
+                }
+            };
             let decoded = decode_join_group_response(&mut body.clone(), version)?;
             if decoded.0 == error::MEMBER_ID_REQUIRED
                 && self.member_id == JoinGroupRequest::UNKNOWN_MEMBER_ID
@@ -1903,8 +1910,10 @@ impl ConsumerGroup {
             break decoded;
         };
         if error != 0 {
+            self.consumer.record_join_fail();
             return Err(Error::broker(error, "JoinGroup"));
         }
+        self.consumer.record_join_ok();
         self.member_id = assigned_id;
         self.generation_id = generation;
         if !protocol.is_empty() {
@@ -1956,7 +1965,7 @@ impl ConsumerGroup {
                 Vec::new()
             };
         let version = spoken_sync_group(self.coord.sync_group_version)?;
-        let body = coord_roundtrip(
+        let body = match coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
@@ -1980,11 +1989,20 @@ impl ConsumerGroup {
             },
             timeout,
         )
-        .await?;
+        .await
+        {
+            Ok(body) => body,
+            Err(err) => {
+                self.consumer.record_sync_fail();
+                return Err(err);
+            }
+        };
         let (err, assignment, ..) = decode_sync_group_response(&mut body.clone(), version)?;
         if err != 0 {
+            self.consumer.record_sync_fail();
             return Err(Error::broker(err, "SyncGroup"));
         }
+        self.consumer.record_sync_ok();
         let assigned = decode_assignment(&assignment)?;
         let wanted: Vec<(String, i32)> = assigned
             .into_iter()

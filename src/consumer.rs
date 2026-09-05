@@ -1257,6 +1257,10 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    m_join_ok: AtomicU64,
+    m_join_fail: AtomicU64,
+    m_sync_ok: AtomicU64,
+    m_sync_fail: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1346,6 +1350,10 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_join_ok: AtomicU64::new(0),
+            m_join_fail: AtomicU64::new(0),
+            m_sync_ok: AtomicU64::new(0),
+            m_sync_fail: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -2153,7 +2161,27 @@ impl Consumer {
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
+            join_ok: self.m_join_ok.load(Ordering::Relaxed),
+            join_fail: self.m_join_fail.load(Ordering::Relaxed),
+            sync_ok: self.m_sync_ok.load(Ordering::Relaxed),
+            sync_fail: self.m_sync_fail.load(Ordering::Relaxed),
         }
+    }
+
+    pub(crate) fn record_join_ok(&self) {
+        let _ = self.m_join_ok.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn record_join_fail(&self) {
+        let _ = self.m_join_fail.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn record_sync_ok(&self) {
+        let _ = self.m_sync_ok.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn record_sync_fail(&self) {
+        let _ = self.m_sync_fail.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).

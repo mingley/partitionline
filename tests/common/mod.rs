@@ -475,6 +475,8 @@ struct State {
     last_produce_txn_id: Option<String>,
     acls: Vec<AclBinding>,
     join_group_calls: u32,
+    join_group_fail_left: u32,
+    sync_group_fail_left: u32,
     cg_heartbeat_calls: u32,
     sync_group_calls: u32,
     share_heartbeat_calls: u32,
@@ -833,6 +835,8 @@ fn new_state(
         last_produce_txn_id: None,
         acls: Vec::new(),
         join_group_calls: 0,
+        join_group_fail_left: 0,
+        sync_group_fail_left: 0,
         cg_heartbeat_calls: 0,
         sync_group_calls: 0,
         share_heartbeat_calls: 0,
@@ -2604,6 +2608,16 @@ impl Mock {
 
     pub fn join_group_calls(&self) -> u32 {
         self.state.lock().join_group_calls
+    }
+
+    /// Next JoinGroup with a known member id returns `GROUP_AUTHORIZATION_FAILED` once.
+    pub fn join_group_fail_once(&self) {
+        self.state.lock().join_group_fail_left = 1;
+    }
+
+    /// Next SyncGroup returns `ILLEGAL_GENERATION` once.
+    pub fn sync_group_fail_once(&self) {
+        self.state.lock().sync_group_fail_left = 1;
     }
 
     pub fn cg_heartbeat_calls(&self) -> u32 {
@@ -5772,6 +5786,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         &[],
                     )
                     .unwrap();
+                } else if st.join_group_fail_left > 0 {
+                    st.join_group_fail_left = st.join_group_fail_left.saturating_sub(1);
+                    encode_join_group_response(
+                        &mut body,
+                        header.api_version,
+                        error::GROUP_AUTHORIZATION_FAILED,
+                        JoinGroupRequest::UNKNOWN_GENERATION_ID,
+                        protocol_name,
+                        JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                        &assigned,
+                        &[],
+                    )
+                    .unwrap();
                 } else {
                     let notify = st.assign_notify.clone();
                     let g = st.groups.entry(gid).or_insert_with(|| GroupReg {
@@ -5854,7 +5881,21 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                     tokio::time::sleep(std::time::Duration::from_millis(25)).await;
                 }
-                encode_sync_group_response(&mut body, header.api_version, 0, &asg).unwrap();
+                let mut st = state.lock();
+                if st.sync_group_fail_left > 0 {
+                    st.sync_group_fail_left = st.sync_group_fail_left.saturating_sub(1);
+                    drop(st);
+                    encode_sync_group_response(
+                        &mut body,
+                        header.api_version,
+                        error::ILLEGAL_GENERATION,
+                        &[],
+                    )
+                    .unwrap();
+                } else {
+                    drop(st);
+                    encode_sync_group_response(&mut body, header.api_version, 0, &asg).unwrap();
+                }
             }
             HEARTBEAT => {
                 let (gid, _gen, member_id, ..) =

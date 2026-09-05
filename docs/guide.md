@@ -136,6 +136,20 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (join / sync)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Clean join | `ConsumerGroup::metrics().join_ok` / `sync_ok` rising; fails == 0 | Healthy classic JoinGroup + SyncGroup |
+| Join storm / auth fence | `join_fail` rising | Broker JoinGroup errors (auth, unknown member after MEMBER_ID dance) |
+| Sync fence | `sync_fail` rising after `join_ok` | Illegal generation / sync rejection during rebalance |
+
+`join_ok` / `join_fail` / `sync_ok` / `sync_fail` count classic JoinGroup and
+SyncGroup outcomes on `ConsumerMetrics`. MEMBER_ID_REQUIRED retries are not
+counted as failures. Prefer these over dumping payloads. Mock proof:
+`tests/join_sync_metrics.rs`. KL-07 Partial — not two independent human
+diagnosis runs, and not a Suite HOLD lift.
+
 ## Recipes
 
 ### Backpressure
