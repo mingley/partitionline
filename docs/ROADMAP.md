@@ -120,6 +120,9 @@ New harnesses must be added and wired into CI before their package can close.
 4. Extend existing [fuzz targets](../fuzz) beyond short CI smoke, focusing on
    lengths, tagged fields, truncated batches, CRC, allocation and decompression
    bounds. Retain minimized failures and campaign/coverage metadata.
+   **Partial (2026-09-05):** campaign metadata harness (`scripts/ci-fuzz-campaign.sh`,
+   `fuzz/campaign/metadata.example.json`) is distinct from 15s CI smoke; minimized
+   failures are retained under `fuzz/artifacts/minimized/`. Not a sustained-campaign close.
 
 **Work surfaces:** [protocol](../src/protocol), [fuzz smoke](../tests/fuzz_decode_smoke.rs),
 [broker smoke](../scripts/ci-broker-smoke.sh), [integrity smoke](../scripts/ci-integrity-smoke.sh),

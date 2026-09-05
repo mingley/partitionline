@@ -1,4 +1,9 @@
 target
 corpus
-artifacts
 coverage
+campaign/metadata.json
+artifacts/*
+!artifacts/minimized/
+artifacts/minimized/*
+!artifacts/minimized/.gitkeep
+!artifacts/minimized/README.md

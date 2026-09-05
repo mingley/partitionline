@@ -5,3 +5,7 @@ partitionline-schema/target/
 
 # Schema companion local build
 partitionline-schema/target/
+
+# Fuzz campaign runtime stamp (fixture is fuzz/campaign/metadata.example.json).
+# Crash payloads: see fuzz/.gitignore (retain minimized/README + .gitkeep).
+fuzz/campaign/metadata.json

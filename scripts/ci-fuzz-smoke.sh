@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Short libFuzzer smoke for CI (WP-2.1). Requires nightly + cargo-fuzz + g++.
+# Short libFuzzer smoke for CI (WP-2.1). kind=smoke, default FUZZ_SECONDS=15.
+# Not a campaign: see scripts/ci-fuzz-campaign.sh (kind=campaign, duration_seconds>15).
+# Requires nightly + cargo-fuzz + g++.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

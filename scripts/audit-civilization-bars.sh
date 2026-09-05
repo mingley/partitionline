@@ -289,6 +289,15 @@ if cargo test --test fuzz_decode_smoke --quiet >/tmp/pl-audit-fuzz.log 2>&1; the
 else
   bad "fuzz decode smoke; see /tmp/pl-audit-fuzz.log"
 fi
+if [[ -f scripts/ci-fuzz-campaign.sh ]] \
+  && bash scripts/ci-fuzz-campaign.sh --self-test >/tmp/pl-fuzz-campaign-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-fuzz-campaign-self-test.log \
+  && grep -q '"kind": "campaign"' fuzz/campaign/metadata.example.json \
+  && ! grep -q '"kind": "smoke"' fuzz/campaign/metadata.example.json; then
+  ok "KL-01 fuzz campaign metadata (self-test; kind=campaign; distinct from 15s smoke)"
+else
+  bad "KL-01 fuzz campaign metadata missing or self-test failed; see /tmp/pl-fuzz-campaign-self-test.log"
+fi
 if [[ "$FULL" == "1" ]]; then
   if bash scripts/ci-branch-lite.sh >/tmp/pl-audit-branch-lite.log 2>&1; then
     ok "FULL branch-lite Verifiable proxy"

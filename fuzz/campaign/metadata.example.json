@@ -1,0 +1,22 @@
+{
+  "kind": "campaign",
+  "campaign_id": "kl-01-example-fixture",
+  "duration_seconds": 3600,
+  "targets": [
+    "decode_fetch_response",
+    "decode_produce_response",
+    "decode_metadata_response",
+    "decode_record_batches",
+    "decode_group_responses",
+    "decode_share_fetch_response",
+    "decode_cgheartbeat_responses"
+  ],
+  "started_at": "2026-09-05T00:00:00Z",
+  "finished_at": "2026-09-05T01:00:00Z",
+  "corpus": {
+    "path": "fuzz/corpus",
+    "input_count": 0
+  },
+  "coverage": "unavailable",
+  "artifacts_dir": "fuzz/artifacts/minimized"
+}
