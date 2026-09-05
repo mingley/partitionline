@@ -136,6 +136,17 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Metrics example as external package consumer
+
+`examples/metrics.rs` (log lines or `FORMAT=prom` Prometheus text; no prom
+crate) must compile as a **downstream** package against the packed `.crate`,
+not only as an in-tree path dependency. Proof:
+`bash scripts/ci-example-metrics-crate-consumer.sh` (wired into branch-lite /
+cut-path / publish-ready). This is a KL-07 Partial — not produce/consume/txn
+external consumers (separate), not two-user diagnosis, and not a Suite HOLD
+lift.
+
+
 ## Recipes
 
 ### Backpressure

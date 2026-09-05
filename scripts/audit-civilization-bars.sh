@@ -224,6 +224,23 @@ else
   bad "KL-06 metrics/span redaction honesty missing"
 fi
 
+
+# KL-07 slice: metrics example as external packed-crate consumer.
+if [[ -f scripts/ci-example-metrics-crate-consumer.sh && -f examples/metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Metrics example as external package consumer' docs/guide.md \
+  && grep -qF 'ci-example-metrics-crate-consumer.sh' docs/guide.md \
+  && grep -qF 'examples/metrics.rs' scripts/ci-example-metrics-crate-consumer.sh \
+  && grep -qF 'ci-example-metrics-crate-consumer.sh' scripts/ci-branch-lite.sh \
+  && grep -qF 'ci-example-metrics-crate-consumer.sh' scripts/check-cut-path.sh \
+  && grep -qF 'ci-example-metrics-crate-consumer.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'metrics example as external' docs/ROADMAP.md \
+  && bash scripts/ci-example-metrics-crate-consumer.sh --self-test >/tmp/pl-kl07-metrics-ex-self.log 2>&1 \
+  && bash scripts/ci-example-metrics-crate-consumer.sh >/tmp/pl-kl07-metrics-ex.log 2>&1; then
+  ok "KL-07 metrics example external crate-consumer (packed .crate cargo check; guide+bars)"
+else
+  bad "KL-07 metrics example external crate-consumer missing/failed; see /tmp/pl-kl07-metrics-ex*.log"
+fi
+
 # KL-06 slice: OIDC bounded transient retry + outage fail-closed.
 if grep -qF '## Auth recovery (current behavior)' docs/security.md \
   && grep -qF 'bounded' docs/security.md \

@@ -292,6 +292,10 @@ and no secret exposure. Preserve existing audit/deny and security-reporting lane
 [guide](guide.md), [examples](../examples), [consumer fixture](../scripts/ci-crate-consumer.sh).
 **Done when:** examples run from a fresh package consumer, usability feedback
 is resolved, and disabled/enabled instrumentation costs and redaction are measured.
+   **Partial (2026-09-05):** `examples/metrics.rs` compiles as an external
+   package consumer of the packed `.crate`
+   (`scripts/ci-example-metrics-crate-consumer.sh`). Produce/consume/txn
+   external consumers and two-user diagnosis remain open. Not Done.
 
 ### KL-08: Gate releases and promote through reversible adoption
 
