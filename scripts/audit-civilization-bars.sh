@@ -266,6 +266,18 @@ if [[ -f docs/adopter-exercise.md ]] \
 else
   bad "KL-08 adopter exercise template missing"
 fi
+
+# KL-07 slice: producer queue_latency (accept→batch drain) diagnosis Partial.
+if [[ -f tests/queue_age.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (queue age)' docs/guide.md \
+  && grep -qF 'queue_latency_reflects_linger_before_batch_drain' tests/queue_age.rs \
+  && grep -qF 'pub queue_latency: LatencyStats' src/metrics.rs \
+  && grep -qF 'note_queue_latency' src/producer.rs \
+  && grep -qF 'queue_age.rs' docs/ROADMAP.md; then
+  ok "KL-07 queue-age diagnosis Partial (queue_latency metric; guide+mock)"
+else
+  bad "KL-07 queue-age diagnosis Partial missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

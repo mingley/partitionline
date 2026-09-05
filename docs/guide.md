@@ -136,6 +136,19 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (queue age)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Produce acks feel delayed while broker is fine | `Producer::metrics().queue_latency` rising; `bytes_buffered` high | Local linger/backlog — records aging in the client queue before the wire |
+| Queue age stays near zero but ack p99 climbs | `queue_latency` flat; `ack_latency` / broker path rising | Broker or network path — not local linger |
+| Buffer full / `QueueFull` | `bytes_buffered` at `buffer_memory`; queue_latency may spike | Offer rate above drain; apply backpressure |
+
+`queue_latency` is accept→local-batch drain (linger/queue age). `ack_latency`
+is accept→broker ack. Prefer these counters over logging payloads. Mock proof:
+`tests/queue_age.rs`. KL-07 Partial — not two independent human diagnosis runs,
+and not a Suite HOLD lift. Lag / throttle / reconnect recipes are separate slices.
+
 ## Recipes
 
 ### Backpressure

@@ -302,6 +302,10 @@ pub struct ProducerMetrics {
     pub bytes_queued: u64,
     /// Key plus value bytes still queued and not yet acked (`buffer.memory` in-flight).
     pub bytes_buffered: u64,
+    /// Accept-to-batch latency: time a record spent in the local linger/queue
+    /// before the produce worker drained it onto the wire. Distinct from
+    /// [`Self::ack_latency`] (accept-to-broker-ack). KL-07 queue-age diagnosis.
+    pub queue_latency: LatencyStats,
     /// Queue-to-ack latency per acknowledged record (including `acks=0`).
     pub ack_latency: LatencyStats,
     /// Per-topic counters. Topics with no activity are omitted. Sorted by name.
@@ -560,6 +564,7 @@ mod tests {
     fn metrics_default_zero() {
         assert_eq!(ProducerMetrics::default().records_queued, 0);
         assert_eq!(ProducerMetrics::default().bytes_buffered, 0);
+        assert_eq!(ProducerMetrics::default().queue_latency.count, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.count, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p50_nanos, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);

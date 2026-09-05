@@ -816,6 +816,8 @@ struct Shared {
     /// Set by [`Producer::close`] / [`Producer::close_timeout`] so clones cannot
     /// respawn workers after shutdown (KL-02 durable Closed outcome).
     closed: AtomicBool,
+    /// Accept → local-batch drain (linger/queue age). See [`crate::ProducerMetrics::queue_latency`].
+    queue_latency: crate::metrics::LatencyTracker,
     ack_latency: crate::metrics::LatencyTracker,
     interceptors: crate::interceptor::ProducerInterceptors,
     topics: parking_lot::Mutex<HashMap<Arc<str>, Arc<crate::metrics::ProduceTopicTracker>>>,
@@ -878,6 +880,10 @@ impl Shared {
     fn note_acked(&self, topic: &Arc<str>, n: u64) {
         let _ = self.m_acked.fetch_add(n, Ordering::Relaxed);
         self.topic_tracker(topic).note_acked(n);
+    }
+
+    fn note_queue_latency(&self, queued_at: Instant) {
+        self.queue_latency.record(queued_at.elapsed());
     }
 
     fn note_ack_latency(&self, topic: &Arc<str>, queued_at: Instant) {
@@ -1151,6 +1157,7 @@ impl Producer {
             m_bytes: AtomicU64::new(0),
             buffered_bytes: AtomicU64::new(0),
             closed: AtomicBool::new(false),
+            queue_latency: crate::metrics::LatencyTracker::new(),
             ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
             topics: parking_lot::Mutex::new(HashMap::new()),
@@ -1476,10 +1483,13 @@ impl Producer {
         Ok(())
     }
 
-    /// Produce counters and ack latency since connect (min/mean/max and p50/p99).
+    /// Produce counters, queue-age latency, and ack latency since connect
+    /// (min/mean/max and p50/p99).
     ///
     /// [`crate::ProducerMetrics::topics`] is one row per topic that queued, acked, or
-    /// failed at least one record.
+    /// failed at least one record. [`crate::ProducerMetrics::queue_latency`] is
+    /// accept→local-batch drain (linger/queue age); [`crate::ProducerMetrics::ack_latency`]
+    /// is accept→broker ack.
     #[must_use]
     pub fn metrics(&self) -> crate::ProducerMetrics {
         crate::ProducerMetrics {
@@ -1488,6 +1498,7 @@ impl Producer {
             produce_errors: self.inner.shared.m_errors.load(Ordering::Relaxed),
             bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
             bytes_buffered: self.inner.shared.buffered_bytes.load(Ordering::Relaxed),
+            queue_latency: self.inner.shared.queue_latency.snapshot(),
             ack_latency: self.inner.shared.ack_latency.snapshot(),
             topics: crate::metrics::snapshot_produce_topics(&self.inner.shared.topics.lock()),
         }
@@ -2686,6 +2697,9 @@ impl Worker {
             self.shared.cfg.produce_batch_bytes(),
         );
         let batch: Vec<Pending> = self.pending.drain(..n).collect();
+        for p in &batch {
+            self.shared.note_queue_latency(p.queued_at);
+        }
         if let Some(p) = batch.iter().find(|p| p.rec.partition.is_none()) {
             let e = Error::protocol(format!("produce without partition topic={}", p.rec.topic));
             fail_pendings(&self.shared, batch, clone_err(&e));

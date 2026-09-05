@@ -24,6 +24,12 @@ async fn main() -> partitionline::Result<()> {
         println!("# HELP partitionline_produce_records_acked Produce records acked");
         println!("# TYPE partitionline_produce_records_acked counter");
         println!("partitionline_produce_records_acked {}", pm.records_acked);
+        println!("# HELP partitionline_produce_queue_p99_seconds Produce queue (accept→batch) p99 latency");
+        println!("# TYPE partitionline_produce_queue_p99_seconds gauge");
+        println!(
+            "partitionline_produce_queue_p99_seconds {}",
+            (pm.queue_latency.p99_nanos as f64) / 1_000_000_000.0
+        );
         println!("# HELP partitionline_produce_ack_p99_seconds Produce ack p99 latency");
         println!("# TYPE partitionline_produce_ack_p99_seconds gauge");
         println!(
@@ -32,13 +38,14 @@ async fn main() -> partitionline::Result<()> {
         );
     } else {
         println!(
-            "produced {}-{}@{} queued={} acked={} bytes={} ack_us={} p50_us={} p99_us={} topics={}",
+            "produced {}-{}@{} queued={} acked={} bytes={} queue_us={} ack_us={} p50_us={} p99_us={} topics={}",
             md.topic,
             md.partition,
             md.offset,
             pm.records_queued,
             pm.records_acked,
             pm.bytes_queued,
+            pm.queue_latency.mean_nanos().unwrap_or(0) / 1000,
             pm.ack_latency.mean_nanos().unwrap_or(0) / 1000,
             pm.ack_latency.p50_nanos / 1000,
             pm.ack_latency.p99_nanos / 1000,
