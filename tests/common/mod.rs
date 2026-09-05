@@ -402,6 +402,7 @@ struct State {
     last_sasl_handshake_correlation: Option<i32>,
     last_sasl_authenticate_version: Option<i16>,
     last_sasl_authenticate_correlation: Option<i32>,
+    sasl_authenticate_fail_left: u32,
     last_list_groups_node: Option<i32>,
     last_list_groups: Option<(Vec<String>, Vec<String>)>,
     last_list_groups_version: Option<i16>,
@@ -760,6 +761,7 @@ fn new_state(
         last_sasl_handshake_correlation: None,
         last_sasl_authenticate_version: None,
         last_sasl_authenticate_correlation: None,
+        sasl_authenticate_fail_left: 0,
         last_list_groups_node: None,
         last_list_groups: None,
         last_list_groups_version: None,
@@ -2388,6 +2390,11 @@ impl Mock {
 
     pub fn last_sasl_authenticate_correlation(&self) -> Option<i32> {
         self.state.lock().last_sasl_authenticate_correlation
+    }
+
+    /// Next SaslAuthenticate responds with SASL_AUTHENTICATION_FAILED once.
+    pub fn sasl_authenticate_fail_once(&self) {
+        self.state.lock().sasl_authenticate_fail_left = 1;
     }
 
     pub fn last_list_groups_node(&self) -> Option<i32> {
@@ -5308,17 +5315,34 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             SASL_AUTHENTICATE => {
                 let version = header.api_version;
-                let (scram_user, oauth_principal, sasl_user) = {
+                let (scram_user, oauth_principal, sasl_user, force_fail) = {
                     let mut st = state.lock();
                     st.last_sasl_authenticate_version = Some(version);
                     st.last_sasl_authenticate_correlation = Some(header.correlation_id);
+                    let force_fail = st.sasl_authenticate_fail_left > 0;
+                    if force_fail {
+                        st.sasl_authenticate_fail_left =
+                            st.sasl_authenticate_fail_left.saturating_sub(1);
+                    }
                     (
                         st.scram_user.clone(),
                         st.oauth_principal.clone(),
                         st.sasl_user.clone(),
+                        force_fail,
                     )
                 };
                 let bytes = decode_sasl_authenticate_request(&mut frame, version).unwrap();
+                if force_fail {
+                    encode_sasl_authenticate_response(
+                        &mut body,
+                        version,
+                        58,
+                        Some("injected sasl authenticate failure"),
+                        &[],
+                        0,
+                    )
+                    .unwrap();
+                } else {
                 if let Some((alg, _, pass)) = scram_user {
                     match scram_step.take() {
                         None => {
@@ -5415,7 +5439,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     )
                     .unwrap();
                 }
+                }
             }
+
             FIND_COORDINATOR => {
                 let (keys, key_type) =
                     decode_find_coordinator_request_keys(&mut frame, header.api_version).unwrap();

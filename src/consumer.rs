@@ -1257,6 +1257,8 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    m_sasl_authenticate_ok: AtomicU64,
+    m_sasl_authenticate_fail: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1307,7 +1309,8 @@ impl Consumer {
         for api in resp.api_keys {
             let _prev = versions.insert(api.api_key, api);
         }
-        sasl::authenticate(
+        let sasl_attempted = Self::sasl_configured(&cfg);
+        let auth = sasl::authenticate(
             &mut conn,
             cfg.sasl_plain.as_ref(),
             cfg.sasl_scram.as_ref(),
@@ -1316,7 +1319,9 @@ impl Consumer {
             cfg.sasl_oauthbearer_oidc.as_ref(),
             cfg.request_timeout,
         )
-        .await?;
+        .await;
+        let initial_sasl_ok = u64::from(sasl_attempted && auth.is_ok());
+        auth?;
         let fetch_version = versions
             .get(&FETCH)
             .and_then(|v| pick_version(v.min_version, v.max_version, 4, 17))
@@ -1346,6 +1351,8 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_sasl_authenticate_ok: AtomicU64::new(initial_sasl_ok),
+            m_sasl_authenticate_fail: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -1650,16 +1657,7 @@ impl Consumer {
             crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
                 .await?;
         sasl::apply_api_keys(&mut conn, &resp.api_keys);
-        sasl::authenticate(
-            &mut conn,
-            self.cfg.sasl_plain.as_ref(),
-            self.cfg.sasl_scram.as_ref(),
-            self.cfg.sasl_scram_sha512.as_ref(),
-            self.cfg.sasl_oauthbearer.as_deref(),
-            self.cfg.sasl_oauthbearer_oidc.as_ref(),
-            self.cfg.request_timeout,
-        )
-        .await?;
+        self.authenticate_conn(&mut conn).await?;
         self.conn = conn;
         Ok(())
     }
@@ -1849,16 +1847,7 @@ impl Consumer {
             crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
                 .await?;
         sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
-        sasl::authenticate(
-            &mut conn,
-            self.cfg.sasl_plain.as_ref(),
-            self.cfg.sasl_scram.as_ref(),
-            self.cfg.sasl_scram_sha512.as_ref(),
-            self.cfg.sasl_oauthbearer.as_deref(),
-            self.cfg.sasl_oauthbearer_oidc.as_ref(),
-            self.cfg.request_timeout,
-        )
-        .await?;
+        self.authenticate_conn(&mut conn).await?;
         Ok(conn)
     }
 
@@ -2153,7 +2142,46 @@ impl Consumer {
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
+            sasl_authenticate_ok: self.m_sasl_authenticate_ok.load(Ordering::Relaxed),
+            sasl_authenticate_fail: self.m_sasl_authenticate_fail.load(Ordering::Relaxed),
         }
+    }
+
+    fn sasl_configured(cfg: &ConsumerConfig) -> bool {
+        cfg.sasl_plain.is_some()
+            || cfg.sasl_scram.is_some()
+            || cfg.sasl_scram_sha512.is_some()
+            || cfg.sasl_oauthbearer.is_some()
+            || cfg.sasl_oauthbearer_oidc.is_some()
+    }
+
+    pub(crate) fn record_sasl_authenticate_ok(&self) {
+        let _ = self.m_sasl_authenticate_ok.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn record_sasl_authenticate_fail(&self) {
+        let _ = self.m_sasl_authenticate_fail.fetch_add(1, Ordering::Relaxed);
+    }
+
+    async fn authenticate_conn(&self, conn: &mut BrokerConn) -> Result<()> {
+        let attempted = Self::sasl_configured(&self.cfg);
+        let result = sasl::authenticate(
+            conn,
+            self.cfg.sasl_plain.as_ref(),
+            self.cfg.sasl_scram.as_ref(),
+            self.cfg.sasl_scram_sha512.as_ref(),
+            self.cfg.sasl_oauthbearer.as_deref(),
+            self.cfg.sasl_oauthbearer_oidc.as_ref(),
+            self.cfg.request_timeout,
+        )
+        .await;
+        if attempted {
+            match &result {
+                Ok(()) => self.record_sasl_authenticate_ok(),
+                Err(_) => self.record_sasl_authenticate_fail(),
+            }
+        }
+        result
     }
 
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).

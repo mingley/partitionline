@@ -254,6 +254,20 @@ else
   bad "KL-08 support matrix honesty missing"
 fi
 
+
+# KL-07 slice: sasl_authenticate_ok/fail for auth diagnosis without credential dumps.
+if [[ -f tests/sasl_authenticate_metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (SASL authenticate)' docs/guide.md \
+  && grep -qF 'sasl_authenticate_ok_metric_increments_on_connect' tests/sasl_authenticate_metrics.rs \
+  && grep -qF 'pub sasl_authenticate_ok: u64' src/metrics.rs \
+  && grep -qF 'record_sasl_authenticate_ok' src/consumer.rs \
+  && grep -qF 'record_sasl_authenticate_fail' src/consumer.rs \
+  && grep -qF 'sasl_authenticate_metrics.rs' docs/ROADMAP.md; then
+  ok "KL-07 SASL authenticate diagnosis Partial (sasl_authenticate_ok/fail; guide+mock)"
+else
+  bad "KL-07 SASL authenticate diagnosis Partial missing"
+fi
+
 # KL-08 slice: adopter 24h/7d exercise template (UNFILLED — not evidence).
 if [[ -f docs/adopter-exercise.md ]] \
   && grep -qF 'UNFILLED — not evidence' docs/adopter-exercise.md \

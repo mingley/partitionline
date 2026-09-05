@@ -136,6 +136,16 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (SASL authenticate)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Auth succeeds | `Consumer::metrics().sasl_authenticate_ok` rising; `sasl_authenticate_fail == 0` | Healthy SASL handshake/authenticate |
+| Auth rejected / reconnect auth storm | `sasl_authenticate_fail` rising | Bad credentials, mechanism mismatch, or broker reject |
+| No SASL traffic | both counters stay 0 | Client configured without SASL |
+
+`sasl_authenticate_ok` / `sasl_authenticate_fail` count terminal SASL authenticate outcomes on `ConsumerMetrics`. Prefer them over dumping credentials or broker auth payloads. Mock proof: `tests/sasl_authenticate_metrics.rs`. KL-07 Partial — not two independent human diagnosis runs, and not a Suite HOLD lift.
+
 ## Recipes
 
 ### Backpressure
