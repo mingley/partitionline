@@ -189,7 +189,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 **KL-08 adopter exercise template (2026-09-05, tip `622dfa2`):** `docs/adopter-exercise.md` is the blank 24h/7d record format (`UNFILLED — not evidence`); linked from support.md + ADOPTION.md. Does **not** close full KL-08 (no filled adopter records, no traffic-shadow promotion/rollback proof). Does **not** lift Suite HOLD.
 
 
-**KL-06 mid-connection SaslAuthenticate reauth (2026-09-05):** When recorded SASL/OIDC lifetime is within skew, producer/consumer/admin/group/share prefer live-socket `SaslAuthenticate` via `reauthenticate` / `should_reconnect_after_reauth` (no handshake; OIDC re-fetch when configured); idle or reauth failure still full reconnect. Docs: [security.md](security.md). Outage soak still open. Does **not** lift Suite HOLD.
+**KL-06 mid-connection SaslAuthenticate reauth (2026-09-05, tip ):** When recorded SASL/OIDC lifetime is within skew, producer/consumer/admin/group/share prefer live-socket `SaslAuthenticate` via `reauthenticate` / `should_reconnect_after_reauth` (no handshake; OIDC re-fetch when configured); idle or reauth failure still full reconnect. Docs: [security.md](security.md). Outage soak still open. Does **not** lift Suite HOLD.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
