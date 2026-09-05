@@ -180,7 +180,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-06 OIDC expires_in + session_lifetime record (2026-09-05, tip `1bfae30`):** Parses IdP `expires_in` into `OidcAccessToken::expires_at`; records broker `session_lifetime_ms` / OIDC expiry on `BrokerConn` after authenticate. `token_needs_refresh` helper with skew. Does **not** close mid-connection `SaslAuthenticate` reauth / rotation soak. Does **not** lift Suite HOLD.
 
-**KL-06 auth-lifetime reconnect (2026-09-05, tip `PENDING`):** `BrokerConn::should_reconnect` recycles sockets when recorded SASL/OIDC lifetime is within skew (producer/consumer/admin/group/share). Reconnect re-runs full SASL; live-socket `SaslAuthenticate` rotation still open. Test: `auth_lifetimes_need_refresh_respects_skew_and_none`. Does **not** lift Suite HOLD.
+**KL-06 auth-lifetime reconnect (2026-09-05, tip `"5517bb0"`):** `BrokerConn::should_reconnect` recycles sockets when recorded SASL/OIDC lifetime is within skew (producer/consumer/admin/group/share). Reconnect re-runs full SASL; live-socket `SaslAuthenticate` rotation still open. Test: `auth_lifetimes_need_refresh_respects_skew_and_none`. Does **not** lift Suite HOLD.
 
 **KL-02 buffer ownership + mock overload soak (2026-09-05, tip `8bd64d3`):** saturating `try_send` keeps `metrics().bytes_buffered ≤ buffer_memory` and drains to 0 after flush/close; guide documents key+value queued-until-ack model. Tests: `tests/buffer_ownership.rs`. Does **not** close full KL-02 (no 2×/24h RSS or full encode/socket/task ownership). Does **not** lift Suite HOLD.
 
