@@ -53,7 +53,8 @@ performance qualification and exact-HEAD evidence remain open.
 | | ↳ partial: credential `Debug` redaction for Sasl/Oidc/Tls + configs (2026-09-05) | | Rotation/outage recovery still open (error/span/metrics partials landed). |
 | | ↳ partial: OIDC/OAUTHBEARER `Error` omits IdP/broker response bodies (2026-09-05) | | Rotation/outage recovery still open (span/metrics partial landed). |
 | | ↳ partial: metrics snapshots + tracing `skip(self)` span honesty (2026-09-05) | | Rotation/outage recovery still open. |
-| | ↳ partial: OIDC IdP outage fail-closed audit + 503/timeout tests (2026-09-05) | | Bounded retry/refresh/rotation still open. |
+| | ↳ partial: OIDC IdP outage fail-closed audit + 503/timeout tests (2026-09-05) | | Mid-connection refresh/rotation soak still open. |
+| | ↳ partial: OIDC bounded transient retry (5xx/I/O/timeout; no 4xx retry) (2026-09-05) | | Mid-connection refresh/rotation soak still open. |
 | [ ] | [KL-07: Usability and diagnostics](docs/ROADMAP.md#kl-07-make-adoption-and-diagnosis-simpler-than-the-alternatives) | KL-01; KL-02/03 for recipes | Fresh external consumers, two newcomer exercises, bounded metrics and measured tracing overhead. |
 | [ ] | [KL-08: Release and adoption](docs/ROADMAP.md#kl-08-gate-releases-and-promote-through-reversible-adoption) | None for release safety; applicable profile gates for adoption | Exact-SHA publish gates, support policy, two adopter records, 24-hour/7-day exercises and operator-approved rollback proof. |
 | | ↳ partial: support matrix doc (`docs/support.md`) for CI-backed brokers/MSRV/features (2026-09-05) | | Adopter 24h/7d records + promotion/rollback still open. |

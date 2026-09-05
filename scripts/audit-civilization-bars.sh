@@ -224,16 +224,20 @@ else
   bad "KL-06 metrics/span redaction honesty missing"
 fi
 
-# KL-06 slice: OIDC IdP outage fail-closed honesty (no mid-conn refresh; recovery still open).
+# KL-06 slice: OIDC bounded transient retry + outage fail-closed.
 if grep -qF '## Auth recovery (current behavior)' docs/security.md \
-  && grep -qF 'one-shot' docs/security.md \
+  && grep -qF 'bounded' docs/security.md \
+  && grep -qF 'OIDC_FETCH_ATTEMPTS' src/protocol/oidc.rs \
   && grep -qF 'fetch_token_rejects_http_503_fail_closed' src/protocol/oidc.rs \
   && grep -qF 'fetch_token_hang_times_out_fail_closed' src/protocol/oidc.rs \
-  && grep -qF 'KL-06 rotation/outage recovery remains open' docs/security.md; then
-  ok "KL-06 OIDC outage fail-closed honesty (503/timeout tests + security.md; recovery still open)"
+  && grep -qF 'fetch_token_retries_transient_503_then_succeeds' src/protocol/oidc.rs \
+  && grep -qF 'fetch_token_does_not_retry_http_401' src/protocol/oidc.rs \
+  && grep -qF 'Mid-connection refresh / rotation / outage soak still open' docs/security.md; then
+  ok "KL-06 OIDC bounded transient retry + outage fail-closed (503/401/timeout tests; security.md)"
 else
-  bad "KL-06 OIDC outage fail-closed honesty missing"
+  bad "KL-06 OIDC bounded transient retry / outage fail-closed missing"
 fi
+
 
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \

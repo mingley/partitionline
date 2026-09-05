@@ -176,6 +176,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-06 OIDC outage fail-closed honesty (2026-09-05, tip `97f2fa8`):** Documents one-shot `fetch_client_credentials_token` (no `expires_in` / `session_lifetime_ms` refresh); IdP 503 → status-only `Protocol`, hang → `Timeout`. Tests: `fetch_token_rejects_http_503_fail_closed`, `fetch_token_hang_times_out_fail_closed`. Does **not** close full KL-06 (no bounded retry/refresh/rotation). Does **not** lift Suite HOLD.
 
+**KL-06 OIDC bounded transient retry (2026-09-05, tip `PENDING`):** `fetch_client_credentials_token` retries HTTP 5xx/I/O/timeout up to 3 attempts with short backoff inside `request_timeout`; HTTP 4xx still fails immediately. Tests cover 503→success, persistent 503 exhaust, and no-401-retry. Does **not** close mid-connection refresh/rotation or outage soak. Does **not** lift Suite HOLD.
+
 **KL-02 buffer ownership + mock overload soak (2026-09-05, tip `8bd64d3`):** saturating `try_send` keeps `metrics().bytes_buffered ≤ buffer_memory` and drains to 0 after flush/close; guide documents key+value queued-until-ack model. Tests: `tests/buffer_ownership.rs`. Does **not** close full KL-02 (no 2×/24h RSS or full encode/socket/task ownership). Does **not** lift Suite HOLD.
 
 **KL-08 support matrix honesty (2026-09-05, tip `52d2dd7`):** `docs/support.md` records CI-backed brokers (3.9.1/4.1.0), MSRV 1.85, Linux/x86_64, default pure-Rust features, and explicit non-promises; linked from RELEASE/ADOPTION/api-stability. Does **not** close full KL-08 (adopter 24h/7d + promotion/rollback remain). Does **not** lift Suite HOLD.

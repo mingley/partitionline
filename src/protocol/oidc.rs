@@ -71,13 +71,63 @@ struct HttpUrl {
     path: String,
 }
 
+/// Max attempts for a single [`fetch_client_credentials_token`] call (1 + retries).
+const OIDC_FETCH_ATTEMPTS: u32 = 3;
+/// Initial backoff between transient IdP failures (doubles each retry).
+const OIDC_RETRY_BACKOFF_START: Duration = Duration::from_millis(20);
+
 /// POST `grant_type=client_credentials` and return `access_token`.
+///
+/// Transient IdP failures (HTTP 5xx, I/O, timeout) are retried up to
+/// [`OIDC_FETCH_ATTEMPTS`] within `request_timeout`. HTTP 4xx fails immediately
+/// (no credential hammering). This is bounded reconnect-time recovery, **not**
+/// mid-connection token refresh / `expires_in` handling (KL-06 still open).
 pub async fn fetch_client_credentials_token(
     cfg: &OidcConfig,
     request_timeout: Duration,
 ) -> Result<String> {
-    let url = parse_http_url(&cfg.token_url)?;
     let deadline = Instant::now() + request_timeout;
+    let mut backoff = OIDC_RETRY_BACKOFF_START;
+    let mut last_err = None;
+    for attempt in 1..=OIDC_FETCH_ATTEMPTS {
+        match fetch_client_credentials_token_once(cfg, deadline).await {
+            Ok(token) => return Ok(token),
+            Err(err) if attempt < OIDC_FETCH_ATTEMPTS && is_transient_oidc_error(&err) => {
+                last_err = Some(err);
+                let sleep_for = match time_left(deadline) {
+                    Ok(left) => backoff.min(left),
+                    Err(_) => Duration::ZERO,
+                };
+                if sleep_for.is_zero() {
+                    break;
+                }
+                tokio::time::sleep(sleep_for).await;
+                backoff = backoff.saturating_mul(2);
+            }
+            Err(err) => return Err(err),
+        }
+    }
+    Err(last_err.unwrap_or(Error::Timeout))
+}
+
+fn is_transient_oidc_error(err: &Error) -> bool {
+    match err {
+        Error::Timeout | Error::Io(_) => true,
+        Error::Protocol(m) => oidc_http_status(m).is_some_and(|s| (500..600).contains(&s)),
+        _ => false,
+    }
+}
+
+fn oidc_http_status(msg: &str) -> Option<u16> {
+    const PREFIX: &str = "oidc token endpoint HTTP ";
+    msg.strip_prefix(PREFIX)?.parse().ok()
+}
+
+async fn fetch_client_credentials_token_once(
+    cfg: &OidcConfig,
+    deadline: Instant,
+) -> Result<String> {
+    let url = parse_http_url(&cfg.token_url)?;
     let addr = connect_addr(&url.host, url.port);
     let left = time_left(deadline)?;
     let mut stream = match timeout(left, TcpStream::connect(&addr)).await {
@@ -449,19 +499,21 @@ mod tests {
 
     #[tokio::test]
     async fn fetch_token_rejects_http_503_fail_closed() {
-        // IdP outage / overload: fail closed with status-only Protocol error (no retry).
+        // Persistent IdP 503: bounded retries then fail closed (status-only Protocol).
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
         drop(tokio::spawn(async move {
-            let (mut sock, _) = listener.accept().await.unwrap();
-            let mut buf = vec![0u8; 1024];
-            let _n = sock.read(&mut buf).await.unwrap();
-            let body = "{\"error\":\"server_error\",\"error_description\":\"try again\"}";
-            let resp = format!(
-                "HTTP/1.1 503 Service Unavailable\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
-                body.len()
-            );
-            sock.write_all(resp.as_bytes()).await.unwrap();
+            for _ in 0..OIDC_FETCH_ATTEMPTS {
+                let (mut sock, _) = listener.accept().await.unwrap();
+                let mut buf = vec![0u8; 1024];
+                let _n = sock.read(&mut buf).await.unwrap();
+                let body = "{\"error\":\"server_error\",\"error_description\":\"try again\"}";
+                let resp = format!(
+                    "HTTP/1.1 503 Service Unavailable\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                sock.write_all(resp.as_bytes()).await.unwrap();
+            }
         }));
         let cfg = OidcConfig::new(format!("http://{addr}/token"), "cid", "csecret");
         let err = fetch_client_credentials_token(&cfg, Duration::from_secs(5))
@@ -477,6 +529,83 @@ mod tests {
             }
             other => panic!("expected protocol 503, got {other}"),
         }
+    }
+
+    #[tokio::test]
+    async fn fetch_token_retries_transient_503_then_succeeds() {
+        use std::sync::atomic::{AtomicU32, Ordering};
+        use std::sync::Arc;
+        let hits = Arc::new(AtomicU32::new(0));
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let hits_srv = hits.clone();
+        drop(tokio::spawn(async move {
+            loop {
+                let Ok((mut sock, _)) = listener.accept().await else {
+                    break;
+                };
+                let mut buf = vec![0u8; 1024];
+                let _n = sock.read(&mut buf).await.unwrap();
+                let n = hits_srv.fetch_add(1, Ordering::SeqCst) + 1;
+                let (status, body) = if n == 1 {
+                    (
+                        "503 Service Unavailable",
+                        "{\"error\":\"temporarily_unavailable\"}",
+                    )
+                } else {
+                    (
+                        "200 OK",
+                        "{\"access_token\":\"tok-after-retry\",\"token_type\":\"Bearer\"}",
+                    )
+                };
+                let resp = format!(
+                    "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                sock.write_all(resp.as_bytes()).await.unwrap();
+            }
+        }));
+        let cfg = OidcConfig::new(format!("http://{addr}/token"), "cid", "csecret");
+        let token = fetch_client_credentials_token(&cfg, Duration::from_secs(5))
+            .await
+            .unwrap();
+        assert_eq!(token, "tok-after-retry");
+        assert!(
+            hits.load(Ordering::SeqCst) >= 2,
+            "expected at least one retry after 503"
+        );
+    }
+
+    #[tokio::test]
+    async fn fetch_token_does_not_retry_http_401() {
+        use std::sync::atomic::{AtomicU32, Ordering};
+        use std::sync::Arc;
+        let hits = Arc::new(AtomicU32::new(0));
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let hits_srv = hits.clone();
+        drop(tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _ = hits_srv.fetch_add(1, Ordering::SeqCst);
+            let mut buf = vec![0u8; 1024];
+            let _n = sock.read(&mut buf).await.unwrap();
+            let body = "{\"error\":\"invalid_client\"}";
+            let resp = format!(
+                "HTTP/1.1 401 Unauthorized\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            sock.write_all(resp.as_bytes()).await.unwrap();
+            // A second accept would hang the test if the client retried.
+        }));
+        let cfg = OidcConfig::new(format!("http://{addr}/token"), "cid", "bad");
+        let err = fetch_client_credentials_token(&cfg, Duration::from_secs(5))
+            .await
+            .unwrap_err();
+        match err {
+            Error::Protocol(m) => assert_eq!(m, "oidc token endpoint HTTP 401"),
+            other => panic!("expected protocol 401, got {other}"),
+        }
+        assert_eq!(hits.load(Ordering::SeqCst), 1, "401 must not be retried");
     }
 
     #[tokio::test]
