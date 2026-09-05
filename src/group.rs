@@ -1095,7 +1095,9 @@ impl ConsumerGroup {
     /// [`crate::FetchedRecord`].
     ///
     /// When [`ConsumerConfig::enable_auto_commit`] is on and the interval has
-    /// elapsed, commits after a successful fetch.
+    /// elapsed, commits after a successful fetch. Leave/close/unsubscribe do
+    /// **not** auto-commit positions (KL-02); only this poll-interval path and
+    /// explicit `commit*` APIs store offsets.
     ///
     /// Returns [`Error::MaxPollInterval`] if this member did not poll within
     /// [`ConsumerConfig::max_poll_interval`]. The heartbeat thread also leaves
@@ -1586,6 +1588,9 @@ impl ConsumerGroup {
     /// Heartbeats stop and the assignment is cleared. Classic LeaveGroup v5
     /// sends [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]. [`Self::subscribe`] joins
     /// again with a new topic list. [`Self::leave`] after this is a no-op.
+    ///
+    /// Flushes queued `commitAsync` work only — does **not** auto-commit
+    /// positions when [`ConsumerConfig::enable_auto_commit`] is on (KL-02).
     pub async fn unsubscribe(&mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.topics.clear();
@@ -1594,9 +1599,8 @@ impl ConsumerGroup {
             return Ok(());
         }
         self.flush_async_commits().await;
-        if self.cfg.enable_auto_commit {
-            self.commit().await?;
-        }
+        // KL-02: do not auto-commit on unsubscribe — poll-interval auto-commit
+        // and explicit commit* are the only OffsetCommit paths for positions.
         self.hb_stop.send(true).unwrap_or(());
         let revoked = self.assignment();
         self.leave_coordinator(LEAVE_GROUP_REASON_UNSUBSCRIBED)
@@ -1713,6 +1717,11 @@ impl ConsumerGroup {
     /// Classic LeaveGroup v5 sends [`LEAVE_GROUP_REASON_CLOSED`]. KIP-848
     /// sends [`ConsumerGroupHeartbeatRequest::leave_group_epoch`] (static
     /// members send [`ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH`]).
+    ///
+    /// Flushes queued `commitAsync` work, then leaves. Does **not** auto-commit
+    /// positions even when [`ConsumerConfig::enable_auto_commit`] is on (KL-02:
+    /// close must not commit polled-but-unprocessed records). Use poll-interval
+    /// auto-commit or an explicit `commit*` before leave if you want stored offsets.
     pub async fn leave(mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
@@ -1720,16 +1729,14 @@ impl ConsumerGroup {
             return Ok(());
         }
         self.flush_async_commits().await;
-        if self.cfg.enable_auto_commit {
-            self.commit().await?;
-        }
+        // KL-02: never auto-commit positions on leave/close.
         self.hb_stop.send(true).unwrap_or(());
         let out = self.leave_coordinator(LEAVE_GROUP_REASON_CLOSED).await;
         self.consumer.close_interceptors();
         out
     }
 
-    /// Leave the group. Same as [`Self::leave`].
+    /// Leave the group. Same as [`Self::leave`] (no position auto-commit on close).
     pub async fn close(self) -> Result<()> {
         self.leave().await
     }

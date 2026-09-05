@@ -158,6 +158,18 @@ if [[ -f tests/produce_cancel.rs && -f docs/guide.md ]] \
 else
   bad "KL-02 produce cancel contract missing"
 fi
+
+
+# KL-02 slice: consumer leave/close must not auto-commit unprocessed offsets.
+if [[ -f tests/consumer_close_commit.rs && -f docs/guide.md ]] \
+  && grep -qF 'Consumer leave/close and auto-commit' docs/guide.md \
+  && grep -qF 'auto_commit_on_leave_with_long_interval_does_not_commit' tests/consumer_close_commit.rs \
+  && grep -qF 'KL-02: never auto-commit positions on leave/close' src/group.rs \
+  && grep -qF 'KL-02: do not auto-commit on unsubscribe' src/group.rs; then
+  ok "KL-02 consumer close-commit honesty (no leave/unsubscribe auto-commit; poll-interval kept)"
+else
+  bad "KL-02 consumer close-commit honesty missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

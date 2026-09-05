@@ -147,8 +147,10 @@ fixtures and sustained campaigns have linked results and no unresolved failures.
    acknowledgment. A dropped future must not imply a record was never written.
    **Partial (2026-09-05):** guide cancellation table + `Producer::send`/`close` rustdoc;
    mock tests in `tests/produce_cancel.rs`; `close` sets a durable `closed` flag so clones
-   cannot respawn workers. Remaining: overload soak, full byte/task ownership trace,
-   consumer auto-commit-on-close honesty.
+   cannot respawn workers. Remaining: overload soak, full byte/task ownership trace.
+   **Partial (2026-09-05):** consumer `leave`/`close`/`unsubscribe` no longer
+   auto-commit positions (`tests/consumer_close_commit.rs`); poll-interval
+   auto-commit unchanged.
 3. Exercise saturating senders, slow consumers, stalled brokers, shutdown and
    timeout races. Specify whether each operation drains, rejects or reports an
    unknown outcome. Never auto-commit unprocessed consumer offsets on close.

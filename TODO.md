@@ -41,7 +41,8 @@ performance qualification and exact-HEAD evidence remain open.
 |---|---|---|---|
 | [ ] | [KL-01: Baseline and protocol oracles](docs/ROADMAP.md#kl-01-recover-the-baseline-and-establish-protocol-oracles) | None | Green required lanes, actual broker/case matrix, semantic differential fixtures and sustained fuzz results. |
 | [ ] | [KL-02: Resources and cancellation](docs/ROADMAP.md#kl-02-bound-memory-and-define-cancellationshutdown-outcomes) | KL-01 contract | Queued/in-flight byte model, overload soak and explicit completed/failed/ambiguous outcomes without hung tasks. |
-| | ↳ partial: produce cancel table + mock tests + durable `close`→`Closed` (2026-09-05) | | Overload soak / full ownership trace / consumer close-commit still open. |
+| | ↳ partial: produce cancel table + mock tests + durable `close`→`Closed` (2026-09-05) | | Overload soak / full ownership trace still open. |
+| | ↳ partial: consumer leave/close/unsubscribe do not auto-commit positions (2026-09-05) | | Poll-interval auto-commit + explicit commit* unchanged. |
 | [ ] | [KL-03: HA and transactional/group histories](docs/ROADMAP.md#kl-03-prove-ha-transactions-and-group-semantics-with-crash-histories) | KL-01/02 | Three-broker faults, unique-ID/payload/order histories, fencing/read-committed proofs, and distinct group/share recovery matrices. |
 | [ ] | [KL-04: Measurements and optimization](docs/ROADMAP.md#kl-04-establish-reproducible-leadership-then-optimize-measured-limits) | KL-01; KL-02/03 for production claims | Equal-semantics open-loop comparisons, tail latency/CPU/memory, repeated multi-host artifacts and independent reproduction. |
 | [ ] | [KL-05: Demand-led codec/ecosystem scope](docs/ROADMAP.md#kl-05-expand-codec-and-ecosystem-coverage-only-when-justified) | KL-01; KL-04 for performance | Separate zstd decoder/encoder evaluation, framing/safety evidence and a dependency-policy decision. Schema Registry stays a companion design. |
