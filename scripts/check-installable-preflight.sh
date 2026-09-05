@@ -149,6 +149,7 @@ else
     echo
     if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
       echo "check-installable-preflight: READY_EXCEPT_TOKEN (main CI still running — wait or REQUIRE_MAIN_CI=0)"
+      echo "  Parks stay off main until after crates.io 0.1.0 (expected pre-Installable; tip⊆parks stack is the pre-cut gate)."
       echo "  Next: bash scripts/owner-request-registry-token.sh"
       echo "        then export CARGO_REGISTRY_TOKEN, wait for green main CI, then:"
       echo "        bash scripts/owner-finish-installable.sh"
@@ -196,6 +197,7 @@ bash scripts/check-registry-token.sh || tok_rc=$?
 if [[ "$tok_rc" -eq 2 ]]; then
   # Prepare should have cleared whitespace; unset mid-flight is still EXCEPT_TOKEN.
   echo "check-installable-preflight: READY_EXCEPT_TOKEN (token unset after prepare)"
+  echo "  Parks stay off main until after crates.io 0.1.0 (expected pre-Installable; tip⊆parks stack is the pre-cut gate)."
   exit 0
 elif [[ "$tok_rc" -ne 0 ]]; then
   echo "check-installable-preflight: FAIL — CARGO_REGISTRY_TOKEN set but crates.io rejected it (rc=${tok_rc})" >&2
