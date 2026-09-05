@@ -89,6 +89,18 @@ Use `transactional_id`, `init_transactions`, and
 `send_offsets_for_group` — see `examples/eos.rs`. Isolation on the consumer
 side is `IsolationLevel::ReadCommitted`.
 
+### Crash / HA history (KL-03 honesty)
+
+Mock `tests/crash_history.rs` seeds unique record IDs, commits one transaction
+and aborts another, then checks an independent `read_committed` consumer sees
+only committed IDs in seed order. That is **history-classification** Partial —
+not a three-broker KRaft crash/HA close and not a Suite HOLD lift.
+
+For a filled three-broker history record (leader/coordinator moves, fencing,
+group/share churn), use the blank
+[crash-history-exercise.md](crash-history-exercise.md) template — it ships
+`UNFILLED` and does **not** close KL-03 until completed and signed.
+
 ## Admin
 
 ```rust,no_run
@@ -196,7 +208,10 @@ pause (`examples/cooperative.rs`). Handle `on_rebalance` for revoke/assign.
 ### Exactly-once consume → produce
 
 `examples/eos.rs`: read with `ReadCommitted`, produce inside a transaction,
-`send_offsets_for_group`, `commit_transaction`.
+`send_offsets_for_group`, `commit_transaction`. Pair with the mock unique-ID
+history check in `tests/crash_history.rs` and the blank
+[crash-history-exercise.md](crash-history-exercise.md) for live three-broker
+records (still required for full KL-03).
 
 ## Tracing (optional feature)
 

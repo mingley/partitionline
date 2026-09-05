@@ -174,6 +174,10 @@ all accepted work has a documented completed, failed or ambiguous outcome.
    unknown outcomes; compare full histories, not just high-watermark deltas.
    Broker offsets include control records and are not a count of application
    records in transactional tests.
+   **Partial (2026-09-05):** mock unique-ID commit/abort classification
+   (`tests/crash_history.rs`) plus blank three-broker record template
+   ([crash-history-exercise.md](crash-history-exercise.md), UNFILLED — not
+   evidence). Not a live RF=3 / leader-move / fencing history close.
 3. Test PID/sequence/epoch recovery, fencing, transaction commit/abort, coordinator
    failover and `read_committed` output plus committed input offsets against
    version-pinned Java behavior. Follow broker/protocol recovery rules; never
@@ -185,7 +189,8 @@ all accepted work has a documented completed, failed or ambiguous outcome.
 
 **Work surfaces:** [producer](../src/producer.rs), [consumer](../src/consumer.rs),
 [group](../src/group.rs), [share](../src/share.rs), [transaction protocol](../src/protocol/txn.rs),
-[live tests](../tests/kip848_live.rs), [broker smoke](../scripts/ci-broker-smoke.sh).
+[live tests](../tests/kip848_live.rs), [broker smoke](../scripts/ci-broker-smoke.sh),
+[crash-history exercise](crash-history-exercise.md).
 **Done when:** seeded histories satisfy each profile's invariants and recovery
 budget across supported broker versions, with no unexplained outcomes.
 `acks=all` alone is not an exactly-once guarantee.

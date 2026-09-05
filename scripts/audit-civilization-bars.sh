@@ -266,6 +266,20 @@ if [[ -f docs/adopter-exercise.md ]] \
 else
   bad "KL-08 adopter exercise template missing"
 fi
+
+# KL-03 slice: crash/HA history template + mock unique-ID classification (not a 3-broker close).
+if [[ -f docs/crash-history-exercise.md && -f tests/crash_history.rs && -f docs/guide.md ]] \
+  && grep -qF 'UNFILLED — not evidence' docs/crash-history-exercise.md \
+  && grep -qF 'Does **not** close KL-03' docs/crash-history-exercise.md \
+  && grep -qF 'three-broker KRaft' docs/crash-history-exercise.md \
+  && grep -qF 'unique_id_commit_abort_history_classifies_read_committed' tests/crash_history.rs \
+  && grep -qF 'crash-history-exercise.md' docs/guide.md \
+  && grep -qF 'crash-history-exercise.md' docs/ROADMAP.md \
+  && grep -qF 'Crash / HA history (KL-03 honesty)' docs/guide.md; then
+  ok "KL-03 crash/HA history Partial (UNFILLED template + mock unique-ID test; guide+ROADMAP links)"
+else
+  bad "KL-03 crash/HA history Partial missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"
