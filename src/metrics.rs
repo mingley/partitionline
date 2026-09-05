@@ -340,6 +340,13 @@ pub struct ConsumerMetrics {
     pub fetch_latency: LatencyStats,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
     pub topics: Vec<TopicFetchMetrics>,
+    /// [`crate::Consumer::wakeup`] / [`crate::WakeupHandle::wakeup`] calls.
+    /// KL-07 diagnosis: interrupt signals without dumping poll stacks.
+    pub wakeups_signaled: u64,
+    /// Times a pending wakeup was observed and cleared (`take_wakeup`).
+    /// Rising `wakeups_signaled` with flat `wakeups_consumed` means the fetch
+    /// loop has not yet drained the interrupt.
+    pub wakeups_consumed: u64,
 }
 
 /// Fetch counters for one topic.
@@ -565,6 +572,8 @@ mod tests {
         assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
         assert_eq!(ConsumerMetrics::default().fetch_latency.count, 0);
+        assert_eq!(ConsumerMetrics::default().wakeups_signaled, 0);
+        assert_eq!(ConsumerMetrics::default().wakeups_consumed, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
         assert_eq!(ShareMetrics::default().bytes_fetched, 0);
         assert_eq!(ShareMetrics::default().fetch_errors, 0);

@@ -136,6 +136,16 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (wakeup)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Shutdown interrupt delivered | `Consumer::metrics().wakeups_signaled` rising; `wakeups_consumed` catches up | Healthy wakeup drain on next fetch/poll |
+| Signal stuck / poll not returning | `wakeups_signaled` rising while `wakeups_consumed` flat | Fetch loop blocked before `take_wakeup`, or consumer task hung |
+| No interrupts | both counters stay 0 | No `wakeup` / `WakeupHandle::wakeup` calls |
+
+`wakeups_signaled` / `wakeups_consumed` count interrupt signals and drains on `ConsumerMetrics`. Prefer them over dumping poll stacks. Mock proof: `tests/wakeup_metrics.rs`. KL-07 Partial — not two independent human diagnosis runs, and not a Suite HOLD lift.
+
 ## Recipes
 
 ### Backpressure

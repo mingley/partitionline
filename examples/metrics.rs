@@ -55,6 +55,12 @@ async fn main() -> partitionline::Result<()> {
         println!("# HELP partitionline_fetch_rounds Fetch rounds completed");
         println!("# TYPE partitionline_fetch_rounds counter");
         println!("partitionline_fetch_rounds {}", cm.fetch_rounds);
+        println!("# HELP partitionline_wakeups_signaled Consumer wakeup signals");
+        println!("# TYPE partitionline_wakeups_signaled counter");
+        println!("partitionline_wakeups_signaled {}", cm.wakeups_signaled);
+        println!("# HELP partitionline_wakeups_consumed Consumer wakeup drains");
+        println!("# TYPE partitionline_wakeups_consumed counter");
+        println!("partitionline_wakeups_consumed {}", cm.wakeups_consumed);
         println!("# HELP partitionline_fetch_p99_seconds Fetch round p99 latency");
         println!("# TYPE partitionline_fetch_p99_seconds gauge");
         println!(
@@ -63,11 +69,13 @@ async fn main() -> partitionline::Result<()> {
         );
     } else {
         println!(
-            "fetched {} records rounds={} bytes={} errors={} fetch_us={} p50_us={} p99_us={} topics={}",
+            "fetched {} records rounds={} bytes={} errors={} wakeups_signaled={} wakeups_consumed={} fetch_us={} p50_us={} p99_us={} topics={}",
             recs.len(),
             cm.fetch_rounds,
             cm.bytes_fetched,
             cm.fetch_errors,
+            cm.wakeups_signaled,
+            cm.wakeups_consumed,
             cm.fetch_latency.mean_nanos().unwrap_or(0) / 1000,
             cm.fetch_latency.p50_nanos / 1000,
             cm.fetch_latency.p99_nanos / 1000,

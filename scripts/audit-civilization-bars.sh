@@ -254,6 +254,19 @@ else
   bad "KL-08 support matrix honesty missing"
 fi
 
+# KL-07 slice: wakeups_signaled/consumed for interrupt diagnosis without stack dumps.
+if [[ -f tests/wakeup_metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (wakeup)' docs/guide.md \
+  && grep -qF 'wakeups_signaled_metric_increments_on_wakeup' tests/wakeup_metrics.rs \
+  && grep -qF 'pub wakeups_signaled: u64' src/metrics.rs \
+  && grep -qF 'm_wakeups_signaled' src/consumer.rs \
+  && grep -qF 'm_wakeups_consumed' src/consumer.rs \
+  && grep -qF 'wakeup_metrics.rs' docs/ROADMAP.md; then
+  ok "KL-07 wakeup diagnosis Partial (wakeups_signaled/consumed; guide+mock)"
+else
+  bad "KL-07 wakeup diagnosis Partial missing"
+fi
+
 # KL-08 slice: adopter 24h/7d exercise template (UNFILLED — not evidence).
 if [[ -f docs/adopter-exercise.md ]] \
   && grep -qF 'UNFILLED — not evidence' docs/adopter-exercise.md \

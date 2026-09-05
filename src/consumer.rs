@@ -1257,6 +1257,8 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    m_wakeups_signaled: Arc<AtomicU64>,
+    m_wakeups_consumed: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1273,11 +1275,13 @@ pub struct Consumer {
 pub struct WakeupHandle {
     flag: Arc<AtomicBool>,
     tx: watch::Sender<bool>,
+    signaled: Arc<AtomicU64>,
 }
 
 impl WakeupHandle {
     /// Make the next (or in-flight) fetch return [`Error::Wakeup`].
     pub fn wakeup(&self) {
+        let _ = self.signaled.fetch_add(1, Ordering::Relaxed);
         self.flag.store(true, Ordering::SeqCst);
         self.tx.send(true).unwrap_or(());
     }
@@ -1346,6 +1350,8 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_wakeups_signaled: Arc::new(AtomicU64::new(0)),
+            m_wakeups_consumed: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -2153,6 +2159,8 @@ impl Consumer {
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
+            wakeups_signaled: self.m_wakeups_signaled.load(Ordering::Relaxed),
+            wakeups_consumed: self.m_wakeups_consumed.load(Ordering::Relaxed),
         }
     }
 
@@ -2195,6 +2203,7 @@ impl Consumer {
     /// Safe to call while fetch is running on this task. From another task,
     /// use [`Self::wakeup_handle`].
     pub fn wakeup(&self) {
+        let _ = self.m_wakeups_signaled.fetch_add(1, Ordering::Relaxed);
         self.wakeup.store(true, Ordering::SeqCst);
         self.wakeup_tx.send(true).unwrap_or(());
     }
@@ -2205,6 +2214,7 @@ impl Consumer {
         WakeupHandle {
             flag: Arc::clone(&self.wakeup),
             tx: self.wakeup_tx.clone(),
+            signaled: Arc::clone(&self.m_wakeups_signaled),
         }
     }
 
@@ -2232,6 +2242,7 @@ impl Consumer {
     pub(crate) fn take_wakeup(&self) -> bool {
         let was = self.wakeup.swap(false, Ordering::SeqCst);
         if was {
+            let _ = self.m_wakeups_consumed.fetch_add(1, Ordering::Relaxed);
             self.wakeup_tx.send(false).unwrap_or(());
         }
         was
