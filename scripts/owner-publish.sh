@@ -49,15 +49,15 @@ cargo publish
 echo "owner-publish: published partitionline ${ver}"
 echo "owner-publish: confirm https://crates.io/crates/partitionline"
 
-# Manual publish path: flip README once the index sees the crate.
+# Manual publish path: flip day1 adopter docs once the index sees the crate.
 # Tag → Actions remains preferred (docs/RELEASE.md); set RUN_DAY1_AFTER_PUBLISH=0 to skip.
 if [[ "${RUN_DAY1_AFTER_PUBLISH:-1}" == "1" ]]; then
-  echo "owner-publish: running day1-after-publish (README flip + installable probe)"
+  echo "owner-publish: running day1-after-publish (README/ADOPTION/guide/migrate flip + installable probe)"
   bash scripts/day1-after-publish.sh
-  echo "owner-publish: commit the README crates.io line, then tag if release.yml did not:"
-  echo "  git add README.md && git commit -m \"README: crates.io ${ver}\""
+  echo "owner-publish: commit day1 crates.io lines (README + ADOPTION + guide + migrate), then tag if release.yml did not:"
+  echo "  git add README.md docs/ADOPTION.md docs/guide.md docs/migrate-from-rdkafka.md && git commit -m \"docs: crates.io ${ver} install pins\""
   echo "  git tag -a v${ver} -m \"partitionline ${ver}\" && git push origin main v${ver}"
 else
   echo "owner-publish: next — tag v${ver}, push tag (or rely on release.yml),"
-  echo "  bash scripts/day1-after-publish.sh, commit README"
+  echo "  bash scripts/day1-after-publish.sh, commit README + ADOPTION + guide + migrate"
 fi

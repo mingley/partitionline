@@ -185,7 +185,7 @@ token-day soft blocker).
    when the token is in-env.
 2. **Post-Installable handoff** — Trusted Publishing + parks + full bars:
    `bash scripts/owner-post-installable-handoff.sh`
-   (`LAND_PARKS=1` to land post-cut parks; day1 README/ADOPTION preserved via
+   (`LAND_PARKS=1` to land post-cut parks; day1 README/ADOPTION/guide/migrate preserved via
    `preserve-day1-docs`; handoff `--self-test` gates that wiring).
 3. **Tip Verifiable honesty while waiting** — unsigned live-broker evidence via
    `bash scripts/ci-tip-verifiable-broker.sh` (soft-skips/`PARTIAL` must not

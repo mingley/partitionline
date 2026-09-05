@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Preserve day1 README/ADOPTION edits across post-cut parks land.
+# Preserve day1 README/ADOPTION/guide/migrate edits across post-cut parks land.
 #
 # owner-finish-installable flips those docs to crates.io shape, then lands parks
 # which need a clean tree. Stash alone can fail to pop after park merges; keep a
@@ -71,7 +71,9 @@ pl_day1_docs_end() {
       restored=1
     else
       echo "preserve-day1-docs: WARN — stash pop failed; trying filesystem backup" >&2
-      git reset --quiet -- README.md docs/ADOPTION.md 2>/dev/null || true
+      # Clear the full day1 surface from the index (stash pushed all four paths).
+      mapfile -t _pl_day1_reset < <(pl_day1_docs_paths)
+      git reset --quiet -- "${_pl_day1_reset[@]}" 2>/dev/null || true
       if pl_day1_docs_restore_from_backup; then
         restored=1
       fi

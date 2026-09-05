@@ -132,7 +132,7 @@ fi
 
 echo
 echo "== check-cut-path: day1 after-publish rehearsal (no crates.io wait) =="
-# Finish chains day1 after the cut; rehearse README flip + consumer path now so
+# Finish chains day1 after the cut; rehearse README/ADOPTION/guide/migrate flip + consumer path now so
 # day1 cannot fail on tip drift once crates.io 0.1.0 exists.
 # Absent crate + DRY_RUN exits PARTIAL/2 (not OK) — capture so set -e cannot greenwash.
 day1_rc=0
