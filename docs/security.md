@@ -43,6 +43,22 @@ recovery, and topic names remain operator-chosen (do not put secrets in topic na
 
 Mock coverage: `tests/credential_redact.rs`.
 
+## Auth recovery (current behavior)
+
+OIDC `client_credentials` is a **one-shot** fetch on each new SASL authenticate
+(`fetch_client_credentials_token`). The client does **not** parse `expires_in`,
+does **not** cache/refresh tokens mid-connection, and does **not** act on broker
+`session_lifetime_ms`. A dropped TCP/TLS connection re-runs full SASL (and may
+re-fetch OIDC); that is reconnect re-auth, not proactive rotation.
+
+Token-endpoint outages fail closed: non-200 → `Error::Protocol` with
+`oidc token endpoint HTTP {status}` only; a hung IdP surfaces `Error::Timeout`
+bounded by the caller's request timeout. There is **no** OIDC-level retry/backoff
+on the HTTP fetch (KL-06 rotation/outage recovery remains open).
+
+Unit coverage: `fetch_token_rejects_http_503_fail_closed`,
+`fetch_token_hang_times_out_fail_closed` in `src/protocol/oidc.rs`.
+
 ## Reporting
 
 Report security issues privately to the repository owner (see GitHub security

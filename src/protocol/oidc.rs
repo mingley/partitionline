@@ -446,4 +446,59 @@ mod tests {
             other => panic!("expected protocol 401, got {other}"),
         }
     }
+
+    #[tokio::test]
+    async fn fetch_token_rejects_http_503_fail_closed() {
+        // IdP outage / overload: fail closed with status-only Protocol error (no retry).
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        drop(tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let mut buf = vec![0u8; 1024];
+            let _n = sock.read(&mut buf).await.unwrap();
+            let body = "{\"error\":\"server_error\",\"error_description\":\"try again\"}";
+            let resp = format!(
+                "HTTP/1.1 503 Service Unavailable\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            sock.write_all(resp.as_bytes()).await.unwrap();
+        }));
+        let cfg = OidcConfig::new(format!("http://{addr}/token"), "cid", "csecret");
+        let err = fetch_client_credentials_token(&cfg, Duration::from_secs(5))
+            .await
+            .unwrap_err();
+        match err {
+            Error::Protocol(m) => {
+                assert_eq!(m, "oidc token endpoint HTTP 503");
+                assert!(
+                    !m.contains("server_error") && !m.contains("try again"),
+                    "OIDC Error must not embed IdP outage body: {m}"
+                );
+            }
+            other => panic!("expected protocol 503, got {other}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_token_hang_times_out_fail_closed() {
+        // Silent IdP hang: request_timeout must surface Error::Timeout (no hang forever).
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        drop(tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let mut buf = vec![0u8; 1024];
+            let _n = sock.read(&mut buf).await.unwrap();
+            // Accept the request then never respond within the client timeout.
+            tokio::time::sleep(Duration::from_secs(30)).await;
+            drop(sock.write_all(b"HTTP/1.1 200 OK\r\n\r\n").await);
+        }));
+        let cfg = OidcConfig::new(format!("http://{addr}/token"), "cid", "csecret");
+        let err = fetch_client_credentials_token(&cfg, Duration::from_millis(80))
+            .await
+            .unwrap_err();
+        match err {
+            Error::Timeout => {}
+            other => panic!("expected Timeout on IdP hang, got {other}"),
+        }
+    }
 }

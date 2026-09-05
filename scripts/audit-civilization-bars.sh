@@ -224,6 +224,17 @@ else
   bad "KL-06 metrics/span redaction honesty missing"
 fi
 
+# KL-06 slice: OIDC IdP outage fail-closed honesty (no mid-conn refresh; recovery still open).
+if grep -qF '## Auth recovery (current behavior)' docs/security.md \
+  && grep -qF 'one-shot' docs/security.md \
+  && grep -qF 'fetch_token_rejects_http_503_fail_closed' src/protocol/oidc.rs \
+  && grep -qF 'fetch_token_hang_times_out_fail_closed' src/protocol/oidc.rs \
+  && grep -qF 'KL-06 rotation/outage recovery remains open' docs/security.md; then
+  ok "KL-06 OIDC outage fail-closed honesty (503/timeout tests + security.md; recovery still open)"
+else
+  bad "KL-06 OIDC outage fail-closed honesty missing"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \

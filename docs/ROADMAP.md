@@ -262,7 +262,8 @@ honest dependency footprint. Deferred features remain documented exclusions.
    and mTLS key PEMs (plus producer/consumer/admin config cascade); see
    [security.md](security.md) and `tests/credential_redact.rs`. OIDC/OAUTHBEARER `Error` bodies no longer embed IdP/broker payloads (2026-09-05).
    Metrics snapshots + tracing `skip(self)` span honesty added (2026-09-05).
-   Rotation/outage recovery remains open.
+   OIDC IdP outage fail-closed honesty (503/timeout; one-shot fetch documented; 2026-09-05).
+   Bounded retry/refresh/rotation recovery remains open.
 
 **Work surfaces:** [network](../src/net.rs), [OAuth](../src/protocol/oauth.rs),
 [OIDC](../src/protocol/oidc.rs), [auth smoke](../scripts/ci-auth-smoke.sh),
