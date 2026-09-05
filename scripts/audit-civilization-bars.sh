@@ -226,6 +226,22 @@ if [[ -x scripts/check-adopter-pin.sh ]] \
 else
   bad "adopter-pin honesty missing/failed; see /tmp/pl-adopter-pin.log"
 fi
+
+# Day1 must flip guide + migrate (not only README/ADOPTION), rehearsed in publish-ready.
+if grep -qF 'post-publish-guide.sh' scripts/day1-after-publish.sh \
+  && grep -qF 'post-publish-migrate.sh' scripts/day1-after-publish.sh \
+  && grep -qF 'post-publish-guide.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'post-publish-migrate.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'docs/guide.md' scripts/lib/preserve-day1-docs.sh \
+  && grep -qF 'docs/migrate-from-rdkafka.md' scripts/lib/preserve-day1-docs.sh \
+  && DRY_RUN=1 bash scripts/post-publish-guide.sh >/tmp/pl-guide-flip-bars.log 2>&1 \
+  && DRY_RUN=1 bash scripts/post-publish-migrate.sh >/tmp/pl-migrate-flip-bars.log 2>&1 \
+  && grep -q 'DRY_RUN ok' /tmp/pl-guide-flip-bars.log \
+  && grep -q 'DRY_RUN ok' /tmp/pl-migrate-flip-bars.log; then
+  ok "day1 guide+migrate crates.io flip (DRY_RUN rehearsed; wired into day1 + publish-ready + preserve-day1)"
+else
+  bad "day1 guide+migrate flip missing/failed; see /tmp/pl-guide-flip-bars.log /tmp/pl-migrate-flip-bars.log"
+fi
 # Parks auto-refresh must restore main/caller before cut/publish (token-day footgun).
 if [[ -x scripts/check-parks-refresh-cut-guards.sh ]] \
   && bash scripts/check-parks-refresh-cut-guards.sh >/tmp/pl-parks-refresh-guards.log 2>&1 \

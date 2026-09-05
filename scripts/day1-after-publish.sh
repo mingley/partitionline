@@ -39,9 +39,11 @@ if [[ "$ok" != "1" ]]; then
   echo "day1-after-publish: crates.io does not yet have partitionline ${ver}" >&2
   if [[ "$DRY_RUN" == "1" ]]; then
     echo "day1-after-publish: DRY_RUN=1 — would verify crates.io consumer + flip README/ADOPTION after publish" >&2
-    echo "day1-after-publish: rehearsing README + ADOPTION flips (DRY_RUN=1)" >&2
+    echo "day1-after-publish: rehearsing README + ADOPTION + guide + migrate flips (DRY_RUN=1)" >&2
     DRY_RUN=1 bash scripts/post-publish-readme.sh
     DRY_RUN=1 bash scripts/post-publish-adoption.sh
+    DRY_RUN=1 bash scripts/post-publish-guide.sh
+    DRY_RUN=1 bash scripts/post-publish-migrate.sh
     echo
     # Absent crate + DRY_RUN is rehearsal evidence, not Installable success.
     # Exit PARTIAL/2 so cut-path / set -e proxies cannot print final OK as if published.
@@ -64,9 +66,13 @@ fi
 if [[ "$DRY_RUN" == "1" ]]; then
   DRY_RUN=1 bash scripts/post-publish-readme.sh
   DRY_RUN=1 bash scripts/post-publish-adoption.sh
+  DRY_RUN=1 bash scripts/post-publish-guide.sh
+  DRY_RUN=1 bash scripts/post-publish-migrate.sh
 else
   bash scripts/post-publish-readme.sh
   bash scripts/post-publish-adoption.sh
+  bash scripts/post-publish-guide.sh
+  bash scripts/post-publish-migrate.sh
 fi
 
 echo
@@ -74,7 +80,7 @@ echo "day1-after-publish: next owner steps"
 echo "  Preferred one-shot (TP + parks + full bars — any cut path, including Actions first-publish):"
 echo "       bash scripts/owner-post-installable-handoff.sh"
 echo "       LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks not yet landed"
-echo "  1. Review and commit README + docs/ADOPTION.md crates.io install lines (+ badges)"
+echo "  1. Review and commit README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md crates.io install lines (+ badges)"
 echo "  2. Prefer crates.io Trusted Publishing for later tags:"
 echo "       bash scripts/owner-enable-trusted-publishing.sh"
 echo "     (prints exact crates.io UI steps; verifies release.yml OIDC shape)."
