@@ -114,7 +114,19 @@ let _ = ProducerConfig::bootstrap(["broker:9093"])
     .sasl(Sasl::scram_sha256("alice", "secret"));
 ```
 
-Examples: `tls`, `sasl`. OIDC is `OidcConfig` on the SASL OAUTHBEARER path.
+Examples: `tls`, `sasl`. OIDC is `OidcConfig` on the SASL OAUTHBEARER path
+(`examples/oauth.rs`).
+
+### TLS / SASL / OAuth examples as external package consumers
+
+`examples/sasl.rs`, `examples/tls.rs`, and `examples/oauth.rs` (SCRAM/PLAIN,
+rustls TLS / mTLS, and OAUTHBEARER / OIDC) must compile as **downstream** bins
+against the packed `.crate`, not only as in-tree path dependencies. Proof:
+`bash scripts/ci-example-auth-crate-consumers.sh` (wired into branch-lite /
+cut-path / publish-ready). Complements produce/consume/txn and other
+external-consumer Partials when those land. This is a KL-07 Partial — not
+KL-06 mid-connection refresh, not two-user diagnosis, and not a Suite HOLD
+lift.
 
 ## Defaults that differ from Java
 

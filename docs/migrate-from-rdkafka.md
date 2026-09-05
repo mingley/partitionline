@@ -79,6 +79,10 @@ default feature set.
    intent (Earliest vs latest).
 4. If you used zstd or GSSAPI, plan compression/auth alternatives first.
 5. Compare metrics via `Producer::metrics` / `Consumer::metrics` during soak.
+6. Port TLS/SASL/OIDC with `examples/tls.rs`, `examples/sasl.rs`, and
+   `examples/oauth.rs` — compile-checked as external package consumers via
+   `bash scripts/ci-example-auth-crate-consumers.sh` (no live broker required
+   for the compile gate).
 
 ## Further reading
 

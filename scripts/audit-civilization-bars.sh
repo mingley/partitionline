@@ -239,6 +239,24 @@ else
 fi
 
 
+# KL-07 slice: sasl/tls/oauth examples as external packed-crate consumers.
+if [[ -f scripts/ci-example-auth-crate-consumers.sh && -f examples/sasl.rs && -f examples/tls.rs && -f examples/oauth.rs && -f docs/guide.md ]] \
+  && grep -qF 'TLS / SASL / OAuth examples as external package consumers' docs/guide.md \
+  && grep -qF 'ci-example-auth-crate-consumers.sh' docs/guide.md \
+  && grep -qF 'examples/sasl.rs' scripts/ci-example-auth-crate-consumers.sh \
+  && grep -qF 'examples/tls.rs' scripts/ci-example-auth-crate-consumers.sh \
+  && grep -qF 'examples/oauth.rs' scripts/ci-example-auth-crate-consumers.sh \
+  && grep -qF 'ci-example-auth-crate-consumers.sh' scripts/ci-branch-lite.sh \
+  && grep -qF 'ci-example-auth-crate-consumers.sh' scripts/check-cut-path.sh \
+  && grep -qF 'ci-example-auth-crate-consumers.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'sasl/tls/oauth examples as external' docs/ROADMAP.md \
+  && bash scripts/ci-example-auth-crate-consumers.sh --self-test >/tmp/pl-kl07-auth-ex-self.log 2>&1 \
+  && bash scripts/ci-example-auth-crate-consumers.sh >/tmp/pl-kl07-auth-ex.log 2>&1; then
+  ok "KL-07 sasl/tls/oauth external crate-consumers (packed .crate cargo check; guide+bars)"
+else
+  bad "KL-07 sasl/tls/oauth external crate-consumers missing/failed; see /tmp/pl-kl07-auth-ex*.log"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \
