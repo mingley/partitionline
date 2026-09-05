@@ -188,6 +188,14 @@ if grep -A20 '^  integrity-smoke:' .github/workflows/ci.yml | grep -qF 'SKIP_LAT
 else
   bad "CI integrity/auth must use checkout v7; integrity-smoke must SKIP_LATENCY_GATE (avoid REQUIRE_INTEGRITY latency flake)"
 fi
+
+# Post-Installable: MISSING token copy must not pretend Installable is still blocked.
+if grep -qF 'crates.io already has this crate/version (Installable met)' scripts/check-registry-token.sh \
+  && grep -qF 'token only needed for future cuts' scripts/check-registry-token.sh; then
+  ok "registry-token MISSING copy is post-Installable honest (future cuts, not Installable blocker)"
+else
+  bad "registry-token MISSING copy must note Installable-met → token only for future cuts"
+fi
 fuzz_n=0
 if [[ -d fuzz/fuzz_targets ]]; then
   fuzz_n="$(find fuzz/fuzz_targets -name '*.rs' | wc -l | tr -d ' ')"
