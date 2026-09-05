@@ -92,8 +92,11 @@ Git tags remain available for bisects; new adopters should prefer crates.io.
 7. Read defaults that differ from Java (`auto.offset.reset=Earliest`, etc.).
 
 For KL-08 **24h then 7d** adopter evidence (two independent workloads), copy
-[adopter-exercise.md](adopter-exercise.md). The template ships **UNFILLED** and
-does not close KL-08 or lift Suite HOLD until real records are filed.
+[adopter-exercise.md](adopter-exercise.md). For traffic-shadow promotion and
+operator-approved rollback proof, copy
+[promotion-rollback-exercise.md](promotion-rollback-exercise.md). Both templates
+ship **UNFILLED** and do not close KL-08 or lift Suite HOLD until real records
+are filed.
 
 ## Known adoption gaps (honest)
 

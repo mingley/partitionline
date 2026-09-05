@@ -266,6 +266,20 @@ if [[ -f docs/adopter-exercise.md ]] \
 else
   bad "KL-08 adopter exercise template missing"
 fi
+
+# KL-08 slice: promotion/rollback exercise template (UNFILLED — not evidence).
+if [[ -f docs/promotion-rollback-exercise.md ]] \
+  && grep -qF 'UNFILLED — not evidence' docs/promotion-rollback-exercise.md \
+  && grep -qF 'Does **not** close KL-08' docs/promotion-rollback-exercise.md \
+  && grep -qF 'Traffic-shadow plan' docs/promotion-rollback-exercise.md \
+  && grep -qF 'Rollback rehearsal' docs/promotion-rollback-exercise.md \
+  && grep -qF 'promotion-rollback-exercise.md' docs/support.md \
+  && grep -qF 'promotion-rollback-exercise.md' docs/ADOPTION.md \
+  && grep -qF 'promotion-rollback-exercise.md' docs/ROADMAP.md; then
+  ok "KL-08 promotion/rollback exercise template (UNFILLED; support+ADOPTION+ROADMAP links)"
+else
+  bad "KL-08 promotion/rollback exercise template missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

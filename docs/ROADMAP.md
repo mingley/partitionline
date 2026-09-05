@@ -321,6 +321,8 @@ for adoption and API stabilization. Optional KL-05 features do not gate everyone
    and explicit non-promises. Linked from RELEASE/ADOPTION/api-stability. Does
    **not** close KL-08 (adopter 24h/7d records and promotion/rollback remain).
    Blank record format: [adopter-exercise.md](adopter-exercise.md) (UNFILLED — not evidence; 2026-09-05).
+   Promotion/rollback blank format: [promotion-rollback-exercise.md](promotion-rollback-exercise.md)
+   (UNFILLED — not evidence; 2026-09-05).
 3. Qualify two independent adopter workloads with 24-hour then 7-day runs.
    With operator approval, shadow into isolated topics/read-only consumers
    before a 1%/10%/50% traffic rollout. Never duplicate real downstream side
@@ -333,6 +335,8 @@ for adoption and API stabilization. Optional KL-05 features do not gate everyone
    points or p99 > baseline by 10% for two 5-minute windows; freeze sample floors
    and any stricter service SLO beforehand. Keep rollback operator-controlled
    unless separately approved automation has been rehearsed.
+   **Partial (2026-09-05):** blank promotion/rollback record template landed;
+   no filled shadow/rollback proof yet.
 
 **Done when:** maintainers/operators sign off on linked per-profile evidence,
 no blocker remains for that profile, and upgrade/rollback is demonstrated.
