@@ -139,7 +139,12 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" && "${OWNER_STATUS_FULL:-0}" != "1" ]]; the
   echo "  branch-lite (local Actions mirror): skipped (TOKEN unset; OWNER_STATUS_FULL=1 to run)"
 else
   if bash scripts/ci-branch-lite.sh >/tmp/pl-owner-branch-lite.log 2>&1; then
-    echo "  branch-lite (local Actions mirror): ok"
+    if grep -qE 'ok with PARTIAL|PARTIAL —' /tmp/pl-owner-branch-lite.log; then
+      echo "  branch-lite (local Actions mirror): PARTIAL (exit 0 with soft notes; see /tmp/pl-owner-branch-lite.log)"
+      grep -E 'ok with PARTIAL|PARTIAL —' /tmp/pl-owner-branch-lite.log | tail -3 | sed 's/^/    /' || true
+    else
+      echo "  branch-lite (local Actions mirror): ok"
+    fi
   else
     echo "  branch-lite (local Actions mirror): FAIL (see /tmp/pl-owner-branch-lite.log)"
   fi
