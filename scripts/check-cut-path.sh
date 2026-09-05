@@ -214,10 +214,11 @@ echo
 # DRY_RUN PARTIAL is post-cut honesty. Exit 0 so tip proxies stay green while waiting.
 if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 || "$finish_rc" -eq 2 ]]; then
   if bash scripts/check-installable.sh >/dev/null 2>&1; then
-    echo "check-cut-path: OK with PARTIAL — cut path rehearsed; Installable already met — post-cut re-entry (parks/day1/dispatch/finish), not a token blocker"
-  else
-    echo "check-cut-path: OK with PARTIAL — cut path rehearsed; Installable still blocked on CARGO_REGISTRY_TOKEN (pre-token rehearsal)"
+    # Installable proven — post-cut PARTIAL must not soft-green tip cut-path.
+    echo "check-cut-path: PARTIAL — cut path rehearsed; Installable already met — post-cut re-entry (parks/day1/dispatch/finish)" >&2
+    exit 2
   fi
+  echo "check-cut-path: OK with PARTIAL — cut path rehearsed; Installable still blocked on CARGO_REGISTRY_TOKEN (pre-token rehearsal)"
   exit 0
 fi
 echo "check-cut-path: OK — cut path rehearsed; blocked only on CARGO_REGISTRY_TOKEN if preflight said READY_EXCEPT_TOKEN"
