@@ -239,6 +239,21 @@ else
 fi
 
 
+
+# Suite HOLD honesty: Lab A signoff template (UNFILLED — not evidence).
+if [[ -f docs/lab-a-signoff.md ]] \
+  && grep -qF 'UNFILLED — not evidence' docs/lab-a-signoff.md \
+  && grep -qF 'Does **not** lift Suite HOLD' docs/lab-a-signoff.md \
+  && grep -qF 'Kernel Integrity signer' docs/lab-a-signoff.md \
+  && grep -qF 'lab-a-integrity.sh' docs/lab-a-signoff.md \
+  && grep -qF 'lab-a-signoff.md' docs/CIVILIZATION.md \
+  && grep -qF 'lab-a-signoff.md' docs/benchmark.md \
+  && grep -qF 'lab-a-signoff.md' docs/STATUS.md; then
+  ok "Suite HOLD Lab A signoff template (UNFILLED; CIVILIZATION+benchmark+STATUS links)"
+else
+  bad "Suite HOLD Lab A signoff template missing"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \

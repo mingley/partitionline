@@ -138,7 +138,7 @@ standard service without reading `design.md` wire notes.
 | ID | Task | Acceptance |
 |---|---|---|
 | WP-5.1 | Automate Lab A produce bench harness script (topic recreate, HW check, three-run median) | `scripts/lab-a-produce.sh`; **exits non-zero unless HW sum equals acked** each run |
-| WP-5.2 | Keep fetch/latency this-VM results clearly **unsigned** until signed process exists | STATUS.md / benchmark.md labels unchanged unless signed |
+| WP-5.2 | Keep fetch/latency this-VM results clearly **unsigned** until signed process exists; blank signoff record at [lab-a-signoff.md](lab-a-signoff.md) (UNFILLED — not evidence) | STATUS.md / benchmark.md labels unchanged unless signed; template Does **not** lift Suite HOLD |
 | WP-5.3 | Add latency regression gate: produce-ack p99 threshold on CI broker (relative, not vs C) | CI fails on large regressions vs recorded baseline file |
 
 ### WP-6 — Adoption-blocking features only

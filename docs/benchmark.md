@@ -5,7 +5,7 @@ consumed records/second from a topic this crate already filled. The signed
 produce tables below are Lab A. The fetch writeup is **this-VM 2026-08-28,
 unsigned** (rust-rdkafka 0.39.0, not C 2.15.0). Produce-ack and fetch-request
 latency is **this-VM 2026-08-28, unsigned** (same rust-rdkafka 0.39.0, not
-C 2.15.0, not Lab A). Suite HOLD: [STATUS.md](STATUS.md).
+C 2.15.0, not Lab A). Suite HOLD: [STATUS.md](STATUS.md). Signed Lab A packages use the blank [lab-a-signoff.md](lab-a-signoff.md) record (UNFILLED until Kernel Integrity signs — not evidence by itself).
 
 ## Methodology
 
