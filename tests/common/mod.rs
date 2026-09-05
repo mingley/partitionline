@@ -236,6 +236,8 @@ struct State {
     last_metadata_version: Option<i16>,
     last_api_versions_version: Option<i16>,
     api_versions_versions: Vec<i16>,
+    /// Next ApiVersions responses use a non-`UNSUPPORTED_VERSION` error once.
+    api_versions_fail_left: u32,
     /// Last Metadata topic filter: `None` = never recorded;
     /// `Some(None)` = all topics; `Some(Some(names))` = named.
     last_metadata_topics: Option<Option<Vec<String>>>,
@@ -606,6 +608,7 @@ fn new_state(
         last_metadata_version: None,
         last_api_versions_version: None,
         api_versions_versions: Vec::new(),
+        api_versions_fail_left: 0,
         last_metadata_topics: None,
         last_metadata_topic_ids: None,
         last_metadata_include_topic_authorized: None,
@@ -1631,6 +1634,12 @@ impl Mock {
 
     pub fn api_versions_versions(&self) -> Vec<i16> {
         self.state.lock().api_versions_versions.clone()
+    }
+
+    /// Next ApiVersions responds with `INVALID_REQUEST` once (not
+    /// `UNSUPPORTED_VERSION`, so the client does not take the KIP-511 retry path).
+    pub fn api_versions_fail_once(&self) {
+        self.state.lock().api_versions_fail_left = 1;
     }
 
     pub fn last_metadata_topics(&self) -> Option<Option<Vec<String>>> {
@@ -3475,12 +3484,29 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_api_versions_version = Some(header.api_version);
                 st.api_versions_versions.push(header.api_version);
+                let force_fail = st.api_versions_fail_left > 0;
+                if force_fail {
+                    st.api_versions_fail_left = st.api_versions_fail_left.saturating_sub(1);
+                }
                 let advertised = versions(&st);
                 let (av_min, av_max) = advertised
                     .api_version(API_VERSIONS)
                     .map(|k| (k.min_version, k.max_version))
                     .unwrap_or((0, 4));
-                if header.api_version > av_max {
+                if force_fail {
+                    // Non-UNSUPPORTED_VERSION so negotiate_api_versions does not
+                    // take the KIP-511 retry path — terminal fail for metrics.
+                    encode_api_versions_response(
+                        &mut body,
+                        header.api_version.min(av_max),
+                        &ApiVersionsResponse {
+                            error_code: error::INVALID_REQUEST,
+                            api_keys: Vec::new(),
+                            ..Default::default()
+                        },
+                    )
+                    .unwrap();
+                } else if header.api_version > av_max {
                     // KIP-511: unsupported ApiVersions is a v0 body listing
                     // only the ApiVersions key range.
                     encode_api_versions_response(

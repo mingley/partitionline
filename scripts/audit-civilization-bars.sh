@@ -254,6 +254,19 @@ else
   bad "KL-08 support matrix honesty missing"
 fi
 
+# KL-07 slice: api_versions_ok/fail for capability diagnosis without payload dumps.
+if [[ -f tests/api_versions_metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (ApiVersions)' docs/guide.md \
+  && grep -qF 'api_versions_ok_metric_increments_on_connect' tests/api_versions_metrics.rs \
+  && grep -qF 'pub api_versions_ok: u64' src/metrics.rs \
+  && grep -qF 'record_api_versions_ok' src/consumer.rs \
+  && grep -qF 'record_api_versions_fail' src/consumer.rs \
+  && grep -qF 'api_versions_metrics.rs' docs/ROADMAP.md; then
+  ok "KL-07 ApiVersions diagnosis Partial (api_versions_ok/fail; guide+mock)"
+else
+  bad "KL-07 ApiVersions diagnosis Partial missing"
+fi
+
 # KL-08 slice: adopter 24h/7d exercise template (UNFILLED — not evidence).
 if [[ -f docs/adopter-exercise.md ]] \
   && grep -qF 'UNFILLED — not evidence' docs/adopter-exercise.md \

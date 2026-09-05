@@ -136,6 +136,16 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (ApiVersions)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Negotiate succeeds | `Consumer::metrics().api_versions_ok` rising; `api_versions_fail == 0` | Healthy ApiVersions handshake |
+| Negotiate rejected / reconnect version storm | `api_versions_fail` rising | Broker reject, authz, or non-retriable version error |
+| No ApiVersions traffic | both counters stay 0 | Client never connected |
+
+`api_versions_ok` / `api_versions_fail` count terminal ApiVersions outcomes on `ConsumerMetrics`. Prefer them over dumping capability payloads. Mock proof: `tests/api_versions_metrics.rs`. KL-07 Partial — not two independent human diagnosis runs, and not a Suite HOLD lift.
+
 ## Recipes
 
 ### Backpressure

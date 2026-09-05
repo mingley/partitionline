@@ -1257,6 +1257,8 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    m_api_versions_ok: AtomicU64,
+    m_api_versions_fail: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1300,8 +1302,10 @@ impl Consumer {
             cfg.tls.as_ref(),
         )
         .await?;
-        let resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
+        let versions_result =
+            crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await;
+        let initial_api_versions_ok = u64::from(versions_result.is_ok());
+        let resp = versions_result?;
         sasl::apply_api_keys(&mut conn, &resp.api_keys);
         let mut versions = HashMap::new();
         for api in resp.api_keys {
@@ -1346,6 +1350,8 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_api_versions_ok: AtomicU64::new(initial_api_versions_ok),
+            m_api_versions_fail: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -1646,9 +1652,7 @@ impl Consumer {
             self.cfg.tls.as_ref(),
         )
         .await?;
-        let resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
-                .await?;
+        let resp = self.negotiate_api_versions_conn(&mut conn).await?;
         sasl::apply_api_keys(&mut conn, &resp.api_keys);
         sasl::authenticate(
             &mut conn,
@@ -1845,9 +1849,7 @@ impl Consumer {
             self.cfg.tls.as_ref(),
         )
         .await?;
-        let versions_resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
-                .await?;
+        let versions_resp = self.negotiate_api_versions_conn(&mut conn).await?;
         sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
         sasl::authenticate(
             &mut conn,
@@ -2153,7 +2155,30 @@ impl Consumer {
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
+            api_versions_ok: self.m_api_versions_ok.load(Ordering::Relaxed),
+            api_versions_fail: self.m_api_versions_fail.load(Ordering::Relaxed),
         }
+    }
+
+    pub(crate) fn record_api_versions_ok(&self) {
+        let _ = self.m_api_versions_ok.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn record_api_versions_fail(&self) {
+        let _ = self.m_api_versions_fail.fetch_add(1, Ordering::Relaxed);
+    }
+
+    async fn negotiate_api_versions_conn(
+        &self,
+        conn: &mut BrokerConn,
+    ) -> Result<crate::protocol::api::ApiVersionsResponse> {
+        let result =
+            crate::protocol::api::negotiate_api_versions(conn, self.cfg.request_timeout).await;
+        match &result {
+            Ok(_) => self.record_api_versions_ok(),
+            Err(_) => self.record_api_versions_fail(),
+        }
+        result
     }
 
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
