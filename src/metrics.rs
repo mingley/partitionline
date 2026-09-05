@@ -679,4 +679,82 @@ mod tests {
         assert_eq!(Quota::upper_bound(f64::NAN).to_string(), "upper=NaN");
         assert!(!Quota::upper_bound(1.0).acceptable(f64::NAN));
     }
+
+    /// KL-07: always-on latency sample cost (catastrophic CI bound, not a 2% claim).
+    #[test]
+    fn latency_tracker_record_ns_per_op_bound() {
+        const N: u64 = 50_000;
+        // Warm the window so the hot path is steady-state.
+        let t = LatencyTracker::new();
+        for i in 0..1_024u64 {
+            t.record(Duration::from_nanos(i + 1));
+        }
+        let start = std::time::Instant::now();
+        for i in 0..N {
+            t.record(Duration::from_nanos((i % 1_000) + 1));
+        }
+        let elapsed = start.elapsed();
+        let ns_per_op = elapsed.as_nanos() / u128::from(N);
+        eprintln!(
+            "instrumentation_cost: LatencyTracker::record avg {ns_per_op} ns/op over {N} (wall {})",
+            elapsed.as_nanos()
+        );
+        // Generous ceiling: catch O(n²)/lock bugs, not claim ≤2% produce-ack.
+        assert!(
+            ns_per_op < 10_000,
+            "LatencyTracker::record avg {ns_per_op} ns/op exceeds 10µs catastrophic bound"
+        );
+        assert_eq!(t.snapshot().count, 1_024 + N);
+    }
+
+    /// KL-07: snapshot sorts the 1024-sample window; bound wall cost.
+    #[test]
+    fn latency_tracker_snapshot_ns_per_op_bound() {
+        const N: u64 = 2_000;
+        let t = LatencyTracker::new();
+        for i in 0..LATENCY_WINDOW as u64 {
+            t.record(Duration::from_nanos(i + 1));
+        }
+        let start = std::time::Instant::now();
+        for _ in 0..N {
+            let _ = t.snapshot();
+        }
+        let elapsed = start.elapsed();
+        let ns_per_op = elapsed.as_nanos() / u128::from(N);
+        eprintln!(
+            "instrumentation_cost: LatencyTracker::snapshot avg {ns_per_op} ns/op over {N} (wall {})",
+            elapsed.as_nanos()
+        );
+        // Snapshot sorts ≤1024 samples; 500µs/op is a catastrophic CI bound only.
+        assert!(
+            ns_per_op < 500_000,
+            "LatencyTracker::snapshot avg {ns_per_op} ns/op exceeds 500µs catastrophic bound"
+        );
+    }
+
+    /// KL-07: counter path matching note_queued / note_acked atomics.
+    #[test]
+    fn produce_counter_atomics_ns_per_op_bound() {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        const N: u64 = 200_000;
+        let queued = AtomicU64::new(0);
+        let bytes = AtomicU64::new(0);
+        let start = std::time::Instant::now();
+        for _ in 0..N {
+            let _ = queued.fetch_add(1, Ordering::Relaxed);
+            let _ = bytes.fetch_add(64, Ordering::Relaxed);
+        }
+        let elapsed = start.elapsed();
+        let ns_per_op = elapsed.as_nanos() / u128::from(N);
+        eprintln!(
+            "instrumentation_cost: produce counter atomics avg {ns_per_op} ns/op over {N} (wall {})",
+            elapsed.as_nanos()
+        );
+        assert!(
+            ns_per_op < 5_000,
+            "produce counter atomics avg {ns_per_op} ns/op exceeds 5µs catastrophic bound"
+        );
+        assert_eq!(queued.load(Ordering::Relaxed), N);
+        assert_eq!(bytes.load(Ordering::Relaxed), N * 64);
+    }
 }

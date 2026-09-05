@@ -292,6 +292,12 @@ and no secret exposure. Preserve existing audit/deny and security-reporting lane
 [guide](guide.md), [examples](../examples), [consumer fixture](../scripts/ci-crate-consumer.sh).
 **Done when:** examples run from a fresh package consumer, usability feedback
 is resolved, and disabled/enabled instrumentation costs and redaction are measured.
+   **Partial (2026-09-05):** always-on metrics microbench + optional `tracing`
+   span enter/exit measured brokerless (`scripts/measure-instrumentation-cost.sh`,
+   lib tests in `src/metrics.rs`, `tests/instrumentation_cost.rs`); guide documents
+   catastrophic bounds and that the 2% produce-ack budget is **not** claimed.
+   Redaction already Partial under KL-06. Fresh package consumers, diagnosis
+   cookbooks, and two independent human runs remain open. Not Done.
 
 ### KL-08: Gate releases and promote through reversible adoption
 

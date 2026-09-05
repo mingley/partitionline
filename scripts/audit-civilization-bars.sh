@@ -224,6 +224,27 @@ else
   bad "KL-06 metrics/span redaction honesty missing"
 fi
 
+# KL-07 slice: disabled/enabled instrumentation cost measured (brokerless).
+if [[ -f tests/instrumentation_cost.rs && -f scripts/measure-instrumentation-cost.sh && -f docs/guide.md ]] \
+  && grep -qF 'Instrumentation cost (measured)' docs/guide.md \
+  && grep -qF 'latency_tracker_record_ns_per_op_bound' src/metrics.rs \
+  && grep -qF 'latency_tracker_snapshot_ns_per_op_bound' src/metrics.rs \
+  && grep -qF 'produce_counter_atomics_ns_per_op_bound' src/metrics.rs \
+  && grep -qF 'default_build_tracing_feature_disabled' tests/instrumentation_cost.rs \
+  && grep -qF 'tracing_span_enter_exit_ns_per_op_bound' tests/instrumentation_cost.rs \
+  && grep -qF 'measure-instrumentation-cost.sh' docs/ROADMAP.md \
+  && grep -qF '2% produce-ack budget is **not** claimed' docs/ROADMAP.md \
+  && bash scripts/measure-instrumentation-cost.sh --self-test >/tmp/pl-kl07-instr-self.log 2>&1 \
+  && cargo test --lib latency_tracker_record_ns_per_op_bound --quiet >/tmp/pl-kl07-instr-record.log 2>&1 \
+  && cargo test --lib latency_tracker_snapshot_ns_per_op_bound --quiet >/tmp/pl-kl07-instr-snap.log 2>&1 \
+  && cargo test --lib produce_counter_atomics_ns_per_op_bound --quiet >/tmp/pl-kl07-instr-ctr.log 2>&1 \
+  && cargo test --test instrumentation_cost default_build_tracing_feature_disabled --quiet >/tmp/pl-kl07-instr-default.log 2>&1 \
+  && cargo test --features tracing --test instrumentation_cost tracing_span_enter_exit_ns_per_op_bound --quiet >/tmp/pl-kl07-instr-tracing.log 2>&1; then
+  ok "KL-07 instrumentation cost measured (always-on metrics + optional tracing; not a 2% claim)"
+else
+  bad "KL-07 instrumentation cost measurement missing/failed; see /tmp/pl-kl07-instr-*.log"
+fi
+
 # KL-06 slice: OIDC bounded transient retry + outage fail-closed.
 if grep -qF '## Auth recovery (current behavior)' docs/security.md \
   && grep -qF 'bounded' docs/security.md \

@@ -136,6 +136,29 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Instrumentation cost (measured)
+
+Core counter / latency-window recording is **always on** (no disable switch):
+relaxed atomics on queue/ack/fetch paths plus a 1024-sample latency ring.
+Optional feature `tracing` is **off by default**; when enabled, spans wrap
+produce-ack, fetch, rebalance, and txn boundaries (`skip(self)` so configs
+with credentials are not span fields).
+
+Brokerless measurement (catastrophic CI bounds only — **not** a claim that
+enabled telemetry stays within the ROADMAP 2% produce-ack budget):
+
+| Path | How | Bound in tests |
+|---|---|---|
+| `LatencyTracker::record` | `latency_tracker_record_ns_per_op_bound` | &lt; 10 µs/op avg |
+| `LatencyTracker::snapshot` | `latency_tracker_snapshot_ns_per_op_bound` | &lt; 500 µs/op avg |
+| Produce counter atomics | `produce_counter_atomics_ns_per_op_bound` | &lt; 5 µs/op avg |
+| `tracing` span enter/exit | `tracing_span_enter_exit_ns_per_op_bound` (`--features tracing`) | &lt; 50 µs/op avg |
+
+Reproduce: `bash scripts/measure-instrumentation-cost.sh` (prints ns/op).
+Default builds must keep `feature=tracing` disabled
+(`default_build_tracing_feature_disabled`). Redaction of metrics/spans is
+covered separately (KL-06). This slice does **not** lift Suite HOLD.
+
 ## Recipes
 
 ### Backpressure
