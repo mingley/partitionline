@@ -156,7 +156,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-08 partial-release rehearsal (2026-09-05, tip `04a4992`):** `scripts/rehearse-partial-release.sh --self-test` proves recovery without publishing (0.1.0 stays; release-plz PR-only; exact-SHA CI + crate-consumer on cut/release.yml/publish-ready; crates.io skip; publish-succeeded → day1/handoff DRY_RUN, not another publish). Wired into `ci-publish-ready` + bars. KL-08 package stays open. Does **not** lift Suite HOLD.
 
-**KL-08 skip-gate honesty (2026-09-05):** `owner-publish` skips `cargo publish` when crates.io already has the version (PUBLISH_LOCAL re-entry cannot re-cut 0.1.0). `release.yml` grants `actions: read` so exact-SHA `gh run list` can see workflow runs. Rehearsal `--self-test` fail-closes if Authenticate/Publish skip `if:` lines are deleted. Does **not** lift Suite HOLD.
+**KL-08 skip-gate honesty (2026-09-05, tip `9ebf3f1`):** `owner-publish` skips `cargo publish` when crates.io already has the version (PUBLISH_LOCAL re-entry cannot re-cut 0.1.0). `release.yml` grants `actions: read` so exact-SHA `gh run list` can see workflow runs. Rehearsal `--self-test` fail-closes if Authenticate/Publish skip `if:` lines are deleted. Does **not** lift Suite HOLD.
 
 **KL-02 produce cancel contract (2026-09-05, tip `633bad3`):** guide cancellation/shutdown table; `tests/produce_cancel.rs` (completed/failed/ambiguous/Closed); durable `Producer` `closed` flag so clones cannot send after `close`. Does **not** close full KL-02 (no overload soak). Does **not** lift Suite HOLD.
 
