@@ -264,6 +264,7 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'finish_rc' scripts/check-cut-path.sh \
   && grep -qF 'dispatch_rc' scripts/check-cut-path.sh \
   && grep -qF 'dispatch_rc' scripts/ci-branch-lite.sh \
+  && grep -qF 'dispatch_rc' scripts/ci-publish-ready.sh \
   && grep -qF 'handoff_rc' scripts/check-cut-path.sh \
   && grep -qF 'handoff_rc' scripts/ci-branch-lite.sh \
   && grep -qF 'handoff_rc' scripts/ci-publish-ready.sh \
@@ -294,6 +295,7 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'expected pre-Installable' scripts/check-installable-preflight.sh \
   && grep -qF 'expected pre-Installable' docs/CIVILIZATION.md \
   && grep -qF 'expected pre-Installable' docs/RELEASE.md \
+  && grep -qF 'expected pre-Installable' docs/ADOPTION.md \
   && grep -qF 'stay off main until after crates.io' scripts/owner-request-registry-token.sh \
   && grep -qF 'pre-cut pending is expected' scripts/owner-unblock.sh \
   && grep -qF 'tip⊆parks stack' scripts/owner-unblock.sh \
@@ -304,9 +306,10 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && bash scripts/owner-post-installable-handoff.sh --self-test >/tmp/pl-handoff-self-test.log 2>&1 \
   && grep -q 'self-test OK' /tmp/pl-handoff-self-test.log \
   && grep -q 'fail-closed PARTIAL' /tmp/pl-handoff-self-test.log \
-  && HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1 \
-  && grep -q 'PARTIAL — parks not on main (DRY_RUN; expected pre-token' /tmp/pl-handoff-dry.log; then
-  ok "post-Installable handoff (DRY_RUN + fail-closed PARTIAL; finish+cut-release chain + cut-path + day1 + first-publish)"
+  && { HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1; test $? -eq 2; } \
+  && grep -q 'PARTIAL — parks not on main (DRY_RUN; expected pre-token' /tmp/pl-handoff-dry.log \
+  && grep -q 'DRY_RUN complete with PARTIAL' /tmp/pl-handoff-dry.log; then
+  ok "post-Installable handoff (DRY_RUN + fail-closed PARTIAL/2; finish+cut-release chain + cut-path + day1 + first-publish)"
 else
   bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log /tmp/pl-handoff-self-test.log"
 fi

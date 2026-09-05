@@ -55,12 +55,13 @@ if [[ "${1:-}" == "--self-test" ]]; then
     echo "owner-post-installable-handoff: self-test FAIL — LAND_PARKS land must REQUIRE_PARKS=1" >&2
     exit 1
   fi
-  # DRY_RUN must probe parks-on-main (not only stack). Already-Installable DRY_RUN
-  # exits PARTIAL/2; pre-token holds exit 0 with a PARTIAL note (like day1).
+  # DRY_RUN must probe parks-on-main (not only stack). Pre-token parks pending and
+  # already-Installable parks-off-main both exit PARTIAL/2 (same fail-closed as day1).
   if ! grep -qF 'DRY_RUN: parks on main' "$ROOT/scripts/owner-post-installable-handoff.sh" \
     || ! grep -qF 'PARTIAL — parks not on main (DRY_RUN' "$ROOT/scripts/owner-post-installable-handoff.sh" \
-    || ! grep -qF 'check-parks-on-main.sh' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
-    echo "owner-post-installable-handoff: self-test FAIL — DRY_RUN must probe parks-on-main via check-parks-on-main.sh (Installable→exit 2)" >&2
+    || ! grep -qF 'check-parks-on-main.sh' "$ROOT/scripts/owner-post-installable-handoff.sh" \
+    || ! grep -qF 'exit 2' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — DRY_RUN must probe parks-on-main via check-parks-on-main.sh (pre-token+Installable→exit 2)" >&2
     exit 1
   fi
   bash "$ROOT/scripts/check-parks-on-main.sh" --self-test
@@ -85,11 +86,14 @@ if [[ "$DRY_RUN" == "1" ]]; then
   tail -6 /tmp/pl-handoff-installable.log | sed 's/^/  /' || true
   echo
   echo "== DRY_RUN: day1 after-publish rehearsal =="
-  # Absent crate → day1 PARTIAL/2. Capture so bars/cut-path DRY_RUN cannot abort.
+  # Absent crate → day1 PARTIAL/2. Capture so bars/cut-path DRY_RUN cannot abort;
+  # aggregate into handoff PARTIAL/2 (do not soft-green final DRY_RUN complete).
+  dry_partial=0
   day1_rc=0
   DRY_RUN=1 bash scripts/day1-after-publish.sh || day1_rc=$?
   if [[ "$day1_rc" -eq 2 ]]; then
     echo "owner-post-installable-handoff: PARTIAL — day1 DRY_RUN not yet Installable (expected pre-token; rehearsal held)"
+    dry_partial=1
   elif [[ "$day1_rc" -ne 0 ]]; then
     echo "owner-post-installable-handoff: FAIL — day1 DRY_RUN rc=${day1_rc}" >&2
     exit "$day1_rc"
@@ -122,7 +126,7 @@ if [[ "$DRY_RUN" == "1" ]]; then
   echo "== DRY_RUN: parks on main =="
   # Stack check ≠ landed. Shared probe so already-Installable DRY_RUN cannot
   # soft-green unfinished post-cut land. Pre-token parks pending is expected —
-  # hold exit 0 with PARTIAL note (same pattern as day1).
+  # exit PARTIAL/2 (same fail-closed as day1; tip proxies aggregate handoff_rc).
   dry_parks_rc=0
   bash scripts/check-parks-on-main.sh || dry_parks_rc=$?
   if [[ "$dry_parks_rc" -eq 0 ]]; then
@@ -144,8 +148,15 @@ if [[ "$DRY_RUN" == "1" ]]; then
     fi
     echo "owner-post-installable-handoff: PARTIAL — parks not on main (DRY_RUN; expected pre-token; rehearsal held)"
     echo "  After Installable: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    dry_partial=1
   fi
   echo
+  if [[ "$dry_partial" -eq 1 ]]; then
+    echo "owner-post-installable-handoff: DRY_RUN complete with PARTIAL — after crates.io ${ver}:"
+    echo "  bash scripts/owner-post-installable-handoff.sh"
+    echo "  # or preferred cut: bash scripts/owner-finish-installable.sh"
+    exit 2
+  fi
   echo "owner-post-installable-handoff: DRY_RUN complete — after crates.io ${ver}:"
   echo "  bash scripts/owner-post-installable-handoff.sh"
   echo "  # or preferred cut: bash scripts/owner-finish-installable.sh"

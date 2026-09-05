@@ -58,6 +58,18 @@ elif [[ "$day1_rc" -ne 0 ]]; then
   exit "$day1_rc"
 fi
 
+echo "== first-publish Actions alternate (DRY_RUN visibility) =="
+# Same already-Installable refuse as cut-path + branch-lite — token-day
+# publish-ready must not soft-OK a re-dispatch rehearsal.
+dispatch_rc=0
+DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh || dispatch_rc=$?
+if [[ "$dispatch_rc" -eq 2 ]]; then
+  echo "ci-publish-ready: PARTIAL — first-publish DRY_RUN already Installable (re-dispatch refused; handoff re-entry)"
+elif [[ "$dispatch_rc" -ne 0 ]]; then
+  echo "ci-publish-ready: FAIL — first-publish DRY_RUN rc=${dispatch_rc}" >&2
+  exit "$dispatch_rc"
+fi
+
 echo "== post-Installable handoff rehearsal (DRY_RUN) =="
 # Token-day publish-ready must surface parks-on-main / day1 handoff honesty
 # (same as cut-path + branch-lite). Nested bars skipped — PRE_PUBLISH bars run below.
@@ -114,8 +126,8 @@ REQUIRE_BROKER="${REQUIRE_BROKER:-0}" bash scripts/ci-civilization-check.sh
 
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 echo
-if [[ "${day1_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 ]]; then
-  echo "ci-publish-ready: ok with PARTIAL for partitionline ${ver} — day1/handoff DRY_RUN soft notes (cut still publishes first; re-enter handoff post-cut)"
+if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 ]]; then
+  echo "ci-publish-ready: ok with PARTIAL for partitionline ${ver} — day1/dispatch/handoff DRY_RUN soft notes (cut still publishes first; re-enter handoff post-cut)"
 else
   echo "ci-publish-ready: ok for partitionline ${ver}"
 fi
