@@ -191,6 +191,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-06 mid-connection SaslAuthenticate reauth (2026-09-05, tip `756c251`):** When recorded SASL/OIDC lifetime is within skew, producer/consumer/admin/group/share prefer live-socket `SaslAuthenticate` via `reauthenticate` / `should_reconnect_after_reauth` (no handshake; OIDC re-fetch when configured); idle or reauth failure still full reconnect. Docs: [security.md](security.md). Outage soak still open. Does **not** lift Suite HOLD.
 
+**KL-06/07 mid-connection SASL reauth metrics (2026-09-05, tip `e39bfff`):** `ReauthCheck` distinguishes keep / reauthed / reconnect(reauth_failed); producer/consumer metrics expose `sasl_reauth_ok` / `sasl_reauth_fail`. Guide + security diagnosis notes. Does **not** close outage soak. Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
