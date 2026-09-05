@@ -45,7 +45,7 @@ jobs:
     if: github.event.inputs.confirm == 'publish'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.ref }}
 

@@ -80,7 +80,7 @@ jobs:
       (github.ref_type == 'tag' && !contains(github.ref_name, '-'))
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
