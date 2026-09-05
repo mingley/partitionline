@@ -36,6 +36,9 @@ bash scripts/check-crate-metadata.sh
 echo "== crate consumer =="
 bash scripts/ci-crate-consumer.sh
 
+echo "== guide examples as external crate consumers (KL-07) =="
+bash scripts/ci-example-crate-consumers.sh
+
 echo "== adopter crates.io consumer rehearsal (path) =="
 MODE=path bash scripts/verify-crates-io-consumer.sh
 

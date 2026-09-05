@@ -7,6 +7,22 @@ Runnable paths assume a broker on `KAFKA_BOOTSTRAP` (default
 cargo run --release --example roundtrip
 ```
 
+### Examples as external package consumers
+
+`produce`, `consume`, and `txn` must also compile as binaries in a *downstream*
+package that depends on the packed `.crate` (not an in-tree path dep). Prove
+anytime with:
+
+```bash
+bash scripts/ci-example-crate-consumers.sh
+```
+
+Wired into tip `ci-branch-lite`, `check-cut-path`, and `ci-publish-ready`.
+This is a KL-07 Partial (compile proof only — not a live-broker run, not the
+rust-rdkafka migration narrative in [`migrate-from-rdkafka.md`](migrate-from-rdkafka.md)
+as a separate binary, and not two independent human diagnosis runs). Does **not**
+lift Suite HOLD.
+
 ## Produce
 
 ```rust,no_run

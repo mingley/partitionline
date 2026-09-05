@@ -184,6 +184,23 @@ else
   bad "KL-02 buffer ownership + mock overload soak missing"
 fi
 
+# KL-07 slice: guide produce/consume/txn examples compile as external .crate consumers.
+if [[ -x scripts/ci-example-crate-consumers.sh && -f docs/guide.md ]] \
+  && grep -qF 'Examples as external package consumers' docs/guide.md \
+  && grep -qF 'ci-example-crate-consumers.sh' scripts/ci-branch-lite.sh \
+  && grep -qF 'ci-example-crate-consumers.sh' scripts/check-cut-path.sh \
+  && grep -qF 'ci-example-crate-consumers.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'examples/produce.rs' scripts/ci-example-crate-consumers.sh \
+  && grep -qF 'examples/consume.rs' scripts/ci-example-crate-consumers.sh \
+  && grep -qF 'examples/txn.rs' scripts/ci-example-crate-consumers.sh \
+  && grep -qF 'ci-example-crate-consumers' docs/ROADMAP.md \
+  && bash scripts/ci-example-crate-consumers.sh --self-test >/tmp/pl-kl07-example-consumers-self-test.log 2>&1 \
+  && bash scripts/ci-example-crate-consumers.sh >/tmp/pl-kl07-example-consumers.log 2>&1; then
+  ok "KL-07 examples as external crate consumers (produce/consume/txn vs packed .crate; branch-lite+cut-path)"
+else
+  bad "KL-07 examples as external crate consumers missing/failed; see /tmp/pl-kl07-example-consumers*.log"
+fi
+
 # KL-06 slice: credential Debug redaction (passwords / client_secret / key PEM).
 if [[ -f tests/credential_redact.rs && -f docs/security.md ]] \
   && grep -qF 'Credential redaction' docs/security.md \

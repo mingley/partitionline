@@ -281,6 +281,11 @@ and no secret exposure. Preserve existing audit/deny and security-reporting lane
    [rust-rdkafka migration](migrate-from-rdkafka.md) examples as external package
    consumers. Explain enqueue versus acknowledgment, ownership, partitioning,
    offset commit, cancellation and exactly-once boundaries without Java API guesses.
+   **Partial (2026-09-05):** `scripts/ci-example-crate-consumers.sh` cargo-checks
+   `examples/{produce,consume,txn}.rs` as bins of a downstream package depending on
+   the packed `.crate`; wired into branch-lite / cut-path / publish-ready + bars.
+   Migration doc remains narrative (no separate migrate binary). Live-broker example
+   runs and two independent human diagnosis runs remain open. Not Done.
 2. Extend existing metrics and optional tracing only where diagnosis is missing:
    queue age/bytes, retries, broker throttle, reconnect, ack latency, lag,
    rebalance and transaction outcomes. Bound label cardinality; provide optional
