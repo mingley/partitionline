@@ -613,6 +613,7 @@ async fn share_join_topics_fetches_both() {
     assert_eq!(sm.bytes_fetched, 2);
     assert_eq!(sm.fetch_errors, 0);
     assert_eq!(sm.records_acknowledged, 0);
+    assert_eq!(sm.acknowledge_errors, 0);
     assert_eq!(sm.fetch_latency.count, 1);
     assert!(sm.fetch_latency.max_nanos >= sm.fetch_latency.min_nanos);
     assert_eq!(sm.topics.len(), 2);
@@ -626,7 +627,9 @@ async fn share_join_topics_fetches_both() {
     assert_eq!(sm.topics[1].fetch_latency.count, 1);
     assert!(recs.iter().all(|r| r.leader_epoch == Some(0)));
     group.accept(&recs).await.unwrap();
-    assert_eq!(group.metrics().records_acknowledged, 2);
+    let after = group.metrics();
+    assert_eq!(after.records_acknowledged, 2);
+    assert_eq!(after.acknowledge_errors, 0);
     group.leave().await.unwrap();
 }
 

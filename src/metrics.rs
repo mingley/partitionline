@@ -369,6 +369,9 @@ pub struct ShareMetrics {
     pub fetch_errors: u64,
     /// Records sent on ShareAcknowledge (`accept` / `release` / `reject`).
     pub records_acknowledged: u64,
+    /// Failed ShareAcknowledge attempts (terminal broker/protocol/session errors).
+    /// KL-07 diagnosis: distinguish ack health from fetch traffic.
+    pub acknowledge_errors: u64,
     /// End-to-end duration of each successful poll (including leader retries).
     pub fetch_latency: LatencyStats,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
@@ -566,6 +569,7 @@ mod tests {
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
         assert_eq!(ConsumerMetrics::default().fetch_latency.count, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
+        assert_eq!(ShareMetrics::default().acknowledge_errors, 0);
         assert_eq!(ShareMetrics::default().bytes_fetched, 0);
         assert_eq!(ShareMetrics::default().fetch_errors, 0);
         assert_eq!(ShareMetrics::default().fetch_latency.count, 0);

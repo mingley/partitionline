@@ -266,6 +266,18 @@ if [[ -f docs/adopter-exercise.md ]] \
 else
   bad "KL-08 adopter exercise template missing"
 fi
+
+# KL-07 slice: ShareAcknowledge acknowledge_errors for share ack diagnosis.
+if [[ -f tests/share_ack_metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (share acknowledge)' docs/guide.md \
+  && grep -qF 'acknowledge_errors_metric_increments_on_ack_before_poll' tests/share_ack_metrics.rs \
+  && grep -qF 'pub acknowledge_errors: u64' src/metrics.rs \
+  && grep -qF 'acknowledge_errors = self.acknowledge_errors.saturating_add' src/share.rs \
+  && grep -qF 'share_ack_metrics.rs' docs/ROADMAP.md; then
+  ok "KL-07 share-ack diagnosis Partial (acknowledge_errors; guide+mock)"
+else
+  bad "KL-07 share-ack diagnosis Partial missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

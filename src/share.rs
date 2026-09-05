@@ -514,6 +514,7 @@ pub struct ShareGroup {
     bytes_fetched: u64,
     fetch_errors: u64,
     records_acknowledged: u64,
+    acknowledge_errors: u64,
     fetch_latency: crate::metrics::LatencyTracker,
     topic_metrics: HashMap<String, crate::metrics::FetchTopicTracker>,
 }
@@ -648,6 +649,7 @@ impl ShareGroup {
             bytes_fetched: 0,
             fetch_errors: 0,
             records_acknowledged: 0,
+            acknowledge_errors: 0,
             fetch_latency: crate::metrics::LatencyTracker::new(),
             topic_metrics: HashMap::new(),
         };
@@ -728,6 +730,7 @@ impl ShareGroup {
             bytes_fetched: self.bytes_fetched,
             fetch_errors: self.fetch_errors,
             records_acknowledged: self.records_acknowledged,
+            acknowledge_errors: self.acknowledge_errors,
             fetch_latency: self.fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
         }
@@ -1341,11 +1344,15 @@ impl ShareGroup {
                 }
                 Err(e) if share_leader_retriable(&e) => {
                     if Instant::now() >= deadline {
+                        self.acknowledge_errors = self.acknowledge_errors.saturating_add(1);
                         return Err(Error::Timeout);
                     }
                     self.refresh_assigned_metadata().await?;
                 }
-                Err(e) => return Err(e),
+                Err(e) => {
+                    self.acknowledge_errors = self.acknowledge_errors.saturating_add(1);
+                    return Err(e);
+                }
             }
         }
     }

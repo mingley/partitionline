@@ -136,6 +136,19 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (share acknowledge)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Share acks succeed | `ShareGroup::metrics().records_acknowledged` rising; `acknowledge_errors == 0` | Healthy accept/release/reject path |
+| Share acks fail | `acknowledge_errors` rising; `records_acknowledged` flat | Ack before poll/session, broker ShareAcknowledge error, or exhausted leader retries |
+| Fetch without ack work | `records_fetched` up; both ack counters flat | Records fetched but never acknowledged |
+
+`acknowledge_errors` counts terminal ShareAcknowledge failures; prefer it over
+dumping record payloads. Mock proof: `tests/share_ack_metrics.rs`. KL-07
+Partial — not two independent human diagnosis runs, and not a Suite HOLD lift.
+Offset-commit / produce-retries / lag / throttle recipes are separate slices.
+
 ## Recipes
 
 ### Backpressure
