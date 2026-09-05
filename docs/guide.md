@@ -158,9 +158,7 @@ pause (`examples/cooperative.rs`). Handle `on_rebalance` for revoke/assign.
 Enable spans without changing default builds:
 
 ```toml
-# until crates.io 0.1.0 — pin the interim rc (not floating main)
-partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.6", features = ["tracing"] }
-# after publish: partitionline = { version = "0.1", features = ["tracing"] }
+partitionline = { version = "0.1", features = ["tracing"] }
 ```
 
 Spans cover `Producer::send` (topic field), `Consumer::fetch`,

@@ -61,28 +61,17 @@ bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish
    parks/TP soft-fail exits `PARTIAL` (2) so Installable is not confused with
    a finished post-cut land.
 
-## Install (today)
+## Install
 
-crates.io publish is the remaining owner step (`docs/RELEASE.md`). Until the
-first release lands, pin a **tag** (not floating `main`):
-
-```toml
-[dependencies]
-partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.6" }
-```
-
-`v0.1.0-rc.6` tracks the civilization tip (rc.5 plus owner-publish→day1 chaining and refreshed native Kafka 4.1 broker smoke including kip848/share). Prefer this over floating `main`. After crates.io `0.1.0`, switch to:
+`partitionline` **0.1.0** is on [crates.io](https://crates.io/crates/partitionline):
 
 ```toml
 [dependencies]
 partitionline = "0.1"
 ```
 
-Prove the pin still compiles (wired into cut-path + civilization bars):
+Git tags remain available for bisects; new adopters should prefer crates.io.
 
-```bash
-MODE=git bash scripts/verify-crates-io-consumer.sh
-```
 
 ## Pilot checklist
 
@@ -103,7 +92,7 @@ MODE=git bash scripts/verify-crates-io-consumer.sh
 
 | Gap | Status |
 |---|---|
-| crates.io release | Owner token + tag `v0.1.0` (WP-0.5) |
+| crates.io release | **0.1.0 published** — `partitionline = "0.1"` |
 | zstd compression | Out of default features (C); see `docs/zstd-spike.md` |
 | Kerberos / GSSAPI | Out of default features (C) |
 | Schema Registry | Companion after crates.io; design in `docs/schema-companion.md` |
