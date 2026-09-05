@@ -142,7 +142,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 **Handoff tip-ahead-of-parks honesty (2026-09-05, tip `404fdf6`):** `owner-post-installable-handoff` DRY_RUN and live stack checks PARTIAL/exit 2 when parks are already on main but tip is not an ancestor of park heads (STATUS stamps), with `refresh-post-cut-parks` guidance — no hard FAIL that bricks bars after docs-only tip moves. Bars gate. Does **not** lift Suite HOLD.
 
 
-**Post-Installable maintain timer (2026-09-05, tip `928cd4b`):** Recheck: `CARGO_REGISTRY_TOKEN` unset (Installable met — future cuts only; `--self-test` OK); `check-installable` present; parks on main OK; post-cut parks stack OK; civilization bars 48/0/0; tip=main. Main CI on this HEAD still running broker-smoke/fuzz at stamp time. Suite HOLD remains (Lab A unsigned). Trusted Publishing UI still owner. Do not re-cut 0.1.0.
+**Post-Installable maintain timer (2026-09-05, tip `59da087`):** Recheck: `CARGO_REGISTRY_TOKEN` unset (Installable met — future cuts only; `--self-test` OK); `check-installable` present; parks on main OK; post-cut parks stack OK; civilization bars 48/0/0; tip=main. Main CI on this HEAD still running broker-smoke/fuzz at stamp time. Suite HOLD remains (Lab A unsigned). Trusted Publishing UI still owner. Do not re-cut 0.1.0.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
