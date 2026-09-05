@@ -91,15 +91,17 @@ bash scripts/ci-tip-verifiable-broker.sh --self-test
 bash scripts/check-parks-refresh-cut-guards.sh
 # Documented git pin must cargo-check while Installable waits (Adoptable before crates.io).
 MODE=git bash scripts/verify-crates-io-consumer.sh
-# day1 README/ADOPTION must survive parks land even if stash pop fails.
+# day1 README/ADOPTION/guide/migrate must survive parks land even if stash pop fails.
 bash scripts/lib/preserve-day1-docs.sh --self-test
 
 # Already published?
 if bash scripts/check-installable.sh >/tmp/pl-preflight-installable.log 2>&1; then
   echo "check-installable-preflight: ALREADY_INSTALLABLE — crates.io has ${name} ${ver}"
   tail -5 /tmp/pl-preflight-installable.log | sed 's/^/  /'
-  # Installable ≠ post-cut complete. Surface parks-on-main so ALREADY_INSTALLABLE
-  # cannot soft-OK unfinished park land (handoff re-entry still required).
+  # Installable ≠ post-cut complete. Surface parks-on-main + day1 four-file shape so
+  # ALREADY_INSTALLABLE cannot soft-OK unfinished park land or git-shaped adopter docs.
+  # shellcheck source=scripts/lib/adopter-docs-shaped.sh
+  source "$ROOT/scripts/lib/adopter-docs-shaped.sh"
   echo "== parks on main (post-Installable honesty) =="
   parks_main_rc=0
   bash scripts/check-parks-on-main.sh || parks_main_rc=$?
@@ -109,6 +111,13 @@ if bash scripts/check-installable.sh >/tmp/pl-preflight-installable.log 2>&1; th
     echo "  Or: bash scripts/owner-finish-installable.sh  # already-Installable short-circuit"
   elif [[ "$parks_main_rc" -ne 0 ]]; then
     echo "check-installable-preflight: WARN — parks-on-main probe rc=${parks_main_rc}" >&2
+  fi
+  echo "== day1 adopter docs crates.io shape =="
+  if ! pl_adopter_docs_crates_io_shaped; then
+    echo "check-installable-preflight: PARTIAL — Installable OK but adopter docs still git-shaped"
+    echo "  Day1 must flip README + ADOPTION + guide + migrate to crates.io."
+    echo "  Re-enter: bash scripts/day1-after-publish.sh"
+    echo "  Then: bash scripts/owner-post-installable-handoff.sh"
   fi
   exit 2
 fi

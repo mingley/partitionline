@@ -221,14 +221,18 @@ fi
 echo "owner-status: next"
 if [[ "${preflight_already:-0}" -eq 1 ]]; then
   echo "  crates.io already has this version — do not re-cut."
+  echo "  Commit day1 crates.io lines if still dirty: README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md"
   echo "  Re-enter post-cut: bash scripts/owner-finish-installable.sh"
   echo "    (or LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh)"
   echo "  Finish uses SKIP_HANDOFF=1 into cut so parks/TP land once after secret sync."
-  echo "  If finish/cut exited PARTIAL (parks/TP): re-enter handoff — do not re-publish."
+  echo "  If finish/cut exited PARTIAL (parks/TP/docs): re-enter handoff — do not re-publish."
   echo "  If PARTIAL was Actions secret not synced:"
-  echo "    gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
+echo "    gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
   echo "  If PARTIAL was parks not on main (or parks/TP soft-fail):"
   echo "    LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+  echo "  If PARTIAL was adopter docs still git-shaped:"
+  echo "    bash scripts/day1-after-publish.sh"
+
 else
   echo "  0. Token missing? one screen: bash scripts/owner-request-registry-token.sh"
   echo "  0b. Full checklist: bash scripts/owner-unblock.sh"
@@ -260,6 +264,7 @@ else
   echo "       PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh  # force tag → Actions"
   echo "  5. bash scripts/check-installable.sh   # must exit 0"
   echo "  6. After Installable (any cut path): bash scripts/owner-post-installable-handoff.sh"
+  echo "       # commit README + ADOPTION + guide + migrate crates.io lines if day1 changed them"
   echo "       LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # TP+parks+bars"
   echo "       # If cut/finish exited PARTIAL (parks/TP): re-enter handoff — do not re-cut"
   echo "       # If PARTIAL was Actions secret: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""

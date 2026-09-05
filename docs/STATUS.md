@@ -93,6 +93,10 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Post-Installable PARTIAL exit 2 (2026-09-05, tip `5530b78`):** tip proxies (`check-cut-path`, `ci-branch-lite`, `ci-publish-ready`) and `owner-request-registry-token` no longer soft-green (`exit 0`) when Installable is already met but parks/day1/handoff stay PARTIAL — they exit **PARTIAL/2**. Pre-token rehearsal PARTIAL still exits 0. Day1 DRY_RUN / unblock / STATUS preserve copy name the four-file surface. Bars gate. Does **not** publish `0.1.0` or lift Suite HOLD. Still blocked on `CARGO_REGISTRY_TOKEN`.
 
+**Cut DRY_RUN / ALREADY_INSTALLABLE four-file honesty (2026-09-05 01:29 UTC, tip `9ea1013`):** `owner-cut-release` no longer claims crates.io Installable on pre-token handoff PARTIAL (Installable-gated copy + `dry_handoff_rc` fail-close). Preflight + token-ask probe day1 four-file shape via shared `scripts/lib/adopter-docs-shaped.sh`; `owner-status` next-steps name the four-file commit. Bars gate. Does **not** publish `0.1.0` or lift Suite HOLD. Still blocked on `CARGO_REGISTRY_TOKEN`.
+
+**Day1 crates.io flip after Installable (2026-09-05 01:36 UTC, tip `65332b9`):** crates.io has `partitionline` `0.1.0` (published 2026-09-05T01:32Z). Live `day1-after-publish` flipped README+ADOPTION+guide+migrate to crates.io pins; registry adopter consumer `cargo check` OK. Next: `LAND_PARKS=1` post-Installable handoff. Does **not** lift Suite HOLD (Lab A still unsigned).
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

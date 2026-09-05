@@ -77,7 +77,11 @@ if [[ "${1:-}" == "--self-test" ]]; then
   grep -qF 'PARTIAL — Installable OK but Actions secret not synced' "$ROOT/scripts/owner-cut-release.sh" \
     || { echo "owner-cut-release --self-test: FAIL — Actions secret PARTIAL string missing" >&2; exit 1; }
   # DRY_RUN must rehearse handoff (or honor SKIP_HANDOFF) — never exit 0 before that.
-  if ! awk '
+    grep -qF 'PARTIAL — handoff soft-failed (not yet Installable' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — pre-Installable handoff PARTIAL must not claim crates.io" >&2; exit 1; }
+  grep -qF 'dry_handoff_rc' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — DRY_RUN must capture dry_handoff_rc (no soft-green over PARTIAL)" >&2; exit 1; }
+if ! awk '
     /owner-post-installable-handoff/ && !dry { hand_before=NR }
     /DRY_RUN complete/ { dry=NR }
     /SKIP_HANDOFF/ { skip=NR }
@@ -281,9 +285,16 @@ pl_cut_run_handoff() {
     SKIP_DAY1="${SKIP_DAY1:-0}" LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
   fi
   if [[ "$handoff_rc" -eq 2 ]]; then
-    echo "owner-cut-release: PARTIAL — ${name} ${ver} is Installable on crates.io but handoff soft-failed"
-    echo "owner-cut-release: commit README + ADOPTION + guide + migrate crates.io lines if day1 changed them."
-    echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    if bash scripts/check-installable.sh >/dev/null 2>&1; then
+      echo "owner-cut-release: PARTIAL — ${name} ${ver} is Installable on crates.io but handoff soft-failed"
+      echo "owner-cut-release: commit README + ADOPTION + guide + migrate crates.io lines if day1 changed them."
+      echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    else
+      # Pre-token / absent-crate DRY_RUN handoff PARTIAL must not claim Installable.
+      echo "owner-cut-release: PARTIAL — handoff soft-failed (not yet Installable; parks/day1 pending)"
+      echo "  Pre-token rehearsal held; do not treat this as crates.io ${ver} existing."
+      echo "  After Installable: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    fi
     return 2
   elif [[ "$handoff_rc" -ne 0 ]]; then
     echo "owner-cut-release: FAIL — post-Installable handoff rc=${handoff_rc}" >&2
@@ -296,7 +307,12 @@ if [[ "$DRY_RUN" == "1" ]]; then
   echo
   echo "owner-cut-release: DRY_RUN — skipping crates.io wait / day1; rehearsing secret sync + handoff"
   pl_cut_sync_actions_secret
-  pl_cut_run_handoff
+  dry_handoff_rc=0
+  pl_cut_run_handoff || dry_handoff_rc=$?
+  if [[ "$dry_handoff_rc" -ne 0 ]]; then
+    # Propagate PARTIAL/2 (or hard fail) — never soft-green DRY_RUN complete over handoff PARTIAL.
+    exit "$dry_handoff_rc"
+  fi
   echo
   echo "owner-cut-release: DRY_RUN complete — no publish / day1 performed; handoff rehearsed (or SKIP_HANDOFF)"
   exit 0
