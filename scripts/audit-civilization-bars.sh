@@ -239,6 +239,18 @@ else
 fi
 
 
+
+# KL-07 slice: transaction outcome counters + guide cookbook.
+if [[ -f tests/txn_outcome_metrics.rs && -f docs/guide.md && -f docs/ROADMAP.md ]] \
+  && grep -qF '### Diagnosing transaction outcomes' docs/guide.md \
+  && grep -qF 'txn_outcome_metrics_increment_on_commit_and_abort' tests/txn_outcome_metrics.rs \
+  && grep -qF 'transactions_committed,transactions_aborted' docs/ROADMAP.md \
+  && grep -qF 'ProducerMetrics::{transactions_committed,transactions_aborted}' docs/STATUS.md; then
+  ok "KL-07 transaction outcome metrics Partial (commit/abort counters + guide cookbook)"
+else
+  bad "KL-07 transaction outcome metrics Partial missing"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \

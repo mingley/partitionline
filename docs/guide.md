@@ -89,6 +89,22 @@ Use `transactional_id`, `init_transactions`, and
 `send_offsets_for_group` — see `examples/eos.rs`. Isolation on the consumer
 side is `IsolationLevel::ReadCommitted`.
 
+### Diagnosing transaction outcomes
+
+When EOS pipelines stall or duplicate side effects appear, sample
+`Producer::metrics()` and watch transaction outcomes:
+
+1. Record `transactions_committed` and `transactions_aborted`.
+2. A rising abort rate with flat commits usually means fencing, timeout, or
+   application abort paths — correlate with broker transaction logs, not payload
+   dumps.
+3. Commits climbing without matching downstream effects points at read-uncommitted
+   consumers or a different transactional id / epoch than you expect.
+4. Failed `commit_transaction` / `abort_transaction` (broker error) do **not**
+   bump these counters; only successful EndTxn outcomes count.
+
+Mock contract: `tests/txn_outcome_metrics.rs`.
+
 ## Admin
 
 ```rust,no_run

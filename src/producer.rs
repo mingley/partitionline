@@ -812,6 +812,8 @@ struct Shared {
     m_acked: AtomicU64,
     m_errors: AtomicU64,
     m_bytes: AtomicU64,
+    m_txn_committed: AtomicU64,
+    m_txn_aborted: AtomicU64,
     buffered_bytes: AtomicU64,
     /// Set by [`Producer::close`] / [`Producer::close_timeout`] so clones cannot
     /// respawn workers after shutdown (KL-02 durable Closed outcome).
@@ -1149,6 +1151,8 @@ impl Producer {
             m_acked: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
+            m_txn_committed: AtomicU64::new(0),
+            m_txn_aborted: AtomicU64::new(0),
             buffered_bytes: AtomicU64::new(0),
             closed: AtomicBool::new(false),
             ack_latency: crate::metrics::LatencyTracker::new(),
@@ -1489,6 +1493,8 @@ impl Producer {
             bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
             bytes_buffered: self.inner.shared.buffered_bytes.load(Ordering::Relaxed),
             ack_latency: self.inner.shared.ack_latency.snapshot(),
+            transactions_committed: self.inner.shared.m_txn_committed.load(Ordering::Relaxed),
+            transactions_aborted: self.inner.shared.m_txn_aborted.load(Ordering::Relaxed),
             topics: crate::metrics::snapshot_produce_topics(&self.inner.shared.topics.lock()),
         }
     }
@@ -1815,6 +1821,19 @@ impl Producer {
         self.inner.shared.in_txn.store(false, Ordering::SeqCst);
         self.inner.shared.txn_partitions.lock().clear();
         self.inner.shared.txn_added.lock().clear();
+        if committed {
+            let _ = self
+                .inner
+                .shared
+                .m_txn_committed
+                .fetch_add(1, Ordering::Relaxed);
+        } else {
+            let _ = self
+                .inner
+                .shared
+                .m_txn_aborted
+                .fetch_add(1, Ordering::Relaxed);
+        }
         Ok(())
     }
 

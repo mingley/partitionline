@@ -304,6 +304,10 @@ pub struct ProducerMetrics {
     pub bytes_buffered: u64,
     /// Queue-to-ack latency per acknowledged record (including `acks=0`).
     pub ack_latency: LatencyStats,
+    /// Successful `commit_transaction` / EndTxn commit outcomes (KL-07 diagnosis).
+    pub transactions_committed: u64,
+    /// Successful `abort_transaction` / EndTxn abort outcomes (KL-07 diagnosis).
+    pub transactions_aborted: u64,
     /// Per-topic counters. Topics with no activity are omitted. Sorted by name.
     pub topics: Vec<TopicProduceMetrics>,
 }
@@ -559,6 +563,8 @@ mod tests {
     #[test]
     fn metrics_default_zero() {
         assert_eq!(ProducerMetrics::default().records_queued, 0);
+        assert_eq!(ProducerMetrics::default().transactions_committed, 0);
+        assert_eq!(ProducerMetrics::default().transactions_aborted, 0);
         assert_eq!(ProducerMetrics::default().bytes_buffered, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.count, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p50_nanos, 0);
