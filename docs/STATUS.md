@@ -178,7 +178,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-06 OIDC bounded transient retry (2026-09-05, tip `3940917`):** `fetch_client_credentials_token` retries HTTP 5xx/I/O/timeout up to 3 attempts with short backoff inside `request_timeout`; HTTP 4xx still fails immediately. Tests cover 503→success, persistent 503 exhaust, and no-401-retry. Does **not** close mid-connection refresh/rotation or outage soak. Does **not** lift Suite HOLD.
 
-**KL-06 OIDC expires_in + session_lifetime record (2026-09-05, tip `PENDING`):** Parses IdP `expires_in` into `OidcAccessToken::expires_at`; records broker `session_lifetime_ms` / OIDC expiry on `BrokerConn` after authenticate. `token_needs_refresh` helper with skew. Does **not** close mid-connection `SaslAuthenticate` reauth / rotation soak. Does **not** lift Suite HOLD.
+**KL-06 OIDC expires_in + session_lifetime record (2026-09-05, tip `"c65fbb1"`):** Parses IdP `expires_in` into `OidcAccessToken::expires_at`; records broker `session_lifetime_ms` / OIDC expiry on `BrokerConn` after authenticate. `token_needs_refresh` helper with skew. Does **not** close mid-connection `SaslAuthenticate` reauth / rotation soak. Does **not** lift Suite HOLD.
 
 **KL-02 buffer ownership + mock overload soak (2026-09-05, tip `8bd64d3`):** saturating `try_send` keeps `metrics().bytes_buffered ≤ buffer_memory` and drains to 0 after flush/close; guide documents key+value queued-until-ack model. Tests: `tests/buffer_ownership.rs`. Does **not** close full KL-02 (no 2×/24h RSS or full encode/socket/task ownership). Does **not** lift Suite HOLD.
 
