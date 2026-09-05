@@ -27,6 +27,9 @@ cargo test --lib
 echo "== ci-branch-lite: fuzz decode smoke =="
 cargo test --test fuzz_decode_smoke
 
+echo "== ci-branch-lite: protocol oracles =="
+cargo test --test protocol_oracles
+
 echo "== ci-branch-lite: adopter pin =="
 bash scripts/check-adopter-pin.sh
 

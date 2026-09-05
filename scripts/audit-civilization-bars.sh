@@ -123,6 +123,14 @@ else
   bad "KL-01 broker identity/timeout missing or self-test failed; see /tmp/pl-broker-identity-self-test.log"
 fi
 
+# KL-01 recovery slice: Produce/Fetch/Metadata/ListOffsets semantic oracles vs 3.9.1 and 4.1.0.
+if [[ -f scripts/ci-protocol-oracles.sh ]] \
+  && grep -q 'cargo test --test protocol_oracles' scripts/ci-protocol-oracles.sh \
+  && bash scripts/ci-protocol-oracles.sh --self-test >/tmp/pl-protocol-oracles-self-test.log 2>&1; then
+  ok "KL-01 protocol oracles (Produce/Fetch/Metadata/ListOffsets vs 3.9.1/4.1.0; fixture --self-test)"
+else
+  bad "KL-01 protocol oracles missing or self-test failed; see /tmp/pl-protocol-oracles-self-test.log"
+fi
 
 # KL-08: serialized publish path — release-plz PR-only; cut/release exact-SHA + consumer.
 if grep -qF 'command: release-pr' .github/workflows/release-plz.yml \
@@ -137,7 +145,6 @@ if grep -qF 'command: release-pr' .github/workflows/release-plz.yml \
 else
   bad "KL-08 release serialize missing/failed; see /tmp/pl-kl08-cut-self-test.log"
 fi
-
 
 # KL-02 slice: produce cancellation contract (docs + mock tests + durable close).
 if [[ -f tests/produce_cancel.rs && -f docs/guide.md ]] \

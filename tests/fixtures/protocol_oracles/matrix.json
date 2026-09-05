@@ -1,0 +1,84 @@
+{
+  "notes": "KL-01 advertised cells: Produce/Fetch/Metadata/ListOffsets x Kafka 3.9.1 and 4.1.0. Identity is required and non-empty. pin_supported is crate spoken intersect Apache validVersions (3.9.1 ProduceRequest 0-11, FetchRequest 0-17, MetadataRequest 0-12, ListOffsetsRequest 0-9; 4.1.0 ProduceRequest 3-13, FetchRequest 4-18, MetadataRequest 0-13, ListOffsetsRequest 1-10). Crate spoken: Produce 3-12, Fetch 4-17, Metadata 1-13, ListOffsets 1-10. classified_diffs cover crate-spoken versions the pin does not support. An unclassified skip is a failure.",
+  "cells": [
+    {
+      "api": "Produce",
+      "pin": "3.9.1",
+      "identity": "fixture:apache/kafka:3.9.1",
+      "crate_spoken": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "pin_supported": [3, 4, 5, 6, 7, 8, 9, 10, 11],
+      "classified_diffs": [
+        {
+          "version": 12,
+          "reason": "Produce v12 is KIP-890 Part 2 transaction V2; Apache Kafka 3.9.1 ProduceRequest.json validVersions is 0-11. Kafka 4.0+ only."
+        }
+      ]
+    },
+    {
+      "api": "Produce",
+      "pin": "4.1.0",
+      "identity": "fixture:apache/kafka:4.1.0",
+      "crate_spoken": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "pin_supported": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "classified_diffs": []
+    },
+    {
+      "api": "Fetch",
+      "pin": "3.9.1",
+      "identity": "fixture:apache/kafka:3.9.1",
+      "crate_spoken": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
+      "pin_supported": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
+      "classified_diffs": []
+    },
+    {
+      "api": "Fetch",
+      "pin": "4.1.0",
+      "identity": "fixture:apache/kafka:4.1.0",
+      "crate_spoken": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
+      "pin_supported": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
+      "classified_diffs": []
+    },
+    {
+      "api": "Metadata",
+      "pin": "3.9.1",
+      "identity": "fixture:apache/kafka:3.9.1",
+      "crate_spoken": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      "pin_supported": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "classified_diffs": [
+        {
+          "version": 13,
+          "reason": "Metadata v13 adds top-level ErrorCode; Apache Kafka 3.9.1 MetadataRequest.json validVersions is 0-12. Kafka 4.0+ only."
+        }
+      ]
+    },
+    {
+      "api": "Metadata",
+      "pin": "4.1.0",
+      "identity": "fixture:apache/kafka:4.1.0",
+      "crate_spoken": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      "pin_supported": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      "classified_diffs": []
+    },
+    {
+      "api": "ListOffsets",
+      "pin": "3.9.1",
+      "identity": "fixture:apache/kafka:3.9.1",
+      "crate_spoken": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "pin_supported": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      "classified_diffs": [
+        {
+          "version": 10,
+          "reason": "ListOffsets v10 adds TimeoutMs (KIP-1075); Apache Kafka 3.9.1 ListOffsetsRequest.json validVersions is 0-9. Kafka 4.0+ only."
+        }
+      ]
+    },
+    {
+      "api": "ListOffsets",
+      "pin": "4.1.0",
+      "identity": "fixture:apache/kafka:4.1.0",
+      "crate_spoken": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "pin_supported": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "classified_diffs": []
+    }
+  ]
+}

@@ -117,6 +117,10 @@ New harnesses must be added and wired into CI before their package can close.
    Kafka Java clients/brokers 3.9.1 and 4.1.0; expand by API coverage and user
    demand. Compare decoded semantics and required fields, not arbitrary byte
    ordering, client IDs or correlation IDs.
+   **Partial (2026-09-05):** `tests/protocol_oracles.rs` plus
+   `scripts/ci-protocol-oracles.sh` compare decoded required fields for
+   Produce/Fetch/Metadata/ListOffsets against fixture pins 3.9.1 and 4.1.0;
+   live broker optional via `REQUIRE_BROKER=1`. Does not close KL-01.
 4. Extend existing [fuzz targets](../fuzz) beyond short CI smoke, focusing on
    lengths, tagged fields, truncated batches, CRC, allocation and decompression
    bounds. Retain minimized failures and campaign/coverage metadata.
