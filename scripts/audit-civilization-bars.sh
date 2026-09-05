@@ -254,6 +254,20 @@ else
   bad "KL-08 support matrix honesty missing"
 fi
 
+
+# KL-07 slice: list_offsets_ok/fail for seek/lag/reset diagnosis.
+if [[ -f tests/list_offsets_metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (ListOffsets)' docs/guide.md \
+  && grep -qF 'list_offsets_ok_increments_on_list_offsets' tests/list_offsets_metrics.rs \
+  && grep -qF 'pub list_offsets_ok: u64' src/metrics.rs \
+  && grep -qF 'record_list_offsets_ok' src/consumer.rs \
+  && grep -qF 'record_list_offsets_fail' src/consumer.rs \
+  && grep -qF 'list_offsets_metrics.rs' docs/ROADMAP.md; then
+  ok "KL-07 ListOffsets diagnosis Partial (list_offsets_ok/fail; guide+mock)"
+else
+  bad "KL-07 ListOffsets diagnosis Partial missing"
+fi
+
 # KL-08 slice: adopter 24h/7d exercise template (UNFILLED — not evidence).
 if [[ -f docs/adopter-exercise.md ]] \
   && grep -qF 'UNFILLED — not evidence' docs/adopter-exercise.md \

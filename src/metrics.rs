@@ -340,6 +340,12 @@ pub struct ConsumerMetrics {
     pub fetch_latency: LatencyStats,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
     pub topics: Vec<TopicFetchMetrics>,
+    /// Successful ListOffsets RPCs that returned an offset (terminal ok).
+    /// KL-07 seek / lag / reset diagnosis. Retries inside the loop do not count.
+    pub list_offsets_ok: u64,
+    /// Terminal ListOffsets failures (non-retriable broker error, timeout, or
+    /// transport loss after retries exhausted).
+    pub list_offsets_fail: u64,
 }
 
 /// Fetch counters for one topic.
@@ -564,6 +570,8 @@ mod tests {
         assert_eq!(ProducerMetrics::default().ack_latency.p50_nanos, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
+        assert_eq!(ConsumerMetrics::default().list_offsets_ok, 0);
+        assert_eq!(ConsumerMetrics::default().list_offsets_fail, 0);
         assert_eq!(ConsumerMetrics::default().fetch_latency.count, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
         assert_eq!(ShareMetrics::default().bytes_fetched, 0);

@@ -1257,6 +1257,8 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    m_list_offsets_ok: AtomicU64,
+    m_list_offsets_fail: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1346,6 +1348,8 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_list_offsets_ok: AtomicU64::new(0),
+            m_list_offsets_fail: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -2153,7 +2157,17 @@ impl Consumer {
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
+            list_offsets_ok: self.m_list_offsets_ok.load(Ordering::Relaxed),
+            list_offsets_fail: self.m_list_offsets_fail.load(Ordering::Relaxed),
         }
+    }
+
+    pub(crate) fn record_list_offsets_ok(&self) {
+        let _ = self.m_list_offsets_ok.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn record_list_offsets_fail(&self) {
+        let _ = self.m_list_offsets_fail.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
@@ -2711,6 +2725,23 @@ impl Consumer {
     }
 
     async fn list_offset_at(
+        &mut self,
+        topic: &str,
+        partition: i32,
+        timestamp: i64,
+        timeout: Duration,
+    ) -> Result<(i64, i64, i32)> {
+        let result = self
+            .list_offset_at_inner(topic, partition, timestamp, timeout)
+            .await;
+        match &result {
+            Ok(_) => self.record_list_offsets_ok(),
+            Err(_) => self.record_list_offsets_fail(),
+        }
+        result
+    }
+
+    async fn list_offset_at_inner(
         &mut self,
         topic: &str,
         partition: i32,

@@ -136,6 +136,16 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (ListOffsets)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Healthy seek / lag / reset | `Consumer::metrics().list_offsets_ok` rising; `list_offsets_fail == 0` | ListOffsets RPC succeeding |
+| Seek / lag storms | `list_offsets_fail` rising | Non-retriable broker error, timeout, or transport loss |
+| Silent lag | both counters flat while lag looks wrong | ListOffsets not running (no seek/reset/lag call) |
+
+`list_offsets_ok` / `list_offsets_fail` count terminal ListOffsets outcomes on `ConsumerMetrics` (retries inside the loop do not count). Prefer these over dumping payloads. Mock proof: `tests/list_offsets_metrics.rs`. KL-07 Partial — not two independent human diagnosis runs, and not a Suite HOLD lift.
+
 ## Recipes
 
 ### Backpressure
