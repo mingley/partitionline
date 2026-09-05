@@ -31,9 +31,15 @@ them redacts passwords, OIDC `client_secret`, and mTLS private key PEMs as
 
 OIDC token-endpoint and OAUTHBEARER authenticate `Error` strings omit IdP/broker
 response bodies (status-only / fixed message) so `Display`/`Debug` cannot echo
-`client_secret` or token material from failure payloads. This is a KL-06 honesty
-slice for log/span/error dumps — it does **not** cover metrics labels, span field
-audits, or credential rotation/outage recovery.
+`client_secret` or token material from failure payloads.
+
+Metrics snapshots (`ProducerMetrics` / `ConsumerMetrics` / `ShareMetrics` /
+`AdminMetrics`) expose counters, latency, and topic names only — not credentials.
+Optional `tracing` instruments `skip(self)` (and `skip(self, rec)` on produce) so
+configs holding secrets are not recorded as span fields; recorded fields are
+limited to topic / protocol names. This is a KL-06 honesty slice for
+log/span/error/metrics dumps — it does **not** cover credential rotation/outage
+recovery, and topic names remain operator-chosen (do not put secrets in topic names).
 
 Mock coverage: `tests/credential_redact.rs`.
 

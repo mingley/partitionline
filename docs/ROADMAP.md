@@ -261,7 +261,8 @@ honest dependency footprint. Deferred features remain documented exclusions.
    **Partial (2026-09-05):** `Debug` redacts Sasl passwords, OIDC `client_secret`,
    and mTLS key PEMs (plus producer/consumer/admin config cascade); see
    [security.md](security.md) and `tests/credential_redact.rs`. OIDC/OAUTHBEARER `Error` bodies no longer embed IdP/broker payloads (2026-09-05).
-   Spans/metrics redaction and rotation/outage recovery remain open.
+   Metrics snapshots + tracing `skip(self)` span honesty added (2026-09-05).
+   Rotation/outage recovery remains open.
 
 **Work surfaces:** [network](../src/net.rs), [OAuth](../src/protocol/oauth.rs),
 [OIDC](../src/protocol/oidc.rs), [auth smoke](../scripts/ci-auth-smoke.sh),

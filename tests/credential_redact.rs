@@ -163,3 +163,101 @@ fn oauthbearer_error_message_is_fixed() {
     assert!(s.contains("oauthbearer: authentication failed"), "{s}");
     assert!(!s.contains("access_token"), "{s}");
 }
+
+#[test]
+fn metrics_debug_excludes_credential_material() {
+    use partitionline::{
+        AdminMetrics, ConsumerMetrics, ProducerMetrics, ShareMetrics, TopicFetchMetrics,
+        TopicProduceMetrics,
+    };
+
+    // Metrics snapshots are counters + latency + topic names only — they must not
+    // become a channel for password / client_secret / PEM material (KL-06).
+    let producer = ProducerMetrics {
+        topics: vec![TopicProduceMetrics {
+            topic: "orders".into(),
+            ..TopicProduceMetrics::default()
+        }],
+        ..ProducerMetrics::default()
+    };
+    let consumer = ConsumerMetrics {
+        topics: vec![TopicFetchMetrics {
+            topic: "orders".into(),
+            ..TopicFetchMetrics::default()
+        }],
+        ..ConsumerMetrics::default()
+    };
+    let share = ShareMetrics {
+        topics: vec![TopicFetchMetrics {
+            topic: "orders".into(),
+            ..TopicFetchMetrics::default()
+        }],
+        ..ShareMetrics::default()
+    };
+    let admin = AdminMetrics::default();
+
+    for (label, dbg) in [
+        ("ProducerMetrics", format!("{producer:?}")),
+        ("ConsumerMetrics", format!("{consumer:?}")),
+        ("ShareMetrics", format!("{share:?}")),
+        ("AdminMetrics", format!("{admin:?}")),
+    ] {
+        assert!(
+            !dbg.contains(PASSWORD),
+            "{label} Debug must not contain password material: {dbg}"
+        );
+        assert!(
+            !dbg.contains(CLIENT_SECRET),
+            "{label} Debug must not contain client_secret material: {dbg}"
+        );
+        assert!(
+            !dbg.contains(KEY_PEM),
+            "{label} Debug must not contain key PEM material: {dbg}"
+        );
+        assert!(
+            !dbg.contains("BEGIN PRIVATE KEY"),
+            "{label} Debug must not contain PEM armor: {dbg}"
+        );
+    }
+}
+
+#[test]
+fn tracing_instruments_skip_self_holding_configs() {
+    // Source-policy honesty for feature=tracing: every instrumented public path
+    // must skip `self` (configs with credentials live on the client). Allowed
+    // fields are topic / protocol names only — not configs or records.
+    let roots = [
+        include_str!("../src/producer.rs"),
+        include_str!("../src/consumer.rs"),
+        include_str!("../src/group.rs"),
+    ];
+    let mut instruments = 0usize;
+    for src in roots {
+        for line in src.lines() {
+            let trimmed = line.trim();
+            if !trimmed.contains("tracing::instrument") {
+                continue;
+            }
+            instruments += 1;
+            assert!(
+                trimmed.contains("skip(self") || trimmed.contains("skip(self,"),
+                "tracing::instrument must skip(self): {trimmed}"
+            );
+            assert!(
+                !trimmed.contains("skip(") || trimmed.contains("skip(self"),
+                "unexpected instrument skip set: {trimmed}"
+            );
+            // Disallow dumping full config/record via fields=
+            assert!(
+                !trimmed.contains("fields(self")
+                    && !trimmed.contains("fields(cfg")
+                    && !trimmed.contains("fields(config"),
+                "instrument must not field-dump config: {trimmed}"
+            );
+        }
+    }
+    assert!(
+        instruments >= 5,
+        "expected several tracing::instrument sites, found {instruments}"
+    );
+}
