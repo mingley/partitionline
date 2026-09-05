@@ -103,6 +103,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Handoff DRY_RUN parks-on-main path (2026-09-05 01:48 UTC, tip pending):** bars accept handoff DRY_RUN exit 0 when parks already on main (not only PARTIAL/2 while pending). Re-land after tip refresh keeps `check-parks-on-main` green. Full bars 42/0/0. Suite HOLD remains.
 
+**Handoff DRY_RUN parks-on-main path (2026-09-05 01:49 UTC, tip pending):** bars accept handoff DRY_RUN exit 0 when parks already on main. Suite HOLD remains.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
