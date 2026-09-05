@@ -282,7 +282,7 @@ pl_cut_run_handoff() {
   fi
   if [[ "$handoff_rc" -eq 2 ]]; then
     echo "owner-cut-release: PARTIAL — ${name} ${ver} is Installable on crates.io but handoff soft-failed"
-    echo "owner-cut-release: commit the README crates.io line if day1 changed it."
+    echo "owner-cut-release: commit README + ADOPTION + guide + migrate crates.io lines if day1 changed them."
     echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
     return 2
   elif [[ "$handoff_rc" -ne 0 ]]; then
@@ -321,7 +321,7 @@ if [[ "$ok" != "1" ]]; then
 fi
 
 echo
-echo "== day1 (README flip + remaining owner steps) =="
+echo "== day1 (README/ADOPTION/guide/migrate flip + remaining owner steps) =="
 bash scripts/day1-after-publish.sh
 bash scripts/check-installable.sh
 
@@ -340,12 +340,12 @@ if [[ "$secret_rc" -ne 0 ]]; then
   echo "owner-cut-release: ${name} ${ver} is on crates.io; later tag/Actions cuts need the secret"
   echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
   echo "  Then: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks/TP still pending"
-  echo "owner-cut-release: commit the README crates.io line if day1 changed it."
+  echo "owner-cut-release: commit README + ADOPTION + guide + migrate crates.io lines if day1 changed them."
   exit 2
 fi
 echo
 echo "owner-cut-release: OK — ${name} ${ver} is Installable on crates.io"
-echo "owner-cut-release: commit the README crates.io line if day1 changed it."
+echo "owner-cut-release: commit README + ADOPTION + guide + migrate crates.io lines if day1 changed them."
 echo "  Re-enter handoff anytime: bash scripts/owner-post-installable-handoff.sh"
 echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks/TP soft-failed"
 exit 0
