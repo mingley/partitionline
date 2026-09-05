@@ -47,6 +47,10 @@ if [[ "${1:-}" == "--self-test" ]]; then
     echo "owner-post-installable-handoff: self-test FAIL — git-shaped docs after day1 must PARTIAL (not final OK)" >&2
     exit 1
   fi
+  if ! grep -qF 'PARTIAL — Installable OK but adopter docs still git-shaped (DRY_RUN' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — DRY_RUN must PARTIAL on git-shaped docs when already Installable" >&2
+    exit 1
+  fi
   if ! grep -qF 'PARTIAL — Installable OK but parks not on main' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
     echo "owner-post-installable-handoff: self-test FAIL — parks-not-on-main must PARTIAL (not final OK)" >&2
     exit 1
@@ -149,6 +153,18 @@ if [[ "$DRY_RUN" == "1" ]]; then
     echo "owner-post-installable-handoff: PARTIAL — parks not on main (DRY_RUN; expected pre-token; rehearsal held)"
     echo "  After Installable: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
     dry_partial=1
+  fi
+  echo
+  # Already-Installable DRY_RUN must not soft-green while README/ADOPTION stay
+  # git-shaped (Actions-alternate / handoff-only re-entry footgun). Pre-token
+  # trees are expected git-shaped; day1 PARTIAL already covers that path.
+  if bash scripts/check-installable.sh >/dev/null 2>&1; then
+    if ! grep -qE '^partitionline = "[0-9]' README.md; then
+      echo "owner-post-installable-handoff: PARTIAL — Installable OK but adopter docs still git-shaped (DRY_RUN)" >&2
+      echo "  Re-enter: bash scripts/day1-after-publish.sh" >&2
+      echo "  Then: bash scripts/owner-post-installable-handoff.sh" >&2
+      dry_partial=1
+    fi
   fi
   echo
   if [[ "$dry_partial" -eq 1 ]]; then

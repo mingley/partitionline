@@ -81,6 +81,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Owner-status / tip-proxy PARTIAL honesty (2026-09-05):** `owner-status` no longer labels branch-lite exit 0 + `ok with PARTIAL` as plain `ok`. Tip proxies (`ci-branch-lite`, `check-cut-path`) split pre-token vs already-Installable PARTIAL copy (token-blocked vs post-cut re-entry). Stale “pre-token handoff exit 0” comments/STATUS line amended. Trusted-publishing-ready final line is INFO when crate absent (not bare OK). Bars gate. Still not a Suite HOLD lift. Still blocked on `CARGO_REGISTRY_TOKEN` / crates.io 0.1.0.
 
+**Handoff DRY_RUN git-shaped docs fail-close (2026-09-05):** already-Installable `DRY_RUN` now exits `PARTIAL`/2 when README stays git-shaped (Actions-alternate footgun), not only on live path. Self-test + bars gate. `ci-publish-ready` splits pre-token vs already-Installable PARTIAL copy. Still not a Suite HOLD lift. Still blocked on `CARGO_REGISTRY_TOKEN` / crates.io 0.1.0.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
