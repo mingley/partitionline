@@ -8,6 +8,11 @@ This document outlines the clear, phased ramp to bring `partitionline` from its 
 
 `partitionline` currently implements the complete Kafka client protocol surface in pure Rust (Producers, Consumers, Consumer Groups, Share Groups, Transactions/EOS, and Admin APIs) without C or `librdkafka` dependencies.
 
+**Honesty bar:** crates.io `0.1.0` is already Installable (day1 pins + parks on
+`main`). **Suite HOLD remains** until signed Lab A evidence — unsigned tip
+Verifiable / latency samples must not be marketed as a Suite HOLD lift. See
+`docs/CIVILIZATION.md` + `docs/STATUS.md`.
+
 To achieve enterprise production readiness (`v1.0.0`), the following gates must be satisfied:
 
 ### 1. Compression Matrix Completion

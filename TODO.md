@@ -2,6 +2,9 @@
 
 Actionable task tracker for taking `partitionline` to production readiness (v1.0.0).
 
+Installable (`0.1.0` on crates.io) is met. **Suite HOLD remains** (Lab A unsigned).
+Do not treat unsigned Verifiable samples as a Suite HOLD lift.
+
 ---
 
 ## High Priority (P0: Codec & Cluster Integration)

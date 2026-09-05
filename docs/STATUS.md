@@ -108,6 +108,9 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Post-Installable tip absorb + plan honesty (2026-09-05, tip `c2f1bb2`):** civilization tip absorbs `origin/main` (post-cut parks already landed) so tip is no longer 462 commits behind. `docs/CIVILIZATION.md` / `docs/ADOPTION.md` / `docs/RELEASE.md` stop claiming Installable is still token-blocked / unpublished; priority order is post-Installable (tip≥main, handoff re-entry, unsigned Verifiable, Suite HOLD). `expected pre-Installable` retained as historical parks framing for bars. Does **not** lift Suite HOLD (Lab A unsigned).
 
+
+**Main roadmap absorb (2026-09-05, tip pending):** `origin/main` added `docs/ROADMAP.md` + `TODO.md` (production ramp to v1.0.0) after parks land; tip honesty branch merges that commit and labels Suite HOLD still unsigned. Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
