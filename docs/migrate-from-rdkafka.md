@@ -10,11 +10,11 @@ a service.
 # before
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 
-# after (once published)
-partitionline = "0.1"
-
-# until crates.io publish — pin a tag, not floating main
+# after — until crates.io 0.1.0, pin a tag (not floating main)
 partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.6" }
+
+# after crates.io publish:
+# partitionline = "0.1"
 ```
 
 No C toolchain, librdkafka, OpenSSL, or cmake-build feature required for the
