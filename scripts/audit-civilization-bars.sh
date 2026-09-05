@@ -238,6 +238,19 @@ if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs
 else
   bad "KL-08 support matrix honesty missing"
 fi
+
+# KL-08 slice: adopter 24h/7d exercise template (UNFILLED — not evidence).
+if [[ -f docs/adopter-exercise.md ]] \
+  && grep -qF 'UNFILLED — not evidence' docs/adopter-exercise.md \
+  && grep -qF 'Does **not** close KL-08' docs/adopter-exercise.md \
+  && grep -qF '24-hour' docs/adopter-exercise.md \
+  && grep -qF '7-day' docs/adopter-exercise.md \
+  && grep -qF 'adopter-exercise.md' docs/support.md \
+  && grep -qF 'adopter-exercise.md' docs/ADOPTION.md; then
+  ok "KL-08 adopter exercise template (24h/7d UNFILLED; support+ADOPTION links)"
+else
+  bad "KL-08 adopter exercise template missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

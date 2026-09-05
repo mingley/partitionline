@@ -56,6 +56,7 @@ performance qualification and exact-HEAD evidence remain open.
 | [ ] | [KL-07: Usability and diagnostics](docs/ROADMAP.md#kl-07-make-adoption-and-diagnosis-simpler-than-the-alternatives) | KL-01; KL-02/03 for recipes | Fresh external consumers, two newcomer exercises, bounded metrics and measured tracing overhead. |
 | [ ] | [KL-08: Release and adoption](docs/ROADMAP.md#kl-08-gate-releases-and-promote-through-reversible-adoption) | None for release safety; applicable profile gates for adoption | Exact-SHA publish gates, support policy, two adopter records, 24-hour/7-day exercises and operator-approved rollback proof. |
 | | ↳ partial: support matrix doc (`docs/support.md`) for CI-backed brokers/MSRV/features (2026-09-05) | | Adopter 24h/7d records + promotion/rollback still open. |
+| | ↳ partial: adopter 24h/7d exercise template (`docs/adopter-exercise.md`, UNFILLED) (2026-09-05) | | Filled independent records + promotion/rollback still open. |
 
 Optional codecs and ecosystem additions are not universal production blockers.
 A 1.0 decision concerns API/support stability; it does not require a universal

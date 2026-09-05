@@ -91,6 +91,10 @@ Git tags remain available for bisects; new adopters should prefer crates.io.
    `tracing` feature for spans (`docs/guide.md`).
 7. Read defaults that differ from Java (`auto.offset.reset=Earliest`, etc.).
 
+For KL-08 **24h then 7d** adopter evidence (two independent workloads), copy
+[adopter-exercise.md](adopter-exercise.md). The template ships **UNFILLED** and
+does not close KL-08 or lift Suite HOLD until real records are filed.
+
 ## Known adoption gaps (honest)
 
 | Gap | Status |

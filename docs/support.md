@@ -51,4 +51,6 @@ does not replace rotation/outage recovery work (KL-06 open).
 
 This matrix Does **not** close KL-08. Still open: two independent adopter
 24h/7d records, traffic-shadow promotion, and operator-approved rollback proof
-under production SLOs.
+under production SLOs. Use the blank
+[adopter exercise template](adopter-exercise.md) to record runs when they
+happen — the template itself is **UNFILLED** and is not evidence.

@@ -178,6 +178,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-08 support matrix honesty (2026-09-05, tip `52d2dd7`):** `docs/support.md` records CI-backed brokers (3.9.1/4.1.0), MSRV 1.85, Linux/x86_64, default pure-Rust features, and explicit non-promises; linked from RELEASE/ADOPTION/api-stability. Does **not** close full KL-08 (adopter 24h/7d + promotion/rollback remain). Does **not** lift Suite HOLD.
 
+**KL-08 adopter exercise template (2026-09-05, tip `PENDING`):** `docs/adopter-exercise.md` is the blank 24h/7d record format (`UNFILLED — not evidence`); linked from support.md + ADOPTION.md. Does **not** close full KL-08 (no filled adopter records, no traffic-shadow promotion/rollback proof). Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
