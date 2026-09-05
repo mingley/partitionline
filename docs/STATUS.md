@@ -184,7 +184,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-08 adopter exercise template (2026-09-05, tip `622dfa2`):** `docs/adopter-exercise.md` is the blank 24h/7d record format (`UNFILLED — not evidence`); linked from support.md + ADOPTION.md. Does **not** close full KL-08 (no filled adopter records, no traffic-shadow promotion/rollback proof). Does **not** lift Suite HOLD.
 
-**KL-03 fencing fail-closed Partial (2026-09-05, tip `PENDING`):** mock `PRODUCER_FENCED` on Produce surfaces the broker code and does not invent a local producer epoch (`tests/fencing_honesty.rs`); guide note. Does **not** close full KL-03 (no live RF=3 fencing/coordinator-failover histories). Does **not** lift Suite HOLD.
+**KL-03 fencing fail-closed Partial (2026-09-05, tip `df1c811`):** mock `PRODUCER_FENCED` on Produce surfaces the broker code and does not invent a local producer epoch (`tests/fencing_honesty.rs`); guide note. Does **not** close full KL-03 (no live RF=3 fencing/coordinator-failover histories). Does **not** lift Suite HOLD.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
