@@ -266,6 +266,18 @@ if [[ -f docs/adopter-exercise.md ]] \
 else
   bad "KL-08 adopter exercise template missing"
 fi
+
+# KL-03 slice: PRODUCER_FENCED fails closed without local epoch invent (mock Partial).
+if [[ -f tests/fencing_honesty.rs && -f docs/guide.md ]] \
+  && grep -qF 'Fencing honesty (KL-03 Partial)' docs/guide.md \
+  && grep -qF 'producer_fenced_on_produce_fails_closed_without_local_epoch_invent' tests/fencing_honesty.rs \
+  && grep -qF 'PRODUCER_FENCED' tests/fencing_honesty.rs \
+  && grep -qF 'must not invent a local producer epoch' tests/fencing_honesty.rs \
+  && grep -qF 'fencing_honesty.rs' docs/ROADMAP.md; then
+  ok "KL-03 fencing fail-closed Partial (mock PRODUCER_FENCED; guide+ROADMAP links)"
+else
+  bad "KL-03 fencing fail-closed Partial missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

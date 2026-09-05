@@ -178,6 +178,9 @@ all accepted work has a documented completed, failed or ambiguous outcome.
    failover and `read_committed` output plus committed input offsets against
    version-pinned Java behavior. Follow broker/protocol recovery rules; never
    invent a local producer-epoch increment as a generic retry strategy.
+   **Partial (2026-09-05):** mock `PRODUCER_FENCED` fails closed without local
+   epoch invent (`tests/fencing_honesty.rs`); guide fencing note. Not a live
+   RF=3 fencing / coordinator-failover history close.
 4. Cover classic/cooperative/KIP-848 membership churn separately from share
    acquisition, lock expiry, release/reject and redelivery. Define which forms
    of duplicate delivery are expected for each API. Verify assignments, progress,

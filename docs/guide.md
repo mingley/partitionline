@@ -89,6 +89,14 @@ Use `transactional_id`, `init_transactions`, and
 `send_offsets_for_group` — see `examples/eos.rs`. Isolation on the consumer
 side is `IsolationLevel::ReadCommitted`.
 
+### Fencing honesty (KL-03 Partial)
+
+Mock `tests/fencing_honesty.rs` injects broker `PRODUCER_FENCED` on Produce and
+checks the client surfaces that code **without inventing a local producer
+epoch**. That is fencing-classification Partial — not a live three-broker
+fencing history and not a Suite HOLD lift. Admin `fence_producers` coverage
+lives in `tests/client_api.rs`.
+
 ## Admin
 
 ```rust,no_run
