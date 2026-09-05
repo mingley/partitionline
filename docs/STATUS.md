@@ -106,7 +106,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 **Handoff DRY_RUN parks-on-main path (2026-09-05 01:49 UTC, tip `187bf4c`):** bars accept handoff DRY_RUN exit 0 when parks already on main. Suite HOLD remains.
 
 
-**Post-Installable tip absorb + plan honesty (2026-09-05, tip pending):** civilization tip absorbs `origin/main` (post-cut parks already landed) so tip is no longer 462 commits behind. `docs/CIVILIZATION.md` / `docs/ADOPTION.md` / `docs/RELEASE.md` stop claiming Installable is still token-blocked / unpublished; priority order is post-Installable (tip≥main, handoff re-entry, unsigned Verifiable, Suite HOLD). `expected pre-Installable` retained as historical parks framing for bars. Does **not** lift Suite HOLD (Lab A unsigned).
+**Post-Installable tip absorb + plan honesty (2026-09-05, tip ):** civilization tip absorbs `origin/main` (post-cut parks already landed) so tip is no longer 462 commits behind. `docs/CIVILIZATION.md` / `docs/ADOPTION.md` / `docs/RELEASE.md` stop claiming Installable is still token-blocked / unpublished; priority order is post-Installable (tip≥main, handoff re-entry, unsigned Verifiable, Suite HOLD). `expected pre-Installable` retained as historical parks framing for bars. Does **not** lift Suite HOLD (Lab A unsigned).
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
