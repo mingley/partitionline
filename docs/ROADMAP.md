@@ -292,6 +292,11 @@ and no secret exposure. Preserve existing audit/deny and security-reporting lane
 [guide](guide.md), [examples](../examples), [consumer fixture](../scripts/ci-crate-consumer.sh).
 **Done when:** examples run from a fresh package consumer, usability feedback
 is resolved, and disabled/enabled instrumentation costs and redaction are measured.
+   **Partial (2026-09-05):** bench_produce/bench_fetch/bench_latency examples as external
+   package consumers of the packed `.crate`
+   (`scripts/ci-example-bench-crate-consumers.sh`). Other example consumers may
+   land separately; two-user diagnosis remains open. Not a Lab A / Suite HOLD
+   claim. Not Done.
 
 ### KL-08: Gate releases and promote through reversible adoption
 

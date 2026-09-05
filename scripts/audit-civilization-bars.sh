@@ -239,6 +239,25 @@ else
 fi
 
 
+
+# KL-07 slice: bench_produce/fetch/latency examples as external packed-crate consumers.
+if [[ -f scripts/ci-example-bench-crate-consumers.sh && -f examples/bench_produce.rs && -f examples/bench_fetch.rs && -f examples/bench_latency.rs && -f docs/guide.md ]] \
+  && grep -qF 'Bench examples as external package consumers' docs/guide.md \
+  && grep -qF 'ci-example-bench-crate-consumers.sh' docs/guide.md \
+  && grep -qF 'examples/bench_produce.rs' scripts/ci-example-bench-crate-consumers.sh \
+  && grep -qF 'examples/bench_fetch.rs' scripts/ci-example-bench-crate-consumers.sh \
+  && grep -qF 'examples/bench_latency.rs' scripts/ci-example-bench-crate-consumers.sh \
+  && grep -qF 'ci-example-bench-crate-consumers.sh' scripts/ci-branch-lite.sh \
+  && grep -qF 'ci-example-bench-crate-consumers.sh' scripts/check-cut-path.sh \
+  && grep -qF 'ci-example-bench-crate-consumers.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'bench_produce/bench_fetch/bench_latency examples as external' docs/ROADMAP.md \
+  && bash scripts/ci-example-bench-crate-consumers.sh --self-test >/tmp/pl-kl07-bench-ex-self.log 2>&1 \
+  && bash scripts/ci-example-bench-crate-consumers.sh >/tmp/pl-kl07-bench-ex.log 2>&1; then
+  ok "KL-07 bench examples external crate-consumers (packed .crate cargo check; guide+bars)"
+else
+  bad "KL-07 bench examples external crate-consumers missing/failed; see /tmp/pl-kl07-bench-ex*.log"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \

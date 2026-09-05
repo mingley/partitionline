@@ -227,6 +227,17 @@ Local smoke (small COUNT + relative latency gate):
 These refuse fake wins; they are **not** Suite HOLD lifts. See
 [`STATUS.md`](STATUS.md) and [`benchmark.md`](benchmark.md).
 
+### Bench examples as external package consumers
+
+`examples/bench_produce.rs`, `examples/bench_fetch.rs`, and
+`examples/bench_latency.rs` (locked throughput / latency recipes) must compile
+as **downstream** bins against the packed `.crate`, not only as in-tree path
+dependencies. Proof: `bash scripts/ci-example-bench-crate-consumers.sh` (wired
+into branch-lite / cut-path / publish-ready). Complements other
+external-consumer Partials when those land. This is a KL-07 Partial — not a
+Lab A / Suite HOLD claim, and not two-user diagnosis.
+
+
 ## More
 
 - Capability vs librdkafka: [`gaps.md`](gaps.md)
