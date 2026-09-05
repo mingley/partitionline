@@ -101,9 +101,12 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Installable + post-cut parks landed (2026-09-05 01:41 UTC, tip `fdb25a5`):** crates.io `partitionline` `0.1.0` live; day1 four-file crates.io flip committed; registry adopter consumer OK; full civilization bars 42/0/0; `LAND_PARKS=1` handoff landed post-cut parks onto `origin/main` (`check-parks-on-main` OK). Suite HOLD remains until signed Lab A. Trusted Publishing UI still owner if not configured.
 
-**Handoff DRY_RUN parks-on-main path (2026-09-05 01:48 UTC, tip pending):** bars accept handoff DRY_RUN exit 0 when parks already on main (not only PARTIAL/2 while pending). Re-land after tip refresh keeps `check-parks-on-main` green. Full bars 42/0/0. Suite HOLD remains.
+**Handoff DRY_RUN parks-on-main path (2026-09-05 01:48 UTC, tip `187bf4c`):** bars accept handoff DRY_RUN exit 0 when parks already on main (not only PARTIAL/2 while pending). Re-land after tip refresh keeps `check-parks-on-main` green. Full bars 42/0/0. Suite HOLD remains.
 
-**Handoff DRY_RUN parks-on-main path (2026-09-05 01:49 UTC, tip pending):** bars accept handoff DRY_RUN exit 0 when parks already on main. Suite HOLD remains.
+**Handoff DRY_RUN parks-on-main path (2026-09-05 01:49 UTC, tip `187bf4c`):** bars accept handoff DRY_RUN exit 0 when parks already on main. Suite HOLD remains.
+
+
+**Post-Installable tip absorb + plan honesty (2026-09-05, tip pending):** civilization tip absorbs `origin/main` (post-cut parks already landed) so tip is no longer 462 commits behind. `docs/CIVILIZATION.md` / `docs/ADOPTION.md` / `docs/RELEASE.md` stop claiming Installable is still token-blocked / unpublished; priority order is post-Installable (tip≥main, handoff re-entry, unsigned Verifiable, Suite HOLD). `expected pre-Installable` retained as historical parks framing for bars. Does **not** lift Suite HOLD (Lab A unsigned).
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,

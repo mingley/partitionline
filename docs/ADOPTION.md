@@ -5,10 +5,10 @@ need a memory-safe Kafka stack with no C in the default feature set.
 
 ## Owner unblock (WP-0.5)
 
-Civilization **Installable** is blocked only on credentials. Post-cut parks stay off `origin/main` until after crates.io `0.1.0` (**expected pre-Installable**; tip⊆parks stack is the pre-cut gate — not a cut blocker). Probe anytime:
+Civilization **Installable is met** — crates.io `partitionline` `0.1.0` is live, day1 four-file pins use crates.io, and post-cut parks are on `origin/main`. Historical note: parks stayed off main until after that cut (**expected pre-Installable**; tip⊆parks stack was the pre-cut gate — not a cut blocker). Do **not** re-cut `0.1.0`. Probe anytime:
 
 ```bash
-bash scripts/check-installable-preflight.sh   # READY_EXCEPT_TOKEN when cut-ready
+bash scripts/check-installable-preflight.sh   # ALREADY_INSTALLABLE when 0.1.0 is live
 bash scripts/check-cut-path.sh                # preflight + tip-delta + parks stack + first-publish DRY_RUN visibility + day1 DRY_RUN + Actions hygiene + finish DRY_RUN
 bash scripts/owner-status.sh
 bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish path
@@ -133,11 +133,12 @@ needed a soft-skip for optional kip848 `Protocol` truncate (`7051625` re-run
 Dependabot PRs for flate2 1.1.10 and SCRAM crypto (hmac/pbkdf2/sha2) overlap
 parked `dev/scram-crypto-bumps-b686`; `lz4_flex` 0.14 is parked on
 `dev/lz4-flex-bump-b686`; `actions/checkout` v7 is parked on
-`dev/actions-checkout-bump-b686`. **Do not merge those bumps onto
-tip/`main` while Installable waits** — they break docs/scripts-only tip-delta and
-cancel-in-progress main CI. After crates.io `0.1.0`, land via
-`bash scripts/owner-land-post-cut-parks.sh` (or finish's default chain) and close
-the overlapping Dependabot PRs (#87 lz4_flex, #88–#91 sha2/flate2/pbkdf2/hmac, #92 actions/checkout).
+`dev/actions-checkout-bump-b686`. **Post-cut parks for these bumps have landed on `main`.** Prefer closing the
+overlapping Dependabot PRs once `check-parks-on-main` is OK. New bumps go to
+`main` (tip absorbs). Historical pre-cut rule: do not merge bumps onto tip while
+Installable waited — that broke docs/scripts-only tip-delta. Landed via
+`bash scripts/owner-land-post-cut-parks.sh` / finish's default chain; close
+overlapping Dependabot PRs (#87 lz4_flex, #88–#91 sha2/flate2/pbkdf2/hmac, #92 actions/checkout).
 
 Executable gate (wired into cut-path + bars + actions hygiene):
 
@@ -146,4 +147,5 @@ bash scripts/check-dependabot-parks-coverage.sh
 ```
 
 Unmapped open Dependabot cargo/Actions bumps fail the check so stewardship cannot
-drift while Installable waits.
+drift. Post-Installable, land bumps on `main` (tip absorbs main) — do not reopen
+pre-cut tip-only parks for bumps already on main.

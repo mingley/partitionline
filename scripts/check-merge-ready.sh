@@ -154,7 +154,7 @@ case "$tok_rc" in
     ok "CARGO_REGISTRY_TOKEN accepted by crates.io for publish-new auth"
     ;;
   2)
-    warn "CARGO_REGISTRY_TOKEN unset (needed for first crates.io publish / Actions secret; needs publish-new)"
+    warn "CARGO_REGISTRY_TOKEN unset (needed for crates.io publish / Actions secret; publish-new for first cut of a new crate, publish-update for later)"
     ;;
   *)
     bad "CARGO_REGISTRY_TOKEN rejected by crates.io (recreate with publish-new; see check-registry-token)"

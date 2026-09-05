@@ -375,6 +375,11 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'expected pre-Installable' docs/CIVILIZATION.md \
   && grep -qF 'expected pre-Installable' docs/RELEASE.md \
   && grep -qF 'expected pre-Installable' docs/ADOPTION.md \
+  && grep -qF 'Installable is met' docs/CIVILIZATION.md \
+  && grep -qF '0.1.0 published' docs/CIVILIZATION.md \
+  && grep -qF 'Installable is met' docs/ADOPTION.md \
+  && ! grep -qF 'not published yet' docs/CIVILIZATION.md \
+  && ! grep -qF 'blocked only on credentials' docs/ADOPTION.md \
   && grep -qF 'branch-lite (local Actions mirror): PARTIAL' scripts/owner-status.sh \
   && grep -qF 'Installable already met — post-cut re-entry' scripts/ci-branch-lite.sh \
   && grep -qF 'ci-branch-lite: PARTIAL — tip Verifiable proxy held; Installable already met' scripts/ci-branch-lite.sh \

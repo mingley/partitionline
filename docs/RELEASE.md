@@ -20,6 +20,12 @@ helper map commit. Mock-only internal refactors can wait.
 
 ## Owner publish checklist (WP-0.5)
 
+> **Status (2026-09-05):** crates.io `partitionline` `0.1.0` is published; day1
+> four-file pins and post-cut parks are on `main`. This checklist remains for
+> **future** cuts. Do not re-cut `0.1.0`. Parks stayed off main until after the
+> first cut (**expected pre-Installable**).
+
+
 Requires a crates.io token owned by a crate owner. Agents without the token
 stop after a successful `cargo package` dry-run. Owner one-shot checklist:
 `bash scripts/owner-unblock.sh`.
@@ -59,7 +65,7 @@ Fastest first cut when `CARGO_REGISTRY_TOKEN` is already in the environment
 (Cloud Agent or owner shell) and Actions runners are starved:
 
 ```bash
-bash scripts/check-installable-preflight.sh   # expect READY_EXCEPT_TOKEN before cut
+bash scripts/check-installable-preflight.sh   # ALREADY_INSTALLABLE after 0.1.0; historically READY_EXCEPT_TOKEN before cut
 bash scripts/owner-finish-installable.sh
 # DRY_RUN=1 to rehearse; PUBLISH_LOCAL=0 to tag → release.yml instead
 # ALLOW_RED_MAIN=1 overrides a red main CI refuse (not recommended)
