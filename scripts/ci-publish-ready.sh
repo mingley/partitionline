@@ -127,7 +127,11 @@ REQUIRE_BROKER="${REQUIRE_BROKER:-0}" bash scripts/ci-civilization-check.sh
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 echo
 if [[ "${day1_rc:-0}" -eq 2 || "${dispatch_rc:-0}" -eq 2 || "${handoff_rc:-0}" -eq 2 ]]; then
-  echo "ci-publish-ready: ok with PARTIAL for partitionline ${ver} — day1/dispatch/handoff DRY_RUN soft notes (cut still publishes first; re-enter handoff post-cut)"
+  if bash scripts/check-installable.sh >/dev/null 2>&1; then
+    echo "ci-publish-ready: ok with PARTIAL for partitionline ${ver} — Installable already met; post-cut re-entry (day1/dispatch/handoff), not a token blocker"
+  else
+    echo "ci-publish-ready: ok with PARTIAL for partitionline ${ver} — pre-token rehearsal; Installable still blocked on CARGO_REGISTRY_TOKEN (cut still publishes first)"
+  fi
 else
   echo "ci-publish-ready: ok for partitionline ${ver}"
 fi
