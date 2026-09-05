@@ -35,6 +35,7 @@ bash scripts/check-crate-metadata.sh
 
 echo "== crate consumer =="
 bash scripts/ci-crate-consumer.sh
+bash scripts/ci-example-ops-crate-consumers.sh
 
 echo "== adopter crates.io consumer rehearsal (path) =="
 MODE=path bash scripts/verify-crates-io-consumer.sh

@@ -98,6 +98,7 @@ fi
 echo
 echo "== check-cut-path: packed crate consumer (Installable packaging) =="
 bash scripts/ci-crate-consumer.sh
+bash scripts/ci-example-ops-crate-consumers.sh
 
 echo
 echo "== check-cut-path: post-cut parks stack =="

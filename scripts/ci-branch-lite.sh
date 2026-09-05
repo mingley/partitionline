@@ -56,6 +56,7 @@ fi
 echo "== ci-branch-lite: packed crate consumer (Installable packaging) =="
 # Proves the .crate tarball itself is dependable (catches missing public modules).
 bash scripts/ci-crate-consumer.sh
+bash scripts/ci-example-ops-crate-consumers.sh
 
 echo "== ci-branch-lite: cargo publish --dry-run =="
 # Proves the packed crate still uploads-shaped under tip Verifiable, not only cut-path.

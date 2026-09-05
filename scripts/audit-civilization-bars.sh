@@ -224,6 +224,25 @@ else
   bad "KL-06 metrics/span redaction honesty missing"
 fi
 
+
+# KL-07 slice: admin/group/eos examples as external packed-crate consumers.
+if [[ -f scripts/ci-example-ops-crate-consumers.sh && -f examples/admin.rs && -f examples/group.rs && -f examples/eos.rs && -f docs/guide.md ]] \
+  && grep -qF 'Admin / group / EOS examples as external package consumers' docs/guide.md \
+  && grep -qF 'ci-example-ops-crate-consumers.sh' docs/guide.md \
+  && grep -qF 'examples/admin.rs' scripts/ci-example-ops-crate-consumers.sh \
+  && grep -qF 'examples/group.rs' scripts/ci-example-ops-crate-consumers.sh \
+  && grep -qF 'examples/eos.rs' scripts/ci-example-ops-crate-consumers.sh \
+  && grep -qF 'ci-example-ops-crate-consumers.sh' scripts/ci-branch-lite.sh \
+  && grep -qF 'ci-example-ops-crate-consumers.sh' scripts/check-cut-path.sh \
+  && grep -qF 'ci-example-ops-crate-consumers.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'admin/group/eos examples as external' docs/ROADMAP.md \
+  && bash scripts/ci-example-ops-crate-consumers.sh --self-test >/tmp/pl-kl07-ops-ex-self.log 2>&1 \
+  && bash scripts/ci-example-ops-crate-consumers.sh >/tmp/pl-kl07-ops-ex.log 2>&1; then
+  ok "KL-07 admin/group/eos external crate-consumers (packed .crate cargo check; guide+bars)"
+else
+  bad "KL-07 admin/group/eos external crate-consumers missing/failed; see /tmp/pl-kl07-ops-ex*.log"
+fi
+
 # KL-06 slice: OIDC bounded transient retry + outage fail-closed.
 if grep -qF '## Auth recovery (current behavior)' docs/security.md \
   && grep -qF 'bounded' docs/security.md \

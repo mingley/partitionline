@@ -136,6 +136,16 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Admin / group / EOS examples as external package consumers
+
+`examples/admin.rs`, `examples/group.rs`, and `examples/eos.rs` (topic admin,
+classic consumer group, and exactly-once consume→produce) must compile as
+**downstream** bins against the packed `.crate`, not only as in-tree path
+dependencies. Proof: `bash scripts/ci-example-ops-crate-consumers.sh` (wired
+into branch-lite / cut-path / publish-ready). Complements produce/consume/txn
+and metrics external-consumer Partials. This is a KL-07 Partial — not two-user
+diagnosis, and not a Suite HOLD lift.
+
 ## Recipes
 
 ### Backpressure

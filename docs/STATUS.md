@@ -184,6 +184,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-08 adopter exercise template (2026-09-05, tip `622dfa2`):** `docs/adopter-exercise.md` is the blank 24h/7d record format (`UNFILLED — not evidence`); linked from support.md + ADOPTION.md. Does **not** close full KL-08 (no filled adopter records, no traffic-shadow promotion/rollback proof). Does **not** lift Suite HOLD.
 
+**KL-07 admin/group/eos external crate-consumers (2026-09-05, tip `PENDING`):** `examples/admin.rs`, `examples/group.rs`, and `examples/eos.rs` cargo-check as downstream bins of a package that depends on the packed `.crate` (`scripts/ci-example-ops-crate-consumers.sh`; wired into branch-lite / cut-path / publish-ready + bars). Does **not** close full KL-07 (produce/consume/txn/metrics consumers and two-user diagnosis may land separately). Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
