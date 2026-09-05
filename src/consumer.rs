@@ -1257,6 +1257,8 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    /// Failed broker connect/reconnect attempts (KL-07 diagnosis).
+    m_reconnect_failures: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1346,6 +1348,7 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_reconnect_failures: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -1824,6 +1827,7 @@ impl Consumer {
                 Err(e) if e.is_retriable() => {
                     let _fails =
                         crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                    let _ = self.m_reconnect_failures.fetch_add(1, Ordering::Relaxed);
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
@@ -1831,6 +1835,7 @@ impl Consumer {
                 Err(e) => {
                     let _fails =
                         crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                    let _ = self.m_reconnect_failures.fetch_add(1, Ordering::Relaxed);
                     return Err(e);
                 }
             }
@@ -2151,6 +2156,7 @@ impl Consumer {
             records_fetched: self.m_records.load(Ordering::Relaxed),
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
+            broker_reconnect_failures: self.m_reconnect_failures.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
         }

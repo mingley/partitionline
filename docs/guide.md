@@ -136,12 +136,30 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+`broker_reconnect_failures` on produce and fetch metrics counts failed
+TCP/TLS/SASL connect or reconnect attempts. A rising counter means the client
+is retrying broker dials — diagnose with telemetry, not payload logging
+(KL-07).
+
 ## Recipes
 
 ### Backpressure
 
 Use `try_send`; on `QueueFull` / memory pressure, `flush` or wait, then
 retry. Do not unbounded-buffer in the application.
+
+### Diagnosis cookbook (telemetry, not payloads)
+
+Use process-local metrics before enabling payload/body logging:
+
+| Symptom | What to look at | Likely cause |
+|---|---|---|
+| Produce/fetch stalls with dial retries | `metrics().broker_reconnect_failures` rising | Broker down, network flap, TLS/SASL reject |
+| Produce acks slow after reconnect | reconnect failures then recover; `ack_latency` p99 spike | Transient broker outage / restart |
+| Consumer returns no records while produce continues | assignment, `fetch_errors`, commit lag; not reconnect alone | Blocked / mis-assigned consumer |
+
+Mock proof that refused connects surface: `tests/reconnect_metrics.rs`. This is a
+KL-07 diagnosis slice — not a two-user usability close and not Suite HOLD lift.
 
 ### Buffer ownership and overload (mock)
 

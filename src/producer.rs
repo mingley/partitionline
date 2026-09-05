@@ -813,6 +813,8 @@ struct Shared {
     m_errors: AtomicU64,
     m_bytes: AtomicU64,
     buffered_bytes: AtomicU64,
+    /// Failed broker connect/reconnect attempts (KL-07 diagnosis).
+    m_reconnect_failures: AtomicU64,
     /// Set by [`Producer::close`] / [`Producer::close_timeout`] so clones cannot
     /// respawn workers after shutdown (KL-02 durable Closed outcome).
     closed: AtomicBool,
@@ -1150,6 +1152,7 @@ impl Producer {
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             buffered_bytes: AtomicU64::new(0),
+            m_reconnect_failures: AtomicU64::new(0),
             closed: AtomicBool::new(false),
             ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
@@ -1488,6 +1491,11 @@ impl Producer {
             produce_errors: self.inner.shared.m_errors.load(Ordering::Relaxed),
             bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
             bytes_buffered: self.inner.shared.buffered_bytes.load(Ordering::Relaxed),
+            broker_reconnect_failures: self
+                .inner
+                .shared
+                .m_reconnect_failures
+                .load(Ordering::Relaxed),
             ack_latency: self.inner.shared.ack_latency.snapshot(),
             topics: crate::metrics::snapshot_produce_topics(&self.inner.shared.topics.lock()),
         }
@@ -2361,6 +2369,9 @@ async fn connect_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<i32>
                 let _ = shared.nodes.lock().remove(&node);
                 let fails =
                     crate::config::bump_reconnect_fails(&mut shared.reconnect_fails.lock(), node);
+                let _ = shared
+                    .m_reconnect_failures
+                    .fetch_add(1, Ordering::Relaxed);
                 if e.is_retriable() {
                     let delay = crate::config::reconnect_backoff_delay(
                         shared.cfg.reconnect_backoff,

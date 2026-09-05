@@ -302,6 +302,8 @@ pub struct ProducerMetrics {
     pub bytes_queued: u64,
     /// Key plus value bytes still queued and not yet acked (`buffer.memory` in-flight).
     pub bytes_buffered: u64,
+    /// Failed broker TCP/TLS/SASL connect or reconnect attempts (KL-07 diagnosis).
+    pub broker_reconnect_failures: u64,
     /// Queue-to-ack latency per acknowledged record (including `acks=0`).
     pub ack_latency: LatencyStats,
     /// Per-topic counters. Topics with no activity are omitted. Sorted by name.
@@ -336,6 +338,8 @@ pub struct ConsumerMetrics {
     pub bytes_fetched: u64,
     /// Failed fetch rounds.
     pub fetch_errors: u64,
+    /// Failed broker TCP/TLS/SASL connect or reconnect attempts (KL-07 diagnosis).
+    pub broker_reconnect_failures: u64,
     /// End-to-end duration of each successful fetch round.
     pub fetch_latency: LatencyStats,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
@@ -560,10 +564,12 @@ mod tests {
     fn metrics_default_zero() {
         assert_eq!(ProducerMetrics::default().records_queued, 0);
         assert_eq!(ProducerMetrics::default().bytes_buffered, 0);
+        assert_eq!(ProducerMetrics::default().broker_reconnect_failures, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.count, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p50_nanos, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
+        assert_eq!(ConsumerMetrics::default().broker_reconnect_failures, 0);
         assert_eq!(ConsumerMetrics::default().fetch_latency.count, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
         assert_eq!(ShareMetrics::default().bytes_fetched, 0);
