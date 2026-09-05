@@ -307,6 +307,10 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'check-installable-preflight.sh' scripts/owner-request-registry-token.sh \
   && grep -qF 'READY_EXCEPT_TOKEN' scripts/owner-request-registry-token.sh \
   && grep -qF 'parks stack stale' scripts/owner-request-registry-token.sh \
+  && grep -qF 'owner-request-registry-token: PARTIAL — parks not on main yet' scripts/owner-request-registry-token.sh \
+  && grep -qF 'exit 2' scripts/owner-request-registry-token.sh \
+  && grep -qF 'no README/ADOPTION/guide/migrate commit performed' scripts/day1-after-publish.sh \
+  && grep -qF 'commit README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md if day1 changed them' scripts/owner-unblock.sh \
   && grep -qF -- '--self-test' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — Installable OK but parks land failed' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'day1-after-publish.sh' scripts/owner-post-installable-handoff.sh \
@@ -331,6 +335,8 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'pl_day1_docs_paths' scripts/lib/preserve-day1-docs.sh \
   && grep -qF '_pl_day1_reset' scripts/lib/preserve-day1-docs.sh \
   && grep -qF 'Installable already met; post-cut re-entry' scripts/ci-publish-ready.sh \
+  && grep -qF 'ci-publish-ready: PARTIAL for partitionline' scripts/ci-publish-ready.sh \
+  && grep -qF 'exit 2' scripts/ci-publish-ready.sh \
   && grep -qF 'pre-token rehearsal; Installable still blocked' scripts/ci-publish-ready.sh \
   && grep -qF 'check-parks-on-main.sh' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'check-parks-on-main.sh' scripts/check-installable-preflight.sh \
@@ -344,7 +350,10 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'expected pre-Installable' docs/ADOPTION.md \
   && grep -qF 'branch-lite (local Actions mirror): PARTIAL' scripts/owner-status.sh \
   && grep -qF 'Installable already met — post-cut re-entry' scripts/ci-branch-lite.sh \
+  && grep -qF 'ci-branch-lite: PARTIAL — tip Verifiable proxy held; Installable already met' scripts/ci-branch-lite.sh \
+  && grep -qF 'PARTIAL (exit 2; Installable met, post-cut re-entry' scripts/owner-status.sh \
   && grep -qF 'Installable already met — post-cut re-entry' scripts/check-cut-path.sh \
+  && grep -qF 'check-cut-path: PARTIAL — cut path rehearsed; Installable already met' scripts/check-cut-path.sh \
   && grep -qF 'pre-token rehearsal' scripts/ci-branch-lite.sh \
   && grep -qF 'pre-token rehearsal' scripts/check-cut-path.sh \
   && ! grep -qF 'pre-token holds exit 0 with a PARTIAL note' scripts/owner-finish-installable.sh \

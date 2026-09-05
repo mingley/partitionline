@@ -52,11 +52,11 @@ case "$pf_rc" in
     parks_main_rc=0
     bash scripts/check-parks-on-main.sh >/tmp/pl-request-parks-main.log 2>&1 || parks_main_rc=$?
     if [[ "$parks_main_rc" -eq 2 ]]; then
-      echo "PARTIAL — parks not on main yet. Re-enter:"
-      echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
-    else
-      echo "Re-enter handoff if TP/parks/day1 still pending: bash scripts/owner-post-installable-handoff.sh"
+      echo "owner-request-registry-token: PARTIAL — parks not on main yet. Re-enter:" >&2
+      echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh" >&2
+      exit 2
     fi
+    echo "Re-enter handoff if TP/parks/day1 still pending: bash scripts/owner-post-installable-handoff.sh"
     exit 0
     ;;
   3)
