@@ -56,6 +56,8 @@ source "$ROOT/scripts/lib/crates-io.sh"
 pl_crates_probe_version "partitionline" "$ver" "partitionline-owner-status/1"
 if [[ "$PL_CRATES_PROBE_STATUS" == "present" ]]; then
   echo "OK  crates.io has partitionline ${ver} (${PL_CRATES_PROBE_DETAIL})"
+  # Published crate page can lag Cargo.toml identity until the next cut.
+  bash scripts/check-crates-io-description.sh | sed 's/^/  /' || true
 elif [[ "$PL_CRATES_PROBE_STATUS" == "absent" ]]; then
   echo "BLOCKED  crates.io: partitionline ${ver} does not exist yet (need publish; ${PL_CRATES_PROBE_DETAIL})"
 else

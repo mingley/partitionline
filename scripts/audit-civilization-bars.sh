@@ -206,6 +206,16 @@ if grep -qF 'OK  CARGO_REGISTRY_TOKEN unset (Installable met; token only for fut
 else
   bad "owner-status must OK missing token when Installable met; bars skip must not blame token post-Installable"
 fi
+
+# Post-Installable: crates.io description can lag Cargo.toml until the next cut — surface WARN, do not re-cut 0.1.0.
+if [[ -x scripts/check-crates-io-description.sh ]] \
+  && grep -qF 'check-crates-io-description.sh' scripts/owner-status.sh \
+  && grep -qF 'do not re-cut 0.1.0' scripts/check-crates-io-description.sh \
+  && grep -qF 'weaker no-C signal until next cut' scripts/check-crates-io-description.sh; then
+  ok "crates.io description drift probe (WARN when published lags Cargo.toml identity; no re-cut)"
+else
+  bad "need check-crates-io-description wired into owner-status (WARN on desc drift; never re-cut 0.1.0)"
+fi
 fuzz_n=0
 if [[ -d fuzz/fuzz_targets ]]; then
   fuzz_n="$(find fuzz/fuzz_targets -name '*.rs' | wc -l | tr -d ' ')"
