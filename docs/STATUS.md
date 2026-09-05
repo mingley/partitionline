@@ -99,6 +99,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Post-Installable bars honesty (2026-09-05 01:39 UTC, tip `7d7dfd1`):** after crates.io `0.1.0`, adopter-pin bars accept four-file crates.io shape (not only pre-Installable git tags); `adopter-docs-shaped --self-test` aligns with Installable presence; missing `CARGO_REGISTRY_TOKEN` is no longer an Installable BLOCKED once the crate is present (future-cut note only). Full bars OK (42 pass). Suite HOLD remains (Lab A unsigned).
 
+**Installable + post-cut parks landed (2026-09-05 01:41 UTC, tip `fdb25a5`):** crates.io `partitionline` `0.1.0` live; day1 four-file crates.io flip committed; registry adopter consumer OK; full civilization bars 42/0/0; `LAND_PARKS=1` handoff landed post-cut parks onto `origin/main` (`check-parks-on-main` OK). Suite HOLD remains until signed Lab A. Trusted Publishing UI still owner if not configured.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
