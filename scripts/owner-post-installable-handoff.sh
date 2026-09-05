@@ -51,6 +51,12 @@ if [[ "${1:-}" == "--self-test" ]]; then
     echo "owner-post-installable-handoff: self-test FAIL — DRY_RUN must PARTIAL on git-shaped docs when already Installable" >&2
     exit 1
   fi
+  if ! grep -qF 'pl_adopter_docs_crates_io_shaped' "$ROOT/scripts/owner-post-installable-handoff.sh" \
+    || ! grep -qF 'docs/guide.md' "$ROOT/scripts/owner-post-installable-handoff.sh" \
+    || ! grep -qF 'docs/migrate-from-rdkafka.md' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
+    echo "owner-post-installable-handoff: self-test FAIL — git-shaped gate must cover README+ADOPTION+guide+migrate" >&2
+    exit 1
+  fi
   if ! grep -qF 'PARTIAL — Installable OK but parks not on main' "$ROOT/scripts/owner-post-installable-handoff.sh"; then
     echo "owner-post-installable-handoff: self-test FAIL — parks-not-on-main must PARTIAL (not final OK)" >&2
     exit 1
@@ -73,6 +79,17 @@ if [[ "${1:-}" == "--self-test" ]]; then
   echo "owner-post-installable-handoff: self-test OK — preserve + day1 chain + parks-on-main + fail-closed PARTIAL"
   exit 0
 fi
+
+
+# True when day1 adopter docs are crates.io-shaped across the full flip surface.
+pl_adopter_docs_crates_io_shaped() {
+  grep -qE '^partitionline = "[0-9]' README.md \
+    && grep -qE 'partitionline = "[0-9]' docs/ADOPTION.md \
+    && grep -qE 'partitionline = \{ version = "[0-9]' docs/guide.md \
+    && grep -qE '^partitionline = "[0-9]' docs/migrate-from-rdkafka.md \
+    && ! grep -qE '^partitionline = \{ git =' docs/guide.md \
+    && ! grep -qE '^partitionline = \{ git =' docs/migrate-from-rdkafka.md
+}
 
 DRY_RUN="${DRY_RUN:-0}"
 LAND_PARKS="${LAND_PARKS:-0}"
@@ -155,12 +172,13 @@ if [[ "$DRY_RUN" == "1" ]]; then
     dry_partial=1
   fi
   echo
-  # Already-Installable DRY_RUN must not soft-green while README/ADOPTION stay
-  # git-shaped (Actions-alternate / handoff-only re-entry footgun). Pre-token
+  # Already-Installable DRY_RUN must not soft-green while README/ADOPTION/guide/migrate
+  # stay git-shaped (Actions-alternate / handoff-only re-entry footgun). Pre-token
   # trees are expected git-shaped; day1 PARTIAL already covers that path.
   if bash scripts/check-installable.sh >/dev/null 2>&1; then
-    if ! grep -qE '^partitionline = "[0-9]' README.md; then
+    if ! pl_adopter_docs_crates_io_shaped; then
       echo "owner-post-installable-handoff: PARTIAL — Installable OK but adopter docs still git-shaped (DRY_RUN)" >&2
+      echo "  Day1 must flip README + ADOPTION + guide + migrate to crates.io." >&2
       echo "  Re-enter: bash scripts/day1-after-publish.sh" >&2
       echo "  Then: bash scripts/owner-post-installable-handoff.sh" >&2
       dry_partial=1
@@ -183,7 +201,7 @@ echo "== 1) Installable =="
 bash scripts/check-installable.sh
 
 echo
-echo "== 1b) Day1 (README/ADOPTION crates.io flip) =="
+echo "== 1b) Day1 (README/ADOPTION/guide/migrate crates.io flip) =="
 # Actions-alternate / handoff-only re-entry must not OK with git-shaped adopter docs.
 # Finish/cut already run day1; re-run is idempotent. SKIP_DAY1=1 skips when caller
 # just flipped docs in-process.
@@ -192,9 +210,9 @@ if [[ "${SKIP_DAY1:-0}" == "1" ]]; then
 else
   bash scripts/day1-after-publish.sh
 fi
-if ! grep -qE '^partitionline = "[0-9]' README.md; then
+if ! pl_adopter_docs_crates_io_shaped; then
   echo "owner-post-installable-handoff: PARTIAL — Installable OK but adopter docs still git-shaped" >&2
-  echo "  Day1 must flip README/ADOPTION to crates.io before handoff can OK." >&2
+  echo "  Day1 must flip README + ADOPTION + guide + migrate to crates.io before handoff can OK." >&2
   echo "  Re-enter: bash scripts/day1-after-publish.sh" >&2
   echo "  Then: bash scripts/owner-post-installable-handoff.sh" >&2
   exit 2

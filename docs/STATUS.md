@@ -87,7 +87,10 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Day1 guide+migrate crates.io flip (2026-09-05):** `day1-after-publish` / `ci-publish-ready` now rehearse `post-publish-guide` + `post-publish-migrate` (not only README/ADOPTION). `preserve-day1-docs` covers those paths across parks land. Post-Installable `check-adopter-pin` refuses live git pins in guide/migrate once README is crates.io-shaped. Bars gate DRY_RUN flips. Still not a Suite HOLD lift. Still blocked on `CARGO_REGISTRY_TOKEN` / crates.io 0.1.0.
 
+**Handoff git-shaped gate covers guide+migrate (2026-09-05):** `owner-post-installable-handoff` PARTIAL (live + already-Installable DRY_RUN) now requires crates.io-shaped README **and** ADOPTION/guide/migrate via `pl_adopter_docs_crates_io_shaped` — not README-only soft-green. Self-test + bars gate. Still not a Suite HOLD lift. Still blocked on `CARGO_REGISTRY_TOKEN` / crates.io 0.1.0.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
 Numbers and reproduce steps: [benchmark.md](benchmark.md).
+
