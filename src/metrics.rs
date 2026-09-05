@@ -302,6 +302,12 @@ pub struct ProducerMetrics {
     pub bytes_queued: u64,
     /// Key plus value bytes still queued and not yet acked (`buffer.memory` in-flight).
     pub bytes_buffered: u64,
+    /// Produce requests waiting on a broker response (excludes `acks=0`).
+    ///
+    /// Bounded by [`crate::ProducerConfig::max_in_flight`] per broker connection.
+    /// Encode scratch (`write_buf`) and OS socket buffers are **not** counted here
+    /// or in [`Self::bytes_buffered`] (KL-02 ownership honesty).
+    pub requests_in_flight: u64,
     /// Queue-to-ack latency per acknowledged record (including `acks=0`).
     pub ack_latency: LatencyStats,
     /// Per-topic counters. Topics with no activity are omitted. Sorted by name.

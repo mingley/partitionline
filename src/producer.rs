@@ -813,6 +813,8 @@ struct Shared {
     m_errors: AtomicU64,
     m_bytes: AtomicU64,
     buffered_bytes: AtomicU64,
+    /// Produce requests awaiting a broker response (not `acks=0`).
+    requests_in_flight: AtomicU64,
     /// Set by [`Producer::close`] / [`Producer::close_timeout`] so clones cannot
     /// respawn workers after shutdown (KL-02 durable Closed outcome).
     closed: AtomicBool,
@@ -1150,6 +1152,7 @@ impl Producer {
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             buffered_bytes: AtomicU64::new(0),
+            requests_in_flight: AtomicU64::new(0),
             closed: AtomicBool::new(false),
             ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
@@ -1488,6 +1491,7 @@ impl Producer {
             produce_errors: self.inner.shared.m_errors.load(Ordering::Relaxed),
             bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
             bytes_buffered: self.inner.shared.buffered_bytes.load(Ordering::Relaxed),
+            requests_in_flight: self.inner.shared.requests_in_flight.load(Ordering::Relaxed),
             ack_latency: self.inner.shared.ack_latency.snapshot(),
             topics: crate::metrics::snapshot_produce_topics(&self.inner.shared.topics.lock()),
         }
@@ -2531,6 +2535,8 @@ struct Worker {
     data: mpsc::Receiver<Pending>,
     ctrl: mpsc::Receiver<Ctrl>,
     shared: Arc<Shared>,
+    /// Per-worker encode scratch. Cleared after each Produce send; capacity is
+    /// shrink-bounded so it does **not** expand `buffer_memory` / `bytes_buffered`.
     write_buf: BytesMut,
     pending: Vec<Pending>,
     in_flight: VecDeque<InFlight>,
@@ -2749,10 +2755,23 @@ impl Worker {
             return Err(e);
         }
 
+        // Bound retained encode capacity (KL-02: scratch ≠ buffer_memory).
+        // `BytesMut` has no `shrink_to`; replace the buffer when capacity grew large.
+        const WRITE_BUF_SOFT_CAP: usize = 2 * 1024 * 1024;
+        if self.write_buf.capacity() > WRITE_BUF_SOFT_CAP {
+            self.write_buf = BytesMut::with_capacity(WRITE_BUF_SOFT_CAP);
+        } else {
+            self.write_buf.clear();
+        }
+
         if acks == 0 {
             complete_acks0(&self.shared, groups);
             return Ok(());
         }
+        let _ = self
+            .shared
+            .requests_in_flight
+            .fetch_add(1, Ordering::Relaxed);
         self.in_flight.push_back(InFlight {
             correlation,
             groups,
@@ -2764,6 +2783,10 @@ impl Worker {
         let Some(inf) = self.in_flight.pop_front() else {
             return Ok(());
         };
+        let _ = self
+            .shared
+            .requests_in_flight
+            .fetch_sub(1, Ordering::Relaxed);
         let version = self.shared.produce_version;
         let body = match self
             .conn
@@ -3316,6 +3339,7 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
 
 fn fail_inflight(shared: &Shared, in_flight: &mut VecDeque<InFlight>, err: Error) {
     while let Some(inf) = in_flight.pop_front() {
+        let _ = shared.requests_in_flight.fetch_sub(1, Ordering::Relaxed);
         fail_groups(shared, inf.groups, clone_err(&err));
     }
 }

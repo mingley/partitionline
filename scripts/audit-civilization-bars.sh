@@ -184,6 +184,20 @@ else
   bad "KL-02 buffer ownership + mock overload soak missing"
 fi
 
+# KL-02 slice: encode/socket/task ownership honesty (not a 2x/RSS close).
+if [[ -f tests/encode_socket_ownership.rs && -f docs/guide.md ]] \
+  && grep -qF 'Encode / socket / task ownership (KL-02)' docs/guide.md \
+  && grep -qF 'bytes_buffered_held_across_inflight_until_flush' tests/encode_socket_ownership.rs \
+  && grep -qF 'requests_in_flight_zero_after_acks0_local_complete' tests/encode_socket_ownership.rs \
+  && grep -qF 'close_drains_ownership_counters' tests/encode_socket_ownership.rs \
+  && grep -qF 'requests_in_flight' src/metrics.rs \
+  && grep -qF 'WRITE_BUF_SOFT_CAP' src/producer.rs \
+  && grep -qF 'requests_in_flight' docs/guide.md; then
+  ok "KL-02 encode/socket/task ownership (requests_in_flight + write_buf soft-cap; not RSS close)"
+else
+  bad "KL-02 encode/socket/task ownership missing"
+fi
+
 # KL-06 slice: credential Debug redaction (passwords / client_secret / key PEM).
 if [[ -f tests/credential_redact.rs && -f docs/security.md ]] \
   && grep -qF 'Credential redaction' docs/security.md \

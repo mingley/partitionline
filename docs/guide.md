@@ -154,6 +154,25 @@ until ack or fail — not encoded batch size, socket buffers, or process RSS.
 
 Mock coverage: `tests/buffer_ownership.rs`.
 
+### Encode / socket / task ownership (KL-02)
+
+Ownership stages for an accepted produce record:
+
+1. **Enqueue** — key+value bytes reserved in `buffer_memory` / `bytes_buffered`.
+2. **Worker mailbox** — same reservation; one broker-connection worker task owns
+   the pending record (workers do not respawn after `close`).
+3. **Encode** — per-worker `write_buf` scratch holds the Produce request bytes.
+   Scratch capacity is soft-capped after each send and is **not** part of
+   `buffer_memory` / `bytes_buffered`.
+4. **Socket write** — OS TCP/TLS buffers are outside the client byte budget.
+5. **In flight** — `metrics().requests_in_flight` counts Produce requests waiting
+   on a broker response (`acks≠0`), bounded by `max_in_flight` per connection.
+   Key+value reservations stay in `bytes_buffered` until ack/fail.
+6. **Ack / fail** — reservation released; `requests_in_flight` decrements.
+
+This does **not** close KL-02 (no 2×/24h RSS process bound). Mock coverage:
+`tests/encode_socket_ownership.rs`.
+
 
 ### Produce cancellation and shutdown
 
