@@ -7,6 +7,163 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/mingley/partitionline/compare/v0.1.0...v0.1.1) - 2026-09-05
+
+### Added
+
+- *(kl-06)* bounded OIDC retry for transient IdP failures
+
+### Fixed
+
+- *(kl-06)* omit IdP/broker bodies from OIDC and OAUTHBEARER errors
+
+### Other
+
+- stamp tip SHA for KL-06 OIDC bounded transient retry.
+- stamp tip SHA for KL-06 OIDC outage fail-closed honesty.
+- *(kl-06)* OIDC IdP outage fail-closed honesty (503/timeout)
+- stamp tip SHA for KL-08 adopter exercise template.
+- *(kl-08)* add UNFILLED adopter 24h/7d exercise template
+- stamp tip SHA for KL-06 metrics/span redaction honesty.
+- *(kl-06)* metrics snapshot and tracing skip(self) redaction honesty
+- stamp tip SHA for KL-06 auth Error body hygiene.
+- rustfmt buffer_ownership and avoid u64-to-usize casts.
+- merge main into tip: KL-08 skip-gate + support matrix
+- stamp tip SHA for KL-08 support matrix honesty.
+- document CI-backed support matrix
+- keep linger buffer occupied for max_block Timeout case
+- stamp tip SHA for KL-02 buffer ownership mock soak.
+- mock buffer ownership under saturating try_send
+- stamp tip SHA for KL-06 credential Debug redaction.
+- redact credentials in Sasl/Oidc/Tls Debug
+- stamp tip SHA for KL-02 consumer close-commit honesty.
+- leave/close/unsubscribe must not auto-commit positions
+- rustfmt producer close flag and produce_cancel tests.
+- stamp tip SHA for KL-08 partial-release rehearsal.
+- rehearse partial-release recovery without publishing
+- stamp tip SHA for KL-01 protocol oracles.
+- Produce/Fetch/Metadata/ListOffsets semantic oracles vs 3.9.1 and 4.1.0
+- stamp tip SHA for KL-01 fuzz campaign metadata.
+- distinguish fuzz campaign metadata from 15s CI smoke
+- stamp tip SHA for KL-01/KL-04 latency CI policy.
+- record shared-runner vs controlled latency budgets; keep Suite HOLD
+- stamp tip SHA for KL-02 produce cancel contract.
+- produce cancel outcomes + durable close
+- stamp tip SHA for KL-08 release serialize.
+- serialize crates.io publish behind exact-SHA CI
+- stamp tip SHA for KL-01 broker identity.
+- stamp actual broker identity + portable timeout
+- stamp tip SHA for schema companion scaffold.
+- Harden schema companion scaffold unit-test gate
+- Add partitionline-schema wire scaffold + finish registry proof
+- stamp tip SHA for registry adopter consumer gate.
+- Require registry adopter consumer once Installable is met.
+- stamp tip SHA for maintain timer recheck.
+- post-Installable maintain timer recheck.
+- stamp tip SHA for handoff tip-ahead-of-parks honesty.
+- tip ahead of parks is PARTIAL, not hard FAIL.
+- stamp tip SHA for main CI green evidence.
+- main CI green after #86 / unblock honesty.
+- stamp tip SHA after main merge + #86 honesty.
+- close #86 path; unblock/plan honesty.
+- stamp tip SHA for crates.io description drift honesty.
+- Warn when crates.io description lags Cargo.toml identity.
+- stamp tip SHA for owner-status token honesty.
+- Post-Installable owner-status: missing token is OK, not BLOCKED.
+- stamp tip SHA for tip↔main unify.
+- tip↔main unify after CI green land.
+- Merge main CI green onto civilization tip.
+- stamp tip SHA for post-Installable token MISSING honesty.
+- Post-Installable honesty: token MISSING means future cuts, not Installable block.
+- stamp tip SHA for main CI fmt/integrity fix.
+- Fix main CI: rustfmt cgheartbeat import; integrity skips nested latency.
+- stamp tip SHA for main roadmap absorb.
+- Honesty-label main roadmap/TODO: Installable met, Suite HOLD still unsigned.
+- add production readiness roadmap and task tracker
+- Sync tip STATUS and bars honesty onto main.
+- handoff DRY_RUN OK when parks already on main.
+- Installable 0.1.0 on crates.io; post-cut parks on main.
+- Stamp STATUS tip SHA for post-Installable bars honesty.
+- Post-Installable bars: four-file pin + token honesty.
+- flip adopter docs to crates.io 0.1 after publish.
+- Stamp STATUS tip SHA for cut DRY_RUN / ALREADY_INSTALLABLE honesty.
+- Fail-close cut DRY_RUN and ALREADY_INSTALLABLE four-file honesty.
+- Stamp STATUS tip SHA for post-Installable PARTIAL exit 2.
+- Fail-close post-Installable PARTIAL instead of soft-green exit 0.
+- Stamp STATUS tip SHA for day1 four-file honesty.
+- Align day1 commit/copy honesty to four-file crates.io surface.
+- Require crates.io-shaped guide+migrate in handoff day1 gate.
+- Flip guide and migrate to crates.io on day1, not only README.
+- Stamp STATUS tip SHA for adopter-pin docs honesty.
+- Keep adopter docs on the interim git pin until Installable.
+- Fail-close handoff DRY_RUN when Installable but docs stay git-shaped.
+- Stop greenwashing tip PARTIAL as ok; split pre/post-Installable copy.
+- Fail-close handoff DRY_RUN parks/day1 PARTIAL with exit 2.
+- Stamp STATUS with docs parks-off-main alignment on tip.
+- Document expected parks-off-main in CIVILIZATION/RELEASE; gate in bars.
+- Stamp STATUS tip SHA for READY_EXCEPT_TOKEN parks note.
+- Note expected parks-off-main on READY_EXCEPT_TOKEN; stamp tip Verifiable.
+- Frame parks-off-main as expected before Installable.
+- Share parks-on-main probe; fast owner-status without token.
+- Rehearse handoff DRY_RUN in tip Verifiable proxies.
+- Capture handoff DRY_RUN rc in cut-path (no set -e abort).
+- Probe parks-on-main in handoff DRY_RUN; surface re-entry.
+- Fail-close handoff OK while post-cut parks remain off main.
+- Refuse first-publish re-dispatch when already Installable.
+- Chain day1 into post-Installable handoff for Actions-alternate honesty.
+- Fail-close bare cut when Actions secret sync fails after Installable.
+- Fail-close finish when Actions secret sync fails after Installable.
+- Capture day1 PARTIAL in tip proxies; fail-close stale parks.
+- Fail-close not-yet-Installable DRY_RUN and gate token asks on preflight.
+- Prepare registry token before READY_EXCEPT_TOKEN; surface PARTIAL re-entry.
+- Fail-close cut-path handoff: single chain, DRY_RUN rehearses, PARTIAL exits.
+- Refuse integrity ok and handoff OK after soft/partial failures.
+- Stamp quiet soft-latency STATUS live recheck at tip 436cb4c.
+- Recover tip Verifiable quietly after soft latency misses.
+- Refuse tip Verifiable ok after soft latency misses.
+- Align owner checklists with cut-release PUBLISH_LOCAL auto-default.
+- Default cut-release to local publish when token is in-env.
+- Rehearse finish DRY_RUN through post-Installable handoff.
+- Chain finish live cut through post-Installable handoff.
+- Route finish already-Installable re-entry through handoff.
+- Point Actions-alternate and day1 paths at post-Installable handoff.
+- Add post-Installable handoff for TP and parks re-entry.
+- Preserve day1 README/ADOPTION across parks land.
+- Note git-tag adopter honesty wiring in STATUS.
+- Prove the documented git-tag install pin still compiles.
+- Gate open Dependabot bumps to post-cut parks coverage.
+- Wire parks-refresh cut guards into Installable preflight.
+- Stamp preflight honesty self-tests recheck at f9f3e00
+- Run honesty self-tests from Installable preflight
+- Stamp finish-path honesty self-tests recheck at 54b5bc6
+- Run honesty self-tests from owner-finish-installable
+- Stamp tip Verifiable PARTIAL --self-test recheck at 25d4456
+- Make tip Verifiable PARTIAL honesty executable
+- Stamp tip Verifiable PARTIAL fail-closed recheck at e1fecbe
+- Fail tip Verifiable PARTIAL closed (exit 2)
+- Stamp tip Verifiable soft-skip honesty recheck at f581359
+- Harden tip Verifiable soft-skip honesty
+- Harden Verifiable bar for tip live-broker chain
+- Add tip live-broker Verifiable chain for branch-lite/cut-path
+- Print owner-request-registry-token when finish lacks token
+- Surface owner-request-registry-token from Installable preflight
+- Add one-screen owner registry-token request helper
+- Record unsigned native Verifiable recheck on tip 67072a5
+- Gate whitespace TOKEN normalize in registry self-test
+- Treat whitespace-only CARGO_REGISTRY_TOKEN as unset
+- Fall back to native Kafka in Lab A prepare_broker
+- Document SKIP_DOCKER ensure-broker in CHANGELOG
+- Ensure broker across Verifiable gate chains
+- Auto-start native Kafka when Docker overlay fails
+- Detect misnamed registry token env and load TOKEN_FILE
+- Stamp CIVILIZATION live tip after Secrets deep-link.
+- Deep-link Cursor env Secrets URL to the Secrets tab.
+- Stamp CIVILIZATION live tip after Dependabot label hygiene.
+- Probe missing Dependabot dependencies label in Actions hygiene.
+- Stamp CIVILIZATION live tip to absorb tip b4deece.
+- Stamp CIVILIZATION live tip after absorbing main publish-new.
+- Require tip first-publish.yml to match main for tip-delta.
+
 ### Changed
 
 - Scripts: tip Verifiable quiet soft-latency recovery — after `latency gate failed (soft)`, `ci-tip-verifiable-broker` sleeps and re-runs integrity (`TIP_VERIFIABLE_QUIET_RETRIES` default 1, `TIP_VERIFIABLE_QUIET_SLEEP_SECS` default 8; `0` disables). Only a clean recheck may restore `ok`; still-soft stays PARTIAL/exit 2. `--self-test` + bars gate quiet retry (no greenwash).
