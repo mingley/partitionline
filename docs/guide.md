@@ -138,6 +138,22 @@ in `docs/CIVILIZATION.md` WP-4.2.
 
 ## Recipes
 
+### Diagnosis cookbook (idle / unassigned consumer)
+
+When produce continues but fetch fails or looks idle, check assignment
+telemetry before logging payloads:
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| `fetch` fails immediately | `assignment().is_empty()`; error mentions not subscribed/assigned | Never assigned / unassigned — not a broker stall |
+| Fetch idle after `unassign` | `assignment()` empty again | App cleared assignment |
+| Assignment non-empty, still idle | `assignment()` present; see pause / lag cookbooks | Paused partitions, lag, or broker-side issue |
+
+Java-shaped fail-closed message: `Consumer is not subscribed to any topics or
+assigned any partitions`. Mock proof: `tests/idle_unassigned_diagnosis.rs`.
+This is a KL-07 Partial — not two independent human diagnosis runs, and not a
+Suite HOLD lift.
+
 ### Backpressure
 
 Use `try_send`; on `QueueFull` / memory pressure, `flush` or wait, then

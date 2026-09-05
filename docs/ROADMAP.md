@@ -292,6 +292,10 @@ and no secret exposure. Preserve existing audit/deny and security-reporting lane
 [guide](guide.md), [examples](../examples), [consumer fixture](../scripts/ci-crate-consumer.sh).
 **Done when:** examples run from a fresh package consumer, usability feedback
 is resolved, and disabled/enabled instrumentation costs and redaction are measured.
+   **Partial (2026-09-05):** idle/unassigned-consumer diagnosis via empty
+   `assignment()` + Java-shaped fetch error (guide cookbook +
+   `tests/idle_unassigned_diagnosis.rs`). Does not claim two independent human
+   diagnosis runs. Not Done.
 
 ### KL-08: Gate releases and promote through reversible adoption
 

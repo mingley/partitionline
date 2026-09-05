@@ -224,6 +224,20 @@ else
   bad "KL-06 metrics/span redaction honesty missing"
 fi
 
+
+# KL-07 slice: idle/unassigned consumer diagnosis via empty assignment().
+if [[ -f tests/idle_unassigned_diagnosis.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (idle / unassigned consumer)' docs/guide.md \
+  && grep -qF 'empty_assignment_diagnoses_idle_consumer_without_payload_logging' tests/idle_unassigned_diagnosis.rs \
+  && grep -qF 'assignment().is_empty()' docs/guide.md \
+  && grep -qF 'tests/idle_unassigned_diagnosis.rs' docs/guide.md \
+  && grep -qF 'idle/unassigned-consumer diagnosis' docs/ROADMAP.md \
+  && cargo test --test idle_unassigned_diagnosis --quiet >/tmp/pl-kl07-idle-diag.log 2>&1; then
+  ok "KL-07 idle/unassigned consumer diagnosis (empty assignment()+fetch error; mock proof)"
+else
+  bad "KL-07 idle/unassigned consumer diagnosis missing/failed; see /tmp/pl-kl07-idle-diag.log"
+fi
+
 # KL-06 slice: OIDC bounded transient retry + outage fail-closed.
 if grep -qF '## Auth recovery (current behavior)' docs/security.md \
   && grep -qF 'bounded' docs/security.md \
