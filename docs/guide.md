@@ -143,6 +143,17 @@ in `docs/CIVILIZATION.md` WP-4.2.
 Use `try_send`; on `QueueFull` / memory pressure, `flush` or wait, then
 retry. Do not unbounded-buffer in the application.
 
+### Buffer ownership and overload (mock)
+
+`ProducerConfig::buffer_memory` is a **key+value** reservation held from accept
+until ack or fail — not encoded batch size, socket buffers, or process RSS.
+`try_send` returns `QueueFull` when the cap is full; `send` waits up to
+`max_block` then returns `Timeout`. `metrics().bytes_buffered` must stay
+`≤ buffer_memory` under saturating load and return to `0` after `flush` /
+`close`. This is a KL-02 mock honesty slice, not a 2×/24h RSS leadership claim.
+
+Mock coverage: `tests/buffer_ownership.rs`.
+
 
 ### Produce cancellation and shutdown
 

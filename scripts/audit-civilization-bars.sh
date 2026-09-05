@@ -171,6 +171,19 @@ else
   bad "KL-02 consumer close-commit honesty missing"
 fi
 
+# KL-02 slice: buffer ownership + mock overload soak (not a 2x/RSS close).
+if [[ -f tests/buffer_ownership.rs && -f docs/guide.md ]] \
+  && grep -qF 'Buffer ownership and overload (mock)' docs/guide.md \
+  && grep -qF 'saturating_try_send_never_exceeds_buffer_memory' tests/buffer_ownership.rs \
+  && grep -qF 'queue_full_under_overload_releases_no_orphan_bytes' tests/buffer_ownership.rs \
+  && grep -qF 'send_timeout_when_buffer_full_and_max_block_expires' tests/buffer_ownership.rs \
+  && grep -qF 'bytes_buffered' src/metrics.rs \
+  && grep -qF 'fn try_reserve_buffer' src/producer.rs; then
+  ok "KL-02 buffer ownership + mock overload soak (bytes_buffered ≤ buffer_memory; drain on flush)"
+else
+  bad "KL-02 buffer ownership + mock overload soak missing"
+fi
+
 # KL-06 slice: credential Debug redaction (passwords / client_secret / key PEM).
 if [[ -f tests/credential_redact.rs && -f docs/security.md ]] \
   && grep -qF 'Credential redaction' docs/security.md \

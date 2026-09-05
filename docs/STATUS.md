@@ -168,6 +168,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-06 credential Debug redaction (2026-09-05, tip `d813408`):** `Sasl` / `OidcConfig` / `TlsConfig` and producer/consumer/admin configs redact passwords, `client_secret`, and mTLS private key PEMs in `Debug`. Tests: `tests/credential_redact.rs`. Does **not** close full KL-06 (rotation/outage + error/span/metrics redaction remain). Does **not** lift Suite HOLD.
 
+**KL-02 buffer ownership + mock overload soak (2026-09-05, tip `PENDING`):** saturating `try_send` keeps `metrics().bytes_buffered ≤ buffer_memory` and drains to 0 after flush/close; guide documents key+value queued-until-ack model. Tests: `tests/buffer_ownership.rs`. Does **not** close full KL-02 (no 2×/24h RSS or full encode/socket/task ownership). Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
