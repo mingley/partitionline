@@ -91,7 +91,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Day1 four-file commit/copy honesty (2026-09-05, tip `a991e68`):** finish/cut/publish/unblock/publish-ready/civilization-check + ADOPTION/RELEASE/CIVILIZATION now tell the owner to commit **README + ADOPTION + guide + migrate** after day1 (not README-only). `preserve-day1-docs` stash-pop recovery resets the full four-file surface. Civilization-check rehearses all four `post-publish-*` DRY_RUNs. Does **not** publish `0.1.0` or lift Suite HOLD.
 
-**Post-Installable PARTIAL exit 2 (2026-09-05, tip pending):** tip proxies (`check-cut-path`, `ci-branch-lite`, `ci-publish-ready`) and `owner-request-registry-token` no longer soft-green (`exit 0`) when Installable is already met but parks/day1/handoff stay PARTIAL — they exit **PARTIAL/2**. Pre-token rehearsal PARTIAL still exits 0. Day1 DRY_RUN / unblock / STATUS preserve copy name the four-file surface. Bars gate. Does **not** publish `0.1.0` or lift Suite HOLD. Still blocked on `CARGO_REGISTRY_TOKEN`.
+**Post-Installable PARTIAL exit 2 (2026-09-05, tip `5530b78`):** tip proxies (`check-cut-path`, `ci-branch-lite`, `ci-publish-ready`) and `owner-request-registry-token` no longer soft-green (`exit 0`) when Installable is already met but parks/day1/handoff stay PARTIAL — they exit **PARTIAL/2**. Pre-token rehearsal PARTIAL still exits 0. Day1 DRY_RUN / unblock / STATUS preserve copy name the four-file surface. Bars gate. Does **not** publish `0.1.0` or lift Suite HOLD. Still blocked on `CARGO_REGISTRY_TOKEN`.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
