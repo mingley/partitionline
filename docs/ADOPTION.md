@@ -5,7 +5,7 @@ need a memory-safe Kafka stack with no C in the default feature set.
 
 ## Owner unblock (WP-0.5)
 
-Civilization **Installable** is blocked only on credentials. Probe anytime:
+Civilization **Installable** is blocked only on credentials. Post-cut parks stay off `origin/main` until after crates.io `0.1.0` (**expected pre-Installable**; tip⊆parks stack is the pre-cut gate — not a cut blocker). Probe anytime:
 
 ```bash
 bash scripts/check-installable-preflight.sh   # READY_EXCEPT_TOKEN when cut-ready
@@ -39,7 +39,7 @@ bash scripts/owner-unblock.sh                 # status + dry-run cancel + finish
    `lz4_flex` bump, then `actions/checkout` bump
    (`dev/verifiable-auth-integrity-fuzz-b686`,
    `dev/scram-crypto-bumps-b686`, `dev/lz4-flex-bump-b686`, `dev/actions-checkout-bump-b686`).
-   Parks stay off tip so the token cut remains docs/scripts-only /
+   Parks stay off `origin/main` (and off the cut tip) so the token cut remains docs/scripts-only /
    one-shot `PUBLISH_LOCAL`. Or stepwise on clean `main` that already has the
    tip: `bash scripts/owner-cut-release.sh` (tags **`v0.1.0`** final only;
    when `CARGO_REGISTRY_TOKEN` is in-env and `PUBLISH_LOCAL` is unset, cut-release

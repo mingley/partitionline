@@ -76,6 +76,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Preflight READY_EXCEPT_TOKEN parks expected + tip Verifiable recheck (2026-09-05, tip `dc30c21` / tip HEAD after docs `e0c8c6b`):** `check-installable-preflight` on `READY_EXCEPT_TOKEN` now prints that parks stay off main until after crates.io `0.1.0` (**expected pre-Installable**; tip⊆parks stack is the pre-cut gate). Bars grep the string. **Unsigned tip live-broker Verifiable** on tip `11af93e` tree: `ci-tip-verifiable-broker` → broker-smoke **ok**, auth-smoke **ok**, integrity-smoke **ok**, final **ok**; integrity leaf COUNT=2000 HW==acked consumed==seeded; quiet latency p99≈91µs (pass vs 750µs) — still **unsigned**, still not a Suite HOLD lift. **Docs alignment (`e0c8c6b`):** `docs/CIVILIZATION.md` + `docs/RELEASE.md` state the same expected parks-off-main framing; bars grep both. Crates.io `partitionline` **404**; `CARGO_REGISTRY_TOKEN` unset — Installable still blocked.
 
+**Handoff DRY_RUN parks/day1 PARTIAL exit 2 (2026-09-05):** `owner-post-installable-handoff` pre-token DRY_RUN now exits **PARTIAL/2** (parks-off-main + day1 aggregate) instead of soft-green exit 0 after a PARTIAL note. Bars require `handoff` DRY_RUN rc=2 + `DRY_RUN complete with PARTIAL`. `ci-publish-ready` captures `dispatch_rc` like branch-lite/cut-path. `docs/ADOPTION.md` + preflight side paths state **expected pre-Installable** parks-off-main. Still not a Suite HOLD lift. Still blocked on `CARGO_REGISTRY_TOKEN` / crates.io 0.1.0.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
