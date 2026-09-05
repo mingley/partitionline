@@ -307,7 +307,9 @@ for adoption and API stabilization. Optional KL-05 features do not gate everyone
    tag → `release.yml` / `owner-cut-release` with exact-SHA `check-main-ci` + `ci-crate-consumer`.
    Rehearse with `DRY_RUN=1`; do not cut a new version from this slice.
    **Partial (2026-09-05):** `scripts/rehearse-partial-release.sh --self-test` proves idempotent
-   recovery without publishing (0.1.0 stays; day1/handoff DRY_RUN, not another publish). KL-08 stays open.
+   recovery without publishing (0.1.0 stays; day1/handoff DRY_RUN, not another publish).
+   `owner-publish` skips `cargo publish` when the version is already on crates.io;
+   `release.yml` `actions: read` unblocks exact-SHA `gh run list`. KL-08 stays open.
 2. Specify broker/API, OS/architecture, MSRV and feature support plus security
    response, upgrade and deprecation policies. Keep unsupported combinations
    explicit; existing Rust 1.85/stable CI is a starting point, not a new promise.

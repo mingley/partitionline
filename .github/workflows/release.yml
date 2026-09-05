@@ -45,9 +45,13 @@ on:
 
 # contents: write — GitHub Release notes step
 # id-token: write — OIDC exchange for crates.io trusted publishing
+# actions: read — `gh run list` in the exact-SHA CI gate (check-main-ci.sh).
+# Declaring any permissions map zeros the rest; without this, GITHUB_TOKEN
+# cannot read workflow runs and REQUIRE_MAIN_CI=1 fail-closes every tag cut.
 permissions:
   contents: write
   id-token: write
+  actions: read
 
 # Prefer github.event.inputs (empty on push) over bare inputs.* so a ghost
 # branch-push evaluation cannot fail while resolving the concurrency group.

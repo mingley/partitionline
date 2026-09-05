@@ -94,6 +94,8 @@ if ! awk '
     || { echo "owner-cut-release --self-test: FAIL — KL-08 exact-SHA check-main-ci gate missing" >&2; exit 1; }
   grep -qF 'REQUIRE_MAIN_CI' "$ROOT/scripts/owner-cut-release.sh" \
     || { echo "owner-cut-release --self-test: FAIL — REQUIRE_MAIN_CI knob missing" >&2; exit 1; }
+  grep -qF 'skipping cargo publish' "$ROOT/scripts/owner-publish.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — owner-publish must skip cargo publish when crates.io already has the version" >&2; exit 1; }
   echo "owner-cut-release: --self-test OK — token auto PUBLISH_LOCAL=1; explicit 0 preserved; handoff chained; DRY_RUN reaches handoff; Actions secret PARTIAL gated"
   exit 0
 fi

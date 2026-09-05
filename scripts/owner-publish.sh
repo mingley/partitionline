@@ -41,29 +41,40 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
-echo "owner-publish: publishing partitionline ${ver}"
+name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 
-# KL-08: exact-SHA CI before local publish (soft when REQUIRE_MAIN_CI=0).
-if [[ -z "${REQUIRE_MAIN_CI:-}" ]]; then
-  REQUIRE_MAIN_CI=1
-fi
-export REQUIRE_MAIN_CI
-ci_rc=0
-CHECK_SHA="$(git rev-parse HEAD)" bash scripts/check-main-ci.sh || ci_rc=$?
-if [[ "$ci_rc" -eq 1 && "${ALLOW_RED_MAIN:-0}" != "1" ]]; then
-  echo "owner-publish: main CI red for this SHA — refusing publish" >&2
-  exit 1
-fi
-if [[ "$ci_rc" -eq 2 && "${REQUIRE_MAIN_CI}" == "1" ]]; then
-  echo "owner-publish: REQUIRE_MAIN_CI=1 and CI inconclusive — refusing" >&2
-  exit 1
-fi
+# KL-08: never cargo-publish a version crates.io already has (owner-cut
+# PUBLISH_LOCAL=1 re-entry after 0.1.0 must recover via day1/handoff).
+# shellcheck source=scripts/lib/crates-io.sh
+source "$ROOT/scripts/lib/crates-io.sh"
+pl_crates_probe_version "$name" "$ver" "partitionline-owner-publish/1"
+if [[ "${PL_CRATES_PROBE_STATUS}" == "present" ]]; then
+  echo "owner-publish: ${name} ${ver} already on crates.io — skipping cargo publish (idempotent; not a re-cut)"
+else
+  echo "owner-publish: publishing partitionline ${ver}"
 
-bash scripts/ci-publish-ready.sh
-cargo publish
+  # KL-08: exact-SHA CI before local publish (soft when REQUIRE_MAIN_CI=0).
+  if [[ -z "${REQUIRE_MAIN_CI:-}" ]]; then
+    REQUIRE_MAIN_CI=1
+  fi
+  export REQUIRE_MAIN_CI
+  ci_rc=0
+  CHECK_SHA="$(git rev-parse HEAD)" bash scripts/check-main-ci.sh || ci_rc=$?
+  if [[ "$ci_rc" -eq 1 && "${ALLOW_RED_MAIN:-0}" != "1" ]]; then
+    echo "owner-publish: main CI red for this SHA — refusing publish" >&2
+    exit 1
+  fi
+  if [[ "$ci_rc" -eq 2 && "${REQUIRE_MAIN_CI}" == "1" ]]; then
+    echo "owner-publish: REQUIRE_MAIN_CI=1 and CI inconclusive — refusing" >&2
+    exit 1
+  fi
 
-echo "owner-publish: published partitionline ${ver}"
-echo "owner-publish: confirm https://crates.io/crates/partitionline"
+  bash scripts/ci-publish-ready.sh
+  cargo publish
+
+  echo "owner-publish: published partitionline ${ver}"
+  echo "owner-publish: confirm https://crates.io/crates/partitionline"
+fi
 
 # Manual publish path: flip day1 adopter docs once the index sees the crate.
 # Tag → Actions remains preferred (docs/RELEASE.md); set RUN_DAY1_AFTER_PUBLISH=0 to skip.
