@@ -31,12 +31,20 @@ if ! (return 0 2>/dev/null); then
       echo "adopter-docs-shaped: self-test FAIL — helper missing" >&2
       exit 1
     fi
-    # Pre-Installable tip is expected git-shaped — helper must return false.
+    # Align expectation with crates.io: absent → git-shaped; present → crates.io-shaped.
+    if bash scripts/check-installable.sh >/dev/null 2>&1; then
+      if ! pl_adopter_docs_crates_io_shaped; then
+        echo "adopter-docs-shaped: self-test FAIL — crates.io Installable but docs still git-shaped" >&2
+        exit 1
+      fi
+      echo "adopter-docs-shaped: self-test OK — helper present; tip crates.io-shaped (Installable)"
+      exit 0
+    fi
     if pl_adopter_docs_crates_io_shaped; then
-      echo "adopter-docs-shaped: self-test FAIL — tip docs unexpectedly crates.io-shaped before Installable" >&2
+      echo "adopter-docs-shaped: self-test FAIL — tip docs crates.io-shaped while crate absent" >&2
       exit 1
     fi
-    echo "adopter-docs-shaped: self-test OK — helper present; tip currently git-shaped (expected pre-Installable)"
+    echo "adopter-docs-shaped: self-test OK — helper present; tip git-shaped (expected pre-Installable)"
     exit 0
   fi
   echo "usage: bash scripts/lib/adopter-docs-shaped.sh --self-test" >&2
