@@ -764,6 +764,9 @@ struct Shared {
     m_errors: AtomicU64,
     m_bytes: AtomicU64,
     buffered_bytes: AtomicU64,
+    /// Set by [`Producer::close`] / [`Producer::close_timeout`] so clones cannot
+    /// respawn workers after shutdown (KL-02 durable Closed outcome).
+    closed: AtomicBool,
     ack_latency: crate::metrics::LatencyTracker,
     interceptors: crate::interceptor::ProducerInterceptors,
     topics: parking_lot::Mutex<HashMap<Arc<str>, Arc<crate::metrics::ProduceTopicTracker>>>,
@@ -1098,6 +1101,7 @@ impl Producer {
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             buffered_bytes: AtomicU64::new(0),
+            closed: AtomicBool::new(false),
             ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
             topics: parking_lot::Mutex::new(HashMap::new()),
@@ -1249,6 +1253,12 @@ impl Producer {
         feature = "tracing",
         tracing::instrument(skip(self, rec), fields(topic = %rec.topic))
     )]
+    /// Wait for one record's broker ack (`RecordMetadata`) or a terminal error.
+    ///
+    /// **Cancellation:** dropping this future does **not** dequeue or guarantee the
+    /// record was never written. Once accepted into `buffer_memory`, delivery may
+    /// continue; the caller outcome is **ambiguous** until `flush`/`close` (or
+    /// another observe path) settles it. See `docs/guide.md` (Produce cancellation).
     pub async fn send(&self, rec: ProduceRecord) -> Result<RecordMetadata> {
         let mut out = self.send_all(std::iter::once(rec)).await?;
         out.pop().ok_or_else(|| Error::protocol("send_all empty"))
@@ -1263,6 +1273,9 @@ impl Producer {
         &self,
         recs: impl IntoIterator<Item = ProduceRecord>,
     ) -> Result<Vec<RecordMetadata>> {
+        if self.inner.shared.closed.load(Ordering::SeqCst) {
+            return Err(Error::Closed);
+        }
         let recs: Vec<ProduceRecord> = recs.into_iter().collect();
         if recs.is_empty() {
             return Ok(Vec::new());
@@ -1372,6 +1385,9 @@ impl Producer {
     /// Records are never queued without a partition, so each partition is
     /// pinned to one TCP connection on its current leader.
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {
+        if self.inner.shared.closed.load(Ordering::SeqCst) {
+            return Err(Error::Closed);
+        }
         let mut rec = self.inner.shared.interceptors.on_send(rec);
         let bytes = reject_oversized(&self.inner.shared.cfg, &rec)?;
         let w = if let Some((p, w)) = self.fast_route(&rec) {
@@ -1787,7 +1803,10 @@ impl Producer {
         }
     }
 
-    /// Flush, then stop workers. Further sends return [`Error::Closed`].
+    /// Flush, then stop workers. Further sends on **any** clone return [`Error::Closed`].
+    ///
+    /// Prefer an explicit `close` over dropping the last handle: drop alone does
+    /// not wait for in-flight produce outcomes (see the guide cancellation table).
     pub async fn close(self) -> Result<()> {
         self.shutdown_workers().await;
         self.inner.shared.interceptors.close();
@@ -1805,6 +1824,11 @@ impl Producer {
     }
 
     async fn shutdown_workers(&self) {
+        // Refuse new enqueue before workers drain so clones observe Closed.
+        self.inner
+            .shared
+            .closed
+            .store(true, Ordering::SeqCst);
         let workers: Vec<WorkerHandle> = self
             .inner
             .shared

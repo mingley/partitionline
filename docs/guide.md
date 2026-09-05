@@ -143,6 +143,27 @@ in `docs/CIVILIZATION.md` WP-4.2.
 Use `try_send`; on `QueueFull` / memory pressure, `flush` or wait, then
 retry. Do not unbounded-buffer in the application.
 
+
+### Produce cancellation and shutdown
+
+Once `send` / `try_send` has accepted a record into `buffer_memory`, dropping the
+caller future does **not** mean the record was never written. Delivery may still
+reach the broker; treat the caller outcome as **ambiguous** until `flush` or
+`close` settles it.
+
+| Stage | Typical signals | Caller outcome |
+|---|---|---|
+| Before enqueue | `QueueFull`, `Timeout`, `RecordTooLarge`, never queued | **Failed** / not accepted |
+| Buffered (queued, not yet on the wire) | `metrics().bytes_buffered > 0`; drop `send` future | **Ambiguous** — worker may still deliver |
+| After send / before ack | in flight to broker; drop `send` future | **Ambiguous** |
+| After broker ack | `Ok(RecordMetadata)` or successful `try_send`+`flush` | **Completed** |
+| After `close` / `close_timeout` | further `send`/`try_send` on any clone | **Failed** with `Error::Closed` |
+
+Prefer an explicit `close` (or `close_timeout`) over dropping the last `Producer`
+handle: drop alone does not wait for in-flight produce outcomes. Mock coverage:
+`tests/produce_cancel.rs`.
+
+
 ### Rebalance
 
 Prefer cooperative-sticky when partitions must move with less stop-the-world

@@ -137,6 +137,19 @@ if grep -qF 'command: release-pr' .github/workflows/release-plz.yml \
 else
   bad "KL-08 release serialize missing/failed; see /tmp/pl-kl08-cut-self-test.log"
 fi
+
+
+# KL-02 slice: produce cancellation contract (docs + mock tests + durable close).
+if [[ -f tests/produce_cancel.rs && -f docs/guide.md ]] \
+  && grep -qF 'Produce cancellation and shutdown' docs/guide.md \
+  && grep -qF 'dropping_send_future_while_buffered_is_ambiguous_but_still_delivers' tests/produce_cancel.rs \
+  && grep -qF 'send_after_close_returns_closed' tests/produce_cancel.rs \
+  && grep -qF 'closed: AtomicBool' src/producer.rs \
+  && grep -qF 'dropping this future does **not** dequeue' src/producer.rs; then
+  ok "KL-02 produce cancel contract (guide table; produce_cancel tests; durable close flag)"
+else
+  bad "KL-02 produce cancel contract missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

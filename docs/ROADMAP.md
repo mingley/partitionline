@@ -133,6 +133,10 @@ fixtures and sustained campaigns have linked results and no unresolved failures.
 2. Verify current queue/time-limit behavior before changing defaults. Define
    cancellation before enqueue, while buffered, after send, and after broker
    acknowledgment. A dropped future must not imply a record was never written.
+   **Partial (2026-09-05):** guide cancellation table + `Producer::send`/`close` rustdoc;
+   mock tests in `tests/produce_cancel.rs`; `close` sets a durable `closed` flag so clones
+   cannot respawn workers. Remaining: overload soak, full byte/task ownership trace,
+   consumer auto-commit-on-close honesty.
 3. Exercise saturating senders, slow consumers, stalled brokers, shutdown and
    timeout races. Specify whether each operation drains, rejects or reports an
    unknown outcome. Never auto-commit unprocessed consumer offsets on close.
