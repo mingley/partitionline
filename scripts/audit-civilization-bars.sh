@@ -239,6 +239,25 @@ else
 fi
 
 
+
+# KL-07 slice: pause/offsets/wakeup examples as external packed-crate consumers.
+if [[ -f scripts/ci-example-consumer-control-crate-consumers.sh && -f examples/pause.rs && -f examples/offsets.rs && -f examples/wakeup.rs && -f docs/guide.md ]] \
+  && grep -qF 'Pause / offsets / wakeup examples as external package consumers' docs/guide.md \
+  && grep -qF 'ci-example-consumer-control-crate-consumers.sh' docs/guide.md \
+  && grep -qF 'examples/pause.rs' scripts/ci-example-consumer-control-crate-consumers.sh \
+  && grep -qF 'examples/offsets.rs' scripts/ci-example-consumer-control-crate-consumers.sh \
+  && grep -qF 'examples/wakeup.rs' scripts/ci-example-consumer-control-crate-consumers.sh \
+  && grep -qF 'ci-example-consumer-control-crate-consumers.sh' scripts/ci-branch-lite.sh \
+  && grep -qF 'ci-example-consumer-control-crate-consumers.sh' scripts/check-cut-path.sh \
+  && grep -qF 'ci-example-consumer-control-crate-consumers.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'pause/offsets/wakeup examples as external' docs/ROADMAP.md \
+  && bash scripts/ci-example-consumer-control-crate-consumers.sh --self-test >/tmp/pl-kl07-cc-ex-self.log 2>&1 \
+  && bash scripts/ci-example-consumer-control-crate-consumers.sh >/tmp/pl-kl07-cc-ex.log 2>&1; then
+  ok "KL-07 pause/offsets/wakeup external crate-consumers (packed .crate cargo check; guide+bars)"
+else
+  bad "KL-07 pause/offsets/wakeup external crate-consumers missing/failed; see /tmp/pl-kl07-cc-ex*.log"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \

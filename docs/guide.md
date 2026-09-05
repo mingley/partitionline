@@ -48,6 +48,18 @@ let recs = consumer.fetch().await?;
 `assign_topic` assigns every partition. `seek` / `pause` / `resume` / `wakeup`
 match the Java consumer shapes.
 
+### Pause / offsets / wakeup examples as external package consumers
+
+`examples/pause.rs`, `examples/offsets.rs`, and `examples/wakeup.rs` (pause/resume
+without dropping assignment, beginning/end/lag/committed inspection, and
+interruptible fetch via wakeup) must compile as **downstream** bins against the
+packed `.crate`, not only as in-tree path dependencies. Proof:
+`bash scripts/ci-example-consumer-control-crate-consumers.sh` (wired into
+branch-lite / cut-path / publish-ready). Complements other external-consumer
+Partials when those land. This is a KL-07 Partial — not two-user diagnosis,
+and not a Suite HOLD lift.
+
+
 ## Consumer groups
 
 ```rust,no_run
