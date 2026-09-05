@@ -85,6 +85,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Tip Verifiable recheck + adopter-pin docs honesty (2026-09-05, tip `65af9cd`):** unsigned tip live-broker Verifiable on tip `65af9cd` tree: broker/auth/integrity **ok**, COUNT=2000 HW==acked consumed==seeded, quiet latency p99≈75µs (pass vs 750µs) — still **unsigned**, not a Suite HOLD lift. `docs/guide.md` + `docs/migrate-from-rdkafka.md` now lead with the interim git rc pin (not live crates.io `0.1`); `check-adopter-pin` requires guide/migrate tag parity and refuses crates.io-leading stanzas while README is git-shaped; bars gate. Still blocked on `CARGO_REGISTRY_TOKEN` / crates.io 0.1.0.
 
+**Day1 guide+migrate crates.io flip (2026-09-05):** `day1-after-publish` / `ci-publish-ready` now rehearse `post-publish-guide` + `post-publish-migrate` (not only README/ADOPTION). `preserve-day1-docs` covers those paths across parks land. Post-Installable `check-adopter-pin` refuses live git pins in guide/migrate once README is crates.io-shaped. Bars gate DRY_RUN flips. Still not a Suite HOLD lift. Still blocked on `CARGO_REGISTRY_TOKEN` / crates.io 0.1.0.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
