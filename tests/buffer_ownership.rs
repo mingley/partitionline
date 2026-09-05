@@ -153,9 +153,11 @@ async fn send_timeout_when_buffer_full_and_max_block_expires() {
     let cap = upper.max(payload.len());
     let producer = Producer::new(
         ProducerConfig::bootstrap([mock.addr.clone()])
-            .linger(Duration::ZERO)
+            // Hold the first reservation in the linger buffer so send() must wait.
+            .linger(Duration::from_millis(1500))
+            .delivery_timeout(Duration::from_secs(5))
             .buffer_memory(cap)
-            .max_block(Duration::from_millis(50)),
+            .max_block(Duration::from_millis(80)),
     )
     .await
     .unwrap();
@@ -165,7 +167,10 @@ async fn send_timeout_when_buffer_full_and_max_block_expires() {
         .try_send(ProduceRecord::to("t").value(payload.clone()))
         .unwrap();
     let buffered = producer.metrics().bytes_buffered;
-    assert!(buffered > 0, "accepted record must reserve buffer_memory");
+    assert!(
+        buffered as usize >= payload.len(),
+        "accepted record must still hold buffer_memory (linger); got {buffered}"
+    );
     assert!(buffered as usize <= cap);
 
     let err = producer
