@@ -64,6 +64,44 @@ impl OidcConfig {
     }
 }
 
+/// Access token from a client_credentials response, with optional expiry.
+///
+/// [`Debug`] redacts [`Self::access_token`]. `expires_at` comes from IdP
+/// `expires_in` when present; missing/invalid `expires_in` yields `None`
+/// (reconnect still re-fetches; mid-connection refresh needs an expiry).
+#[derive(Clone)]
+pub struct OidcAccessToken {
+    /// Bearer access token string.
+    pub access_token: String,
+    /// Wall-clock instant when the token should be treated as expired.
+    pub expires_at: Option<Instant>,
+}
+
+impl fmt::Debug for OidcAccessToken {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("OidcAccessToken")
+            .field("access_token", &"<redacted>")
+            .field("expires_at", &self.expires_at)
+            .finish()
+    }
+}
+
+/// Default skew used by [`token_needs_refresh`] (refresh slightly early).
+pub const OIDC_REFRESH_SKEW: Duration = Duration::from_secs(60);
+
+/// Return true when `expires_at` is known and within `skew` of now.
+///
+/// `None` (missing IdP `expires_in` / broker session lifetime) does **not**
+/// invent a refresh deadline — reconnect still re-fetches; mid-connection
+/// reauth needs an explicit expiry.
+#[must_use]
+pub fn token_needs_refresh(expires_at: Option<Instant>, skew: Duration) -> bool {
+    match expires_at {
+        None => false,
+        Some(at) => Instant::now() + skew >= at,
+    }
+}
+
 struct HttpUrl {
     https: bool,
     host: String,
@@ -76,16 +114,28 @@ const OIDC_FETCH_ATTEMPTS: u32 = 3;
 /// Initial backoff between transient IdP failures (doubles each retry).
 const OIDC_RETRY_BACKOFF_START: Duration = Duration::from_millis(20);
 
-/// POST `grant_type=client_credentials` and return `access_token`.
+/// POST `grant_type=client_credentials` and return the access token string.
 ///
-/// Transient IdP failures (HTTP 5xx, I/O, timeout) are retried up to
-/// [`OIDC_FETCH_ATTEMPTS`] within `request_timeout`. HTTP 4xx fails immediately
-/// (no credential hammering). This is bounded reconnect-time recovery, **not**
-/// mid-connection token refresh / `expires_in` handling (KL-06 still open).
+/// Prefer [`fetch_client_credentials_access_token`] when expiry is needed.
 pub async fn fetch_client_credentials_token(
     cfg: &OidcConfig,
     request_timeout: Duration,
 ) -> Result<String> {
+    Ok(fetch_client_credentials_access_token(cfg, request_timeout)
+        .await?
+        .access_token)
+}
+
+/// POST `grant_type=client_credentials` and return token + optional expiry.
+///
+/// Transient IdP failures (HTTP 5xx, I/O, timeout) are retried up to
+/// [`OIDC_FETCH_ATTEMPTS`] within `request_timeout`. HTTP 4xx fails immediately.
+/// Parses IdP `expires_in` into [`OidcAccessToken::expires_at`] when present.
+/// Mid-connection `SaslAuthenticate` reauth is still open (KL-06).
+pub async fn fetch_client_credentials_access_token(
+    cfg: &OidcConfig,
+    request_timeout: Duration,
+) -> Result<OidcAccessToken> {
     let deadline = Instant::now() + request_timeout;
     let mut backoff = OIDC_RETRY_BACKOFF_START;
     let mut last_err = None;
@@ -126,7 +176,7 @@ fn oidc_http_status(msg: &str) -> Option<u16> {
 async fn fetch_client_credentials_token_once(
     cfg: &OidcConfig,
     deadline: Instant,
-) -> Result<String> {
+) -> Result<OidcAccessToken> {
     let url = parse_http_url(&cfg.token_url)?;
     let addr = connect_addr(&url.host, url.port);
     let left = time_left(deadline)?;
@@ -173,7 +223,7 @@ async fn fetch_client_credentials_token_once(
             "oidc token endpoint HTTP {status}"
         )));
     }
-    access_token_from_json(&text)
+    oidc_access_token_from_json(&text)
 }
 
 fn time_left(deadline: Instant) -> Result<Duration> {
@@ -379,7 +429,12 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
     Ok((status, body))
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn access_token_from_json(json: &str) -> Result<String> {
+    Ok(oidc_access_token_from_json(json)?.access_token)
+}
+
+pub(crate) fn oidc_access_token_from_json(json: &str) -> Result<OidcAccessToken> {
     let rest = json
         .split_once("\"access_token\"")
         .map(|(_, r)| r)
@@ -399,8 +454,27 @@ pub(crate) fn access_token_from_json(json: &str) -> Result<String> {
     if val.is_empty() {
         return Err(Error::protocol("oidc empty access_token"));
     }
-    Ok(val.to_string())
+    let expires_at = expires_at_from_json(json);
+    Ok(OidcAccessToken {
+        access_token: val.to_string(),
+        expires_at,
+    })
 }
+
+fn expires_at_from_json(json: &str) -> Option<Instant> {
+    let rest = json.split_once("\"expires_in\"")?.1;
+    let rest = rest.trim_start().strip_prefix(':')?.trim_start();
+    let num: String = rest
+        .chars()
+        .take_while(|c| c.is_ascii_digit())
+        .collect();
+    let secs: u64 = num.parse().ok()?;
+    if secs == 0 {
+        return None;
+    }
+    Some(Instant::now() + Duration::from_secs(secs))
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -630,4 +704,76 @@ mod tests {
             other => panic!("expected Timeout on IdP hang, got {other}"),
         }
     }
+    #[tokio::test]
+    async fn fetch_access_token_parses_expires_in_over_http() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        drop(tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let mut buf = vec![0u8; 4096];
+            let n = sock.read(&mut buf).await.unwrap();
+            let req = String::from_utf8_lossy(buf.get(..n).unwrap_or(&[]));
+            assert!(req.contains("grant_type=client_credentials"));
+            let body =
+                "{\"access_token\":\"tok-exp\",\"token_type\":\"Bearer\",\"expires_in\":120}";
+            let resp = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            sock.write_all(resp.as_bytes()).await.unwrap();
+        }));
+        let cfg = OidcConfig::new(format!("http://{addr}/token"), "cid", "csecret");
+        let tok = fetch_client_credentials_access_token(&cfg, Duration::from_secs(5))
+            .await
+            .unwrap();
+        assert_eq!(tok.access_token, "tok-exp");
+        let at = tok.expires_at.expect("expires_in over HTTP");
+        let remaining = at.saturating_duration_since(Instant::now());
+        assert!(
+            remaining > Duration::from_secs(100) && remaining <= Duration::from_secs(120),
+            "expected ~120s lifetime, got {remaining:?}"
+        );
+        assert!(!token_needs_refresh(tok.expires_at, Duration::from_secs(30)));
+    }
+
+    #[test]
+    fn oidc_token_parses_expires_in() {
+        let tok = oidc_access_token_from_json(
+            "{\"access_token\":\"abc\",\"expires_in\":3600,\"token_type\":\"Bearer\"}",
+        )
+        .unwrap();
+        assert_eq!(tok.access_token, "abc");
+        let at = tok.expires_at.expect("expires_in present");
+        let skew = at.saturating_duration_since(Instant::now());
+        assert!(skew > Duration::from_secs(3500) && skew <= Duration::from_secs(3600));
+    }
+
+    #[test]
+    fn oidc_token_missing_expires_in_is_none() {
+        let tok = oidc_access_token_from_json("{\"access_token\":\"abc\"}").unwrap();
+        assert!(tok.expires_at.is_none());
+        assert!(!token_needs_refresh(None, OIDC_REFRESH_SKEW));
+    }
+
+    #[test]
+    fn oidc_access_token_debug_redacts_secret() {
+        let tok = OidcAccessToken {
+            access_token: "super-secret-token".into(),
+            expires_at: None,
+        };
+        let dbg = format!("{tok:?}");
+        assert!(!dbg.contains("super-secret-token"), "{dbg}");
+        assert!(dbg.contains("<redacted>"), "{dbg}");
+    }
+
+    #[test]
+    fn token_needs_refresh_respects_skew() {
+        let past = Some(Instant::now() - Duration::from_secs(1));
+        assert!(token_needs_refresh(past, Duration::from_secs(0)));
+        let soon = Some(Instant::now() + Duration::from_secs(30));
+        assert!(token_needs_refresh(soon, Duration::from_secs(60)));
+        let later = Some(Instant::now() + Duration::from_secs(600));
+        assert!(!token_needs_refresh(later, Duration::from_secs(60)));
+    }
+
 }

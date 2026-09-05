@@ -264,6 +264,7 @@ honest dependency footprint. Deferred features remain documented exclusions.
    Metrics snapshots + tracing `skip(self)` span honesty added (2026-09-05).
    OIDC IdP outage fail-closed honesty (503/timeout; one-shot fetch documented; 2026-09-05).
    Bounded transient OIDC retry (5xx/I/O/timeout; 2026-09-05).
+   OIDC `expires_in` parse + broker `session_lifetime_ms` record on connect (2026-09-05).
    Mid-connection refresh/rotation / outage soak remains open.
 
 **Work surfaces:** [network](../src/net.rs), [OAuth](../src/protocol/oauth.rs),

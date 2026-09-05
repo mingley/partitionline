@@ -238,6 +238,21 @@ else
   bad "KL-06 OIDC bounded transient retry / outage fail-closed missing"
 fi
 
+# KL-06 slice: OIDC expires_in parse + session_lifetime record (reconnect scaffolding).
+if grep -qF 'OidcAccessToken' src/protocol/oidc.rs \
+  && grep -qF 'token_needs_refresh' src/protocol/oidc.rs \
+  && grep -qF 'oidc_token_parses_expires_in' src/protocol/oidc.rs \
+  && grep -qF 'fetch_access_token_parses_expires_in_over_http' src/protocol/oidc.rs \
+  && grep -qF 'record_sasl_session_lifetime' src/net.rs \
+  && grep -qF 'record_oidc_token_expiry' src/net.rs \
+  && grep -qF 'parses IdP `expires_in`' docs/security.md \
+  && grep -qF 'session_lifetime_ms' docs/security.md \
+  && grep -qF 'Mid-connection refresh / rotation / outage soak still open' docs/security.md; then
+  ok "KL-06 OIDC expires_in + session_lifetime record (not mid-connection reauth)"
+else
+  bad "KL-06 OIDC expires_in / session_lifetime record missing"
+fi
+
 
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \

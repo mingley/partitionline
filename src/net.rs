@@ -524,6 +524,16 @@ pub struct BrokerConn {
     /// This crate picks 0–2. `0` is a spoken version, so it cannot mean
     /// unset.
     pub(crate) sasl_authenticate_version: i16,
+    /// Absolute instant when the broker SASL session should be treated as
+    /// expired, from SaslAuthenticate `session_lifetime_ms` (v1+). `None`
+    /// when the broker omitted a positive lifetime (v0 or `0`). Recorded for
+    /// reconnect / future mid-connection reauth (KL-06); live-socket
+    /// `SaslAuthenticate` rotation is still open.
+    pub(crate) sasl_session_expires_at: Option<Instant>,
+    /// Absolute instant when the last OIDC access token should be treated as
+    /// expired, from IdP `expires_in`. `None` when the IdP omitted
+    /// `expires_in`. Reconnect re-fetches; mid-connection reauth still open.
+    pub(crate) oidc_token_expires_at: Option<Instant>,
 }
 
 impl BrokerConn {
@@ -586,7 +596,25 @@ impl BrokerConn {
             share_group_heartbeat_version: -1,
             sasl_handshake_version: -1,
             sasl_authenticate_version: -1,
+            sasl_session_expires_at: None,
+            oidc_token_expires_at: None,
         })
+    }
+
+    /// Record broker `session_lifetime_ms` from a successful SaslAuthenticate.
+    ///
+    /// `ms <= 0` clears the deadline (v0 responses and brokers that send `0`).
+    pub(crate) fn record_sasl_session_lifetime(&mut self, session_lifetime_ms: i64) {
+        self.sasl_session_expires_at = if session_lifetime_ms > 0 {
+            Some(Instant::now() + Duration::from_millis(session_lifetime_ms as u64))
+        } else {
+            None
+        };
+    }
+
+    /// Record IdP access-token expiry from a successful OIDC fetch.
+    pub(crate) fn record_oidc_token_expiry(&mut self, expires_at: Option<Instant>) {
+        self.oidc_token_expires_at = expires_at;
     }
 
     /// Kafka `client.id` on this connection.

@@ -322,7 +322,8 @@ pub async fn authenticate_plain(
             timeout,
         )
         .await?;
-    let (code, msg, _, _) = decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
+    let (code, msg, _, session_lifetime_ms) =
+        decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
         return Err(Error::broker(
             if code == 0 {
@@ -333,6 +334,7 @@ pub async fn authenticate_plain(
             msg.unwrap_or_else(|| "SaslAuthenticate".into()),
         ));
     }
+    conn.record_sasl_session_lifetime(session_lifetime_ms);
     Ok(())
 }
 
@@ -391,7 +393,8 @@ pub async fn authenticate_scram(
             timeout,
         )
         .await?;
-    let (code, msg, bytes, _) = decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
+    let (code, msg, bytes, session_lifetime_ms) =
+        decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
         return Err(Error::broker(
             code,
@@ -407,7 +410,9 @@ pub async fn authenticate_scram(
         &server_first,
         &client_final,
         &server_final,
-    )
+    )?;
+    conn.record_sasl_session_lifetime(session_lifetime_ms);
+    Ok(())
 }
 
 /// [`authenticate_scram`] with [`super::scram::ScramAlg::Sha256`].
@@ -463,7 +468,8 @@ pub async fn authenticate_oauthbearer_token(
             timeout,
         )
         .await?;
-    let (code, msg, bytes, _) = decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
+    let (code, msg, bytes, session_lifetime_ms) =
+        decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
         return Err(Error::broker(
             code,
@@ -486,6 +492,7 @@ pub async fn authenticate_oauthbearer_token(
         );
         return Err(Error::protocol("oauthbearer: authentication failed"));
     }
+    conn.record_sasl_session_lifetime(session_lifetime_ms);
     Ok(())
 }
 
@@ -524,8 +531,9 @@ pub async fn authenticate(
         return authenticate_scram(conn, super::scram::ScramAlg::Sha512, u, p, timeout).await;
     }
     if let Some(oidc) = sasl_oidc {
-        let token = super::oidc::fetch_client_credentials_token(oidc, timeout).await?;
-        return authenticate_oauthbearer_token(conn, &token, timeout).await;
+        let tok = super::oidc::fetch_client_credentials_access_token(oidc, timeout).await?;
+        conn.record_oidc_token_expiry(tok.expires_at);
+        return authenticate_oauthbearer_token(conn, &tok.access_token, timeout).await;
     }
     if let Some(principal) = sasl_oauthbearer {
         return authenticate_oauthbearer(conn, principal, timeout).await;
