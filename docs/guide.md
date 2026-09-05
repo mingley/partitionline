@@ -227,6 +227,11 @@ Local smoke (small COUNT + relative latency gate):
 These refuse fake wins; they are **not** Suite HOLD lifts. See
 [`STATUS.md`](STATUS.md) and [`benchmark.md`](benchmark.md).
 
+For a **controlled-host** produce-ack / fetch qualification record (still
+required for full KL-04; shared-runner smoke is not Lab A), use the blank
+[controlled-host-latency-exercise.md](controlled-host-latency-exercise.md)
+template — it ships `UNFILLED` and does **not** lift Suite HOLD.
+
 ## More
 
 - Capability vs librdkafka: [`gaps.md`](gaps.md)

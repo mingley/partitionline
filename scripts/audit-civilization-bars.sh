@@ -354,6 +354,19 @@ else
   bad "KL-01/KL-04 latency policy self-test failed or docs/latency-ci-policy.json missing; see /tmp/pl-latency-gate-self-test.log"
 fi
 
+# KL-04 slice: controlled-host latency exercise template (UNFILLED — not evidence).
+if [[ -f docs/controlled-host-latency-exercise.md ]] \
+  && grep -qF 'UNFILLED — not evidence' docs/controlled-host-latency-exercise.md \
+  && grep -qF 'Does **not** close KL-04' docs/controlled-host-latency-exercise.md \
+  && grep -qF 'controlled-host' docs/controlled-host-latency-exercise.md \
+  && grep -qF 'Suite HOLD' docs/controlled-host-latency-exercise.md \
+  && grep -qF 'controlled-host-latency-exercise.md' docs/guide.md \
+  && grep -qF 'controlled-host-latency-exercise.md' docs/ROADMAP.md; then
+  ok "KL-04 controlled-host latency exercise template (UNFILLED; guide+ROADMAP links)"
+else
+  bad "KL-04 controlled-host latency exercise template missing"
+fi
+
 # Post-Installable: MISSING token copy must not pretend Installable is still blocked.
 if grep -qF 'crates.io already has this crate/version (Installable met)' scripts/check-registry-token.sh \
   && grep -qF 'token only needed for future cuts' scripts/check-registry-token.sh; then

@@ -202,7 +202,9 @@ KL-02/03 before production-performance claims.
    **Partial (2026-09-05):** CI vs local vs controlled-host budgets recorded
    in [latency-ci-policy.json](latency-ci-policy.json). Shared-runner smoke
    is not Lab A; unsigned samples must not lift Suite HOLD. Controlled-host
-   qualification remains open. Not Done.
+   qualification remains open. Blank record template:
+   [controlled-host-latency-exercise.md](controlled-host-latency-exercise.md)
+   (`UNFILLED — not evidence`). Not Done.
 2. Match acks, idempotence, isolation, replication/ISR, compression, batch/linger,
    partition count/skew, keys, connections, in-flight bounds, TLS/SASL and payload
    distribution. Distinguish enqueue acceptance from broker acknowledgment and
