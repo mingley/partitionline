@@ -140,10 +140,11 @@ if grep -qF 'command: release-pr' .github/workflows/release-plz.yml \
   && grep -qF 'check-main-ci.sh' scripts/ci-publish-ready.sh \
   && grep -qF 'ci-crate-consumer.sh' .github/workflows/release.yml \
   && grep -qF 'CHECK_SHA=' .github/workflows/release.yml \
-  && bash scripts/owner-cut-release.sh --self-test >/tmp/pl-kl08-cut-self-test.log 2>&1; then
-  ok "KL-08 release serialize (release-plz PR-only; exact-SHA CI on cut/publish/release.yml; crate consumer)"
+  && bash scripts/owner-cut-release.sh --self-test >/tmp/pl-kl08-cut-self-test.log 2>&1 \
+  && bash scripts/rehearse-partial-release.sh --self-test >/tmp/pl-kl08-partial-rehearse.log 2>&1; then
+  ok "KL-08 release serialize (release-plz PR-only; exact-SHA CI on cut/publish/release.yml; crate consumer; partial-release recovery rehearsal)"
 else
-  bad "KL-08 release serialize missing/failed; see /tmp/pl-kl08-cut-self-test.log"
+  bad "KL-08 release serialize missing/failed; see /tmp/pl-kl08-cut-self-test.log /tmp/pl-kl08-partial-rehearse.log"
 fi
 
 # KL-02 slice: produce cancellation contract (docs + mock tests + durable close).

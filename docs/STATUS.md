@@ -154,6 +154,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-08 release serialize (2026-09-05, tip `acb1153`):** release-plz PR-only; owner-cut-release / owner-publish / ci-publish-ready / release.yml require exact-SHA `check-main-ci` + crate-consumer; crates.io soft-skip if version present. Rehearse-only (no new cut). Does **not** lift Suite HOLD.
 
+**KL-08 partial-release rehearsal (2026-09-05, tip `PENDING`):** `scripts/rehearse-partial-release.sh --self-test` proves recovery without publishing (0.1.0 stays; release-plz PR-only; exact-SHA CI + crate-consumer on cut/release.yml/publish-ready; crates.io skip; publish-succeeded → day1/handoff DRY_RUN, not another publish). Wired into `ci-publish-ready` + bars. KL-08 package stays open. Does **not** lift Suite HOLD.
+
 **KL-02 produce cancel contract (2026-09-05, tip `633bad3`):** guide cancellation/shutdown table; `tests/produce_cancel.rs` (completed/failed/ambiguous/Closed); durable `Producer` `closed` flag so clones cannot send after `close`. Does **not** close full KL-02 (no overload soak). Does **not** lift Suite HOLD.
 
 **KL-01/KL-04 latency CI policy (2026-09-05, tip `cc59201`):** CI run 33938039612 nested integrity produce-ack p99 **1,344 µs** vs **750 µs** is **historical** — `integrity-smoke` no longer nests the local relative gate (`SKIP_LATENCY_GATE=1`). Dedicated `latency-gate` remains `LATENCY_LIMIT_US=5000` (GHA+Docker catastrophic ceiling, unsigned). Local default is still 500 µs + 50% slack (750 µs). This is **not** a claim that raising a limit fixed the miss. Suite HOLD unchanged. See [latency-ci-policy.json](latency-ci-policy.json).
