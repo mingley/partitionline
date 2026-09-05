@@ -124,17 +124,17 @@ jobs:
       - name: Publish
         env:
           OIDC_TOKEN: ${{ steps.cratesio-auth.outputs.token }}
-          SECRET_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          SECRET_TOKEN: ${{ secrets.CRATES_IO_TOKEN || secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           if [ -n "${OIDC_TOKEN}" ]; then
             export CARGO_REGISTRY_TOKEN="${OIDC_TOKEN}"
             echo "auth=oidc (crates.io trusted publishing, short-lived)"
           elif [ -n "${SECRET_TOKEN}" ]; then
             export CARGO_REGISTRY_TOKEN="${SECRET_TOKEN}"
-            echo "auth=secret (CARGO_REGISTRY_TOKEN; required for first publish)"
+            echo "auth=secret (CRATES_IO_TOKEN/CARGO_REGISTRY_TOKEN; required for first publish)"
           else
-            echo "Neither OIDC trusted publishing nor CARGO_REGISTRY_TOKEN is available." >&2
-            echo "First publish: set Actions secret CARGO_REGISTRY_TOKEN." >&2
+            echo "Neither OIDC trusted publishing nor CRATES_IO_TOKEN/CARGO_REGISTRY_TOKEN is available." >&2
+            echo "First publish: set Actions secret CRATES_IO_TOKEN." >&2
             echo "Later: crates.io → Settings → Trusted Publishing → workflow release.yml" >&2
             exit 1
           fi

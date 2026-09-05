@@ -66,11 +66,11 @@ jobs:
       - name: crates.io already published?
         id: exists
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN || secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           set -euo pipefail
           if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-            echo "::error::CARGO_REGISTRY_TOKEN secret is missing"
+            echo "::error::CRATES_IO_TOKEN or CARGO_REGISTRY_TOKEN secret is missing"
             exit 1
           fi
           # Soft probe: if 0.1.0 is already on the index, succeed without re-publish.
@@ -85,7 +85,7 @@ jobs:
       - name: cargo publish
         if: steps.exists.outputs.already != 'true'
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN || secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           set -euo pipefail
           # --no-verify: package step already built; matches release.yml first-cut path.

@@ -1,6 +1,6 @@
 # partitionline
 
-A Kafka client written in Rust. It does not call into C or librdkafka.
+A pure-Rust Apache Kafka client and protocol implementation.
 
 [![ci](https://github.com/mingley/partitionline/actions/workflows/ci.yml/badge.svg)](https://github.com/mingley/partitionline/actions/workflows/ci.yml)
 
