@@ -75,10 +75,19 @@ case "$tok_rc" in
     ok "CARGO_REGISTRY_TOKEN accepted by crates.io for publish-new auth"
     ;;
   2)
-    iblk "CARGO_REGISTRY_TOKEN unset (first publish / Actions secret; needs publish-new)"
+    # After crates.io has this version, Installable is proven; token is for future cuts only.
+    if [[ "${PL_CRATES_PROBE_STATUS}" == "present" ]]; then
+      ok "CARGO_REGISTRY_TOKEN unset (Installable already proven on crates.io; token only for future cuts)"
+    else
+      iblk "CARGO_REGISTRY_TOKEN unset (first publish / Actions secret; needs publish-new)"
+    fi
     ;;
   *)
-    iblk "CARGO_REGISTRY_TOKEN rejected by crates.io (recreate with publish-new; see check-registry-token)"
+    if [[ "${PL_CRATES_PROBE_STATUS}" == "present" ]]; then
+      part "CARGO_REGISTRY_TOKEN rejected (Installable already proven; recreate before next cut)"
+    else
+      iblk "CARGO_REGISTRY_TOKEN rejected by crates.io (recreate with publish-new; see check-registry-token)"
+    fi
     ;;
 esac
 
@@ -214,15 +223,32 @@ else
   bad "git-tag adopter consumer not wired into cut-path / preflight / finish / verify-crates-io-consumer"
 fi
 
-# Adopter-pin honesty: guide/migrate must not lead with crates.io while README is git-shaped.
+# Adopter-pin honesty: pre-Installable = git tag parity (no crates.io lead);
+# post-Installable = four-file crates.io shape (day1 flipped).
 if [[ -x scripts/check-adopter-pin.sh ]] \
   && grep -qF 'docs/guide.md' scripts/check-adopter-pin.sh \
   && grep -qF 'leads with crates.io version while README is still git-shaped' scripts/check-adopter-pin.sh \
-  && bash scripts/check-adopter-pin.sh >/tmp/pl-adopter-pin.log 2>&1 \
-  && grep -qF 'tag = "v0.1.0-rc.6"' docs/guide.md \
-  && ! grep -qE '^partitionline = "[0-9]' docs/migrate-from-rdkafka.md \
-  && ! grep -qE '^partitionline = \{ version = "[0-9]' docs/guide.md; then
-  ok "adopter-pin honesty (README/ADOPTION/migrate/guide tag parity; no live crates.io lead pre-Installable)"
+  && bash scripts/check-adopter-pin.sh >/tmp/pl-adopter-pin.log 2>&1; then
+  if bash scripts/check-installable.sh >/dev/null 2>&1; then
+    if grep -qE '^partitionline = "[0-9]' README.md \
+      && grep -qE 'partitionline = "[0-9]' docs/ADOPTION.md \
+      && grep -qE 'partitionline = \{ version = "[0-9]' docs/guide.md \
+      && grep -qE '^partitionline = "[0-9]' docs/migrate-from-rdkafka.md \
+      && ! grep -qE '^partitionline = \{ git =' docs/guide.md \
+      && ! grep -qE '^partitionline = \{ git =' docs/migrate-from-rdkafka.md; then
+      ok "adopter-pin honesty (post-Installable crates.io four-file shape; check-adopter-pin ok)"
+    else
+      bad "adopter-pin honesty failed post-Installable — docs not fully crates.io-shaped; see /tmp/pl-adopter-pin.log"
+    fi
+  else
+    if grep -qF 'tag = "v0.1.0-rc.6"' docs/guide.md \
+      && ! grep -qE '^partitionline = "[0-9]' docs/migrate-from-rdkafka.md \
+      && ! grep -qE '^partitionline = \{ version = "[0-9]' docs/guide.md; then
+      ok "adopter-pin honesty (README/ADOPTION/migrate/guide tag parity; no live crates.io lead pre-Installable)"
+    else
+      bad "adopter-pin honesty missing/failed pre-Installable; see /tmp/pl-adopter-pin.log"
+    fi
+  fi
 else
   bad "adopter-pin honesty missing/failed; see /tmp/pl-adopter-pin.log"
 fi
