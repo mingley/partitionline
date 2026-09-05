@@ -3244,7 +3244,7 @@ pub use group::{
 pub use interceptor::{ConsumerInterceptor, ProducerInterceptor};
 pub use metrics::{
     AdminMetrics, ConsumerMetrics, LatencyStats, ProducerMetrics, Quota, ShareMetrics,
-    TopicFetchMetrics, TopicProduceMetrics,
+    TopicFetchMetrics, TopicProduceMetrics, MAX_TOPIC_METRIC_SERIES,
 };
 pub use net::TlsConfig;
 pub use partitioner::{

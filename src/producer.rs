@@ -834,9 +834,7 @@ struct Inner {
 impl Shared {
     fn topic_tracker(&self, topic: &Arc<str>) -> Arc<crate::metrics::ProduceTopicTracker> {
         let mut map = self.topics.lock();
-        map.entry(Arc::clone(topic))
-            .or_insert_with(|| Arc::new(crate::metrics::ProduceTopicTracker::new()))
-            .clone()
+        crate::metrics::produce_topic_tracker(&mut map, topic)
     }
 
     /// Apply EndTxn v5 ProducerId / ProducerEpoch. Ignores

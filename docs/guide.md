@@ -136,6 +136,19 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Label cardinality (per-topic series)
+
+The only high-cardinality dimension in core snapshots is **topic name**.
+Inactive topics are omitted. Distinct topic series are capped at
+[`MAX_TOPIC_METRIC_SERIES`](../src/metrics.rs) (`256`): aggregate counters
+still count every record, but additional topics are not retained as separate
+rows (so Prometheus-style exporters cannot unbounded-grow label sets from
+this client). There are **no** partition / free-form label keys in core
+snapshots. KL-07 Partial — not a two-user diagnosis close, and not a Suite
+HOLD lift. Mock/lib proof: `tests/metrics_cardinality.rs` +
+`fetch_topic_series_respect_max_cardinality` /
+`produce_topic_series_respect_max_cardinality`.
+
 ## Recipes
 
 ### Backpressure

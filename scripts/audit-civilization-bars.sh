@@ -184,6 +184,23 @@ else
   bad "KL-02 buffer ownership + mock overload soak missing"
 fi
 
+# KL-07 slice: per-topic metrics label cardinality bound.
+if [[ -f tests/metrics_cardinality.rs && -f docs/guide.md && -f src/metrics.rs ]] \
+  && grep -qF 'Label cardinality (per-topic series)' docs/guide.md \
+  && grep -qF 'pub const MAX_TOPIC_METRIC_SERIES: usize = 256' src/metrics.rs \
+  && grep -qF 'MAX_TOPIC_METRIC_SERIES' src/lib.rs \
+  && grep -qF 'fetch_topic_series_respect_max_cardinality' src/metrics.rs \
+  && grep -qF 'produce_topic_series_respect_max_cardinality' src/metrics.rs \
+  && grep -qF 'inactive_topics_omitted_from_snapshot' tests/metrics_cardinality.rs \
+  && grep -qF 'MAX_TOPIC_METRIC_SERIES' docs/ROADMAP.md \
+  && cargo test --lib fetch_topic_series_respect_max_cardinality --quiet >/tmp/pl-kl07-card-fetch.log 2>&1 \
+  && cargo test --lib produce_topic_series_respect_max_cardinality --quiet >/tmp/pl-kl07-card-produce.log 2>&1 \
+  && cargo test --test metrics_cardinality --quiet >/tmp/pl-kl07-card-int.log 2>&1; then
+  ok "KL-07 metrics topic-cardinality bound (MAX_TOPIC_METRIC_SERIES=256; guide+lib+mock)"
+else
+  bad "KL-07 metrics topic-cardinality bound missing/failed; see /tmp/pl-kl07-card-*.log"
+fi
+
 # KL-06 slice: credential Debug redaction (passwords / client_secret / key PEM).
 if [[ -f tests/credential_redact.rs && -f docs/security.md ]] \
   && grep -qF 'Credential redaction' docs/security.md \

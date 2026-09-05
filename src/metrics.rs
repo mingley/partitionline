@@ -1,15 +1,29 @@
 //! Client counters and latency stats. Snapshots, not HDR histograms.
 //!
 //! [`Quota`] is Java `org.apache.kafka.common.metrics.Quota`.
+//!
+//! Per-topic series are the only high-cardinality dimension in core snapshots.
+//! Inactive topics are omitted; distinct topic names are capped at
+//! [`MAX_TOPIC_METRIC_SERIES`] so exporters cannot unbounded-grow label sets.
+//! Aggregate counters still include every record when the per-topic map is full.
 
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 /// Sliding window for [`LatencyStats::p50_nanos`] / [`LatencyStats::p99_nanos`].
 const LATENCY_WINDOW: usize = 1024;
+
+/// Cap on distinct topic names retained in producer/consumer/share metrics
+/// snapshots (KL-07 label-cardinality Partial).
+///
+/// Aggregate counters still count every record. New topics beyond this cap are
+/// omitted from [`ProducerMetrics::topics`] / [`ConsumerMetrics::topics`] /
+/// [`ShareMetrics`] `topics` until an existing series stops appearing (maps are
+/// append-only for the client lifetime in this Partial).
+pub const MAX_TOPIC_METRIC_SERIES: usize = 256;
 
 /// Produce-ack or fetch-round latency since connect (nanoseconds).
 ///
@@ -305,6 +319,7 @@ pub struct ProducerMetrics {
     /// Queue-to-ack latency per acknowledged record (including `acks=0`).
     pub ack_latency: LatencyStats,
     /// Per-topic counters. Topics with no activity are omitted. Sorted by name.
+    /// At most [`MAX_TOPIC_METRIC_SERIES`] rows (label-cardinality bound).
     pub topics: Vec<TopicProduceMetrics>,
 }
 
@@ -339,6 +354,7 @@ pub struct ConsumerMetrics {
     /// End-to-end duration of each successful fetch round.
     pub fetch_latency: LatencyStats,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
+    /// At most [`MAX_TOPIC_METRIC_SERIES`] rows (label-cardinality bound).
     pub topics: Vec<TopicFetchMetrics>,
 }
 
@@ -372,6 +388,7 @@ pub struct ShareMetrics {
     /// End-to-end duration of each successful poll (including leader retries).
     pub fetch_latency: LatencyStats,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
+    /// At most [`MAX_TOPIC_METRIC_SERIES`] rows (label-cardinality bound).
     pub topics: Vec<TopicFetchMetrics>,
 }
 
@@ -544,10 +561,39 @@ pub(crate) fn accumulate_fetch_topics<'a>(
         e.1 = e.1.saturating_add(bytes);
     }
     for (topic, (n, bytes)) in acc {
+        if let Some(t) = map.get_mut(topic) {
+            t.note_fetched(n, bytes, latency);
+            continue;
+        }
+        if map.len() >= MAX_TOPIC_METRIC_SERIES {
+            // Aggregates already updated by the caller; skip new per-topic series.
+            continue;
+        }
         map.entry(topic.to_string())
             .or_insert_with(FetchTopicTracker::new)
             .note_fetched(n, bytes, latency);
     }
+}
+
+/// Look up or insert a produce per-topic tracker, honoring [`MAX_TOPIC_METRIC_SERIES`].
+pub(crate) fn produce_topic_tracker(
+    map: &mut HashMap<Arc<str>, Arc<ProduceTopicTracker>>,
+    topic: &Arc<str>,
+) -> Arc<ProduceTopicTracker> {
+    if let Some(t) = map.get(topic) {
+        return Arc::clone(t);
+    }
+    if map.len() >= MAX_TOPIC_METRIC_SERIES {
+        return overflow_produce_topic_tracker();
+    }
+    let t = Arc::new(ProduceTopicTracker::new());
+    let _ = map.insert(Arc::clone(topic), Arc::clone(&t));
+    t
+}
+
+fn overflow_produce_topic_tracker() -> Arc<ProduceTopicTracker> {
+    static OVERFLOW: OnceLock<Arc<ProduceTopicTracker>> = OnceLock::new();
+    Arc::clone(OVERFLOW.get_or_init(|| Arc::new(ProduceTopicTracker::new())))
 }
 
 #[cfg(test)]
@@ -636,6 +682,48 @@ mod tests {
         assert_eq!(snap[1].records_fetched, 2);
         assert_eq!(snap[1].bytes_fetched, 3);
         assert_eq!(snap[1].fetch_latency.count, 1);
+    }
+
+    #[test]
+    fn fetch_topic_series_respect_max_cardinality() {
+        let mut map = HashMap::new();
+        for i in 0..(MAX_TOPIC_METRIC_SERIES + 10) {
+            let name = format!("t{i:04}");
+            accumulate_fetch_topics(&mut map, [(name.as_str(), 1u64)], Duration::from_nanos(1));
+        }
+        assert_eq!(map.len(), MAX_TOPIC_METRIC_SERIES);
+        let snap = snapshot_fetch_topics(&map);
+        assert_eq!(snap.len(), MAX_TOPIC_METRIC_SERIES);
+        // Existing series still accept updates after the cap.
+        accumulate_fetch_topics(&mut map, [("t0000", 5u64)], Duration::from_nanos(2));
+        assert_eq!(map.get("t0000").unwrap().snapshot("t0000".into()).records_fetched, 2);
+        assert_eq!(map.len(), MAX_TOPIC_METRIC_SERIES);
+    }
+
+    #[test]
+    fn produce_topic_series_respect_max_cardinality() {
+        let mut map = HashMap::new();
+        let mut first = None;
+        for i in 0..(MAX_TOPIC_METRIC_SERIES + 5) {
+            let topic: Arc<str> = format!("p{i:04}").into();
+            let tracker = produce_topic_tracker(&mut map, &topic);
+            tracker.note_queued(1, 1);
+            if i == 0 {
+                first = Some(Arc::clone(&topic));
+            }
+        }
+        assert_eq!(map.len(), MAX_TOPIC_METRIC_SERIES);
+        let overflow = produce_topic_tracker(&mut map, &Arc::from("overflow-topic"));
+        overflow.note_queued(9, 9);
+        assert_eq!(map.len(), MAX_TOPIC_METRIC_SERIES);
+        assert!(!map.contains_key("overflow-topic"));
+        // First series still live and updatable.
+        let first = first.unwrap();
+        produce_topic_tracker(&mut map, &first).note_queued(1, 1);
+        assert_eq!(
+            map.get(first.as_ref()).unwrap().snapshot(first.to_string()).records_queued,
+            2
+        );
     }
 
     #[test]

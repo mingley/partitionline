@@ -285,6 +285,12 @@ and no secret exposure. Preserve existing audit/deny and security-reporting lane
    queue age/bytes, retries, broker throttle, reconnect, ack latency, lag,
    rebalance and transaction outcomes. Bound label cardinality; provide optional
    exporters as examples rather than mandatory core dependencies.
+   **Partial (2026-09-05):** `MAX_TOPIC_METRIC_SERIES` (256) caps distinct
+   topic rows in producer/consumer/share snapshots; aggregates still count every
+   record; guide documents topic-only labels. Lib + mock tests in
+   `src/metrics.rs` / `tests/metrics_cardinality.rs`. Queue-age / throttle /
+   reconnect cookbooks and two independent human diagnosis runs remain open.
+   Not Done.
 3. Have two independent users follow the guide and diagnose a throttled broker,
    stale leader and blocked consumer using telemetry rather than payload logging.
 
