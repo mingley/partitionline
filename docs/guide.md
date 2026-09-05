@@ -136,6 +136,16 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (Metadata refresh)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Healthy cluster view | `Consumer::metrics().metadata_refresh_ok` rising; `metadata_refresh_fail == 0` | Metadata RPC succeeding |
+| Metadata storm / broker fence | `metadata_refresh_fail` rising | Top-level Metadata error, transport loss, or controller unavailable |
+| Silent stale leaders | both counters flat while fetches fail oddly | Refresh not running (assignment empty / max-age never elapsed) |
+
+`metadata_refresh_ok` / `metadata_refresh_fail` count terminal Metadata refreshes on `ConsumerMetrics`. Prefer these over dumping payloads. Mock proof: `tests/metadata_refresh_metrics.rs`. KL-07 Partial — not two independent human diagnosis runs, and not a Suite HOLD lift.
+
 ## Recipes
 
 ### Backpressure

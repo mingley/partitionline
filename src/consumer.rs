@@ -1257,6 +1257,8 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    m_metadata_refresh_ok: AtomicU64,
+    m_metadata_refresh_fail: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1346,6 +1348,8 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_metadata_refresh_ok: AtomicU64::new(0),
+            m_metadata_refresh_fail: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -1670,6 +1674,19 @@ impl Consumer {
     }
 
     async fn refresh_metadata_timeout(
+        &mut self,
+        topics: Option<&[String]>,
+        timeout: Duration,
+    ) -> Result<()> {
+        let result = self.refresh_metadata_timeout_inner(topics, timeout).await;
+        match &result {
+            Ok(()) => self.record_metadata_refresh_ok(),
+            Err(_) => self.record_metadata_refresh_fail(),
+        }
+        result
+    }
+
+    async fn refresh_metadata_timeout_inner(
         &mut self,
         topics: Option<&[String]>,
         timeout: Duration,
@@ -2151,9 +2168,19 @@ impl Consumer {
             records_fetched: self.m_records.load(Ordering::Relaxed),
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
+            metadata_refresh_ok: self.m_metadata_refresh_ok.load(Ordering::Relaxed),
+            metadata_refresh_fail: self.m_metadata_refresh_fail.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
         }
+    }
+
+    pub(crate) fn record_metadata_refresh_ok(&self) {
+        let _ = self.m_metadata_refresh_ok.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn record_metadata_refresh_fail(&self) {
+        let _ = self.m_metadata_refresh_fail.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).

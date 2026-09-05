@@ -232,6 +232,7 @@ struct State {
     log_start: HashMap<(String, i32), i64>,
     created_topics: HashMap<String, CreatedTopic>,
     metadata_calls: u32,
+    metadata_fail_left: u32,
     last_metadata_allow_auto: Option<bool>,
     last_metadata_version: Option<i16>,
     last_api_versions_version: Option<i16>,
@@ -602,6 +603,7 @@ fn new_state(
         log_start: HashMap::new(),
         created_topics,
         metadata_calls: 0,
+        metadata_fail_left: 0,
         last_metadata_allow_auto: None,
         last_metadata_version: None,
         last_api_versions_version: None,
@@ -1615,6 +1617,11 @@ impl Mock {
 
     pub fn metadata_calls(&self) -> u32 {
         self.state.lock().metadata_calls
+    }
+
+    /// Next Metadata response carries a top-level error once (fails `MetadataResponse::check`).
+    pub fn metadata_fail_once(&self) {
+        self.state.lock().metadata_fail_left = 1;
     }
 
     pub fn last_metadata_allow_auto(&self) -> Option<bool> {
@@ -3522,7 +3529,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 );
                 st.last_metadata_include_topic_authorized = Some(include_topic);
                 let (host, port) = broker_host_port(&st, node_id);
-                let md = if id_based > 0 {
+                let mut md = if id_based > 0 {
                     metadata_for_ids(
                         &st,
                         &host,
@@ -3533,6 +3540,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 } else {
                     metadata_for(&st, &host, port, include_topic)
                 };
+                if st.metadata_fail_left > 0 {
+                    st.metadata_fail_left = st.metadata_fail_left.saturating_sub(1);
+                    md.error_code = error::UNKNOWN_SERVER_ERROR;
+                }
                 encode_metadata_response(&mut body, header.api_version, &md).unwrap();
             }
             CREATE_TOPICS => {

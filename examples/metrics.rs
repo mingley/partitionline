@@ -55,6 +55,18 @@ async fn main() -> partitionline::Result<()> {
         println!("# HELP partitionline_fetch_rounds Fetch rounds completed");
         println!("# TYPE partitionline_fetch_rounds counter");
         println!("partitionline_fetch_rounds {}", cm.fetch_rounds);
+        println!("# HELP partitionline_metadata_refresh_ok Metadata refresh successes");
+        println!("# TYPE partitionline_metadata_refresh_ok counter");
+        println!(
+            "partitionline_metadata_refresh_ok {}",
+            cm.metadata_refresh_ok
+        );
+        println!("# HELP partitionline_metadata_refresh_fail Metadata refresh failures");
+        println!("# TYPE partitionline_metadata_refresh_fail counter");
+        println!(
+            "partitionline_metadata_refresh_fail {}",
+            cm.metadata_refresh_fail
+        );
         println!("# HELP partitionline_fetch_p99_seconds Fetch round p99 latency");
         println!("# TYPE partitionline_fetch_p99_seconds gauge");
         println!(
@@ -63,11 +75,13 @@ async fn main() -> partitionline::Result<()> {
         );
     } else {
         println!(
-            "fetched {} records rounds={} bytes={} errors={} fetch_us={} p50_us={} p99_us={} topics={}",
+            "fetched {} records rounds={} bytes={} errors={} metadata_refresh_ok={} metadata_refresh_fail={} fetch_us={} p50_us={} p99_us={} topics={}",
             recs.len(),
             cm.fetch_rounds,
             cm.bytes_fetched,
             cm.fetch_errors,
+            cm.metadata_refresh_ok,
+            cm.metadata_refresh_fail,
             cm.fetch_latency.mean_nanos().unwrap_or(0) / 1000,
             cm.fetch_latency.p50_nanos / 1000,
             cm.fetch_latency.p99_nanos / 1000,
