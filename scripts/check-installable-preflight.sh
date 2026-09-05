@@ -174,6 +174,7 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   fi
   echo "check-installable-preflight: READY_EXCEPT_TOKEN"
   echo "  Structural + Verifiable + parks stack OK; crates.io cut blocked only on CARGO_REGISTRY_TOKEN."
+  echo "  Parks stay off main until after crates.io 0.1.0 (expected pre-Installable; tip⊆parks stack is the pre-cut gate)."
   echo "  Token scope: first cut of a NEW crate needs crates.io publish-new (+ usually publish-update)."
   echo "  publish-update alone cannot create the crate. Trusted Publishing is configured after 0.1.0."
   echo "  One-screen owner ask: bash scripts/owner-request-registry-token.sh"
