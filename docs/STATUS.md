@@ -145,7 +145,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 **Post-Installable maintain timer (2026-09-05, tip `59da087`):** Recheck: `CARGO_REGISTRY_TOKEN` unset (Installable met — future cuts only; `--self-test` OK); `check-installable` present; parks on main OK; post-cut parks stack OK; civilization bars 48/0/0; tip=main. Main CI on this HEAD still running broker-smoke/fuzz at stamp time. Suite HOLD remains (Lab A unsigned). Trusted Publishing UI still owner. Do not re-cut 0.1.0.
 
 
-**Registry adopter consumer post-Installable (2026-09-05, tip `586c629`):** Operable bars + cut-path + branch-lite require `MODE=registry` `verify-crates-io-consumer` when Installable is met (git MODE SKIP is not enough). CI `package` runs `ci-crate-consumer` against the packed `.crate`. `docs/schema-companion.md` notes core 0.1.0 publish gate is met. Does **not** lift Suite HOLD.
+**Registry adopter consumer post-Installable (2026-09-05, tip `a692183`):** Operable bars + cut-path + branch-lite require `MODE=registry` `verify-crates-io-consumer` when Installable is met (git MODE SKIP is not enough). CI `package` runs `ci-crate-consumer` against the packed `.crate`. `docs/schema-companion.md` notes core 0.1.0 publish gate is met. Does **not** lift Suite HOLD.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
