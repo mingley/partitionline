@@ -242,10 +242,18 @@ run_examples() {
     rm -f "$kip848_log"
     exit 1
   else
-    # Kafka 3.9 often returns empty/truncated bodies (Protocol need-bytes) rather
-    # than a clean UnsupportedVersion — soft-skip whenever KIP-848 is optional.
-    echo "ci-broker-smoke: kip848 skipped (optional on this broker; use Kafka 4.x + REQUIRE_KIP848=1)"
-    rm -f "$kip848_log"
+    # Soft-skip only for expected "broker lacks API" signals (Unsupported* /
+    # truncated Protocol on 3.9). Panics, asserts, and connection failures must
+    # still fail — optional must not greenwash client bugs.
+    if grep -qiE 'UnsupportedVersion|Unsupported|UNKNOWN_SERVER_ERROR|does not support|ConsumerGroupHeartbeat|InvalidRequest|API version|Protocol\(|need [0-9]+ bytes|have 0' "$kip848_log"; then
+      echo "ci-broker-smoke: kip848 skipped (broker lacks API / truncated Protocol; use Kafka 4.x + REQUIRE_KIP848=1)"
+      rm -f "$kip848_log"
+    else
+      echo "ci-broker-smoke: kip848 failed unexpectedly while optional (rc=${kip848_rc:-1}); log:" >&2
+      cat "$kip848_log" >&2 || true
+      rm -f "$kip848_log"
+      exit 1
+    fi
   fi
 
   # KIP-932 share groups need Kafka 4.x ShareFetch + share.version=1.
@@ -273,8 +281,16 @@ run_examples() {
     rm -f "$share_log"
     exit 1
   else
-    # Optional on 3.x — truncated Protocol errors are common without ShareFetch.
-    echo "ci-broker-smoke: share skipped (optional on this broker; use Kafka 4.x + share.version=1)"
+    # Soft-skip only for expected "no ShareFetch / unsupported" signals.
+    # Optional must not greenwash panics, asserts, or connection failures.
+    if grep -qiE 'UnsupportedVersion|Unsupported|UNKNOWN_SERVER_ERROR|does not support|ShareFetch|ShareGroup|InvalidRequest|API version|Protocol\(|need [0-9]+ bytes|have 0' "$share_log"; then
+      echo "ci-broker-smoke: share skipped (broker lacks ShareFetch / truncated Protocol; use Kafka 4.x + share.version=1)"
+    else
+      echo "ci-broker-smoke: share failed unexpectedly while optional (rc=$share_rc); log:" >&2
+      cat "$share_log" >&2 || true
+      rm -f "$share_log"
+      exit 1
+    fi
   fi
   rm -f "$share_log"
 }
@@ -282,8 +298,15 @@ run_examples() {
 if [[ "${SKIP_DOCKER:-}" == "1" ]]; then
   echo "ci-broker-smoke: SKIP_DOCKER=1; using existing broker at $BOOTSTRAP"
   if ! wait_tcp "$BOOTSTRAP"; then
-    echo "ci-broker-smoke: broker not reachable at $BOOTSTRAP" >&2
-    exit 1
+    # Agent Verifiable chains often stop Docker-less after auth/integrity and
+    # re-enter with SKIP_DOCKER=1; start native Kafka instead of hard-failing.
+    # shellcheck source=scripts/lib/ensure-broker.sh
+    source "$ROOT/scripts/lib/ensure-broker.sh"
+    export KAFKA_BOOTSTRAP="$BOOTSTRAP"
+    if ! pl_ensure_broker "ci-broker-smoke"; then
+      echo "ci-broker-smoke: broker not reachable at $BOOTSTRAP" >&2
+      exit 1
+    fi
   fi
   # Topic create via kafka CLI when available (PATH or common native install).
   topics_bin=""
@@ -337,6 +360,18 @@ if ! docker run "${docker_run_args[@]}" "$KAFKA_IMAGE"; then
     trap - EXIT
     cleanup || true
     SKIP_DOCKER=1 exec bash "$0" "$@"
+  fi
+  # Nested Cloud Agent VMs often cannot mount overlayfs. Prefer native Apache
+  # Kafka under /tmp (scripts/ci-native-kafka.sh) over soft-skipping Verifiable.
+  if [[ "${ALLOW_NATIVE_FALLBACK:-1}" == "1" ]] \
+      && [[ -x "$ROOT/scripts/ci-native-kafka.sh" ]]; then
+    echo "ci-broker-smoke: trying native Kafka via scripts/ci-native-kafka.sh start" >&2
+    if bash "$ROOT/scripts/ci-native-kafka.sh" start; then
+      trap - EXIT
+      cleanup || true
+      SKIP_DOCKER=1 exec bash "$0" "$@"
+    fi
+    echo "ci-broker-smoke: native Kafka start failed; see /tmp/partitionline-kafka.log" >&2
   fi
   echo "ci-broker-smoke: no broker at $BOOTSTRAP; start native Kafka or set SKIP_DOCKER=1" >&2
   if [[ "${CI:-}" == "true" ]]; then

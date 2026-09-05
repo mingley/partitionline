@@ -2,7 +2,7 @@
 # Ensure the pre-crates.io git install pin stays honest without empty rc thrash.
 #
 # While README still recommends a git tag (not crates.io), that tag must:
-#   1. Appear identically in README.md, docs/ADOPTION.md, docs/migrate-from-rdkafka.md
+#   1. Appear identically in README.md, docs/ADOPTION.md, docs/migrate-from-rdkafka.md, docs/guide.md
 #   2. Exist as an annotated/lightweight tag in this clone
 #   3. Either:
 #        a) point at HEAD, or
@@ -24,7 +24,38 @@ cd "$ROOT"
 
 # Crates.io install stanza — Installable path already landed.
 if grep -qE '^partitionline = "[0-9]' README.md; then
-  echo "check-adopter-pin: ok (README uses crates.io version dep)"
+  # Day-1 must also flip ADOPTION off the pre-publish "remaining owner step" story.
+  if grep -qiE 'remaining owner step|crates\.io publish is the remaining' docs/ADOPTION.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/ADOPTION.md still says publish is remaining" >&2
+    echo "  Re-run: bash scripts/post-publish-adoption.sh (wired into day1-after-publish)" >&2
+    exit 1
+  fi
+  if ! grep -qE 'partitionline = "[0-9]' docs/ADOPTION.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/ADOPTION.md lacks a crates.io version dep" >&2
+    echo "  Re-run: bash scripts/post-publish-adoption.sh" >&2
+    exit 1
+  fi
+  if ! grep -qE 'partitionline = \{ version = "[0-9]' docs/guide.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/guide.md lacks crates.io version+features dep" >&2
+    echo "  Re-run: bash scripts/post-publish-guide.sh" >&2
+    exit 1
+  fi
+  if grep -qE '^partitionline = \{ git =' docs/guide.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/guide.md still has a live git pin" >&2
+    echo "  Re-run: bash scripts/post-publish-guide.sh" >&2
+    exit 1
+  fi
+  if ! grep -qE '^partitionline = "[0-9]' docs/migrate-from-rdkafka.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/migrate-from-rdkafka.md lacks crates.io version dep" >&2
+    echo "  Re-run: bash scripts/post-publish-migrate.sh" >&2
+    exit 1
+  fi
+  if grep -qE '^partitionline = \{ git =' docs/migrate-from-rdkafka.md; then
+    echo "check-adopter-pin: FAIL — README is crates.io-shaped but docs/migrate-from-rdkafka.md still has a live git pin" >&2
+    echo "  Re-run: bash scripts/post-publish-migrate.sh" >&2
+    exit 1
+  fi
+  echo "check-adopter-pin: ok (README + ADOPTION + guide + migrate use crates.io version dep)"
   exit 0
 fi
 
@@ -55,12 +86,27 @@ is_library_path() {
 readme_tag="$(extract_tag README.md)"
 adopt_tag="$(extract_tag docs/ADOPTION.md)"
 migrate_tag="$(extract_tag docs/migrate-from-rdkafka.md)"
+guide_tag="$(extract_tag docs/guide.md)"
 
-if [[ "$readme_tag" != "$adopt_tag" || "$readme_tag" != "$migrate_tag" ]]; then
+if [[ "$readme_tag" != "$adopt_tag" || "$readme_tag" != "$migrate_tag" || "$readme_tag" != "$guide_tag" ]]; then
   echo "check-adopter-pin: FAIL — pin tags disagree" >&2
   echo "  README:  ${readme_tag}" >&2
   echo "  ADOPTION:${adopt_tag}" >&2
   echo "  migrate: ${migrate_tag}" >&2
+  echo "  guide:   ${guide_tag}" >&2
+  exit 1
+fi
+
+# While pre-Installable, migrate/guide must not lead with a live crates.io dep line.
+# (Commented after-publish lines are fine.)
+if grep -qE '^partitionline = "[0-9]' docs/migrate-from-rdkafka.md; then
+  echo "check-adopter-pin: FAIL — docs/migrate-from-rdkafka.md leads with crates.io version while README is still git-shaped" >&2
+  echo "  Comment the crates.io line until day1; keep the git tag pin primary." >&2
+  exit 1
+fi
+if grep -qE '^partitionline = \{ version = "[0-9]' docs/guide.md; then
+  echo "check-adopter-pin: FAIL — docs/guide.md leads with crates.io version while README is still git-shaped" >&2
+  echo "  Use the interim git tag pin (with features) until day1." >&2
   exit 1
 fi
 
@@ -87,7 +133,7 @@ fi
 
 if [[ "${ADOPTER_PIN_STRICT:-}" == "1" ]]; then
   echo "FAIL  check-adopter-pin: ${msg} (ADOPTER_PIN_STRICT=1)" >&2
-  echo "FAIL  cut a new rc tag at tip and update README/ADOPTION/migrate pins" >&2
+  echo "FAIL  cut a new rc tag at tip and update README/ADOPTION/migrate/guide pins" >&2
   exit 1
 fi
 
@@ -110,5 +156,5 @@ echo "FAIL  library/packaging paths changed since ${tag}:" >&2
 for path in "${lib_hits[@]}"; do
   echo "  - ${path}" >&2
 done
-echo "FAIL  cut a new rc tag at tip and update README/ADOPTION/migrate pins" >&2
+echo "FAIL  cut a new rc tag at tip and update README/ADOPTION/migrate/guide pins" >&2
 exit 1

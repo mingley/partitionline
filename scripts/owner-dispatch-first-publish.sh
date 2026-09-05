@@ -3,6 +3,14 @@
 # Actions secret but not in this shell. Prefer owner-finish-installable.sh when
 # the token is already exported (no Actions queue wait).
 #
+# First cut of a NEW crate: the Actions secret must include crates.io scope
+# **publish-new** (+ usually publish-update). publish-update alone cannot create
+# the crate. owner-finish-installable / check-registry-token probe publish-new.
+#
+# Already Installable: refuse re-dispatch (PARTIAL/exit 2). The Actions
+# workflow soft-succeeds when 0.1.0 already exists — re-dispatch would look
+# green while doing nothing. Re-enter handoff instead.
+#
 # GitHub only lists workflow_dispatch workflows from the *default* branch.
 # Options to make first-publish.yml visible:
 #   A) Merge thin PR that adds only first-publish.yml onto main, or
@@ -14,16 +22,36 @@
 #   2. Land first-publish.yml on main (thin PR or full tip FF)
 #   3. bash scripts/owner-dispatch-first-publish.sh
 #   4. bash scripts/check-installable.sh
-#   5. bash scripts/day1-after-publish.sh
+#   5. bash scripts/owner-post-installable-handoff.sh   # chains day1 + TP + parks + bars
+#   6. LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks pending
 #
 # Usage:
 #   bash scripts/owner-dispatch-first-publish.sh
 #   REF=main bash scripts/owner-dispatch-first-publish.sh
 #   DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh
+#   bash scripts/owner-dispatch-first-publish.sh --self-test
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+
+if [[ "${1:-}" == "--self-test" ]]; then
+  echo "owner-dispatch-first-publish: self-test — already-Installable must PARTIAL (no re-dispatch soft-OK)"
+  if ! grep -qF 'check-installable.sh' "$ROOT/scripts/owner-dispatch-first-publish.sh"; then
+    echo "owner-dispatch-first-publish: self-test FAIL — must probe Installable before dispatch" >&2
+    exit 1
+  fi
+  if ! grep -qF 'PARTIAL — already Installable' "$ROOT/scripts/owner-dispatch-first-publish.sh"; then
+    echo "owner-dispatch-first-publish: self-test FAIL — missing already-Installable PARTIAL string" >&2
+    exit 1
+  fi
+  if ! grep -qF 'owner-post-installable-handoff.sh' "$ROOT/scripts/owner-dispatch-first-publish.sh"; then
+    echo "owner-dispatch-first-publish: self-test FAIL — must point re-entry at handoff" >&2
+    exit 1
+  fi
+  echo "owner-dispatch-first-publish: self-test OK — already-Installable PARTIAL gated"
+  exit 0
+fi
 
 DRY_RUN="${DRY_RUN:-0}"
 REF="${REF:-main}"
@@ -56,13 +84,45 @@ fi
 echo "owner-dispatch-first-publish: workflow is visible:"
 sed -n '1,8p' /tmp/pl-first-publish-wf.txt || true
 
+# Fail-closed: first-publish.yml soft-succeeds when the crate already exists.
+# Re-dispatch would exit 0 while doing nothing — refuse and send owners to handoff.
+if bash scripts/check-installable.sh >/tmp/pl-dispatch-installable.log 2>&1; then
+  echo "owner-dispatch-first-publish: PARTIAL — already Installable; do not re-dispatch" >&2
+  echo "  first-publish.yml would no-op soft-green; re-enter post-cut handoff instead." >&2
+  echo "  bash scripts/owner-post-installable-handoff.sh" >&2
+  echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks/TP pending" >&2
+  exit 2
+fi
+echo "owner-dispatch-first-publish: crates.io still absent — dispatch remains valid for first cut"
+
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "owner-dispatch-first-publish: DRY_RUN=1 — would run:"
   echo "  gh workflow run ${WORKFLOW} -f confirm=publish -f ref=${REF}"
   exit 0
 fi
 
-gh workflow run "$WORKFLOW" -f confirm=publish -f "ref=${REF}"
+dispatch_err="$(mktemp)"
+if ! gh workflow run "$WORKFLOW" -f confirm=publish -f "ref=${REF}" >"$dispatch_err" 2>&1; then
+  echo "owner-dispatch-first-publish: FAIL — could not dispatch ${WORKFLOW}" >&2
+  cat "$dispatch_err" >&2 || true
+  if grep -Eqi '403|Resource not accessible by integration|not accessible' "$dispatch_err"; then
+    echo >&2
+    echo "Cloud Agents / limited tokens often cannot workflow_dispatch (HTTP 403)." >&2
+    echo "Owner remediations (pick one):" >&2
+    echo "  A) Add CARGO_REGISTRY_TOKEN to the Cloud Agent env, then:" >&2
+    echo "       bash scripts/owner-finish-installable.sh" >&2
+    echo "  B) From an owner machine with Actions write:" >&2
+    echo "       REF=${REF} bash scripts/owner-dispatch-first-publish.sh" >&2
+    echo "     or Actions → First publish → confirm=publish (ref=${REF})" >&2
+    echo "  C) Add CARGO_REGISTRY_TOKEN as an Actions secret with publish-new (+ publish-update), then do B." >&2
+  fi
+  rm -f "$dispatch_err"
+  exit 1
+fi
+rm -f "$dispatch_err"
 echo "owner-dispatch-first-publish: dispatched. Watch:"
 echo "  gh run list --workflow=${WORKFLOW} --limit 5"
-echo "After green: bash scripts/check-installable.sh && bash scripts/day1-after-publish.sh"
+echo "After green:"
+echo "  bash scripts/check-installable.sh"
+echo "  bash scripts/owner-post-installable-handoff.sh   # chains day1 + TP + parks + bars"
+echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks pending"

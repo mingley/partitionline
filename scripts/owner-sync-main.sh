@@ -6,11 +6,18 @@
 # Verifiable. Sync once when ready to publish, then stop until Installable
 # lands (or until a real main fix is required).
 #
+# While Installable is blocked only on CARGO_REGISTRY_TOKEN, prefer leaving
+# docs/scripts tip commits ahead of main rather than syncing each one — every
+# tip→main FF restarts the full broker-smoke matrix. owner-finish-installable
+# will FF tip → main once at cut time.
+#
 # Usage:
 #   CONFIRM=1 bash scripts/owner-sync-main.sh
 #   DRY_RUN=1 bash scripts/owner-sync-main.sh
 #   TIP=dev/civilization-plan-b686 CONFIRM=1 bash scripts/owner-sync-main.sh
 #   ALLOW_BUSY_MAIN=1 …  # push even when main HEAD CI is still running (cancels it)
+#   ALLOW_DOCS_THRASH=1 … # allow tip→main when crates.io cut is still pending and
+#                         # tip delta looks docs/scripts-only (not recommended)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -20,6 +27,7 @@ DRY_RUN="${DRY_RUN:-0}"
 CONFIRM="${CONFIRM:-0}"
 TIP="${TIP:-dev/civilization-plan-b686}"
 ALLOW_BUSY_MAIN="${ALLOW_BUSY_MAIN:-0}"
+ALLOW_DOCS_THRASH="${ALLOW_DOCS_THRASH:-0}"
 
 git fetch origin main "$TIP"
 
@@ -37,6 +45,29 @@ if ! git merge-base --is-ancestor origin/main "origin/${TIP}"; then
   echo "owner-sync-main: origin/main is not an ancestor of ${TIP}" >&2
   echo "owner-sync-main: open a PR instead of fast-forward." >&2
   exit 1
+fi
+
+# Soft-guard: if Installable is still unmet and tip delta is docs/scripts-only,
+# refuse by default so agents do not restart broker-smoke for changelog thrash.
+# owner-finish-installable FF's once at cut time (docs-only tip is OK to publish
+# because main Verifiable already covers the library bytes).
+if [[ "$ALLOW_DOCS_THRASH" != "1" ]]; then
+  # shellcheck source=scripts/lib/crates-io.sh
+  source "$ROOT/scripts/lib/crates-io.sh"
+  # shellcheck source=scripts/lib/tip-delta.sh
+  source "$ROOT/scripts/lib/tip-delta.sh"
+  name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+  ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+  pl_crates_probe_version "$name" "$ver" "partitionline-owner-sync-main/1"
+  if [[ "$PL_CRATES_PROBE_STATUS" == "absent" ]]; then
+    if pl_tip_delta_is_docs_only "$main_sha" "$tip_sha"; then
+      echo "owner-sync-main: refusing docs/scripts-only tip→main while crates.io ${name} ${ver} is absent" >&2
+      echo "  Every sync restarts the full broker-smoke matrix (cancel-in-progress)." >&2
+      echo "  Leave tip ahead; owner-finish-installable will FF once at cut time." >&2
+      echo "  Override: ALLOW_DOCS_THRASH=1 bash scripts/owner-sync-main.sh" >&2
+      exit 1
+    fi
+  fi
 fi
 
 echo "owner-sync-main: note — main CI cancel-in-progress=true; this push cancels any in-flight main CI."

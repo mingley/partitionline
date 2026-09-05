@@ -2,11 +2,13 @@
 # One-shot owner finish for civilization Installable (WP-0.5).
 #
 # Once CARGO_REGISTRY_TOKEN is available in this environment, this script:
+#   0a. Runs honesty self-tests (registry token units + tip Verifiable PARTIAL exits)
 #   1. Confirms tip merge-readiness
 #   2. Best-effort cancels stuck Actions (agents often 403 — non-fatal)
 #   3. Fast-forwards main to the civilization tip (MERGE_CIVILIZATION=1)
 #   4. Cuts vX.Y.Z via PUBLISH_LOCAL=1 by default (bypasses starved Actions)
-#   5. Runs day1 + check-installable + audit-civilization-bars
+#   5. Cuts via owner-cut-release (day1 + Installable + bars)
+#   6. Syncs Actions secret (PARTIAL/exit 2 if sync fails after Installable), then handoff
 #
 # Prefer this over hand-assembling merge → tag → Actions when the Cloud Agent
 # (or owner shell) already has the crates.io token. Actions + OIDC remain the
@@ -19,6 +21,8 @@
 #   MERGE_CIVILIZATION=0 bash scripts/owner-finish-installable.sh  # require already-on-main
 #   ALLOW_RED_MAIN=1 …        # override red main CI refuse (not recommended)
 #   REQUIRE_MAIN_CI=0 …       # allow inconclusive main CI (default: require green when not DRY_RUN)
+#   ALLOW_UNVERIFIED_TIP=1 …  # allow PUBLISH_LOCAL of tip code not yet on green main (not recommended)
+#   MERGE_PARKED_VERIFIABLE=0 …  # skip post-cut merge of parked Verifiable branch
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -42,6 +46,12 @@ PUBLISH_LOCAL="${PUBLISH_LOCAL:-1}"
 MERGE_CIVILIZATION="${MERGE_CIVILIZATION:-1}"
 CIVILIZATION_BRANCH="${CIVILIZATION_BRANCH:-dev/civilization-plan-b686}"
 CANCEL_STUCK="${CANCEL_STUCK:-1}"
+ALLOW_UNVERIFIED_TIP="${ALLOW_UNVERIFIED_TIP:-0}"
+# After a successful Installable prove, land parked post-cut parks on main
+# (Verifiable auth/integrity/fuzz + flate2 gzip fix + SCRAM crypto bumps).
+# Set 0 to skip. Alias: MERGE_PARKED_VERIFIABLE still honored.
+MERGE_PARKED_VERIFIABLE="${MERGE_PARKED_VERIFIABLE:-1}"
+MERGE_POST_CUT_PARKS="${MERGE_POST_CUT_PARKS:-$MERGE_PARKED_VERIFIABLE}"
 
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
@@ -50,32 +60,90 @@ tag="v${ver}"
 echo "owner-finish-installable: ${name} ${ver}"
 echo
 
+echo "== 0a) Honesty self-tests (no token required) =="
+# Cut path must not drift: registry probe units + tip Verifiable PARTIAL exit codes
+# + parks-refresh restore-main/caller guards + documented git-tag adopter compile.
+# Executable (not grep-only); run before Installable short-circuit / token gate.
+bash scripts/check-registry-token.sh --self-test
+bash scripts/ci-tip-verifiable-broker.sh --self-test
+bash scripts/check-parks-refresh-cut-guards.sh
+MODE=git bash scripts/verify-crates-io-consumer.sh
+bash scripts/lib/preserve-day1-docs.sh --self-test
+
+echo
 echo "== 0) Already Installable? =="
 if bash scripts/check-installable.sh; then
   echo "owner-finish-installable: crates.io already has ${name} ${ver}"
-  echo "owner-finish-installable: running day1 + bars audit"
+  echo "owner-finish-installable: Actions-alternate / re-entry — day1 then post-Installable handoff"
+  # day1 flips README/ADOPTION/guide/migrate; handoff covers adopter pin, registry consumer, bars, TP, parks.
+  land_parks=0
+  if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
+    land_parks=1
+  fi
   if [[ "$DRY_RUN" == "1" ]]; then
-    echo "owner-finish-installable: DRY_RUN=1 — would run day1-after-publish + audit-civilization-bars"
+    echo "owner-finish-installable: DRY_RUN=1 — would run day1-after-publish"
+    DRY_RUN=1 bash scripts/day1-after-publish.sh
+    echo "owner-finish-installable: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
+    # Parks dry-run inside handoff is stack-check only; keep REQUIRE_PARKS land rehearsal
+    # so soft-skipping parks here cannot lie about cut readiness. Capture rc so DRY_RUN
+    # can still surface PARTIAL — handoff DRY_RUN exits 2 when already Installable and
+    # parks remain off main (handoff DRY_RUN exits PARTIAL/2; finish aggregates).
+    parks_rc=0
+    if [[ "$land_parks" == "1" ]]; then
+      DRY_RUN=1 REQUIRE_PARKS=1 bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?
+    fi
+    handoff_rc=0
+    LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+    if [[ "$parks_rc" -ne 0 || "$handoff_rc" -eq 2 ]]; then
+      echo "owner-finish-installable: PARTIAL — already-Installable DRY_RUN soft-failed (parks_rc=${parks_rc} handoff_rc=${handoff_rc})"
+      echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+      exit 2
+    elif [[ "$handoff_rc" -ne 0 ]]; then
+      echo "owner-finish-installable: FAIL — already-Installable DRY_RUN handoff rc=${handoff_rc}" >&2
+      exit "$handoff_rc"
+    fi
+    echo "owner-finish-installable: DRY_RUN OK — already Installable path rehearsed"
     exit 0
   fi
   bash scripts/day1-after-publish.sh
-  bash scripts/audit-civilization-bars.sh
+  handoff_rc=0
+  SKIP_DAY1=1 LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+  if [[ "$handoff_rc" -eq 2 ]]; then
+    echo "owner-finish-installable: PARTIAL — ${name} ${ver} already Installable; handoff soft-failed"
+    echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    exit 2
+  elif [[ "$handoff_rc" -ne 0 ]]; then
+    echo "owner-finish-installable: FAIL — post-Installable handoff rc=${handoff_rc}" >&2
+    exit "$handoff_rc"
+  fi
+  echo "owner-finish-installable: OK — ${name} ${ver} already Installable; handoff complete"
   exit 0
 fi
 
 echo
 echo "== 1) Token =="
-if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+# Load TOKEN_FILE + normalize whitespace into *this* shell so cargo publish sees it.
+# (check-registry-token alone runs in a subshell — its export would not stick.)
+# shellcheck source=scripts/lib/cargo-registry-token.sh
+source "$ROOT/scripts/lib/cargo-registry-token.sh"
+pl_prepare_cargo_registry_token "owner-finish-installable"
+
+tok_rc=0
+bash scripts/check-registry-token.sh || tok_rc=$?
+if [[ "$tok_rc" -eq 0 ]]; then
+  echo "owner-finish-installable: CARGO_REGISTRY_TOKEN accepted for publish-new auth"
+elif [[ "$tok_rc" -eq 2 || -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
   if [[ "$DRY_RUN" == "1" ]]; then
     echo "owner-finish-installable: CARGO_REGISTRY_TOKEN unset — DRY_RUN=1 continues (rehearsal only)"
   else
     echo "owner-finish-installable: CARGO_REGISTRY_TOKEN is NOT set" >&2
     echo >&2
     echo "Installable cannot finish without a crates.io publish token." >&2
-    echo "  1. Create a crates.io token (publish-update for ${name})" >&2
-    echo "  2. Add it as Cloud Agent secret CARGO_REGISTRY_TOKEN" >&2
-    echo "  3. Also add Actions secret CARGO_REGISTRY_TOKEN (release.yml / first-publish.yml)" >&2
-    echo "  4. Re-run: bash scripts/owner-finish-installable.sh" >&2
+    echo "One-screen owner ask:" >&2
+    echo "  bash scripts/owner-request-registry-token.sh" >&2
+    echo >&2
+    # Print the ask inline so the owner does not have to hunt for the helper.
+    bash scripts/owner-request-registry-token.sh >&2 || true
     echo >&2
     echo "If the token is only an Actions secret (not in this shell):" >&2
     echo "  After canceling stuck runs → Actions → First publish → confirm=publish" >&2
@@ -89,7 +157,9 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     exit 1
   fi
 else
-  echo "owner-finish-installable: CARGO_REGISTRY_TOKEN is set (len=${#CARGO_REGISTRY_TOKEN})"
+  echo "owner-finish-installable: CARGO_REGISTRY_TOKEN set but crates.io rejected it" >&2
+  echo "  Recreate with publish-new (+ publish-update); see check-registry-token output." >&2
+  exit 1
 fi
 
 echo
@@ -136,10 +206,38 @@ echo
 echo "== 4) Ensure clean main has civilization tip =="
 git fetch origin main "${CIVILIZATION_BRANCH}"
 
+# shellcheck source=scripts/lib/tip-delta.sh
+source "$ROOT/scripts/lib/tip-delta.sh"
+
+tip_sha="$(git rev-parse "origin/${CIVILIZATION_BRANCH}")"
+main_sha="$(git rev-parse origin/main)"
+echo "owner-finish-installable: origin/main=${main_sha:0:7} tip=${tip_sha:0:7}"
+
+# Trust rule: PUBLISH_LOCAL after FF is only safe when tip delta is docs/scripts
+# (library bytes already Verifiable-green on main) OR tip == main. Non-docs tip
+# drift must land on main and get green CI before the crates.io cut.
+tip_code_unverified=0
+if [[ "$main_sha" != "$tip_sha" ]] && ! pl_tip_delta_is_docs_only "$main_sha" "$tip_sha"; then
+  tip_code_unverified=1
+fi
+if [[ "$tip_code_unverified" -eq 1 && "$PUBLISH_LOCAL" == "1" && "$ALLOW_UNVERIFIED_TIP" != "1" ]]; then
+  echo "owner-finish-installable: refusing PUBLISH_LOCAL — tip has non-docs commits not on main" >&2
+  echo "  Pre-FF main CI does not cover tip library/workflow changes." >&2
+  echo "  1. CONFIRM=1 bash scripts/owner-sync-main.sh   # FF tip→main (code delta)" >&2
+  echo "  2. Wait until bash scripts/check-main-ci.sh is green on the new main HEAD" >&2
+  echo "  3. MERGE_CIVILIZATION=0 bash scripts/owner-finish-installable.sh" >&2
+  echo "  Override (not recommended): ALLOW_UNVERIFIED_TIP=1" >&2
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "owner-finish-installable: DRY_RUN=1 — would refuse here; continuing rehearsal" >&2
+  else
+    exit 1
+  fi
+fi
+if [[ "$tip_code_unverified" -eq 1 && "$ALLOW_UNVERIFIED_TIP" == "1" ]]; then
+  echo "owner-finish-installable: ALLOW_UNVERIFIED_TIP=1 — publishing tip code without tip-SHA Verifiable" >&2
+fi
+
 if [[ "$MERGE_CIVILIZATION" == "1" ]]; then
-  tip_sha="$(git rev-parse "origin/${CIVILIZATION_BRANCH}")"
-  main_sha="$(git rev-parse origin/main)"
-  echo "owner-finish-installable: origin/main=${main_sha:0:7} tip=${tip_sha:0:7}"
   if [[ "$main_sha" == "$tip_sha" ]]; then
     echo "owner-finish-installable: main already at civilization tip"
   else
@@ -148,6 +246,9 @@ if [[ "$MERGE_CIVILIZATION" == "1" ]]; then
       echo "owner-finish-installable: origin/main is not an ancestor of ${CIVILIZATION_BRANCH}" >&2
       echo "owner-finish-installable: open/merge a PR instead of fast-forward." >&2
       exit 1
+    fi
+    if [[ "$tip_code_unverified" -eq 0 ]]; then
+      echo "owner-finish-installable: tip delta is docs/scripts-only — FF+publish is Verifiable-safe"
     fi
     if [[ "$DRY_RUN" == "1" ]]; then
       echo "owner-finish-installable: DRY_RUN=1 — would fast-forward main to ${tip_sha:0:7}"
@@ -169,47 +270,163 @@ if [[ "$DRY_RUN" != "1" && "$branch" != "main" ]]; then
 fi
 
 echo
+echo "== 4c) Ensure post-cut parks contain tip =="
+# Tip docs/scripts commits (cut-path hardening, etc.) leave parks lagging tip⊆chain.
+# publish-ready hard-fails on that; refresh here so token-day cut does not die mid-flight.
+parks_rc=0
+bash scripts/check-post-cut-parks-stack.sh || parks_rc=$?
+if [[ "$parks_rc" -ne 0 ]]; then
+  echo "owner-finish-installable: parks lag tip — refreshing tip→Verifiable→SCRAM→lz4→checkout before cut"
+  if [[ "$DRY_RUN" == "1" ]]; then
+    DRY_RUN=1 bash scripts/refresh-post-cut-parks.sh
+    echo "owner-finish-installable: DRY_RUN parks refresh does not push; live cut will push the chain"
+  else
+    bash scripts/refresh-post-cut-parks.sh
+    bash scripts/check-post-cut-parks-stack.sh
+    # refresh-post-cut-parks leaves HEAD on the civilization tip; cut requires main.
+    if [[ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]]; then
+      echo "owner-finish-installable: restoring main after parks refresh (cut requires main)"
+      git checkout main
+      git pull --ff-only origin main
+    fi
+  fi
+fi
+
+echo
 echo "== 5) Cut release =="
 if [[ "$PUBLISH_LOCAL" == "1" ]]; then
   echo "owner-finish-installable: PUBLISH_LOCAL=1 (token in-env; bypasses Actions queue)"
 else
   echo "owner-finish-installable: PUBLISH_LOCAL=0 (tag → release.yml)"
+  # Tag→Actions needs the secret *before* the tag push, not after the wait loop.
+  echo "owner-finish-installable: syncing Actions secret before tag cut (PUBLISH_LOCAL=0)"
+  if command -v gh >/dev/null 2>&1; then
+    if printf '%s' "${CARGO_REGISTRY_TOKEN}" | gh secret set CARGO_REGISTRY_TOKEN 2>/tmp/pl-finish-secret.log; then
+      echo "owner-finish-installable: Actions secret CARGO_REGISTRY_TOKEN synced (pre-cut)"
+    else
+      echo "owner-finish-installable: WARN — could not set Actions secret before tag (need admin; agents often 403)" >&2
+      tail -3 /tmp/pl-finish-secret.log 2>/dev/null | sed 's/^/  /' || true
+      echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\"" >&2
+      if [[ "${REQUIRE_ACTIONS_SECRET:-0}" == "1" ]]; then
+        echo "owner-finish-installable: REQUIRE_ACTIONS_SECRET=1 — refusing PUBLISH_LOCAL=0 cut" >&2
+        exit 1
+      fi
+    fi
+  else
+    echo "owner-finish-installable: WARN — gh not available; cannot sync Actions secret before tag" >&2
+  fi
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
+  # SKIP_HANDOFF=1: cut rehearses publish/tag only; finish owns the single handoff.
+  cut_rc=0
   DRY_RUN=1 PUBLISH_LOCAL="$PUBLISH_LOCAL" \
     SKIP_PUBLISH_READY="${SKIP_PUBLISH_READY:-1}" \
-    bash scripts/owner-cut-release.sh
+    SKIP_HANDOFF=1 \
+    AUTO_REFRESH_PARKS=1 \
+    bash scripts/owner-cut-release.sh || cut_rc=$?
   echo
-  echo "owner-finish-installable: DRY_RUN complete — no merge/tag/publish performed"
+  echo "owner-finish-installable: DRY_RUN — no merge/tag/publish performed"
+  echo "owner-finish-installable: DRY_RUN=1 — would sync Actions secret CARGO_REGISTRY_TOKEN"
+  land_parks=0
+  if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
+    land_parks=1
+  fi
+  echo "owner-finish-installable: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
+  # Handoff DRY_RUN rehearses TP shape + parks stack (does not land). Keep the
+  # REQUIRE_PARKS land rehearsal below so soft-skipping parks cannot greenwash.
+  # Capture rcs — not-yet-Installable DRY_RUN must PARTIAL like already-Installable.
+  handoff_rc=0
+  LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+  parks_rc=0
+  if [[ "$land_parks" == "1" ]]; then
+    echo "owner-finish-installable: DRY_RUN=1 — parks land rehearsal (REQUIRE_PARKS=1)"
+    tip_br="${CIVILIZATION_TIP:-dev/civilization-plan-b686}"
+    git fetch origin main "$tip_br" >/dev/null 2>&1 || true
+    if git rev-parse "origin/${tip_br}" >/dev/null 2>&1 \
+        && ! git merge-base --is-ancestor "origin/${tip_br}" origin/main; then
+      echo "owner-finish-installable: tip ahead of main — DRY_RUN parks against ${tip_br}"
+      DRY_RUN=1 REQUIRE_PARKS=1 ALLOW_BEFORE_INSTALLABLE=1 TARGET_BRANCH="$tip_br" \
+        bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?
+    else
+      DRY_RUN=1 REQUIRE_PARKS=1 ALLOW_BEFORE_INSTALLABLE=1 \
+        bash scripts/owner-land-post-cut-parks.sh || parks_rc=$?
+    fi
+  fi
+  if [[ "$cut_rc" -eq 2 || "$parks_rc" -ne 0 || "$handoff_rc" -eq 2 ]]; then
+    echo "owner-finish-installable: PARTIAL — not-yet-Installable DRY_RUN soft-failed (cut_rc=${cut_rc} parks_rc=${parks_rc} handoff_rc=${handoff_rc})"
+    echo "  Re-enter after token cut: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    exit 2
+  elif [[ "$cut_rc" -ne 0 || "$handoff_rc" -ne 0 ]]; then
+    echo "owner-finish-installable: FAIL — not-yet-Installable DRY_RUN cut_rc=${cut_rc} handoff_rc=${handoff_rc}" >&2
+    exit 1
+  fi
+  echo "owner-finish-installable: DRY_RUN OK — not-yet-Installable path rehearsed (still needs token cut)"
   exit 0
 fi
 
-PUBLISH_LOCAL="$PUBLISH_LOCAL" bash scripts/owner-cut-release.sh
+# SKIP_HANDOFF=1 so cut does not land parks/TP before Actions secret sync; finish
+# runs exactly one handoff below (avoids double parks land on token day).
+PUBLISH_LOCAL="$PUBLISH_LOCAL" SKIP_HANDOFF=1 AUTO_REFRESH_PARKS=1 bash scripts/owner-cut-release.sh
 
 echo
-echo "== 6) Prove Installable =="
-bash scripts/check-installable.sh
-echo "owner-finish-installable: verify adopter crates.io consumer compiles"
-bash scripts/verify-crates-io-consumer.sh
-bash scripts/audit-civilization-bars.sh
-
-echo
-echo "== 7) Best-effort sync Actions secret for later tag publishes =="
+echo "== 6) Sync Actions secret for later tag publishes =="
+# cut-release already ran day1 + Installable prove. Keep Actions secret sync here
+# (handoff does not touch secrets), then one-shot TP + parks + re-verify via
+# owner-post-installable-handoff so live cut cannot drift from Actions re-entry.
+# Fail-closed PARTIAL: crates.io Installable + unsynced Actions secret must not
+# print final OK (agents often 403; later tag/Actions re-entry then fail closed
+# with no PARTIAL trail).
+secret_rc=0
+if [[ "$PUBLISH_LOCAL" == "0" ]]; then
+  echo "owner-finish-installable: Actions secret already synced pre-cut (PUBLISH_LOCAL=0); refreshing"
+fi
 if command -v gh >/dev/null 2>&1; then
   if printf '%s' "${CARGO_REGISTRY_TOKEN}" | gh secret set CARGO_REGISTRY_TOKEN 2>/tmp/pl-finish-secret.log; then
     echo "owner-finish-installable: Actions secret CARGO_REGISTRY_TOKEN synced"
   else
-    echo "owner-finish-installable: note — could not set Actions secret (need admin; agents often 403)"
+    secret_rc=1
+    echo "owner-finish-installable: WARN — could not set Actions secret (need admin; agents often 403)"
     tail -3 /tmp/pl-finish-secret.log 2>/dev/null | sed 's/^/  /' || true
-    echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
+    echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"$CARGO_REGISTRY_TOKEN\""
   fi
 else
-  echo "owner-finish-installable: note — gh not available; set Actions secret manually"
+  secret_rc=1
+  echo "owner-finish-installable: WARN — gh not available; set Actions secret manually"
+  echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"$CARGO_REGISTRY_TOKEN\""
 fi
 
 echo
+echo "== 7) Post-Installable handoff (TP + parks + re-verify) =="
+land_parks=0
+if [[ "${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}" == "1" ]]; then
+  land_parks=1
+fi
+echo "owner-finish-installable: LAND_PARKS=${land_parks} owner-post-installable-handoff (SKIP_DAY1=1; cut already ran day1)"
+handoff_rc=0
+SKIP_DAY1=1 LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+
+echo
+if [[ "$handoff_rc" -eq 2 ]]; then
+  echo "owner-finish-installable: PARTIAL — ${name} ${ver} is Installable but handoff soft-failed"
+  echo "owner-finish-installable: commit README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md crates.io lines if day1 changed them"
+  echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+  exit 2
+elif [[ "$handoff_rc" -ne 0 ]]; then
+  echo "owner-finish-installable: FAIL — post-Installable handoff rc=${handoff_rc}" >&2
+  exit "$handoff_rc"
+fi
+if [[ "$secret_rc" -ne 0 ]]; then
+  echo "owner-finish-installable: PARTIAL — Installable OK but Actions secret not synced"
+  echo "owner-finish-installable: ${name} ${ver} is on crates.io; later tag/Actions cuts need the secret"
+  echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"$CARGO_REGISTRY_TOKEN\""
+  echo "  Then: bash scripts/owner-post-installable-handoff.sh   # if handoff/parks still pending"
+  echo "owner-finish-installable: commit README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md crates.io lines if day1 changed them"
+  exit 2
+fi
 echo "owner-finish-installable: OK — ${name} ${ver} is Installable"
-echo "owner-finish-installable: commit README crates.io line if day1 changed it"
-echo "owner-finish-installable: then crates.io → Trusted Publishing → release.yml"
+echo "owner-finish-installable: commit README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md crates.io lines if day1 changed them"
+echo "owner-finish-installable: re-enter anytime with:"
+echo "  bash scripts/owner-post-installable-handoff.sh"
+echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks were skipped/failed"
 exit 0

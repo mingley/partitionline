@@ -99,4 +99,31 @@ print("  owner: DRY_RUN=1 bash scripts/owner-cancel-stuck-runs.sh")
 print("         bash scripts/owner-cancel-stuck-runs.sh")
 PY
 
+echo
+echo "check-actions-hygiene: Dependabot label probe"
+# .github/dependabot.yml requests label `dependencies`. Missing label does not
+# block PRs, but Dependabot comments on every PR and stewardship looks broken.
+if gh label list --json name --jq '.[].name' 2>/dev/null | grep -Fxq 'dependencies'; then
+  echo "OK  GitHub label 'dependencies' present (Dependabot)"
+else
+  echo "WARN  GitHub label 'dependencies' missing — Dependabot cannot apply it"
+  echo "  Owner one-shot (agents get 403 on label create):"
+  echo "    gh label create dependencies \\"
+  echo "      --repo mingley/partitionline \\"
+  echo "      --description 'Pull requests that update a dependency file' \\"
+  echo "      --color 0366d6"
+fi
+
+echo
+echo "check-actions-hygiene: Dependabot ↔ post-cut parks coverage"
+# Informational here (hygiene always exits 0). cut-path / bars hard-gate the same
+# script so unmapped Dependabot cannot silently escape stewardship.
+dep_rc=0
+bash scripts/check-dependabot-parks-coverage.sh || dep_rc=$?
+if [[ "$dep_rc" -eq 1 ]]; then
+  echo "WARN  Dependabot parks coverage failed — see above (cut-path will hard-fail)"
+elif [[ "$dep_rc" -eq 2 ]]; then
+  echo "WARN  Dependabot parks coverage soft-skipped (gh/API)"
+fi
+
 exit 0

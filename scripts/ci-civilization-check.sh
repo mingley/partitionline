@@ -38,10 +38,10 @@ if cargo publish --dry-run --allow-dirty >/tmp/pl-publish-dry.log 2>&1; then
 else
   bad "cargo publish --dry-run; see /tmp/pl-publish-dry.log"
 fi
-if DRY_RUN=1 bash scripts/post-publish-readme.sh >/tmp/pl-readme-dry.log 2>&1; then
-  ok "day1 README flip preflight (DRY_RUN=1)"
+if DRY_RUN=1 bash scripts/post-publish-readme.sh >/tmp/pl-readme-dry.log 2>&1   && DRY_RUN=1 bash scripts/post-publish-adoption.sh >/tmp/pl-adoption-dry.log 2>&1   && DRY_RUN=1 bash scripts/post-publish-guide.sh >/tmp/pl-guide-dry.log 2>&1   && DRY_RUN=1 bash scripts/post-publish-migrate.sh >/tmp/pl-migrate-dry.log 2>&1; then
+  ok "day1 README/ADOPTION/guide/migrate flip preflight (DRY_RUN=1)"
 else
-  bad "day1 README flip preflight; see /tmp/pl-readme-dry.log"
+  bad "day1 four-file flip preflight; see /tmp/pl-{readme,adoption,guide,migrate}-dry.log"
 fi
 # Prefer shared API+sparse-index probe (User-Agent required; CDN 403 without it).
 # shellcheck source=scripts/lib/crates-io.sh
@@ -138,7 +138,13 @@ if [[ "$broker_ok" -eq 0 ]]; then
     && SKIP_DOCKER=1 bash scripts/ci-broker-smoke.sh >/tmp/pl-broker.log 2>&1 \
     && grep -q 'ci-broker-smoke: ok' /tmp/pl-broker.log; then
     ok "broker smoke (native Kafka)"
-    bash scripts/ci-native-kafka.sh stop >/dev/null 2>&1 || true
+    # Leave shared native broker up for later integrity/latency (Lab A / tip chain).
+    # Stopping here forced Connection refused between broker → integrity and
+    # greenwashed as a soft miss under agent load. Opt-in old behavior:
+    # STOP_NATIVE_AFTER_BROKER=1.
+    if [[ "${STOP_NATIVE_AFTER_BROKER:-0}" == "1" ]]; then
+      bash scripts/ci-native-kafka.sh stop >/dev/null 2>&1 || true
+    fi
   else
     if [[ "${REQUIRE_BROKER:-}" == "1" ]]; then
       bad "broker smoke; see /tmp/pl-broker.log /tmp/pl-native-kafka.log"
@@ -148,6 +154,8 @@ if [[ "$broker_ok" -eq 0 ]]; then
   fi
 fi
 # TLS + PLAIN/SCRAM/OAUTHBEARER (SASL_SSL) — isolated ports; soft-skips without Java/Kafka.
+# Explicit "skipping" (missing tooling) may SKIP; any other failure is FAIL —
+# soft-skip must not greenwash broken auth.
 if bash scripts/ci-auth-smoke.sh >/tmp/pl-auth.log 2>&1 \
   && grep -q 'ci-auth-smoke: ok' /tmp/pl-auth.log; then
   ok "auth smoke (TLS + PLAIN/SCRAM/OAUTHBEARER SASL_SSL)"
@@ -158,11 +166,7 @@ elif grep -q 'ci-auth-smoke: skipping' /tmp/pl-auth.log; then
     ski "auth smoke (missing Java/openssl/Kafka tooling)"
   fi
 else
-  if [[ "${REQUIRE_AUTH:-}" == "1" ]]; then
-    bad "auth smoke; see /tmp/pl-auth.log"
-  else
-    ski "auth smoke (failed soft); see /tmp/pl-auth.log"
-  fi
+  bad "auth smoke; see /tmp/pl-auth.log"
 fi
 
 echo "== Operable =="
@@ -182,10 +186,24 @@ else
   bad "bench honesty labels missing"
 fi
 # Produce → HW == acked → fetch → consumed == seeded (+ unsigned latency gate).
-# Soft-skips without a broker unless REQUIRE_INTEGRITY=1.
-if bash scripts/ci-integrity-smoke.sh >/tmp/pl-integrity.log 2>&1 \
-  && grep -q 'ci-integrity-smoke: ok' /tmp/pl-integrity.log; then
+# Explicit "skipping" (no broker) may SKIP; any other failure is FAIL —
+# soft-skip must not greenwash integrity regressions. REQUIRE_INTEGRITY=1
+# still hard-fails the explicit skip path.
+set +e
+bash scripts/ci-integrity-smoke.sh >/tmp/pl-integrity.log 2>&1
+integ_rc=$?
+set -e
+if [[ "$integ_rc" -eq 0 ]] && grep -q 'ci-integrity-smoke: ok' /tmp/pl-integrity.log \
+  && ! grep -q 'latency gate failed (soft)' /tmp/pl-integrity.log; then
   ok "Lab A integrity smoke (HW+fetch+latency; unsigned)"
+elif grep -q 'latency gate failed (soft)' /tmp/pl-integrity.log \
+  || grep -q 'ci-integrity-smoke: PARTIAL' /tmp/pl-integrity.log; then
+  # Soft latency under load is not full Verifiable evidence — never PASS as ok.
+  if [[ "${REQUIRE_INTEGRITY:-}" == "1" ]]; then
+    bad "Lab A integrity latency soft-miss (REQUIRE_INTEGRITY=1); see /tmp/pl-integrity.log"
+  else
+    ski "Lab A integrity smoke (latency soft-miss; unsigned — not full Verifiable evidence)"
+  fi
 elif grep -q 'ci-integrity-smoke: skipping' /tmp/pl-integrity.log; then
   if [[ "${REQUIRE_INTEGRITY:-}" == "1" ]]; then
     bad "Lab A integrity smoke skipped; see /tmp/pl-integrity.log"
@@ -193,11 +211,7 @@ elif grep -q 'ci-integrity-smoke: skipping' /tmp/pl-integrity.log; then
     ski "Lab A integrity smoke (no broker)"
   fi
 else
-  if [[ "${REQUIRE_INTEGRITY:-}" == "1" ]]; then
-    bad "Lab A integrity smoke; see /tmp/pl-integrity.log"
-  else
-    ski "Lab A integrity smoke (failed soft); see /tmp/pl-integrity.log"
-  fi
+  bad "Lab A integrity smoke; see /tmp/pl-integrity.log"
 fi
 
 echo "== Independent =="

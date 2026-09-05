@@ -1,27 +1,124 @@
 #!/usr/bin/env bash
 # One-shot owner cut: main → tag vX.Y.Z → crates.io → day1.
-# Preferred civilization path (docs/RELEASE.md): push the final tag and let
-# release.yml publish (OIDC Trusted Publishing if configured, else
-# CARGO_REGISTRY_TOKEN Actions secret). Optional PUBLISH_LOCAL=1 uses
-# scripts/owner-publish.sh instead of waiting on Actions.
+# Preferred civilization path when a token is already in-env: PUBLISH_LOCAL=1
+# (cargo publish here; bypasses starved Actions). If CARGO_REGISTRY_TOKEN is
+# present and PUBLISH_LOCAL is unset, defaults to 1. Set PUBLISH_LOCAL=0 to
+# push the final tag and let release.yml publish (OIDC Trusted Publishing if
+# configured, else the Actions secret). Prefer owner-finish-installable for
+# tip→main FF + parks/handoff chaining.
 #
 # Refuses dirty trees and non-main branches (ALLOW_NON_MAIN_PUBLISH=1 to override).
 # Does not redefine Installable: check-installable.sh must still exit 0.
 #
 # Usage (on a clean main that already contains the civilization tip):
-#   bash scripts/owner-cut-release.sh
-#   PUBLISH_LOCAL=1 bash scripts/owner-cut-release.sh
+#   bash scripts/owner-cut-release.sh                 # auto PUBLISH_LOCAL=1 when token in-env
+#   PUBLISH_LOCAL=0 bash scripts/owner-cut-release.sh # tag → release.yml
+#   PUBLISH_LOCAL=1 bash scripts/owner-cut-release.sh # force local publish
 #   DRY_RUN=1 bash scripts/owner-cut-release.sh
+#   SKIP_HANDOFF=1 …  # finish calls this so secret sync + one handoff stay in finish
 #   REQUIRE_ACTIONS_SECRET=1 bash scripts/owner-cut-release.sh  # fail if Actions secret missing
+#   bash scripts/owner-cut-release.sh --self-test
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if [[ "${1:-}" == "--self-test" ]]; then
+  # Prove unset PUBLISH_LOCAL + token → auto 1; explicit 0 stays 0.
+  # shellcheck source=scripts/lib/cargo-registry-token.sh
+  source "$ROOT/scripts/lib/cargo-registry-token.sh"
+  auto_from_token() {
+    local PUBLISH_LOCAL_EXPLICIT PUBLISH_LOCAL CARGO_REGISTRY_TOKEN
+    unset PUBLISH_LOCAL || true
+    if [[ -z "${PUBLISH_LOCAL+x}" ]]; then
+      PUBLISH_LOCAL_EXPLICIT=0
+      PUBLISH_LOCAL=0
+    else
+      PUBLISH_LOCAL_EXPLICIT=1
+    fi
+    CARGO_REGISTRY_TOKEN="fake-token-for-self-test"
+    if [[ "$PUBLISH_LOCAL_EXPLICIT" != "1" && -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+      PUBLISH_LOCAL=1
+    fi
+    [[ "$PUBLISH_LOCAL" == "1" ]] || {
+      echo "owner-cut-release --self-test: FAIL — token+unset should auto PUBLISH_LOCAL=1" >&2
+      exit 1
+    }
+  }
+  keep_explicit_zero() {
+    local PUBLISH_LOCAL_EXPLICIT PUBLISH_LOCAL CARGO_REGISTRY_TOKEN
+    PUBLISH_LOCAL=0
+    if [[ -z "${PUBLISH_LOCAL+x}" ]]; then
+      PUBLISH_LOCAL_EXPLICIT=0
+      PUBLISH_LOCAL=0
+    else
+      PUBLISH_LOCAL_EXPLICIT=1
+    fi
+    CARGO_REGISTRY_TOKEN="fake-token-for-self-test"
+    if [[ "$PUBLISH_LOCAL_EXPLICIT" != "1" && -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+      PUBLISH_LOCAL=1
+    fi
+    [[ "$PUBLISH_LOCAL" == "0" ]] || {
+      echo "owner-cut-release --self-test: FAIL — explicit PUBLISH_LOCAL=0 must stick" >&2
+      exit 1
+    }
+  }
+  auto_from_token
+  keep_explicit_zero
+  grep -qF 'PUBLISH_LOCAL_EXPLICIT' "$ROOT/scripts/owner-cut-release.sh"     || { echo "owner-cut-release --self-test: FAIL — missing PUBLISH_LOCAL_EXPLICIT wiring" >&2; exit 1; }
+  grep -qF 'owner-post-installable-handoff' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — must chain owner-post-installable-handoff after day1" >&2; exit 1; }
+  grep -qF 'LAND_PARKS' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — LAND_PARKS wiring missing for handoff chain" >&2; exit 1; }
+  grep -qF 'SKIP_HANDOFF' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — SKIP_HANDOFF knob missing (finish single-handoff)" >&2; exit 1; }
+  grep -qF 'secret_rc' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — secret_rc missing (bare-cut Actions secret PARTIAL)" >&2; exit 1; }
+  grep -qF 'PARTIAL — Installable OK but Actions secret not synced' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — Actions secret PARTIAL string missing" >&2; exit 1; }
+  # DRY_RUN must rehearse handoff (or honor SKIP_HANDOFF) — never exit 0 before that.
+    grep -qF 'PARTIAL — handoff soft-failed (not yet Installable' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — pre-Installable handoff PARTIAL must not claim crates.io" >&2; exit 1; }
+  grep -qF 'dry_handoff_rc' "$ROOT/scripts/owner-cut-release.sh" \
+    || { echo "owner-cut-release --self-test: FAIL — DRY_RUN must capture dry_handoff_rc (no soft-green over PARTIAL)" >&2; exit 1; }
+if ! awk '
+    /owner-post-installable-handoff/ && !dry { hand_before=NR }
+    /DRY_RUN complete/ { dry=NR }
+    /SKIP_HANDOFF/ { skip=NR }
+    END { exit (dry && hand_before && skip && hand_before < dry) ? 0 : 1 }
+  ' "$ROOT/scripts/owner-cut-release.sh"; then
+    echo "owner-cut-release --self-test: FAIL — DRY_RUN must reach handoff before DRY_RUN complete" >&2
+    exit 1
+  fi
+  echo "owner-cut-release: --self-test OK — token auto PUBLISH_LOCAL=1; explicit 0 preserved; handoff chained; DRY_RUN reaches handoff; Actions secret PARTIAL gated"
+  exit 0
+fi
+
+
 DRY_RUN="${DRY_RUN:-0}"
-PUBLISH_LOCAL="${PUBLISH_LOCAL:-0}"
+# Distinguish unset (auto) from explicit PUBLISH_LOCAL=0 (tag→Actions).
+if [[ -z "${PUBLISH_LOCAL+x}" ]]; then
+  PUBLISH_LOCAL_EXPLICIT=0
+  PUBLISH_LOCAL=0
+else
+  PUBLISH_LOCAL_EXPLICIT=1
+fi
 SKIP_PUBLISH_READY="${SKIP_PUBLISH_READY:-0}"
 WAIT_CRATES_ATTEMPTS="${WAIT_CRATES_ATTEMPTS:-36}" # ~6 minutes at 10s
+
+# TOKEN_FILE + whitespace normalize into this shell before PUBLISH_LOCAL probe/publish.
+# shellcheck source=scripts/lib/cargo-registry-token.sh
+source "$ROOT/scripts/lib/cargo-registry-token.sh"
+pl_prepare_cargo_registry_token "owner-cut-release"
+
+# Token-day footgun: stepwise docs call cut-release bare. If a publish-new token
+# is already in-env and the caller did not force PUBLISH_LOCAL=0, prefer local
+# publish (same default as owner-finish-installable) instead of tag→starved Actions.
+if [[ "$PUBLISH_LOCAL_EXPLICIT" != "1" && -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+  PUBLISH_LOCAL=1
+  echo "owner-cut-release: CARGO_REGISTRY_TOKEN in-env — defaulting PUBLISH_LOCAL=1"
+  echo "  (set PUBLISH_LOCAL=0 to force tag → release.yml / Actions)"
+fi
 
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
@@ -68,6 +165,7 @@ if [[ "$PUBLISH_LOCAL" != "1" ]]; then
     else
       echo "owner-cut-release: WARN — CARGO_REGISTRY_TOKEN not listed in Actions secrets." >&2
       echo "  First publish will fail until the secret exists (or use PUBLISH_LOCAL=1)." >&2
+      echo "  Prefer: bash scripts/owner-finish-installable.sh (syncs secret before tag when PUBLISH_LOCAL=0)." >&2
       if [[ "${REQUIRE_ACTIONS_SECRET:-0}" == "1" ]]; then
         echo "owner-cut-release: REQUIRE_ACTIONS_SECRET=1 — refusing to cut." >&2
         exit 1
@@ -100,6 +198,10 @@ else
 fi
 
 if [[ "$PUBLISH_LOCAL" == "1" ]]; then
+  # Probe publish-new auth before cargo publish (structured empty-tarball; not /me).
+  if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+    bash scripts/check-registry-token.sh
+  fi
   if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     if [[ "$DRY_RUN" == "1" ]]; then
       echo "owner-cut-release: DRY_RUN=1 — would require CARGO_REGISTRY_TOKEN then owner-publish + push ${tag}"
@@ -116,7 +218,7 @@ if [[ "$PUBLISH_LOCAL" == "1" ]]; then
   fi
 else
   echo
-  echo "owner-cut-release: preferred path — push tag; release.yml publishes"
+  echo "owner-cut-release: PUBLISH_LOCAL=0 — push tag; release.yml publishes"
   if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     echo "owner-cut-release: note — no local CARGO_REGISTRY_TOKEN; Actions must have"
     echo "  the secret (first cut) or crates.io Trusted Publishing (later cuts)."
@@ -128,9 +230,91 @@ else
   fi
 fi
 
+# Post-cut handoff (TP + parks + bars). Finish sets SKIP_HANDOFF=1 so it can
+# sync Actions secrets once, then run a single handoff (no double parks land).
+# Bare cut (SKIP_HANDOFF=0) owns Actions secret sync here — same fail-closed
+# PARTIAL as finish when sync fails after Installable.
+SKIP_HANDOFF="${SKIP_HANDOFF:-0}"
+land_parks="${LAND_PARKS:-${MERGE_POST_CUT_PARKS:-${MERGE_PARKED_VERIFIABLE:-1}}}"
+secret_rc=0
+
+pl_cut_sync_actions_secret() {
+  # Finish owns secret sync when SKIP_HANDOFF=1. Bare cut must not soft-OK.
+  if [[ "$SKIP_HANDOFF" == "1" ]]; then
+    return 0
+  fi
+  echo
+  echo "== sync Actions secret for later tag publishes =="
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "owner-cut-release: DRY_RUN=1 — would sync Actions secret CARGO_REGISTRY_TOKEN"
+    return 0
+  fi
+  if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+    # Tag→Actions path may rely on a pre-set Actions secret; cannot sync from here.
+    echo "owner-cut-release: note — no in-env CARGO_REGISTRY_TOKEN to sync (Actions-only path)"
+    return 0
+  fi
+  if command -v gh >/dev/null 2>&1; then
+    if printf '%s' "${CARGO_REGISTRY_TOKEN}" | gh secret set CARGO_REGISTRY_TOKEN 2>/tmp/pl-cut-secret.log; then
+      echo "owner-cut-release: Actions secret CARGO_REGISTRY_TOKEN synced"
+    else
+      secret_rc=1
+      echo "owner-cut-release: WARN — could not set Actions secret (need admin; agents often 403)"
+      tail -3 /tmp/pl-cut-secret.log 2>/dev/null | sed 's/^/  /' || true
+      echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
+    fi
+  else
+    secret_rc=1
+    echo "owner-cut-release: WARN — gh not available; set Actions secret manually"
+    echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
+  fi
+}
+
+pl_cut_run_handoff() {
+  local handoff_rc=0
+  if [[ "$SKIP_HANDOFF" == "1" ]]; then
+    echo "owner-cut-release: SKIP_HANDOFF=1 — TP/parks left to caller (finish single-handoff)"
+    return 0
+  fi
+  echo
+  echo "== post-Installable handoff (TP + parks + bars) =="
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "owner-cut-release: DRY_RUN=1 — would run owner-post-installable-handoff (LAND_PARKS=${land_parks})"
+    LAND_PARKS=0 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+  else
+    SKIP_DAY1="${SKIP_DAY1:-0}" LAND_PARKS="$land_parks" bash scripts/owner-post-installable-handoff.sh || handoff_rc=$?
+  fi
+  if [[ "$handoff_rc" -eq 2 ]]; then
+    if bash scripts/check-installable.sh >/dev/null 2>&1; then
+      echo "owner-cut-release: PARTIAL — ${name} ${ver} is Installable on crates.io but handoff soft-failed"
+      echo "owner-cut-release: commit README + ADOPTION + guide + migrate crates.io lines if day1 changed them."
+      echo "  Re-enter: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    else
+      # Pre-token / absent-crate DRY_RUN handoff PARTIAL must not claim Installable.
+      echo "owner-cut-release: PARTIAL — handoff soft-failed (not yet Installable; parks/day1 pending)"
+      echo "  Pre-token rehearsal held; do not treat this as crates.io ${ver} existing."
+      echo "  After Installable: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh"
+    fi
+    return 2
+  elif [[ "$handoff_rc" -ne 0 ]]; then
+    echo "owner-cut-release: FAIL — post-Installable handoff rc=${handoff_rc}" >&2
+    return "$handoff_rc"
+  fi
+  return 0
+}
+
 if [[ "$DRY_RUN" == "1" ]]; then
   echo
-  echo "owner-cut-release: DRY_RUN complete — no publish / day1 performed"
+  echo "owner-cut-release: DRY_RUN — skipping crates.io wait / day1; rehearsing secret sync + handoff"
+  pl_cut_sync_actions_secret
+  dry_handoff_rc=0
+  pl_cut_run_handoff || dry_handoff_rc=$?
+  if [[ "$dry_handoff_rc" -ne 0 ]]; then
+    # Propagate PARTIAL/2 (or hard fail) — never soft-green DRY_RUN complete over handoff PARTIAL.
+    exit "$dry_handoff_rc"
+  fi
+  echo
+  echo "owner-cut-release: DRY_RUN complete — no publish / day1 performed; handoff rehearsed (or SKIP_HANDOFF)"
   exit 0
 fi
 
@@ -153,16 +337,31 @@ if [[ "$ok" != "1" ]]; then
 fi
 
 echo
-echo "== day1 (README flip + remaining owner steps) =="
+echo "== day1 (README/ADOPTION/guide/migrate flip + remaining owner steps) =="
 bash scripts/day1-after-publish.sh
 bash scripts/check-installable.sh
 
-echo
-echo "== civilization bars (post-publish) =="
-bash scripts/audit-civilization-bars.sh
+# day1 already flipped adopter docs; handoff must not re-run day1 as a second flip.
+SKIP_DAY1=1
+pl_cut_sync_actions_secret
 
+handoff_rc=0
+pl_cut_run_handoff || handoff_rc=$?
+if [[ "$handoff_rc" -ne 0 ]]; then
+  exit "$handoff_rc"
+fi
+if [[ "$secret_rc" -ne 0 ]]; then
+  echo
+  echo "owner-cut-release: PARTIAL — Installable OK but Actions secret not synced"
+  echo "owner-cut-release: ${name} ${ver} is on crates.io; later tag/Actions cuts need the secret"
+  echo "  Owner: gh secret set CARGO_REGISTRY_TOKEN <<< \"\$CARGO_REGISTRY_TOKEN\""
+  echo "  Then: LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks/TP still pending"
+  echo "owner-cut-release: commit README + ADOPTION + guide + migrate crates.io lines if day1 changed them."
+  exit 2
+fi
 echo
 echo "owner-cut-release: OK — ${name} ${ver} is Installable on crates.io"
-echo "owner-cut-release: commit the README crates.io line if day1 changed it, then"
-echo "  configure crates.io Trusted Publishing for release.yml (drop long-lived secret)."
+echo "owner-cut-release: commit README + ADOPTION + guide + migrate crates.io lines if day1 changed them."
+echo "  Re-enter handoff anytime: bash scripts/owner-post-installable-handoff.sh"
+echo "  LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh   # if parks/TP soft-failed"
 exit 0

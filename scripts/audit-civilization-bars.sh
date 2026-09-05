@@ -67,11 +67,29 @@ case "${PL_CRATES_PROBE_STATUS}" in
     bad "crates.io probe inconclusive (${PL_CRATES_PROBE_DETAIL})"
     ;;
 esac
-if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-  iblk "CARGO_REGISTRY_TOKEN unset (first publish / Actions secret)"
-else
-  ok "CARGO_REGISTRY_TOKEN present in environment"
-fi
+# Probe auth — do not PASS on presence alone (publish-update-only / garbage tokens).
+tok_rc=0
+bash scripts/check-registry-token.sh >/tmp/pl-audit-token.log 2>&1 || tok_rc=$?
+case "$tok_rc" in
+  0)
+    ok "CARGO_REGISTRY_TOKEN accepted by crates.io for publish-new auth"
+    ;;
+  2)
+    # After crates.io has this version, Installable is proven; token is for future cuts only.
+    if [[ "${PL_CRATES_PROBE_STATUS}" == "present" ]]; then
+      ok "CARGO_REGISTRY_TOKEN unset (Installable already proven on crates.io; token only for future cuts)"
+    else
+      iblk "CARGO_REGISTRY_TOKEN unset (first publish / Actions secret; needs publish-new)"
+    fi
+    ;;
+  *)
+    if [[ "${PL_CRATES_PROBE_STATUS}" == "present" ]]; then
+      part "CARGO_REGISTRY_TOKEN rejected (Installable already proven; recreate before next cut)"
+    else
+      iblk "CARGO_REGISTRY_TOKEN rejected by crates.io (recreate with publish-new; see check-registry-token)"
+    fi
+    ;;
+esac
 
 # --- 2. Verifiable ---
 echo
@@ -90,6 +108,73 @@ if [[ -f scripts/ci-broker-smoke.sh && -f scripts/ci-auth-smoke.sh ]]; then
   ok "broker + auth smoke scripts present"
 else
   bad "missing broker/auth smoke scripts"
+fi
+if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
+   && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
+  ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"
+else
+  bad "missing tip live-broker Verifiable scripts (ci-integrity-smoke/ci-latency-gate/ensure-broker/ci-tip-verifiable-broker)"
+fi
+if [[ -f scripts/ci-branch-lite.sh ]] && grep -q 'ci-tip-verifiable-broker' scripts/ci-branch-lite.sh \
+  && [[ -f scripts/check-cut-path.sh ]] && grep -q 'ci-tip-verifiable-broker' scripts/check-cut-path.sh; then
+  ok "tip Verifiable proxy wires ci-tip-verifiable-broker (branch-lite + cut-path)"
+else
+  bad "ci-tip-verifiable-broker not wired into ci-branch-lite / check-cut-path"
+fi
+# Soft-skip must not claim tip Verifiable `ok` after mid-chain skips (PARTIAL).
+# PARTIAL must exit 2 by default so set -e tip proxies cannot greenwash.
+# Prefer executable --self-test over grep-only (finalize exit codes cannot drift).
+# Cut path (`owner-finish-installable`) + Installable preflight must also run both honesty self-tests.
+if [[ -f scripts/ci-tip-verifiable-broker.sh ]] \
+  && grep -q 'pl_tip_verifiable_finalize' scripts/ci-tip-verifiable-broker.sh \
+  && grep -q 'pl_tip_verifiable_interpret_integrity' scripts/ci-tip-verifiable-broker.sh \
+  && grep -qF 'latency gate failed (soft)' scripts/ci-tip-verifiable-broker.sh \
+  && grep -q 'pl_tip_verifiable_quiet_retry_integrity' scripts/ci-tip-verifiable-broker.sh \
+  && grep -q 'TIP_VERIFIABLE_QUIET_RETRIES' scripts/ci-tip-verifiable-broker.sh \
+  && grep -qF -- '--self-test' scripts/ci-tip-verifiable-broker.sh \
+  && grep -q 'TIP_VERIFIABLE_SOFT' scripts/ci-tip-verifiable-broker.sh \
+  && grep -q 'pl_tip_verifiable_tooling_ready' scripts/ci-tip-verifiable-broker.sh \
+  && bash scripts/ci-tip-verifiable-broker.sh --self-test >/tmp/pl-tip-verifiable-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-tip-verifiable-self-test.log \
+  && grep -q 'soft latency honesty' /tmp/pl-tip-verifiable-self-test.log \
+  && grep -q 'quiet retry' /tmp/pl-tip-verifiable-self-test.log \
+  && [[ -f scripts/ci-branch-lite.sh ]] && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/ci-branch-lite.sh \
+  && [[ -f scripts/check-cut-path.sh ]] && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/check-cut-path.sh \
+  && [[ -f scripts/owner-finish-installable.sh ]] \
+  && grep -qF -- 'check-registry-token.sh --self-test' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/owner-finish-installable.sh \
+  && [[ -f scripts/check-installable-preflight.sh ]] \
+  && grep -qF -- 'check-registry-token.sh --self-test' scripts/check-installable-preflight.sh \
+  && grep -qF -- 'ci-tip-verifiable-broker.sh --self-test' scripts/check-installable-preflight.sh \
+  && grep -qF -- 'pl_prepare_cargo_registry_token' scripts/check-installable-preflight.sh \
+  && grep -qF -- 'check-installable-preflight.sh --self-test' scripts/check-installable-preflight.sh \
+  && bash scripts/check-installable-preflight.sh --self-test >/tmp/pl-preflight-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-preflight-self-test.log; then
+  ok "tip Verifiable soft-skip honesty (--self-test PARTIAL exit 2 + soft latency + quiet retry; wired into branch-lite/cut-path/finish/preflight)"
+  ok "Installable preflight TOKEN prepare honesty (whitespace/misname/TOKEN_FILE before READY_EXCEPT_TOKEN; --self-test)"
+else
+  bad "ci-tip-verifiable-broker soft-skip honesty missing (--self-test / finalize / soft latency / quiet retry / tip proxy+finish+preflight wiring); see /tmp/pl-tip-verifiable-self-test.log"
+  bad "Installable preflight TOKEN prepare honesty missing (pl_prepare / --self-test); see /tmp/pl-preflight-self-test.log"
+fi
+# Integrity leaf must not print final `ok` after soft latency — civilization-check / tip
+# proxies must see PARTIAL/exit 2 (REQUIRE_INTEGRITY=1 → hard-fail). Soft branch must
+# exit before the final `ok` line in source order.
+if [[ -f scripts/ci-integrity-smoke.sh ]] \
+  && grep -qF 'latency_soft=1' scripts/ci-integrity-smoke.sh \
+  && grep -qF 'ci-integrity-smoke: PARTIAL' scripts/ci-integrity-smoke.sh \
+  && awk '
+      /latency_soft=1/ { soft=NR }
+      /ci-integrity-smoke: PARTIAL/ { partial=NR }
+      /exit 2/ && soft && NR >= soft { e2=NR }
+      /ci-integrity-smoke: ok \(unsigned/ { ok=NR }
+      END { exit (soft && partial && e2 && ok && partial < ok && e2 < ok) ? 0 : 1 }
+    ' scripts/ci-integrity-smoke.sh \
+  && [[ -f scripts/ci-civilization-check.sh ]] \
+  && grep -qF 'ci-integrity-smoke: PARTIAL' scripts/ci-civilization-check.sh \
+  && grep -qF 'latency soft-miss' scripts/ci-civilization-check.sh; then
+  ok "integrity-smoke soft-latency honesty (PARTIAL/exit 2 before final ok; civilization-check ski)"
+else
+  bad "integrity-smoke soft-latency honesty missing (must PARTIAL/exit 2 before final ok; never greenwash soft)"
 fi
 fuzz_n=0
 if [[ -d fuzz/fuzz_targets ]]; then
@@ -123,6 +208,248 @@ if grep -qiE 'tracing|metrics|prometheus' docs/guide.md; then
   ok "observability path documented in guide"
 else
   bad "guide missing metrics/tracing path"
+fi
+# Documented git pin must cargo-check while Installable waits (Adoptable before crates.io).
+if grep -qF 'MODE=git' scripts/check-cut-path.sh \
+  && grep -qF 'MODE=git' scripts/check-installable-preflight.sh \
+  && grep -qF 'MODE=git' scripts/owner-finish-installable.sh \
+  && grep -qE 'MODE=git|mode.*git' scripts/verify-crates-io-consumer.sh; then
+  if MODE=git bash scripts/verify-crates-io-consumer.sh >/tmp/pl-git-adopter.log 2>&1; then
+    ok "git-tag adopter consumer (documented pin cargo-checks; wired into cut-path + preflight + finish)"
+  else
+    bad "git-tag adopter consumer failed; see /tmp/pl-git-adopter.log"
+  fi
+else
+  bad "git-tag adopter consumer not wired into cut-path / preflight / finish / verify-crates-io-consumer"
+fi
+
+# Adopter-pin honesty: pre-Installable = git tag parity (no crates.io lead);
+# post-Installable = four-file crates.io shape (day1 flipped).
+if [[ -x scripts/check-adopter-pin.sh ]] \
+  && grep -qF 'docs/guide.md' scripts/check-adopter-pin.sh \
+  && grep -qF 'leads with crates.io version while README is still git-shaped' scripts/check-adopter-pin.sh \
+  && bash scripts/check-adopter-pin.sh >/tmp/pl-adopter-pin.log 2>&1; then
+  if bash scripts/check-installable.sh >/dev/null 2>&1; then
+    if grep -qE '^partitionline = "[0-9]' README.md \
+      && grep -qE 'partitionline = "[0-9]' docs/ADOPTION.md \
+      && grep -qE 'partitionline = \{ version = "[0-9]' docs/guide.md \
+      && grep -qE '^partitionline = "[0-9]' docs/migrate-from-rdkafka.md \
+      && ! grep -qE '^partitionline = \{ git =' docs/guide.md \
+      && ! grep -qE '^partitionline = \{ git =' docs/migrate-from-rdkafka.md; then
+      ok "adopter-pin honesty (post-Installable crates.io four-file shape; check-adopter-pin ok)"
+    else
+      bad "adopter-pin honesty failed post-Installable — docs not fully crates.io-shaped; see /tmp/pl-adopter-pin.log"
+    fi
+  else
+    if grep -qF 'tag = "v0.1.0-rc.6"' docs/guide.md \
+      && ! grep -qE '^partitionline = "[0-9]' docs/migrate-from-rdkafka.md \
+      && ! grep -qE '^partitionline = \{ version = "[0-9]' docs/guide.md; then
+      ok "adopter-pin honesty (README/ADOPTION/migrate/guide tag parity; no live crates.io lead pre-Installable)"
+    else
+      bad "adopter-pin honesty missing/failed pre-Installable; see /tmp/pl-adopter-pin.log"
+    fi
+  fi
+else
+  bad "adopter-pin honesty missing/failed; see /tmp/pl-adopter-pin.log"
+fi
+
+# Day1 must flip guide + migrate (not only README/ADOPTION), rehearsed in publish-ready.
+if grep -qF 'post-publish-guide.sh' scripts/day1-after-publish.sh \
+  && grep -qF 'post-publish-migrate.sh' scripts/day1-after-publish.sh \
+  && grep -qF 'post-publish-guide.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'post-publish-migrate.sh' scripts/ci-publish-ready.sh \
+  && grep -qF 'docs/guide.md' scripts/lib/preserve-day1-docs.sh \
+  && grep -qF 'docs/migrate-from-rdkafka.md' scripts/lib/preserve-day1-docs.sh \
+  && grep -qF 'README/ADOPTION/guide/migrate' scripts/lib/preserve-day1-docs.sh \
+  && DRY_RUN=1 bash scripts/post-publish-guide.sh >/tmp/pl-guide-flip-bars.log 2>&1 \
+  && DRY_RUN=1 bash scripts/post-publish-migrate.sh >/tmp/pl-migrate-flip-bars.log 2>&1 \
+  && grep -q 'DRY_RUN ok' /tmp/pl-guide-flip-bars.log \
+  && grep -q 'DRY_RUN ok' /tmp/pl-migrate-flip-bars.log; then
+  ok "day1 guide+migrate crates.io flip (DRY_RUN rehearsed; wired into day1 + publish-ready + preserve-day1)"
+else
+  bad "day1 guide+migrate flip missing/failed; see /tmp/pl-guide-flip-bars.log /tmp/pl-migrate-flip-bars.log"
+fi
+# Parks auto-refresh must restore main/caller before cut/publish (token-day footgun).
+if [[ -x scripts/check-parks-refresh-cut-guards.sh ]] \
+  && bash scripts/check-parks-refresh-cut-guards.sh >/tmp/pl-parks-refresh-guards.log 2>&1 \
+  && grep -qF -- 'check-parks-refresh-cut-guards.sh' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'check-parks-refresh-cut-guards.sh' scripts/check-cut-path.sh \
+  && grep -qF -- 'check-parks-refresh-cut-guards.sh' scripts/check-installable-preflight.sh; then
+  ok "parks-refresh cut guards (restore main/caller; wired into finish + cut-path + preflight)"
+else
+  bad "parks-refresh cut guards missing or unwired; see /tmp/pl-parks-refresh-guards.log"
+fi
+# day1 crates.io README/ADOPTION flips must survive parks land (stash pop can fail).
+# Live parks land now runs inside handoff (LAND_PARKS=1) as well as finish — both must preserve.
+if [[ -x scripts/lib/preserve-day1-docs.sh ]] \
+  && bash scripts/lib/preserve-day1-docs.sh --self-test >/tmp/pl-day1-docs-preserve.log 2>&1 \
+  && grep -qF -- 'preserve-day1-docs.sh' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'preserve-day1-docs.sh' scripts/check-installable-preflight.sh \
+  && grep -qF -- 'preserve-day1-docs.sh' scripts/check-cut-path.sh \
+  && grep -qF -- 'preserve-day1-docs.sh' scripts/owner-post-installable-handoff.sh \
+  && grep -qF -- 'pl_day1_docs_begin' scripts/owner-post-installable-handoff.sh \
+  && grep -qF -- 'pl_day1_docs_end' scripts/owner-post-installable-handoff.sh; then
+  ok "day1 docs preserve across parks (stash+backup; wired into finish + cut-path + preflight + handoff)"
+else
+  bad "day1 docs preserve missing or unwired (finish/preflight/cut-path/handoff); see /tmp/pl-day1-docs-preserve.log"
+fi
+# Post-Installable handoff must exist for TP/parks re-entry (Actions-alternate + soft-fails).
+if [[ -x scripts/owner-post-installable-handoff.sh ]] \
+  && grep -qF -- 'owner-post-installable-handoff.sh' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'owner-post-installable-handoff.sh' scripts/check-cut-path.sh \
+  && grep -qF -- 'owner-post-installable-handoff.sh' scripts/day1-after-publish.sh \
+  && grep -qF -- 'owner-post-installable-handoff.sh' scripts/owner-dispatch-first-publish.sh \
+  && grep -qF -- 'LAND_PARKS=' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'Post-Installable handoff' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'would run owner-post-installable-handoff' scripts/owner-finish-installable.sh \
+  && grep -qF -- 'owner-post-installable-handoff' scripts/owner-cut-release.sh \
+  && grep -qF -- 'LAND_PARKS' scripts/owner-cut-release.sh \
+  && grep -qF -- 'SKIP_HANDOFF' scripts/owner-cut-release.sh \
+  && grep -qF -- 'SKIP_HANDOFF=1' scripts/owner-finish-installable.sh \
+  && grep -qF 'PARTIAL — already-Installable DRY_RUN soft-failed' scripts/owner-finish-installable.sh \
+  && grep -qF 'PARTIAL — not-yet-Installable DRY_RUN soft-failed' scripts/owner-finish-installable.sh \
+  && grep -qF 'PARTIAL — Installable OK but Actions secret not synced' scripts/owner-finish-installable.sh \
+  && grep -qF 'secret_rc' scripts/owner-finish-installable.sh \
+  && grep -qF 'PARTIAL — Installable OK but Actions secret not synced' scripts/owner-cut-release.sh \
+  && grep -qF 'secret_rc' scripts/owner-cut-release.sh \
+  && grep -qF 'parks_rc' scripts/owner-finish-installable.sh \
+  && grep -qF 'PARTIAL — not yet Installable' scripts/day1-after-publish.sh \
+  && grep -qF 'day1_rc' scripts/check-cut-path.sh \
+  && grep -qF 'day1_rc' scripts/ci-branch-lite.sh \
+  && grep -qF 'day1_rc' scripts/ci-publish-ready.sh \
+  && grep -qF 'finish_rc' scripts/check-cut-path.sh \
+  && grep -qF 'dispatch_rc' scripts/check-cut-path.sh \
+  && grep -qF 'dispatch_rc' scripts/ci-branch-lite.sh \
+  && grep -qF 'dispatch_rc' scripts/ci-publish-ready.sh \
+  && grep -qF 'handoff_rc' scripts/check-cut-path.sh \
+  && grep -qF 'handoff_rc' scripts/ci-branch-lite.sh \
+  && grep -qF 'handoff_rc' scripts/ci-publish-ready.sh \
+  && grep -qF 'PARTIAL — handoff DRY_RUN soft-failed' scripts/check-cut-path.sh \
+  && grep -qF 'PARTIAL — handoff DRY_RUN soft-failed' scripts/ci-branch-lite.sh \
+  && grep -qF 'PARTIAL — handoff DRY_RUN soft-failed' scripts/ci-publish-ready.sh \
+  && grep -qF 'PARTIAL — already Installable' scripts/owner-dispatch-first-publish.sh \
+  && bash scripts/owner-dispatch-first-publish.sh --self-test >/tmp/pl-dispatch-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-dispatch-self-test.log \
+  && grep -qF 'check-installable-preflight.sh' scripts/owner-request-registry-token.sh \
+  && grep -qF 'READY_EXCEPT_TOKEN' scripts/owner-request-registry-token.sh \
+  && grep -qF 'parks stack stale' scripts/owner-request-registry-token.sh \
+  && grep -qF 'owner-request-registry-token: PARTIAL — parks not on main yet' scripts/owner-request-registry-token.sh \
+  && grep -qF 'exit 2' scripts/owner-request-registry-token.sh \
+  && grep -qF 'no README/ADOPTION/guide/migrate commit performed' scripts/day1-after-publish.sh \
+  && grep -qF 'commit README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md if day1 changed them' scripts/owner-unblock.sh \
+  && grep -qF -- '--self-test' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'PARTIAL — Installable OK but parks land failed' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'day1-after-publish.sh' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'PARTIAL — Installable OK but adopter docs still git-shaped' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'SKIP_DAY1=1' scripts/owner-finish-installable.sh \
+  && grep -qF 'PARTIAL — Installable OK but parks not on main' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'REQUIRE_PARKS=1' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'DRY_RUN: parks on main' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'PARTIAL — parks not on main (DRY_RUN' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'PARTIAL — Installable OK but adopter docs still git-shaped (DRY_RUN' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'adopter-docs-shaped.sh' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'pl_adopter_docs_crates_io_shaped' scripts/lib/adopter-docs-shaped.sh \
+  && grep -qF 'docs/guide.md' scripts/lib/adopter-docs-shaped.sh \
+  && grep -qF 'docs/migrate-from-rdkafka.md' scripts/lib/adopter-docs-shaped.sh \
+  && grep -qF 'README + ADOPTION + guide + migrate' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'docs/guide.md + docs/migrate-from-rdkafka.md' scripts/owner-finish-installable.sh \
+  && grep -qF 'README + ADOPTION + guide + migrate' scripts/owner-cut-release.sh \
+  && grep -qF 'docs/guide.md docs/migrate-from-rdkafka.md' scripts/owner-publish.sh \
+  && grep -qF 'README/ADOPTION/guide/migrate crates.io lines (day1)' scripts/ci-publish-ready.sh \
+  && grep -qF 'day1 README/ADOPTION/guide/migrate flip preflight' scripts/ci-civilization-check.sh \
+  && grep -qF 'post-publish-guide.sh' scripts/ci-civilization-check.sh \
+  && grep -qF 'post-publish-migrate.sh' scripts/ci-civilization-check.sh \
+  && grep -qF 'pl_day1_docs_paths' scripts/lib/preserve-day1-docs.sh \
+  && grep -qF '_pl_day1_reset' scripts/lib/preserve-day1-docs.sh \
+  && grep -qF 'Installable already met; post-cut re-entry' scripts/ci-publish-ready.sh \
+  && grep -qF 'ci-publish-ready: PARTIAL for partitionline' scripts/ci-publish-ready.sh \
+  && grep -qF 'exit 2' scripts/ci-publish-ready.sh \
+  && grep -qF 'pre-token rehearsal; Installable still blocked' scripts/ci-publish-ready.sh \
+  && grep -qF 'check-parks-on-main.sh' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'check-parks-on-main.sh' scripts/check-installable-preflight.sh \
+  && grep -qF 'check-parks-on-main.sh' scripts/owner-status.sh \
+  && grep -qF 'PARTIAL — Installable OK but parks not on main' scripts/check-installable-preflight.sh \
+  && grep -qF 'OWNER_STATUS_FULL' scripts/owner-status.sh \
+  && grep -qF 'expected pre-Installable' scripts/owner-status.sh \
+  && grep -qF 'expected pre-Installable' scripts/check-installable-preflight.sh \
+  && grep -qF 'expected pre-Installable' docs/CIVILIZATION.md \
+  && grep -qF 'expected pre-Installable' docs/RELEASE.md \
+  && grep -qF 'expected pre-Installable' docs/ADOPTION.md \
+  && grep -qF 'branch-lite (local Actions mirror): PARTIAL' scripts/owner-status.sh \
+  && grep -qF 'Installable already met — post-cut re-entry' scripts/ci-branch-lite.sh \
+  && grep -qF 'ci-branch-lite: PARTIAL — tip Verifiable proxy held; Installable already met' scripts/ci-branch-lite.sh \
+  && grep -qF 'PARTIAL (exit 2; Installable met, post-cut re-entry' scripts/owner-status.sh \
+  && grep -qF 'Installable already met — post-cut re-entry' scripts/check-cut-path.sh \
+  && grep -qF 'check-cut-path: PARTIAL — cut path rehearsed; Installable already met' scripts/check-cut-path.sh \
+  && grep -qF 'pre-token rehearsal' scripts/ci-branch-lite.sh \
+  && grep -qF 'pre-token rehearsal' scripts/check-cut-path.sh \
+  && ! grep -qF 'pre-token holds exit 0 with a PARTIAL note' scripts/owner-finish-installable.sh \
+  && ! grep -qF 'pre-token holds exit 0 with a PARTIAL note' scripts/check-cut-path.sh \
+  && ! grep -qF 'pre-token holds exit 0 with a PARTIAL note' docs/STATUS.md \
+  && grep -qF 'crate absent (expected pre-Installable' scripts/check-trusted-publishing-ready.sh \
+  && grep -qF 'INFO — workflow shape OK; crates.io Trusted Publishing UI still owner' scripts/owner-enable-trusted-publishing.sh \
+  && grep -qF 'stay off main until after crates.io' scripts/owner-request-registry-token.sh \
+  && grep -qF 'pre-cut pending is expected' scripts/owner-unblock.sh \
+  && grep -qF 'tip⊆parks stack' scripts/owner-unblock.sh \
+  && bash scripts/check-parks-on-main.sh --self-test >/tmp/pl-parks-on-main-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-parks-on-main-self-test.log \
+  && grep -qF 'parks not on main' scripts/owner-status.sh \
+  && grep -qF 'parks not on main' scripts/owner-unblock.sh \
+  && bash scripts/owner-post-installable-handoff.sh --self-test >/tmp/pl-handoff-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-handoff-self-test.log \
+  && grep -q 'fail-closed PARTIAL' /tmp/pl-handoff-self-test.log \
+  && { HANDOFF_FROM_BARS=1 DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh >/tmp/pl-handoff-dry.log 2>&1; test $? -eq 2; } \
+  && { grep -q 'PARTIAL — parks not on main (DRY_RUN; expected pre-token' /tmp/pl-handoff-dry.log \
+       || grep -q 'PARTIAL — parks not on main (DRY_RUN; already Installable' /tmp/pl-handoff-dry.log; } \
+  && { grep -q 'DRY_RUN complete with PARTIAL' /tmp/pl-handoff-dry.log \
+       || grep -q 'PARTIAL — parks not on main (DRY_RUN; already Installable' /tmp/pl-handoff-dry.log; } \
+  then
+  ok "post-Installable handoff (DRY_RUN + fail-closed PARTIAL/2; finish+cut-release chain + cut-path + day1 + first-publish)"
+else
+  bad "post-Installable handoff missing/unwired; see /tmp/pl-handoff-dry.log /tmp/pl-handoff-self-test.log"
+fi
+
+# Cut-release bare must auto PUBLISH_LOCAL=1 when token is in-env (token-day footgun).
+if bash scripts/owner-cut-release.sh --self-test >/tmp/pl-cut-publish-local-auto.log 2>&1 \
+  && grep -q 'handoff chained' /tmp/pl-cut-publish-local-auto.log \
+  && grep -q 'DRY_RUN reaches handoff' /tmp/pl-cut-publish-local-auto.log \
+  && grep -q 'Actions secret PARTIAL gated' /tmp/pl-cut-publish-local-auto.log; then
+  ok "cut-release PUBLISH_LOCAL auto-default + handoff chain + DRY_RUN reaches handoff + SKIP_HANDOFF for finish + Actions secret PARTIAL"
+else
+  bad "cut-release PUBLISH_LOCAL auto-default / handoff chain / Actions secret PARTIAL missing/broken; see /tmp/pl-cut-publish-local-auto.log"
+fi
+
+# Cut DRY_RUN must not claim Installable when crate absent; capture dry_handoff_rc.
+if grep -qF 'PARTIAL — handoff soft-failed (not yet Installable' scripts/owner-cut-release.sh \
+  && grep -qF 'dry_handoff_rc' scripts/owner-cut-release.sh \
+  && grep -qF 'is Installable on crates.io but handoff soft-failed' scripts/owner-cut-release.sh; then
+  ok "cut-release handoff PARTIAL honesty (Installable-gated copy + dry_handoff_rc; no pre-token Installable lie)"
+else
+  bad "cut-release handoff PARTIAL honesty missing (must not claim Installable when crate absent)"
+fi
+
+# ALREADY_INSTALLABLE surfaces must probe four-file day1 shape (shared lib).
+if grep -qF 'adopter-docs-shaped.sh' scripts/check-installable-preflight.sh \
+  && grep -qF 'adopter docs still git-shaped' scripts/check-installable-preflight.sh \
+  && grep -qF 'adopter-docs-shaped.sh' scripts/owner-request-registry-token.sh \
+  && grep -qF 'adopter docs still git-shaped' scripts/owner-request-registry-token.sh \
+  && grep -qF 'Commit day1 crates.io lines if still dirty: README + docs/ADOPTION.md + docs/guide.md + docs/migrate-from-rdkafka.md' scripts/owner-status.sh \
+  && bash scripts/lib/adopter-docs-shaped.sh --self-test >/tmp/pl-adopter-docs-shaped-self-test.log 2>&1 \
+  && grep -q 'self-test OK' /tmp/pl-adopter-docs-shaped-self-test.log; then
+  ok "ALREADY_INSTALLABLE day1 four-file honesty (preflight + token-ask + status; shared adopter-docs-shaped lib)"
+else
+  bad "ALREADY_INSTALLABLE day1 four-file honesty missing; see /tmp/pl-adopter-docs-shaped-self-test.log"
+fi
+
+
+# Owner checklists must match cut-release auto PUBLISH_LOCAL (no bare → Actions steer).
+bare_actions="$(grep -nE 'owner-cut-release\.sh.*tag → Actions' scripts/owner-unblock.sh scripts/owner-status.sh 2>/dev/null | grep -v 'PUBLISH_LOCAL=0' || true)"
+if grep -qF 'token in-env → local publish (auto)' scripts/owner-unblock.sh \
+  && grep -qF 'token in-env → local publish (auto)' scripts/owner-status.sh \
+  && [[ -z "$bare_actions" ]]; then
+  ok "cut-release owner-helper comments match PUBLISH_LOCAL auto-default"
+else
+  bad "owner-unblock/status still steers bare cut-release to Actions (or missing auto-local comment)"
 fi
 
 # --- 4. Honest ---
@@ -178,6 +505,22 @@ if grep -q "^## \\[${ver}\\]" CHANGELOG.md || grep -q "^## \\[0\\.1\\.0\\]" CHAN
 else
   bad "CHANGELOG missing ## [${ver}] section"
 fi
+# Open Dependabot cargo/Actions bumps must map to post-cut parks (tip stays docs/scripts-only).
+if [[ ! -x scripts/check-dependabot-parks-coverage.sh ]]; then
+  bad "missing scripts/check-dependabot-parks-coverage.sh"
+elif ! bash scripts/check-dependabot-parks-coverage.sh --self-test >/tmp/pl-dep-parks-self.log 2>&1; then
+  bad "Dependabot parks coverage --self-test failed; see /tmp/pl-dep-parks-self.log"
+else
+  dep_rc=0
+  bash scripts/check-dependabot-parks-coverage.sh >/tmp/pl-dep-parks.log 2>&1 || dep_rc=$?
+  if [[ "$dep_rc" -eq 0 ]]; then
+    ok "Dependabot ↔ post-cut parks coverage (open bumps mapped; tip-delta safe)"
+  elif [[ "$dep_rc" -eq 2 ]]; then
+    ok "Dependabot ↔ post-cut parks coverage soft-skipped (gh/API)"
+  else
+    bad "Dependabot parks coverage missing/unmapped; see /tmp/pl-dep-parks.log"
+  fi
+fi
 
 echo
 echo "audit-civilization-bars: pass=${pass} partial=${partial} blocked=${blocked} fail=${fail} installable_blocked=${installable_blocked}"
@@ -192,6 +535,9 @@ if [[ "$fail" -gt 0 ]]; then
 fi
 
 # Pre-publish gates: Installable BLOCKED is expected until crates.io lands.
+# Soft structural PARTIALs (e.g. MSRV label / deny.toml wording) stay allowed
+# under PRE_PUBLISH so token-day rehearsal is not blocked by doc-shape notes.
+# Full (non-PRE_PUBLISH) bars refuse final OK when any PARTIAL remains.
 if [[ "$PRE_PUBLISH" == "1" ]]; then
   other_blocked=$((blocked - installable_blocked))
   if [[ "$other_blocked" -gt 0 ]]; then
@@ -199,7 +545,15 @@ if [[ "$PRE_PUBLISH" == "1" ]]; then
     exit 1
   fi
   if [[ "$installable_blocked" -gt 0 ]]; then
-    echo "audit-civilization-bars: PRE_PUBLISH OK — bars green except Installable (owner token/cut)"
+    if [[ "$partial" -gt 0 ]]; then
+      echo "audit-civilization-bars: PRE_PUBLISH OK — bars green except Installable (owner token/cut); PARTIAL notes above"
+    else
+      echo "audit-civilization-bars: PRE_PUBLISH OK — bars green except Installable (owner token/cut)"
+    fi
+    exit 0
+  fi
+  if [[ "$partial" -gt 0 ]]; then
+    echo "audit-civilization-bars: PRE_PUBLISH OK — Installable proven; PARTIAL notes above (full bars would exit 2)"
     exit 0
   fi
   echo "audit-civilization-bars: PRE_PUBLISH OK — all six bars PASS (already Installable)"
@@ -214,8 +568,8 @@ if [[ "$blocked" -gt 0 ]]; then
   exit 1
 fi
 if [[ "$partial" -gt 0 ]]; then
-  echo "audit-civilization-bars: OK with PARTIAL notes (no FAIL/BLOCKED)"
-  exit 0
+  echo "audit-civilization-bars: PARTIAL — soft notes remain (no FAIL/BLOCKED; exit 2)" >&2
+  exit 2
 fi
 echo "audit-civilization-bars: OK — all six bars PASS"
 exit 0

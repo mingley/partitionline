@@ -108,7 +108,17 @@ lab_a_prepare_broker() {
     && lab_a_ensure_broker; then
     return 0
   fi
-  if lab_a_find_kafka_bin kafka-topics.sh >/dev/null; then
+  if lab_a_find_kafka_bin kafka-topics.sh >/dev/null \
+    && (echo >"/dev/tcp/${BOOTSTRAP%:*}/${BOOTSTRAP##*:}") >/dev/null 2>&1; then
+    echo "${LAB_A_LABEL}: using native kafka tools against $BOOTSTRAP"
+    return 0
+  fi
+  # Nested Cloud Agent VMs often cannot mount Docker overlayfs. Prefer starting
+  # native Kafka (scripts/lib/ensure-broker.sh) over failing Lab A soft-skips.
+  # shellcheck source=scripts/lib/ensure-broker.sh
+  source "${ROOT}/scripts/lib/ensure-broker.sh"
+  export KAFKA_BOOTSTRAP="$BOOTSTRAP"
+  if pl_ensure_broker "${LAB_A_LABEL}"; then
     echo "${LAB_A_LABEL}: using native kafka tools against $BOOTSTRAP"
     return 0
   fi

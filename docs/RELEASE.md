@@ -28,8 +28,26 @@ stop after a successful `cargo package` dry-run. Owner one-shot checklist:
 
 One-time setup (first crates.io cut):
 
-1. Create a crates.io API token (publish-update for `partitionline`).
-2. Add repository secret `CARGO_REGISTRY_TOKEN` (Settings → Secrets → Actions).
+1. Create a crates.io API token at https://crates.io/settings/tokens — for the
+   **first** cut of a new crate select **`publish-new`** (and usually also
+   **`publish-update`** for later versions). `publish-update` alone cannot
+   create `partitionline` on crates.io. After 0.1.0 exists, prefer Trusted
+   Publishing and keep only a short-lived or narrowly scoped token as backup.
+2. Add `CARGO_REGISTRY_TOKEN` in **two** places (same crates.io token value):
+   - **Cursor Cloud Agent** → Cloud Agents → Environments → this env → Secrets
+     (name exactly `CARGO_REGISTRY_TOKEN` — not `CARGO_TOKEN` / `CRATES_IO_TOKEN`;
+     restart/re-run the agent after save so `owner-finish-installable` can
+     PUBLISH_LOCAL without waiting on Actions). Or mount a file and export
+     `CARGO_REGISTRY_TOKEN_FILE=/path` (finish/probe load it into the shell).
+     Direct link (override with `PARTITIONLINE_CURSOR_ENV_SECRETS_URL` if the env
+     moves): https://cursor.com/dashboard/cloud-agents/environments/e/55ff85be-9e3a-11f1-a7d1-d6b4613131ce/secrets
+   - **GitHub Actions** repository secret (Settings → Secrets → Actions) for
+     `release.yml` / `first-publish.yml`.
+   Probe without printing: `bash scripts/check-registry-token.sh` (exit 2 = missing,
+   0 = crates.io accepted the token for publish-new auth via a structured
+   empty-tarball PUT that cannot create a crate, 1 = rejected). Misnamed env
+   vars WARN with length-only hints. `bash scripts/check-registry-token.sh
+   --self-test` proves fake tokens fail.
    Required for the **first** publish — Trusted Publishing can only be
    configured after the crate exists on crates.io.
 3. Ensure CHANGELOG has a dated `0.1.0` (or next) section and README is ready
@@ -48,6 +66,11 @@ bash scripts/owner-finish-installable.sh
 # REQUIRE_MAIN_CI defaults to 1 on real cuts (0 on DRY_RUN); set 0 to override
 ```
 
+Preflight `READY_EXCEPT_TOKEN` means structural + Verifiable + tip⊆parks stack
+are OK; parks themselves stay off `origin/main` until after crates.io `0.1.0`
+(**expected pre-Installable** — not a cut blocker). Land parks via post-cut
+handoff after Installable.
+
 That fast-forwards `main` to the civilization tip, publishes locally, runs
 day1, and proves Installable. Before cut it probes main CI via
 `scripts/check-main-ci.sh` so a known-red or still-running Verifiable tip
@@ -58,23 +81,39 @@ If the token is only in **GitHub Actions** secrets (not Cloud Agent):
 1. Merge/FF civilization tip → `main` first — GitHub only lists
    `workflow_dispatch` workflows from the default branch, so
    `first-publish.yml` is not runnable until it exists on `main`.
+Tip `first-publish.yml` must match `main` while Installable is unmet (`check-post-cut-parks-stack` gates tip↔main match + park **publish-new**). Main may already document **publish-new** for the Actions alternate; tip must not drift the workflow header.
 2. Cancel stuck queued runs (`bash scripts/owner-cancel-stuck-runs.sh`).
-3. Actions → **First publish** → `confirm=publish` (optional `ref`, default
+3. Actions secret `CARGO_REGISTRY_TOKEN` must include crates.io **`publish-new`**
+   (+ usually `publish-update`) — same scope rule as the in-env cut.
+4. Actions → **First publish** → `confirm=publish` (optional `ref`, default
    `main`), or `bash scripts/owner-dispatch-first-publish.sh`.
+   Cut-path and tip Verifiable rehearse visibility with
+   `DRY_RUN=1 bash scripts/owner-dispatch-first-publish.sh` (no dispatch).
+   Cut-path also rehearses `DRY_RUN=1 bash scripts/day1-after-publish.sh` and
+   surfaces stale Actions queues via `bash scripts/check-actions-hygiene.sh`
+   (also WARN if the Dependabot `dependencies` label is missing — owner:
+   `gh label create dependencies --repo mingley/partitionline --color 0366d6`).
 
 Prefer `bash scripts/owner-finish-installable.sh` when the token is already
 in-env — it FF-merges, publishes locally, and does not wait on runners.
 
 To FF tip → `main` without cutting: `CONFIRM=1 bash scripts/owner-sync-main.sh`.
 That refuses while main HEAD CI is still running (protects in-flight Verifiable)
-unless `ALLOW_BUSY_MAIN=1`.
+unless `ALLOW_BUSY_MAIN=1`. While crates.io `0.1.0` is still absent, it also
+refuses docs/scripts-only tip→main unless `ALLOW_DOCS_THRASH=1` — leave tip
+ahead and let `owner-finish-installable` FF once at cut time.
 
-One-shot on clean `main` (tag → Actions): `bash scripts/owner-cut-release.sh`
-(pushes `vX.Y.Z`, waits for crates.io, runs day1, then
-`audit-civilization-bars`). `PUBLISH_LOCAL=1` uses `owner-publish` instead of
-Actions; `DRY_RUN=1` prints actions only (allowed on the civilization tip for
-rehearsal — still no tag/push); `REQUIRE_ACTIONS_SECRET=1` refuses to cut if
-Actions lacks `CARGO_REGISTRY_TOKEN` (when `gh secret list` is permitted).
+One-shot on clean `main`: `bash scripts/owner-cut-release.sh` (pushes
+`vX.Y.Z`, waits for crates.io, runs day1, then `audit-civilization-bars`).
+When `CARGO_REGISTRY_TOKEN` is already in-env and `PUBLISH_LOCAL` is unset,
+cut-release defaults to **local publish** (same token-day preference as
+`owner-finish-installable`); set `PUBLISH_LOCAL=0` to force tag →
+`release.yml` / Actions. Explicit `PUBLISH_LOCAL=1` always uses
+`owner-publish`. `DRY_RUN=1` prints actions only (allowed on the
+civilization tip for rehearsal — still no tag/push);
+`REQUIRE_ACTIONS_SECRET=1` refuses to cut if Actions lacks
+`CARGO_REGISTRY_TOKEN` (when `gh secret list` is permitted).
+`bash scripts/owner-cut-release.sh --self-test` proves the auto-default.
 
 Then (on `main`, after civilization is merged):
 
@@ -100,6 +139,20 @@ See [crates.io Trusted Publishing](https://crates.io/docs/trusted-publishing).
 
 ### After 0.1.0: prefer OIDC (no long-lived Actions token)
 
+Probe anytime: `bash scripts/check-trusted-publishing-ready.sh`
+Owner one-shot after first cut: `bash scripts/owner-enable-trusted-publishing.sh`
+(`REQUIRE_INSTALLABLE=1` after crates.io cut).
+
+Re-enter the full post-Installable path (Installable + adopter pin + registry
+consumer + bars + Trusted Publishing + optional parks land) anytime — including
+after an Actions-alternate cut or when finish soft-failed TP/parks:
+
+```bash
+bash scripts/owner-post-installable-handoff.sh
+LAND_PARKS=1 bash scripts/owner-post-installable-handoff.sh
+DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh   # cut-path rehearses this
+```
+
 1. crates.io → `partitionline` → Settings → Trusted Publishing → Add.
 2. Platform: GitHub. Owner: `mingley`. Repository: `partitionline`.
    Workflow filename: `release.yml`.
@@ -114,7 +167,8 @@ From a **clean `main`** checkout with `CARGO_REGISTRY_TOKEN` exported:
 ```bash
 bash scripts/ci-publish-ready.sh
 bash scripts/owner-publish.sh
-bash scripts/day1-after-publish.sh    # crates.io confirm + adopter consumer check + README flip
+bash scripts/day1-after-publish.sh    # crates.io confirm + adopter consumer check + README/ADOPTION/guide/migrate flip
+bash scripts/owner-post-installable-handoff.sh  # TP + parks + full bars (LAND_PARKS=1 if needed)
 # or: bash scripts/check-installable.sh  # Installable bar probe only
 #     bash scripts/verify-crates-io-consumer.sh  # adopter cargo-depend compile proof
 git tag "v$(sed -n 's/^version = \"\(.*\)\"/\1/p' Cargo.toml | head -1)"
@@ -128,8 +182,10 @@ After publish:
 
 1. Tag `vX.Y.Z` matching `Cargo.toml` (if not already tagged by Actions).
 2. Move CHANGELOG `[Unreleased]` into `[X.Y.Z]` if anything remains.
-3. Run `bash scripts/day1-after-publish.sh` (crates.io confirm + adopter consumer compile + README flip)
-   and commit the README if needed.
+3. Run `bash scripts/day1-after-publish.sh` (crates.io confirm + adopter consumer compile + README/ADOPTION/guide/migrate flip)
+   and commit those docs if needed. Then
+   `bash scripts/owner-post-installable-handoff.sh` (Trusted Publishing + parks + bars;
+   `LAND_PARKS=1` if parks were skipped).
 
 ## Honesty
 

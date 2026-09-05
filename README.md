@@ -3,18 +3,15 @@
 A pure-Rust Apache Kafka client and protocol implementation.
 
 [![ci](https://github.com/mingley/partitionline/actions/workflows/ci.yml/badge.svg)](https://github.com/mingley/partitionline/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/partitionline.svg)](https://crates.io/crates/partitionline)
+[![docs.rs](https://docs.rs/partitionline/badge.svg)](https://docs.rs/partitionline)
 
 ```toml
 [dependencies]
-# crates.io publish is one owner step away (docs/RELEASE.md → tag v0.1.0).
-# Until then, pin a release-candidate tag (not floating main):
-partitionline = { git = "https://github.com/mingley/partitionline", tag = "v0.1.0-rc.6" }
-# After publish: partitionline = "0.1"
+partitionline = "0.1"
 ```
 
-**Status (WP-0.5):** local civilization-check is green; crates.io publish waits on
-owner `CARGO_REGISTRY_TOKEN` + Actions capacity. Probe anytime:
-`bash scripts/owner-status.sh` (see `docs/ADOPTION.md`).
+**Status:** partitionline 0.1.0 is on [crates.io](https://crates.io/crates/partitionline) (`partitionline = "0.1"`). Probe: `bash scripts/check-installable.sh`.
 
 ## Produce
 

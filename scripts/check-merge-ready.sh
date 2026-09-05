@@ -147,11 +147,19 @@ else
   warn "origin/main not available locally — fetch before merge"
 fi
 
-if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-  warn "CARGO_REGISTRY_TOKEN unset (needed for first crates.io publish / Actions secret)"
-else
-  ok "CARGO_REGISTRY_TOKEN is set in this environment"
-fi
+tok_rc=0
+bash scripts/check-registry-token.sh >/tmp/pl-merge-token.log 2>&1 || tok_rc=$?
+case "$tok_rc" in
+  0)
+    ok "CARGO_REGISTRY_TOKEN accepted by crates.io for publish-new auth"
+    ;;
+  2)
+    warn "CARGO_REGISTRY_TOKEN unset (needed for first crates.io publish / Actions secret; needs publish-new)"
+    ;;
+  *)
+    bad "CARGO_REGISTRY_TOKEN rejected by crates.io (recreate with publish-new; see check-registry-token)"
+    ;;
+esac
 
 # shellcheck source=scripts/lib/crates-io.sh
 source "$ROOT/scripts/lib/crates-io.sh"
@@ -193,16 +201,17 @@ if [[ -n "$main_sha" && -n "$head_sha" && "$main_sha" == "$head_sha" ]]; then
   echo "  Actions-only alternate (token as Actions secret only):"
   echo "    bash scripts/owner-dispatch-first-publish.sh"
   echo "    # or: Actions → First publish → confirm=publish"
-  echo "  Or tag path:"
+  echo "  Or tag path (token in-env → local publish; PUBLISH_LOCAL=0 → Actions):"
   echo "    bash scripts/owner-cut-release.sh"
 else
   echo "  Or stepwise:"
   echo "    1. Merge ${branch} → main (PR or fast-forward)"
   echo "    2. git fetch origin main && git checkout main && git pull origin main"
   echo "    3. bash scripts/owner-cut-release.sh"
+  echo "       # token in-env → local publish (auto); PUBLISH_LOCAL=0 → tag → Actions"
   echo "       # or: git tag -a v${ver} -m '${name} ${ver}' && git push origin v${ver}"
   echo "       #     then bash scripts/day1-after-publish.sh && bash scripts/check-installable.sh"
 fi
-echo "  Then: crates.io → Trusted Publishing → GitHub workflow release.yml"
+echo "  Then: bash scripts/owner-post-installable-handoff.sh  # TP + parks + bars"
 echo "  Prove: bash scripts/check-installable.sh && bash scripts/audit-civilization-bars.sh"
 exit 0
