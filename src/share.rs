@@ -1559,7 +1559,7 @@ impl ShareGroup {
                     _ = tick.tick() => {
                         if conn
                             .as_ref()
-                            .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
+                            .is_some_and(|c| c.should_reconnect(cfg.connections_max_idle))
                         {
                             conn = None;
                         }

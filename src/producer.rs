@@ -2675,7 +2675,10 @@ impl Worker {
         if self.pending.is_empty() {
             return Ok(());
         }
-        if self.in_flight.is_empty() && self.conn.idle_expired(self.shared.cfg.connections_max_idle)
+        if self.in_flight.is_empty()
+            && self
+                .conn
+                .should_reconnect(self.shared.cfg.connections_max_idle)
         {
             let addr = self.conn.addr().to_string();
             self.conn = open_conn(&addr, &self.shared.cfg).await?;

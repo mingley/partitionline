@@ -698,6 +698,28 @@ impl BrokerConn {
         crate::config::connection_idle_expired(self.last_io.elapsed(), max_idle)
     }
 
+    /// True when a recorded SASL session or OIDC token lifetime is within `skew`.
+    ///
+    /// Missing lifetimes (`None`) do **not** invent a reconnect deadline.
+    /// Callers recycle the TCP/TLS socket and re-run full SASL (and may
+    /// re-fetch OIDC). This is **not** mid-connection `SaslAuthenticate`
+    /// rotation (KL-06 still open).
+    #[must_use]
+    pub(crate) fn auth_lifetime_expired(&self, skew: Duration) -> bool {
+        auth_lifetimes_need_refresh(
+            self.sasl_session_expires_at,
+            self.oidc_token_expires_at,
+            skew,
+        )
+    }
+
+    /// Idle budget exhausted **or** recorded auth lifetime within refresh skew.
+    #[must_use]
+    pub(crate) fn should_reconnect(&self, max_idle: Duration) -> bool {
+        self.idle_expired(max_idle)
+            || self.auth_lifetime_expired(crate::protocol::oidc::OIDC_REFRESH_SKEW)
+    }
+
     fn touch(&mut self) {
         self.last_io = Instant::now();
     }
@@ -849,6 +871,21 @@ impl BrokerConn {
 /// Install rustls `ring` as the process crypto provider. Idempotent.
 pub fn install_crypto_provider() {
     ensure_crypto();
+}
+
+/// True when either recorded auth deadline is within `skew` of now.
+///
+/// `None` deadlines never force refresh (no invented lifetime). Used by
+/// [`BrokerConn::auth_lifetime_expired`] before recycling a socket.
+#[must_use]
+pub(crate) fn auth_lifetimes_need_refresh(
+    sasl_session_expires_at: Option<Instant>,
+    oidc_token_expires_at: Option<Instant>,
+    skew: Duration,
+) -> bool {
+    use crate::protocol::oidc::token_needs_refresh;
+    token_needs_refresh(sasl_session_expires_at, skew)
+        || token_needs_refresh(oidc_token_expires_at, skew)
 }
 
 #[cfg(test)]
@@ -1085,5 +1122,19 @@ mod tests {
             parse_and_validate_addresses(&v6).unwrap(),
             vec!["[::1]:9092".to_string()]
         );
+    }
+
+    #[test]
+    fn auth_lifetimes_need_refresh_respects_skew_and_none() {
+        let skew = Duration::from_secs(60);
+        assert!(!auth_lifetimes_need_refresh(None, None, skew));
+        let far = Some(Instant::now() + Duration::from_secs(600));
+        assert!(!auth_lifetimes_need_refresh(far, None, skew));
+        assert!(!auth_lifetimes_need_refresh(None, far, skew));
+        let near = Some(Instant::now() + Duration::from_secs(30));
+        assert!(auth_lifetimes_need_refresh(near, None, skew));
+        assert!(auth_lifetimes_need_refresh(None, near, skew));
+        let past = Some(Instant::now() - Duration::from_secs(1));
+        assert!(auth_lifetimes_need_refresh(past, far, skew));
     }
 }

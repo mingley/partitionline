@@ -6608,7 +6608,7 @@ impl Admin {
     }
 
     async fn ensure_bootstrap(&mut self) -> Result<()> {
-        if !self.conn.idle_expired(self.cfg.connections_max_idle) {
+        if !self.conn.should_reconnect(self.cfg.connections_max_idle) {
             return Ok(());
         }
         let addr = self.conn.addr().to_string();
@@ -6634,7 +6634,7 @@ impl Admin {
         if self
             .conns
             .get(&node)
-            .is_some_and(|c| c.idle_expired(self.cfg.connections_max_idle))
+            .is_some_and(|c| c.should_reconnect(self.cfg.connections_max_idle))
         {
             let _ = self.conns.remove(&node);
         }

@@ -2182,7 +2182,7 @@ impl ConsumerGroup {
                         }
                         if conn
                             .as_ref()
-                            .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
+                            .is_some_and(|c| c.should_reconnect(cfg.connections_max_idle))
                         {
                             conn = None;
                         }
@@ -2289,7 +2289,7 @@ impl ConsumerGroup {
                         }
                         if conn
                             .as_ref()
-                            .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
+                            .is_some_and(|c| c.should_reconnect(cfg.connections_max_idle))
                         {
                             conn = None;
                         }
@@ -2814,7 +2814,7 @@ pub(crate) async fn coord_roundtrip(
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
 ) -> Result<Bytes> {
-    if coord.idle_expired(cfg.connections_max_idle) {
+    if coord.should_reconnect(cfg.connections_max_idle) {
         *coord = open_coord(cfg, coord.addr()).await?;
     }
     let body = match coord

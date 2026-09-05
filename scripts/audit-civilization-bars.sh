@@ -238,19 +238,23 @@ else
   bad "KL-06 OIDC bounded transient retry / outage fail-closed missing"
 fi
 
-# KL-06 slice: OIDC expires_in parse + session_lifetime record (reconnect scaffolding).
+# KL-06 slice: OIDC expires_in parse + session_lifetime record + reconnect-on-expiry.
 if grep -qF 'OidcAccessToken' src/protocol/oidc.rs \
   && grep -qF 'token_needs_refresh' src/protocol/oidc.rs \
   && grep -qF 'oidc_token_parses_expires_in' src/protocol/oidc.rs \
   && grep -qF 'fetch_access_token_parses_expires_in_over_http' src/protocol/oidc.rs \
   && grep -qF 'record_sasl_session_lifetime' src/net.rs \
   && grep -qF 'record_oidc_token_expiry' src/net.rs \
+  && grep -qF 'should_reconnect' src/net.rs \
+  && grep -qF 'auth_lifetimes_need_refresh' src/net.rs \
+  && grep -qF 'auth_lifetimes_need_refresh_respects_skew_and_none' src/net.rs \
   && grep -qF 'parses IdP `expires_in`' docs/security.md \
   && grep -qF 'session_lifetime_ms' docs/security.md \
+  && grep -qF 'should_reconnect' docs/security.md \
   && grep -qF 'Mid-connection refresh / rotation / outage soak still open' docs/security.md; then
-  ok "KL-06 OIDC expires_in + session_lifetime record (not mid-connection reauth)"
+  ok "KL-06 OIDC expires_in + session lifetime reconnect (not mid-connection reauth)"
 else
-  bad "KL-06 OIDC expires_in / session_lifetime record missing"
+  bad "KL-06 OIDC expires_in / session lifetime reconnect missing"
 fi
 
 
