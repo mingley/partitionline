@@ -641,13 +641,45 @@ pub async fn reauthenticate(
     Ok(())
 }
 
+/// Outcome of [`should_reconnect_after_reauth`] for metrics + reconnect policy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReauthCheck {
+    /// Socket remains usable; no mid-connection `SaslAuthenticate` ran.
+    Keep,
+    /// Mid-connection `SaslAuthenticate` succeeded; socket remains usable.
+    Reauthed,
+    /// Caller should drop/recycle the TCP/TLS socket (idle expiry and/or reauth failure).
+    Reconnect {
+        /// `true` when a mid-connection reauth was attempted and failed.
+        reauth_failed: bool,
+    },
+}
+
+impl ReauthCheck {
+    /// `true` when the caller should open a new connection.
+    #[must_use]
+    pub const fn reconnect(self) -> bool {
+        matches!(self, Self::Reconnect { .. })
+    }
+
+    /// `true` when mid-connection `SaslAuthenticate` succeeded.
+    #[must_use]
+    pub const fn reauthed(self) -> bool {
+        matches!(self, Self::Reauthed)
+    }
+
+    /// `true` when mid-connection reauth was attempted and failed.
+    #[must_use]
+    pub const fn reauth_failed(self) -> bool {
+        matches!(self, Self::Reconnect { reauth_failed: true })
+    }
+}
+
 /// Prefer mid-connection [`reauthenticate`] when only auth lifetime is near
 /// expiry; ask the caller to reconnect when idle or when reauth fails.
 ///
-/// Returns `Ok(true)` when the caller should drop/recycle the TCP/TLS socket
-/// and open a new connection (full ApiVersions + SASL handshake). Returns
-/// `Ok(false)` when the socket remains usable (including after successful
-/// mid-connection `SaslAuthenticate`).
+/// See [`ReauthCheck`] for stay vs reconnect vs successful mid-connection
+/// `SaslAuthenticate` (KL-06 / KL-07 diagnosis counters).
 #[expect(
     clippy::too_many_arguments,
     reason = "mirrors authenticate credential surface plus idle/timeout; keep call sites uniform"
@@ -661,12 +693,14 @@ pub async fn should_reconnect_after_reauth(
     sasl_oidc: Option<&super::oidc::OidcConfig>,
     max_idle: Duration,
     timeout: Duration,
-) -> Result<bool> {
+) -> Result<ReauthCheck> {
     if conn.should_reconnect(max_idle) {
-        return Ok(true);
+        return Ok(ReauthCheck::Reconnect {
+            reauth_failed: false,
+        });
     }
     if !conn.auth_lifetime_expired(super::oidc::OIDC_REFRESH_SKEW) {
-        return Ok(false);
+        return Ok(ReauthCheck::Keep);
     }
     match reauthenticate(
         conn,
@@ -679,8 +713,10 @@ pub async fn should_reconnect_after_reauth(
     )
     .await
     {
-        Ok(()) => Ok(false),
-        Err(_) => Ok(true),
+        Ok(()) => Ok(ReauthCheck::Reauthed),
+        Err(_) => Ok(ReauthCheck::Reconnect {
+            reauth_failed: true,
+        }),
     }
 }
 
@@ -699,6 +735,27 @@ mod reauth_tests {
     #[test]
     fn count_sasl_mechs_zero_ok() {
         assert_eq!(count_sasl_mechs(None, None, None, None, None).unwrap(), 0);
+    }
+
+    #[test]
+    fn reauth_check_flags() {
+        assert!(!ReauthCheck::Keep.reconnect());
+        assert!(!ReauthCheck::Keep.reauthed());
+        assert!(!ReauthCheck::Keep.reauth_failed());
+        assert!(!ReauthCheck::Reauthed.reconnect());
+        assert!(ReauthCheck::Reauthed.reauthed());
+        assert!(!ReauthCheck::Reauthed.reauth_failed());
+        let idle = ReauthCheck::Reconnect {
+            reauth_failed: false,
+        };
+        assert!(idle.reconnect());
+        assert!(!idle.reauthed());
+        assert!(!idle.reauth_failed());
+        let failed = ReauthCheck::Reconnect {
+            reauth_failed: true,
+        };
+        assert!(failed.reconnect());
+        assert!(failed.reauth_failed());
     }
 }
 

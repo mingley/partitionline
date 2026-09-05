@@ -277,6 +277,22 @@ else
 fi
 
 
+
+# KL-06/07 slice: mid-connection SASL reauth outcome metrics.
+if grep -qF 'sasl_reauth_ok' src/metrics.rs \
+  && grep -qF 'sasl_reauth_fail' src/metrics.rs \
+  && grep -qF 'pub enum ReauthCheck' src/protocol/sasl.rs \
+  && grep -qF 'm_sasl_reauth_ok' src/producer.rs \
+  && grep -qF 'm_sasl_reauth_ok' src/consumer.rs \
+  && grep -qF 'sasl_reauth_ok' docs/guide.md \
+  && grep -qF 'sasl_reauth_ok' docs/security.md \
+  && grep -qF 'sasl_reauth_ok' docs/ROADMAP.md \
+  && grep -qF 'reauth_check_flags' src/protocol/sasl.rs; then
+  ok "KL-06/07 mid-connection SASL reauth metrics (ok/fail counters; ReauthCheck; guide+security)"
+else
+  bad "KL-06/07 mid-connection SASL reauth metrics missing"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \

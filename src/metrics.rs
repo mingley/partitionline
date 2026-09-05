@@ -304,6 +304,10 @@ pub struct ProducerMetrics {
     pub bytes_buffered: u64,
     /// Queue-to-ack latency per acknowledged record (including `acks=0`).
     pub ack_latency: LatencyStats,
+    /// Mid-connection SASL reauthentications that succeeded (KIP-368).
+    pub sasl_reauth_ok: u64,
+    /// Mid-connection SASL reauthentications that failed (caller reconnected).
+    pub sasl_reauth_fail: u64,
     /// Per-topic counters. Topics with no activity are omitted. Sorted by name.
     pub topics: Vec<TopicProduceMetrics>,
 }
@@ -338,6 +342,10 @@ pub struct ConsumerMetrics {
     pub fetch_errors: u64,
     /// End-to-end duration of each successful fetch round.
     pub fetch_latency: LatencyStats,
+    /// Mid-connection SASL reauthentications that succeeded (KIP-368).
+    pub sasl_reauth_ok: u64,
+    /// Mid-connection SASL reauthentications that failed (caller reconnected).
+    pub sasl_reauth_fail: u64,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
     pub topics: Vec<TopicFetchMetrics>,
 }
@@ -559,6 +567,8 @@ mod tests {
     #[test]
     fn metrics_default_zero() {
         assert_eq!(ProducerMetrics::default().records_queued, 0);
+        assert_eq!(ProducerMetrics::default().sasl_reauth_ok, 0);
+        assert_eq!(ProducerMetrics::default().sasl_reauth_fail, 0);
         assert_eq!(ProducerMetrics::default().bytes_buffered, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.count, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p50_nanos, 0);

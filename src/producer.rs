@@ -811,6 +811,8 @@ struct Shared {
     m_queued: AtomicU64,
     m_acked: AtomicU64,
     m_errors: AtomicU64,
+    m_sasl_reauth_ok: AtomicU64,
+    m_sasl_reauth_fail: AtomicU64,
     m_bytes: AtomicU64,
     buffered_bytes: AtomicU64,
     /// Set by [`Producer::close`] / [`Producer::close_timeout`] so clones cannot
@@ -1148,6 +1150,8 @@ impl Producer {
             m_queued: AtomicU64::new(0),
             m_acked: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_sasl_reauth_ok: AtomicU64::new(0),
+            m_sasl_reauth_fail: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             buffered_bytes: AtomicU64::new(0),
             closed: AtomicBool::new(false),
@@ -1489,6 +1493,8 @@ impl Producer {
             bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
             bytes_buffered: self.inner.shared.buffered_bytes.load(Ordering::Relaxed),
             ack_latency: self.inner.shared.ack_latency.snapshot(),
+            sasl_reauth_ok: self.inner.shared.m_sasl_reauth_ok.load(Ordering::Relaxed),
+            sasl_reauth_fail: self.inner.shared.m_sasl_reauth_fail.load(Ordering::Relaxed),
             topics: crate::metrics::snapshot_produce_topics(&self.inner.shared.topics.lock()),
         }
     }
@@ -2675,8 +2681,8 @@ impl Worker {
         if self.pending.is_empty() {
             return Ok(());
         }
-        if self.in_flight.is_empty()
-            && crate::protocol::sasl::should_reconnect_after_reauth(
+        if self.in_flight.is_empty() {
+            let reauth = crate::protocol::sasl::should_reconnect_after_reauth(
                 &mut self.conn,
                 self.shared.cfg.sasl_plain.as_ref(),
                 self.shared.cfg.sasl_scram.as_ref(),
@@ -2686,10 +2692,17 @@ impl Worker {
                 self.shared.cfg.connections_max_idle,
                 self.shared.cfg.request_timeout,
             )
-            .await?
-        {
-            let addr = self.conn.addr().to_string();
-            self.conn = open_conn(&addr, &self.shared.cfg).await?;
+            .await?;
+            if reauth.reauthed() {
+                let _ = self.shared.m_sasl_reauth_ok.fetch_add(1, Ordering::Relaxed);
+            }
+            if reauth.reauth_failed() {
+                let _ = self.shared.m_sasl_reauth_fail.fetch_add(1, Ordering::Relaxed);
+            }
+            if reauth.reconnect() {
+                let addr = self.conn.addr().to_string();
+                self.conn = open_conn(&addr, &self.shared.cfg).await?;
+            }
         }
         let n = take_count(
             &self.pending,

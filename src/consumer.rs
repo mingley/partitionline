@@ -1257,6 +1257,8 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    m_sasl_reauth_ok: AtomicU64,
+    m_sasl_reauth_fail: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1346,6 +1348,8 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_sasl_reauth_ok: AtomicU64::new(0),
+            m_sasl_reauth_fail: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -1674,20 +1678,28 @@ impl Consumer {
         topics: Option<&[String]>,
         timeout: Duration,
     ) -> Result<()> {
-        if crate::protocol::sasl::should_reconnect_after_reauth(
-            &mut self.conn,
-            self.cfg.sasl_plain.as_ref(),
-            self.cfg.sasl_scram.as_ref(),
-            self.cfg.sasl_scram_sha512.as_ref(),
-            self.cfg.sasl_oauthbearer.as_deref(),
-            self.cfg.sasl_oauthbearer_oidc.as_ref(),
-            self.cfg.connections_max_idle,
-            self.cfg.request_timeout,
-        )
-        .await?
         {
-            let addr = self.conn.addr().to_string();
-            self.conn = self.open_node_conn(&addr).await?;
+            let reauth = crate::protocol::sasl::should_reconnect_after_reauth(
+                &mut self.conn,
+                self.cfg.sasl_plain.as_ref(),
+                self.cfg.sasl_scram.as_ref(),
+                self.cfg.sasl_scram_sha512.as_ref(),
+                self.cfg.sasl_oauthbearer.as_deref(),
+                self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                self.cfg.connections_max_idle,
+                self.cfg.request_timeout,
+            )
+            .await?;
+            if reauth.reauthed() {
+                let _ = self.m_sasl_reauth_ok.fetch_add(1, Ordering::Relaxed);
+            }
+            if reauth.reauth_failed() {
+                let _ = self.m_sasl_reauth_fail.fetch_add(1, Ordering::Relaxed);
+            }
+            if reauth.reconnect() {
+                let addr = self.conn.addr().to_string();
+                self.conn = self.open_node_conn(&addr).await?;
+            }
         }
         let version = self.metadata_version;
         let allow = self.cfg.allow_auto_topic_creation;
@@ -1801,19 +1813,27 @@ impl Consumer {
 
     async fn connect_node(&mut self, node: i32) -> Result<()> {
         if let Some(c) = self.conns.get_mut(&node) {
-            if crate::protocol::sasl::should_reconnect_after_reauth(
-                c,
-                self.cfg.sasl_plain.as_ref(),
-                self.cfg.sasl_scram.as_ref(),
-                self.cfg.sasl_scram_sha512.as_ref(),
-                self.cfg.sasl_oauthbearer.as_deref(),
-                self.cfg.sasl_oauthbearer_oidc.as_ref(),
-                self.cfg.connections_max_idle,
-                self.cfg.request_timeout,
-            )
-            .await?
             {
-                let _ = self.conns.remove(&node);
+                let reauth = crate::protocol::sasl::should_reconnect_after_reauth(
+                    c,
+                    self.cfg.sasl_plain.as_ref(),
+                    self.cfg.sasl_scram.as_ref(),
+                    self.cfg.sasl_scram_sha512.as_ref(),
+                    self.cfg.sasl_oauthbearer.as_deref(),
+                    self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                    self.cfg.connections_max_idle,
+                    self.cfg.request_timeout,
+                )
+                .await?;
+                if reauth.reauthed() {
+                    let _ = self.m_sasl_reauth_ok.fetch_add(1, Ordering::Relaxed);
+                }
+                if reauth.reauth_failed() {
+                    let _ = self.m_sasl_reauth_fail.fetch_add(1, Ordering::Relaxed);
+                }
+                if reauth.reconnect() {
+                    let _ = self.conns.remove(&node);
+                }
             }
         }
         if self.conns.contains_key(&node) {
@@ -2172,6 +2192,8 @@ impl Consumer {
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
+            sasl_reauth_ok: self.m_sasl_reauth_ok.load(Ordering::Relaxed),
+            sasl_reauth_fail: self.m_sasl_reauth_fail.load(Ordering::Relaxed),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
         }
     }
@@ -2200,20 +2222,28 @@ impl Consumer {
         let version = self.telemetry_version.ok_or_else(|| {
             Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
         })?;
-        if crate::protocol::sasl::should_reconnect_after_reauth(
-            &mut self.conn,
-            self.cfg.sasl_plain.as_ref(),
-            self.cfg.sasl_scram.as_ref(),
-            self.cfg.sasl_scram_sha512.as_ref(),
-            self.cfg.sasl_oauthbearer.as_deref(),
-            self.cfg.sasl_oauthbearer_oidc.as_ref(),
-            self.cfg.connections_max_idle,
-            self.cfg.request_timeout,
-        )
-        .await?
         {
-            let addr = self.conn.addr().to_string();
-            self.conn = self.open_node_conn(&addr).await?;
+            let reauth = crate::protocol::sasl::should_reconnect_after_reauth(
+                &mut self.conn,
+                self.cfg.sasl_plain.as_ref(),
+                self.cfg.sasl_scram.as_ref(),
+                self.cfg.sasl_scram_sha512.as_ref(),
+                self.cfg.sasl_oauthbearer.as_deref(),
+                self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                self.cfg.connections_max_idle,
+                self.cfg.request_timeout,
+            )
+            .await?;
+            if reauth.reauthed() {
+                let _ = self.m_sasl_reauth_ok.fetch_add(1, Ordering::Relaxed);
+            }
+            if reauth.reauth_failed() {
+                let _ = self.m_sasl_reauth_fail.fetch_add(1, Ordering::Relaxed);
+            }
+            if reauth.reconnect() {
+                let addr = self.conn.addr().to_string();
+                self.conn = self.open_node_conn(&addr).await?;
+            }
         }
         let id = crate::admin::fetch_client_instance_id(&mut self.conn, version, timeout, [0; 16])
             .await?;

@@ -1568,8 +1568,7 @@ impl ShareGroup {
                                 cfg.connections_max_idle,
                                 cfg.request_timeout,
                             )
-                            .await
-                            .unwrap_or(true)
+                            .await.unwrap_or(crate::protocol::sasl::ReauthCheck::Reconnect { reauth_failed: false }).reconnect()
                             {
                                 conn = None;
                             }

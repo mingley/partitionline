@@ -267,7 +267,9 @@ honest dependency footprint. Deferred features remain documented exclusions.
    OIDC `expires_in` parse + broker `session_lifetime_ms` record on connect (2026-09-05).
       Auth-lifetime reconnect via `should_reconnect` (2026-09-05).
    Mid-connection `SaslAuthenticate` reauth via `should_reconnect_after_reauth` (2026-09-05).
-   Outage soak remains open.
+   **Partial (2026-09-05):** producer/consumer `sasl_reauth_ok` /
+   `sasl_reauth_fail` metrics for mid-connection `SaslAuthenticate` outcomes
+   (`ReauthCheck`). Outage soak remains open. Not Done.
 
 **Work surfaces:** [network](../src/net.rs), [OAuth](../src/protocol/oauth.rs),
 [OIDC](../src/protocol/oidc.rs), [auth smoke](../scripts/ci-auth-smoke.sh),
@@ -288,6 +290,9 @@ and no secret exposure. Preserve existing audit/deny and security-reporting lane
    queue age/bytes, retries, broker throttle, reconnect, ack latency, lag,
    rebalance and transaction outcomes. Bound label cardinality; provide optional
    exporters as examples rather than mandatory core dependencies.
+   **Partial (2026-09-05):** `sasl_reauth_ok` / `sasl_reauth_fail` on
+   producer/consumer metrics distinguish mid-connection SASL reauth success vs
+   failure (feeds throttle/stale/blocked diagnosis). Not Done.
 3. Have two independent users follow the guide and diagnose a throttled broker,
    stale leader and blocked consumer using telemetry rather than payload logging.
 

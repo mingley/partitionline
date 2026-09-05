@@ -129,6 +129,15 @@ Examples: `tls`, `sasl`. OIDC is `OidcConfig` on the SASL OAUTHBEARER path.
 
 ## Metrics
 
+### Mid-connection SASL reauth counters
+
+`Producer::metrics` / `Consumer::metrics` expose `sasl_reauth_ok` and
+`sasl_reauth_fail` when KIP-368 mid-connection `SaslAuthenticate` runs
+(lifetime near expiry). Rising `sasl_reauth_fail` with reconnect storms
+means reauth is failing closed into full reconnect — check IdP/`expires_in`
+and broker `session_lifetime_ms`. KL-06/KL-07 Partial; not an outage soak.
+
+
 `Producer::metrics`, `Consumer::metrics`, `ShareGroup::metrics`, and
 `Admin::metrics` return counter snapshots plus latency min/mean/max and
 p50/p99 over the last 1024 samples. Scrape on your process interval (for

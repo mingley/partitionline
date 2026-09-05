@@ -6618,7 +6618,7 @@ impl Admin {
             self.cfg.connections_max_idle,
             self.cfg.request_timeout,
         )
-        .await?
+        .await?.reconnect()
         {
             return Ok(());
         }
@@ -6653,7 +6653,7 @@ impl Admin {
                 self.cfg.connections_max_idle,
                 self.cfg.request_timeout,
             )
-            .await?
+            .await?.reconnect()
             {
                 let _ = self.conns.remove(&node);
             }

@@ -67,6 +67,10 @@ Token-endpoint responses: non-200 → `Error::Protocol` with
 (HTTP 5xx, I/O, timeout) get **bounded** retries (3 attempts, short exponential
 backoff) inside that same timeout; HTTP 4xx fails immediately. Outage soak still open (KL-06).
 
+Producer/consumer metrics expose `sasl_reauth_ok` / `sasl_reauth_fail` for
+successful vs failed mid-connection `SaslAuthenticate` (distinct from full
+TCP reconnect). This is a KL-06/KL-07 diagnosis Partial — not an outage soak.
+
 Unit coverage: `fetch_token_rejects_http_503_fail_closed`,
 `fetch_token_hang_times_out_fail_closed`,
 `fetch_token_retries_transient_503_then_succeeds`,

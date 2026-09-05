@@ -2191,8 +2191,7 @@ impl ConsumerGroup {
                                 cfg.connections_max_idle,
                                 cfg.request_timeout,
                             )
-                            .await
-                            .unwrap_or(true)
+                            .await.unwrap_or(crate::protocol::sasl::ReauthCheck::Reconnect { reauth_failed: false }).reconnect()
                             {
                                 conn = None;
                             }
@@ -2309,8 +2308,7 @@ impl ConsumerGroup {
                                 cfg.connections_max_idle,
                                 cfg.request_timeout,
                             )
-                            .await
-                            .unwrap_or(true)
+                            .await.unwrap_or(crate::protocol::sasl::ReauthCheck::Reconnect { reauth_failed: false }).reconnect()
                             {
                                 conn = None;
                             }
@@ -2846,7 +2844,7 @@ pub(crate) async fn coord_roundtrip(
         cfg.connections_max_idle,
         cfg.request_timeout,
     )
-    .await?
+    .await?.reconnect()
     {
         *coord = open_coord(cfg, coord.addr()).await?;
     }
