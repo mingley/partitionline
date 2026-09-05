@@ -24,6 +24,9 @@ async fn main() -> partitionline::Result<()> {
         println!("# HELP partitionline_produce_records_acked Produce records acked");
         println!("# TYPE partitionline_produce_records_acked counter");
         println!("partitionline_produce_records_acked {}", pm.records_acked);
+        println!("# HELP partitionline_produce_retries Produce RPC retries enqueued");
+        println!("# TYPE partitionline_produce_retries counter");
+        println!("partitionline_produce_retries {}", pm.produce_retries);
         println!("# HELP partitionline_produce_ack_p99_seconds Produce ack p99 latency");
         println!("# TYPE partitionline_produce_ack_p99_seconds gauge");
         println!(
@@ -32,12 +35,13 @@ async fn main() -> partitionline::Result<()> {
         );
     } else {
         println!(
-            "produced {}-{}@{} queued={} acked={} bytes={} ack_us={} p50_us={} p99_us={} topics={}",
+            "produced {}-{}@{} queued={} acked={} retries={} bytes={} ack_us={} p50_us={} p99_us={} topics={}",
             md.topic,
             md.partition,
             md.offset,
             pm.records_queued,
             pm.records_acked,
+            pm.produce_retries,
             pm.bytes_queued,
             pm.ack_latency.mean_nanos().unwrap_or(0) / 1000,
             pm.ack_latency.p50_nanos / 1000,

@@ -302,6 +302,9 @@ pub struct ProducerMetrics {
     pub bytes_queued: u64,
     /// Key plus value bytes still queued and not yet acked (`buffer.memory` in-flight).
     pub bytes_buffered: u64,
+    /// Produce RPC retries enqueued after a retriable broker/transport failure.
+    /// Distinct from [`Self::produce_errors`] (terminal failures). KL-07 diagnosis.
+    pub produce_retries: u64,
     /// Queue-to-ack latency per acknowledged record (including `acks=0`).
     pub ack_latency: LatencyStats,
     /// Per-topic counters. Topics with no activity are omitted. Sorted by name.
@@ -560,6 +563,7 @@ mod tests {
     fn metrics_default_zero() {
         assert_eq!(ProducerMetrics::default().records_queued, 0);
         assert_eq!(ProducerMetrics::default().bytes_buffered, 0);
+        assert_eq!(ProducerMetrics::default().produce_retries, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.count, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p50_nanos, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);

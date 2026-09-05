@@ -136,6 +136,20 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (produce retries)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Produce succeeds but feels sticky / leadership flaps | `Producer::metrics().produce_retries` rising; `produce_errors` still 0 | Retriable broker errors (e.g. `LEADER_NOT_AVAILABLE`) — client recovered |
+| Retries and terminal errors both climb | `produce_retries` and `produce_errors` both up | Exhausted retries or non-retriable failures — inspect broker path |
+| Clean produce path | `produce_retries == 0` | No retriable Produce re-queues observed |
+
+`produce_retries` counts Produce RPC re-queues after retriable failures; it is
+not a payload log. Prefer it over dumping record bodies. Mock proof:
+`tests/produce_retries.rs`. KL-07 Partial — not two independent human
+diagnosis runs, and not a Suite HOLD lift. Queue-age / lag / throttle /
+reconnect recipes are separate slices.
+
 ## Recipes
 
 ### Backpressure

@@ -266,6 +266,18 @@ if [[ -f docs/adopter-exercise.md ]] \
 else
   bad "KL-08 adopter exercise template missing"
 fi
+
+# KL-07 slice: produce_retries counter for retriable Produce re-queues.
+if [[ -f tests/produce_retries.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (produce retries)' docs/guide.md \
+  && grep -qF 'produce_retries_metric_increments_on_retriable_broker_error' tests/produce_retries.rs \
+  && grep -qF 'pub produce_retries: u64' src/metrics.rs \
+  && grep -qF 'm_retries.fetch_add' src/producer.rs \
+  && grep -qF 'produce_retries.rs' docs/ROADMAP.md; then
+  ok "KL-07 produce-retries diagnosis Partial (produce_retries metric; guide+mock)"
+else
+  bad "KL-07 produce-retries diagnosis Partial missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

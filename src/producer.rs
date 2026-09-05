@@ -812,6 +812,8 @@ struct Shared {
     m_acked: AtomicU64,
     m_errors: AtomicU64,
     m_bytes: AtomicU64,
+    /// Produce RPC retries successfully enqueued (see [`crate::ProducerMetrics::produce_retries`]).
+    m_retries: AtomicU64,
     buffered_bytes: AtomicU64,
     /// Set by [`Producer::close`] / [`Producer::close_timeout`] so clones cannot
     /// respawn workers after shutdown (KL-02 durable Closed outcome).
@@ -1149,6 +1151,7 @@ impl Producer {
             m_acked: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
+            m_retries: AtomicU64::new(0),
             buffered_bytes: AtomicU64::new(0),
             closed: AtomicBool::new(false),
             ack_latency: crate::metrics::LatencyTracker::new(),
@@ -1488,6 +1491,7 @@ impl Producer {
             produce_errors: self.inner.shared.m_errors.load(Ordering::Relaxed),
             bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
             bytes_buffered: self.inner.shared.buffered_bytes.load(Ordering::Relaxed),
+            produce_retries: self.inner.shared.m_retries.load(Ordering::Relaxed),
             ack_latency: self.inner.shared.ack_latency.snapshot(),
             topics: crate::metrics::snapshot_produce_topics(&self.inner.shared.topics.lock()),
         }
@@ -2964,7 +2968,9 @@ impl Worker {
             p.retry = p.retry.saturating_add(1);
             let _ = self.shared.retries_out.fetch_add(1, Ordering::SeqCst);
             match self.shared.retry_tx.try_send(p) {
-                Ok(()) => {}
+                Ok(()) => {
+                    let _ = self.shared.m_retries.fetch_add(1, Ordering::Relaxed);
+                }
                 Err(mpsc::error::TrySendError::Full(p)) => {
                     let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
                     fail_pendings(&self.shared, vec![p], Error::QueueFull);
