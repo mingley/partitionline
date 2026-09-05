@@ -42,6 +42,14 @@ echo "== ci-branch-lite: path adopter consumer (pre-crates.io) =="
 # Proves day1 registry consumer will compile once 0.1.0 exists (API surface).
 MODE=path bash scripts/verify-crates-io-consumer.sh
 
+echo "== ci-branch-lite: registry adopter consumer (post-Installable) =="
+# After crates.io has this version, git MODE SKIPs — prove the live registry pin.
+if bash scripts/check-installable.sh >/dev/null 2>&1; then
+  MODE=registry bash scripts/verify-crates-io-consumer.sh
+else
+  echo "ci-branch-lite: registry adopter deferred (Installable not met)"
+fi
+
 echo "== ci-branch-lite: packed crate consumer (Installable packaging) =="
 # Proves the .crate tarball itself is dependable (catches missing public modules).
 bash scripts/ci-crate-consumer.sh

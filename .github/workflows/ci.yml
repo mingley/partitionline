@@ -87,6 +87,9 @@ jobs:
       - run: cargo package
       - name: List crate contents
         run: tar -tzf target/package/partitionline-*.crate | head -80
+      - name: Packed-crate adopter consumer
+        # Operator surface must compile against the packed .crate (not only workspace path).
+        run: bash scripts/ci-crate-consumer.sh
       - name: Publish dry-run
         run: cargo publish --dry-run --allow-dirty
 

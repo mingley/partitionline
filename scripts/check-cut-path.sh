@@ -87,6 +87,15 @@ echo "== check-cut-path: git-tag adopter consumer (documented pin) =="
 MODE=git bash scripts/verify-crates-io-consumer.sh
 
 echo
+echo "== check-cut-path: registry adopter consumer (post-Installable) =="
+# Live crates.io pin must cargo-check once Installable is met (git SKIP is not enough).
+if bash scripts/check-installable.sh >/dev/null 2>&1; then
+  MODE=registry bash scripts/verify-crates-io-consumer.sh
+else
+  echo "check-cut-path: registry adopter deferred (Installable not met)"
+fi
+
+echo
 echo "== check-cut-path: packed crate consumer (Installable packaging) =="
 bash scripts/ci-crate-consumer.sh
 

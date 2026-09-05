@@ -260,6 +260,8 @@ else
   bad "guide missing metrics/tracing path"
 fi
 # Documented git pin must cargo-check while Installable waits (Adoptable before crates.io).
+# After Installable, MODE=git SKIPs once README is crates.io-shaped — that alone is not
+# Operable proof. Prefer MODE=registry against live crates.io when Installable is met.
 if grep -qF 'MODE=git' scripts/check-cut-path.sh \
   && grep -qF 'MODE=git' scripts/check-installable-preflight.sh \
   && grep -qF 'MODE=git' scripts/owner-finish-installable.sh \
@@ -271,6 +273,22 @@ if grep -qF 'MODE=git' scripts/check-cut-path.sh \
   fi
 else
   bad "git-tag adopter consumer not wired into cut-path / preflight / finish / verify-crates-io-consumer"
+fi
+if bash scripts/check-installable.sh >/dev/null 2>&1; then
+  if grep -qF 'MODE=registry' scripts/check-cut-path.sh \
+    && grep -qF 'MODE=registry' scripts/ci-branch-lite.sh \
+    && grep -qF 'MODE=registry' scripts/verify-crates-io-consumer.sh \
+    && grep -qF 'ci-crate-consumer.sh' .github/workflows/ci.yml; then
+    if MODE=registry bash scripts/verify-crates-io-consumer.sh >/tmp/pl-registry-adopter.log 2>&1; then
+      ok "registry adopter consumer (crates.io pin cargo-checks; wired into cut-path + branch-lite + package CI)"
+    else
+      bad "registry adopter consumer failed; see /tmp/pl-registry-adopter.log"
+    fi
+  else
+    bad "registry adopter consumer not wired into cut-path / branch-lite / verify-crates-io-consumer / ci.yml package"
+  fi
+else
+  ok "registry adopter consumer deferred (Installable not met yet — git/path proofs cover pre-cut)"
 fi
 
 # Adopter-pin honesty: pre-Installable = git tag parity (no crates.io lead);

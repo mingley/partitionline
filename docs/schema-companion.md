@@ -1,8 +1,10 @@
 # Companion crate design: `partitionline-schema` (WP-6.3)
 
-**Status:** design only. Do **not** publish this crate until `partitionline`
-`0.1.0` is on crates.io (WP-0.5). Schema Registry support stays out of the
-core client (`docs/gaps.md`).
+**Status:** design only. Core `partitionline` `0.1.0` is on crates.io — the
+publish gate for starting this companion is met. Build/publish the companion
+only when survey [#85](https://github.com/mingley/partitionline/issues/85)
+(or equivalent adopter demand) justifies it. Schema Registry support stays out
+of the core client (`docs/gaps.md`).
 
 ## Why a companion
 
