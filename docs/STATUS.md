@@ -135,6 +135,9 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Post-Installable #86 close + unblock/plan honesty (2026-09-05, tip \`6493bcd\`):** Closed crates.io first-cut tracking #86 (0.1.0 live). \`owner-unblock\` branches ALREADY_INSTALLABLE (Trusted Publishing / handoff / survey #85; do not re-cut) vs historical READY_EXCEPT_TOKEN. CIVILIZATION WP-6 + ROADMAP stop waiting on crates.io / default ruzstd P0. Merged main evidence roadmap onto tip. Does **not** lift Suite HOLD.
 
+
+**Main CI green after #86 / unblock honesty (2026-09-05, tip `0b9cf62`):** Actions `ci` on `main` HEAD green (fmt, clippy, test 1.85+stable, features, deny, package, audit, auth-smoke, integrity-smoke, latency-gate, fuzz-smoke, broker-smoke Kafka 3.9.1 + 4.1.0). Installable met; #86 closed; owner-unblock ALREADY_INSTALLABLE path live; civilization bars 47 PASS. Does **not** lift Suite HOLD (Lab A unsigned). Trusted Publishing UI still owner.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
