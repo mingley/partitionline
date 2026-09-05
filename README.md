@@ -246,6 +246,16 @@ COUNT=10000 WARMUP=1000 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=0 \
   cargo run --release --example bench_latency
 ```
 
+## Documentation & Roadmap
+
+- [API & User Guide](docs/guide.md) — Producer, consumer, transactions, and admin guide.
+- [Feature Gaps vs librdkafka](docs/gaps.md) — Comprehensive client compatibility matrix.
+- [Production Readiness Roadmap](docs/ROADMAP.md) — Phased ramp to production GA (1.0.0).
+- [TODO & Task Tracker](TODO.md) — Prioritized engineering task checklist.
+- [Architecture & Design](docs/design.md) — Protocol engine and memory architecture.
+- [Benchmarks](docs/benchmark.md) — Performance measurements and test methodology.
+- [Release Policy](docs/RELEASE.md) — Release criteria and publishing procedures.
+
 ## License
 
 MIT OR Apache-2.0
