@@ -184,6 +184,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-08 adopter exercise template (2026-09-05, tip `622dfa2`):** `docs/adopter-exercise.md` is the blank 24h/7d record format (`UNFILLED — not evidence`); linked from support.md + ADOPTION.md. Does **not** close full KL-08 (no filled adopter records, no traffic-shadow promotion/rollback proof). Does **not** lift Suite HOLD.
 
+**KL-07 broker throttle metrics Partial (2026-09-05, tip `PENDING`):** `ProducerMetrics`/`ConsumerMetrics`::{broker_throttles,broker_throttle_ms} increment when Produce/Fetch responses carry `throttle_time_ms > 0`; guide cookbook; `tests/throttle_metrics.rs`. Does **not** close full KL-07 (queue-age/retries/reconnect/lag/rebalance/txn recipes and two independent human diagnosis runs remain). Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

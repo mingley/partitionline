@@ -1257,6 +1257,9 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    /// Fetch responses with throttle_time_ms > 0 (see ConsumerMetrics::broker_throttles).
+    m_broker_throttles: AtomicU64,
+    m_broker_throttle_ms: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1346,6 +1349,8 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_broker_throttles: AtomicU64::new(0),
+            m_broker_throttle_ms: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -2152,6 +2157,8 @@ impl Consumer {
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
+            broker_throttles: self.m_broker_throttles.load(Ordering::Relaxed),
+            broker_throttle_ms: self.m_broker_throttle_ms.load(Ordering::Relaxed),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
         }
     }
@@ -2519,7 +2526,15 @@ impl Consumer {
         out: &mut Vec<FetchedRecord>,
         fenced: &mut Vec<(String, i32)>,
     ) -> Result<FetchRetry> {
-        let (fetched, endpoints, ..) = decode_fetch_response(body, self.fetch_version)?;
+        let (fetched, endpoints, _error_code, _session_id, throttle_time_ms) =
+            decode_fetch_response(body, self.fetch_version)?;
+        if throttle_time_ms > 0 {
+            let _ = self.m_broker_throttles.fetch_add(1, Ordering::Relaxed);
+            let _ = self.m_broker_throttle_ms.fetch_add(
+                u64::try_from(throttle_time_ms).unwrap_or(0),
+                Ordering::Relaxed,
+            );
+        }
         self.cluster.apply_node_endpoints(&endpoints);
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;

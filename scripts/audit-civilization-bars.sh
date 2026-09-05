@@ -239,6 +239,19 @@ else
 fi
 
 
+
+# KL-07 slice: broker throttle counters + guide cookbook.
+if [[ -f tests/throttle_metrics.rs && -f docs/guide.md && -f docs/ROADMAP.md ]] \
+  && grep -qF '### Diagnosing broker throttle' docs/guide.md \
+  && grep -qF 'throttle_metrics_increment_on_throttled_produce' tests/throttle_metrics.rs \
+  && grep -qF 'throttle_metrics_increment_on_throttled_fetch' tests/throttle_metrics.rs \
+  && grep -qF 'broker_throttles,broker_throttle_ms' docs/ROADMAP.md \
+  && grep -qF 'broker_throttles,broker_throttle_ms' docs/STATUS.md; then
+  ok "KL-07 broker throttle metrics Partial (Produce/Fetch throttle counters + guide cookbook)"
+else
+  bad "KL-07 broker throttle metrics Partial missing"
+fi
+
 # KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
 if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
   && grep -qF 'Support matrix' docs/support.md \

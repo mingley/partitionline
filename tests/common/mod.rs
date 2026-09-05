@@ -99,7 +99,7 @@ use partitionline::protocol::admin::{
 };
 use partitionline::protocol::api::{
     decode_metadata_request_topics, decode_produce_request, encode_api_versions_response,
-    encode_metadata_response, encode_produce_response_with_endpoints, ApiVersion,
+    encode_metadata_response, encode_produce_response_with_endpoints_and_throttle, ApiVersion,
     ApiVersionsResponse, Broker, FinalizedFeatureKey, MetadataRequestTopic, MetadataResponse,
     NodeEndpoint, PartitionMetadata, ProducePartitionResponse, SupportedFeatureKey, TopicMetadata,
 };
@@ -130,7 +130,7 @@ use partitionline::protocol::epoch::{
     EpochEndOffset, OffsetForLeaderTopicResult,
 };
 use partitionline::protocol::fetch::{
-    decode_fetch_request, encode_fetch_response_with_endpoints, FetchedPartition, FetchedTopic,
+    decode_fetch_request, encode_fetch_response_with_endpoints_and_throttle, FetchedPartition, FetchedTopic,
 };
 use partitionline::protocol::group::{
     decode_find_coordinator_request_keys, decode_heartbeat_request,
@@ -229,6 +229,10 @@ struct State {
     expected_seq: HashMap<(i64, i16, String, i32), i32>,
     produce_error: Option<i16>,
     produce_error_left: Option<u32>,
+    /// ProduceResponse ThrottleTimeMs (KL-07 throttle diagnosis).
+    produce_throttle_ms: i32,
+    /// FetchResponse ThrottleTimeMs (KL-07 throttle diagnosis).
+    fetch_throttle_ms: i32,
     log_start: HashMap<(String, i32), i64>,
     created_topics: HashMap<String, CreatedTopic>,
     metadata_calls: u32,
@@ -599,6 +603,8 @@ fn new_state(
         expected_seq: HashMap::new(),
         produce_error: None,
         produce_error_left: None,
+        produce_throttle_ms: 0,
+        fetch_throttle_ms: 0,
         log_start: HashMap::new(),
         created_topics,
         metadata_calls: 0,
@@ -1669,6 +1675,18 @@ impl Mock {
         let mut st = self.state.lock();
         st.produce_error = Some(code);
         st.produce_error_left = Some(n);
+    }
+
+    /// Set ProduceResponse `throttle_time_ms` for subsequent Produce RPCs.
+    pub fn set_produce_throttle_ms(&self, ms: i32) {
+        let mut st = self.state.lock();
+        st.produce_throttle_ms = ms;
+    }
+
+    /// Set FetchResponse `throttle_time_ms` for subsequent Fetch RPCs.
+    pub fn set_fetch_throttle_ms(&self, ms: i32) {
+        let mut st = self.state.lock();
+        st.fetch_throttle_ms = ms;
     }
 
     pub fn produce_nodes(&self) -> Vec<i32> {
@@ -4997,11 +5015,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                 }
                 let endpoints = node_endpoints_for(&st, parts.iter().map(|p| p.current_leader_id));
-                encode_produce_response_with_endpoints(
+                let throttle = st.produce_throttle_ms;
+                encode_produce_response_with_endpoints_and_throttle(
                     &mut body,
                     header.api_version,
                     &parts,
                     &endpoints,
+                    throttle,
                 )
                 .unwrap();
             }
@@ -5248,13 +5268,15 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .iter()
                         .flat_map(|t| t.partitions.iter().map(|p| p.current_leader_id)),
                 );
-                encode_fetch_response_with_endpoints(
+                let throttle = st.fetch_throttle_ms;
+                encode_fetch_response_with_endpoints_and_throttle(
                     &mut body,
                     header.api_version,
                     &topics,
                     0,
                     0,
                     &endpoints,
+                    throttle,
                 )
                 .unwrap();
             }

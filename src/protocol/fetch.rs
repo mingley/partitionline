@@ -1897,6 +1897,27 @@ pub fn encode_fetch_response_with_endpoints(
     encode_fetch_response_fields(buf, version, topics, error_code, session_id, endpoints, 0)
 }
 
+/// Encode Fetch with endpoints and an explicit ThrottleTimeMs.
+pub fn encode_fetch_response_with_endpoints_and_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[FetchedTopic],
+    error_code: i16,
+    session_id: i32,
+    endpoints: &[super::api::NodeEndpoint],
+    throttle_time_ms: i32,
+) -> Result<()> {
+    encode_fetch_response_fields(
+        buf,
+        version,
+        topics,
+        error_code,
+        session_id,
+        endpoints,
+        throttle_time_ms,
+    )
+}
+
 fn encode_fetch_response_fields(
     buf: &mut BytesMut,
     version: i16,

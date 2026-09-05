@@ -89,6 +89,21 @@ Use `transactional_id`, `init_transactions`, and
 `send_offsets_for_group` — see `examples/eos.rs`. Isolation on the consumer
 side is `IsolationLevel::ReadCommitted`.
 
+### Diagnosing broker throttle
+
+When produce ack latency or fetch stalls rise without local CPU pressure, check
+whether the broker is applying quotas:
+
+1. Sample `Producer::metrics()` / `Consumer::metrics()` and record
+   `broker_throttles` and `broker_throttle_ms`.
+2. A climbing `broker_throttle_ms` with healthy `records_acked` /
+   `records_fetched` usually means broker quota throttle — raise client
+   quotas or slow the workload; do not widen local timeouts blindly.
+3. Counters move only when the response carries `throttle_time_ms > 0`; a
+   zero-throttle Produce/Fetch does not bump them.
+
+Mock contract: `tests/throttle_metrics.rs`.
+
 ## Admin
 
 ```rust,no_run
