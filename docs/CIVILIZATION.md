@@ -172,6 +172,9 @@ without a deployment need written here.
 Execute in this sequence unless blocked. Tip is docs/scripts-only vs `main`
 while Installable waits — do not tip→main docs thrash and do not merge
 Dependabot lockfile/src/workflow bumps onto tip before crates.io `0.1.0`.
+Post-cut parks stay off `origin/main` until after crates.io `0.1.0`
+(**expected pre-Installable**; tip⊆parks stack is the pre-cut gate — not a
+token-day soft blocker).
 
 1. **WP-0.5 (Installable cut)** — owner sets Cloud Agent secret `CARGO_REGISTRY_TOKEN`
    with crates.io scope **`publish-new`** (+ usually `publish-update`), then:
