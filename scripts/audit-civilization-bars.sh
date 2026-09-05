@@ -296,6 +296,16 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'expected pre-Installable' docs/CIVILIZATION.md \
   && grep -qF 'expected pre-Installable' docs/RELEASE.md \
   && grep -qF 'expected pre-Installable' docs/ADOPTION.md \
+  && grep -qF 'branch-lite (local Actions mirror): PARTIAL' scripts/owner-status.sh \
+  && grep -qF 'Installable already met — post-cut re-entry' scripts/ci-branch-lite.sh \
+  && grep -qF 'Installable already met — post-cut re-entry' scripts/check-cut-path.sh \
+  && grep -qF 'pre-token rehearsal' scripts/ci-branch-lite.sh \
+  && grep -qF 'pre-token rehearsal' scripts/check-cut-path.sh \
+  && ! grep -qF 'pre-token holds exit 0 with a PARTIAL note' scripts/owner-finish-installable.sh \
+  && ! grep -qF 'pre-token holds exit 0 with a PARTIAL note' scripts/check-cut-path.sh \
+  && ! grep -qF 'pre-token holds exit 0 with a PARTIAL note' docs/STATUS.md \
+  && grep -qF 'crate absent (expected pre-Installable' scripts/check-trusted-publishing-ready.sh \
+  && grep -qF 'INFO — workflow shape OK; crates.io Trusted Publishing UI still owner' scripts/owner-enable-trusted-publishing.sh \
   && grep -qF 'stay off main until after crates.io' scripts/owner-request-registry-token.sh \
   && grep -qF 'pre-cut pending is expected' scripts/owner-unblock.sh \
   && grep -qF 'tip⊆parks stack' scripts/owner-unblock.sh \

@@ -64,7 +64,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Handoff parks-on-main PARTIAL (2026-09-04):** bare `owner-post-installable-handoff` (`LAND_PARKS=0`) no longer final-OKs while post-cut parks are off `origin/main`. Probes each park is an ancestor of main; exits `PARTIAL`/2 unless landed or `ALLOW_PARKS_PENDING=1`. `LAND_PARKS=1` now uses `REQUIRE_PARKS=1`. Self-test + bars gate. Still not a Suite HOLD lift.
 
-**Handoff DRY_RUN parks-on-main honesty (2026-09-04):** `DRY_RUN=1` handoff now probes parks-on-main (not only stack). Already-Installable DRY_RUN exits `PARTIAL`/2 when parks remain off main; pre-token holds exit 0 with a PARTIAL note (same pattern as day1). Status/unblock print parks-not-on-main re-entry. Self-test + bars gate. Still not a Suite HOLD lift.
+**Handoff DRY_RUN parks-on-main honesty (2026-09-04; amended 2026-09-05):** `DRY_RUN=1` handoff probes parks-on-main (not only stack). Already-Installable *and* pre-token parks pending both exit `PARTIAL`/2 (day1-aligned fail-closed; see 2026-09-05 entry). Status/unblock print parks-not-on-main re-entry. Self-test + bars gate. Still not a Suite HOLD lift.
 
 **Cut-path handoff_rc capture (2026-09-04):** `check-cut-path` captures handoff DRY_RUN rc (like day1/dispatch) so already-Installable parks-off-main PARTIAL/2 cannot `set -e` abort the rehearsal. Aggregates into OK-with-PARTIAL. Finish comment no longer claims handoff DRY_RUN always exits 0. Bars gate `handoff_rc`. Still not a Suite HOLD lift.
 
@@ -77,6 +77,9 @@ Suite HOLD stands. This file records holes. It does not lift them.
 **Preflight READY_EXCEPT_TOKEN parks expected + tip Verifiable recheck (2026-09-05, tip `dc30c21` / tip HEAD after docs `e0c8c6b`):** `check-installable-preflight` on `READY_EXCEPT_TOKEN` now prints that parks stay off main until after crates.io `0.1.0` (**expected pre-Installable**; tip⊆parks stack is the pre-cut gate). Bars grep the string. **Unsigned tip live-broker Verifiable** on tip `11af93e` tree: `ci-tip-verifiable-broker` → broker-smoke **ok**, auth-smoke **ok**, integrity-smoke **ok**, final **ok**; integrity leaf COUNT=2000 HW==acked consumed==seeded; quiet latency p99≈91µs (pass vs 750µs) — still **unsigned**, still not a Suite HOLD lift. **Docs alignment (`e0c8c6b`):** `docs/CIVILIZATION.md` + `docs/RELEASE.md` state the same expected parks-off-main framing; bars grep both. Crates.io `partitionline` **404**; `CARGO_REGISTRY_TOKEN` unset — Installable still blocked.
 
 **Handoff DRY_RUN parks/day1 PARTIAL exit 2 (2026-09-05):** `owner-post-installable-handoff` pre-token DRY_RUN now exits **PARTIAL/2** (parks-off-main + day1 aggregate) instead of soft-green exit 0 after a PARTIAL note. Bars require `handoff` DRY_RUN rc=2 + `DRY_RUN complete with PARTIAL`. `ci-publish-ready` captures `dispatch_rc` like branch-lite/cut-path. `docs/ADOPTION.md` + preflight side paths state **expected pre-Installable** parks-off-main. Still not a Suite HOLD lift. Still blocked on `CARGO_REGISTRY_TOKEN` / crates.io 0.1.0.
+
+
+**Owner-status / tip-proxy PARTIAL honesty (2026-09-05):** `owner-status` no longer labels branch-lite exit 0 + `ok with PARTIAL` as plain `ok`. Tip proxies (`ci-branch-lite`, `check-cut-path`) split pre-token vs already-Installable PARTIAL copy (token-blocked vs post-cut re-entry). Stale “pre-token handoff exit 0” comments/STATUS line amended. Trusted-publishing-ready final line is INFO when crate absent (not bare OK). Bars gate. Still not a Suite HOLD lift. Still blocked on `CARGO_REGISTRY_TOKEN` / crates.io 0.1.0.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
