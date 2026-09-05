@@ -317,6 +317,10 @@ if [[ -x scripts/owner-post-installable-handoff.sh ]] \
   && grep -qF 'DRY_RUN: parks on main' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — parks not on main (DRY_RUN' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'PARTIAL — Installable OK but adopter docs still git-shaped (DRY_RUN' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'pl_adopter_docs_crates_io_shaped' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'docs/guide.md' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'docs/migrate-from-rdkafka.md' scripts/owner-post-installable-handoff.sh \
+  && grep -qF 'README + ADOPTION + guide + migrate' scripts/owner-post-installable-handoff.sh \
   && grep -qF 'Installable already met; post-cut re-entry' scripts/ci-publish-ready.sh \
   && grep -qF 'pre-token rehearsal; Installable still blocked' scripts/ci-publish-ready.sh \
   && grep -qF 'check-parks-on-main.sh' scripts/owner-post-installable-handoff.sh \
