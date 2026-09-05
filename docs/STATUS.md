@@ -181,7 +181,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 **KL-02 buffer ownership + mock overload soak (2026-09-05, tip `8bd64d3`):** saturating `try_send` keeps `metrics().bytes_buffered ≤ buffer_memory` and drains to 0 after flush/close; guide documents key+value queued-until-ack model. Tests: `tests/buffer_ownership.rs`. Does **not** close full KL-02 (no 2×/24h RSS or full encode/socket/task ownership). Does **not** lift Suite HOLD.
 
 
-**KL-02 encode/socket/task ownership (2026-09-05):** `ProducerMetrics::requests_in_flight` counts Produce requests awaiting broker responses; per-worker `write_buf` soft-capped after each send (encode scratch ≠ `buffer_memory`); guide stages enqueue→encode→socket→inflight→ack. Tests: `tests/encode_socket_ownership.rs`. Does **not** close full KL-02 (no 2×/24h RSS). Does **not** lift Suite HOLD.
+**KL-02 encode/socket/task ownership (2026-09-05, tip `b06e5f4`):** `ProducerMetrics::requests_in_flight` counts Produce requests awaiting broker responses; per-worker `write_buf` soft-capped after each send (encode scratch ≠ `buffer_memory`); guide stages enqueue→encode→socket→inflight→ack. Tests: `tests/encode_socket_ownership.rs`. Does **not** close full KL-02 (no 2×/24h RSS). Does **not** lift Suite HOLD.
 
 **KL-08 support matrix honesty (2026-09-05, tip `52d2dd7`):** `docs/support.md` records CI-backed brokers (3.9.1/4.1.0), MSRV 1.85, Linux/x86_64, default pure-Rust features, and explicit non-promises; linked from RELEASE/ADOPTION/api-stability. Does **not** close full KL-08 (adopter 24h/7d + promotion/rollback remain). Does **not** lift Suite HOLD.
 
