@@ -6,7 +6,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 echo "check-schema-companion-scaffold: cargo test (wire framing)"
-cargo test --manifest-path partitionline-schema/Cargo.toml --quiet
+# Capture lib unit-test summary (not doc-tests). Quiet mode hides the unit line.
+out="$(cargo test --manifest-path partitionline-schema/Cargo.toml --lib -- --nocapture 2>&1)"
+echo "$out" | tail -20
+if ! echo "$out" | grep -Eq 'test result: ok\. [1-9][0-9]* passed'; then
+  echo "check-schema-companion-scaffold: FAIL — expected passing unit tests" >&2
+  exit 1
+fi
 
 echo "check-schema-companion-scaffold: forbid unsafe_code + missing_docs in lib"
 grep -qF '#![forbid(unsafe_code)]' partitionline-schema/src/lib.rs

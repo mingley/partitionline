@@ -148,7 +148,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 **Registry adopter consumer post-Installable (2026-09-05, tip `a692183`):** Operable bars + cut-path + branch-lite require `MODE=registry` `verify-crates-io-consumer` when Installable is met (git MODE SKIP is not enough). CI `package` runs `ci-crate-consumer` against the packed `.crate`. `docs/schema-companion.md` notes core 0.1.0 publish gate is met. Does **not** lift Suite HOLD.
 
 
-**Schema companion scaffold + finish registry wire (2026-09-05, tip `f2219ab`):** `partitionline-schema` wire framing (magic+schema-id) landed workspace-excluded `publish=false`; `check-schema-companion-scaffold` gated in bars. `owner-finish-installable` runs `MODE=registry` adopter consumer when Installable. Does **not** publish the companion or lift Suite HOLD.
+**Schema companion scaffold + finish registry wire (2026-09-05, tip `328097a`):** `partitionline-schema` wire framing (magic+schema-id) landed workspace-excluded `publish=false`; `check-schema-companion-scaffold` gated in bars (requires lib unit tests). `owner-finish-installable` runs `MODE=registry` adopter consumer when Installable. Tip=main after FF. Does **not** publish the companion or lift Suite HOLD.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
