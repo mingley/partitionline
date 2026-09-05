@@ -184,6 +184,19 @@ else
   bad "KL-02 buffer ownership + mock overload soak missing"
 fi
 
+# KL-02 slice: RSS/process-budget exercise template (UNFILLED — not evidence).
+if [[ -f docs/rss-exercise.md ]] \
+  && grep -qF 'UNFILLED — not evidence' docs/rss-exercise.md \
+  && grep -qF 'Does **not** close KL-02' docs/rss-exercise.md \
+  && grep -qF '2× overload budget hold' docs/rss-exercise.md \
+  && grep -qF '24-hour RSS steady-state' docs/rss-exercise.md \
+  && grep -qF 'rss-exercise.md' docs/guide.md \
+  && grep -qF 'rss-exercise.md' docs/ROADMAP.md; then
+  ok "KL-02 RSS/process-budget exercise template (UNFILLED; guide+ROADMAP links)"
+else
+  bad "KL-02 RSS/process-budget exercise template missing"
+fi
+
 # KL-06 slice: credential Debug redaction (passwords / client_secret / key PEM).
 if [[ -f tests/credential_redact.rs && -f docs/security.md ]] \
   && grep -qF 'Credential redaction' docs/security.md \

@@ -154,6 +154,9 @@ until ack or fail — not encoded batch size, socket buffers, or process RSS.
 
 Mock coverage: `tests/buffer_ownership.rs`.
 
+For a **2× overload / 24h RSS** process-budget record (still required for full
+KL-02), use the blank [rss-exercise.md](rss-exercise.md) template — it ships
+**UNFILLED** and is not evidence.
 
 ### Produce cancellation and shutdown
 

@@ -180,9 +180,14 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-02 buffer ownership + mock overload soak (2026-09-05, tip `8bd64d3`):** saturating `try_send` keeps `metrics().bytes_buffered ≤ buffer_memory` and drains to 0 after flush/close; guide documents key+value queued-until-ack model. Tests: `tests/buffer_ownership.rs`. Does **not** close full KL-02 (no 2×/24h RSS or full encode/socket/task ownership). Does **not** lift Suite HOLD.
 
+**KL-02 RSS/process-budget exercise template (2026-09-05, tip `PENDING`):** `docs/rss-exercise.md` is the blank 2×-overload + 24h RSS record format (`UNFILLED — not evidence`); linked from guide.md + ROADMAP. Does **not** close full KL-02 (no filled RSS proof). Does **not** lift Suite HOLD.
+
 **KL-08 support matrix honesty (2026-09-05, tip `52d2dd7`):** `docs/support.md` records CI-backed brokers (3.9.1/4.1.0), MSRV 1.85, Linux/x86_64, default pure-Rust features, and explicit non-promises; linked from RELEASE/ADOPTION/api-stability. Does **not** close full KL-08 (adopter 24h/7d + promotion/rollback remain). Does **not** lift Suite HOLD.
 
 **KL-08 adopter exercise template (2026-09-05, tip `622dfa2`):** `docs/adopter-exercise.md` is the blank 24h/7d record format (`UNFILLED — not evidence`); linked from support.md + ADOPTION.md. Does **not** close full KL-08 (no filled adopter records, no traffic-shadow promotion/rollback proof). Does **not** lift Suite HOLD.
+
+
+**Maintain fire (2026-09-05, tip `cb7e97d`):** `check-registry-token --self-test` OK (token unset — Installable met); `check-installable` present; parks on main OK; civilization bars OK; tip=main `cb7e97d`. Trusted Publishing UI still owner. Open release-plz `0.1.1` PR is **not** an auto-cut. Suite HOLD remains (Lab A unsigned). Do not re-cut `0.1.0`.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,

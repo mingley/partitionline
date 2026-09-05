@@ -160,6 +160,10 @@ fixtures and sustained campaigns have linked results and no unresolved failures.
 **Done when:** 2x-overload and cancellation histories obey the configured
 resource model; no hung completions or leaked permits/tasks remain after drain;
 all accepted work has a documented completed, failed or ambiguous outcome.
+   **Partial (2026-09-05):** blank RSS/process-budget record template
+   ([rss-exercise.md](rss-exercise.md), UNFILLED — not evidence). Mock
+   `buffer_memory` ownership remains a separate slice; no filled 2×/24h RSS
+   proof yet.
 
 ### KL-03: Prove HA, transactions and group semantics with crash histories
 
