@@ -38,7 +38,7 @@ MODE=path bash scripts/verify-crates-io-consumer.sh
 echo "== publish dry-run =="
 cargo publish --dry-run
 
-echo "== day-1 README flip preflight =="
+echo "== day-1 README/ADOPTION/guide/migrate flip preflight =="
 DRY_RUN=1 bash scripts/post-publish-readme.sh >/tmp/pl-readme-flip-dry.log
 tail -2 /tmp/pl-readme-flip-dry.log
 
@@ -153,4 +153,4 @@ echo "       bash scripts/owner-finish-installable.sh"
 echo "  3. Or: merge civilization → main, then bash scripts/owner-cut-release.sh"
 echo "       # token in-env → local publish (auto); PUBLISH_LOCAL=0 → tag → Actions"
 echo "  4. Confirm https://crates.io/crates/partitionline/${ver}"
-echo "  5. README crates.io line (day1) + bash scripts/owner-post-installable-handoff.sh"
+echo "  5. README/ADOPTION/guide/migrate crates.io lines (day1) + bash scripts/owner-post-installable-handoff.sh"

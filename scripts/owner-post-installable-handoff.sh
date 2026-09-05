@@ -247,7 +247,7 @@ bash scripts/check-post-cut-parks-stack.sh
 parks_rc=0
 if [[ "$LAND_PARKS" == "1" ]]; then
   echo "owner-post-installable-handoff: LAND_PARKS=1 — landing parks onto main"
-  # Preserve any uncommitted day1 README/ADOPTION edits across park merges.
+  # Preserve any uncommitted day1 README/ADOPTION/guide/migrate edits across park merges.
   # shellcheck source=scripts/lib/preserve-day1-docs.sh
   source "$ROOT/scripts/lib/preserve-day1-docs.sh"
   pl_day1_docs_begin
