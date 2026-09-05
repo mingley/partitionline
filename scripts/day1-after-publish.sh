@@ -4,7 +4,7 @@
 #
 # Usage:
 #   bash scripts/day1-after-publish.sh
-#   DRY_RUN=1 bash scripts/day1-after-publish.sh   # one probe, no index wait; README dry-run
+#   DRY_RUN=1 bash scripts/day1-after-publish.sh   # one probe, no index wait; four-file dry-run
 #   ATTEMPTS=5 SLEEP_SECS=5 bash scripts/day1-after-publish.sh
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -94,5 +94,5 @@ echo "  7. Land parked post-cut parks: bash scripts/owner-land-post-cut-parks.sh
 echo "     (Verifiable auth/integrity/fuzz + flate2 + SCRAM + lz4_flex + actions/checkout v7)"
 if [[ "$DRY_RUN" == "1" ]]; then
   echo
-  echo "day1-after-publish: DRY_RUN complete — no README commit performed"
+  echo "day1-after-publish: DRY_RUN complete — no README/ADOPTION/guide/migrate commit performed"
 fi
