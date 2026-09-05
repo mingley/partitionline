@@ -531,6 +531,7 @@ struct State {
     last_find_coordinator_version: Option<i16>,
     last_find_coordinator_key_count: usize,
     find_coordinator_calls: u32,
+    find_coordinator_fail_left: u32,
     last_init_producer_id_node: Option<i32>,
     last_init_producer_id_timeout: Option<i32>,
     last_init_producer_id_version: Option<i16>,
@@ -889,6 +890,7 @@ fn new_state(
         last_find_coordinator_version: None,
         last_find_coordinator_key_count: 0,
         find_coordinator_calls: 0,
+        find_coordinator_fail_left: 0,
         last_init_producer_id_node: None,
         last_init_producer_id_timeout: None,
         last_init_producer_id_version: None,
@@ -2855,6 +2857,16 @@ impl Mock {
 
     pub fn find_coordinator_calls(&self) -> u32 {
         self.state.lock().find_coordinator_calls
+    }
+
+    /// Next `n` FindCoordinator responses return COORDINATOR_NOT_AVAILABLE.
+    pub fn find_coordinator_fail_n(&self, n: u32) {
+        self.state.lock().find_coordinator_fail_left = n;
+    }
+
+    /// Next FindCoordinator response returns COORDINATOR_NOT_AVAILABLE once.
+    pub fn find_coordinator_fail_once(&self) {
+        self.find_coordinator_fail_n(1);
     }
 
     pub fn last_init_producer_id_node(&self) -> Option<i32> {
@@ -5424,6 +5436,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_find_coordinator_version = Some(header.api_version);
                 st.last_find_coordinator_key_count = keys.len();
                 st.find_coordinator_calls = st.find_coordinator_calls.saturating_add(1);
+                let force_fail = if st.find_coordinator_fail_left > 0 {
+                    st.find_coordinator_fail_left = st.find_coordinator_fail_left.saturating_sub(1);
+                    true
+                } else {
+                    false
+                };
                 let coord = if key_type == COORDINATOR_TRANSACTION {
                     if st.stale_txn_finds > 0 {
                         st.stale_txn_finds = st.stale_txn_finds.saturating_sub(1);
@@ -5439,6 +5457,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.coord_node
                 };
                 let (host, port) = broker_host_port(&st, coord);
+                let err = if force_fail {
+                    error::COORDINATOR_NOT_AVAILABLE
+                } else {
+                    0
+                };
                 let out: Vec<CoordinatorResult> = keys
                     .into_iter()
                     .map(|key| CoordinatorResult {
@@ -5446,7 +5469,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         node_id: coord,
                         host: host.clone(),
                         port,
-                        error_code: 0,
+                        error_code: err,
                         error_message: None,
                     })
                     .collect();

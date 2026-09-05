@@ -254,6 +254,20 @@ else
   bad "KL-08 support matrix honesty missing"
 fi
 
+
+# KL-07 slice: find_coordinator_ok/fail for coordinator-move diagnosis.
+if [[ -f tests/find_coordinator_metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (FindCoordinator)' docs/guide.md \
+  && grep -qF 'find_coordinator_ok_increments_on_successful_join' tests/find_coordinator_metrics.rs \
+  && grep -qF 'pub find_coordinator_ok: u64' src/metrics.rs \
+  && grep -qF 'find_coordinator_metrics' src/consumer.rs \
+  && grep -qF 'record_ok' src/consumer.rs \
+  && grep -qF 'find_coordinator_metrics.rs' docs/ROADMAP.md; then
+  ok "KL-07 FindCoordinator diagnosis Partial (find_coordinator_ok/fail; guide+mock)"
+else
+  bad "KL-07 FindCoordinator diagnosis Partial missing"
+fi
+
 # KL-08 slice: adopter 24h/7d exercise template (UNFILLED — not evidence).
 if [[ -f docs/adopter-exercise.md ]] \
   && grep -qF 'UNFILLED — not evidence' docs/adopter-exercise.md \

@@ -11,8 +11,8 @@ use tokio::sync::watch;
 
 use crate::config::{AutoOffsetReset, IsolationLevel};
 use crate::consumer::{
-    duration_millis_i32, Consumer, ConsumerConfig, ConsumerRecords, OffsetAndMetadata,
-    TopicPartition,
+    duration_millis_i32, Consumer, ConsumerConfig, ConsumerRecords, FindCoordinatorMetrics,
+    OffsetAndMetadata, TopicPartition,
 };
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
@@ -633,7 +633,8 @@ impl ConsumerGroup {
             .cloned()
             .ok_or_else(reject_java_no_assignors)?;
         let consumer = Consumer::new(cfg.clone()).await?;
-        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
+        let fc_metrics = consumer.find_coordinator_metrics();
+        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP, Some(&fc_metrics)).await?;
 
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(0));
@@ -772,7 +773,8 @@ impl ConsumerGroup {
         let mut cfg = cfg;
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let consumer = Consumer::new(cfg.clone()).await?;
-        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
+        let fc_metrics = consumer.find_coordinator_metrics();
+        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP, Some(&fc_metrics)).await?;
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(
             ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
@@ -1084,6 +1086,7 @@ impl ConsumerGroup {
                 )
             },
             timeout,
+            Some(&self.consumer.find_coordinator_metrics()),
         )
         .await?;
         decode_offset_fetch_response(&mut body.clone(), version)
@@ -1472,6 +1475,7 @@ impl ConsumerGroup {
                 )
             },
             timeout,
+            Some(&self.consumer.find_coordinator_metrics()),
         )
         .await?;
         let err = decode_offset_commit_response(&mut body.clone(), version)?;
@@ -1781,6 +1785,7 @@ impl ConsumerGroup {
                 version,
                 |buf| encode_consumer_group_heartbeat_request(buf, version, &req),
                 timeout,
+                Some(&self.consumer.find_coordinator_metrics()),
             )
             .await?;
             let resp = decode_consumer_group_heartbeat_response(&mut body.clone(), version)?;
@@ -1807,6 +1812,7 @@ impl ConsumerGroup {
             version,
             |buf| encode_leave_group_request_members(buf, version, &self.group_id, &members),
             timeout,
+            Some(&self.consumer.find_coordinator_metrics()),
         )
         .await?;
         let (err, results, ..) = decode_leave_group_response_version(&mut body.clone(), version)?;
@@ -1890,6 +1896,7 @@ impl ConsumerGroup {
                     )
                 },
                 timeout,
+                Some(&self.consumer.find_coordinator_metrics()),
             )
             .await?;
             let decoded = decode_join_group_response(&mut body.clone(), version)?;
@@ -1979,6 +1986,7 @@ impl ConsumerGroup {
                 )
             },
             timeout,
+            Some(&self.consumer.find_coordinator_metrics()),
         )
         .await?;
         let (err, assignment, ..) = decode_sync_group_response(&mut body.clone(), version)?;
@@ -2033,6 +2041,7 @@ impl ConsumerGroup {
             version,
             |buf| encode_consumer_group_heartbeat_request(buf, version, &req),
             timeout,
+            Some(&self.consumer.find_coordinator_metrics()),
         )
         .await?;
         let resp = decode_consumer_group_heartbeat_response(&mut body.clone(), version)?;
@@ -2156,6 +2165,7 @@ impl ConsumerGroup {
         let last_poll = self.last_poll.clone();
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
+        let fc_metrics = self.consumer.find_coordinator_metrics();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let mut tick =
@@ -2187,7 +2197,7 @@ impl ConsumerGroup {
                             conn = None;
                         }
                         if conn.is_none() {
-                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
+                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP, Some(&fc_metrics)).await.ok();
                         }
                         let Some(c) = conn.as_mut() else {
                             continue;
@@ -2263,6 +2273,7 @@ impl ConsumerGroup {
         let last_poll = self.last_poll.clone();
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
+        let fc_metrics = self.consumer.find_coordinator_metrics();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let mut tick =
@@ -2294,7 +2305,7 @@ impl ConsumerGroup {
                             conn = None;
                         }
                         if conn.is_none() {
-                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
+                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP, Some(&fc_metrics)).await.ok();
                         }
                         let Some(c) = conn.as_mut() else {
                             continue;
@@ -2368,7 +2379,7 @@ async fn leave_if_max_poll(
         return false;
     }
     left.store(true, Ordering::SeqCst);
-    if let Ok(mut c) = discover_coord(cfg, group_id, COORDINATOR_GROUP).await {
+    if let Ok(mut c) = discover_coord(cfg, group_id, COORDINATOR_GROUP, None).await {
         let timeout = cfg.request_timeout;
         if kip848 {
             let version = c.consumer_group_heartbeat_version;
@@ -2690,6 +2701,28 @@ pub(crate) async fn discover_coord(
     cfg: &ConsumerConfig,
     group_id: &str,
     key_type: i8,
+    metrics: Option<&FindCoordinatorMetrics>,
+) -> Result<BrokerConn> {
+    let result = discover_coord_inner(cfg, group_id, key_type).await;
+    match &result {
+        Ok(_) => {
+            if let Some(m) = metrics {
+                m.record_ok();
+            }
+        }
+        Err(_) => {
+            if let Some(m) = metrics {
+                m.record_fail();
+            }
+        }
+    }
+    result
+}
+
+async fn discover_coord_inner(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
 ) -> Result<BrokerConn> {
     let timeout = cfg.request_timeout;
     let mut last = Error::protocol("find coordinator failed");
@@ -2813,6 +2846,7 @@ pub(crate) async fn coord_roundtrip(
     api_version: i16,
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
+    metrics: Option<&FindCoordinatorMetrics>,
 ) -> Result<Bytes> {
     if coord.idle_expired(cfg.connections_max_idle) {
         *coord = open_coord(cfg, coord.addr()).await?;
@@ -2841,7 +2875,7 @@ pub(crate) async fn coord_roundtrip(
         Err(e) => return Err(e),
     };
     if coordinator_error(api_key, api_version, &body).is_some_and(error::coordinator_retriable) {
-        *coord = discover_coord(cfg, group_id, key_type).await?;
+        *coord = discover_coord(cfg, group_id, key_type, metrics).await?;
         coord
             .roundtrip(
                 api_key,

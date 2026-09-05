@@ -1237,6 +1237,23 @@ fn write_broker_id_list(f: &mut fmt::Formatter<'_>, ids: &[i32]) -> fmt::Result 
     f.write_str("]")
 }
 
+/// Process-local FindCoordinator ok/fail counters shared with heartbeat rediscovery.
+#[derive(Clone, Debug)]
+pub(crate) struct FindCoordinatorMetrics {
+    pub ok: Arc<AtomicU64>,
+    pub fail: Arc<AtomicU64>,
+}
+
+impl FindCoordinatorMetrics {
+    pub(crate) fn record_ok(&self) {
+        let _ = self.ok.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn record_fail(&self) {
+        let _ = self.fail.fetch_add(1, Ordering::Relaxed);
+    }
+}
+
 /// Manual-assignment fetch client.
 pub struct Consumer {
     cfg: ConsumerConfig,
@@ -1257,6 +1274,8 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    m_find_coordinator_ok: Arc<AtomicU64>,
+    m_find_coordinator_fail: Arc<AtomicU64>,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1346,6 +1365,8 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_find_coordinator_ok: Arc::new(AtomicU64::new(0)),
+            m_find_coordinator_fail: Arc::new(AtomicU64::new(0)),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -2151,8 +2172,18 @@ impl Consumer {
             records_fetched: self.m_records.load(Ordering::Relaxed),
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
+            find_coordinator_ok: self.m_find_coordinator_ok.load(Ordering::Relaxed),
+            find_coordinator_fail: self.m_find_coordinator_fail.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
+        }
+    }
+
+    /// Shared FindCoordinator counters for group discovery / rediscovery tasks.
+    pub(crate) fn find_coordinator_metrics(&self) -> FindCoordinatorMetrics {
+        FindCoordinatorMetrics {
+            ok: Arc::clone(&self.m_find_coordinator_ok),
+            fail: Arc::clone(&self.m_find_coordinator_fail),
         }
     }
 

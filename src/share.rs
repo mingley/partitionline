@@ -613,7 +613,7 @@ impl ShareGroup {
         // CoordinatorType.SHARE is only for share-partition state keys
         // (`groupId:topicId:partition`), not the group id alone (KIP-932).
 
-        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
+        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP, None).await?;
 
         // Kafka 4.1 ShareGroupHeartbeat requires a client-generated member id
         // for the process lifetime. ShareFetch parses it as a base64url Uuid.
@@ -1511,6 +1511,7 @@ impl ShareGroup {
             version,
             |buf| encode_share_group_heartbeat_request(buf, version, &req),
             timeout,
+            None,
         )
         .await?;
 
@@ -1564,7 +1565,7 @@ impl ShareGroup {
                             conn = None;
                         }
                         if conn.is_none() {
-                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
+                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP, None).await.ok();
                         }
                         let Some(c) = conn.as_mut() else {
                             continue;

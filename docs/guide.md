@@ -136,6 +136,16 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (FindCoordinator)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Clean join / stable membership | `ConsumerGroup::metrics().find_coordinator_ok` rising; `find_coordinator_fail == 0` | Healthy FindCoordinator + connected coordinator |
+| Coordinator move storm | `find_coordinator_fail` rising (often with later ok) | Broker returns COORDINATOR_NOT_AVAILABLE / NOT_COORDINATOR; member rediscovers |
+| Discovery black hole | `find_coordinator_fail` rising and `find_coordinator_ok` stuck | Bootstrap cannot locate a live group coordinator |
+
+`find_coordinator_ok` / `find_coordinator_fail` count terminal FindCoordinator discoveries on `ConsumerMetrics` (via `ConsumerGroup::metrics`). Intra-attempt retries are not counted separately. Prefer these over dumping payloads. Mock proof: `tests/find_coordinator_metrics.rs`. KL-07 Partial — not two independent human diagnosis runs, and not a Suite HOLD lift.
+
 ## Recipes
 
 ### Backpressure
