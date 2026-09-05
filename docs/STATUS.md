@@ -156,7 +156,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-02 produce cancel contract (2026-09-05, tip `633bad3`):** guide cancellation/shutdown table; `tests/produce_cancel.rs` (completed/failed/ambiguous/Closed); durable `Producer` `closed` flag so clones cannot send after `close`. Does **not** close full KL-02 (no overload soak). Does **not** lift Suite HOLD.
 
-**KL-01/KL-04 latency CI policy (2026-09-05):** CI run 33938039612 nested integrity produce-ack p99 **1,344 µs** vs **750 µs** is **historical** — `integrity-smoke` no longer nests the local relative gate (`SKIP_LATENCY_GATE=1`). Dedicated `latency-gate` remains `LATENCY_LIMIT_US=5000` (GHA+Docker catastrophic ceiling, unsigned). Local default is still 500 µs + 50% slack (750 µs). This is **not** a claim that raising a limit fixed the miss. Suite HOLD unchanged. See [latency-ci-policy.json](latency-ci-policy.json).
+**KL-01/KL-04 latency CI policy (2026-09-05, tip `cc59201`):** CI run 33938039612 nested integrity produce-ack p99 **1,344 µs** vs **750 µs** is **historical** — `integrity-smoke` no longer nests the local relative gate (`SKIP_LATENCY_GATE=1`). Dedicated `latency-gate` remains `LATENCY_LIMIT_US=5000` (GHA+Docker catastrophic ceiling, unsigned). Local default is still 500 µs + 50% slack (750 µs). This is **not** a claim that raising a limit fixed the miss. Suite HOLD unchanged. See [latency-ci-policy.json](latency-ci-policy.json).
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
