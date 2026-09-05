@@ -1825,10 +1825,7 @@ impl Producer {
 
     async fn shutdown_workers(&self) {
         // Refuse new enqueue before workers drain so clones observe Closed.
-        self.inner
-            .shared
-            .closed
-            .store(true, Ordering::SeqCst);
+        self.inner.shared.closed.store(true, Ordering::SeqCst);
         let workers: Vec<WorkerHandle> = self
             .inner
             .shared

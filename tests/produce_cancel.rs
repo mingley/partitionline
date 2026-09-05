@@ -18,11 +18,10 @@ use tokio::time::{sleep, timeout};
 #[tokio::test]
 async fn send_completes_with_record_metadata() {
     let mock = common::Mock::start().await;
-    let producer = Producer::new(
-        ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO),
-    )
-    .await
-    .unwrap();
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
     let md = producer
         .send(ProduceRecord::to("t").value(&b"ok"[..]))
         .await
@@ -112,11 +111,10 @@ async fn dropping_send_future_while_buffered_is_ambiguous_but_still_delivers() {
 #[tokio::test]
 async fn send_after_close_returns_closed() {
     let mock = common::Mock::start().await;
-    let producer = Producer::new(
-        ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO),
-    )
-    .await
-    .unwrap();
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
     let other = producer.clone();
     producer.close().await.unwrap();
     let err = other
