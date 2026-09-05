@@ -130,7 +130,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 **Owner-status post-Installable token honesty (2026-09-05, tip `486238b`):** `owner-status` no longer labels a missing `CARGO_REGISTRY_TOKEN` as Installable-BLOCKED when crates.io already has this version (OK + future-cuts copy); bars/branch-lite fast-path skip copy distinguishes Installable-met from token-wait. Bars gate the strings. Does **not** lift Suite HOLD. Token remains unset in this agent.
 
 
-**crates.io description drift honesty (2026-09-05, tip `dd126ae`):** `scripts/check-crates-io-description.sh` WARNs when the published crates.io description lags `Cargo.toml` identity (local names no-C / no-librdkafka; published page still weaker until the next cut). Wired into `owner-status`; bars gate the probe. Does **not** re-cut `0.1.0`. Does **not** lift Suite HOLD.
+**crates.io description drift honesty (2026-09-05, tip `9181ce6`):** `scripts/check-crates-io-description.sh` WARNs when the published crates.io description lags `Cargo.toml` identity (local names no-C / no-librdkafka; published page still weaker until the next cut). Wired into `owner-status`; bars gate the probe. Does **not** re-cut `0.1.0`. Does **not** lift Suite HOLD.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
