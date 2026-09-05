@@ -1,3 +1,7 @@
 /target
 .DS_Store
 *.rs.bk
+partitionline-schema/target/
+
+# Schema companion local build
+partitionline-schema/target/

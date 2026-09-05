@@ -277,18 +277,28 @@ fi
 if bash scripts/check-installable.sh >/dev/null 2>&1; then
   if grep -qF 'MODE=registry' scripts/check-cut-path.sh \
     && grep -qF 'MODE=registry' scripts/ci-branch-lite.sh \
+    && grep -qF 'MODE=registry' scripts/owner-finish-installable.sh \
     && grep -qF 'MODE=registry' scripts/verify-crates-io-consumer.sh \
     && grep -qF 'ci-crate-consumer.sh' .github/workflows/ci.yml; then
     if MODE=registry bash scripts/verify-crates-io-consumer.sh >/tmp/pl-registry-adopter.log 2>&1; then
-      ok "registry adopter consumer (crates.io pin cargo-checks; wired into cut-path + branch-lite + package CI)"
+      ok "registry adopter consumer (crates.io pin cargo-checks; wired into cut-path + branch-lite + finish + package CI)"
     else
       bad "registry adopter consumer failed; see /tmp/pl-registry-adopter.log"
     fi
   else
-    bad "registry adopter consumer not wired into cut-path / branch-lite / verify-crates-io-consumer / ci.yml package"
+    bad "registry adopter consumer not wired into cut-path / branch-lite / finish / verify-crates-io-consumer / ci.yml package"
   fi
 else
   ok "registry adopter consumer deferred (Installable not met yet — git/path proofs cover pre-cut)"
+fi
+
+# Schema companion scaffold (WP-6.3): wire framing in-tree, excluded from core package.
+if [[ -x scripts/check-schema-companion-scaffold.sh ]] \
+  && grep -qF 'partitionline-schema' Cargo.toml \
+  && bash scripts/check-schema-companion-scaffold.sh >/tmp/pl-schema-scaffold.log 2>&1; then
+  ok "schema companion scaffold (wire framing tests; publish=false; excluded from core package)"
+else
+  bad "schema companion scaffold missing/failed; see /tmp/pl-schema-scaffold.log"
 fi
 
 # Adopter-pin honesty: pre-Installable = git tag parity (no crates.io lead);

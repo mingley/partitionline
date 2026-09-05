@@ -1,10 +1,14 @@
 # Companion crate design: `partitionline-schema` (WP-6.3)
 
-**Status:** design only. Core `partitionline` `0.1.0` is on crates.io — the
-publish gate for starting this companion is met. Build/publish the companion
-only when survey [#85](https://github.com/mingley/partitionline/issues/85)
-(or equivalent adopter demand) justifies it. Schema Registry support stays out
-of the core client (`docs/gaps.md`).
+**Status:** wire-framing **scaffold landed** under `partitionline-schema/`
+(workspace-excluded, `publish = false`). Core `partitionline` `0.1.0` is on
+crates.io — the publish gate for starting the companion is met. Do **not**
+crates.io-publish this companion until survey
+[#85](https://github.com/mingley/partitionline/issues/85) (or equivalent
+adopter demand) justifies HTTP/codecs. Schema Registry support stays out of
+the core client (`docs/gaps.md`).
+
+Prove scaffold anytime: `bash scripts/check-schema-companion-scaffold.sh`
 
 ## Why a companion
 

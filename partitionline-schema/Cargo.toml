@@ -1,0 +1,17 @@
+[package]
+name = "partitionline-schema"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "Confluent-compatible schema wire framing for partitionline (scaffold; not published)."
+readme = "README.md"
+publish = false
+keywords = ["kafka", "schema-registry", "confluent"]
+categories = ["encoding", "network-programming"]
+
+[dependencies]
+# Wire framing is dep-free. Future HTTP/Schema Registry client + codecs stay
+# optional features — never pull native TLS stacks into defaults.
+
+[dev-dependencies]

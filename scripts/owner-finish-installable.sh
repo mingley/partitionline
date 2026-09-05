@@ -68,6 +68,10 @@ bash scripts/check-registry-token.sh --self-test
 bash scripts/ci-tip-verifiable-broker.sh --self-test
 bash scripts/check-parks-refresh-cut-guards.sh
 MODE=git bash scripts/verify-crates-io-consumer.sh
+# After Installable, git MODE SKIPs — prove the live crates.io pin on the finish path too.
+if bash scripts/check-installable.sh >/dev/null 2>&1; then
+  MODE=registry bash scripts/verify-crates-io-consumer.sh
+fi
 bash scripts/lib/preserve-day1-docs.sh --self-test
 
 echo

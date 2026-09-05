@@ -43,7 +43,7 @@ include = [
 ]
 
 [workspace]
-exclude = ["fuzz"]
+exclude = ["fuzz", "partitionline-schema"]
 
 [workspace.lints.rust]
 missing_docs = "deny"

@@ -95,7 +95,7 @@ Git tags remain available for bisects; new adopters should prefer crates.io.
 | crates.io release | **0.1.0 published** — `partitionline = "0.1"` |
 | zstd compression | Out of default features (C); see `docs/zstd-spike.md` |
 | Kerberos / GSSAPI | Out of default features (C) |
-| Schema Registry | Companion after crates.io; design in `docs/schema-companion.md` |
+| Schema Registry | Wire-framing scaffold in-tree (`partitionline-schema/`, not published); full registry client after survey [#85](https://github.com/mingley/partitionline/issues/85) — design in `docs/schema-companion.md` |
 | Signed Suite HOLD benches | External Lab A process (`docs/STATUS.md`) |
 
 Tell us what blocks a pilot: issue
