@@ -164,7 +164,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-01 protocol oracles (2026-09-05, tip `fc924e9`):** Produce/Fetch/Metadata/ListOffsets fixture tests compare decoded required fields against pinned Kafka 3.9.1 and 4.1.0 (`tests/protocol_oracles.rs`, `scripts/ci-protocol-oracles.sh`); live broker is optional (`REQUIRE_BROKER=1`) and stamps `requested=` vs `actual=`. Does **not** close full KL-01 (controlled latency reproduce and sustained campaigns remain). Does **not** lift Suite HOLD.
 
-**KL-02 consumer close-commit honesty (2026-09-05, tip `PENDING`):** `ConsumerGroup::leave`/`close`/`unsubscribe` no longer auto-commit positions when `enable_auto_commit` is on; poll-interval auto-commit + explicit `commit*` unchanged. Tests: `tests/consumer_close_commit.rs`. Does **not** close full KL-02. Does **not** lift Suite HOLD.
+**KL-02 consumer close-commit honesty (2026-09-05, tip `3ec50d1`):** `ConsumerGroup::leave`/`close`/`unsubscribe` no longer auto-commit positions when `enable_auto_commit` is on; poll-interval auto-commit + explicit `commit*` unchanged. Tests: `tests/consumer_close_commit.rs`. Does **not** close full KL-02. Does **not** lift Suite HOLD.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
