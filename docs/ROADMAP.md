@@ -285,6 +285,10 @@ and no secret exposure. Preserve existing audit/deny and security-reporting lane
    queue age/bytes, retries, broker throttle, reconnect, ack latency, lag,
    rebalance and transaction outcomes. Bound label cardinality; provide optional
    exporters as examples rather than mandatory core dependencies.
+   **Partial (2026-09-05):** guide lag diagnosis cookbook via
+   `Consumer::current_lag` plus mock `tests/lag_diagnosis.rs` (behind → caught
+   up without payload logging). Queue-age / throttle / reconnect metric recipes
+   and two independent human diagnosis runs remain open. Not Done.
 3. Have two independent users follow the guide and diagnose a throttled broker,
    stale leader and blocked consumer using telemetry rather than payload logging.
 

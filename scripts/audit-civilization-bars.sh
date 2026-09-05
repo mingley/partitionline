@@ -266,6 +266,18 @@ if [[ -f docs/adopter-exercise.md ]] \
 else
   bad "KL-08 adopter exercise template missing"
 fi
+
+# KL-07 slice: lag diagnosis cookbook via current_lag (telemetry, not payloads).
+if [[ -f tests/lag_diagnosis.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (lag, telemetry not payloads)' docs/guide.md \
+  && grep -qF 'current_lag_diagnoses_behind_then_caught_up_consumer' tests/lag_diagnosis.rs \
+  && grep -qF 'lag must equal hw − position before fetch' tests/lag_diagnosis.rs \
+  && grep -qF 'lag_diagnosis.rs' docs/ROADMAP.md \
+  && grep -qF 'Consumer::current_lag' docs/guide.md; then
+  ok "KL-07 lag diagnosis Partial (current_lag cookbook; mock behind→caught-up)"
+else
+  bad "KL-07 lag diagnosis Partial missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

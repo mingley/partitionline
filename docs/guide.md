@@ -136,6 +136,19 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (lag, telemetry not payloads)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Consumer behind producer | `Consumer::current_lag` rising (`hw − position`) | Slow poll loop, stuck assignment, or paused partitions |
+| Lag stays high after fetch | `current_lag` still > 0; `fetch_errors` climbing | Fetch/path errors — not “empty payloads” |
+| Lag is 0 but app looks idle | `current_lag == 0`; check assignment / subscribed topics | Wrong partition set or already caught up |
+
+Prefer `current_lag` / metrics over logging record bodies. Mock proof:
+`tests/lag_diagnosis.rs`. This is a KL-07 Partial — not two independent human
+diagnosis runs, and not a Suite HOLD lift. Broker throttle / reconnect metric
+recipes remain separate open slices.
+
 ## Recipes
 
 ### Backpressure
