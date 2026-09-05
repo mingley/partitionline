@@ -199,6 +199,21 @@ if [[ -f tests/credential_redact.rs && -f docs/security.md ]] \
 else
   bad "KL-06 credential Debug redaction missing"
 fi
+
+# KL-08 slice: support matrix honesty (CI-backed brokers/MSRV; not a 1.0 contract).
+if [[ -f docs/support.md && -f docs/RELEASE.md && -f docs/ADOPTION.md && -f docs/api-stability.md ]] \
+  && grep -qF 'Support matrix' docs/support.md \
+  && grep -qF 'apache/kafka:3.9.1' docs/support.md \
+  && grep -qF 'apache/kafka:4.1.0' docs/support.md \
+  && grep -qF 'rust-version' docs/support.md \
+  && grep -qF 'Does **not** close KL-08' docs/support.md \
+  && grep -qF 'support.md' docs/RELEASE.md \
+  && grep -qF 'support.md' docs/ADOPTION.md \
+  && grep -qF 'support.md' docs/api-stability.md; then
+  ok "KL-08 support matrix honesty (docs/support.md + RELEASE/ADOPTION/api-stability links)"
+else
+  bad "KL-08 support matrix honesty missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

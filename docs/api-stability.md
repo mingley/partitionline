@@ -42,6 +42,9 @@ Expect additive churn; renaming or removing requires a CHANGELOG note:
 - Drop-in `rd_kafka_*` / rust-rdkafka types
 - Default features that link C (zstd, Kerberos / GSSAPI)
 
+Supported broker/MSRV/OS combinations are listed in [`support.md`](support.md).
+That matrix is operational honesty for 0.1.x, not a permanent 1.0 promise.
+
 ## Experimental
 
 Nothing is marked `#[doc(hidden)]` experimental today. If an API is added for

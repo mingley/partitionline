@@ -10,7 +10,8 @@ partitionline stays on **0.x** until the API stability bar in
 | **Evolving** / protocol-helper churn | patch allowed; document in CHANGELOG |
 
 MSRV is declared in `Cargo.toml` (`rust-version`). Raising MSRV is a minor
-bump on 0.x and must be called out in the CHANGELOG.
+bump on 0.x and must be called out in the CHANGELOG. The broker/MSRV/feature
+support matrix lives in [`support.md`](support.md) (KL-08 partial).
 
 
 ## Publication path (KL-08)

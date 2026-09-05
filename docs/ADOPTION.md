@@ -3,6 +3,9 @@
 partitionline is meant to replace librdkafka-backed clients for services that
 need a memory-safe Kafka stack with no C in the default feature set.
 
+Before production pinning, read the [support matrix](support.md) (Kafka 3.9.1 /
+4.1.0 CI brokers, MSRV 1.85, Linux/x86_64 CI hosts, explicit non-promises).
+
 ## Owner unblock (WP-0.5)
 
 Civilization **Installable is met** — crates.io `partitionline` `0.1.0` is live, day1 four-file pins use crates.io, and post-cut parks are on `origin/main`. Historical note: parks stayed off main until after that cut (**expected pre-Installable**; tip⊆parks stack was the pre-cut gate — not a cut blocker). Do **not** re-cut `0.1.0`. Probe anytime:

@@ -170,6 +170,8 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-02 buffer ownership + mock overload soak (2026-09-05, tip `8bd64d3`):** saturating `try_send` keeps `metrics().bytes_buffered ≤ buffer_memory` and drains to 0 after flush/close; guide documents key+value queued-until-ack model. Tests: `tests/buffer_ownership.rs`. Does **not** close full KL-02 (no 2×/24h RSS or full encode/socket/task ownership). Does **not** lift Suite HOLD.
 
+**KL-08 support matrix honesty (2026-09-05, tip `PENDING`):** `docs/support.md` records CI-backed brokers (3.9.1/4.1.0), MSRV 1.85, Linux/x86_64, default pure-Rust features, and explicit non-promises; linked from RELEASE/ADOPTION/api-stability. Does **not** close full KL-08 (adopter 24h/7d + promotion/rollback remain). Does **not** lift Suite HOLD.
+
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.

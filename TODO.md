@@ -34,6 +34,7 @@ performance qualification and exact-HEAD evidence remain open.
 - [ ] **KL-08 release slice:** Select one serialized publisher gated on exact-SHA CI and package-consumer evidence; reconcile metadata and handoff checks and rehearse partial-release recovery without publishing.
   - [x] Serialized path: release-plz PR-only; owner-cut-release/release.yml exact-SHA CI + crate-consumer; soft-skip if version already on crates.io (2026-09-05). Remaining: support policy, adopter 24h/7d, traffic rollout.
   - [x] Partial-release recovery rehearsal (`scripts/rehearse-partial-release.sh --self-test`; no publish / no re-cut 0.1.0) (2026-09-05). KL-08 package stays open.
+  - [x] Support matrix doc (`docs/support.md`; CI brokers 3.9.1/4.1.0, MSRV 1.85, explicit non-promises) (2026-09-05). Adopter 24h/7d + promotion still open.
 
 ## Qualification and leadership packages
 
@@ -51,6 +52,7 @@ performance qualification and exact-HEAD evidence remain open.
 | | ↳ partial: credential `Debug` redaction for Sasl/Oidc/Tls + configs (2026-09-05) | | Rotation/outage recovery + error/span/metrics redaction still open. |
 | [ ] | [KL-07: Usability and diagnostics](docs/ROADMAP.md#kl-07-make-adoption-and-diagnosis-simpler-than-the-alternatives) | KL-01; KL-02/03 for recipes | Fresh external consumers, two newcomer exercises, bounded metrics and measured tracing overhead. |
 | [ ] | [KL-08: Release and adoption](docs/ROADMAP.md#kl-08-gate-releases-and-promote-through-reversible-adoption) | None for release safety; applicable profile gates for adoption | Exact-SHA publish gates, support policy, two adopter records, 24-hour/7-day exercises and operator-approved rollback proof. |
+| | ↳ partial: support matrix doc (`docs/support.md`) for CI-backed brokers/MSRV/features (2026-09-05) | | Adopter 24h/7d records + promotion/rollback still open. |
 
 Optional codecs and ecosystem additions are not universal production blockers.
 A 1.0 decision concerns API/support stability; it does not require a universal

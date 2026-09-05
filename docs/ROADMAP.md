@@ -311,6 +311,10 @@ for adoption and API stabilization. Optional KL-05 features do not gate everyone
 2. Specify broker/API, OS/architecture, MSRV and feature support plus security
    response, upgrade and deprecation policies. Keep unsupported combinations
    explicit; existing Rust 1.85/stable CI is a starting point, not a new promise.
+   **Partial (2026-09-05):** [`support.md`](support.md) records the CI-backed
+   matrix (Kafka 3.9.1/4.1.0, MSRV 1.85, Linux/x86_64, default pure-Rust features)
+   and explicit non-promises. Linked from RELEASE/ADOPTION/api-stability. Does
+   **not** close KL-08 (adopter 24h/7d records and promotion/rollback remain).
 3. Qualify two independent adopter workloads with 24-hour then 7-day runs.
    With operator approval, shadow into isolated topics/read-only consumers
    before a 1%/10%/50% traffic rollout. Never duplicate real downstream side
