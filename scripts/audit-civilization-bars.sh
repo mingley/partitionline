@@ -266,6 +266,19 @@ if [[ -f docs/adopter-exercise.md ]] \
 else
   bad "KL-08 adopter exercise template missing"
 fi
+
+# KL-07 slice: heartbeat_ok/fail for group liveness diagnosis.
+if [[ -f tests/heartbeat_metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (group heartbeat)' docs/guide.md \
+  && grep -qF 'heartbeat_ok_metric_increments_after_join' tests/heartbeat_metrics.rs \
+  && grep -qF 'pub heartbeat_ok: u64' src/metrics.rs \
+  && grep -qF 'heartbeat_counters' src/consumer.rs \
+  && grep -qF 'hb_ok.fetch_add' src/group.rs \
+  && grep -qF 'heartbeat_metrics.rs' docs/ROADMAP.md; then
+  ok "KL-07 heartbeat diagnosis Partial (heartbeat_ok/fail; guide+mock)"
+else
+  bad "KL-07 heartbeat diagnosis Partial missing"
+fi
 if [[ -f scripts/ci-integrity-smoke.sh && -f scripts/ci-latency-gate.sh \
    && -f scripts/lib/ensure-broker.sh && -f scripts/ci-tip-verifiable-broker.sh ]]; then
   ok "tip live-broker Verifiable scripts present (integrity/latency/ensure-broker/tip-verifiable)"

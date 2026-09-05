@@ -136,6 +136,20 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+### Diagnosis cookbook (group heartbeat)
+
+| Symptom | Telemetry | Likely cause |
+|---|---|---|
+| Group stays alive | `ConsumerGroup::metrics().heartbeat_ok` rising; `heartbeat_fail == 0` | Healthy classic/KIP-848 Heartbeat loop |
+| Member fenced / session dying | `heartbeat_fail` rising | Illegal generation, unknown member, transport loss on Heartbeat |
+| No Heartbeat traffic | both counters stay 0 | Heartbeat task not running (not joined, or interval never elapsed) |
+
+`heartbeat_ok` / `heartbeat_fail` count Heartbeat / ConsumerGroupHeartbeat
+outcomes on `ConsumerMetrics` (via `ConsumerGroup::metrics`). Prefer them over
+dumping payloads. Mock proof: `tests/heartbeat_metrics.rs`. KL-07 Partial —
+not two independent human diagnosis runs, and not a Suite HOLD lift. Share-ack /
+offset-commit / produce-retries recipes are separate slices.
+
 ## Recipes
 
 ### Backpressure

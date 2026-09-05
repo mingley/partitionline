@@ -502,6 +502,7 @@ struct State {
     last_offset_commit_node: Option<i32>,
     last_offset_commit_version: Option<i16>,
     last_heartbeat_version: Option<i16>,
+    heartbeat_fail_left: u32,
     last_sync_group_version: Option<i16>,
     last_join_group_version: Option<i16>,
     last_join_group_reason: Option<String>,
@@ -860,6 +861,7 @@ fn new_state(
         last_offset_commit_node: None,
         last_offset_commit_version: None,
         last_heartbeat_version: None,
+        heartbeat_fail_left: 0,
         last_sync_group_version: None,
         last_join_group_version: None,
         last_join_group_reason: None,
@@ -2680,6 +2682,11 @@ impl Mock {
 
     pub fn last_heartbeat_version(&self) -> Option<i16> {
         self.state.lock().last_heartbeat_version
+    }
+
+    /// Next classic Heartbeat returns `ILLEGAL_GENERATION` once (non-retriable).
+    pub fn heartbeat_fail_once(&self) {
+        self.state.lock().heartbeat_fail_left = 1;
     }
 
     pub fn last_sync_group_version(&self) -> Option<i16> {
@@ -5862,7 +5869,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_heartbeat_version = Some(header.api_version);
                 let mut err = 0i16;
-                if let Some(g) = st.groups.get_mut(&gid) {
+                if st.heartbeat_fail_left > 0 {
+                    st.heartbeat_fail_left = st.heartbeat_fail_left.saturating_sub(1);
+                    err = error::ILLEGAL_GENERATION;
+                } else if let Some(g) = st.groups.get_mut(&gid) {
                     g.hb_total += 1;
                     if g.members.contains_key(&member_id) && !g.joined.contains(&member_id) {
                         err = 27;

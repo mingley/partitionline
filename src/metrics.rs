@@ -340,6 +340,12 @@ pub struct ConsumerMetrics {
     pub fetch_latency: LatencyStats,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
     pub topics: Vec<TopicFetchMetrics>,
+    /// Successful classic Heartbeat / ConsumerGroupHeartbeat responses (error=0).
+    /// KL-07 diagnosis: group liveness vs fetch traffic.
+    pub heartbeat_ok: u64,
+    /// Terminal Heartbeat / ConsumerGroupHeartbeat failures (non-retriable broker
+    /// codes and transport errors). Retriable coordinator moves are not counted.
+    pub heartbeat_fail: u64,
 }
 
 /// Fetch counters for one topic.
@@ -564,6 +570,8 @@ mod tests {
         assert_eq!(ProducerMetrics::default().ack_latency.p50_nanos, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
+        assert_eq!(ConsumerMetrics::default().heartbeat_ok, 0);
+        assert_eq!(ConsumerMetrics::default().heartbeat_fail, 0);
         assert_eq!(ConsumerMetrics::default().fetch_latency.count, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
         assert_eq!(ShareMetrics::default().bytes_fetched, 0);

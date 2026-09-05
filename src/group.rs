@@ -2156,6 +2156,7 @@ impl ConsumerGroup {
         let last_poll = self.last_poll.clone();
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
+        let (hb_ok, hb_fail) = self.consumer.heartbeat_counters();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let mut tick =
@@ -2227,25 +2228,33 @@ impl ConsumerGroup {
                                     &mut body.clone(),
                                     version,
                                 ) {
-                                    if error::coordinator_retriable(resp.error_code) {
+                                    if resp.error_code == 0 {
+                                        let _ = hb_ok.fetch_add(1, Ordering::Relaxed);
+                                        hb_err.store(0, Ordering::SeqCst);
+                                        if resp.member_epoch > 0 {
+                                            hb_generation.store(resp.member_epoch, Ordering::SeqCst);
+                                        }
+                                        if let Some(assignment) = resp.assignment {
+                                            *hb_assignment.lock() = Some(assignment);
+                                            *hb_ack.lock() = None;
+                                        } else {
+                                            *hb_ack.lock() = None;
+                                        }
+                                    } else if error::coordinator_retriable(resp.error_code) {
                                         conn = None;
                                     } else {
+                                        let _ = hb_fail.fetch_add(1, Ordering::Relaxed);
                                         hb_err.store(resp.error_code, Ordering::SeqCst);
                                         if resp.member_epoch > 0 {
                                             hb_generation.store(resp.member_epoch, Ordering::SeqCst);
                                         }
-                                        if resp.error_code == 0 {
-                                            if let Some(assignment) = resp.assignment {
-                                                *hb_assignment.lock() = Some(assignment);
-                                                *hb_ack.lock() = None;
-                                            } else {
-                                                *hb_ack.lock() = None;
-                                            }
-                                        }
                                     }
+                                } else {
+                                    let _ = hb_fail.fetch_add(1, Ordering::Relaxed);
                                 }
                             }
                             Err(_) => {
+                                let _ = hb_fail.fetch_add(1, Ordering::Relaxed);
                                 conn = None;
                             }
                         }
@@ -2263,6 +2272,7 @@ impl ConsumerGroup {
         let last_poll = self.last_poll.clone();
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
+        let (hb_ok, hb_fail) = self.consumer.heartbeat_counters();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let mut tick =
@@ -2329,14 +2339,20 @@ impl ConsumerGroup {
                                 if let Ok((err, ..)) =
                                     decode_heartbeat_response(&mut body.clone(), version)
                                 {
-                                    if error::coordinator_retriable(err) {
+                                    if err == 0 {
+                                        let _ = hb_ok.fetch_add(1, Ordering::Relaxed);
+                                    } else if error::coordinator_retriable(err) {
                                         conn = None;
                                     } else {
+                                        let _ = hb_fail.fetch_add(1, Ordering::Relaxed);
                                         hb_err.store(err, Ordering::SeqCst);
                                     }
+                                } else {
+                                    let _ = hb_fail.fetch_add(1, Ordering::Relaxed);
                                 }
                             }
                             Err(_) => {
+                                let _ = hb_fail.fetch_add(1, Ordering::Relaxed);
                                 conn = None;
                             }
                         }

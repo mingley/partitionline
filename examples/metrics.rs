@@ -55,6 +55,12 @@ async fn main() -> partitionline::Result<()> {
         println!("# HELP partitionline_fetch_rounds Fetch rounds completed");
         println!("# TYPE partitionline_fetch_rounds counter");
         println!("partitionline_fetch_rounds {}", cm.fetch_rounds);
+        println!("# HELP partitionline_heartbeat_ok Group Heartbeat successes");
+        println!("# TYPE partitionline_heartbeat_ok counter");
+        println!("partitionline_heartbeat_ok {}", cm.heartbeat_ok);
+        println!("# HELP partitionline_heartbeat_fail Group Heartbeat failures");
+        println!("# TYPE partitionline_heartbeat_fail counter");
+        println!("partitionline_heartbeat_fail {}", cm.heartbeat_fail);
         println!("# HELP partitionline_fetch_p99_seconds Fetch round p99 latency");
         println!("# TYPE partitionline_fetch_p99_seconds gauge");
         println!(
@@ -63,11 +69,13 @@ async fn main() -> partitionline::Result<()> {
         );
     } else {
         println!(
-            "fetched {} records rounds={} bytes={} errors={} fetch_us={} p50_us={} p99_us={} topics={}",
+            "fetched {} records rounds={} bytes={} errors={} hb_ok={} hb_fail={} fetch_us={} p50_us={} p99_us={} topics={}",
             recs.len(),
             cm.fetch_rounds,
             cm.bytes_fetched,
             cm.fetch_errors,
+            cm.heartbeat_ok,
+            cm.heartbeat_fail,
             cm.fetch_latency.mean_nanos().unwrap_or(0) / 1000,
             cm.fetch_latency.p50_nanos / 1000,
             cm.fetch_latency.p99_nanos / 1000,

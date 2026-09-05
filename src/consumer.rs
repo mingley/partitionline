@@ -1257,6 +1257,8 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    m_heartbeat_ok: Arc<AtomicU64>,
+    m_heartbeat_fail: Arc<AtomicU64>,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1346,6 +1348,8 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_heartbeat_ok: Arc::new(AtomicU64::new(0)),
+            m_heartbeat_fail: Arc::new(AtomicU64::new(0)),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -2153,7 +2157,14 @@ impl Consumer {
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
+            heartbeat_ok: self.m_heartbeat_ok.load(Ordering::Relaxed),
+            heartbeat_fail: self.m_heartbeat_fail.load(Ordering::Relaxed),
         }
+    }
+
+    /// Shared Heartbeat counters for the group heartbeat task.
+    pub(crate) fn heartbeat_counters(&self) -> (Arc<AtomicU64>, Arc<AtomicU64>) {
+        (Arc::clone(&self.m_heartbeat_ok), Arc::clone(&self.m_heartbeat_fail))
     }
 
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
