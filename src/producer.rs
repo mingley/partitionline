@@ -813,6 +813,8 @@ struct Shared {
     m_errors: AtomicU64,
     m_bytes: AtomicU64,
     buffered_bytes: AtomicU64,
+    /// Sum of Produce response throttle_time_ms.
+    m_throttle_ms: AtomicU64,
     /// Set by [`Producer::close`] / [`Producer::close_timeout`] so clones cannot
     /// respawn workers after shutdown (KL-02 durable Closed outcome).
     closed: AtomicBool,
@@ -1150,6 +1152,7 @@ impl Producer {
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             buffered_bytes: AtomicU64::new(0),
+            m_throttle_ms: AtomicU64::new(0),
             closed: AtomicBool::new(false),
             ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
@@ -1488,6 +1491,7 @@ impl Producer {
             produce_errors: self.inner.shared.m_errors.load(Ordering::Relaxed),
             bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
             bytes_buffered: self.inner.shared.buffered_bytes.load(Ordering::Relaxed),
+            broker_throttle_ms_total: self.inner.shared.m_throttle_ms.load(Ordering::Relaxed),
             ack_latency: self.inner.shared.ack_latency.snapshot(),
             topics: crate::metrics::snapshot_produce_topics(&self.inner.shared.topics.lock()),
         }
@@ -2787,13 +2791,21 @@ impl Worker {
             }
         };
         let mut body = body;
-        let (responses, endpoints, ..) = match decode_produce_response(&mut body, version) {
+        let (responses, endpoints, throttle_ms) = match decode_produce_response(&mut body, version)
+        {
             Ok(r) => r,
             Err(e) => {
                 fail_groups(&self.shared, inf.groups, clone_err(&e));
                 return Err(e);
             }
         };
+        if throttle_ms > 0 {
+            let add = u64::try_from(throttle_ms).unwrap_or(0);
+            let _ = self
+                .shared
+                .m_throttle_ms
+                .fetch_add(add, Ordering::Relaxed);
+        }
         self.shared.cluster.lock().apply_node_endpoints(&endpoints);
         let mut first_err: Option<Error> = None;
         for (topic, part, pendings) in inf.groups {

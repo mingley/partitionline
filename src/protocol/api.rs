@@ -2974,7 +2974,18 @@ pub fn encode_produce_response_with_endpoints(
     parts: &[ProducePartitionResponse],
     endpoints: &[NodeEndpoint],
 ) -> crate::error::Result<()> {
-    encode_produce_response_fields(buf, version, parts, endpoints, 0)
+    encode_produce_response_with_endpoints_and_throttle(buf, version, parts, endpoints, 0)
+}
+
+/// Encode Produce with NodeEndpoints and ThrottleTimeMs (KL-07 mock diagnosis).
+pub fn encode_produce_response_with_endpoints_and_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    parts: &[ProducePartitionResponse],
+    endpoints: &[NodeEndpoint],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    encode_produce_response_fields(buf, version, parts, endpoints, throttle_time_ms)
 }
 
 fn encode_produce_response_fields(

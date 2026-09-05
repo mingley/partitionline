@@ -1,5 +1,9 @@
 //! Mock-broker coverage of produce, fetch, SASL, admin, and compression.
 #![expect(
+    dead_code,
+    reason = "tests/common mock helpers are shared; this file uses a subset"
+)]
+#![expect(
     unused_results,
     reason = "tests often discard RecordMetadata and admin delete results"
 )]

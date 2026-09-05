@@ -136,12 +136,31 @@ example every 10–60s); these are process-local snapshots, not a push
 protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
 in `docs/CIVILIZATION.md` WP-4.2.
 
+`broker_throttle_ms_total` on produce and fetch metrics is the running sum of
+broker `ThrottleTimeMs` from Produce/Fetch responses. Rising values mean the
+broker is applying quota delay — diagnose with telemetry, not payload logging
+(KL-07).
+
 ## Recipes
 
 ### Backpressure
 
 Use `try_send`; on `QueueFull` / memory pressure, `flush` or wait, then
 retry. Do not unbounded-buffer in the application.
+
+### Diagnosis cookbook (telemetry, not payloads)
+
+Use process-local metrics before enabling payload/body logging:
+
+| Symptom | What to look at | Likely cause |
+|---|---|---|
+| Produce acks slow, retries climb | `Producer::metrics().broker_throttle_ms_total` rising; `ack_latency` p99 up | Broker produce quota / throttle |
+| Fetch rounds slow, lag grows | `Consumer::metrics().broker_throttle_ms_total` rising; `fetch_latency` p99 up | Broker fetch quota / throttle |
+| Produce errors with not-leader / unknown-topic after metadata age | metadata refresh + produce/fetch errors; leaders moving | Stale leader / cluster change |
+| Consumer returns no records while produce continues | assignment, `fetch_errors`, commit lag; not throttle alone | Blocked / mis-assigned consumer |
+
+Mock proof that throttle is surfaced: `tests/throttle_metrics.rs`. This is a
+KL-07 diagnosis slice — not a two-user usability close and not Suite HOLD lift.
 
 ### Buffer ownership and overload (mock)
 

@@ -30,15 +30,24 @@ async fn main() -> partitionline::Result<()> {
             "partitionline_produce_ack_p99_seconds {}",
             (pm.ack_latency.p99_nanos as f64) / 1_000_000_000.0
         );
+        println!(
+            "# HELP partitionline_produce_broker_throttle_ms_total Sum of Produce ThrottleTimeMs"
+        );
+        println!("# TYPE partitionline_produce_broker_throttle_ms_total counter");
+        println!(
+            "partitionline_produce_broker_throttle_ms_total {}",
+            pm.broker_throttle_ms_total
+        );
     } else {
         println!(
-            "produced {}-{}@{} queued={} acked={} bytes={} ack_us={} p50_us={} p99_us={} topics={}",
+            "produced {}-{}@{} queued={} acked={} bytes={} throttle_ms={} ack_us={} p50_us={} p99_us={} topics={}",
             md.topic,
             md.partition,
             md.offset,
             pm.records_queued,
             pm.records_acked,
             pm.bytes_queued,
+            pm.broker_throttle_ms_total,
             pm.ack_latency.mean_nanos().unwrap_or(0) / 1000,
             pm.ack_latency.p50_nanos / 1000,
             pm.ack_latency.p99_nanos / 1000,
@@ -61,13 +70,22 @@ async fn main() -> partitionline::Result<()> {
             "partitionline_fetch_p99_seconds {}",
             (cm.fetch_latency.p99_nanos as f64) / 1_000_000_000.0
         );
+        println!(
+            "# HELP partitionline_fetch_broker_throttle_ms_total Sum of Fetch ThrottleTimeMs"
+        );
+        println!("# TYPE partitionline_fetch_broker_throttle_ms_total counter");
+        println!(
+            "partitionline_fetch_broker_throttle_ms_total {}",
+            cm.broker_throttle_ms_total
+        );
     } else {
         println!(
-            "fetched {} records rounds={} bytes={} errors={} fetch_us={} p50_us={} p99_us={} topics={}",
+            "fetched {} records rounds={} bytes={} errors={} throttle_ms={} fetch_us={} p50_us={} p99_us={} topics={}",
             recs.len(),
             cm.fetch_rounds,
             cm.bytes_fetched,
             cm.fetch_errors,
+            cm.broker_throttle_ms_total,
             cm.fetch_latency.mean_nanos().unwrap_or(0) / 1000,
             cm.fetch_latency.p50_nanos / 1000,
             cm.fetch_latency.p99_nanos / 1000,

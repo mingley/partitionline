@@ -1257,6 +1257,8 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    /// Sum of Fetch response throttle_time_ms.
+    m_throttle_ms: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
@@ -1346,6 +1348,7 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            m_throttle_ms: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
@@ -2151,6 +2154,7 @@ impl Consumer {
             records_fetched: self.m_records.load(Ordering::Relaxed),
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
+            broker_throttle_ms_total: self.m_throttle_ms.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
         }
@@ -2519,7 +2523,12 @@ impl Consumer {
         out: &mut Vec<FetchedRecord>,
         fenced: &mut Vec<(String, i32)>,
     ) -> Result<FetchRetry> {
-        let (fetched, endpoints, ..) = decode_fetch_response(body, self.fetch_version)?;
+        let (fetched, endpoints, _error_code, _session_id, throttle_ms) =
+            decode_fetch_response(body, self.fetch_version)?;
+        if throttle_ms > 0 {
+            let add = u64::try_from(throttle_ms).unwrap_or(0);
+            let _ = self.m_throttle_ms.fetch_add(add, Ordering::Relaxed);
+        }
         self.cluster.apply_node_endpoints(&endpoints);
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;

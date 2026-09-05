@@ -184,6 +184,22 @@ else
   bad "KL-02 buffer ownership + mock overload soak missing"
 fi
 
+# KL-07 slice: broker throttle metrics + diagnosis cookbook (not a two-user close).
+if [[ -f tests/throttle_metrics.rs && -f docs/guide.md ]] \
+  && grep -qF 'Diagnosis cookbook (telemetry, not payloads)' docs/guide.md \
+  && grep -qF 'produce_metrics_accumulate_broker_throttle_ms' tests/throttle_metrics.rs \
+  && grep -qF 'fetch_metrics_accumulate_broker_throttle_ms' tests/throttle_metrics.rs \
+  && grep -qF 'broker_throttle_ms_total' src/metrics.rs \
+  && grep -qF 'm_throttle_ms' src/producer.rs \
+  && grep -qF 'm_throttle_ms' src/consumer.rs \
+  && grep -qF 'set_produce_throttle_ms' tests/common/mod.rs \
+  && grep -qF 'set_fetch_throttle_ms' tests/common/mod.rs \
+  && grep -qF 'broker_throttle_ms_total' docs/ROADMAP.md; then
+  ok "KL-07 broker throttle metrics + diagnosis cookbook (produce/fetch ThrottleTimeMs; guide)"
+else
+  bad "KL-07 broker throttle metrics + diagnosis cookbook missing"
+fi
+
 # KL-06 slice: credential Debug redaction (passwords / client_secret / key PEM).
 if [[ -f tests/credential_redact.rs && -f docs/security.md ]] \
   && grep -qF 'Credential redaction' docs/security.md \
