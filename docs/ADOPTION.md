@@ -147,6 +147,11 @@ Installable waited — that broke docs/scripts-only tip-delta. Landed via
 `bash scripts/owner-land-post-cut-parks.sh` / finish's default chain; close
 overlapping Dependabot PRs (#87 lz4_flex, #88–#91 sha2/flate2/pbkdf2/hmac, #92 actions/checkout).
 
+**Post-Installable dep absorb (2026-09-11):** open bumps for `snap` 1.1.2, `tokio-rustls` 0.26.5,
+`base64` 0.23.1, `getrandom` 0.4.3 (`fill` API), and `actions/setup-java` v5 map to park
+`dev/post-installable-dep-bumps-b686`. Land on main via that park (or close superseded
+Dependabot PRs after absorb). Does **not** lift Suite HOLD.
+
 Executable gate (wired into cut-path + bars + actions hygiene):
 
 ```bash

@@ -762,7 +762,7 @@ impl Uuid {
     fn new_type4_uuid() -> Self {
         let mut bytes = [0u8; 16];
         loop {
-            if getrandom::getrandom(&mut bytes).is_ok() {
+            if getrandom::fill(&mut bytes).is_ok() {
                 break;
             }
         }

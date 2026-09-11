@@ -331,7 +331,7 @@ fn attr_map(msg: &str) -> Result<std::collections::HashMap<char, String>> {
 /// Random client nonce (`r=`), printable ASCII.
 pub fn client_nonce() -> String {
     let mut raw = [0u8; 18];
-    if getrandom::getrandom(&mut raw).is_err() {
+    if getrandom::fill(&mut raw).is_err() {
         raw = [1; 18];
     }
     const A: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Stewardship gate: open Dependabot dep bumps must be covered by post-cut parks.
 #
-# While Installable waits, tip stays docs/scripts-only. Cargo/Actions bumps land
-# via the parks chain after crates.io 0.1.0 — merging Dependabot onto tip/main
-# breaks tip-delta and races cancel-in-progress main CI.
+# Installable is met (crates.io 0.1.0). Pre-cut tip was docs/scripts-only; Cargo/Actions
+# bumps now absorb via post-Installable parks → main (tip=main). Unmapped open
+# Dependabot PRs still fail so stewardship cannot drift.
 #
 # This check makes that policy executable: every open Dependabot PR that touches
 # Cargo.lock or actions/checkout must map to a known park branch that still
@@ -38,6 +38,10 @@ park_for_dependabot_head() {
     dependabot/github_actions/actions/checkout-*)
       echo "dev/actions-checkout-bump-b686"
       ;;
+    # Post-Installable absorb park (tip=main can take bumps; Suite HOLD unchanged).
+    dependabot/cargo/snap-*|dependabot/cargo/tokio-rustls-*|dependabot/cargo/base64-*|dependabot/cargo/getrandom-*|dependabot/github_actions/actions/setup-java-*)
+      echo "dev/post-installable-dep-bumps-b686"
+      ;;
     *)
       echo ""
       ;;
@@ -64,6 +68,16 @@ if [[ "${1:-}" == "--self-test" ]]; then
   got="$(park_for_dependabot_head 'dependabot/github_actions/actions/checkout-7')"
   [[ "$got" == "dev/actions-checkout-bump-b686" ]] || {
     echo "FAIL — checkout map → '$got'" >&2
+    exit 1
+  }
+  got="$(park_for_dependabot_head 'dependabot/cargo/snap-1.1.2')"
+  [[ "$got" == "dev/post-installable-dep-bumps-b686" ]] || {
+    echo "FAIL — snap map → '$got'" >&2
+    exit 1
+  }
+  got="$(park_for_dependabot_head 'dependabot/github_actions/actions/setup-java-5')"
+  [[ "$got" == "dev/post-installable-dep-bumps-b686" ]] || {
+    echo "FAIL — setup-java map → '$got'" >&2
     exit 1
   }
   got="$(park_for_dependabot_head 'dependabot/cargo/serde-1.0.0')"
@@ -122,7 +136,7 @@ for row in "${rows[@]}"; do
     echo "  title: $title" >&2
     echo "  Either park this bump post-cut, or update park_for_dependabot_head in" >&2
     echo "  scripts/check-dependabot-parks-coverage.sh (+ docs/ADOPTION.md)." >&2
-    echo "  Do NOT merge onto tip/main while Installable waits (breaks tip-delta)." >&2
+    echo "  Post-Installable: map to a park (or absorb on main); do not leave bumps untracked." >&2
     fail=1
     continue
   fi

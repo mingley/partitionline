@@ -2491,7 +2491,7 @@ fn spoken_consumer_group_heartbeat(version: i16) -> Result<i16> {
 
 fn new_kip848_member_id() -> Result<String> {
     let mut raw = [0u8; 16];
-    getrandom::getrandom(&mut raw).map_err(|_| Error::protocol("consumer member id rng"))?;
+    getrandom::fill(&mut raw).map_err(|_| Error::protocol("consumer member id rng"))?;
     Ok(base64::Engine::encode(
         &base64::engine::general_purpose::URL_SAFE_NO_PAD,
         raw,
