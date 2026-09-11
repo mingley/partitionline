@@ -184,7 +184,7 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **KL-08 adopter exercise template (2026-09-05, tip `622dfa2`):** `docs/adopter-exercise.md` is the blank 24h/7d record format (`UNFILLED — not evidence`); linked from support.md + ADOPTION.md. Does **not** close full KL-08 (no filled adopter records, no traffic-shadow promotion/rollback proof). Does **not** lift Suite HOLD.
 
-**Post-Installable dep bumps park (2026-09-11, tip `PENDING`):** `dev/post-installable-dep-bumps-b686` absorbs Dependabot #99–#103 (`base64` 0.23 / `getrandom` 0.4 `fill` / `snap` 1.1.2 / `tokio-rustls` 0.26.5 / `setup-java` v5); coverage script + ADOPTION mapped. Does **not** lift Suite HOLD.
+**Post-Installable dep bumps park (2026-09-11, tip `9e90124`):** `dev/post-installable-dep-bumps-b686` absorbs Dependabot #99–#103 (`base64` 0.23 / `getrandom` 0.4 `fill` / `snap` 1.1.2 / `tokio-rustls` 0.26.5 / `setup-java` v5); coverage script + ADOPTION mapped. Does **not** lift Suite HOLD.
 
 This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
