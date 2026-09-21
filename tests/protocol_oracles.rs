@@ -1171,3 +1171,494 @@ fn apache_produce_v9_smoke_fixture_decodes() {
     assert_eq!(parts[0].log_append_time_ms, 1_700_000_000_000);
     assert_eq!(parts[0].log_start_offset, 0);
 }
+
+/// KL01-04: Independent Produce wire fixtures covering advertised version boundaries.
+///
+/// Consumes committed Apache Kafka 3.9.1 binary fixtures offline without requiring
+/// Java or network access. Verifies classic/flexible transition, null transactionalId/records,
+/// throttle placement, partition errors, and current-leader tags.
+#[test]
+fn apache_produce_boundary_fixtures_decode_offline() {
+    // 1. Produce v3: oldest supported version, classic format, null txn id, null records, partition error
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v3_classic_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v3_classic_response.bin");
+
+        let (txn, acks, timeout_ms, topics) =
+            decode_produce_request(&mut &REQ[..], 3).expect("produce v3 request");
+        assert!(txn.is_none(), "v3 null transactional_id");
+        assert_eq!(acks, -1);
+        assert_eq!(timeout_ms, 5000);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].topic, "produce-v3-classic");
+        assert_eq!(topics[0].partitions.len(), 2);
+        assert_eq!(topics[0].partitions[0].index, 0);
+        assert!(
+            topics[0].partitions[0].records.records.is_empty(),
+            "v3 null records decodes empty batch"
+        );
+        assert_eq!(topics[0].partitions[1].index, 1);
+        assert!(
+            topics[0].partitions[1].records.records.is_empty(),
+            "v3 null records decodes empty batch"
+        );
+
+        let (parts, endpoints, throttle_ms) =
+            decode_produce_response(&mut &RESP[..], 3).expect("produce v3 response");
+        assert_eq!(throttle_ms, 25, "v3 throttle placement after responses");
+        assert!(endpoints.is_empty(), "v3 no node endpoints");
+        assert_eq!(parts.len(), 2);
+        assert_eq!(parts[0].topic, "produce-v3-classic");
+        assert_eq!(parts[0].partition, 0);
+        assert_eq!(parts[0].error_code, 0);
+        assert_eq!(parts[0].base_offset, 100);
+        assert_eq!(parts[0].log_append_time_ms, 1_710_000_000_000);
+        assert_eq!(
+            parts[0].log_start_offset,
+            ProducePartitionResponse::INVALID_OFFSET,
+            "v3 log_start_offset omitted below v5"
+        );
+        assert_eq!(parts[1].partition, 1);
+        assert_eq!(parts[1].error_code, UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(parts[1].base_offset, -1);
+    }
+
+    // 2. Produce v5: classic format, boundary for log_start_offset gate (v5+)
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v5_start_offset_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v5_start_offset_response.bin");
+
+        let (txn, acks, timeout_ms, topics) =
+            decode_produce_request(&mut &REQ[..], 5).expect("produce v5 request");
+        assert_eq!(
+            txn.as_deref(),
+            Some("txn-produce-v5"),
+            "v5 non-null transactional_id"
+        );
+        assert_eq!(acks, 1);
+        assert_eq!(timeout_ms, 3000);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].topic, "produce-v5-start-offset");
+        assert_eq!(topics[0].partitions.len(), 1);
+
+        let (parts, endpoints, throttle_ms) =
+            decode_produce_response(&mut &RESP[..], 5).expect("produce v5 response");
+        assert_eq!(throttle_ms, 40, "v5 throttle placement");
+        assert!(endpoints.is_empty());
+        assert_eq!(parts.len(), 1);
+        assert_eq!(parts[0].topic, "produce-v5-start-offset");
+        assert_eq!(parts[0].partition, 0);
+        assert_eq!(parts[0].error_code, 0);
+        assert_eq!(parts[0].base_offset, 200);
+        assert_eq!(parts[0].log_append_time_ms, 1_710_000_001_000);
+        assert_eq!(
+            parts[0].log_start_offset, 50,
+            "v5 log_start_offset present on wire"
+        );
+    }
+
+    // 3. Produce v8: classic format, boundary before flexible transition, with record_errors and error_message
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v8_classic_errors_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v8_classic_errors_response.bin");
+
+        let (txn, acks, timeout_ms, topics) =
+            decode_produce_request(&mut &REQ[..], 8).expect("produce v8 request");
+        assert_eq!(txn.as_deref(), Some("txn-produce-v8"));
+        assert_eq!(acks, -1);
+        assert_eq!(timeout_ms, 7500);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].topic, "produce-v8-classic-errors");
+        assert_eq!(topics[0].partitions.len(), 2);
+
+        let (parts, endpoints, throttle_ms) =
+            decode_produce_response(&mut &RESP[..], 8).expect("produce v8 response");
+        assert_eq!(throttle_ms, 60, "v8 throttle placement");
+        assert!(endpoints.is_empty());
+        assert_eq!(parts.len(), 2);
+
+        assert_eq!(parts[0].partition, 0);
+        assert_eq!(parts[0].error_code, 0);
+        assert_eq!(parts[0].base_offset, 300);
+        assert_eq!(parts[0].log_append_time_ms, 1_710_000_002_000);
+        assert_eq!(parts[0].log_start_offset, 120);
+        assert!(parts[0].record_errors.is_empty());
+        assert_eq!(parts[0].error_message, None);
+
+        assert_eq!(parts[1].partition, 1);
+        assert_eq!(parts[1].error_code, NOT_LEADER_OR_FOLLOWER);
+        assert_eq!(parts[1].base_offset, -1);
+        assert_eq!(
+            parts[1].error_message.as_deref(),
+            Some("Not leader for partition")
+        );
+        assert_eq!(parts[1].record_errors.len(), 2);
+        assert_eq!(parts[1].record_errors[0].batch_index, 0);
+        assert_eq!(
+            parts[1].record_errors[0].message.as_deref(),
+            Some("Record invalid")
+        );
+        assert_eq!(parts[1].record_errors[1].batch_index, 1);
+        assert_eq!(
+            parts[1].record_errors[1].message.as_deref(),
+            Some("Offset out of range")
+        );
+    }
+
+    // 4. Produce v9: flexible transition boundary with null transactional_id, null records, and partition errors
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v9_flexible_nulls_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v9_flexible_nulls_response.bin");
+
+        let (txn, acks, timeout_ms, topics) =
+            decode_produce_request(&mut &REQ[..], 9).expect("produce v9 request");
+        assert!(txn.is_none(), "v9 flexible null transactional_id");
+        assert_eq!(acks, 1);
+        assert_eq!(timeout_ms, 4000);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].topic, "produce-v9-flexible-nulls");
+        assert_eq!(topics[0].partitions.len(), 2);
+
+        let (parts, endpoints, throttle_ms) =
+            decode_produce_response(&mut &RESP[..], 9).expect("produce v9 response");
+        assert_eq!(throttle_ms, 99, "v9 throttle placement");
+        assert!(endpoints.is_empty());
+        assert_eq!(parts.len(), 2);
+
+        assert_eq!(parts[0].partition, 0);
+        assert_eq!(parts[0].error_code, 0);
+        assert_eq!(parts[0].base_offset, 400);
+        assert_eq!(parts[0].log_append_time_ms, 1_710_000_003_000);
+        assert_eq!(parts[0].log_start_offset, 150);
+
+        assert_eq!(parts[1].partition, 1);
+        assert_eq!(parts[1].error_code, UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(parts[1].base_offset, -1);
+        assert_eq!(parts[1].error_message.as_deref(), Some("Unknown topic"));
+        assert_eq!(parts[1].record_errors.len(), 1);
+        assert_eq!(parts[1].record_errors[0].batch_index, 0);
+        assert_eq!(
+            parts[1].record_errors[0].message.as_deref(),
+            Some("Invalid batch")
+        );
+    }
+
+    // 5. Produce v10: flexible format, boundary for current-leader tagged field (present vs omitted/default)
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v10_current_leader_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v10_current_leader_response.bin");
+
+        let (txn, acks, timeout_ms, topics) =
+            decode_produce_request(&mut &REQ[..], 10).expect("produce v10 request");
+        assert_eq!(txn.as_deref(), Some("txn-produce-v10"));
+        assert_eq!(acks, -1);
+        assert_eq!(timeout_ms, 6000);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].topic, "produce-v10-current-leader");
+
+        let (parts, endpoints, throttle_ms) =
+            decode_produce_response(&mut &RESP[..], 10).expect("produce v10 response");
+        assert_eq!(throttle_ms, 150, "v10 throttle placement");
+        assert!(endpoints.is_empty());
+        assert_eq!(parts.len(), 2);
+
+        // Partition 0: present current-leader tag
+        assert_eq!(parts[0].partition, 0);
+        assert_eq!(parts[0].error_code, 0);
+        assert_eq!(parts[0].base_offset, 500);
+        assert_eq!(parts[0].log_append_time_ms, 1_710_000_004_000);
+        assert_eq!(parts[0].log_start_offset, 200);
+        assert_eq!(
+            parts[0].current_leader_id, 3,
+            "v10 current_leader_id present"
+        );
+        assert_eq!(
+            parts[0].current_leader_epoch, 12,
+            "v10 current_leader_epoch present"
+        );
+
+        // Partition 1: omitted / default current-leader tag
+        assert_eq!(parts[1].partition, 1);
+        assert_eq!(parts[1].error_code, NOT_LEADER_OR_FOLLOWER);
+        assert_eq!(parts[1].base_offset, -1);
+        assert_eq!(
+            parts[1].error_message.as_deref(),
+            Some("Broker not leader")
+        );
+        assert_eq!(
+            parts[1].current_leader_id,
+            MetadataResponse::NO_LEADER_ID,
+            "v10 current_leader omitted default"
+        );
+        assert_eq!(
+            parts[1].current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            "v10 current_leader omitted default"
+        );
+    }
+
+    // 6. Produce v11: flexible format, highest version supported by Apache Kafka 3.9.1
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v11_max_3_9_1_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/produce_v11_max_3_9_1_response.bin");
+
+        let (txn, acks, timeout_ms, topics) =
+            decode_produce_request(&mut &REQ[..], 11).expect("produce v11 request");
+        assert_eq!(txn.as_deref(), Some("txn-produce-v11"));
+        assert_eq!(acks, -1);
+        assert_eq!(timeout_ms, 10000);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].topic, "produce-v11-max");
+
+        let (parts, endpoints, throttle_ms) =
+            decode_produce_response(&mut &RESP[..], 11).expect("produce v11 response");
+        assert_eq!(throttle_ms, 200, "v11 throttle placement");
+        assert!(endpoints.is_empty());
+        assert_eq!(parts.len(), 1);
+
+        assert_eq!(parts[0].partition, 0);
+        assert_eq!(parts[0].error_code, 0);
+        assert_eq!(parts[0].base_offset, 600);
+        assert_eq!(parts[0].log_append_time_ms, 1_710_000_005_000);
+        assert_eq!(parts[0].log_start_offset, 250);
+        assert_eq!(parts[0].current_leader_id, 5);
+        assert_eq!(parts[0].current_leader_epoch, 20);
+        assert_eq!(
+            parts[0].error_message.as_deref(),
+            Some("transaction abortable error")
+        );
+        assert_eq!(parts[0].record_errors.len(), 1);
+        assert_eq!(parts[0].record_errors[0].batch_index, 0);
+        assert_eq!(
+            parts[0].record_errors[0].message.as_deref(),
+            Some("aborted txn")
+        );
+    }
+}
+
+/// KL01-04: Negative and mutation tests.
+///
+/// Verifies that mutating field order or required version gates fails decoding.
+#[test]
+fn produce_version_gate_and_field_order_mutations_fail() {
+    const V3_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/produce_v3_classic_response.bin");
+    const V5_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/produce_v5_start_offset_response.bin");
+    const V8_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/produce_v8_classic_errors_response.bin");
+    const V9_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/produce_v9_flexible_nulls_response.bin");
+    const V10_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/produce_v10_current_leader_response.bin");
+
+    // Mutation 1: Version gate mutation for log_start_offset (gate is v5+).
+    // Decoding v3 response (no log_start_offset on wire) with v5 decoder fails (buffer underflow).
+    let mut cur = V3_RESP;
+    assert!(
+        decode_produce_response(&mut cur, 5).is_err(),
+        "decoding v3 response as v5 must fail because log_start_offset is missing"
+    );
+
+    // Mutation 2: Decoding v5 response with v4 decoder ignores log_start_offset and leaves unconsumed bytes.
+    let mut cur = V5_RESP;
+    let _ = decode_produce_response(&mut cur, 4).expect("decodes without log_start_offset");
+    assert!(
+        !cur.is_empty(),
+        "decoding v5 response with v4 decoder must leave unconsumed log_start_offset bytes"
+    );
+
+    // Mutation 3: Version gate mutation for record_errors / error_message (gate is v8+).
+    // Decoding v8 response with v7 decoder ignores record_errors and error_message, leaving unconsumed bytes.
+    let mut cur = V8_RESP;
+    let _ = decode_produce_response(&mut cur, 7).expect("decodes without v8 fields");
+    assert!(
+        !cur.is_empty(),
+        "decoding v8 response with v7 decoder must leave unconsumed record_errors bytes"
+    );
+
+    // Mutation 4: Flexible version gate mutation (gate is v9+).
+    // Decoding v8 classic response as v9 flexible must fail.
+    let mut cur = V8_RESP;
+    assert!(
+        decode_produce_response(&mut cur, 9).is_err(),
+        "decoding v8 classic response as v9 flexible must fail with format mismatch"
+    );
+
+    // Decoding v9 flexible response as v8 classic must fail.
+    let mut cur = V9_RESP;
+    assert!(
+        decode_produce_response(&mut cur, 8).is_err(),
+        "decoding v9 flexible response as v8 classic must fail with format mismatch"
+    );
+
+    // Mutation 5: Version gate mutation for current_leader (gate is v10+).
+    // Decoding v10 response as v9 ignores current_leader tag and decodes default sentinels.
+    let mut cur = V10_RESP;
+    let (parts, _, _) = decode_produce_response(&mut cur, 9).expect("v9 decodes without leader tag");
+    assert_eq!(
+        parts[0].current_leader_id,
+        MetadataResponse::NO_LEADER_ID,
+        "v9 gate must not populate current_leader_id"
+    );
+
+    // Mutation 6: Mutating field order in ProduceResponse (e.g. putting throttle_time_ms before responses).
+    // Wire format for ProduceResponse is responses followed by throttle_time_ms.
+    // If throttle_time_ms (e.g. 25i32) is placed before responses array, decode fails.
+    let mut mutated_order = BytesMut::new();
+    mutated_order.extend_from_slice(&25i32.to_be_bytes()); // mutated throttle first
+    mutated_order.extend_from_slice(&1i32.to_be_bytes()); // topic count = 1
+    mutated_order.extend_from_slice(&(2i16).to_be_bytes()); // string len = 2
+    mutated_order.extend_from_slice(b"t1");
+    mutated_order.extend_from_slice(&0i32.to_be_bytes()); // part count = 0
+    let mut cur = mutated_order.as_ref();
+    assert!(
+        decode_produce_response(&mut cur, 3).is_err(),
+        "mutating ProduceResponse field order (throttle before responses) must fail"
+    );
+}
+
+/// Helper to detect if Java toolchain and conformance jars are available.
+fn java_conformance_classpath() -> Option<(String, String)> {
+    let java_ok = std::process::Command::new("java")
+        .arg("-version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+    if !java_ok {
+        return None;
+    }
+
+    let cache_dir = std::env::var("CONFORMANCE_CACHE_DIR")
+        .unwrap_or_else(|_| "/tmp/partitionline-conformance".into());
+    let kafka_jar = format!("{cache_dir}/kafka-clients-3.9.1.jar");
+    let slf4j_jar = format!("{cache_dir}/slf4j-api-1.7.36.jar");
+    let classes_dir = format!("{cache_dir}/classes");
+
+    if !std::path::Path::new(&kafka_jar).exists()
+        || !std::path::Path::new(&slf4j_jar).exists()
+        || !std::path::Path::new(&classes_dir).exists()
+    {
+        return None;
+    }
+
+    let cp = format!("{kafka_jar}:{slf4j_jar}:{classes_dir}");
+    Some(("java".into(), cp))
+}
+
+/// KL01-04: Decode Rust output with Apache where Java is available.
+///
+/// Encodes Produce requests and responses in Rust across the advertised version boundaries,
+/// then runs Apache Kafka's `ProduceRequestData.read` and `ProduceResponseData.read` in Java
+/// to verify that Apache successfully decodes partitionline wire output.
+#[test]
+fn rust_produce_output_decodes_with_apache_when_java_available() {
+    let Some((java_bin, cp)) = java_conformance_classpath() else {
+        println!("java toolchain / conformance jars not available; skipping live Apache decode of Rust output");
+        return;
+    };
+
+    let versions: [(i16, Option<&str>, i32); 6] = [
+        (3, None, 25),
+        (5, Some("txn-v5"), 40),
+        (8, Some("txn-v8"), 60),
+        (9, None, 99),
+        (10, Some("txn-v10"), 150),
+        (11, Some("txn-v11"), 200),
+    ];
+
+    for (version, txn_id, throttle_ms) in versions {
+        // 1. Rust encodes ProduceRequest
+        let mut req_buf = BytesMut::new();
+        let topic = ProduceTopicData {
+            topic: "rust-topic".into(),
+            partitions: vec![ProducePartitionData {
+                index: 0,
+                records: RecordBatch::from_records(vec![]),
+            }],
+        };
+        encode_produce_request(&mut req_buf, version, txn_id, -1, 5000, &[topic])
+            .expect("encode produce request in Rust");
+        let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+
+        let req_out = std::process::Command::new(&java_bin)
+            .args([
+                "-cp",
+                &cp,
+                "org.apache.kafka.conformance.FixtureGenerator",
+                "--decode-rust",
+                "req",
+                &version.to_string(),
+                &req_hex,
+            ])
+            .output()
+            .expect("execute java decode-rust req");
+        assert!(
+            req_out.status.success(),
+            "Apache Java failed to decode Rust ProduceRequest v{version}: {}",
+            String::from_utf8_lossy(&req_out.stderr)
+        );
+        let req_stdout = String::from_utf8_lossy(&req_out.stdout);
+        assert!(
+            req_stdout.contains(&format!("OK: req v{version}")),
+            "Apache output confirmation: {req_stdout}"
+        );
+
+        // 2. Rust encodes ProduceResponse
+        let mut resp_buf = BytesMut::new();
+        let mut part = ProducePartitionResponse::partition_response_with_offsets(
+            "rust-topic",
+            0,
+            0,
+            100,
+            1_710_000_000_000,
+            50,
+        );
+        if version >= 8 {
+            part.error_message = Some("msg".into());
+            part.record_errors = vec![ProduceRecordError::new(0, Some("bad".into()))];
+        }
+        if version >= 10 {
+            part.current_leader_id = 2;
+            part.current_leader_epoch = 7;
+        }
+        encode_produce_response_with_throttle(&mut resp_buf, version, &[part], throttle_ms)
+            .expect("encode produce response in Rust");
+        let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+
+        let resp_out = std::process::Command::new(&java_bin)
+            .args([
+                "-cp",
+                &cp,
+                "org.apache.kafka.conformance.FixtureGenerator",
+                "--decode-rust",
+                "resp",
+                &version.to_string(),
+                &resp_hex,
+            ])
+            .output()
+            .expect("execute java decode-rust resp");
+        assert!(
+            resp_out.status.success(),
+            "Apache Java failed to decode Rust ProduceResponse v{version}: {}",
+            String::from_utf8_lossy(&resp_out.stderr)
+        );
+        let resp_stdout = String::from_utf8_lossy(&resp_out.stdout);
+        assert!(
+            resp_stdout.contains(&format!("OK: resp v{version}")),
+            "Apache output confirmation: {resp_stdout}"
+        );
+    }
+}

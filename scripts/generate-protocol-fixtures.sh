@@ -31,8 +31,15 @@ KAFKA_JAR="$CACHE_DIR/kafka-clients-${KAFKA_VERSION}.jar"
 SLF4J_JAR="$CACHE_DIR/slf4j-api-${SLF4J_VERSION}.jar"
 CLASSES_DIR="$CACHE_DIR/classes"
 
+DECODE_RUST_ARGS=()
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --decode-rust)
+      shift
+      DECODE_RUST_ARGS=("$@")
+      break
+      ;;
     --verify|--check)
       VERIFY_MODE=1
       shift
@@ -42,7 +49,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     -h|--help)
-      echo "Usage: $0 [--verify] [--out-dir <dir>]"
+      echo "Usage: $0 [--verify] [--out-dir <dir>] | [--decode-rust <req|resp> <version> <input>]"
       exit 0
       ;;
     *)
@@ -147,6 +154,11 @@ javac -cp "$CP" -d "$CLASSES_DIR" \
 
 # Step 4: Run generator
 RUN_CP="${CP}:${CLASSES_DIR}"
+
+if [[ ${#DECODE_RUST_ARGS[@]} -gt 0 ]]; then
+  exec java -cp "$RUN_CP" org.apache.kafka.conformance.FixtureGenerator --decode-rust "${DECODE_RUST_ARGS[@]}"
+fi
+
 GEN_ARGS=(--out-dir "$OUT_DIR")
 if [[ "$VERIFY_MODE" -eq 1 ]]; then
   GEN_ARGS+=(--verify)
@@ -159,8 +171,8 @@ java -cp "$RUN_CP" org.apache.kafka.conformance.FixtureGenerator "${GEN_ARGS[@]}
 
 if [[ "$VERIFY_MODE" -eq 0 ]]; then
   echo "== generate-protocol-fixtures: committed fixture hashes =="
-  for f in "$OUT_DIR"/smoke_produce_v9_request.bin "$OUT_DIR"/smoke_produce_v9_response.bin "$OUT_DIR"/smoke_produce_v9.json; do
-    if [[ -f "$f" ]]; then
+  for f in "$OUT_DIR"/*_request.bin "$OUT_DIR"/*_response.bin "$OUT_DIR"/*.json; do
+    if [[ -f "$f" && "$(basename "$f")" != "matrix.json" ]]; then
       echo "  $(basename "$f"): $(compute_sha256 "$f")"
     fi
   done

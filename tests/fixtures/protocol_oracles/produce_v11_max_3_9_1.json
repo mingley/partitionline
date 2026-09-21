@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "produce-v11-max-3-9-1",
+  "api": "Produce",
+  "api_key": 0,
+  "api_version": 11,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Produce v11 flexible wire format at highest Apache Kafka 3.9.1 valid version boundary",
+  "request": {
+    "file": "produce_v11_max_3_9_1_request.bin",
+    "size_bytes": 48,
+    "sha256": "9bac71f12e526cfeb690f15d9d74c9d7e62eae0995ded981dd4900170110cc4f",
+    "hex": "1074786e2d70726f647563652d763131ffff00002710021070726f647563652d7631312d6d6178020000000001000000"
+  },
+  "response": {
+    "file": "produce_v11_max_3_9_1_response.bin",
+    "size_bytes": 112,
+    "sha256": "9f5ec24ca8a60a2b2b4031dd951e9e8587a5eb06a787a723c83c4324f28abfa6",
+    "hex": "021070726f647563652d7631312d6d61780200000000000000000000000002580000018e23f15f8800000000000000fa02000000000c61626f727465642074786e001c7472616e73616374696f6e2061626f727461626c65206572726f7201000900000005000000140000000000c800"
+  }
+}
