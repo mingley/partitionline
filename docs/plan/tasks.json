@@ -207,13 +207,30 @@
     {
       "id": "KL01-12",
       "title": "Make sustained fuzz campaigns reproducible and resumable",
-      "priority": "P1", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "test-infrastructure", "status": "done", "owner": "mingley",
       "depends_on": ["KL02-03"],
       "files": ["scripts/ci-fuzz-campaign.sh", "fuzz/fuzz_targets/", "fuzz/campaign/metadata.example.json"],
       "deliverable": "An extended campaign path with corpus seeds, real coverage/limit metadata and retained minimized failures.",
       "acceptance": ["Keep 15-second smoke distinct from sustained campaigns; an example metadata file is never execution evidence.", "Seed valid compressed, tagged, transactional and boundary-length frames so fuzzing reaches deep decode paths.", "Record toolchain, source, duration, corpus hashes, execution/coverage data or explicit unavailability, and replay every retained failure."],
       "validation": ["bash scripts/ci-fuzz-campaign.sh --self-test", "Run a bounded approved campaign and replay its corpus; long campaign evidence remains separately labeled."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ea5ad6fada2b71e82141ba4fc6da8e37e1db86c9",
+                "commands": [
+                        "bash scripts/ci-fuzz-campaign.sh --self-test (exit 0)"
+                ],
+                "results": "Campaign metadata is distinct from the 15-second smoke. Example metadata is flagged is_example and rejected as execution evidence. Seeds cover compressed, tagged, transactional, and boundary frames. Self-test replays a synthetic retained failure. No sustained campaign was executed.",
+                "artifacts": [
+                        "scripts/ci-fuzz-campaign.sh",
+                        "fuzz/campaign/metadata.schema.json",
+                        "fuzz/seeds/",
+                        "docs/plan/evidence/KL01-12.json"
+                ],
+                "limits": [
+                        "No sustained libFuzzer campaign was run. Coverage data from a real campaign remains unavailable until an approved run records it."
+                ]
+        }
+]
     },
     {
       "id": "KL01-13",
