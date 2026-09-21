@@ -2394,6 +2394,7 @@ impl Consumer {
             let bodies = self.fetch_from_leaders(by_leader).await?;
             let mut retry = FetchRetry::None;
             let mut fenced = Vec::new();
+            let mut need_offsets = Vec::new();
             for (node, body) in bodies {
                 let mut body = match body {
                     Ok(b) => b,
@@ -2409,8 +2410,24 @@ impl Consumer {
                     &mut body,
                     &mut out,
                     &mut fenced,
+                    &mut need_offsets,
                     &mut completed,
                 )?);
+            }
+            if !need_offsets.is_empty() {
+                for (topic, partition, timestamp) in need_offsets {
+                    let offset = self
+                        .list_offsets(topic.clone(), partition, timestamp)
+                        .await?;
+                    self.advance(&topic, partition, offset);
+                    self.set_last_fetched_epoch(
+                        &topic,
+                        partition,
+                        crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    );
+                    self.drop_pending_for(&topic, partition);
+                    let _ = completed.insert((topic, partition));
+                }
             }
             if !fenced.is_empty() {
                 fenced.sort();
@@ -2574,6 +2591,7 @@ impl Consumer {
         body: &mut Bytes,
         out: &mut Vec<FetchedRecord>,
         fenced: &mut Vec<(String, i32)>,
+        need_offsets: &mut Vec<(String, i32, i64)>,
         completed: &mut HashSet<(String, i32)>,
     ) -> Result<FetchRetry> {
         let (fetched, endpoints, ..) = decode_fetch_response(body, self.fetch_version)?;
@@ -2601,14 +2619,68 @@ impl Consumer {
                     }
                 }
                 if part.error_code == error::OFFSET_OUT_OF_RANGE {
-                    self.advance(&name, part.partition, part.log_start_offset);
-                    self.set_last_fetched_epoch(
-                        &name,
-                        part.partition,
-                        crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
-                    );
-                    let _ = completed.insert((name.clone(), part.partition));
-                    continue;
+                    let is_leader = self
+                        .cluster
+                        .leader(&name, part.partition)
+                        .ok()
+                        .map(|(l, _)| l)
+                        == Some(node);
+                    if self
+                        .preferred
+                        .remove(&(name.clone(), part.partition))
+                        .is_some()
+                        || !is_leader
+                    {
+                        let _ = self.preferred.remove(&(name.clone(), part.partition));
+                        retry = retry.merge(FetchRetry::Redirect);
+                        continue;
+                    }
+                    match self.cfg.auto_offset_reset {
+                        crate::AutoOffsetReset::None => {
+                            return Err(Error::broker(
+                                error::OFFSET_OUT_OF_RANGE,
+                                format!("{}-{}", name, part.partition),
+                            ));
+                        }
+                        crate::AutoOffsetReset::Earliest => {
+                            if part.log_start_offset >= 0 {
+                                self.advance(&name, part.partition, part.log_start_offset);
+                                self.set_last_fetched_epoch(
+                                    &name,
+                                    part.partition,
+                                    crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                                );
+                                self.drop_pending_for(&name, part.partition);
+                                let _ = completed.insert((name.clone(), part.partition));
+                            } else {
+                                need_offsets.push((
+                                    name.clone(),
+                                    part.partition,
+                                    crate::EARLIEST_TIMESTAMP,
+                                ));
+                            }
+                            continue;
+                        }
+                        crate::AutoOffsetReset::Latest => {
+                            if part.high_watermark >= 0 {
+                                self.advance(&name, part.partition, part.high_watermark);
+                                self.set_last_fetched_epoch(
+                                    &name,
+                                    part.partition,
+                                    crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                                );
+                                self.drop_pending_for(&name, part.partition);
+                                let _ = completed.insert((name.clone(), part.partition));
+                            } else {
+                                need_offsets.push((
+                                    name.clone(),
+                                    part.partition,
+                                    crate::LATEST_TIMESTAMP,
+                                ));
+                            }
+                            continue;
+                        }
+                    }
                 }
                 if part.error_code == error::FENCED_LEADER_EPOCH
                     || part.error_code == error::UNKNOWN_LEADER_EPOCH
