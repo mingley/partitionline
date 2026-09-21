@@ -17,13 +17,29 @@
     {
       "id": "KL01-01",
       "title": "Create the versioned conformance case registry",
-      "priority": "P0", "kind": "specification", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "specification", "status": "done", "owner": "mingley",
       "depends_on": [],
       "files": ["tests/fixtures/protocol_oracles/matrix.json", "new: tests/conformance/cases.json", "docs/audits/2026-09-21.md"],
       "deliverable": "A registry mapping each advertised API/version and selected upstream behavioral case to an immutable source, profile, adapter and honest disposition.",
       "acceptance": ["Pin Apache 3.9.1/4.1.0 evidence separately from 4.1.2/4.2.1/4.3.1 targets.", "Existing self-round-trips are classified as local consistency evidence, not independent passes.", "Missing, unsupported and external-blocked cases remain in the denominator; broker-only cases require an explicit not-applicable reason."],
       "validation": ["python3 -m json.tool tests/conformance/cases.json >/dev/null", "Manually reconcile the four existing API families and all five audit regressions with registry entries."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "6e1875ae1f689a3a1cbef7614b027242f8800e93",
+                "commands": [
+                        "python3 -m json.tool tests/conformance/cases.json (exit 0)",
+                        "structural reconciliation of four API families, A01-A05, historical broker cells, and target cells"
+                ],
+                "results": "99 cases, 0 duplicate ids, 0 independent_pass. Dispositions: local_consistency 57, not_applicable 20, unsupported 8, failed 5 (A01-A05), not_run 5, blocked 4. Apache 3.9.1/4.1.0 pinned as historical executed evidence, separate from 4.1.2/4.2.1/4.3.1 targets.",
+                "artifacts": [
+                        "tests/conformance/cases.json",
+                        "docs/plan/evidence/KL01-01.json"
+                ],
+                "limits": [
+                        "Registry only. Independent Java fixtures and fail-closed reporter remain KL01-02 and KL01-03."
+                ]
+        }
+]
     },
     {
       "id": "KL01-02",
@@ -523,13 +539,30 @@
     {
       "id": "KL04-01",
       "title": "Freeze the benchmark contract and scenario tiers",
-      "priority": "P1", "kind": "specification", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "specification", "status": "done", "owner": "mingley",
       "depends_on": [],
       "files": ["docs/benchmark.md", "new: docs/benchmark-contract.md", "new: benchmarks/scenarios.json"],
       "deliverable": "A versioned equal-semantics contract for micro, live-client and end-to-end comparisons.",
       "acceptance": ["Name low-latency, bulk, fetch, transactional, group/share and secure profiles with explicit required versus exploratory cells.", "Freeze durability/ISR, acks, idempotence, isolation, payload size/entropy, headers/keys/skew, partitions, batching, connection/in-flight policy and network topology.", "Define warmup, at least five paired randomized repetitions, steady-state duration, sample floors, uncertainty and failed-run handling before measurement; preserve historical Lab A rules."],
       "validation": ["python3 -m json.tool benchmarks/scenarios.json >/dev/null", "Review one matched C/Java/Rust scenario and one explicitly unsupported peer cell against the contract."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "bba95ba37f290231752933b3f836fa6cb54f68fe",
+                "commands": [
+                        "python3 -m json.tool benchmarks/scenarios.json (exit 0)",
+                        "structural check of profiles, measurement protocol, Suite HOLD, unsupported peer cell, and dispositions"
+                ],
+                "results": "Equal-semantics contract frozen. Suite HOLD remains active. Zero cells have disposition passed. No benchmarks executed.",
+                "artifacts": [
+                        "docs/benchmark-contract.md",
+                        "benchmarks/scenarios.json",
+                        "docs/plan/evidence/KL04-01.json"
+                ],
+                "limits": [
+                        "Specification only. Peer drivers and campaigns remain later cards."
+                ]
+        }
+]
     },
     {
       "id": "KL04-02",
@@ -1084,13 +1117,30 @@
     {
       "id": "KL07-01",
       "title": "Repair the strict rustdoc private-link failure",
-      "priority": "P0", "kind": "documentation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "documentation", "status": "done", "owner": "mingley",
       "depends_on": [],
       "files": ["src/protocol/oidc.rs"],
       "deliverable": "Correct public documentation for the bounded OIDC retry count without linking a private item.",
       "acceptance": ["The existing OIDC_FETCH_ATTEMPTS link failure disappears without warning suppression or exposing an unnecessary public constant.", "Document the same actual three-attempt, shared-timeout behavior; no runtime change."],
       "validation": ["RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features", "cargo test --locked --doc --all-features"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "8cc0ba3a21a03df08d9f703294a2d62fc7f020fd",
+                "commands": [
+                        "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features --offline (exit 0)",
+                        "cargo test --locked --doc --all-features --offline (exit 0)",
+                        "cargo test --locked --all-features --offline protocol::oidc (exit 0)"
+                ],
+                "results": "rustdoc built without warnings. Private OIDC_FETCH_ATTEMPTS link removed by stating three attempts in prose. Constant remains private and equal to 3. 4 doctests and 8 OIDC unit tests passed. No runtime change.",
+                "artifacts": [
+                        "src/protocol/oidc.rs",
+                        "docs/plan/evidence/KL07-01.json"
+                ],
+                "limits": [
+                        "Documentation-only. Mid-connection token refresh remains open."
+                ]
+        }
+]
     },
     {
       "id": "KL07-02",
