@@ -490,13 +490,30 @@
     {
       "id": "KL03-03",
       "title": "End aborted-transaction filtering at the ABORT marker",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL03-02"],
       "files": ["src/consumer.rs", "tests/consumer_fetch_semantics.rs", "tests/full_surface.rs"],
       "deliverable": "Fix audit A02 with transaction-interval-aware read_committed filtering.",
       "acceptance": ["Abort then commit under the same PID returns the later committed record and never returns control records.", "Cover multiple aborted intervals/PIDs, transaction spans across fetches and last-stable-offset boundaries.", "Do not suppress nontransactional batches merely because they share a listed PID; compare the pinned Apache behavior."],
       "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test full_surface transactional_commit_visible_abort_hidden"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "b405ecfd81defd643ea8c6f539982ad8da3900f2",
+                "commands": [
+                        "cargo test --offline --locked --test consumer_fetch_semantics (16 passed, exit 0)",
+                        "cargo test --offline --locked --test full_surface transactional_commit_visible_abort_hidden (1 passed, exit 0)"
+                ],
+                "results": "read_committed returns the later committed record after an ABORT marker for the same PID and does not return control records. Covered multiple aborted intervals/PIDs, an abort spanning fetches, the last-stable-offset boundary, and a nontransactional batch that shares an aborted PID. A01, A04, and A05 remain open.",
+                "artifacts": [
+                        "src/consumer.rs",
+                        "tests/consumer_fetch_semantics.rs",
+                        "docs/plan/evidence/KL03-03.json"
+                ],
+                "limits": [
+                        "Seek does not clear the per-partition abort interval. A01 offset filtering, A04 out-of-range policy, and A05 capped-poll commit remain later cards."
+                ]
+        }
+]
     },
     {
       "id": "KL03-04",
