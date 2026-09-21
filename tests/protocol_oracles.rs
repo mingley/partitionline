@@ -21,11 +21,12 @@ use bytes::{Bytes, BytesMut};
 use partitionline::error::{NOT_LEADER_OR_FOLLOWER, UNKNOWN_TOPIC_OR_PARTITION};
 use partitionline::net::BrokerConn;
 use partitionline::protocol::api::{
-    decode_api_versions_handshake, decode_metadata_response, decode_produce_response,
-    encode_api_versions_request, encode_metadata_request, encode_metadata_response,
-    encode_produce_request, encode_produce_response, encode_produce_response_with_throttle, Broker,
-    MetadataResponse, PartitionMetadata, ProducePartitionData, ProducePartitionResponse,
-    ProduceRecordError, ProduceTopicData, TopicMetadata,
+    decode_api_versions_handshake, decode_metadata_response, decode_produce_request,
+    decode_produce_response, encode_api_versions_request, encode_metadata_request,
+    encode_metadata_response, encode_produce_request, encode_produce_response,
+    encode_produce_response_with_throttle, Broker, MetadataResponse, PartitionMetadata,
+    ProducePartitionData, ProducePartitionResponse, ProduceRecordError, ProduceTopicData,
+    TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
     pick_version, API_VERSIONS, FETCH, LIST_OFFSETS, METADATA, PRODUCE,
@@ -1142,4 +1143,31 @@ fn parse_json(s: &str) -> Json {
     p.skip_ws();
     assert_eq!(p.i, p.s.len(), "json leftover");
     v
+}
+
+/// Consume the committed Apache 3.9.1 Produce v9 smoke pair without Java or network.
+#[test]
+fn apache_produce_v9_smoke_fixture_decodes() {
+    const REQ: &[u8] = include_bytes!("fixtures/protocol_oracles/smoke_produce_v9_request.bin");
+    const RESP: &[u8] = include_bytes!("fixtures/protocol_oracles/smoke_produce_v9_response.bin");
+    let (txn, acks, timeout_ms, topics) =
+        decode_produce_request(&mut &REQ[..], 9).expect("apache produce request");
+    assert!(txn.is_none());
+    assert_eq!(acks, 1);
+    assert_eq!(timeout_ms, 5000);
+    assert_eq!(topics.len(), 1);
+    assert_eq!(topics[0].topic, "smoke-topic");
+    assert_eq!(topics[0].partitions.len(), 1);
+    assert_eq!(topics[0].partitions[0].index, 0);
+
+    let (parts, _endpoints, throttle_ms) =
+        decode_produce_response(&mut &RESP[..], 9).expect("apache produce response");
+    assert_eq!(throttle_ms, 42);
+    assert_eq!(parts.len(), 1);
+    assert_eq!(parts[0].topic, "smoke-topic");
+    assert_eq!(parts[0].partition, 0);
+    assert_eq!(parts[0].error_code, 0);
+    assert_eq!(parts[0].base_offset, 100);
+    assert_eq!(parts[0].log_append_time_ms, 1_700_000_000_000);
+    assert_eq!(parts[0].log_start_offset, 0);
 }
