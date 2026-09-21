@@ -1,0 +1,69 @@
+{
+  "id": "KL05-01",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+  "commands": [
+    "python3 -m json.tool tests/conformance/features.json > /dev/null",
+    "python3 -c \"import json; f=json.load(open('tests/conformance/features.json')); assert len(f) == 173; assert not any(x['disposition'] == 'qualified' for x in f); assert all('entrypoint' in x for x in f)\""
+  ],
+  "results": {
+    "total_entries": 173,
+    "counts_by_disposition": {
+      "present": 123,
+      "partial": 13,
+      "missing": 22,
+      "out_of_scope": 15,
+      "not_applicable": 0,
+      "qualified": 0
+    },
+    "required_surfaces_present": [
+      "producer",
+      "manual consumer",
+      "group",
+      "share",
+      "transactions",
+      "codecs",
+      "auth",
+      "quotas",
+      "common admin",
+      "full admin",
+      "schema ecosystem"
+    ],
+    "explicit_missing_features": [
+      "codecs.zstd.decode",
+      "codecs.zstd.encode",
+      "codecs.zstd.wire_helper",
+      "auth.sasl_gssapi"
+    ],
+    "out_of_scope_features": [
+      "streams.runtime",
+      "connect.framework",
+      "c_abi.librdkafka",
+      "broker_internal.leader_and_isr",
+      "broker_internal.stop_replica",
+      "broker_internal.update_metadata",
+      "broker_internal.controlled_shutdown",
+      "broker_internal.alter_partition",
+      "broker_internal.envelope",
+      "broker_internal.fetch_snapshot",
+      "broker_internal.broker_registration",
+      "broker_internal.broker_heartbeat",
+      "broker_internal.controller_registration",
+      "broker_internal.update_raft_voter",
+      "broker_internal.share_group_state"
+    ],
+    "qualified_disposition_count": 0,
+    "entrypoint_field_coverage": "173/173 entries have entrypoint"
+  },
+  "artifacts": [
+    "tests/conformance/features.json",
+    "docs/plan/evidence/KL05-01.json"
+  ],
+  "limits": [
+    "Matrix specification only; no features implemented or code modified.",
+    "Qualification is an evidence bar requiring sustained multi-broker testing; zero entries are marked qualified.",
+    "Zstd compression/decompression and GSSAPI authentication remain explicit missing features pending future cards (KL05-02..04, KL06-08..10)."
+  ],
+  "blocked_reason": null
+}
