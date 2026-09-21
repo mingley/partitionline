@@ -186,8 +186,13 @@ reach the broker; treat the caller outcome as **ambiguous** until `flush` or
 | After `close` / `close_timeout` | further `send`/`try_send` on any clone | **Failed** with `Error::Closed` |
 
 Prefer an explicit `close` (or `close_timeout`) over dropping the last `Producer`
-handle: drop alone does not wait for in-flight produce outcomes. Mock coverage:
-`tests/produce_cancel.rs`.
+handle: drop alone does not wait for in-flight produce outcomes. Producer
+shutdown is bounded: `close_timeout` enforces its deadline against stalled
+brokers and retry queues, failing in-flight batches with `Error::Timeout`
+(preserving ambiguous delivery after transmission) and immediately returning
+`Error::Closed` to concurrent sends across all clones. Dropping the last
+`Producer` handle aborts worker and background tasks without leaking buffer
+permits or connections. Mock coverage: `tests/produce_cancel.rs`.
 
 
 

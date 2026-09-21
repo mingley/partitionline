@@ -1,0 +1,68 @@
+{
+  "id": "KL02-05",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "c8c54aa84f7ebd0c8a66a948f0374b8fb96e0d21",
+  "commands": [
+    "cargo test --offline --locked --test produce_cancel",
+    "cargo test --offline --locked --test buffer_ownership",
+    "rustfmt --edition 2021 --check src/producer.rs tests/produce_cancel.rs tests/common/mod.rs"
+  ],
+  "results": {
+    "produce_cancel_tests": {
+      "passed": 9,
+      "failed": 0,
+      "test_names": [
+        "send_completes_with_record_metadata",
+        "send_fails_when_broker_returns_produce_error",
+        "dropping_send_future_while_buffered_is_ambiguous_but_still_delivers",
+        "send_after_close_returns_closed",
+        "stalled_broker_close_timeout_terminates_boundedly_and_completes_inflight",
+        "retry_queue_shutdown_boundedly_completes_and_releases_permits",
+        "last_handle_drop_releases_permits_and_aborts_tasks",
+        "concurrent_sends_during_close_do_not_hang_and_observe_closed",
+        "durable_closed_flag_across_clones"
+      ]
+    },
+    "buffer_ownership_tests": {
+      "passed": 12,
+      "failed": 0,
+      "test_names": [
+        "saturating_try_send_never_exceeds_buffer_memory",
+        "queue_full_under_overload_releases_no_orphan_bytes",
+        "send_timeout_when_buffer_full_and_max_block_expires",
+        "header_heavy_records_count_against_buffer_budget",
+        "zero_value_records_do_not_bypass_saturated_buffer",
+        "shared_backing_and_compressed_records_respect_buffer_budget",
+        "permit_stays_owned_across_retry_and_releases_exactly_once",
+        "presend_failure_transaction_partition_releases_permit_and_flush_fails",
+        "presend_failure_encode_releases_permit_and_flush_fails",
+        "presend_failure_write_releases_permit_and_flush_fails",
+        "presend_failure_write_retry_exhaustion_releases_permit",
+        "presend_failure_real_mock_add_partitions_to_txn"
+      ]
+    },
+    "checks": [
+      "Durable Closed flag preserved across all clones; any send or try_send after close returns Error::Closed",
+      "Stalled brokers bounded by close_timeout; in-flight records resolve with Error::Timeout (preserving ambiguous delivery after transmission, not Error::Closed)",
+      "Retrying records in retry queues bounded by close_timeout and terminate with Error::Timeout without hanging tasks",
+      "Last-handle drop terminates all worker and background tasks (connect, retry, meta) via Drop for Inner, releasing buffer permits exactly once",
+      "Concurrent sends racing with close wake up immediately from buffer and metadata waits, returning Error::Closed without hangs",
+      "Buffer permits released exactly once across all shutdown, timeout, and drop paths; bytes_buffered returns to zero",
+      "KL02-02 header accounting and KL02-04 pre-send release preserved"
+    ]
+  },
+  "artifacts": [
+    "src/producer.rs",
+    "tests/produce_cancel.rs",
+    "tests/common/mod.rs",
+    "docs/guide.md",
+    "docs/plan/evidence/KL02-05.json"
+  ],
+  "limits": [
+    "Process RSS is not bounded by bytes_buffered or buffer_memory; process memory includes allocator fragmentation, Tokio task state, TLS buffers, socket frames, and batch wire encoding.",
+    "Forbidden file src/consumer.rs was not touched.",
+    "No unsafe code and no new dependencies added."
+  ],
+  "blocked_reason": null
+}
