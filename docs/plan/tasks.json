@@ -159,13 +159,30 @@
     {
       "id": "KL01-06",
       "title": "Add independent Metadata wire fixtures",
-      "priority": "P1", "kind": "conformance", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "conformance", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-03"],
       "files": ["tests/protocol_oracles.rs", "tests/fixtures/protocol_oracles/", "tests/conformance/java/"],
       "deliverable": "Independent Metadata request/response cases for supported versions.",
       "acceptance": ["Cover null versus empty topics, IDs/names, offline replicas, authorized operations and v13 top-level errors.", "Validate stale/unknown leaders and unknown tagged fields without assuming one broker.", "Retain explicit classification of version cells unavailable on an older peer."],
       "validation": ["cargo test --locked --test protocol_oracles", "Run the pinned Java comparison for the Metadata fixture family."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "420a04611a8314b4398f1c0356a43e871e60d719",
+                "commands": [
+                        "cargo test --offline --locked --test protocol_oracles (12 passed, 1 ignored live broker, exit 0)"
+                ],
+                "results": "Committed Apache Metadata fixtures cover v1 classic, v4 empty topics, v5 offline replicas, v7 leader epoch, v8 authorized operations, v9 flexible, v10 topic IDs, v11, and v12. Rust decodes them offline. A field-order mutation fails. The Java comparison test ran rather than skipping.",
+                "artifacts": [
+                        "tests/fixtures/protocol_oracles/metadata_v4_empty_topics_request.bin",
+                        "tests/fixtures/protocol_oracles/metadata_v5_offline_replicas_response.bin",
+                        "tests/protocol_oracles.rs",
+                        "docs/plan/evidence/KL01-06.json"
+                ],
+                "limits": [
+                        "Metadata family only. ListOffsets independent fixtures remain a later card. Existing matrix tests are still local consistency."
+                ]
+        }
+]
     },
     {
       "id": "KL01-07",
@@ -645,13 +662,32 @@
     {
       "id": "KL03-06",
       "title": "Separate fetched and delivered consumer positions",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL03-05"],
       "files": ["src/consumer.rs", "src/group.rs", "tests/consumer_close_commit.rs"],
       "deliverable": "Fix audit A05 so no-argument commits cannot acknowledge buffered-but-undelivered records.",
       "acceptance": ["With max_poll_records=1, committing after offset 0 leaves offsets 1 and 2 available on rejoin.", "Position/commit semantics stay correct through pause, resume, seek, rebalance and control-only batches.", "Preserve explicit commit_with_metadata behavior and update the documented distinction between fetch and delivery cursors."],
       "validation": ["cargo test --locked --test consumer_close_commit", "cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test client_api max_poll"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "fe301c3fcfb030a112a6ff7477d50f9931e1a6fe",
+                "commands": [
+                        "cargo test --offline --locked --test consumer_close_commit (9 passed, exit 0)",
+                        "cargo test --offline --locked --test consumer_fetch_semantics (29 passed, exit 0)",
+                        "cargo test --offline --locked --test client_api max_poll (3 passed, exit 0)"
+                ],
+                "results": "No-argument commit uses the next undelivered buffered offset, not the broker fetch cursor. With max_poll_records=1, committing after offset 0 leaves offsets 1 and 2 available. Pause, resume, seek, rebalance, and control-only batches were covered. commit_with_metadata still commits the explicit offsets.",
+                "artifacts": [
+                        "src/consumer.rs",
+                        "src/group.rs",
+                        "tests/consumer_close_commit.rs",
+                        "docs/plan/evidence/KL03-06.json"
+                ],
+                "limits": [
+                        "Interval auto-commit of the batch about to be returned remains KL03-07 if that card is still pending."
+                ]
+        }
+]
     },
     {
       "id": "KL03-07",
