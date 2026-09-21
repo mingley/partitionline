@@ -1422,13 +1422,31 @@
     {
       "id": "KL06-03",
       "title": "Refresh expiring OIDC credentials without stampedes",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL06-02"],
       "files": ["src/protocol/oidc.rs", "src/protocol/sasl.rs", "new: tests/auth_lifecycle.rs"],
       "deliverable": "A bounded cache/refresh owner following the approved lifecycle contract.",
       "acceptance": ["Use deterministic clocks to test early refresh, expiry, skew, jitter and concurrent connection demand.", "Transient refresh failure may retain a still-valid token only as the contract permits; expired/rejected credentials fail closed.", "No unbounded retries/tasks/cache keys, and cancellation cannot leak refresh work or credentials."],
       "validation": ["cargo test --locked --test auth_lifecycle", "cargo test --locked --lib protocol::oidc"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "8fa6d983a6db6e8094ef339322fd0f27b2f0df8a",
+                "commands": [
+                        "cargo test --offline --locked --test auth_lifecycle (11 passed, exit 0)",
+                        "cargo test --offline --locked --lib protocol::oidc (35 passed, exit 0)"
+                ],
+                "results": "OidcTokenManager coalesces concurrent acquisition, refreshes before expiry on a deterministic clock, retains a still-valid token across a transient refresh failure, and fails closed after expiry or HTTP 401. Cancellation aborts refresh work. Tokens are redacted from Debug. The 64 KiB parse cap and three-attempt one-shot retry remain.",
+                "artifacts": [
+                        "src/protocol/oidc.rs",
+                        "src/protocol/sasl.rs",
+                        "tests/auth_lifecycle.rs",
+                        "docs/plan/evidence/KL06-03.json"
+                ],
+                "limits": [
+                        "The default SASL authenticate path still calls the one-shot fetch. Callers must use authenticate_with_token_provider to get the cache. session_lifetime_ms handling remains a later card."
+                ]
+        }
+]
     },
     {
       "id": "KL06-04",
