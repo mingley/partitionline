@@ -505,6 +505,7 @@ pub struct ConsumerGroup {
     hb_deadline: Arc<parking_lot::Mutex<Option<Instant>>>,
     hb_stop: watch::Sender<bool>,
     last_auto_commit: Instant,
+    last_delivered_positions: Option<Vec<(TopicPartition, i64)>>,
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
     /// Heartbeat thread left the group after `max.poll.interval.ms`.
     left_max_poll: Arc<AtomicBool>,
@@ -666,6 +667,7 @@ impl ConsumerGroup {
             hb_deadline,
             hb_stop,
             last_auto_commit: Instant::now(),
+            last_delivered_positions: None,
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             rebalance_needed: false,
@@ -810,6 +812,7 @@ impl ConsumerGroup {
             hb_deadline,
             hb_stop,
             last_auto_commit: Instant::now(),
+            last_delivered_positions: None,
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             rebalance_needed: false,
@@ -983,12 +986,20 @@ impl ConsumerGroup {
     /// must not be a negative number`). An unassigned partition is Java
     /// `IllegalStateException` (`No current assignment for partition`).
     pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
-        self.consumer.seek(topic, partition, offset)
+        self.consumer.seek(topic, partition, offset)?;
+        if self.last_delivered_positions.is_some() {
+            self.last_delivered_positions = Some(self.consumer.positions());
+        }
+        Ok(())
     }
 
     /// [`Self::seek`] for a [`TopicPartition`].
     pub fn seek_to(&mut self, partition: impl Into<TopicPartition>, offset: i64) -> Result<()> {
-        self.consumer.seek_to(partition, offset)
+        self.consumer.seek_to(partition, offset)?;
+        if self.last_delivered_positions.is_some() {
+            self.last_delivered_positions = Some(self.consumer.positions());
+        }
+        Ok(())
     }
 
     /// Seek using [`OffsetAndMetadata`] (Java `seek(TopicPartition, OffsetAndMetadata)`).
@@ -1001,7 +1012,11 @@ impl ConsumerGroup {
         partition: impl Into<TopicPartition>,
         offset: impl Into<OffsetAndMetadata>,
     ) -> Result<()> {
-        self.consumer.seek_with_metadata(partition, offset)
+        self.consumer.seek_with_metadata(partition, offset)?;
+        if self.last_delivered_positions.is_some() {
+            self.last_delivered_positions = Some(self.consumer.positions());
+        }
+        Ok(())
     }
 
     /// Seek every assigned partition to the log start (Java `seekToBeginning`).
@@ -1156,8 +1171,9 @@ impl ConsumerGroup {
     /// [`crate::FetchedRecord`].
     ///
     /// When [`ConsumerConfig::enable_auto_commit`] is on and the interval has
-    /// elapsed, commits after a successful fetch. Leave/close/unsubscribe do
-    /// **not** auto-commit positions (KL-02); only this poll-interval path and
+    /// elapsed, commits previously delivered records. The batch about to be
+    /// returned is not committed until a subsequent poll (KL03-07). Leave/close/unsubscribe
+    /// do **not** auto-commit positions (KL-02); only this poll-interval path and
     /// explicit `commit*` APIs store offsets.
     ///
     /// Returns [`Error::MaxPollInterval`] if this member did not poll within
@@ -1198,11 +1214,17 @@ impl ConsumerGroup {
             self.rejoin().await?;
         }
         self.flush_async_commits().await;
+        self.maybe_auto_commit_interval().await?;
         let recs = match wait {
             Some(t) => self.consumer.fetch_allow_unassigned_timeout(t).await?,
             None => self.consumer.fetch_allow_unassigned().await?,
         };
-        self.maybe_auto_commit().await?;
+        if !recs.is_empty() {
+            self.last_delivered_positions = Some(self.consumer.positions());
+            if self.cfg.enable_auto_commit && self.cfg.auto_commit_interval.is_zero() {
+                self.commit().await?;
+            }
+        }
         Ok(recs)
     }
 
@@ -1442,7 +1464,9 @@ impl ConsumerGroup {
             self.apply_pending_assignment().await?;
         }
         let positions = self.consumer.positions();
-        self.commit_offsets_timeout(positions, timeout).await?;
+        self.commit_offsets_timeout(positions.clone(), timeout)
+            .await?;
+        self.last_delivered_positions = Some(positions);
         self.last_auto_commit = Instant::now();
         Ok(())
     }
@@ -1621,14 +1645,28 @@ impl ConsumerGroup {
         }
     }
 
-    async fn maybe_auto_commit(&mut self) -> Result<()> {
-        if !self.cfg.enable_auto_commit {
+    async fn maybe_auto_commit_interval(&mut self) -> Result<()> {
+        if !self.cfg.enable_auto_commit || self.cfg.auto_commit_interval.is_zero() {
             return Ok(());
         }
         if self.last_auto_commit.elapsed() < self.cfg.auto_commit_interval {
             return Ok(());
         }
-        self.commit().await
+        if let Some(ref positions) = self.last_delivered_positions {
+            let assigned: HashSet<TopicPartition> =
+                self.consumer.assignment().into_iter().collect();
+            let to_commit: Vec<(TopicPartition, i64)> = positions
+                .iter()
+                .filter(|(tp, _)| assigned.contains(tp))
+                .cloned()
+                .collect();
+            if !to_commit.is_empty() {
+                let timeout = self.cfg.request_timeout;
+                self.commit_offsets_timeout(to_commit, timeout).await?;
+                self.last_auto_commit = Instant::now();
+            }
+        }
+        Ok(())
     }
 
     fn check_max_poll_interval(&self) -> Result<()> {
