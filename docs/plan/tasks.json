@@ -242,13 +242,30 @@
     {
       "id": "KL02-03",
       "title": "Bound decoded record-batch expansion",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL02-01"],
       "files": ["src/protocol/records.rs", "tests/fuzz_decode_smoke.rs", "fuzz/fuzz_targets/decode_record_batches.rs"],
       "deliverable": "An explicit decoded-byte limit enforced while decompressing gzip, snappy and LZ4.",
       "acceptance": ["Reject expansion at the boundary, before allocating the full over-budget output.", "Test exactly-at/one-over limits, framed/raw snappy and valid large batches; preserve CRC and truncation behavior.", "No panic, silent truncation, success-shaped fallback or new unsafe code."],
       "validation": ["cargo test --locked --lib protocol::records", "cargo test --locked --test fuzz_decode_smoke"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "fc21834908d2cc65e4921db0d75c9e76173f01c2",
+                "commands": [
+                        "cargo test --offline --locked --lib protocol::records (39 passed, exit 0)",
+                        "cargo test --offline --locked --test fuzz_decode_smoke (8 passed, exit 0)"
+                ],
+                "results": "gzip, snappy, and LZ4 decompression reject output above 64 MiB before retaining the over-budget expansion. Exactly-at-limit and valid large batches still decode. CRC and truncation behavior preserved. No unsafe code.",
+                "artifacts": [
+                        "src/protocol/records.rs",
+                        "tests/fuzz_decode_smoke.rs",
+                        "docs/plan/evidence/KL02-03.json"
+                ],
+                "limits": [
+                        "64 MiB is a decode ceiling, not a process RSS bound. Producer retained-byte accounting remains KL02-02."
+                ]
+        }
+]
     },
     {
       "id": "KL02-04",
@@ -374,13 +391,30 @@
     {
       "id": "KL03-02",
       "title": "Preserve successful fetch records across partial retries",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL03-01"],
       "files": ["src/consumer.rs", "tests/consumer_fetch_semantics.rs"],
       "deliverable": "Fix audit A03 without returning duplicate successful partitions on retry.",
       "acceptance": ["The mixed_partition_retry_must_preserve_successful_records case returns both partition records exactly once.", "Cover retriable broker errors, transport failure and preferred-replica redirect in a different partition.", "Do not advance a delivered/commit position past data discarded from the application-visible result."],
       "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test full_surface fetch"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "66ab8f54248dfee74b220197dcd63bcb3d01e990",
+                "commands": [
+                        "cargo test --offline --locked --test consumer_fetch_semantics (11 passed, exit 0)",
+                        "cargo test --offline --locked --test full_surface fetch (26 passed, exit 0)"
+                ],
+                "results": "A successful partition's records survive a neighboring retriable error, transport failure, and preferred-replica redirect, exactly once. Completed partitions are not re-requested. An aborted fetch restores positions so discarded records are not skipped. A01, A02, A04, and A05 remain open.",
+                "artifacts": [
+                        "src/consumer.rs",
+                        "tests/consumer_fetch_semantics.rs",
+                        "docs/plan/evidence/KL03-02.json"
+                ],
+                "limits": [
+                        "A01 offset filtering, A02 abort-then-commit, A04 out-of-range policy, and A05 capped-poll commit remain later cards."
+                ]
+        }
+]
     },
     {
       "id": "KL03-03",
