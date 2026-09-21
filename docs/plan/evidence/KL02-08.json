@@ -1,0 +1,69 @@
+{
+  "id": "KL02-08",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "29fff7d568bc9c6dcd71224d1ccb056fee599100",
+  "commands": [
+    "cargo test --offline --locked --test fetch_buffer_budget (8 passed, exit 0)",
+    "cargo test --offline --locked --test consumer_fetch_semantics (29 passed, exit 0)",
+    "cargo test --offline --locked --test consumer_close_commit (13 passed, exit 0)",
+    "cargo clippy --offline --locked --lib --test fetch_buffer_budget --test consumer_fetch_semantics -- -D warnings (exit 0)",
+    "rustfmt --edition 2021 --check src/consumer.rs tests/fetch_buffer_budget.rs (exit 0)"
+  ],
+  "results": {
+    "fetch_buffer_budget_tests": {
+      "total_tests": 8,
+      "passed": 8,
+      "failed": 0,
+      "test_names": [
+        "batch_exceeding_hard_decode_ceiling_fails_cleanly",
+        "drop_and_clear_releases_all_memory",
+        "multi_partition_single_broker_budget_stops_at_ceiling",
+        "oversized_first_batch_larger_than_soft_limit_preserves_progress",
+        "pause_holds_buffers_and_does_not_commit_undelivered",
+        "seek_releases_buffer_and_does_not_commit_undelivered",
+        "slow_processing_and_max_poll_records_bounds_memory_across_brokers",
+        "zero_buffer_memory_allows_unbounded_buffering"
+      ]
+    },
+    "consumer_fetch_semantics_tests": {
+      "total_tests": 29,
+      "passed": 29,
+      "failed": 0
+    },
+    "consumer_close_commit_tests": {
+      "total_tests": 13,
+      "passed": 13,
+      "failed": 0
+    },
+    "bounds": {
+      "default_buffer_memory_bytes": 33554432,
+      "soft_fetch_limit_bytes": 16777216,
+      "hard_decode_ceiling_bytes": 67108864,
+      "checks": [
+        "Aggregate fetch buffer budget across brokers and partitions (ConsumerConfig::buffer_memory, default 32 MiB, builder .buffer_memory() / .fetch_buffer_bytes()).",
+        "Slow processing and max_poll_records cannot grow unbounded memory across partitions and brokers; pending queue tracked in buffered_bytes and fetching stops when saturated.",
+        "Preserve progress for a valid first batch larger than the soft fetch limit, with the existing 64 MiB hard decode ceiling from KL02-03.",
+        "Decompression bombs exceeding 64 MiB hard ceiling are rejected with 'Decompressed batch exceeds maximum allowable size'.",
+        "Pause retains buffered records in pending queue and accounts for them in buffered_bytes without committing undelivered data.",
+        "Resume allows draining of held records on subsequent poll.",
+        "Seek drops buffered records for the target partition and releases buffered_bytes immediately via drop_pending_for.",
+        "Dropping or clearing assignment releases all buffered records and resets buffered_bytes to 0.",
+        "Zero buffer_memory disables aggregate cap for backward compatibility.",
+        "No undelivered records committed on auto-commit or manual commit; delivered position reflects next consumable offset."
+      ]
+    }
+  },
+  "artifacts": [
+    "src/consumer.rs",
+    "tests/fetch_buffer_budget.rs",
+    "docs/guide.md",
+    "docs/plan/evidence/KL02-08.json"
+  ],
+  "limits": [
+    "Process RSS is not bounded by buffer_memory or buffered_bytes; process memory includes allocator fragmentation, Tokio worker tasks, TLS context buffers, TCP frame buffers, and client metadata.",
+    "Forbidden file tests/common/mod.rs untouched.",
+    "No unsafe code and no new dependencies added."
+  ],
+  "blocked_reason": null
+}

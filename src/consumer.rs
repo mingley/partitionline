@@ -121,6 +121,15 @@ pub struct ConsumerConfig {
     ///
     /// `None` (the default) returns every record from the Fetch round.
     pub max_poll_records: Option<usize>,
+    /// Kafka `buffer.memory` equivalent for consumer fetch buffering.
+    ///
+    /// Upper bound on prefetched record bytes (key + value + headers) across all
+    /// partitions and brokers. When records in the pending queue reach or exceed
+    /// this limit, the consumer stops prefetching more bytes from brokers until
+    /// application consumption drains the buffer below the budget.
+    ///
+    /// Default 32 MiB (matching producer `buffer_memory`). Zero means no aggregate cap.
+    pub buffer_memory: usize,
     /// Kafka `session.timeout.ms` on classic JoinGroup. Default 10 seconds.
     pub session_timeout_ms: i32,
     /// How often the group member heartbeats. Default 150 ms (faster than Java's 3 s).
@@ -206,6 +215,7 @@ impl fmt::Debug for ConsumerConfig {
             .field("group_instance_id", &self.group_instance_id)
             .field("auto_offset_reset", &self.auto_offset_reset)
             .field("max_poll_records", &self.max_poll_records)
+            .field("buffer_memory", &self.buffer_memory)
             .field("session_timeout_ms", &self.session_timeout_ms)
             .field("heartbeat_interval", &self.heartbeat_interval)
             .field("rebalance", &self.rebalance)
@@ -246,6 +256,7 @@ impl Default for ConsumerConfig {
             group_instance_id: None,
             auto_offset_reset: crate::AutoOffsetReset::Earliest,
             max_poll_records: None,
+            buffer_memory: 32 * 1024 * 1024,
             session_timeout_ms: 10_000,
             heartbeat_interval: Duration::from_millis(150),
             rebalance: RebalanceListener::default(),
@@ -352,6 +363,31 @@ impl ConsumerConfig {
     #[must_use]
     pub fn max_poll_records(mut self, n: usize) -> Self {
         self.max_poll_records = Some(n);
+        self
+    }
+
+    /// Kafka `buffer.memory` equivalent for consumer fetch buffering.
+    ///
+    /// Upper bound on prefetched record bytes (key + value + headers) across all
+    /// partitions and brokers. Default 32 MiB (matching producer `buffer_memory`).
+    /// Zero means no aggregate cap.
+    #[must_use]
+    pub fn buffer_memory(mut self, bytes: usize) -> Self {
+        self.buffer_memory = bytes;
+        self
+    }
+
+    /// Fetch buffer budget alias for [`Self::buffer_memory`].
+    #[must_use]
+    pub fn fetch_buffer_bytes(mut self, bytes: usize) -> Self {
+        self.buffer_memory = bytes;
+        self
+    }
+
+    /// Fetch buffer memory alias for [`Self::buffer_memory`].
+    #[must_use]
+    pub fn fetch_buffer_memory(mut self, bytes: usize) -> Self {
+        self.buffer_memory = bytes;
         self
     }
 
@@ -1253,6 +1289,7 @@ pub struct Consumer {
     preferred: HashMap<(String, i32), i32>,
     paused: HashSet<(String, i32)>,
     pending: VecDeque<FetchedRecord>,
+    buffered_bytes: usize,
     aborted_pids: HashMap<(String, i32), HashMap<i64, i64>>,
     aborted_txs: HashMap<(String, i32), Vec<(i64, i64)>>,
     completed_txs: HashMap<(String, i32), HashSet<(i64, i64)>>,
@@ -1345,6 +1382,7 @@ impl Consumer {
             preferred: HashMap::new(),
             paused: HashSet::new(),
             pending: VecDeque::new(),
+            buffered_bytes: 0,
             aborted_pids: HashMap::new(),
             aborted_txs: HashMap::new(),
             completed_txs: HashMap::new(),
@@ -1546,6 +1584,15 @@ impl Consumer {
             .collect()
     }
 
+    /// Record bytes (keys, values, and headers) currently buffered in
+    /// [`Self::pending`].
+    ///
+    /// Process RSS is not bounded by this value.
+    #[must_use]
+    pub fn buffered_bytes(&self) -> usize {
+        self.buffered_bytes
+    }
+
     fn delivered_position(&self, topic: &str, partition: i32, fetch_cursor: i64) -> i64 {
         for rec in &self.pending {
             if rec.topic == topic && rec.partition == partition {
@@ -1639,6 +1686,7 @@ impl Consumer {
     pub(crate) fn clear_assignment(&mut self) {
         self.assigned.clear();
         self.pending.clear();
+        self.buffered_bytes = 0;
         self.last_fetched_epochs.clear();
         self.aborted_pids.clear();
         self.aborted_txs.clear();
@@ -1659,6 +1707,7 @@ impl Consumer {
         self.completed_txs.clear();
         if starts.is_empty() {
             self.pending.clear();
+            self.buffered_bytes = 0;
             return Ok(());
         }
         let mut topics: Vec<String> = Vec::new();
@@ -2349,6 +2398,9 @@ impl Consumer {
         if self.assigned.is_empty() {
             return Ok(Vec::new());
         }
+        if self.cfg.buffer_memory > 0 && self.buffered_bytes >= self.cfg.buffer_memory {
+            return Ok(Vec::new());
+        }
         let deadline = Instant::now() + self.cfg.request_timeout;
         let initial_assigned = self.assigned.clone();
         let initial_epochs = self.last_fetched_epochs.clone();
@@ -2365,6 +2417,7 @@ impl Consumer {
     async fn fetch_assigned_inner(&mut self, deadline: Instant) -> Result<Vec<FetchedRecord>> {
         let mut attempt = 0u32;
         let mut out = Vec::new();
+        let mut out_bytes = 0usize;
         let mut completed: HashSet<(String, i32)> = HashSet::new();
         loop {
             if self.woken() {
@@ -2458,6 +2511,7 @@ impl Consumer {
             let mut retry = FetchRetry::None;
             let mut fenced = Vec::new();
             let mut need_offsets = Vec::new();
+            let mut budget_reached = false;
             for (node, body) in bodies {
                 let mut body = match body {
                     Ok(b) => b,
@@ -2472,10 +2526,15 @@ impl Consumer {
                     node,
                     &mut body,
                     &mut out,
+                    &mut out_bytes,
                     &mut fenced,
                     &mut need_offsets,
                     &mut completed,
+                    &mut budget_reached,
                 )?);
+                if budget_reached {
+                    break;
+                }
             }
             if !need_offsets.is_empty() {
                 for (topic, partition, timestamp) in need_offsets {
@@ -2497,6 +2556,9 @@ impl Consumer {
                 fenced.dedup();
                 self.recover_leader_epochs(&fenced).await?;
                 retry = retry.merge(FetchRetry::Backoff);
+            }
+            if budget_reached {
+                return Ok(self.finish_fetch(out));
             }
             let all_done = self.assigned.iter().all(|(t, p, _)| {
                 self.paused.contains(&(t.clone(), *p)) || completed.contains(&(t.clone(), *p))
@@ -2562,7 +2624,19 @@ impl Consumer {
         }
         let max_wait = self.cfg.max_wait_ms;
         let min_bytes = self.cfg.min_bytes;
-        let max_bytes = self.cfg.max_bytes;
+        let max_bytes = if self.cfg.buffer_memory > 0 {
+            let headroom = self.cfg.buffer_memory.saturating_sub(self.buffered_bytes);
+            if self.buffered_bytes == 0 {
+                self.cfg.max_bytes
+            } else {
+                self.cfg
+                    .max_bytes
+                    .min(i32::try_from(headroom).unwrap_or(i32::MAX))
+                    .max(1)
+            }
+        } else {
+            self.cfg.max_bytes
+        };
         let isolation_level = self.cfg.isolation_level.as_i8();
         let timeout = self.cfg.request_timeout;
         let fetch_version = self.fetch_version;
@@ -2648,20 +2722,29 @@ impl Consumer {
         Ok(out)
     }
 
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "private helper accumulates records, byte budgets, error recovery, and completed partitions across leaders"
+    )]
     fn apply_fetch_body(
         &mut self,
         node: i32,
         body: &mut Bytes,
         out: &mut Vec<FetchedRecord>,
+        out_bytes: &mut usize,
         fenced: &mut Vec<(String, i32)>,
         need_offsets: &mut Vec<(String, i32, i64)>,
         completed: &mut HashSet<(String, i32)>,
+        budget_reached: &mut bool,
     ) -> Result<FetchRetry> {
         let (fetched, endpoints, ..) = decode_fetch_response(body, self.fetch_version)?;
         self.cluster.apply_node_endpoints(&endpoints);
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;
         for topic in fetched {
+            if *budget_reached {
+                break;
+            }
             let name = if !topic.topic.is_empty() {
                 topic.topic
             } else if let Some(n) = id_names.get(&topic.topic_id) {
@@ -2670,6 +2753,9 @@ impl Consumer {
                 continue;
             };
             for part in topic.partitions {
+                if *budget_reached {
+                    break;
+                }
                 if self.cfg.rack.is_some() {
                     if let Some(replica) = part.preferred_read_replica() {
                         if replica != node {
@@ -2817,6 +2903,18 @@ impl Consumer {
                 let mut reached_lso = false;
 
                 for batch in part.records {
+                    let is_control = batch.is_control_batch();
+                    let is_first_batch = out.is_empty() && self.pending.is_empty();
+                    let budget = self.cfg.buffer_memory;
+                    if budget > 0 && !is_first_batch && !is_control {
+                        let batch_bytes = batch_records_bytes(&batch.records);
+                        let current_total = self.buffered_bytes.saturating_add(*out_bytes);
+                        if current_total.saturating_add(batch_bytes) > budget {
+                            *budget_reached = true;
+                            break;
+                        }
+                    }
+
                     if isolation == crate::IsolationLevel::ReadCommitted
                         && part.last_stable_offset >= 0
                         && batch.base_offset >= part.last_stable_offset
@@ -2907,6 +3005,8 @@ impl Consumer {
                                 }
                             }
                         }
+                        let rec_b = single_record_bytes(&rec);
+                        *out_bytes = out_bytes.saturating_add(rec_b);
                         out.push(FetchedRecord {
                             topic: name.clone(),
                             partition: part.partition,
@@ -2931,8 +3031,16 @@ impl Consumer {
                 if let Some(n) = next {
                     self.advance(&name, part.partition, n);
                     self.set_last_fetched_epoch(&name, part.partition, last_epoch);
+                    let _ = completed.insert((name.clone(), part.partition));
+                } else if !*budget_reached {
+                    let _ = completed.insert((name.clone(), part.partition));
                 }
-                let _ = completed.insert((name.clone(), part.partition));
+                if *budget_reached {
+                    break;
+                }
+            }
+            if *budget_reached {
+                break;
             }
         }
         Ok(retry)
@@ -3435,8 +3543,15 @@ impl Consumer {
     }
 
     fn drop_pending_for(&mut self, topic: &str, partition: i32) {
-        self.pending
-            .retain(|r| !(r.topic == topic && r.partition == partition));
+        let mut kept = VecDeque::with_capacity(self.pending.len());
+        while let Some(r) = self.pending.pop_front() {
+            if r.topic == topic && r.partition == partition {
+                self.buffered_bytes = self.buffered_bytes.saturating_sub(record_bytes(&r));
+            } else {
+                kept.push_back(r);
+            }
+        }
+        self.pending = kept;
         let key = (topic.to_string(), partition);
         let _ = self.aborted_pids.remove(&key);
         let _ = self.aborted_txs.remove(&key);
@@ -3449,8 +3564,15 @@ impl Consumer {
             .iter()
             .map(|(t, p, _)| (t.clone(), *p))
             .collect();
-        self.pending
-            .retain(|r| assigned.contains(&(r.topic.clone(), r.partition)));
+        let mut kept = VecDeque::with_capacity(self.pending.len());
+        while let Some(r) = self.pending.pop_front() {
+            if assigned.contains(&(r.topic.clone(), r.partition)) {
+                kept.push_back(r);
+            } else {
+                self.buffered_bytes = self.buffered_bytes.saturating_sub(record_bytes(&r));
+            }
+        }
+        self.pending = kept;
     }
 
     fn take_ready(&mut self) -> Option<Vec<FetchedRecord>> {
@@ -3470,6 +3592,9 @@ impl Consumer {
         {
             return recs;
         }
+        for rec in &recs {
+            self.buffered_bytes = self.buffered_bytes.saturating_add(record_bytes(rec));
+        }
         self.pending.extend(recs);
         self.drain_pending()
     }
@@ -3487,6 +3612,7 @@ impl Consumer {
                 kept.push_back(rec);
                 continue;
             }
+            self.buffered_bytes = self.buffered_bytes.saturating_sub(record_bytes(&rec));
             out.push(rec);
         }
         self.pending = kept;
@@ -3575,6 +3701,43 @@ fn offset_for_leader_epoch_topics(
             OffsetForLeaderTopic::new(name, partitions)
         })
         .collect()
+}
+
+fn record_bytes(rec: &FetchedRecord) -> usize {
+    let k = rec.key.as_ref().map_or(0, Bytes::len);
+    let v = rec.value.as_ref().map_or(0, Bytes::len);
+    let h: usize = rec
+        .headers
+        .iter()
+        .map(|h| {
+            h.key
+                .len()
+                .saturating_add(h.value.as_ref().map_or(0, Bytes::len))
+        })
+        .fold(0, usize::saturating_add);
+    k.saturating_add(v).saturating_add(h)
+}
+
+fn single_record_bytes(rec: &crate::protocol::records::Record) -> usize {
+    let k = rec.key.as_ref().map_or(0, Bytes::len);
+    let v = rec.value.as_ref().map_or(0, Bytes::len);
+    let h: usize = rec
+        .headers
+        .iter()
+        .map(|h| {
+            h.key
+                .len()
+                .saturating_add(h.value.as_ref().map_or(0, Bytes::len))
+        })
+        .fold(0, usize::saturating_add);
+    k.saturating_add(v).saturating_add(h)
+}
+
+fn batch_records_bytes(records: &[crate::protocol::records::Record]) -> usize {
+    records
+        .iter()
+        .map(single_record_bytes)
+        .fold(0, usize::saturating_add)
 }
 
 fn fetched_bytes(rec: &FetchedRecord) -> u64 {

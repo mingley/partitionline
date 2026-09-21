@@ -209,6 +209,42 @@ example `recs.next_offsets()`) before leave when you need stored offsets.
 Mock coverage: `tests/consumer_close_commit.rs`.
 
 
+### Consumer fetch buffer budget and prefetch bounds
+
+`ConsumerConfig::buffer_memory` (default 32 MiB, configurable via `.buffer_memory()`
+or `.fetch_buffer_bytes()`) enforces an aggregate memory ceiling across pre-fetched
+partition queues and brokers (KL02-08):
+
+- **Bounded Prefetching:** When callers process slowly or set `max_poll_records`,
+  excess fetched records stay in `self.pending`. If buffered records reach or
+  exceed `buffer_memory`, subsequent fetch calls do not request or decode more
+  bytes from brokers until application consumption drains the queue below the budget.
+- **Across Partitions and Brokers:** The memory budget is aggregate across all
+  assigned partitions and distinct broker connections, not merely a per-request
+  cap. Once decoded bytes in a fetch round reach the budget, decoding stops and
+  remaining partitions/brokers retain their un-advanced fetch cursors for subsequent
+  rounds.
+- **Oversized First Batch Progress:** In accordance with Kafka protocol rules
+  (KIP-74), a valid first batch larger than the soft fetch limit (`max_partition_fetch_bytes`
+  or `buffer_memory`) is accepted and delivered to guarantee forward progress,
+  subject to the 64 MiB hard decode ceiling (`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`).
+- **Resource Contract & Ownership:**
+  - `pause`: holds prefetched records in memory until `resume`; unconsumed records
+    continue to count against `buffered_bytes`.
+  - `resume`: unblocks draining of buffered records on the next poll.
+  - `seek`: drops pending records for that partition, immediately releasing memory
+    via `drop_pending_for` and resetting the delivered position to the seek offset.
+  - `close` / `drop`: releases all buffered records and resets `buffered_bytes` to 0.
+  - **No Undelivered Commits:** `position()` and `positions()` report the next
+    undelivered record offset rather than the broker fetch cursor, ensuring auto-commit
+    and explicit commits never commit unconsumed data.
+- **RSS Non-Equivalence:** Process Resident Set Size (RSS) is **not** bounded by
+  `buffer_memory` or `buffered_bytes`. Process memory includes allocator fragmentation,
+  Tokio runtime worker tasks, TLS context buffers, TCP frame buffers, and client metadata.
+
+Mock coverage: `tests/fetch_buffer_budget.rs`.
+
+
 ### Rebalance
 
 Prefer cooperative-sticky when partitions must move with less stop-the-world
