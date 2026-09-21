@@ -727,13 +727,31 @@
     {
       "id": "KL03-07",
       "title": "Commit only previously delivered work in interval auto-commit",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL03-06"],
       "files": ["src/group.rs", "tests/consumer_close_commit.rs", "docs/guide.md"],
       "deliverable": "A clear poll-boundary auto-commit contract that does not commit the batch about to be returned.",
       "acceptance": ["Expired/zero intervals cannot commit records before the first application delivery.", "A crash after receiving one capped poll cannot skip prefetched records on rejoin.", "Leave/close/unsubscribe retain the already-landed no-implicit-commit behavior; explicit async commit outcomes remain observable."],
       "validation": ["cargo test --locked --test consumer_close_commit", "cargo test --locked --test client_api auto_commit"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "290c8c4c3d06ff539c39e8e85fe8f2459d04ff6b",
+                "commands": [
+                        "cargo test --offline --locked --test consumer_close_commit (13 passed, exit 0)",
+                        "cargo test --offline --locked --test client_api auto_commit (1 passed, exit 0)"
+                ],
+                "results": "Interval auto-commit runs before fetch and stores the previous poll's delivered positions. The batch about to be returned is not committed on that poll. A capped poll followed by a crash does not skip prefetched records on rejoin. Leave, close, and unsubscribe still do not auto-commit. The five reproduced consumer defects A01-A05 now have regression tests.",
+                "artifacts": [
+                        "src/group.rs",
+                        "tests/consumer_close_commit.rs",
+                        "docs/guide.md",
+                        "docs/plan/evidence/KL03-07.json"
+                ],
+                "limits": [
+                        "A zero interval commits the delivered position before poll returns the records to the caller. The empty-poll case does not commit before any delivery."
+                ]
+        }
+]
     },
     {
       "id": "KL03-08",
