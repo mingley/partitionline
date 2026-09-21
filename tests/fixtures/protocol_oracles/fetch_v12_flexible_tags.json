@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "fetch-v12-flexible-tags",
+  "api": "Fetch",
+  "api_key": 1,
+  "api_version": 12,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Fetch v12 flexible wire format with clusterId, compact encoding, partition tagged fields (DivergingEpoch, CurrentLeader, SnapshotId), and unknown tags",
+  "request": {
+    "file": "fetch_v12_flexible_tags_request.bin",
+    "size_bytes": 120,
+    "sha256": "05a5eb322bbca61f64b349188a51eaa855e9727d1179ce8d84cf298caaf83fb1",
+    "hex": "ffffffff000005dc000000010050000000000000c800000002021366657463682d7631322d666c657869626c6502000000000000000800000000000000c80000000500000000000000b40010000001e707040102030400010c7261636b2d776573742d3102000c0c636c75737465722d763132e807025566"
+  },
+  "response": {
+    "file": "fetch_v12_flexible_tags_response.bin",
+    "size_bytes": 213,
+    "sha256": "43b54bfd7fd746a3879b7de34a2944b6e2a3c6cfb8d2c5c3d7a2aab13b7c3eb4",
+    "hex": "000000460000000000c8021366657463682d7631322d666c657869626c650200000000000000000000000000fa00000000000000f000000000000000b401000000035c00000000000000c80000004f00000008024ae6501a0000000000010000018e23f14c640000018e23f14c65ffffffffffffffffffffffffffff000000021c000000086b3230300876323030001c000202086b32303108763230310004000d0000000400000000000000c3000109000000020000000a00020d00000000000000be0000000400e707030a0b0c0001e807027788"
+  }
+}
