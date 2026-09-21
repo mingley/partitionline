@@ -476,6 +476,7 @@ struct State {
     acls: Vec<AclBinding>,
     join_group_calls: u32,
     cg_heartbeat_calls: u32,
+    cg_heartbeat_interval_ms: i32,
     sync_group_calls: u32,
     share_heartbeat_calls: u32,
     share_fetch_calls: u32,
@@ -834,6 +835,7 @@ fn new_state(
         acls: Vec::new(),
         join_group_calls: 0,
         cg_heartbeat_calls: 0,
+        cg_heartbeat_interval_ms: 50,
         sync_group_calls: 0,
         share_heartbeat_calls: 0,
         share_fetch_calls: 0,
@@ -2608,6 +2610,14 @@ impl Mock {
 
     pub fn cg_heartbeat_calls(&self) -> u32 {
         self.state.lock().cg_heartbeat_calls
+    }
+
+    pub fn set_cg_heartbeat_interval_ms(&self, ms: i32) {
+        self.state.lock().cg_heartbeat_interval_ms = ms;
+    }
+
+    pub fn cg_heartbeat_interval_ms(&self) -> i32 {
+        self.state.lock().cg_heartbeat_interval_ms
     }
 
     pub fn sync_group_calls(&self) -> u32 {
@@ -5718,6 +5728,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         }
                     }
                 };
+                let hb_interval = st.cg_heartbeat_interval_ms;
                 encode_consumer_group_heartbeat_response(
                     &mut body,
                     header.api_version,
@@ -5727,7 +5738,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         error_message: None,
                         member_id: Some(member_id),
                         member_epoch: epoch,
-                        heartbeat_interval_ms: 5000,
+                        heartbeat_interval_ms: hb_interval,
                         assignment,
                     },
                 )

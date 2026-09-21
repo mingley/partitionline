@@ -501,6 +501,8 @@ pub struct ConsumerGroup {
     hb_assignment: Arc<parking_lot::Mutex<Option<Vec<TopicPartitions>>>>,
     /// Last applied assignment, sent once on the next heartbeat (KIP-848 ack).
     hb_ack: Arc<parking_lot::Mutex<Option<Vec<TopicPartitions>>>>,
+    hb_interval_ms: Arc<AtomicI32>,
+    hb_deadline: Arc<parking_lot::Mutex<Option<Instant>>>,
     hb_stop: watch::Sender<bool>,
     last_auto_commit: Instant,
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
@@ -639,6 +641,8 @@ impl ConsumerGroup {
         let hb_generation = Arc::new(AtomicI32::new(0));
         let hb_assignment = Arc::new(parking_lot::Mutex::new(None));
         let hb_ack = Arc::new(parking_lot::Mutex::new(None));
+        let hb_interval_ms = Arc::new(AtomicI32::new(duration_millis_i32(cfg.heartbeat_interval)));
+        let hb_deadline = Arc::new(parking_lot::Mutex::new(None));
         let (hb_stop, hb_rx) = watch::channel(false);
         let mut g = Self {
             consumer,
@@ -658,6 +662,8 @@ impl ConsumerGroup {
             hb_generation,
             hb_assignment,
             hb_ack,
+            hb_interval_ms,
+            hb_deadline,
             hb_stop,
             last_auto_commit: Instant::now(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
@@ -779,6 +785,8 @@ impl ConsumerGroup {
         ));
         let hb_assignment = Arc::new(parking_lot::Mutex::new(None));
         let hb_ack = Arc::new(parking_lot::Mutex::new(None));
+        let hb_interval_ms = Arc::new(AtomicI32::new(0));
+        let hb_deadline = Arc::new(parking_lot::Mutex::new(None));
         let (hb_stop, hb_rx) = watch::channel(false);
         let mut g = Self {
             consumer,
@@ -798,6 +806,8 @@ impl ConsumerGroup {
             hb_generation,
             hb_assignment,
             hb_ack,
+            hb_interval_ms,
+            hb_deadline,
             hb_stop,
             last_auto_commit: Instant::now(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
@@ -837,6 +847,34 @@ impl ConsumerGroup {
         } else {
             GroupProtocol::Classic
         }
+    }
+
+    /// For KIP-848 consumer groups, returns the broker-directed heartbeat interval.
+    /// For classic groups, returns the configured [`ConsumerConfig::heartbeat_interval`].
+    #[must_use]
+    pub fn heartbeat_interval(&self) -> Duration {
+        if self.kip848 {
+            let ms = self.hb_interval_ms.load(Ordering::SeqCst);
+            if ms > 0 {
+                if let Ok(ms_u64) = u64::try_from(ms) {
+                    return Duration::from_millis(ms_u64);
+                }
+            }
+        }
+        self.cfg.heartbeat_interval
+    }
+
+    /// The recorded next heartbeat deadline computed from the broker interval,
+    /// or `None` if no heartbeat is currently scheduled or the member has left.
+    #[must_use]
+    pub fn next_heartbeat_deadline(&self) -> Option<Instant> {
+        *self.hb_deadline.lock()
+    }
+
+    /// Whether the heartbeat task has left the group due to `max.poll.interval.ms`.
+    #[must_use]
+    pub fn is_left_max_poll(&self) -> bool {
+        self.left_max_poll.load(Ordering::SeqCst)
     }
 
     /// Assigned partitions (Java `assignment`). Offsets are [`Self::positions`].
@@ -1602,6 +1640,7 @@ impl ConsumerGroup {
         // KL-02: do not auto-commit on unsubscribe — poll-interval auto-commit
         // and explicit commit* are the only OffsetCommit paths for positions.
         self.hb_stop.send(true).unwrap_or(());
+        *self.hb_deadline.lock() = None;
         let revoked = self.assignment();
         self.leave_coordinator(LEAVE_GROUP_REASON_UNSUBSCRIBED)
             .await?;
@@ -1725,12 +1764,14 @@ impl ConsumerGroup {
     pub async fn leave(mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
+            *self.hb_deadline.lock() = None;
             self.consumer.close_interceptors();
             return Ok(());
         }
         self.flush_async_commits().await;
         // KL-02: never auto-commit positions on leave/close.
         self.hb_stop.send(true).unwrap_or(());
+        *self.hb_deadline.lock() = None;
         let out = self.leave_coordinator(LEAVE_GROUP_REASON_CLOSED).await;
         self.consumer.close_interceptors();
         out
@@ -2039,6 +2080,18 @@ impl ConsumerGroup {
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ConsumerGroupHeartbeat"));
         }
+        if resp.heartbeat_interval_ms <= 0 {
+            return Err(Error::protocol(format!(
+                "invalid ConsumerGroupHeartbeat heartbeat_interval_ms: {}",
+                resp.heartbeat_interval_ms
+            )));
+        }
+        self.hb_interval_ms
+            .store(resp.heartbeat_interval_ms, Ordering::SeqCst);
+        let interval =
+            Duration::from_millis(u64::try_from(resp.heartbeat_interval_ms).unwrap_or(0));
+        let deadline = Instant::now() + interval;
+        *self.hb_deadline.lock() = Some(deadline);
         if let Some(id) = resp.member_id {
             self.member_id = id;
         }
@@ -2153,21 +2206,59 @@ impl ConsumerGroup {
         let hb_generation = self.hb_generation.clone();
         let hb_assignment = self.hb_assignment.clone();
         let hb_ack = self.hb_ack.clone();
+        let hb_interval_ms = self.hb_interval_ms.clone();
+        let hb_deadline = self.hb_deadline.clone();
         let last_poll = self.last_poll.clone();
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
-            let mut tick =
-                tokio::time::interval(cfg.heartbeat_interval.max(Duration::from_millis(1)));
+            let init_ms = hb_interval_ms.load(Ordering::SeqCst);
+            let mut current_interval = if let Ok(ms_u64) = u64::try_from(init_ms) {
+                if ms_u64 > 0 {
+                    Duration::from_millis(ms_u64)
+                } else {
+                    cfg.heartbeat_interval.max(Duration::from_millis(1))
+                }
+            } else {
+                cfg.heartbeat_interval.max(Duration::from_millis(1))
+            };
+            let mut next_hb_deadline = hb_deadline.lock().unwrap_or_else(|| {
+                let d = Instant::now() + current_interval;
+                *hb_deadline.lock() = Some(d);
+                d
+            });
             loop {
+                let now = Instant::now();
+                if let Some(extern_deadline) = *hb_deadline.lock() {
+                    if extern_deadline > now && extern_deadline != next_hb_deadline {
+                        next_hb_deadline = extern_deadline;
+                        let latest_ms = hb_interval_ms.load(Ordering::SeqCst);
+                        if let Ok(ms_u64) = u64::try_from(latest_ms) {
+                            if ms_u64 > 0 {
+                                current_interval = Duration::from_millis(ms_u64);
+                            }
+                        }
+                    }
+                }
+                let mut wake_deadline = next_hb_deadline;
+                if !cfg.max_poll_interval.is_zero() {
+                    if let Some(t) = *last_poll.lock() {
+                        let poll_deadline = t + cfg.max_poll_interval;
+                        if poll_deadline < wake_deadline {
+                            wake_deadline = poll_deadline;
+                        }
+                    }
+                }
+                let sleep_duration = wake_deadline.saturating_duration_since(Instant::now());
                 tokio::select! {
-                    _ = stop.changed() => {
-                        if *stop.borrow() {
+                    res = stop.changed() => {
+                        if res.is_err() || *stop.borrow() {
+                            *hb_deadline.lock() = None;
                             break;
                         }
                     }
-                    _ = tick.tick() => {
+                    _ = tokio::time::sleep(sleep_duration) => {
                         if leave_if_max_poll(
                             &cfg,
                             &group_id,
@@ -2178,7 +2269,11 @@ impl ConsumerGroup {
                         )
                         .await
                         {
+                            *hb_deadline.lock() = None;
                             break;
+                        }
+                        if Instant::now() < next_hb_deadline {
+                            continue;
                         }
                         if conn
                             .as_ref()
@@ -2190,6 +2285,9 @@ impl ConsumerGroup {
                             conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
                         }
                         let Some(c) = conn.as_mut() else {
+                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                            next_hb_deadline = Instant::now() + retry_delay;
+                            *hb_deadline.lock() = Some(next_hb_deadline);
                             continue;
                         };
                         let timeout = cfg.request_timeout;
@@ -2198,6 +2296,9 @@ impl ConsumerGroup {
                         let version = c.consumer_group_heartbeat_version;
                         if spoken_consumer_group_heartbeat(version).is_err() {
                             conn = None;
+                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                            next_hb_deadline = Instant::now() + retry_delay;
+                            *hb_deadline.lock() = Some(next_hb_deadline);
                             continue;
                         }
                         let req = ConsumerGroupHeartbeatRequest {
@@ -2229,6 +2330,9 @@ impl ConsumerGroup {
                                 ) {
                                     if error::coordinator_retriable(resp.error_code) {
                                         conn = None;
+                                        let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                        next_hb_deadline = Instant::now() + retry_delay;
+                                        *hb_deadline.lock() = Some(next_hb_deadline);
                                     } else {
                                         hb_err.store(resp.error_code, Ordering::SeqCst);
                                         if resp.member_epoch > 0 {
@@ -2241,12 +2345,36 @@ impl ConsumerGroup {
                                             } else {
                                                 *hb_ack.lock() = None;
                                             }
+                                            if resp.heartbeat_interval_ms <= 0 {
+                                                hb_err.store(error::INVALID_REQUEST, Ordering::SeqCst);
+                                                next_hb_deadline = Instant::now() + current_interval;
+                                                *hb_deadline.lock() = Some(next_hb_deadline);
+                                            } else if let Ok(ms_u64) = u64::try_from(resp.heartbeat_interval_ms) {
+                                                current_interval = Duration::from_millis(ms_u64);
+                                                hb_interval_ms.store(resp.heartbeat_interval_ms, Ordering::SeqCst);
+                                                next_hb_deadline = Instant::now() + current_interval;
+                                                *hb_deadline.lock() = Some(next_hb_deadline);
+                                            } else {
+                                                next_hb_deadline = Instant::now() + current_interval;
+                                                *hb_deadline.lock() = Some(next_hb_deadline);
+                                            }
+                                        } else {
+                                            next_hb_deadline = Instant::now() + current_interval;
+                                            *hb_deadline.lock() = Some(next_hb_deadline);
                                         }
                                     }
+                                } else {
+                                    conn = None;
+                                    let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                    next_hb_deadline = Instant::now() + retry_delay;
+                                    *hb_deadline.lock() = Some(next_hb_deadline);
                                 }
                             }
                             Err(_) => {
                                 conn = None;
+                                let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                next_hb_deadline = Instant::now() + retry_delay;
+                                *hb_deadline.lock() = Some(next_hb_deadline);
                             }
                         }
                     }
