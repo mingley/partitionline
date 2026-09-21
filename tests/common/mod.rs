@@ -217,6 +217,9 @@ struct CommittedOffset {
 /// Topic filter from ListPartitionReassignments: name + partition indexes.
 type ListReassignmentTopicFilter = Vec<(String, Vec<i32>)>;
 
+type AppendedBatchKey = (i64, i16, String, i32, i32);
+type AppendedBatchVal = (i64, i32);
+
 struct State {
     log: HashMap<(String, i32), Vec<Record>>,
     next_offset: HashMap<(String, i32), i64>,
@@ -231,6 +234,13 @@ struct State {
     last_produce_producer_epoch: Option<i16>,
     last_produce_version: Option<i16>,
     expected_seq: HashMap<(i64, i16, String, i32), i32>,
+    last_produce_base_sequence: Option<i32>,
+    produce_sequences: Vec<(i64, i16, i32, i32)>,
+    produce_drop_response: Option<bool>,
+    produce_drop_response_left: Option<u32>,
+    produce_drop_response_after_appends: Option<u32>,
+    produce_drop_response_node: Option<i32>,
+    appended_batches: HashMap<AppendedBatchKey, AppendedBatchVal>,
     produce_error: Option<i16>,
     produce_error_left: Option<u32>,
     produce_delay: Option<std::time::Duration>,
@@ -608,6 +618,13 @@ fn new_state(
         last_produce_producer_epoch: None,
         last_produce_version: None,
         expected_seq: HashMap::new(),
+        last_produce_base_sequence: None,
+        produce_sequences: Vec::new(),
+        produce_drop_response: None,
+        produce_drop_response_left: None,
+        produce_drop_response_after_appends: None,
+        produce_drop_response_node: None,
+        appended_batches: HashMap::new(),
         produce_error: None,
         produce_error_left: None,
         produce_delay: None,
@@ -1703,6 +1720,50 @@ impl Mock {
         let mut st = self.state.lock();
         st.produce_delay = Some(delay);
         st.produce_delay_left = None;
+    }
+
+    pub fn set_produce_drop_response_times(&self, n: u32) {
+        let mut st = self.state.lock();
+        st.produce_drop_response = Some(true);
+        st.produce_drop_response_left = Some(n);
+        st.produce_drop_response_after_appends = None;
+        st.produce_drop_response_node = None;
+    }
+
+    pub fn set_produce_drop_response_times_for_node(&self, node: i32, n: u32) {
+        let mut st = self.state.lock();
+        st.produce_drop_response = Some(true);
+        st.produce_drop_response_left = Some(n);
+        st.produce_drop_response_after_appends = None;
+        st.produce_drop_response_node = Some(node);
+    }
+
+    pub fn set_produce_drop_response_after_n_appends(&self, appends: u32) {
+        let mut st = self.state.lock();
+        st.produce_drop_response = Some(true);
+        st.produce_drop_response_left = Some(1);
+        st.produce_drop_response_after_appends = Some(appends);
+        st.produce_drop_response_node = None;
+    }
+
+    pub fn last_produce_base_sequence(&self) -> Option<i32> {
+        self.state.lock().last_produce_base_sequence
+    }
+
+    pub fn produce_sequences(&self) -> Vec<(i64, i16, i32, i32)> {
+        self.state.lock().produce_sequences.clone()
+    }
+
+    pub fn set_topic_partitions(&self, topic: &str, count: i32) {
+        let mut st = self.state.lock();
+        st.created_topics
+            .entry(topic.to_string())
+            .or_insert_with(|| CreatedTopic {
+                num_partitions: count,
+                configs: HashMap::new(),
+                is_internal: false,
+            })
+            .num_partitions = count;
     }
 
     pub fn set_produce_delay_times(&self, delay: std::time::Duration, n: u32) {
@@ -5051,48 +5112,96 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             let pid = p.records.producer_id;
                             let epoch = p.records.producer_epoch;
                             let seq = p.records.base_sequence;
+                            st.last_produce_base_sequence = Some(seq);
+                            st.produce_sequences.push((pid, epoch, seq, nrec));
+                            let mut is_duplicate = false;
+                            let mut dup_base_offset = 0i64;
                             if pid >= 0 && seq >= 0 {
                                 let skey = (pid, epoch, topic.topic.clone(), p.index);
+                                let bkey = (pid, epoch, topic.topic.clone(), p.index, seq);
                                 let expected = *st.expected_seq.get(&skey).unwrap_or(&0);
-                                if seq != expected {
+                                if let Some(&(prev_offset, prev_count)) =
+                                    st.appended_batches.get(&bkey)
+                                {
+                                    if prev_count == nrec {
+                                        is_duplicate = true;
+                                        dup_base_offset = prev_offset;
+                                    } else {
+                                        error_code = 45;
+                                    }
+                                } else if seq != expected {
                                     error_code = 45;
                                 } else {
                                     st.expected_seq.insert(skey, expected + nrec);
                                 }
                             }
-                        }
-                        let start = *st.next_offset.get(&key).unwrap_or(&0);
-                        if error_code == 0 {
-                            st.accepted_produce.push(node_id);
-                            st.last_produce_txn_id = txn_id.clone();
-                            let pid = p.records.producer_id;
-                            let mut n = 0i64;
-                            for mut rec in p.records.records {
-                                rec.offset = start + n;
-                                st.log_producer
-                                    .insert((topic.topic.clone(), p.index, rec.offset), pid);
-                                st.log.entry(key.clone()).or_default().push(rec);
-                                n += 1;
+                            let start = *st.next_offset.get(&key).unwrap_or(&0);
+                            if error_code == 0 {
+                                st.accepted_produce.push(node_id);
+                                st.last_produce_txn_id = txn_id.clone();
+                                let base_offset = if is_duplicate {
+                                    dup_base_offset
+                                } else {
+                                    let bkey = (pid, epoch, topic.topic.clone(), p.index, seq);
+                                    if pid >= 0 && seq >= 0 {
+                                        st.appended_batches.insert(bkey, (start, nrec));
+                                    }
+                                    let mut n = 0i64;
+                                    for mut rec in p.records.records {
+                                        rec.offset = start + n;
+                                        st.log_producer.insert(
+                                            (topic.topic.clone(), p.index, rec.offset),
+                                            pid,
+                                        );
+                                        st.log.entry(key.clone()).or_default().push(rec);
+                                        n += 1;
+                                    }
+                                    st.next_offset.insert(key, start + n);
+                                    if st.in_txn {
+                                        for o in 0..n {
+                                            st.txn_pending.push((
+                                                topic.topic.clone(),
+                                                p.index,
+                                                start + o,
+                                            ));
+                                        }
+                                    }
+                                    start
+                                };
+                                parts.push(ProducePartitionResponse {
+                                    topic: topic.topic.clone(),
+                                    partition: p.index,
+                                    error_code: 0,
+                                    base_offset,
+                                    log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+                                    log_start_offset: 0,
+                                    current_leader_id: -1,
+                                    current_leader_epoch: -1,
+                                    record_errors: Vec::new(),
+                                    error_message: None,
+                                });
+                            } else {
+                                let (current_leader_id, current_leader_epoch) =
+                                    kip951_current_leader(
+                                        &st,
+                                        &topic.topic,
+                                        p.index,
+                                        leader,
+                                        node_id,
+                                    );
+                                parts.push(ProducePartitionResponse {
+                                    topic: topic.topic.clone(),
+                                    partition: p.index,
+                                    error_code,
+                                    base_offset: ProducePartitionResponse::INVALID_OFFSET,
+                                    log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+                                    log_start_offset: 0,
+                                    current_leader_id,
+                                    current_leader_epoch,
+                                    record_errors: Vec::new(),
+                                    error_message: None,
+                                });
                             }
-                            st.next_offset.insert(key, start + n);
-                            if st.in_txn {
-                                for o in 0..n {
-                                    st.txn_pending
-                                        .push((topic.topic.clone(), p.index, start + o));
-                                }
-                            }
-                            parts.push(ProducePartitionResponse {
-                                topic: topic.topic.clone(),
-                                partition: p.index,
-                                error_code: 0,
-                                base_offset: start,
-                                log_append_time_ms: RecordBatch::NO_TIMESTAMP,
-                                log_start_offset: 0,
-                                current_leader_id: -1,
-                                current_leader_epoch: -1,
-                                record_errors: Vec::new(),
-                                error_message: None,
-                            });
                         } else {
                             let (current_leader_id, current_leader_epoch) =
                                 kip951_current_leader(&st, &topic.topic, p.index, leader, node_id);
@@ -5119,6 +5228,50 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     &endpoints,
                 )
                 .unwrap();
+                let should_drop_resp = {
+                    let node_match = match st.produce_drop_response_node {
+                        Some(target) => target == node_id,
+                        None => true,
+                    };
+                    if node_match {
+                        if let Some(c) = st.produce_drop_response_after_appends {
+                            if c <= 1 {
+                                st.produce_drop_response_after_appends = None;
+                                true
+                            } else {
+                                st.produce_drop_response_after_appends = Some(c - 1);
+                                false
+                            }
+                        } else {
+                            match (st.produce_drop_response, st.produce_drop_response_left) {
+                                (Some(true), Some(0)) => {
+                                    st.produce_drop_response = None;
+                                    st.produce_drop_response_left = None;
+                                    false
+                                }
+                                (Some(true), Some(left)) => {
+                                    st.produce_drop_response_left = Some(left.saturating_sub(1));
+                                    if left <= 1 {
+                                        st.produce_drop_response = None;
+                                        st.produce_drop_response_left = None;
+                                    }
+                                    true
+                                }
+                                (Some(true), None) => {
+                                    st.produce_drop_response = None;
+                                    true
+                                }
+                                _ => false,
+                            }
+                        }
+                    } else {
+                        false
+                    }
+                };
+                drop(st);
+                if should_drop_resp {
+                    break;
+                }
             }
             FETCH => {
                 let (iso, max_bytes, req, rack, ..) =

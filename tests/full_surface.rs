@@ -510,6 +510,367 @@ async fn idempotent_unkeyed_multi_conn_stays_in_order() {
 }
 
 #[tokio::test]
+async fn idempotent_lost_ack_single_batch_retry_succeeds_without_duplicate() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_drop_response_times(1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    pcfg.retry_backoff = Duration::from_millis(20);
+    pcfg.retry_backoff_max = Duration::from_millis(20);
+    pcfg.delivery_timeout = Duration::from_secs(5);
+    let producer = Producer::new(pcfg).await.unwrap();
+
+    let md = producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"lost-ack-one"[..]),
+        )
+        .await
+        .expect("send must succeed on retry after lost ack");
+
+    assert_eq!(md.topic, "t");
+    assert_eq!(md.partition, 0);
+    assert_eq!(md.offset, 0);
+
+    // Verify broker log only contains the record once (no duplicate append)
+    assert_eq!(
+        mock.log_len("t", 0),
+        1,
+        "broker must not append the record twice upon retry"
+    );
+
+    // Verify proper PID, epoch, and sequence were used across attempts
+    let pid = mock.last_producer_id().expect("producer id must be set");
+    assert!(pid >= 0);
+    assert_eq!(mock.last_produce_producer_epoch(), Some(0));
+
+    let seqs = mock.produce_sequences();
+    assert!(
+        seqs.len() >= 2,
+        "expected at least 2 produce attempts (initial + retry), got {:?}",
+        seqs
+    );
+    // Both initial and retry attempts must share the same PID, epoch, base_sequence (0), and count (1)
+    assert_eq!(seqs[0], (pid, 0, 0, 1), "initial attempt sequence");
+    assert_eq!(seqs[1], (pid, 0, 0, 1), "retry attempt sequence must match");
+
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn idempotent_lost_ack_several_inflight_batches_same_partition() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_delay_times(Duration::from_millis(50), 3);
+    mock.set_produce_drop_response_times(1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    pcfg.max_in_flight = 5;
+    pcfg.retry_backoff = Duration::from_millis(20);
+    pcfg.retry_backoff_max = Duration::from_millis(20);
+    pcfg.delivery_timeout = Duration::from_secs(5);
+    let producer = Producer::new(pcfg).await.unwrap();
+
+    let p1 = producer.clone();
+    let fut1 = tokio::spawn(async move {
+        p1.send(ProduceRecord::to("t").partition(0).value(&b"batch-0"[..]))
+            .await
+    });
+    while mock.produce_request_nodes().is_empty() {
+        tokio::time::sleep(Duration::from_millis(1)).await;
+    }
+    let p2 = producer.clone();
+    let fut2 = tokio::spawn(async move {
+        p2.send(ProduceRecord::to("t").partition(0).value(&b"batch-1"[..]))
+            .await
+    });
+    while mock.produce_request_nodes().len() < 2 {
+        tokio::time::sleep(Duration::from_millis(1)).await;
+    }
+    let p3 = producer.clone();
+    let fut3 = tokio::spawn(async move {
+        p3.send(ProduceRecord::to("t").partition(0).value(&b"batch-2"[..]))
+            .await
+    });
+
+    let (res1, res2, res3) = tokio::join!(fut1, fut2, fut3);
+    let md1 = res1.unwrap().expect("batch 0 must succeed");
+    let md2 = res2.unwrap().expect("batch 1 must succeed");
+    let md3 = res3.unwrap().expect("batch 2 must succeed");
+
+    assert_eq!(md1.offset, 0);
+    assert_eq!(md2.offset, 1);
+    assert_eq!(md3.offset, 2);
+
+    // Verify broker log has exactly 3 records, in order, without duplicates
+    assert_eq!(
+        mock.log_len("t", 0),
+        3,
+        "all 3 batches must be present without duplicate appends"
+    );
+
+    let pid = mock.last_producer_id().expect("producer id must be set");
+    assert!(pid >= 0);
+    assert_eq!(mock.last_produce_producer_epoch(), Some(0));
+
+    assert_eq!(producer.metrics().bytes_buffered, 0);
+    assert_eq!(producer.retries_in_flight(), 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn idempotent_lost_ack_several_inflight_appended_before_disconnect() {
+    let mock = common::Mock::start().await;
+    // Appends 2 batches before dropping the response / disconnecting
+    mock.set_produce_delay_times(Duration::from_millis(50), 3);
+    mock.set_produce_drop_response_after_n_appends(2);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    pcfg.max_in_flight = 5;
+    pcfg.retry_backoff = Duration::from_millis(20);
+    pcfg.retry_backoff_max = Duration::from_millis(20);
+    pcfg.delivery_timeout = Duration::from_secs(5);
+    let producer = Producer::new(pcfg).await.unwrap();
+
+    let p1 = producer.clone();
+    let fut1 = tokio::spawn(async move {
+        p1.send(ProduceRecord::to("t").partition(0).value(&b"rec-0"[..]))
+            .await
+    });
+    while mock.produce_request_nodes().is_empty() {
+        tokio::time::sleep(Duration::from_millis(1)).await;
+    }
+    let p2 = producer.clone();
+    let fut2 = tokio::spawn(async move {
+        p2.send(ProduceRecord::to("t").partition(0).value(&b"rec-1"[..]))
+            .await
+    });
+    while mock.produce_request_nodes().len() < 2 {
+        tokio::time::sleep(Duration::from_millis(1)).await;
+    }
+    let p3 = producer.clone();
+    let fut3 = tokio::spawn(async move {
+        p3.send(ProduceRecord::to("t").partition(0).value(&b"rec-2"[..]))
+            .await
+    });
+
+    let (r1, r2, r3) = tokio::join!(fut1, fut2, fut3);
+    let md1 = r1.unwrap().expect("rec 0 must succeed");
+    let md2 = r2.unwrap().expect("rec 1 must succeed");
+    let md3 = r3.unwrap().expect("rec 2 must succeed");
+
+    assert_eq!(md1.offset, 0);
+    assert_eq!(md2.offset, 1);
+    assert_eq!(md3.offset, 2);
+
+    assert_eq!(
+        mock.log_len("t", 0),
+        3,
+        "broker must contain exactly 3 records, none duplicated"
+    );
+
+    assert_eq!(producer.metrics().bytes_buffered, 0);
+    assert_eq!(producer.retries_in_flight(), 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn idempotent_lost_ack_with_progressing_partition() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    // In start_two_node, ("t", 0) is led by node 2, and other partitions (e.g. ("t", 1)) default to node 1.
+    // Configure node 2 to drop produce responses after appending, while node 1 progresses without interruption.
+    mock.set_produce_delay_times(Duration::from_millis(40), 6);
+    mock.set_produce_drop_response_times_for_node(2, 1);
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    pcfg.max_in_flight = 5;
+    pcfg.retry_backoff = Duration::from_millis(20);
+    pcfg.retry_backoff_max = Duration::from_millis(20);
+    pcfg.delivery_timeout = Duration::from_secs(5);
+    let producer = Producer::new(pcfg).await.unwrap();
+
+    // Concurrently send several in-flight batches on partition 0 (hits node 2, lost ack, retries)
+    // while another partition (partition 1 on node 1) progresses normally.
+    let p0_task = {
+        let p = producer.clone();
+        let m = mock.clone();
+        tokio::spawn(async move {
+            let p1 = p.clone();
+            let f1 = tokio::spawn(async move {
+                p1.send(
+                    ProduceRecord::to("t")
+                        .partition(0)
+                        .value(&b"p0-batch-1"[..]),
+                )
+                .await
+            });
+            while m
+                .produce_request_nodes()
+                .iter()
+                .filter(|&&n| n == 2)
+                .count()
+                < 1
+            {
+                tokio::time::sleep(Duration::from_millis(1)).await;
+            }
+            let p2 = p.clone();
+            let f2 = tokio::spawn(async move {
+                p2.send(
+                    ProduceRecord::to("t")
+                        .partition(0)
+                        .value(&b"p0-batch-2"[..]),
+                )
+                .await
+            });
+            while m
+                .produce_request_nodes()
+                .iter()
+                .filter(|&&n| n == 2)
+                .count()
+                < 2
+            {
+                tokio::time::sleep(Duration::from_millis(1)).await;
+            }
+            let p3 = p.clone();
+            let f3 = tokio::spawn(async move {
+                p3.send(
+                    ProduceRecord::to("t")
+                        .partition(0)
+                        .value(&b"p0-batch-3"[..]),
+                )
+                .await
+            });
+            let (r1, r2, r3) = tokio::join!(f1, f2, f3);
+            (
+                r1.unwrap().unwrap(),
+                r2.unwrap().unwrap(),
+                r3.unwrap().unwrap(),
+            )
+        })
+    };
+
+    let p1_task = {
+        let p = producer.clone();
+        tokio::spawn(async move {
+            let m1 = p
+                .send(
+                    ProduceRecord::to("t")
+                        .partition(1)
+                        .value(&b"p1-batch-1"[..]),
+                )
+                .await
+                .unwrap();
+            let m2 = p
+                .send(
+                    ProduceRecord::to("t")
+                        .partition(1)
+                        .value(&b"p1-batch-2"[..]),
+                )
+                .await
+                .unwrap();
+            let m3 = p
+                .send(
+                    ProduceRecord::to("t")
+                        .partition(1)
+                        .value(&b"p1-batch-3"[..]),
+                )
+                .await
+                .unwrap();
+            (m1, m2, m3)
+        })
+    };
+
+    let (p0_res, p1_res) = tokio::join!(p0_task, p1_task);
+    let (p0_m1, p0_m2, p0_m3) = p0_res.unwrap();
+    let (p1_m1, p1_m2, p1_m3) = p1_res.unwrap();
+
+    // Both partitions must receive offsets in order without duplicate appends
+    assert_eq!((p0_m1.offset, p0_m2.offset, p0_m3.offset), (0, 1, 2));
+    assert_eq!((p1_m1.offset, p1_m2.offset, p1_m3.offset), (0, 1, 2));
+
+    assert_eq!(mock.log_len("t", 0), 3, "partition 0 log len");
+    assert_eq!(mock.log_len("t", 1), 3, "partition 1 log len");
+
+    assert_eq!(producer.metrics().bytes_buffered, 0);
+    assert_eq!(producer.retries_in_flight(), 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn idempotent_lost_ack_multi_record_batch_retries_without_duplicate() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_drop_response_times(1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::from_millis(40);
+    pcfg.enable_idempotence = true;
+    pcfg.retry_backoff = Duration::from_millis(20);
+    pcfg.retry_backoff_max = Duration::from_millis(20);
+    pcfg.delivery_timeout = Duration::from_secs(5);
+    let producer = Producer::new(pcfg).await.unwrap();
+
+    let mds = producer
+        .send_all([
+            ProduceRecord::to("t").partition(0).value(&b"rec-a"[..]),
+            ProduceRecord::to("t").partition(0).value(&b"rec-b"[..]),
+        ])
+        .await
+        .expect("send_all must succeed");
+
+    assert_eq!(mds[0].offset, 0);
+    assert_eq!(mds[1].offset, 1);
+    assert_eq!(
+        mock.log_len("t", 0),
+        2,
+        "batch of 2 records must not be duplicated"
+    );
+
+    assert_eq!(producer.metrics().bytes_buffered, 0);
+    assert_eq!(producer.retries_in_flight(), 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn idempotent_lost_ack_ambiguous_expiration_remains_explicit() {
+    let mock = common::Mock::start().await;
+    // Always drop response so retry cannot complete within short delivery deadline
+    mock.set_produce_drop_response_times(100);
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    pcfg.delivery_timeout = Duration::from_millis(150);
+    pcfg.retry_backoff = Duration::from_millis(40);
+    pcfg.retry_backoff_max = Duration::from_millis(40);
+    let producer = Producer::new(pcfg).await.unwrap();
+
+    let res = producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"will-expire"[..]),
+        )
+        .await;
+
+    // Transmitted record whose ack was lost must return Error::Timeout (ambiguous delivery),
+    // never Error::Closed or false broker success.
+    assert!(
+        matches!(res, Err(Error::Timeout)),
+        "expected Timeout for ambiguous delivery expiration, got {res:?}"
+    );
+
+    // Buffer reservations and retries in flight must be fully cleaned up
+    assert_eq!(producer.metrics().bytes_buffered, 0);
+    assert_eq!(producer.retries_in_flight(), 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn produce_fetch_follow_metadata_leader() {
     let mock = common::Mock::start_two_node().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

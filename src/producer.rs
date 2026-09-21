@@ -779,6 +779,8 @@ struct Pending {
     rec: ProduceRecord,
     tx: Option<oneshot::Sender<Result<RecordMetadata>>>,
     seq: Option<i32>,
+    batch_base_seq: Option<i32>,
+    batch_len: usize,
     deadline: Instant,
     queued_at: Instant,
     /// Failed Produce attempts so far. The first retry sleeps
@@ -786,6 +788,7 @@ struct Pending {
     retry: u32,
     /// Produce v10+ CurrentLeader already patched cluster metadata.
     skip_meta_refresh: bool,
+    retry_after: Instant,
 }
 
 enum Ctrl {
@@ -1477,10 +1480,13 @@ impl Producer {
                     rec,
                     tx: Some(tx),
                     seq: None,
+                    batch_base_seq: None,
+                    batch_len: 1,
                     deadline,
                     queued_at: now,
                     retry: 0,
                     skip_meta_refresh: false,
+                    retry_after: now,
                 }),
             )
             .await;
@@ -1599,10 +1605,13 @@ impl Producer {
             rec,
             tx: None,
             seq: None,
+            batch_base_seq: None,
+            batch_len: 1,
             deadline,
             queued_at: now,
             retry: 0,
             skip_meta_refresh: false,
+            retry_after: now,
         }) {
             self.inner.shared.release_buffer(bytes);
             return Err(match e {
@@ -2734,13 +2743,12 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
     if shared.closed.load(Ordering::SeqCst) || Instant::now() >= p.deadline {
         return;
     }
-    crate::config::sleep_retry_backoff(
-        shared.cfg.retry_backoff,
-        shared.cfg.retry_backoff_max,
-        p.retry.saturating_sub(1),
-        p.deadline,
-    )
-    .await;
+    let now = Instant::now();
+    if now < p.retry_after {
+        let wait = p.retry_after.saturating_duration_since(now);
+        let rest = p.deadline.saturating_duration_since(now);
+        tokio::time::sleep(wait.min(rest)).await;
+    }
     if shared.closed.load(Ordering::SeqCst) || Instant::now() >= p.deadline {
         return;
     }
@@ -2876,18 +2884,28 @@ impl Drop for Worker {
         while let Ok(p) = self.data.try_recv() {
             self.pending.push(p);
         }
-        if !self.in_flight.is_empty() {
-            fail_inflight(&self.shared, &mut self.in_flight, Error::Timeout);
-        }
-        if !self.pending.is_empty() {
-            let pendings = std::mem::take(&mut self.pending);
-            for p in pendings {
-                let err = if p.retry > 0 {
-                    Error::Timeout
-                } else {
-                    Error::Closed
-                };
-                fail_pendings(&self.shared, vec![p], err);
+        if !self.shared.closed.load(Ordering::SeqCst) {
+            while let Some(inf) = self.in_flight.pop_front() {
+                self.requeue(inf.groups);
+            }
+            if !self.pending.is_empty() {
+                let pendings = std::mem::take(&mut self.pending);
+                self.requeue_pendings(pendings);
+            }
+        } else {
+            if !self.in_flight.is_empty() {
+                fail_inflight(&self.shared, &mut self.in_flight, Error::Timeout);
+            }
+            if !self.pending.is_empty() {
+                let pendings = std::mem::take(&mut self.pending);
+                for p in pendings {
+                    let err = if p.retry > 0 {
+                        Error::Timeout
+                    } else {
+                        Error::Closed
+                    };
+                    fail_pendings(&self.shared, vec![p], err);
+                }
             }
         }
         while let Ok(c) = self.ctrl.try_recv() {
@@ -2962,6 +2980,16 @@ impl Worker {
         if self.in_flight.len() >= self.shared.cfg.max_in_flight {
             return false;
         }
+        if let Some(first) = self.pending.first() {
+            if let Some(base) = first.batch_base_seq {
+                let count = self
+                    .pending
+                    .iter()
+                    .take_while(|p| p.batch_base_seq == Some(base))
+                    .count();
+                return count >= first.batch_len;
+            }
+        }
         batch_ready(
             &self.pending,
             self.shared.cfg.batch_records,
@@ -2976,6 +3004,9 @@ impl Worker {
                 && self.pending.is_empty()
                 && self.in_flight.is_empty()
             {
+                break;
+            }
+            if self.conn.is_closed() && self.pending.is_empty() && self.in_flight.is_empty() {
                 break;
             }
             self.pull_ready();
@@ -3074,6 +3105,16 @@ impl Worker {
     async fn fire(&mut self) -> Result<()> {
         self.purge_expired_pending();
         if self.pending.is_empty() {
+            return Ok(());
+        }
+        if self.conn.is_closed() {
+            let _ = self.shared.nodes.lock().remove(&self.node_id);
+            try_nudge_node(&self.shared.connect_tx, self.node_id);
+            let pending = std::mem::take(&mut self.pending);
+            self.requeue_pendings(pending);
+            while let Some(remaining) = self.in_flight.pop_front() {
+                self.requeue(remaining.groups);
+            }
             return Ok(());
         }
         if self.in_flight.is_empty() && self.conn.idle_expired(self.shared.cfg.connections_max_idle)
@@ -3255,7 +3296,13 @@ impl Worker {
         {
             if e.is_retriable() {
                 let _ = self.shared.nodes.lock().remove(&self.node_id);
+                try_nudge_node(&self.shared.connect_tx, self.node_id);
                 self.requeue(groups);
+                while let Some(remaining) = self.in_flight.pop_front() {
+                    self.requeue(remaining.groups);
+                }
+                let pending = std::mem::take(&mut self.pending);
+                self.requeue_pendings(pending);
                 return Ok(());
             }
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
@@ -3316,7 +3363,13 @@ impl Worker {
                 if let Some(inf) = guard.inf.take() {
                     if e.is_retriable() {
                         let _ = self.shared.nodes.lock().remove(&self.node_id);
+                        try_nudge_node(&self.shared.connect_tx, self.node_id);
                         self.requeue(inf.groups);
+                        while let Some(remaining) = self.in_flight.pop_front() {
+                            self.requeue(remaining.groups);
+                        }
+                        let pending = std::mem::take(&mut self.pending);
+                        self.requeue_pendings(pending);
                         return Ok(());
                     }
                     fail_groups(&self.shared, inf.groups, clone_err(&e));
@@ -3526,12 +3579,19 @@ impl Worker {
     }
 
     fn requeue_pendings(&mut self, pendings: Vec<Pending>) {
+        let now = Instant::now();
         for mut p in pendings {
             p.retry = p.retry.saturating_add(1);
-            if Instant::now() >= p.deadline {
+            if now >= p.deadline {
                 fail_pendings(&self.shared, vec![p], Error::Timeout);
                 continue;
             }
+            let delay = crate::config::retry_backoff_delay(
+                self.shared.cfg.retry_backoff,
+                self.shared.cfg.retry_backoff_max,
+                p.retry.saturating_sub(1),
+            );
+            p.retry_after = now + delay;
             let _ = self.shared.retries_out.fetch_add(1, Ordering::SeqCst);
             match self.shared.retry_tx.try_send(p) {
                 Ok(()) => {}
@@ -3642,6 +3702,15 @@ fn group_pending(batch: Vec<Pending>) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
 }
 
 fn batch_ready(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> bool {
+    if let Some(first) = pending.first() {
+        if let Some(base) = first.batch_base_seq {
+            let count = pending
+                .iter()
+                .take_while(|p| p.batch_base_seq == Some(base))
+                .count();
+            return count >= first.batch_len;
+        }
+    }
     if pending.len() >= rec_limit {
         return true;
     }
@@ -3658,7 +3727,19 @@ fn batch_ready(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> bool
 fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize {
     let mut n = 0;
     let mut bytes = 0usize;
+    let mut batch_bases: HashMap<(Arc<str>, i32), Option<i32>> = HashMap::new();
     for p in pending.iter().take(rec_limit) {
+        let key = (p.rec.topic.clone(), p.rec.partition.unwrap_or(0));
+        match batch_bases.get(&key) {
+            Some(&expected_base) => {
+                if p.batch_base_seq != expected_base {
+                    break;
+                }
+            }
+            None => {
+                let _ = batch_bases.insert(key, p.batch_base_seq);
+            }
+        }
         bytes += estimate(p);
         n += 1;
         if bytes >= byte_limit {
@@ -3687,9 +3768,12 @@ fn assign_sequences(
             continue;
         }
         let base = next_sequence(seqs, producer_id, topic, *partition, pendings.len());
+        let count = pendings.len();
         for (i, p) in pendings.iter_mut().enumerate() {
             if p.seq.is_none() {
                 p.seq = Some(base.saturating_add(i32::try_from(i).unwrap_or(0)));
+                p.batch_base_seq = Some(base);
+                p.batch_len = count;
             }
         }
     }
