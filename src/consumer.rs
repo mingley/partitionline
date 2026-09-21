@@ -1509,13 +1509,50 @@ impl Consumer {
         self.assignment()
     }
 
-    /// Assigned partitions with their next fetch offsets.
+    /// Assigned partitions with their next consumable offsets (delivered positions).
+    ///
+    /// When [`ConsumerConfig::max_poll_records`] leaves fetched records buffered,
+    /// each partition reports its next undelivered record offset rather than the
+    /// ahead-of-delivery broker fetch cursor, matching Java `position(TopicPartition)`.
     #[must_use]
     pub fn positions(&self) -> Vec<(TopicPartition, i64)> {
         self.assigned
             .iter()
+            .map(|(t, p, o)| {
+                let pos = self.delivered_position(t, *p, *o);
+                (TopicPartition::new(t.clone(), *p), pos)
+            })
+            .collect()
+    }
+
+    /// Broker fetch cursor (next offset to request from the broker) for an assigned partition.
+    ///
+    /// This may be ahead of [`Self::position`] when records are buffered in the consumer
+    /// under [`ConsumerConfig::max_poll_records`].
+    pub fn fetch_cursor(&self, topic: &str, partition: i32) -> Result<i64> {
+        self.assigned
+            .iter()
+            .find(|(t, p, _)| t == topic && *p == partition)
+            .map(|(_, _, o)| *o)
+            .ok_or_else(reject_java_position_unassigned)
+    }
+
+    /// Assigned partitions with their current broker fetch cursors.
+    #[must_use]
+    pub fn fetch_cursors(&self) -> Vec<(TopicPartition, i64)> {
+        self.assigned
+            .iter()
             .map(|(t, p, o)| (TopicPartition::new(t.clone(), *p), *o))
             .collect()
+    }
+
+    fn delivered_position(&self, topic: &str, partition: i32, fetch_cursor: i64) -> i64 {
+        for rec in &self.pending {
+            if rec.topic == topic && rec.partition == partition {
+                return rec.offset;
+            }
+        }
+        fetch_cursor
     }
 
     pub(crate) fn assigned_offsets(&self) -> &[(String, i32, i64)] {
@@ -1545,16 +1582,23 @@ impl Consumer {
         }
     }
 
-    /// Next fetch offset for an assigned partition.
+    /// Next consumable offset (delivered position) for an assigned partition.
+    ///
+    /// If records have been fetched and buffered (for example under
+    /// [`ConsumerConfig::max_poll_records`]), this returns the offset of the
+    /// next undelivered record. If all fetched records have been delivered,
+    /// this matches the broker fetch cursor.
     ///
     /// An unassigned partition is Java `IllegalStateException`
     /// (`You can only check the position for partitions assigned to this consumer.`).
     pub fn position(&self, topic: &str, partition: i32) -> Result<i64> {
-        self.assigned
+        let fetch_offset = self
+            .assigned
             .iter()
             .find(|(t, p, _)| t == topic && *p == partition)
             .map(|(_, _, o)| *o)
-            .ok_or_else(reject_java_position_unassigned)
+            .ok_or_else(reject_java_position_unassigned)?;
+        Ok(self.delivered_position(topic, partition, fetch_offset))
     }
 
     /// [`Self::position`] for a [`TopicPartition`].
@@ -1603,8 +1647,18 @@ impl Consumer {
 
     /// Replace the assignment. One Metadata refresh for the topic set.
     pub(crate) async fn assign_all(&mut self, starts: &[(String, i32, i64)]) -> Result<()> {
-        self.clear_assignment();
+        let old_assigned: HashMap<(String, i32), i64> = self
+            .assigned
+            .iter()
+            .map(|(t, p, o)| ((t.clone(), *p), *o))
+            .collect();
+        self.assigned.clear();
+        self.last_fetched_epochs.clear();
+        self.aborted_pids.clear();
+        self.aborted_txs.clear();
+        self.completed_txs.clear();
         if starts.is_empty() {
+            self.pending.clear();
             return Ok(());
         }
         let mut topics: Vec<String> = Vec::new();
@@ -1616,6 +1670,15 @@ impl Consumer {
         }
         self.refresh_metadata(Some(&topics)).await?;
         self.assigned.extend(starts.iter().cloned());
+        for (topic, part, offset) in starts {
+            if let Some(&old_offset) = old_assigned.get(&(topic.clone(), *part)) {
+                if old_offset != *offset {
+                    self.drop_pending_for(topic, *part);
+                }
+            } else {
+                self.drop_pending_for(topic, *part);
+            }
+        }
         self.retain_pending_assigned();
         Ok(())
     }
