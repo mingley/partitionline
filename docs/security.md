@@ -57,6 +57,8 @@ Token-endpoint responses: non-200 → `Error::Protocol` with
 (HTTP 5xx, I/O, timeout) get **bounded** retries (3 attempts, short exponential
 backoff) inside that same timeout; HTTP 4xx fails immediately. Mid-connection refresh / rotation / outage soak still open (KL-06).
 
+For the complete token acquisition, expiry, proactive refresh, reconnect, and broker-requested reauthentication ownership contract, see [docs/auth-refresh.md](auth-refresh.md).
+
 Unit coverage: `fetch_token_rejects_http_503_fail_closed`,
 `fetch_token_hang_times_out_fail_closed`,
 `fetch_token_retries_transient_503_then_succeeds`,

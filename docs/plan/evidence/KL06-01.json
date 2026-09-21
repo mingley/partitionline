@@ -1,0 +1,49 @@
+{
+  "id": "KL06-01",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "6a6baf0bc5435c8882a8390556610916e7691d0e",
+  "commands": [
+    "git diff --check docs/auth-refresh.md docs/security.md (exit 0)",
+    "cargo test --offline --locked --lib protocol::oidc (8 passed, exit 0)",
+    "cargo test --offline --locked --test credential_redact (12 passed, exit 0)"
+  ],
+  "results": {
+    "deliverable": "A small state/ownership contract for token acquisition, expiry, refresh, reconnect and broker-requested reauthentication.",
+    "spec_file": "docs/auth-refresh.md",
+    "acceptance_validation": {
+      "landed_vs_missing_separated": true,
+      "valid_old_token_behavior_defined": true,
+      "clock_skew_and_jitter_defined": true,
+      "concurrent_connection_coalescing_defined": true,
+      "absolute_deadlines_defined": true,
+      "api_changes_proposed_only": true,
+      "no_plaintext_fallback_invariant": true,
+      "no_secret_bearing_diagnostics": true,
+      "runtime_code_unchanged": true
+    },
+    "entrypoints_traced": [
+      "Producer::new (src/producer.rs:1029)",
+      "Producer::open_conn (src/producer.rs:1962)",
+      "Consumer::new (src/consumer.rs:1310)",
+      "Consumer::reconnect_bootstrap (src/consumer.rs:1653)",
+      "Consumer::open_node_conn (src/consumer.rs:1852)",
+      "Admin::new (src/admin.rs:3019)",
+      "Admin::open_node_conn (src/admin.rs:6697)",
+      "group::open_coord_with_find_version (src/group.rs:2923)",
+      "ShareGroup::join_list bootstrap (src/share.rs:608 -> src/consumer.rs:1310)",
+      "ShareGroup::join_list coord (src/share.rs:619 -> src/group.rs:2923)",
+      "ShareGroup::spawn_heartbeat (src/share.rs:1669 -> src/group.rs:2923)",
+      "ShareGroup::poll node fetch (src/share.rs:1152 -> src/consumer.rs:1852)"
+    ]
+  },
+  "artifacts": [
+    "docs/auth-refresh.md",
+    "docs/security.md",
+    "docs/plan/evidence/KL06-01.json"
+  ],
+  "limits": [
+    "Specification only (KL06-01). Parsing expires_in/lifetime metadata (KL06-02), stampede-free proactive refresh (KL06-03), and in-place reauthentication with session_lifetime_ms (KL06-04) remain subsequent implementation cards."
+  ],
+  "blocked_reason": null
+}
