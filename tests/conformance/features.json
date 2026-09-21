@@ -1,0 +1,1559 @@
+[
+  {
+    "id": "producer.send",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::send",
+    "evidence": "tests/full_surface.rs:test_produce_send",
+    "notes": "Single-record asynchronous produce awaiting broker offset acknowledgment."
+  },
+  {
+    "id": "producer.send_all",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::send_all",
+    "evidence": "tests/client_api.rs",
+    "notes": "Batched asynchronous produce waiting for offsets after queuing."
+  },
+  {
+    "id": "producer.try_send",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::try_send",
+    "evidence": "examples/bench_produce.rs",
+    "notes": "Non-blocking queue submission for high-throughput pipelining."
+  },
+  {
+    "id": "producer.flush",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::flush",
+    "evidence": "tests/buffer_ownership.rs",
+    "notes": "Flushes buffered produce batches to broker partition leaders."
+  },
+  {
+    "id": "producer.close",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::close",
+    "evidence": "tests/produce_cancel.rs",
+    "notes": "Orderly shutdown draining pending batches within delivery timeout."
+  },
+  {
+    "id": "producer.close_timeout",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::close_timeout",
+    "evidence": "src/producer.rs:Producer::close_timeout",
+    "notes": "Orderly shutdown with bounded caller timeout."
+  },
+  {
+    "id": "producer.idempotence",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer",
+    "evidence": "tests/full_surface.rs:test_idempotent_producer",
+    "notes": "Idempotent produce via InitProducerId v0-v5 with PID, epoch, and sequence tracking."
+  },
+  {
+    "id": "producer.v3_v12_wire",
+    "profile": "producer",
+    "layer": "wire_helper",
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::api::encode_produce_request",
+    "evidence": "tests/protocol_oracles.rs:Produce",
+    "notes": "Negotiates Produce v3-v12; v9+ flexible; v10+ CurrentLeader/NodeEndpoints; v12 KIP-890 Part 2."
+  },
+  {
+    "id": "producer.v13_wire",
+    "profile": "producer",
+    "layer": "wire_helper",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-05",
+    "notes": "Produce v13 (topic IDs) delta is not implemented; tracked in KL05-11."
+  },
+  {
+    "id": "producer.murmur2_partitioner",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::partitioner::murmur2",
+    "evidence": "tests/client_api.rs:test_murmur2",
+    "notes": "Kafka-compatible 32-bit murmur2 partitioner matching Java default."
+  },
+  {
+    "id": "producer.round_robin_partitioner",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::partitioner::DefaultPartitioner",
+    "evidence": "tests/client_api.rs:test_round_robin",
+    "notes": "Round-robin partitioning for unkeyed records."
+  },
+  {
+    "id": "producer.sticky_partitioner",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-05",
+    "notes": "Opt-in sticky unkeyed batching partitioner is not implemented; tracked in KL05-10."
+  },
+  {
+    "id": "producer.buffer_memory",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::producer::ProducerConfig::buffer_memory",
+    "evidence": "docs/audits/2026-09-21.md:A08",
+    "notes": "Caps queued key+value bytes; partial because headers, metadata, encoded buffers, and socket memory are uncounted (audit A08)."
+  },
+  {
+    "id": "producer.max_request_size",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::ProducerConfig::max_request_size",
+    "evidence": "tests/client_api.rs:test_max_request_size",
+    "notes": "Rejects oversized records with Error::RecordTooLarge and caps produce batches."
+  },
+  {
+    "id": "producer.delivery_timeout",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::ProducerConfig::delivery_timeout",
+    "evidence": "src/producer.rs",
+    "notes": "Enforces delivery.timeout.ms from initial send queueing to final acknowledgment."
+  },
+  {
+    "id": "producer.max_block",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::ProducerConfig::max_block",
+    "evidence": "src/producer.rs",
+    "notes": "Caps send wait time for metadata fetch and buffer.memory permit acquisition."
+  },
+  {
+    "id": "producer.retry_backoff",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::ProducerConfig::retry_backoff",
+    "evidence": "src/producer.rs",
+    "notes": "Exponential retry backoff for retriable broker produce errors."
+  },
+  {
+    "id": "producer.reconnect_backoff",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::ProducerConfig::reconnect_backoff",
+    "evidence": "src/producer.rs",
+    "notes": "Exponential reconnect backoff on failed TCP connect/handshake."
+  },
+  {
+    "id": "producer.connections_max_idle",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::ProducerConfig::connections_max_idle",
+    "evidence": "src/net.rs",
+    "notes": "Closes idle TCP connections to broker partition leaders after configured duration."
+  },
+  {
+    "id": "producer.metadata_max_age",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::ProducerConfig::metadata_max_age",
+    "evidence": "src/producer.rs",
+    "notes": "Proactively refreshes cached topic metadata after configured interval."
+  },
+  {
+    "id": "producer.interceptor",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::interceptor::ProducerInterceptor",
+    "evidence": "examples/intercept.rs",
+    "notes": "Pre-send and on-acknowledgment hooks for record inspection and telemetry."
+  },
+  {
+    "id": "producer.metrics",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::metrics",
+    "evidence": "tests/client_api.rs:test_producer_metrics",
+    "notes": "Snapshots queued, acked, and error counts plus produce latency histograms."
+  },
+  {
+    "id": "producer.client_instance_id",
+    "profile": "producer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::client_instance_id",
+    "evidence": "src/producer.rs:Producer::client_instance_id",
+    "notes": "KIP-714 client telemetry instance identifier."
+  },
+  {
+    "id": "manual_consumer.assign",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::Consumer::assign",
+    "evidence": "tests/full_surface.rs:test_consumer_manual_assign",
+    "notes": "Manual assignment of explicit topic partitions."
+  },
+  {
+    "id": "manual_consumer.assign_topic",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::Consumer::assign_topic",
+    "evidence": "tests/client_api.rs:test_assign_topic",
+    "notes": "Discovers topic partitions via metadata and assigns all partitions."
+  },
+  {
+    "id": "manual_consumer.assign_many",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::Consumer::assign_many",
+    "evidence": "src/consumer.rs:Consumer::assign_many",
+    "notes": "Batch assignment of topic partitions across multiple topics."
+  },
+  {
+    "id": "manual_consumer.unassign",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::Consumer::unassign",
+    "evidence": "src/consumer.rs:Consumer::unassign",
+    "notes": "Clears current partition assignments and drops active fetch streams."
+  },
+  {
+    "id": "manual_consumer.fetch",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::consumer::Consumer::fetch",
+    "evidence": "docs/audits/2026-09-21.md:A01",
+    "notes": "Parallel fetch from partition leaders; partial due to 5 reproduced audit defects (A01 seek filtering, A02 abort markers, A03 partial retry drops, A04 offset reset, A05 poll commit)."
+  },
+  {
+    "id": "manual_consumer.v4_v17_wire",
+    "profile": "manual consumer",
+    "layer": "wire_helper",
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::fetch::encode_fetch_request",
+    "evidence": "tests/protocol_oracles.rs:Fetch",
+    "notes": "Negotiates Fetch v4-v17; v12+ flexible; v13+ topic IDs; v15 omits ReplicaId; v16 CurrentLeader/NodeEndpoints; v17 ReplicaDirectoryId."
+  },
+  {
+    "id": "manual_consumer.v18_wire",
+    "profile": "manual consumer",
+    "layer": "wire_helper",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-05",
+    "notes": "Fetch v18 wire delta is not implemented; tracked in KL05-12."
+  },
+  {
+    "id": "manual_consumer.incremental_fetch_wire",
+    "profile": "manual consumer",
+    "layer": "wire_helper",
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::fetch::encode_fetch_request_with_session",
+    "evidence": "src/protocol/fetch.rs",
+    "notes": "SessionId, SessionEpoch, and ForgottenTopicsData wire encoding helpers exist on v7+."
+  },
+  {
+    "id": "manual_consumer.incremental_fetch_runtime",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/audits/2026-09-21.md:A07",
+    "notes": "High-level consumer unconditionally sends FetchMetadata::LEGACY, ignoring incremental sessions (audit A07, KL05-06, KL05-07)."
+  },
+  {
+    "id": "manual_consumer.offset_for_leader_epoch",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::api::encode_offset_for_leader_epoch_request",
+    "evidence": "tests/full_surface.rs:test_leader_epoch_fencing",
+    "notes": "Api 23 leader epoch fencing and recovery on FENCED_LEADER_EPOCH / UNKNOWN_LEADER_EPOCH."
+  },
+  {
+    "id": "manual_consumer.list_offsets_v1_v10",
+    "profile": "manual consumer",
+    "layer": "wire_helper",
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::offsets::encode_list_offsets_request",
+    "evidence": "tests/full_surface.rs:test_list_offsets",
+    "notes": "ListOffsets v1-v10 supporting earliest, latest, max-timestamp, earliest-local, and latest-tiered offsets."
+  },
+  {
+    "id": "manual_consumer.list_offsets_v11",
+    "profile": "manual consumer",
+    "layer": "wire_helper",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-05",
+    "notes": "ListOffsets v11 delta is not implemented; tracked in KL05-13."
+  },
+  {
+    "id": "manual_consumer.seek",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::consumer::Consumer::seek",
+    "evidence": "docs/audits/2026-09-21.md:A01",
+    "notes": "Sets next fetch position; partial because seeking inside an existing batch redelivers earlier records (audit A01, KL03-04)."
+  },
+  {
+    "id": "manual_consumer.seek_with_metadata",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::Consumer::seek_with_metadata",
+    "evidence": "src/consumer.rs:Consumer::seek_with_metadata",
+    "notes": "Sets next fetch offset and passes leader epoch as LastFetchedEpoch."
+  },
+  {
+    "id": "manual_consumer.pause_resume",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::Consumer::pause",
+    "evidence": "tests/client_api.rs:test_pause_resume",
+    "notes": "Pauses and resumes fetch polling for specific partitions without unassigning."
+  },
+  {
+    "id": "manual_consumer.wakeup",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::Consumer::wakeup",
+    "evidence": "tests/client_api.rs:test_wakeup",
+    "notes": "Interrupts in-flight fetch calls via WakeupHandle."
+  },
+  {
+    "id": "manual_consumer.position",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::Consumer::position",
+    "evidence": "src/consumer.rs:Consumer::position",
+    "notes": "Returns next fetch position for assigned partition."
+  },
+  {
+    "id": "manual_consumer.current_lag",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::Consumer::current_lag",
+    "evidence": "src/consumer.rs:Consumer::current_lag",
+    "notes": "Calculates partition lag between high watermark and current position."
+  },
+  {
+    "id": "manual_consumer.auto_offset_reset",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::config::AutoOffsetReset",
+    "evidence": "docs/audits/2026-09-21.md:A04",
+    "notes": "Default Earliest; partial because auto.offset.reset=None unconditionally resets to log start on OFFSET_OUT_OF_RANGE (audit A04, KL03-05)."
+  },
+  {
+    "id": "manual_consumer.follower_fetch",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::ConsumerConfig::rack",
+    "evidence": "src/consumer.rs",
+    "notes": "Follows preferred_read_replica based on configured client rack."
+  },
+  {
+    "id": "manual_consumer.interceptor",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::interceptor::ConsumerInterceptor",
+    "evidence": "examples/consume_intercept.rs",
+    "notes": "Pre-fetch and post-consume record interception hooks."
+  },
+  {
+    "id": "manual_consumer.metrics",
+    "profile": "manual consumer",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::Consumer::metrics",
+    "evidence": "src/metrics.rs",
+    "notes": "Snapshots fetch round latency, record counts, bytes, and per-topic metrics."
+  },
+  {
+    "id": "group.classic_join_sync",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::group::ConsumerGroup::join_topics",
+    "evidence": "tests/full_surface.rs:test_classic_group",
+    "notes": "Classic consumer group membership via JoinGroup v2-v9 and SyncGroup v0-v5."
+  },
+  {
+    "id": "group.cooperative_sticky",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::group::ConsumerGroup::join_topics",
+    "evidence": "tests/full_surface.rs:test_cooperative_sticky",
+    "notes": "KIP-429 cooperative-sticky partition assignment protocol."
+  },
+  {
+    "id": "group.kip848_join",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::group::ConsumerGroup::join_consumer",
+    "evidence": "tests/kip848_live.rs",
+    "notes": "KIP-848 next-gen consumer group membership via ConsumerGroupHeartbeat api 68."
+  },
+  {
+    "id": "group.kip848_heartbeat_scheduling",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::group::ConsumerGroup",
+    "evidence": "docs/audits/2026-09-21.md:A07",
+    "notes": "Partial because heartbeat loop uses fixed 150ms interval rather than broker response interval (audit A07, KL03-12)."
+  },
+  {
+    "id": "group.poll",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::group::ConsumerGroup::poll",
+    "evidence": "tests/full_surface.rs:test_group_poll",
+    "notes": "Polls records from dynamically assigned partition leaders."
+  },
+  {
+    "id": "group.commit_sync",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::group::ConsumerGroup::commit_with_metadata",
+    "evidence": "tests/full_surface.rs:test_offset_commit",
+    "notes": "Synchronous offset commitment with metadata via OffsetCommit v2-v9."
+  },
+  {
+    "id": "group.commit_async",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::group::ConsumerGroup::commit_async",
+    "evidence": "src/group.rs:ConsumerGroup::commit_async",
+    "notes": "Asynchronous offset commitment queued for next poll/leave cycle."
+  },
+  {
+    "id": "group.enforce_rebalance",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::group::ConsumerGroup::enforce_rebalance",
+    "evidence": "tests/client_api.rs:test_enforce_rebalance",
+    "notes": "Forces group rebalance on subsequent poll using JoinGroup v8+ Reason."
+  },
+  {
+    "id": "group.subscribe_regex",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::group::ConsumerGroup::subscribe_matching",
+    "evidence": "tests/client_api.rs:test_subscribe_matching",
+    "notes": "Dynamic topic subscription with regular expression pattern matching."
+  },
+  {
+    "id": "group.static_membership",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::ConsumerConfig::group_instance_id",
+    "evidence": "tests/full_surface.rs:test_static_membership",
+    "notes": "Static membership via group.instance.id to avoid transient rebalances."
+  },
+  {
+    "id": "group.leave_with_reason",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::group::ConsumerGroup::leave",
+    "evidence": "tests/consumer_close_commit.rs",
+    "notes": "LeaveGroup v0-v5 with explicit reason string (closed, unsubscribed, poll timeout)."
+  },
+  {
+    "id": "group.group_metadata",
+    "profile": "group",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::group::ConsumerGroup::group_metadata",
+    "evidence": "src/group.rs:ConsumerGroup::group_metadata",
+    "notes": "Exports ConsumerGroupMetadata for transactional offset commits."
+  },
+  {
+    "id": "share.join",
+    "profile": "share",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::share::ShareGroup::join",
+    "evidence": "tests/full_surface.rs:test_share_group_join",
+    "notes": "Joins KIP-932 share group via ShareGroupHeartbeat api 76 v0-v1."
+  },
+  {
+    "id": "share.poll",
+    "profile": "share",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::share::ShareGroup::poll",
+    "evidence": "tests/full_surface.rs:test_share_fetch",
+    "notes": "Fetches records with record acquisition locks via ShareFetch api 78 v0-v1."
+  },
+  {
+    "id": "share.acknowledge",
+    "profile": "share",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::share::ShareGroup::accept",
+    "evidence": "tests/full_surface.rs:test_share_acknowledge",
+    "notes": "Acknowledges acquired records (ACCEPT, RELEASE, REJECT) via ShareAcknowledge api 79 v0-v1."
+  },
+  {
+    "id": "share.heartbeat_scheduling",
+    "profile": "share",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::share::ShareGroup",
+    "evidence": "docs/audits/2026-09-21.md:A07",
+    "notes": "Partial because share heartbeat interval is hard-coded to 150ms (audit A07, KL03-13)."
+  },
+  {
+    "id": "share.v2_wire_delta",
+    "profile": "share",
+    "layer": "wire_helper",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-05",
+    "notes": "ShareFetch v2 and ShareAcknowledge v2 wire codecs are not implemented; tracked in KL05-14."
+  },
+  {
+    "id": "share.v2_runtime",
+    "profile": "share",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-05",
+    "notes": "Share protocol v2 negotiated runtime behavior is not implemented; tracked in KL05-15."
+  },
+  {
+    "id": "share.leave",
+    "profile": "share",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::share::ShareGroup::leave",
+    "evidence": "src/share.rs:ShareGroup::leave",
+    "notes": "Leaves share group sending final member epoch."
+  },
+  {
+    "id": "share.metrics",
+    "profile": "share",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::share::ShareGroup::metrics",
+    "evidence": "src/metrics.rs",
+    "notes": "Tracks share record fetch counts, acknowledgment outcomes, and latency."
+  },
+  {
+    "id": "transactions.config",
+    "profile": "transactions",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::ProducerConfig::transactional_id",
+    "evidence": "src/config.rs",
+    "notes": "Configures transactional.id and transaction.timeout.ms."
+  },
+  {
+    "id": "transactions.init",
+    "profile": "transactions",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::init_transactions",
+    "evidence": "tests/full_surface.rs:test_transactions",
+    "notes": "Locates transaction coordinator (api 10) and initializes PID (api 22)."
+  },
+  {
+    "id": "transactions.begin",
+    "profile": "transactions",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::begin_transaction",
+    "evidence": "tests/full_surface.rs:test_transactions",
+    "notes": "Starts a local transaction boundary."
+  },
+  {
+    "id": "transactions.send_offsets",
+    "profile": "transactions",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::send_offsets_to_transaction",
+    "evidence": "tests/full_surface.rs:test_transactions",
+    "notes": "Enrolls consumer offsets into transaction via AddOffsetsToTxn (api 25) and TxnOffsetCommit (api 28)."
+  },
+  {
+    "id": "transactions.send_offsets_for_group",
+    "profile": "transactions",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::send_offsets_for_group",
+    "evidence": "examples/eos.rs",
+    "notes": "Sends offsets with ConsumerGroupMetadata for exactly-once stream processing."
+  },
+  {
+    "id": "transactions.commit",
+    "profile": "transactions",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::commit_transaction",
+    "evidence": "tests/full_surface.rs:test_transactions",
+    "notes": "Commits transaction via EndTxn (api 26) with COMMIT marker."
+  },
+  {
+    "id": "transactions.abort",
+    "profile": "transactions",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::abort_transaction",
+    "evidence": "tests/full_surface.rs:test_transactions",
+    "notes": "Aborts transaction via EndTxn (api 26) with ABORT marker."
+  },
+  {
+    "id": "transactions.v2_kip890",
+    "profile": "transactions",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::txn::EndTxnRequest",
+    "evidence": "src/protocol/txn.rs",
+    "notes": "KIP-890 Part 2: Produce v12 skips AddPartitionsToTxn; TxnOffsetCommit v5 skips AddOffsetsToTxn."
+  },
+  {
+    "id": "transactions.read_committed_consumer",
+    "profile": "transactions",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::consumer::ConsumerConfig::isolation",
+    "evidence": "docs/audits/2026-09-21.md:A02",
+    "notes": "IsolationLevel::ReadCommitted; partial because aborted control markers cause subsequent committed batches under same PID to be discarded (audit A02, KL03-03)."
+  },
+  {
+    "id": "codecs.none",
+    "profile": "codecs",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::records::Compression::None",
+    "evidence": "tests/full_surface.rs:test_uncompressed",
+    "notes": "Uncompressed record batches."
+  },
+  {
+    "id": "codecs.gzip",
+    "profile": "codecs",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::protocol::records::Compression::Gzip",
+    "evidence": "docs/audits/2026-09-21.md:A08",
+    "notes": "Pure-Rust flate2 gzip codec; partial because decompression uses read_to_end without decoded-byte budget (audit A08)."
+  },
+  {
+    "id": "codecs.snappy",
+    "profile": "codecs",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::protocol::records::Compression::Snappy",
+    "evidence": "docs/audits/2026-09-21.md:A08",
+    "notes": "Pure-Rust snap snappy codec; partial because decompression allocates without decoded-byte budget (audit A08)."
+  },
+  {
+    "id": "codecs.lz4",
+    "profile": "codecs",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::protocol::records::Compression::Lz4",
+    "evidence": "docs/audits/2026-09-21.md:A08",
+    "notes": "Pure-Rust lz4_flex codec; partial because decompression uses read_to_end without decoded-byte budget (audit A08)."
+  },
+  {
+    "id": "codecs.zstd.decode",
+    "profile": "codecs",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/zstd-spike.md",
+    "notes": "Compression ID 4 decoding is unsupported in src/protocol/records.rs. Explicit missing feature of complete codec profile (KL05-02, KL05-03)."
+  },
+  {
+    "id": "codecs.zstd.encode",
+    "profile": "codecs",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/zstd-spike.md",
+    "notes": "Zstd encoding is not implemented; deny.toml bans zstd-sys. Explicit missing feature of complete codec profile (KL05-02, KL05-04)."
+  },
+  {
+    "id": "codecs.zstd.wire_helper",
+    "profile": "codecs",
+    "layer": "wire_helper",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "src/protocol/records.rs",
+    "notes": "RecordBatch wire helper explicitly rejects ZSTD compression attribute as UnsupportedCompressionTypeException."
+  },
+  {
+    "id": "auth.tls",
+    "profile": "auth",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::net::TlsConfig",
+    "evidence": "tests/full_surface.rs:test_tls",
+    "notes": "TLS 1.2/1.3 via rustls + ring; supports custom CA PEM, system roots, and optional mTLS client certificates."
+  },
+  {
+    "id": "auth.sasl_plain",
+    "profile": "auth",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::config::Sasl::plain",
+    "evidence": "tests/full_surface.rs:test_sasl_plain",
+    "notes": "SASL PLAIN authentication over SaslHandshake v0-v1 and SaslAuthenticate v0-v2."
+  },
+  {
+    "id": "auth.sasl_scram_256",
+    "profile": "auth",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::config::Sasl::scram_sha256",
+    "evidence": "tests/full_surface.rs:test_sasl_scram256",
+    "notes": "RFC 5802 / RFC 7677 SASL SCRAM-SHA-256 pure-Rust implementation."
+  },
+  {
+    "id": "auth.sasl_scram_512",
+    "profile": "auth",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::config::Sasl::scram_sha512",
+    "evidence": "tests/full_surface.rs:test_sasl_scram512",
+    "notes": "RFC 5802 SASL SCRAM-SHA-512 pure-Rust implementation."
+  },
+  {
+    "id": "auth.sasl_oauthbearer",
+    "profile": "auth",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::config::Sasl::oauthbearer",
+    "evidence": "tests/full_surface.rs:test_sasl_oauth",
+    "notes": "RFC 7628 SASL OAUTHBEARER with unsecured JWT alg=none."
+  },
+  {
+    "id": "auth.sasl_oidc",
+    "profile": "auth",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::oidc::OidcConfig",
+    "evidence": "tests/credential_redact.rs",
+    "notes": "RFC 6749 client_credentials token acquisition with bounded transient retry."
+  },
+  {
+    "id": "auth.sasl_oidc_refresh",
+    "profile": "auth",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-06",
+    "notes": "Proactive token refresh before expiry and broker session_lifetime_ms reauth are missing; tracked in KL06-01 to KL06-04."
+  },
+  {
+    "id": "auth.sasl_gssapi",
+    "profile": "auth",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/gaps.md",
+    "notes": "Kerberos GSSAPI authentication is not implemented (requires Cyrus SASL C library). Explicit missing feature of enterprise auth profile (KL06-08 to KL06-10)."
+  },
+  {
+    "id": "quotas.admin_describe",
+    "profile": "quotas",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_client_quotas",
+    "evidence": "tests/full_surface.rs:test_client_quotas",
+    "notes": "DescribeClientQuotas api 48 v0-v1 with quota entity filtering."
+  },
+  {
+    "id": "quotas.admin_alter",
+    "profile": "quotas",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::alter_client_quotas",
+    "evidence": "tests/full_surface.rs:test_client_quotas",
+    "notes": "AlterClientQuotas api 49 v0-v1 with ops for client and user quotas."
+  },
+  {
+    "id": "quotas.admin_quota_retry",
+    "profile": "quotas",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::create_topics_with_quota_retry",
+    "evidence": "src/admin.rs",
+    "notes": "KIP-599 retryOnQuotaViolation for topic and partition creation/deletion."
+  },
+  {
+    "id": "quotas.producer_throttle",
+    "profile": "quotas",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::protocol::api::encode_produce_response_with_throttle",
+    "evidence": "docs/audits/2026-09-21.md:A07",
+    "notes": "ProduceResponse decodes throttle_time_ms on wire, but producer runtime discards it without sleeping or scheduling (audit A07, KL05-08)."
+  },
+  {
+    "id": "quotas.consumer_throttle",
+    "profile": "quotas",
+    "layer": "runtime",
+    "disposition": "partial",
+    "entrypoint": "partitionline::protocol::fetch::decode_fetch_response",
+    "evidence": "docs/audits/2026-09-21.md:A07",
+    "notes": "FetchResponse decodes throttle_time_ms on wire, but consumer runtime discards it without delay (audit A07, KL05-09)."
+  },
+  {
+    "id": "quotas.client_metric",
+    "profile": "quotas",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::metrics::Quota",
+    "evidence": "src/metrics.rs:Quota",
+    "notes": "Client-side Quota model matching org.apache.kafka.common.metrics.Quota."
+  },
+  {
+    "id": "common_admin.create_topics",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::create_topics",
+    "evidence": "tests/full_surface.rs:test_create_topics",
+    "notes": "CreateTopics api 19 v0-v7 with partitions, replication factor, and topic configs."
+  },
+  {
+    "id": "common_admin.delete_topics",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::delete_topics",
+    "evidence": "tests/full_surface.rs:test_delete_topics",
+    "notes": "DeleteTopics api 20 v0-v6 by topic name."
+  },
+  {
+    "id": "common_admin.delete_topics_by_id",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::delete_topics_by_id",
+    "evidence": "src/admin.rs:Admin::delete_topics_by_id",
+    "notes": "DeleteTopics api 20 v6 by UUID topic ID."
+  },
+  {
+    "id": "common_admin.list_topics",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::list_topics",
+    "evidence": "tests/full_surface.rs:test_list_topics",
+    "notes": "ListTopics via Metadata api 3 with internal topic filter."
+  },
+  {
+    "id": "common_admin.describe_topics",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_topics",
+    "evidence": "tests/full_surface.rs:test_describe_topics",
+    "notes": "DescribeTopics using DescribeTopicPartitions api 75 with Metadata api 3 fallback."
+  },
+  {
+    "id": "common_admin.describe_topics_by_id",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_topics_by_id",
+    "evidence": "src/admin.rs:Admin::describe_topics_by_id",
+    "notes": "DescribeTopics by UUID topic ID via Metadata v12+ or DescribeTopicPartitions."
+  },
+  {
+    "id": "common_admin.create_partitions",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::create_partitions",
+    "evidence": "tests/full_surface.rs:test_create_partitions",
+    "notes": "CreatePartitions api 37 v0-v3 to increase partition count."
+  },
+  {
+    "id": "common_admin.describe_configs",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_configs",
+    "evidence": "tests/full_surface.rs:test_describe_configs",
+    "notes": "DescribeConfigs api 32 v0-v4 for topics, brokers, and broker loggers."
+  },
+  {
+    "id": "common_admin.alter_configs",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::alter_configs",
+    "evidence": "tests/full_surface.rs:test_alter_configs",
+    "notes": "Legacy AlterConfigs api 33 v0-v2 for full resource configuration replacement."
+  },
+  {
+    "id": "common_admin.incremental_alter_configs",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::incremental_alter_configs",
+    "evidence": "tests/full_surface.rs:test_incremental_alter_configs",
+    "notes": "IncrementalAlterConfigs api 44 v0-v1 for atomic config alterations (SET, DELETE, APPEND, SUBTRACT)."
+  },
+  {
+    "id": "common_admin.describe_cluster",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_cluster",
+    "evidence": "tests/full_surface.rs:test_describe_cluster",
+    "notes": "DescribeCluster api 60 v0-v2 returning nodes, controller, cluster ID, and authorized operations."
+  },
+  {
+    "id": "common_admin.describe_acls",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_acls",
+    "evidence": "tests/full_surface.rs:test_describe_acls",
+    "notes": "DescribeAcls api 29 v0-v3 with AclBindingFilter."
+  },
+  {
+    "id": "common_admin.create_acls",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::create_acls",
+    "evidence": "tests/full_surface.rs:test_create_acls",
+    "notes": "CreateAcls api 30 v0-v3 for principal resource permissions."
+  },
+  {
+    "id": "common_admin.delete_acls",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::delete_acls",
+    "evidence": "tests/full_surface.rs:test_delete_acls",
+    "notes": "DeleteAcls api 31 v0-v3 matching AclBindingFilter."
+  },
+  {
+    "id": "common_admin.list_groups",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::list_groups",
+    "evidence": "tests/full_surface.rs:test_list_groups",
+    "notes": "ListGroups api 16 v0-v5 with states and types filter."
+  },
+  {
+    "id": "common_admin.describe_groups",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_groups",
+    "evidence": "tests/full_surface.rs:test_describe_groups",
+    "notes": "DescribeGroups api 15 v0-v6 for classic consumer groups."
+  },
+  {
+    "id": "common_admin.describe_consumer_groups",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_consumer_groups",
+    "evidence": "tests/full_surface.rs:test_describe_consumer_groups",
+    "notes": "ConsumerGroupDescribe api 69 with DescribeGroups api 15 fallback."
+  },
+  {
+    "id": "common_admin.delete_groups",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::delete_groups",
+    "evidence": "tests/full_surface.rs:test_delete_groups",
+    "notes": "DeleteGroups api 42 v0-v2 for consumer and share groups."
+  },
+  {
+    "id": "common_admin.list_consumer_group_offsets",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::list_consumer_group_offsets",
+    "evidence": "tests/full_surface.rs:test_list_consumer_group_offsets",
+    "notes": "OffsetFetch api 9 v1-v9 for group committed offsets."
+  },
+  {
+    "id": "common_admin.alter_consumer_group_offsets",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::alter_consumer_group_offsets",
+    "evidence": "tests/full_surface.rs:test_alter_consumer_group_offsets",
+    "notes": "OffsetCommit api 8 v2-v9 to set group committed offsets."
+  },
+  {
+    "id": "common_admin.delete_consumer_group_offsets",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::delete_consumer_group_offsets",
+    "evidence": "tests/full_surface.rs:test_delete_consumer_group_offsets",
+    "notes": "OffsetDelete api 47 v0 for consumer group offsets."
+  },
+  {
+    "id": "common_admin.delete_records",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::delete_records",
+    "evidence": "tests/full_surface.rs:test_delete_records",
+    "notes": "DeleteRecords api 21 v0-v2 to advance low-watermark offsets."
+  },
+  {
+    "id": "common_admin.list_offsets",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::list_offsets",
+    "evidence": "tests/full_surface.rs:test_admin_list_offsets",
+    "notes": "ListOffsets api 2 v1-v10 for topic partition offsets."
+  },
+  {
+    "id": "common_admin.remove_members_from_consumer_group",
+    "profile": "common admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::remove_members_from_consumer_group",
+    "evidence": "tests/full_surface.rs:test_remove_members",
+    "notes": "LeaveGroup api 13 v3-v5 to administratively evict members."
+  },
+  {
+    "id": "full_admin.alter_partition_reassignments",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::alter_partition_reassignments",
+    "evidence": "src/admin.rs:Admin::alter_partition_reassignments",
+    "notes": "AlterPartitionReassignments api 45 v0 for moving partition replicas."
+  },
+  {
+    "id": "full_admin.list_partition_reassignments",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::list_partition_reassignments",
+    "evidence": "src/admin.rs:Admin::list_partition_reassignments",
+    "notes": "ListPartitionReassignments api 46 v0 for ongoing reassignments."
+  },
+  {
+    "id": "full_admin.describe_log_dirs",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_log_dirs",
+    "evidence": "src/admin.rs:Admin::describe_log_dirs",
+    "notes": "DescribeLogDirs api 35 v1-v4 for disk space and replica directories."
+  },
+  {
+    "id": "full_admin.describe_log_dirs_v5",
+    "profile": "full admin",
+    "layer": "wire_helper",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-05",
+    "notes": "DescribeLogDirs v5 delta is not implemented; tracked in KL05-22."
+  },
+  {
+    "id": "full_admin.alter_replica_log_dirs",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::alter_replica_log_dirs",
+    "evidence": "src/admin.rs:Admin::alter_replica_log_dirs",
+    "notes": "AlterReplicaLogDirs api 34 v1-v2 for moving replicas between disks."
+  },
+  {
+    "id": "full_admin.assign_replicas_to_dirs",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::assign_replicas_to_dirs",
+    "evidence": "src/admin.rs:Admin::assign_replicas_to_dirs",
+    "notes": "AssignReplicasToDirs api 73 v0 for directory assignment."
+  },
+  {
+    "id": "full_admin.describe_user_scram_credentials",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_user_scram_credentials",
+    "evidence": "src/admin.rs:Admin::describe_user_scram_credentials",
+    "notes": "DescribeUserScramCredentials api 50 v0."
+  },
+  {
+    "id": "full_admin.alter_user_scram_credentials",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::alter_user_scram_credentials",
+    "evidence": "src/admin.rs:Admin::alter_user_scram_credentials",
+    "notes": "AlterUserScramCredentials api 51 v0 for SCRAM user credential management."
+  },
+  {
+    "id": "full_admin.describe_features",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_features",
+    "evidence": "src/admin.rs:Admin::describe_features",
+    "notes": "DescribeFeatures api 18 v3-v4 for finalized and supported cluster feature levels."
+  },
+  {
+    "id": "full_admin.update_features",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::update_features",
+    "evidence": "src/admin.rs:Admin::update_features",
+    "notes": "UpdateFeatures api 57 v0-v2 for cluster feature upgrade/downgrade."
+  },
+  {
+    "id": "full_admin.describe_producers",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_producers",
+    "evidence": "src/admin.rs:Admin::describe_producers",
+    "notes": "DescribeProducers api 61 v0 for active producer IDs and sequences."
+  },
+  {
+    "id": "full_admin.allocate_producer_ids",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::allocate_producer_ids",
+    "evidence": "src/admin.rs:Admin::allocate_producer_ids",
+    "notes": "AllocateProducerIds api 67 v0 for controller producer ID block allocation."
+  },
+  {
+    "id": "full_admin.fence_producers",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::fence_producers",
+    "evidence": "src/admin.rs:Admin::fence_producers",
+    "notes": "FenceProducers via InitProducerId api 22 with higher epoch."
+  },
+  {
+    "id": "full_admin.abort_transaction",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::abort_transaction",
+    "evidence": "src/admin.rs:Admin::abort_transaction",
+    "notes": "AbortTransaction via WriteTxnMarkers api 27 v0-v1."
+  },
+  {
+    "id": "full_admin.describe_transactions",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_transactions",
+    "evidence": "src/admin.rs:Admin::describe_transactions",
+    "notes": "DescribeTransactions api 65 v0 for transactional ID state."
+  },
+  {
+    "id": "full_admin.list_transactions",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::list_transactions",
+    "evidence": "src/admin.rs:Admin::list_transactions",
+    "notes": "ListTransactions api 66 v0-v1 with duration filter."
+  },
+  {
+    "id": "full_admin.unregister_broker",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::unregister_broker",
+    "evidence": "src/admin.rs:Admin::unregister_broker",
+    "notes": "UnregisterBroker api 64 v0 to decommission KRaft brokers."
+  },
+  {
+    "id": "full_admin.describe_share_groups",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_share_groups",
+    "evidence": "src/admin.rs:Admin::describe_share_groups",
+    "notes": "ShareGroupDescribe api 77 v0-v1 for share group state."
+  },
+  {
+    "id": "full_admin.describe_share_group_offsets",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_share_group_offsets",
+    "evidence": "src/admin.rs:Admin::describe_share_group_offsets",
+    "notes": "DescribeShareGroupOffsets api 90 v0 for share group offset checkpoints."
+  },
+  {
+    "id": "full_admin.alter_share_group_offsets",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::alter_share_group_offsets",
+    "evidence": "src/admin.rs:Admin::alter_share_group_offsets",
+    "notes": "AlterShareGroupOffsets api 91 v0 to modify share group offsets."
+  },
+  {
+    "id": "full_admin.delete_share_group_offsets",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::delete_share_group_offsets",
+    "evidence": "src/admin.rs:Admin::delete_share_group_offsets",
+    "notes": "DeleteShareGroupOffsets api 92 v0 to reset share group state."
+  },
+  {
+    "id": "full_admin.delete_share_groups",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::delete_share_groups",
+    "evidence": "src/admin.rs:Admin::delete_share_groups",
+    "notes": "DeleteGroups api 42 v0-v2 for share groups."
+  },
+  {
+    "id": "full_admin.list_config_resources",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::list_config_resources",
+    "evidence": "src/admin.rs:Admin::list_config_resources",
+    "notes": "ListConfigResources / ListClientMetricsResources api 74 v0-v1."
+  },
+  {
+    "id": "full_admin.get_telemetry_subscriptions",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::get_telemetry_subscriptions",
+    "evidence": "src/admin.rs:Admin::get_telemetry_subscriptions",
+    "notes": "GetTelemetrySubscriptions api 71 v0 for KIP-714 telemetry push configs."
+  },
+  {
+    "id": "full_admin.push_telemetry",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::push_telemetry",
+    "evidence": "src/admin.rs:Admin::push_telemetry",
+    "notes": "PushTelemetry api 72 v0 for client telemetry metrics ingestion."
+  },
+  {
+    "id": "full_admin.create_delegation_token",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::create_delegation_token",
+    "evidence": "src/admin.rs:Admin::create_delegation_token",
+    "notes": "CreateDelegationToken api 38 v1-v3 for delegation token authentication."
+  },
+  {
+    "id": "full_admin.renew_delegation_token",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::renew_delegation_token",
+    "evidence": "src/admin.rs:Admin::renew_delegation_token",
+    "notes": "RenewDelegationToken api 39 v1-v2."
+  },
+  {
+    "id": "full_admin.expire_delegation_token",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::expire_delegation_token",
+    "evidence": "src/admin.rs:Admin::expire_delegation_token",
+    "notes": "ExpireDelegationToken api 40 v1-v2."
+  },
+  {
+    "id": "full_admin.describe_delegation_token",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_delegation_token",
+    "evidence": "src/admin.rs:Admin::describe_delegation_token",
+    "notes": "DescribeDelegationToken api 41 v1-v3."
+  },
+  {
+    "id": "full_admin.elect_leaders",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-05",
+    "notes": "ElectLeaders api 43 is not exposed in Admin; tracked in KL05-16, KL05-17."
+  },
+  {
+    "id": "full_admin.describe_quorum",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-05",
+    "notes": "DescribeQuorum api 55 is not exposed in Admin; tracked in KL05-18, KL05-19."
+  },
+  {
+    "id": "full_admin.add_raft_voter",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-05",
+    "notes": "AddRaftVoter api 80 is not exposed in Admin; tracked in KL05-20."
+  },
+  {
+    "id": "full_admin.remove_raft_voter",
+    "profile": "full admin",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:KL-05",
+    "notes": "RemoveRaftVoter api 81 is not exposed in Admin; tracked in KL05-21."
+  },
+  {
+    "id": "schema_ecosystem.wire_framing",
+    "profile": "schema ecosystem",
+    "layer": "wire_helper",
+    "disposition": "partial",
+    "entrypoint": "partitionline_schema::wire",
+    "evidence": "partitionline-schema/src/wire.rs",
+    "notes": "Basic 5-byte magic + 4-byte schema ID framing scaffold; not published on crates.io."
+  },
+  {
+    "id": "schema_ecosystem.registry_client",
+    "profile": "schema ecosystem",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/schema-companion.md",
+    "notes": "Bounded HTTP client for Schema Registry lookups; companion design, tracked in KL05-23."
+  },
+  {
+    "id": "schema_ecosystem.cache",
+    "profile": "schema ecosystem",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/schema-companion.md",
+    "notes": "Bounded size and freshness cache for resolved schemas; tracked in KL05-24."
+  },
+  {
+    "id": "schema_ecosystem.avro",
+    "profile": "schema ecosystem",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/schema-companion.md",
+    "notes": "Opt-in Avro serialization/deserialization adapter; companion crate, tracked in KL05-25."
+  },
+  {
+    "id": "schema_ecosystem.protobuf",
+    "profile": "schema ecosystem",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/schema-companion.md",
+    "notes": "Confluent-compatible Protobuf message-index framing adapter; companion crate, tracked in KL05-26."
+  },
+  {
+    "id": "schema_ecosystem.json_schema",
+    "profile": "schema ecosystem",
+    "layer": "runtime",
+    "disposition": "missing",
+    "entrypoint": "none",
+    "evidence": "docs/schema-companion.md",
+    "notes": "JSON Schema validation and serialization adapter; companion crate, tracked in KL05-27."
+  },
+  {
+    "id": "streams.runtime",
+    "profile": "streams",
+    "layer": "runtime",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:2",
+    "notes": "Kafka Streams is a higher-level stateful stream processing library and runtime; out of scope for the core client protocol library."
+  },
+  {
+    "id": "connect.framework",
+    "profile": "connect",
+    "layer": "runtime",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "docs/ROADMAP.md:2",
+    "notes": "Kafka Connect is a connector plugin execution framework and cluster runtime; out of scope for the client messaging library."
+  },
+  {
+    "id": "c_abi.librdkafka",
+    "profile": "c_abi",
+    "layer": "runtime",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "docs/gaps.md",
+    "notes": "A drop-in librdkafka C symbol ABI (rd_kafka_*) is out of scope; partitionline is designed as an idiomatic pure-Rust Kafka client."
+  },
+  {
+    "id": "broker_internal.leader_and_isr",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:4",
+    "notes": "LeaderAndIsr (api 4): internal broker-to-broker partition replica state propagation; out of scope for client libraries."
+  },
+  {
+    "id": "broker_internal.stop_replica",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:5",
+    "notes": "StopReplica (api 5): internal controller-to-broker partition replica deletion/shutdown; out of scope for client libraries."
+  },
+  {
+    "id": "broker_internal.update_metadata",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:6",
+    "notes": "UpdateMetadata (api 6): internal controller-to-broker cluster state broadcast; out of scope for client libraries."
+  },
+  {
+    "id": "broker_internal.controlled_shutdown",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:7",
+    "notes": "ControlledShutdown (api 7): broker-to-controller graceful shutdown coordination; out of scope for client libraries."
+  },
+  {
+    "id": "broker_internal.alter_partition",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:56",
+    "notes": "AlterPartition (api 56): broker partition leader-to-controller ISR state updates; out of scope for client libraries."
+  },
+  {
+    "id": "broker_internal.envelope",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:58",
+    "notes": "Envelope (api 58): internal request forwarding wrapper between brokers and controller; out of scope for client libraries."
+  },
+  {
+    "id": "broker_internal.fetch_snapshot",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:59",
+    "notes": "FetchSnapshot (api 59): KRaft controller quorum state-machine snapshot replication; out of scope for client libraries."
+  },
+  {
+    "id": "broker_internal.broker_registration",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:62",
+    "notes": "BrokerRegistration (api 62): KRaft broker lifecycle bootstrap registration; out of scope for client libraries."
+  },
+  {
+    "id": "broker_internal.broker_heartbeat",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:63",
+    "notes": "BrokerHeartbeat (api 63): KRaft broker periodic liveness heartbeat to controller; out of scope for client libraries."
+  },
+  {
+    "id": "broker_internal.controller_registration",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:70",
+    "notes": "ControllerRegistration (api 70): KRaft controller election and registration; out of scope for client libraries."
+  },
+  {
+    "id": "broker_internal.update_raft_voter",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:82",
+    "notes": "UpdateRaftVoter (api 82): KRaft internal voter metadata update; out of scope for client libraries."
+  },
+  {
+    "id": "broker_internal.share_group_state",
+    "profile": "broker-internal replication",
+    "layer": "wire_helper",
+    "disposition": "out_of_scope",
+    "entrypoint": "none",
+    "evidence": "src/protocol/api_keys.rs:83",
+    "notes": "ShareGroupState internal persistence RPCs (apis 83-87: InitializeShareGroupState, ReadShareGroupState, WriteShareGroupState, DeleteShareGroupState, ReadShareGroupStateSummary) are broker-to-persister partition state store RPCs, not client-facing."
+  }
+]
