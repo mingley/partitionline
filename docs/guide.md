@@ -145,12 +145,27 @@ retry. Do not unbounded-buffer in the application.
 
 ### Buffer ownership and overload (mock)
 
-`ProducerConfig::buffer_memory` is a **key+value** reservation held from accept
-until ack or fail — not encoded batch size, socket buffers, or process RSS.
-`try_send` returns `QueueFull` when the cap is full; `send` waits up to
-`max_block` then returns `Timeout`. `metrics().bytes_buffered` must stay
-`≤ buffer_memory` under saturating load and return to `0` after `flush` /
-`close`. This is a KL-02 mock honesty slice, not a 2×/24h RSS leadership claim.
+`ProducerConfig::buffer_memory` is a **key + value + headers** reservation held
+from accept until broker ack or terminal failure — not encoded batch size, socket
+buffers, or process RSS. Both `metrics().bytes_buffered` and
+`metrics().bytes_queued` count uncompressed record key, value, and header bytes
+(header keys and values). Header-heavy, zero-value, shared-backing, and
+compressed records cannot bypass the declared budget. When `bytes_buffered`
+reaches `buffer_memory`, `try_send` returns `QueueFull` (even for zero-value
+records) and `send` waits up to `max_block` then returns `Timeout`.
+`metrics().bytes_buffered` stays `≤ buffer_memory` under saturating load and
+returns to `0` after `flush` / `close`. A permit stays owned across queued,
+in-flight, and retry states and is released exactly once.
+
+Kafka's oversized-first-batch progress rule is preserved: any single record
+whose serialized upper bound fits within `max_request_size` and `buffer_memory`
+can acquire its permit when the buffer is empty (`bytes_buffered == 0`),
+preventing producer stall.
+
+Process RSS is **not** bounded by `bytes_buffered` or `buffer_memory`; process
+memory includes allocator overhead, heap fragmentation, Tokio task allocations,
+TLS contexts, socket buffers, batch headers, and wire framing. This is a KL-02
+contract honesty slice, not a process RSS bound.
 
 Mock coverage: `tests/buffer_ownership.rs`.
 
