@@ -4,6 +4,7 @@ use std::fmt;
 use std::future::poll_fn;
 use std::io;
 use std::pin::Pin;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::sync::Once;
 use std::task::{Context, Poll};
@@ -15,7 +16,7 @@ use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
 use rustls::{ClientConfig, RootCertStore};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
 use tokio::net::TcpStream;
-use tokio::time::timeout;
+use tokio::time::{timeout, timeout_at, Instant as TokioInstant};
 use tokio_rustls::client::TlsStream;
 use tokio_rustls::TlsConnector;
 
@@ -95,6 +96,122 @@ pub fn check_parse_response_correlation(
         )));
     }
     request.check_correlation(response)
+}
+
+/// An absolute deadline for network operations.
+///
+/// Shared remaining-time contract for request write, header/body read,
+/// and partial-frame progress.
+#[derive(Clone, Copy, Debug)]
+pub struct Deadline {
+    instant: TokioInstant,
+}
+
+impl Deadline {
+    /// Create a deadline expiring after `timeout` from now.
+    #[must_use]
+    pub fn from_timeout(timeout: Duration) -> Self {
+        Self {
+            instant: TokioInstant::now() + timeout,
+        }
+    }
+
+    /// Create a deadline at an explicit [`TokioInstant`].
+    #[must_use]
+    pub fn at(instant: TokioInstant) -> Self {
+        Self { instant }
+    }
+
+    /// Create a deadline from a standard [`std::time::Instant`].
+    #[must_use]
+    pub fn from_std(instant: Instant) -> Self {
+        Self {
+            instant: TokioInstant::from_std(instant),
+        }
+    }
+
+    /// The target [`TokioInstant`].
+    #[must_use]
+    pub fn target(&self) -> TokioInstant {
+        self.instant
+    }
+
+    /// Check if this deadline has passed.
+    #[must_use]
+    pub fn is_expired(&self) -> bool {
+        TokioInstant::now() >= self.instant
+    }
+
+    /// Check if expired, returning [`Error::Timeout`] if so.
+    pub fn check_expired(&self) -> Result<()> {
+        if self.is_expired() {
+            Err(Error::Timeout)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Remaining duration until the deadline, or [`Error::Timeout`] if expired.
+    pub fn remaining(&self) -> Result<Duration> {
+        let now = TokioInstant::now();
+        if now >= self.instant {
+            Err(Error::Timeout)
+        } else {
+            Ok((self.instant - now).into())
+        }
+    }
+
+    /// Run `future` bounded by this deadline. Returns [`Error::Timeout`] if
+    /// the deadline is reached before `future` resolves.
+    pub async fn run<F, T>(&self, future: F) -> Result<T>
+    where
+        F: std::future::Future<Output = Result<T>>,
+    {
+        self.check_expired()?;
+        match timeout_at(self.instant, future).await {
+            Ok(res) => res,
+            Err(_) => Err(Error::Timeout),
+        }
+    }
+
+    /// Run an I/O future returning `std::io::Result<T>` bounded by this deadline.
+    pub async fn run_io<F, T>(&self, future: F) -> Result<T>
+    where
+        F: std::future::Future<Output = std::io::Result<T>>,
+    {
+        self.check_expired()?;
+        match timeout_at(self.instant, future).await {
+            Ok(Ok(val)) => Ok(val),
+            Ok(Err(e)) => Err(Error::from(e)),
+            Err(_) => Err(Error::Timeout),
+        }
+    }
+}
+
+struct CloseOnDrop {
+    closed: Arc<AtomicBool>,
+    completed: bool,
+}
+
+impl CloseOnDrop {
+    fn new(closed: Arc<AtomicBool>) -> Self {
+        Self {
+            closed,
+            completed: false,
+        }
+    }
+
+    fn complete(&mut self) {
+        self.completed = true;
+    }
+}
+
+impl Drop for CloseOnDrop {
+    fn drop(&mut self) {
+        if !self.completed {
+            self.closed.store(true, Ordering::SeqCst);
+        }
+    }
 }
 
 /// Grow `read_buf` once to the known frame size so a 16MiB Fetch does not
@@ -482,6 +599,7 @@ pub struct BrokerConn {
     client_id: String,
     addr: String,
     last_io: Instant,
+    closed: Arc<AtomicBool>,
     /// Admin-only. Producer and consumer sockets leave this `None` so
     /// [`Self::send`] plus [`Self::read_response`] is not double-counted.
     stats: Option<Arc<crate::metrics::AdminTracker>>,
@@ -575,6 +693,7 @@ impl BrokerConn {
             client_id: client_id.to_string(),
             addr: addr.to_string(),
             last_io: Instant::now(),
+            closed: Arc::new(AtomicBool::new(false)),
             stats: None,
             offset_commit_version: 0,
             offset_fetch_version: 0,
@@ -612,177 +731,49 @@ impl BrokerConn {
         next_sasl_correlation_id(&mut self.sasl_correlation)
     }
 
+    /// Whether this connection is closed, failed, or desynchronized.
+    #[must_use]
+    pub fn is_closed(&self) -> bool {
+        self.closed.load(Ordering::SeqCst)
+    }
+
+    /// Mark this connection as permanently closed/failed.
+    pub fn close(&mut self) {
+        self.closed.store(true, Ordering::SeqCst);
+    }
+
+    /// Write `bytes` bounded by `deadline` or fail with [`Error::Timeout`].
+    ///
+    /// If write fails, times out, or is cancelled, marks this connection
+    /// permanently closed so no partial frame can corrupt subsequent use.
+    pub async fn write_all_deadline(&mut self, bytes: &[u8], deadline: Deadline) -> Result<()> {
+        if self.is_closed() {
+            return Err(Error::Closed);
+        }
+        let mut guard = CloseOnDrop::new(self.closed.clone());
+        deadline
+            .run_io(write_all_pump(&mut self.stream, &mut self.read_buf, bytes))
+            .await?;
+        guard.complete();
+        self.touch();
+        Ok(())
+    }
+
     /// Write `bytes` or fail with [`Error::Timeout`].
     pub async fn write_all_timeout(
         &mut self,
         bytes: &[u8],
         request_timeout: Duration,
     ) -> Result<()> {
-        timeout(
-            request_timeout,
-            write_all_pump(&mut self.stream, &mut self.read_buf, bytes),
-        )
-        .await
-        .map_err(|_| Error::Timeout)??;
-        self.touch();
-        Ok(())
-    }
-
-    /// Read one response frame and check the correlation id.
-    pub async fn read_response(
-        &mut self,
-        api_key: i16,
-        api_version: i16,
-        correlation: i32,
-        request_timeout: Duration,
-    ) -> Result<Bytes> {
-        let frame = timeout(request_timeout, self.read_frame())
+        self.write_all_deadline(bytes, Deadline::from_timeout(request_timeout))
             .await
-            .map_err(|_| Error::Timeout)??;
-        let mut cur = frame;
-        let header = decode_response_header(&mut cur, api_key, api_version)?;
-        if header.correlation_id != correlation {
-            check_parse_response_correlation(
-                &RequestHeader {
-                    api_key,
-                    api_version,
-                    correlation_id: correlation,
-                    client_id: Some(self.client_id.clone()),
-                },
-                &header,
-            )?;
+    }
+
+    async fn read_frame_deadline(&mut self, deadline: Deadline) -> Result<Bytes> {
+        if self.is_closed() {
+            return Err(Error::Closed);
         }
-        self.touch();
-        Ok(cur)
-    }
-
-    /// Broker `host:port` used to open this connection.
-    #[must_use]
-    pub fn addr(&self) -> &str {
-        &self.addr
-    }
-
-    /// Kafka `connections.max.idle.ms`. Zero never expires.
-    #[must_use]
-    pub(crate) fn idle_expired(&self, max_idle: Duration) -> bool {
-        crate::config::connection_idle_expired(self.last_io.elapsed(), max_idle)
-    }
-
-    fn touch(&mut self) {
-        self.last_io = Instant::now();
-    }
-
-    /// Count this socket's [`Self::roundtrip`] on an Admin tracker.
-    pub(crate) fn set_stats(&mut self, stats: Arc<crate::metrics::AdminTracker>) {
-        self.stats = Some(stats);
-    }
-
-    /// Encode and write one request. Returns the correlation id.
-    pub async fn send(
-        &mut self,
-        api_key: i16,
-        api_version: i16,
-        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
-        request_timeout: Duration,
-    ) -> Result<i32> {
-        let correlation = self.next_correlation();
-        self.write_request(
-            api_key,
-            api_version,
-            correlation,
-            encode_body,
-            request_timeout,
-        )
-        .await?;
-        Ok(correlation)
-    }
-
-    async fn write_request(
-        &mut self,
-        api_key: i16,
-        api_version: i16,
-        correlation: i32,
-        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
-        request_timeout: Duration,
-    ) -> Result<()> {
-        self.write_buf.clear();
-        self.write_buf.put_i32(0);
-        encode_request_header_fields(
-            &mut self.write_buf,
-            api_key,
-            api_version,
-            correlation,
-            Some(self.client_id.as_str()),
-        )?;
-        encode_body(&mut self.write_buf)?;
-        let size = crate::protocol::buf::i32_from_usize(self.write_buf.len().saturating_sub(4))?;
-        let slot = self
-            .write_buf
-            .get_mut(..4)
-            .ok_or_else(|| Error::protocol("short length prefix"))?;
-        slot.copy_from_slice(&size.to_be_bytes());
-        let payload = self.write_buf.split();
-        self.write_all_timeout(&payload, request_timeout).await?;
-        Ok(())
-    }
-
-    /// Write a request and read its response.
-    pub async fn roundtrip(
-        &mut self,
-        api_key: i16,
-        api_version: i16,
-        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
-        request_timeout: Duration,
-    ) -> Result<Bytes> {
-        let started = Instant::now();
-        let result = async {
-            let correlation = self
-                .send(api_key, api_version, encode_body, request_timeout)
-                .await?;
-            self.read_response(api_key, api_version, correlation, request_timeout)
-                .await
-        }
-        .await;
-        if let Some(stats) = &self.stats {
-            stats.record(started.elapsed(), result.is_ok());
-        }
-        result
-    }
-
-    /// Write a SASL request and read its response.
-    ///
-    /// Java `SaslClientAuthenticator.nextRequestHeader`: correlation ids
-    /// come from [`next_sasl_correlation_id`], not
-    /// [`next_correlation_id`].
-    pub(crate) async fn roundtrip_sasl(
-        &mut self,
-        api_key: i16,
-        api_version: i16,
-        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
-        request_timeout: Duration,
-    ) -> Result<Bytes> {
-        let started = Instant::now();
-        let result = async {
-            let correlation = self.next_sasl_correlation();
-            self.write_request(
-                api_key,
-                api_version,
-                correlation,
-                encode_body,
-                request_timeout,
-            )
-            .await?;
-            self.read_response(api_key, api_version, correlation, request_timeout)
-                .await
-        }
-        .await;
-        if let Some(stats) = &self.stats {
-            stats.record(started.elapsed(), result.is_ok());
-        }
-        result
-    }
-
-    async fn read_frame(&mut self) -> Result<Bytes> {
+        let mut guard = CloseOnDrop::new(self.closed.clone());
         loop {
             if self.read_buf.len() >= 4 {
                 let prefix = self
@@ -801,11 +792,14 @@ impl BrokerConn {
                 if self.read_buf.len() >= total {
                     let mut frame = self.read_buf.split_to(total);
                     drop(frame.split_to(4));
+                    guard.complete();
                     return Ok(frame.freeze());
                 }
                 reserve_frame(&mut self.read_buf, total);
             }
-            let n = self.stream.read_buf(&mut self.read_buf).await?;
+            let n = deadline
+                .run_io(self.stream.read_buf(&mut self.read_buf))
+                .await?;
             if n == 0 {
                 return Err(Error::Io(std::io::Error::new(
                     std::io::ErrorKind::UnexpectedEof,
@@ -813,6 +807,240 @@ impl BrokerConn {
                 )));
             }
         }
+    }
+
+    /// Read one response frame and check the correlation id bounded by `deadline`.
+    pub async fn read_response_deadline(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        correlation: i32,
+        deadline: Deadline,
+    ) -> Result<Bytes> {
+        if self.is_closed() {
+            return Err(Error::Closed);
+        }
+        let mut guard = CloseOnDrop::new(self.closed.clone());
+        let frame = self.read_frame_deadline(deadline).await?;
+        let mut cur = frame;
+        let header = decode_response_header(&mut cur, api_key, api_version)?;
+        if header.correlation_id != correlation {
+            check_parse_response_correlation(
+                &RequestHeader {
+                    api_key,
+                    api_version,
+                    correlation_id: correlation,
+                    client_id: Some(self.client_id.clone()),
+                },
+                &header,
+            )?;
+        }
+        guard.complete();
+        self.touch();
+        Ok(cur)
+    }
+
+    /// Read one response frame and check the correlation id.
+    pub async fn read_response(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        correlation: i32,
+        request_timeout: Duration,
+    ) -> Result<Bytes> {
+        self.read_response_deadline(
+            api_key,
+            api_version,
+            correlation,
+            Deadline::from_timeout(request_timeout),
+        )
+        .await
+    }
+
+    /// Broker `host:port` used to open this connection.
+    #[must_use]
+    pub fn addr(&self) -> &str {
+        &self.addr
+    }
+
+    /// Kafka `connections.max.idle.ms`. Zero never expires.
+    #[must_use]
+    pub fn idle_expired(&self, max_idle: Duration) -> bool {
+        self.is_closed() || crate::config::connection_idle_expired(self.last_io.elapsed(), max_idle)
+    }
+
+    fn touch(&mut self) {
+        self.last_io = Instant::now();
+    }
+
+    /// Count this socket's [`Self::roundtrip`] on an Admin tracker.
+    pub(crate) fn set_stats(&mut self, stats: Arc<crate::metrics::AdminTracker>) {
+        self.stats = Some(stats);
+    }
+
+    async fn write_request_deadline(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        correlation: i32,
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
+        deadline: Deadline,
+    ) -> Result<()> {
+        if self.is_closed() {
+            return Err(Error::Closed);
+        }
+        self.write_buf.clear();
+        self.write_buf.put_i32(0);
+        encode_request_header_fields(
+            &mut self.write_buf,
+            api_key,
+            api_version,
+            correlation,
+            Some(self.client_id.as_str()),
+        )?;
+        encode_body(&mut self.write_buf)?;
+        let size = crate::protocol::buf::i32_from_usize(self.write_buf.len().saturating_sub(4))?;
+        let slot = self
+            .write_buf
+            .get_mut(..4)
+            .ok_or_else(|| Error::protocol("short length prefix"))?;
+        slot.copy_from_slice(&size.to_be_bytes());
+        let payload = self.write_buf.split();
+        self.write_all_deadline(&payload, deadline).await?;
+        Ok(())
+    }
+
+    /// Encode and write one request bounded by `deadline`. Returns the correlation id.
+    pub async fn send_deadline(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
+        deadline: Deadline,
+    ) -> Result<i32> {
+        let correlation = self.next_correlation();
+        self.write_request_deadline(api_key, api_version, correlation, encode_body, deadline)
+            .await?;
+        Ok(correlation)
+    }
+
+    /// Encode and write one request. Returns the correlation id.
+    pub async fn send(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
+        request_timeout: Duration,
+    ) -> Result<i32> {
+        self.send_deadline(
+            api_key,
+            api_version,
+            encode_body,
+            Deadline::from_timeout(request_timeout),
+        )
+        .await
+    }
+
+    /// Write a request and read its response bounded by a single absolute `deadline`.
+    pub async fn roundtrip_deadline(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
+        deadline: Deadline,
+    ) -> Result<Bytes> {
+        if self.is_closed() {
+            return Err(Error::Closed);
+        }
+        let started = Instant::now();
+        let mut guard = CloseOnDrop::new(self.closed.clone());
+        let result = deadline
+            .run(async {
+                let correlation = self
+                    .send_deadline(api_key, api_version, encode_body, deadline)
+                    .await?;
+                self.read_response_deadline(api_key, api_version, correlation, deadline)
+                    .await
+            })
+            .await;
+        if let Some(stats) = &self.stats {
+            stats.record(started.elapsed(), result.is_ok());
+        }
+        if result.is_ok() {
+            guard.complete();
+        }
+        result
+    }
+
+    /// Write a request and read its response.
+    ///
+    /// Uses a single shared absolute deadline across request write,
+    /// response header/body read, and partial-frame progress so delayed
+    /// peers cannot consume two independent full RPC budgets.
+    pub async fn roundtrip(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
+        request_timeout: Duration,
+    ) -> Result<Bytes> {
+        let deadline = Deadline::from_timeout(request_timeout);
+        self.roundtrip_deadline(api_key, api_version, encode_body, deadline)
+            .await
+    }
+
+    /// Write a SASL request and read its response bounded by a single absolute `deadline`.
+    pub(crate) async fn roundtrip_sasl_deadline(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
+        deadline: Deadline,
+    ) -> Result<Bytes> {
+        if self.is_closed() {
+            return Err(Error::Closed);
+        }
+        let started = Instant::now();
+        let mut guard = CloseOnDrop::new(self.closed.clone());
+        let correlation = self.next_sasl_correlation();
+        let result = deadline
+            .run(async {
+                self.write_request_deadline(
+                    api_key,
+                    api_version,
+                    correlation,
+                    encode_body,
+                    deadline,
+                )
+                .await?;
+                self.read_response_deadline(api_key, api_version, correlation, deadline)
+                    .await
+            })
+            .await;
+        if let Some(stats) = &self.stats {
+            stats.record(started.elapsed(), result.is_ok());
+        }
+        if result.is_ok() {
+            guard.complete();
+        }
+        result
+    }
+
+    /// Write a SASL request and read its response.
+    ///
+    /// Java `SaslClientAuthenticator.nextRequestHeader`: correlation ids
+    /// come from [`next_sasl_correlation_id`], not
+    /// [`next_correlation_id`].
+    pub(crate) async fn roundtrip_sasl(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
+        request_timeout: Duration,
+    ) -> Result<Bytes> {
+        let deadline = Deadline::from_timeout(request_timeout);
+        self.roundtrip_sasl_deadline(api_key, api_version, encode_body, deadline)
+            .await
     }
 }
 
@@ -1055,5 +1283,31 @@ mod tests {
             parse_and_validate_addresses(&v6).unwrap(),
             vec!["[::1]:9092".to_string()]
         );
+    }
+
+    #[test]
+    fn deadline_contract_tracks_remaining_and_expiration() {
+        let deadline = Deadline::from_timeout(Duration::from_millis(200));
+        assert!(!deadline.is_expired());
+        assert!(deadline.check_expired().is_ok());
+        let rem = deadline.remaining().unwrap();
+        assert!(rem > Duration::ZERO && rem <= Duration::from_millis(200));
+
+        let expired = Deadline::at(TokioInstant::now() - Duration::from_millis(10));
+        assert!(expired.is_expired());
+        assert!(matches!(expired.check_expired(), Err(Error::Timeout)));
+        assert!(matches!(expired.remaining(), Err(Error::Timeout)));
+    }
+
+    #[tokio::test]
+    async fn deadline_run_io_enforces_budget() {
+        let deadline = Deadline::from_timeout(Duration::from_millis(30));
+        let res = deadline
+            .run_io(async {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                Ok::<(), std::io::Error>(())
+            })
+            .await;
+        assert!(matches!(res, Err(Error::Timeout)));
     }
 }
