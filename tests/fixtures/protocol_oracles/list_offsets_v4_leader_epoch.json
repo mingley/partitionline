@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "list-offsets-v4-leader-epoch",
+  "api": "ListOffsets",
+  "api_key": 2,
+  "api_version": 4,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "ListOffsets v4 classic wire format with currentLeaderEpoch gate in request and leaderEpoch gate in response",
+  "request": {
+    "file": "list_offsets_v4_leader_epoch_request.bin",
+    "size_bytes": 57,
+    "sha256": "8cdc894c70c3c5f25a4bf5c21ea6ea43cf45006da0e420a34ca723b803b87822",
+    "hex": "ffffffff0100000001000a6f6666736574732d763400000002000000000000000a0000018e23f157b800000001fffffffffffffffffffffffe"
+  },
+  "response": {
+    "file": "list_offsets_v4_leader_epoch_response.bin",
+    "size_bytes": 76,
+    "sha256": "aabbc3027c041c6931c686404c926ed1efa789e3a9955ab415ba0eddcb7610f9",
+    "hex": "0000003c00000001000a6f6666736574732d7634000000020000000000000000018e23f157b800000000000001900000000a000000010000ffffffffffffffff0000000000000032ffffffff"
+  }
+}

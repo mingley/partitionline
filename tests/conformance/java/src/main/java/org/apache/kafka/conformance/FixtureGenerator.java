@@ -2,6 +2,12 @@ package org.apache.kafka.conformance;
 
 import org.apache.kafka.common.message.FetchRequestData;
 import org.apache.kafka.common.message.FetchResponseData;
+import org.apache.kafka.common.message.ListOffsetsRequestData;
+import org.apache.kafka.common.message.ListOffsetsRequestData.ListOffsetsTopic;
+import org.apache.kafka.common.message.ListOffsetsRequestData.ListOffsetsPartition;
+import org.apache.kafka.common.message.ListOffsetsResponseData;
+import org.apache.kafka.common.message.ListOffsetsResponseData.ListOffsetsTopicResponse;
+import org.apache.kafka.common.message.ListOffsetsResponseData.ListOffsetsPartitionResponse;
 import org.apache.kafka.common.message.MetadataRequestData;
 import org.apache.kafka.common.message.MetadataRequestData.MetadataRequestTopic;
 import org.apache.kafka.common.message.MetadataResponseData;
@@ -37,7 +43,7 @@ import java.util.HexFormat;
 import java.util.List;
 
 /**
- * KL01-03, KL01-04, KL01-05 & KL01-06: Pinned Apache Kafka wire-protocol fixture generator.
+ * KL01-03, KL01-04, KL01-05, KL01-06 & KL01-07: Pinned Apache Kafka wire-protocol fixture generator.
  *
  * Generates reference wire fixtures directly using Apache Kafka's official
  * message serialization implementations (Message.write). Generation is
@@ -64,19 +70,20 @@ public class FixtureGenerator {
             } else if ("--verify".equals(args[i])) {
                 verify = true;
             } else if ("--help".equals(args[i]) || "-h".equals(args[i])) {
-                System.out.println("Usage: java FixtureGenerator [--out-dir <path>] [--verify] | [--decode-rust <req|resp|fetch-req|fetch-resp|metadata-req|metadata-resp> <version> <file_or_hex>]");
+                System.out.println("Usage: java FixtureGenerator [--out-dir <path>] [--verify] | [--decode-rust <req|resp|fetch-req|fetch-resp|metadata-req|metadata-resp|list-offsets-req|list-offsets-resp> <version> <file_or_hex>]");
                 System.exit(0);
             }
         }
 
         Files.createDirectories(outDir);
-        System.out.println("FixtureGenerator: generating Produce, Fetch, and Metadata fixtures using " + ARTIFACT_VERSION);
+        System.out.println("FixtureGenerator: generating Produce, Fetch, Metadata, and ListOffsets fixtures using " + ARTIFACT_VERSION);
         System.out.println("Upstream SHA: " + UPSTREAM_SHA);
         System.out.println("Target directory: " + outDir.toAbsolutePath());
 
         List<ProduceFixture> produceFixtures = createAllProduceFixtures();
         List<FetchFixture> fetchFixtures = createAllFetchFixtures();
         List<MetadataFixture> metadataFixtures = createAllMetadataFixtures();
+        List<ListOffsetsFixture> listOffsetsFixtures = createAllListOffsetsFixtures();
 
         // 1. Produce fixtures
         for (ProduceFixture f : produceFixtures) {
@@ -147,12 +154,36 @@ public class FixtureGenerator {
             }
         }
 
-        int total = produceFixtures.size() + fetchFixtures.size() + metadataFixtures.size();
+        // 4. ListOffsets fixtures
+        for (ListOffsetsFixture f : listOffsetsFixtures) {
+            verifySelfRoundtrip(f);
+
+            String reqHash = sha256Hex(f.requestBytes);
+            String respHash = sha256Hex(f.responseBytes);
+            String reqHex = HexFormat.of().formatHex(f.requestBytes);
+            String respHex = HexFormat.of().formatHex(f.responseBytes);
+
+            Path reqPath = outDir.resolve(f.filePrefix + "_request.bin");
+            Path respPath = outDir.resolve(f.filePrefix + "_response.bin");
+            Path jsonPath = outDir.resolve(f.filePrefix + ".json");
+
+            String jsonContent = buildListOffsetsJsonMetadata(f, reqHash, respHash, reqHex, respHex);
+
+            if (verify) {
+                System.out.println("FixtureGenerator: verifying " + f.id + " against existing committed files...");
+                verifyCommitted(f.id, reqPath, respPath, jsonPath, f.requestBytes, f.responseBytes, jsonContent, reqHash, respHash);
+            } else {
+                writeFixtureFiles(reqPath, respPath, jsonPath, f.requestBytes, f.responseBytes, jsonContent, reqHash, respHash);
+            }
+        }
+
+        int total = produceFixtures.size() + fetchFixtures.size() + metadataFixtures.size() + listOffsetsFixtures.size();
         if (verify) {
             System.out.println("FixtureGenerator: VERIFICATION PASSED (all " + total + " fixtures match byte-for-byte)");
         } else {
             System.out.println("FixtureGenerator: SUCCESS (" + total + " fixtures generated: "
-                + produceFixtures.size() + " Produce, " + fetchFixtures.size() + " Fetch, " + metadataFixtures.size() + " Metadata)");
+                + produceFixtures.size() + " Produce, " + fetchFixtures.size() + " Fetch, "
+                + metadataFixtures.size() + " Metadata, " + listOffsetsFixtures.size() + " ListOffsets)");
         }
     }
 
@@ -265,6 +296,24 @@ public class FixtureGenerator {
             }
             System.out.println("OK: resp v" + version + " throttle=" + resp.throttleTimeMs()
                 + " brokers=" + resp.brokers().size() + " topics=" + resp.topics().size());
+        } else if ("list-offsets-req".equals(kind) || "list_offsets_req".equals(kind)) {
+            ListOffsetsRequestData req = new ListOffsetsRequestData();
+            req.read(new ByteBufferAccessor(buf), version);
+            if (buf.hasRemaining()) {
+                System.err.println("FAIL: Leftover bytes in ListOffsetsRequest: " + buf.remaining());
+                System.exit(1);
+            }
+            System.out.println("OK: req v" + version + " replicaId=" + req.replicaId()
+                + " isolation=" + req.isolationLevel() + " topics=" + req.topics().size());
+        } else if ("list-offsets-resp".equals(kind) || "list_offsets_resp".equals(kind)) {
+            ListOffsetsResponseData resp = new ListOffsetsResponseData();
+            resp.read(new ByteBufferAccessor(buf), version);
+            if (buf.hasRemaining()) {
+                System.err.println("FAIL: Leftover bytes in ListOffsetsResponse: " + buf.remaining());
+                System.exit(1);
+            }
+            System.out.println("OK: resp v" + version + " throttle=" + resp.throttleTimeMs()
+                + " topics=" + resp.topics().size());
         } else {
             System.err.println("FAIL: Unknown kind: " + kind);
             System.exit(1);
@@ -1634,6 +1683,318 @@ public class FixtureGenerator {
                 "metadata_v12_id_only",
                 v,
                 "Metadata v12 flexible wire format at highest Apache Kafka 3.9.1 valid version boundary with ID-only describe (null name), unknown tagged fields, and multiple brokers",
+                req, resp
+            ));
+        }
+
+        return list;
+    }
+
+    public static class ListOffsetsFixture {
+        public final String id;
+        public final String filePrefix;
+        public final short version;
+        public final String description;
+        public final ListOffsetsRequestData requestData;
+        public final ListOffsetsResponseData responseData;
+        public final byte[] requestBytes;
+        public final byte[] responseBytes;
+
+        public ListOffsetsFixture(String id, String filePrefix, short version, String description,
+                                  ListOffsetsRequestData requestData, ListOffsetsResponseData responseData,
+                                  byte[] requestBytes, byte[] responseBytes) {
+            this.id = id;
+            this.filePrefix = filePrefix;
+            this.version = version;
+            this.description = description;
+            this.requestData = requestData;
+            this.responseData = responseData;
+            this.requestBytes = requestBytes;
+            this.responseBytes = responseBytes;
+        }
+    }
+
+    private static ListOffsetsFixture createListOffsetsFixture(String id, String filePrefix, short version, String description,
+                                                               ListOffsetsRequestData req, ListOffsetsResponseData resp) {
+        ObjectSerializationCache reqCache = new ObjectSerializationCache();
+        int reqSize = req.size(reqCache, version);
+        ByteBuffer reqBuf = ByteBuffer.allocate(reqSize);
+        req.write(new ByteBufferAccessor(reqBuf), reqCache, version);
+        byte[] reqBytes = reqBuf.array();
+
+        ObjectSerializationCache respCache = new ObjectSerializationCache();
+        int respSize = resp.size(respCache, version);
+        ByteBuffer respBuf = ByteBuffer.allocate(respSize);
+        resp.write(new ByteBufferAccessor(respBuf), respCache, version);
+        byte[] respBytes = respBuf.array();
+
+        return new ListOffsetsFixture(id, filePrefix, version, description, req, resp, reqBytes, respBytes);
+    }
+
+    private static void verifySelfRoundtrip(ListOffsetsFixture f) {
+        ListOffsetsRequestData decodedReq = new ListOffsetsRequestData();
+        decodedReq.read(new ByteBufferAccessor(ByteBuffer.wrap(f.requestBytes)), f.version);
+        if (!decodedReq.equals(f.requestData)) {
+            throw new AssertionError("Self-roundtrip failed on ListOffsetsRequest " + f.id);
+        }
+
+        ListOffsetsResponseData decodedResp = new ListOffsetsResponseData();
+        decodedResp.read(new ByteBufferAccessor(ByteBuffer.wrap(f.responseBytes)), f.version);
+        if (!decodedResp.equals(f.responseData)) {
+            throw new AssertionError("Self-roundtrip failed on ListOffsetsResponse " + f.id);
+        }
+    }
+
+    private static String buildListOffsetsJsonMetadata(ListOffsetsFixture f, String reqHash, String respHash,
+                                                       String reqHex, String respHex) {
+        return "{\n" +
+            "  \"schema_version\": 1,\n" +
+            "  \"fixture_id\": \"" + f.id + "\",\n" +
+            "  \"api\": \"ListOffsets\",\n" +
+            "  \"api_key\": 2,\n" +
+            "  \"api_version\": " + f.version + ",\n" +
+            "  \"pin\": \"" + PIN_VERSION + "\",\n" +
+            "  \"upstream_repo\": \"https://github.com/apache/kafka.git\",\n" +
+            "  \"upstream_sha\": \"" + UPSTREAM_SHA + "\",\n" +
+            "  \"artifact\": \"" + ARTIFACT_VERSION + "\",\n" +
+            "  \"generator\": \"tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java\",\n" +
+            "  \"description\": \"" + f.description + "\",\n" +
+            "  \"request\": {\n" +
+            "    \"file\": \"" + f.filePrefix + "_request.bin\",\n" +
+            "    \"size_bytes\": " + f.requestBytes.length + ",\n" +
+            "    \"sha256\": \"" + reqHash + "\",\n" +
+            "    \"hex\": \"" + reqHex + "\"\n" +
+            "  },\n" +
+            "  \"response\": {\n" +
+            "    \"file\": \"" + f.filePrefix + "_response.bin\",\n" +
+            "    \"size_bytes\": " + f.responseBytes.length + ",\n" +
+            "    \"sha256\": \"" + respHash + "\",\n" +
+            "    \"hex\": \"" + respHex + "\"\n" +
+            "  }\n" +
+            "}\n";
+    }
+
+    public static List<ListOffsetsFixture> createAllListOffsetsFixtures() {
+        List<ListOffsetsFixture> list = new ArrayList<>();
+
+        // 1. ListOffsets v1: classic wire format (oldest spoken) with earliest (-2), latest (-1), explicit timestamp (1710000000000L), partition error (UNKNOWN_TOPIC_OR_PARTITION), and omitted isolationLevel and throttleTimeMs
+        {
+            short v = 1;
+            ListOffsetsRequestData req = new ListOffsetsRequestData().setReplicaId(-1);
+            ListOffsetsTopic t = new ListOffsetsTopic().setName("offsets-v1");
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(0).setTimestamp(-2L));
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(1).setTimestamp(-1L));
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(2).setTimestamp(1710000000000L));
+            req.topics().add(t);
+
+            ListOffsetsResponseData resp = new ListOffsetsResponseData();
+            ListOffsetsTopicResponse tr = new ListOffsetsTopicResponse().setName("offsets-v1");
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(0).setErrorCode((short) 0).setTimestamp(-1L).setOffset(100L));
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(1).setErrorCode((short) 0).setTimestamp(-1L).setOffset(250L));
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(2).setErrorCode((short) 3).setTimestamp(-1L).setOffset(-1L));
+            resp.topics().add(tr);
+
+            list.add(createListOffsetsFixture(
+                "list-offsets-v1-classic",
+                "list_offsets_v1_classic",
+                v,
+                "ListOffsets v1 classic wire format (oldest spoken) with earliest (-2), latest (-1), explicit timestamp (1710000000000L), partition error (UNKNOWN_TOPIC_OR_PARTITION), and omitted isolationLevel and throttleTimeMs",
+                req, resp
+            ));
+        }
+
+        // 2. ListOffsets v2: classic wire format with isolationLevel gate (READ_COMMITTED), throttleTimeMs gate, and NOT_LEADER_OR_FOLLOWER error
+        {
+            short v = 2;
+            ListOffsetsRequestData req = new ListOffsetsRequestData().setReplicaId(-1).setIsolationLevel((byte) 1);
+            ListOffsetsTopic t = new ListOffsetsTopic().setName("offsets-v2");
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(0).setTimestamp(1710000001000L));
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(1).setTimestamp(-1L));
+            req.topics().add(t);
+
+            ListOffsetsResponseData resp = new ListOffsetsResponseData().setThrottleTimeMs(25);
+            ListOffsetsTopicResponse tr = new ListOffsetsTopicResponse().setName("offsets-v2");
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(0).setErrorCode((short) 0).setTimestamp(1710000001000L).setOffset(150L));
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(1).setErrorCode((short) 6).setTimestamp(-1L).setOffset(-1L));
+            resp.topics().add(tr);
+
+            list.add(createListOffsetsFixture(
+                "list-offsets-v2-isolation",
+                "list_offsets_v2_isolation",
+                v,
+                "ListOffsets v2 classic wire format with isolationLevel gate (READ_COMMITTED), throttleTimeMs gate, and NOT_LEADER_OR_FOLLOWER error",
+                req, resp
+            ));
+        }
+
+        // 3. ListOffsets v3: classic wire format with client throttling enabled and READ_UNCOMMITTED isolationLevel
+        {
+            short v = 3;
+            ListOffsetsRequestData req = new ListOffsetsRequestData().setReplicaId(-1).setIsolationLevel((byte) 0);
+            ListOffsetsTopic t = new ListOffsetsTopic().setName("offsets-v3");
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(0).setTimestamp(-1L));
+            req.topics().add(t);
+
+            ListOffsetsResponseData resp = new ListOffsetsResponseData().setThrottleTimeMs(45);
+            ListOffsetsTopicResponse tr = new ListOffsetsTopicResponse().setName("offsets-v3");
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(0).setErrorCode((short) 0).setTimestamp(1710000002000L).setOffset(300L));
+            resp.topics().add(tr);
+
+            list.add(createListOffsetsFixture(
+                "list-offsets-v3-throttle",
+                "list_offsets_v3_throttle",
+                v,
+                "ListOffsets v3 classic wire format with client throttling enabled and READ_UNCOMMITTED isolationLevel",
+                req, resp
+            ));
+        }
+
+        // 4. ListOffsets v4: classic wire format with currentLeaderEpoch gate in request and leaderEpoch gate in response
+        {
+            short v = 4;
+            ListOffsetsRequestData req = new ListOffsetsRequestData().setReplicaId(-1).setIsolationLevel((byte) 1);
+            ListOffsetsTopic t = new ListOffsetsTopic().setName("offsets-v4");
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(0).setCurrentLeaderEpoch(10).setTimestamp(1710000003000L));
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(1).setCurrentLeaderEpoch(-1).setTimestamp(-2L));
+            req.topics().add(t);
+
+            ListOffsetsResponseData resp = new ListOffsetsResponseData().setThrottleTimeMs(60);
+            ListOffsetsTopicResponse tr = new ListOffsetsTopicResponse().setName("offsets-v4");
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(0).setErrorCode((short) 0).setTimestamp(1710000003000L).setOffset(400L).setLeaderEpoch(10));
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(1).setErrorCode((short) 0).setTimestamp(-1L).setOffset(50L).setLeaderEpoch(-1));
+            resp.topics().add(tr);
+
+            list.add(createListOffsetsFixture(
+                "list-offsets-v4-leader-epoch",
+                "list_offsets_v4_leader_epoch",
+                v,
+                "ListOffsets v4 classic wire format with currentLeaderEpoch gate in request and leaderEpoch gate in response",
+                req, resp
+            ));
+        }
+
+        // 5. ListOffsets v5: classic wire format boundary before flexible transition with multiple topics, debugging replicaId, and LEADER_NOT_AVAILABLE error
+        {
+            short v = 5;
+            ListOffsetsRequestData req = new ListOffsetsRequestData().setReplicaId(-2).setIsolationLevel((byte) 0);
+            ListOffsetsTopic t1 = new ListOffsetsTopic().setName("offsets-v5-a");
+            t1.partitions().add(new ListOffsetsPartition().setPartitionIndex(0).setCurrentLeaderEpoch(12).setTimestamp(-1L));
+            ListOffsetsTopic t2 = new ListOffsetsTopic().setName("offsets-v5-b");
+            t2.partitions().add(new ListOffsetsPartition().setPartitionIndex(0).setCurrentLeaderEpoch(8).setTimestamp(-2L));
+            t2.partitions().add(new ListOffsetsPartition().setPartitionIndex(1).setCurrentLeaderEpoch(-1).setTimestamp(1710000004000L));
+            req.topics().add(t1);
+            req.topics().add(t2);
+
+            ListOffsetsResponseData resp = new ListOffsetsResponseData().setThrottleTimeMs(75);
+            ListOffsetsTopicResponse tr1 = new ListOffsetsTopicResponse().setName("offsets-v5-a");
+            tr1.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(0).setErrorCode((short) 0).setTimestamp(-1L).setOffset(500L).setLeaderEpoch(12));
+            ListOffsetsTopicResponse tr2 = new ListOffsetsTopicResponse().setName("offsets-v5-b");
+            tr2.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(0).setErrorCode((short) 0).setTimestamp(-1L).setOffset(0L).setLeaderEpoch(8));
+            tr2.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(1).setErrorCode((short) 5).setTimestamp(-1L).setOffset(-1L).setLeaderEpoch(-1));
+            resp.topics().add(tr1);
+            resp.topics().add(tr2);
+
+            list.add(createListOffsetsFixture(
+                "list-offsets-v5-classic-boundary",
+                "list_offsets_v5_classic_boundary",
+                v,
+                "ListOffsets v5 classic wire format boundary before flexible transition with multiple topics, debugging replicaId, and LEADER_NOT_AVAILABLE error",
+                req, resp
+            ));
+        }
+
+        // 6. ListOffsets v6: flexible wire format boundary with compact encoding and unknown tagged fields on request, topics, and partitions
+        {
+            short v = 6;
+            ListOffsetsRequestData req = new ListOffsetsRequestData().setReplicaId(-1).setIsolationLevel((byte) 1);
+            req.unknownTaggedFields().add(new RawTaggedField(300, new byte[]{(byte) 0xaa, (byte) 0xbb}));
+            ListOffsetsTopic t = new ListOffsetsTopic().setName("offsets-v6-flex");
+            t.unknownTaggedFields().add(new RawTaggedField(200, new byte[]{(byte) 0x03}));
+            ListOffsetsPartition p = new ListOffsetsPartition().setPartitionIndex(0).setCurrentLeaderEpoch(15).setTimestamp(1710000005000L);
+            p.unknownTaggedFields().add(new RawTaggedField(100, new byte[]{(byte) 0x01, (byte) 0x02}));
+            t.partitions().add(p);
+            req.topics().add(t);
+
+            ListOffsetsResponseData resp = new ListOffsetsResponseData().setThrottleTimeMs(80);
+            resp.unknownTaggedFields().add(new RawTaggedField(600, new byte[]{(byte) 0x77, (byte) 0x88}));
+            ListOffsetsTopicResponse tr = new ListOffsetsTopicResponse().setName("offsets-v6-flex");
+            tr.unknownTaggedFields().add(new RawTaggedField(500, new byte[]{(byte) 0x66}));
+            ListOffsetsPartitionResponse pr = new ListOffsetsPartitionResponse().setPartitionIndex(0).setErrorCode((short) 0).setTimestamp(1710000005000L).setOffset(600L).setLeaderEpoch(15);
+            pr.unknownTaggedFields().add(new RawTaggedField(400, new byte[]{(byte) 0x55}));
+            tr.partitions().add(pr);
+            resp.topics().add(tr);
+
+            list.add(createListOffsetsFixture(
+                "list-offsets-v6-flexible",
+                "list_offsets_v6_flexible",
+                v,
+                "ListOffsets v6 flexible wire format boundary with compact encoding and unknown tagged fields on request, topics, and partitions",
+                req, resp
+            ));
+        }
+
+        // 7. ListOffsets v7: flexible wire format with MAX_TIMESTAMP (-3, KIP-734) query and response
+        {
+            short v = 7;
+            ListOffsetsRequestData req = new ListOffsetsRequestData().setReplicaId(-1).setIsolationLevel((byte) 0);
+            ListOffsetsTopic t = new ListOffsetsTopic().setName("offsets-v7-max");
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(0).setCurrentLeaderEpoch(20).setTimestamp(-3L));
+            req.topics().add(t);
+
+            ListOffsetsResponseData resp = new ListOffsetsResponseData().setThrottleTimeMs(90);
+            ListOffsetsTopicResponse tr = new ListOffsetsTopicResponse().setName("offsets-v7-max");
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(0).setErrorCode((short) 0).setTimestamp(1710000006000L).setOffset(700L).setLeaderEpoch(20));
+            resp.topics().add(tr);
+
+            list.add(createListOffsetsFixture(
+                "list-offsets-v7-max-timestamp",
+                "list_offsets_v7_max_timestamp",
+                v,
+                "ListOffsets v7 flexible wire format with MAX_TIMESTAMP (-3, KIP-734) query and response",
+                req, resp
+            ));
+        }
+
+        // 8. ListOffsets v8: flexible wire format with EARLIEST_LOCAL_TIMESTAMP (-4, KIP-405) query and response
+        {
+            short v = 8;
+            ListOffsetsRequestData req = new ListOffsetsRequestData().setReplicaId(-1).setIsolationLevel((byte) 0);
+            ListOffsetsTopic t = new ListOffsetsTopic().setName("offsets-v8-local");
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(0).setCurrentLeaderEpoch(22).setTimestamp(-4L));
+            req.topics().add(t);
+
+            ListOffsetsResponseData resp = new ListOffsetsResponseData().setThrottleTimeMs(95);
+            ListOffsetsTopicResponse tr = new ListOffsetsTopicResponse().setName("offsets-v8-local");
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(0).setErrorCode((short) 0).setTimestamp(-1L).setOffset(800L).setLeaderEpoch(22));
+            resp.topics().add(tr);
+
+            list.add(createListOffsetsFixture(
+                "list-offsets-v8-earliest-local",
+                "list_offsets_v8_earliest_local",
+                v,
+                "ListOffsets v8 flexible wire format with EARLIEST_LOCAL_TIMESTAMP (-4, KIP-405) query and response",
+                req, resp
+            ));
+        }
+
+        // 9. ListOffsets v9: flexible wire format at highest Apache Kafka 3.9.1 valid version boundary with LATEST_TIERED_TIMESTAMP (-5, KIP-1005)
+        {
+            short v = 9;
+            ListOffsetsRequestData req = new ListOffsetsRequestData().setReplicaId(-1).setIsolationLevel((byte) 1);
+            ListOffsetsTopic t = new ListOffsetsTopic().setName("offsets-v9-tiered");
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(0).setCurrentLeaderEpoch(25).setTimestamp(-5L));
+            req.topics().add(t);
+
+            ListOffsetsResponseData resp = new ListOffsetsResponseData().setThrottleTimeMs(100);
+            ListOffsetsTopicResponse tr = new ListOffsetsTopicResponse().setName("offsets-v9-tiered");
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(0).setErrorCode((short) 0).setTimestamp(-1L).setOffset(799L).setLeaderEpoch(25));
+            resp.topics().add(tr);
+
+            list.add(createListOffsetsFixture(
+                "list-offsets-v9-latest-tiered",
+                "list_offsets_v9_latest_tiered",
+                v,
+                "ListOffsets v9 flexible wire format at highest Apache Kafka 3.9.1 valid version boundary with LATEST_TIERED_TIMESTAMP (-5, KIP-1005)",
                 req, resp
             ));
         }

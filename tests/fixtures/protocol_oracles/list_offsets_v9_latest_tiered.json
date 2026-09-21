@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "list-offsets-v9-latest-tiered",
+  "api": "ListOffsets",
+  "api_key": 2,
+  "api_version": 9,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "ListOffsets v9 flexible wire format at highest Apache Kafka 3.9.1 valid version boundary with LATEST_TIERED_TIMESTAMP (-5, KIP-1005)",
+  "request": {
+    "file": "list_offsets_v9_latest_tiered_request.bin",
+    "size_bytes": 44,
+    "sha256": "d39af02290360c09eba97ed0b47ccd2e1e61b405c9fb94c3fd1ab0332da35fe2",
+    "hex": "ffffffff0102126f6666736574732d76392d746965726564020000000000000019fffffffffffffffb000000"
+  },
+  "response": {
+    "file": "list_offsets_v9_latest_tiered_response.bin",
+    "size_bytes": 53,
+    "sha256": "705b5a50d2069ac1e2631b5cff8f413cd24b6370fa4132616f04bb94837d96de",
+    "hex": "0000006402126f6666736574732d76392d74696572656402000000000000ffffffffffffffff000000000000031f00000019000000"
+  }
+}

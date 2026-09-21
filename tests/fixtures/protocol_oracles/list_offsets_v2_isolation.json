@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "list-offsets-v2-isolation",
+  "api": "ListOffsets",
+  "api_key": 2,
+  "api_version": 2,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "ListOffsets v2 classic wire format with isolationLevel gate (READ_COMMITTED), throttleTimeMs gate, and NOT_LEADER_OR_FOLLOWER error",
+  "request": {
+    "file": "list_offsets_v2_isolation_request.bin",
+    "size_bytes": 49,
+    "sha256": "599acf8379b21893b62320766bf9312f8802f43cb99633017807b22dd8c53692",
+    "hex": "ffffffff0100000001000a6f6666736574732d763200000002000000000000018e23f14fe800000001ffffffffffffffff"
+  },
+  "response": {
+    "file": "list_offsets_v2_isolation_response.bin",
+    "size_bytes": 68,
+    "sha256": "3dff4b91b193186764f6d839dc6d33c14aba7b0f5a1e01cb1dfa9ab649352d64",
+    "hex": "0000001900000001000a6f6666736574732d7632000000020000000000000000018e23f14fe80000000000000096000000010006ffffffffffffffffffffffffffffffff"
+  }
+}

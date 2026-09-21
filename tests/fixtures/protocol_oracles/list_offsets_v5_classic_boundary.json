@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "list-offsets-v5-classic-boundary",
+  "api": "ListOffsets",
+  "api_key": 2,
+  "api_version": 5,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "ListOffsets v5 classic wire format boundary before flexible transition with multiple topics, debugging replicaId, and LEADER_NOT_AVAILABLE error",
+  "request": {
+    "file": "list_offsets_v5_classic_boundary_request.bin",
+    "size_bytes": 93,
+    "sha256": "18801bf5bf4b4133f57ea614ed2e92dbb5625657802babada87934bfca64e73a",
+    "hex": "fffffffe0000000002000c6f6666736574732d76352d6100000001000000000000000cffffffffffffffff000c6f6666736574732d76352d62000000020000000000000008fffffffffffffffe00000001ffffffff0000018e23f15ba0"
+  },
+  "response": {
+    "file": "list_offsets_v5_classic_boundary_response.bin",
+    "size_bytes": 122,
+    "sha256": "67b9d46216f9725103a129b047af01292c98a95f7ea663ef1907afe010914574",
+    "hex": "0000004b00000002000c6f6666736574732d76352d6100000001000000000000ffffffffffffffff00000000000001f40000000c000c6f6666736574732d76352d6200000002000000000000ffffffffffffffff000000000000000000000008000000010005ffffffffffffffffffffffffffffffffffffffff"
+  }
+}
