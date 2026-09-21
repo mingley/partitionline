@@ -47,7 +47,9 @@ use partitionline::protocol::header::{
 use partitionline::protocol::records::{
     ControlRecordType, EndTransactionMarker, Record, RecordBatch,
 };
-use partitionline::{Consumer, ConsumerConfig, IsolationLevel, TopicPartition};
+use partitionline::{
+    AutoOffsetReset, Consumer, ConsumerConfig, IsolationLevel, OffsetAndMetadata, TopicPartition,
+};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::oneshot;
@@ -1694,4 +1696,359 @@ async fn fetch_offset_filter_must_not_regress_position_or_lose_later_records() {
 
     consumer.close().await.expect("consumer closes cleanly");
     broker.shutdown().await;
+}
+
+/// Audit defect A04 reproduction / regression test:
+/// When auto.offset.reset is None, OFFSET_OUT_OF_RANGE must return an explicit error
+/// without silently advancing or changing the consumer position.
+#[tokio::test]
+async fn out_of_range_with_reset_none_must_fail_without_advancing() {
+    let mut broker = fetch_fixture::FixtureBroker::start(fetch_fixture::Scenario::OutOfRange).await;
+    let mut consumer = Consumer::new(broker.config().auto_offset_reset(AutoOffsetReset::None))
+        .await
+        .expect("consumer starts successfully");
+
+    consumer
+        .assign("t", 0, 0)
+        .await
+        .expect("assign partition 0 at offset 0");
+
+    let result = consumer.fetch().await;
+    assert!(
+        result.is_err(),
+        "fetch must fail with explicit error when auto.offset.reset is None; positions={:?}",
+        consumer.positions()
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 0)],
+        "positions must remain unchanged after out-of-range error with reset None"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify that with auto.offset.reset=Earliest, OFFSET_OUT_OF_RANGE resolves the leader
+/// log start offset, clears last fetched epoch, and purges pending/abort state.
+#[tokio::test]
+async fn out_of_range_with_reset_earliest_resolves_log_start_and_clears_stale_state() {
+    let last_epoch_sent = Arc::new(AtomicUsize::new(0));
+    let last_epoch_capture = Arc::clone(&last_epoch_sent);
+    let fetch_offset_sent = Arc::new(AtomicUsize::new(0));
+    let fetch_offset_capture = Arc::clone(&fetch_offset_sent);
+
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, move |topics, attempt| {
+            let p = &topics[0].partitions[0];
+            last_epoch_capture.store(
+                if p.last_fetched_epoch < 0 {
+                    999 // sentinel for negative / cleared epoch
+                } else {
+                    p.last_fetched_epoch as usize
+                },
+                Ordering::SeqCst,
+            );
+            fetch_offset_capture.store(p.fetch_offset as usize, Ordering::SeqCst);
+
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    if attempt == 0 {
+                        part.error_code = OFFSET_OUT_OF_RANGE;
+                        part.log_start_offset = 10;
+                        part.high_watermark = 20;
+                        part.last_stable_offset = 20;
+                    } else {
+                        part.high_watermark = 12;
+                        part.last_stable_offset = 12;
+                        part.records = vec![fetch_fixture::data_batch(10, &[b"earliest-10"], None)];
+                    }
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut consumer = Consumer::new(broker.config().auto_offset_reset(AutoOffsetReset::Earliest))
+        .await
+        .expect("consumer starts successfully");
+
+    consumer
+        .assign("t", 0, 0)
+        .await
+        .expect("assign at offset 0");
+    consumer
+        .seek_with_metadata(("t", 0), OffsetAndMetadata::new(0).with_leader_epoch(7))
+        .expect("seek with leader epoch 7");
+
+    // Fetch 1: triggers OFFSET_OUT_OF_RANGE, must jump to log start offset 10 and clear epoch
+    let recs1 = consumer.fetch().await.expect("fetch 1 succeeds via reset");
+    assert!(
+        recs1.is_empty(),
+        "out-of-range fetch should return empty records on reset"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 10)],
+        "position must advance to log start offset 10"
+    );
+
+    // Fetch 2: next fetch must use fetch_offset 10 and cleared last_fetched_epoch (-1 / sentinel 999)
+    let recs2 = consumer.fetch().await.expect("fetch 2 succeeds");
+    assert_eq!(recs2.len(), 1);
+    assert_eq!(recs2[0].offset, 10);
+    assert_eq!(fetch_offset_sent.load(Ordering::SeqCst), 10);
+    assert_eq!(
+        last_epoch_sent.load(Ordering::SeqCst),
+        999,
+        "last fetched epoch must be cleared after out-of-range reset"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify that with auto.offset.reset=Latest, OFFSET_OUT_OF_RANGE resolves the leader
+/// high watermark, clears last fetched epoch, and purges pending/abort state.
+#[tokio::test]
+async fn out_of_range_with_reset_latest_resolves_high_watermark_and_clears_stale_state() {
+    let last_epoch_sent = Arc::new(AtomicUsize::new(0));
+    let last_epoch_capture = Arc::clone(&last_epoch_sent);
+    let fetch_offset_sent = Arc::new(AtomicUsize::new(0));
+    let fetch_offset_capture = Arc::clone(&fetch_offset_sent);
+
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, move |topics, attempt| {
+            let p = &topics[0].partitions[0];
+            last_epoch_capture.store(
+                if p.last_fetched_epoch < 0 {
+                    999
+                } else {
+                    p.last_fetched_epoch as usize
+                },
+                Ordering::SeqCst,
+            );
+            fetch_offset_capture.store(p.fetch_offset as usize, Ordering::SeqCst);
+
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    if attempt == 0 {
+                        part.error_code = OFFSET_OUT_OF_RANGE;
+                        part.log_start_offset = 10;
+                        part.high_watermark = 20;
+                        part.last_stable_offset = 20;
+                    } else {
+                        part.high_watermark = 21;
+                        part.last_stable_offset = 21;
+                        part.records = vec![fetch_fixture::data_batch(20, &[b"latest-20"], None)];
+                    }
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut consumer = Consumer::new(broker.config().auto_offset_reset(AutoOffsetReset::Latest))
+        .await
+        .expect("consumer starts successfully");
+
+    consumer
+        .assign("t", 0, 0)
+        .await
+        .expect("assign at offset 0");
+    consumer
+        .seek_with_metadata(("t", 0), OffsetAndMetadata::new(0).with_leader_epoch(5))
+        .expect("seek with leader epoch 5");
+
+    // Fetch 1: triggers OFFSET_OUT_OF_RANGE, must jump to high watermark 20 (not log start 10)
+    let recs1 = consumer.fetch().await.expect("fetch 1 succeeds via reset");
+    assert!(recs1.is_empty());
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 20)],
+        "position must advance to high watermark 20 for Latest reset"
+    );
+
+    // Fetch 2: next fetch must use fetch_offset 20 and cleared last_fetched_epoch (-1 / sentinel 999)
+    let recs2 = consumer.fetch().await.expect("fetch 2 succeeds");
+    assert_eq!(recs2.len(), 1);
+    assert_eq!(recs2[0].offset, 20);
+    assert_eq!(fetch_offset_sent.load(Ordering::SeqCst), 20);
+    assert_eq!(
+        last_epoch_sent.load(Ordering::SeqCst),
+        999,
+        "last fetched epoch must be cleared after out-of-range reset"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify that when a preferred replica returns OFFSET_OUT_OF_RANGE, the consumer
+/// does not immediately perform a destructive reset, but retries fetching from the leader.
+/// If the leader has the requested offset, records are successfully delivered.
+#[tokio::test]
+async fn out_of_range_preferred_replica_retries_at_leader_before_destructive_reset() {
+    let leader_fetch_count = Arc::new(AtomicUsize::new(0));
+    let leader_fetch_capture = Arc::clone(&leader_fetch_count);
+
+    let mut cluster = spawn_two_node_cluster(
+        0, // Leader is node 0
+        0,
+        vec![0, 1],
+        Some("r0".to_string()),
+        Some("r1".to_string()),
+        move |_topics, _attempt| {
+            let count = leader_fetch_capture.fetch_add(1, Ordering::SeqCst);
+            if count == 0 {
+                // Round 0: Leader redirects to preferred replica 1
+                Some(vec![FetchedTopic {
+                    topic: "t".to_string(),
+                    topic_id: [0u8; 16],
+                    partitions: vec![{
+                        let mut p0 = FetchedPartition::partition_response(0, 0);
+                        p0.preferred_read_replica = 1;
+                        p0
+                    }],
+                }])
+            } else {
+                // Round 2 (after preferred replica failed with out-of-range):
+                // Leader serves the data at requested offset 0
+                Some(vec![FetchedTopic {
+                    topic: "t".to_string(),
+                    topic_id: [0u8; 16],
+                    partitions: vec![{
+                        let mut p0 = FetchedPartition::partition_response(0, 0);
+                        p0.high_watermark = 1;
+                        p0.records = vec![fetch_fixture::data_batch(0, &[b"from-leader"], None)];
+                        p0
+                    }],
+                }])
+            }
+        },
+        |_topics, _attempt| {
+            // Round 1: Preferred replica node 1 returns OFFSET_OUT_OF_RANGE
+            Some(vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut p0 = FetchedPartition::partition_response(0, OFFSET_OUT_OF_RANGE);
+                    p0.log_start_offset = 10;
+                    p0.high_watermark = 20;
+                    p0
+                }],
+            }])
+        },
+    )
+    .await;
+
+    let mut cfg = cluster.config();
+    cfg.rack = Some("r1".to_string());
+    cfg.auto_offset_reset = AutoOffsetReset::Earliest;
+
+    let mut consumer = Consumer::new(cfg).await.expect("consumer starts");
+    consumer
+        .assign("t", 0, 0)
+        .await
+        .expect("assign partition 0 at offset 0");
+
+    let records = consumer.fetch().await.expect("fetch succeeds from leader");
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![0],
+        "must deliver offset 0 from leader instead of resetting to replica log start 10"
+    );
+    assert_eq!(records[0].value.as_deref(), Some(&b"from-leader"[..]));
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 1)],
+        "position must advance to 1"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    cluster.shutdown().await;
+}
+
+/// Verify that when a preferred replica returns OFFSET_OUT_OF_RANGE, and the leader
+/// ALSO returns OFFSET_OUT_OF_RANGE, the reset policy is applied.
+#[tokio::test]
+async fn out_of_range_preferred_replica_resets_if_leader_also_out_of_range() {
+    let leader_fetch_count = Arc::new(AtomicUsize::new(0));
+    let leader_fetch_capture = Arc::clone(&leader_fetch_count);
+
+    let mut cluster = spawn_two_node_cluster(
+        0, // Leader is node 0
+        0,
+        vec![0, 1],
+        Some("r0".to_string()),
+        Some("r1".to_string()),
+        move |_topics, _attempt| {
+            let count = leader_fetch_capture.fetch_add(1, Ordering::SeqCst);
+            if count == 0 {
+                // Round 0: Leader redirects to preferred replica 1
+                Some(vec![FetchedTopic {
+                    topic: "t".to_string(),
+                    topic_id: [0u8; 16],
+                    partitions: vec![{
+                        let mut p0 = FetchedPartition::partition_response(0, 0);
+                        p0.preferred_read_replica = 1;
+                        p0
+                    }],
+                }])
+            } else {
+                // Round 2: Leader also returns OFFSET_OUT_OF_RANGE
+                Some(vec![FetchedTopic {
+                    topic: "t".to_string(),
+                    topic_id: [0u8; 16],
+                    partitions: vec![{
+                        let mut p0 = FetchedPartition::partition_response(0, OFFSET_OUT_OF_RANGE);
+                        p0.log_start_offset = 10;
+                        p0.high_watermark = 20;
+                        p0
+                    }],
+                }])
+            }
+        },
+        |_topics, _attempt| {
+            // Round 1: Preferred replica node 1 returns OFFSET_OUT_OF_RANGE
+            Some(vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut p0 = FetchedPartition::partition_response(0, OFFSET_OUT_OF_RANGE);
+                    p0.log_start_offset = 10;
+                    p0.high_watermark = 20;
+                    p0
+                }],
+            }])
+        },
+    )
+    .await;
+
+    let mut cfg = cluster.config();
+    cfg.rack = Some("r1".to_string());
+    cfg.auto_offset_reset = AutoOffsetReset::Earliest;
+
+    let mut consumer = Consumer::new(cfg).await.expect("consumer starts");
+    consumer
+        .assign("t", 0, 0)
+        .await
+        .expect("assign partition 0 at offset 0");
+
+    let records = consumer.fetch().await.expect("fetch succeeds via reset");
+    assert!(records.is_empty());
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 10)],
+        "position must reset to log start 10 once leader confirms out-of-range"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    cluster.shutdown().await;
 }
