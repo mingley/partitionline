@@ -1,0 +1,54 @@
+{
+  "id": "KL01-01",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+  "commands": [
+    "python3 -m json.tool tests/conformance/cases.json >/dev/null",
+    "python3 -c 'import json; d=json.load(open(\"tests/conformance/cases.json\")); cases=d[\"cases\"]; ids=[c[\"id\"] for c in cases]; assert len(ids)==len(set(ids)); fams={c.get(\"api_family\") for c in cases if c.get(\"api_family\")}; assert {\"Produce\",\"Fetch\",\"Metadata\",\"ListOffsets\"}.issubset(fams); assert all(any(a in cid.lower() for cid in ids) for a in [\"a01\",\"a02\",\"a03\",\"a04\",\"a05\"]); assert all(c[\"disposition\"]!=\"independent_pass\" for c in cases); na=[c for c in cases if c[\"disposition\"]==\"not_applicable\"]; assert na and all(c.get(\"reason\").strip() and not c[\"denominator\"] for c in na); hist={\"3.9.1\",\"4.1.0\"}; target={\"4.1.2\",\"4.2.1\",\"4.3.1\"}; assert {b[\"peer_version\"] for b in d[\"broker_cells\"][\"historical_executed\"]}==hist; assert {b[\"peer_version\"] for b in d[\"broker_cells\"][\"compatibility_targets\"]}==target; print(\"validated\", len(cases), \"cases\")'"
+  ],
+  "results": {
+    "total_cases": 99,
+    "unique_ids": 99,
+    "api_families": ["Produce", "Fetch", "Metadata", "ListOffsets"],
+    "audit_regressions": ["A01", "A02", "A03", "A04", "A05"],
+    "historical_broker_versions": ["3.9.1", "4.1.0"],
+    "target_broker_versions": ["4.1.2", "4.2.1", "4.3.1"],
+    "independent_passes": 0,
+    "disposition_counts": {
+      "blocked": 4,
+      "failed": 5,
+      "local_consistency": 57,
+      "not_applicable": 20,
+      "not_run": 5,
+      "unsupported": 8
+    },
+    "profile_counts": {
+      "admin": 20,
+      "core": 74,
+      "group": 1,
+      "secure": 1,
+      "transactional": 3
+    },
+    "adapter_counts": {
+      "apache-java": 4,
+      "audit-probe": 5,
+      "live-broker": 5,
+      "local-roundtrip": 55,
+      "none": 30
+    },
+    "denominator_cases": 79,
+    "excluded_cases": 20
+  },
+  "artifacts": [
+    "tests/conformance/cases.json",
+    "docs/plan/evidence/KL01-01.json"
+  ],
+  "limits": [
+    "Independent Apache Java differential wire fixtures are not yet generated (deferred to KL01-03+); those cases stay blocked in the denominator.",
+    "Target Apache broker versions (4.1.2, 4.2.1, 4.3.1) are planned compatibility targets, not executed CI cells.",
+    "Historical broker evidence (3.9.1, 4.1.0) reflects Docker smoke executed with the audit's limits, not full independent conformance passes.",
+    "Audit regressions A01-A05 remain open reproduced consumer defects (disposition failed) pending KL03 repair cards."
+  ],
+  "blocked_reason": null
+}
