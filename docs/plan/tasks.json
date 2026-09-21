@@ -131,13 +131,30 @@
     {
       "id": "KL01-05",
       "title": "Add independent Fetch wire fixtures",
-      "priority": "P0", "kind": "conformance", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "conformance", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-03"],
       "files": ["tests/protocol_oracles.rs", "tests/fixtures/protocol_oracles/", "tests/conformance/java/"],
       "deliverable": "Independent Fetch request/response fixtures, including realistic record batches.",
       "acceptance": ["Cover names/topic IDs, flexible fields, session metadata, replica-field transitions, aborted transactions and unknown tags.", "Include complete batches containing records before the requested offset and ABORT/COMMIT marker sequences.", "A valid short final fetch tail is distinguished from malformed complete records."],
       "validation": ["cargo test --locked --test protocol_oracles", "Run the pinned Java comparison for the Fetch fixture family."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "2a27fb15124415966b9c6fb9275c16619d1e5f6c",
+                "commands": [
+                        "cargo test --offline --locked --test protocol_oracles (9 passed, 1 ignored live broker, exit 0)"
+                ],
+                "results": "Committed Apache Fetch fixtures cover v4 classic, v5 log start, v7 session, v11 batches with earlier offsets and control markers, v12 flexible tags, v13 topic IDs, v15 replica state, v16 endpoints, and v17. Rust decodes them offline. A short final tail is distinguished from a malformed record. A field-order mutation fails. The Java comparison test ran rather than skipping.",
+                "artifacts": [
+                        "tests/fixtures/protocol_oracles/fetch_v11_batches_records_response.bin",
+                        "tests/fixtures/protocol_oracles/fetch_v12_flexible_tags_response.bin",
+                        "tests/protocol_oracles.rs",
+                        "docs/plan/evidence/KL01-05.json"
+                ],
+                "limits": [
+                        "Fetch family only. Metadata and ListOffsets independent fixtures remain later cards. Existing matrix tests are still local consistency."
+                ]
+        }
+]
     },
     {
       "id": "KL01-06",
