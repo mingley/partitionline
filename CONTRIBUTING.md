@@ -14,8 +14,23 @@ and [SECURITY.md](SECURITY.md).
 ```
 cargo fmt
 cargo clippy --all-targets --all-features -- -D warnings
-cargo test
+cargo test --all-targets
+cargo test --doc --all-features
+RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --all-features
 ```
+
+Or run the documentation gate directly:
+
+```
+bash scripts/ci-docs.sh              # strict rustdoc (-D warnings) + doctests
+bash scripts/ci-docs.sh --self-test  # verifies broken intra-doc link fails gate
+```
+
+Documentation gate rules: Rustdoc must build with all features with warnings
+denied (`RUSTDOCFLAGS='-D warnings'`). Doctests run in a separate lane
+(`cargo test --doc --all-features`); `cargo test --all-targets` does not
+cover doctests. Suppressing warnings with `allow(rustdoc::...)` or making
+private items public to silence documentation warnings is forbidden.
 
 GitHub Actions: `dev/**` tip pushes do **not** auto-queue CI (org runners were
 starved by perpetual tip `branch-lite` re-queues). Tip gate locally:
