@@ -738,13 +738,31 @@
     {
       "id": "KL03-08",
       "title": "Prove idempotent retry after a lost acknowledgment",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-04", "KL02-06"],
       "files": ["src/producer.rs", "tests/common/mod.rs", "tests/full_surface.rs"],
       "deliverable": "A lost-ack append-then-disconnect regression and the smallest repair it requires.",
       "acceptance": ["The fixture appends before dropping the response; retry uses the proper PID/epoch/sequence and does not append the ID twice.", "Cover one and several in-flight batches on the same partition, plus another progressing partition.", "Never relabel enqueue success as broker acknowledgment; ambiguous expiration remains explicit."],
       "validation": ["cargo test --locked --test full_surface idempotent", "cargo test --locked --test produce_cancel"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "5284358e2e834ba55e3dc149fff3ce5c2f184f15",
+                "commands": [
+                        "cargo test --offline --locked --test full_surface idempotent (9 passed, exit 0)",
+                        "cargo test --offline --locked --test produce_cancel (15 passed, exit 0)"
+                ],
+                "results": "The mock appends a batch before dropping the produce response. Retry of the same PID/epoch/sequence returns the original base offset and does not append the records again. Covered one batch, several in-flight batches, and a second partition that keeps progressing. Delivery-deadline expiration remains Timeout, not a claim of non-delivery.",
+                "artifacts": [
+                        "src/producer.rs",
+                        "tests/common/mod.rs",
+                        "tests/full_surface.rs",
+                        "docs/plan/evidence/KL03-08.json"
+                ],
+                "limits": [
+                        "Mock broker only. A real broker duplicate-sequence response was not exercised."
+                ]
+        }
+]
     },
     {
       "id": "KL03-09",
