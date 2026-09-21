@@ -4104,6 +4104,148 @@ async fn share_group_follows_moved_coordinator() {
 }
 
 #[tokio::test]
+async fn share_broker_heartbeat_interval_scheduling() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    // Mock default for share heartbeat interval is 150ms.
+    assert_eq!(mock.share_heartbeat_interval_ms(), 150);
+
+    // Part 1: Broker returns multi-second heartbeat_interval_ms on join (5000ms).
+    // Client must schedule the next heartbeat at ~5000ms, NOT ~150ms.
+    mock.set_share_heartbeat_interval_ms(5000);
+    assert_eq!(mock.share_heartbeat_interval_ms(), 5000);
+
+    let g = ShareGroup::join(ccfg.clone(), "share-hb-5000", "t")
+        .await
+        .unwrap();
+    // Verify client applied broker interval on join.
+    assert_eq!(g.heartbeat_interval(), Duration::from_millis(5000));
+    let deadline = g
+        .next_heartbeat_deadline()
+        .expect("next heartbeat deadline must be recorded");
+    assert!(
+        deadline >= Instant::now() + Duration::from_millis(4000),
+        "deadline must be scheduled at ~5000ms, not ~150ms"
+    );
+
+    // Initial join consumed 1 heartbeat call.
+    assert_eq!(mock.share_heartbeat_calls(), 1);
+
+    // Wait 250ms (well past the 150ms default).
+    tokio::time::sleep(Duration::from_millis(250)).await;
+
+    // Must NOT have scheduled or sent a heartbeat at ~150ms.
+    assert_eq!(
+        mock.share_heartbeat_calls(),
+        1,
+        "client sent heartbeat at ~150ms despite broker interval of 5000ms"
+    );
+
+    // Leave must promptly end the heartbeat task without waiting for the 5-second deadline.
+    let t_leave = Instant::now();
+    g.leave().await.unwrap();
+    assert!(
+        t_leave.elapsed() < Duration::from_millis(500),
+        "leave must be prompt: {:?}",
+        t_leave.elapsed()
+    );
+
+    // Part 2: A later response that changes the interval is applied.
+    // Start with a short interval (60ms) so the second heartbeat fires quickly.
+    mock.set_share_heartbeat_interval_ms(60);
+    let g2 = ShareGroup::join(ccfg.clone(), "share-hb-change", "t")
+        .await
+        .unwrap();
+    assert_eq!(g2.heartbeat_interval(), Duration::from_millis(60));
+    let initial_calls = mock.share_heartbeat_calls();
+
+    // Configure mock to return 4000ms on the subsequent heartbeat.
+    mock.set_share_heartbeat_interval_ms(4000);
+
+    // Wait for the background heartbeat to fire with the 60ms interval.
+    common::wait_pred("second share heartbeat sent", || {
+        mock.share_heartbeat_calls() > initial_calls
+    })
+    .await;
+
+    // The client must have received the 4000ms interval and applied it.
+    assert_eq!(g2.heartbeat_interval(), Duration::from_millis(4000));
+    let updated_deadline = g2
+        .next_heartbeat_deadline()
+        .expect("updated deadline recorded");
+    assert!(
+        updated_deadline >= Instant::now() + Duration::from_millis(3000),
+        "updated deadline must be ~4000ms out"
+    );
+
+    // In a 200ms window, no third heartbeat should be sent because interval changed to 4000ms.
+    let calls_after_2 = mock.share_heartbeat_calls();
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert_eq!(
+        mock.share_heartbeat_calls(),
+        calls_after_2,
+        "heartbeat must not fire within 200ms when interval changed to 4000ms"
+    );
+    g2.leave().await.unwrap();
+
+    // Part 3: Invalid intervals (<= 0) are rejected or safely classified.
+    // 3a. Invalid interval on join is rejected.
+    mock.set_share_heartbeat_interval_ms(0);
+    let err_zero = ShareGroup::join(ccfg.clone(), "share-invalid-0", "t").await;
+    assert!(
+        err_zero.is_err(),
+        "join response with heartbeat_interval_ms <= 0 must be rejected"
+    );
+
+    mock.set_share_heartbeat_interval_ms(-100);
+    let err_neg = ShareGroup::join(ccfg.clone(), "share-invalid-neg", "t").await;
+    assert!(
+        err_neg.is_err(),
+        "join response with negative heartbeat_interval_ms must be rejected"
+    );
+
+    // 3b. Invalid interval on subsequent response is safely classified, not spun into a hot loop.
+    mock.set_share_heartbeat_interval_ms(50);
+    let mut g3 = ShareGroup::join(ccfg.clone(), "share-invalid-subsequent", "t")
+        .await
+        .unwrap();
+    let calls_before = mock.share_heartbeat_calls();
+    // Broker returns -50 on subsequent heartbeat.
+    mock.set_share_heartbeat_interval_ms(-50);
+    common::wait_pred("second share heartbeat sent", || {
+        mock.share_heartbeat_calls() > calls_before
+    })
+    .await;
+    // Check that it does not spin in a hot loop!
+    let calls_snap = mock.share_heartbeat_calls();
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    let calls_after = mock.share_heartbeat_calls();
+    assert!(
+        calls_after <= calls_snap + 4,
+        "must not spin into a hot loop on invalid interval: {calls_snap} -> {calls_after}"
+    );
+    let poll_res = g3.poll().await;
+    assert!(
+        poll_res.is_err(),
+        "poll should observe classified heartbeat error"
+    );
+    g3.leave().await.unwrap();
+
+    // Part 4: Unsubscribe clears deadline and resets heartbeat interval.
+    mock.set_share_heartbeat_interval_ms(5000);
+    let mut g4 = ShareGroup::join(ccfg.clone(), "share-hb-unsub", "t")
+        .await
+        .unwrap();
+    assert!(g4.next_heartbeat_deadline().is_some());
+    assert_eq!(g4.heartbeat_interval(), Duration::from_millis(5000));
+    g4.unsubscribe().await.unwrap();
+    assert!(g4.next_heartbeat_deadline().is_none());
+    assert_eq!(g4.heartbeat_interval(), Duration::from_millis(150));
+    g4.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn producer_skips_dead_bootstrap() {
     let mock = common::Mock::start().await;
     let dead = common::closed_tcp_addr().await;

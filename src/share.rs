@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use bytes::Bytes;
 use parking_lot::Mutex;
-use tokio::sync::watch;
+use tokio::sync::{watch, Notify};
 
 use crate::consumer::{Consumer, ConsumerConfig};
 use crate::error::{self, Error, Result};
@@ -508,6 +508,9 @@ pub struct ShareGroup {
     hb_epoch: Arc<AtomicI32>,
     /// Pending assignment from the background heartbeat task.
     hb_assignment: Arc<Mutex<Option<Vec<ShareTopicPartitions>>>>,
+    hb_interval_ms: Arc<AtomicI32>,
+    hb_deadline: Arc<Mutex<Option<Instant>>>,
+    hb_wake: Arc<Notify>,
     hb_stop: watch::Sender<bool>,
     fetch_rounds: u64,
     records_fetched: u64,
@@ -623,6 +626,9 @@ impl ShareGroup {
             ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
         ));
         let hb_assignment = Arc::new(Mutex::new(None));
+        let hb_interval_ms = Arc::new(AtomicI32::new(0));
+        let hb_deadline = Arc::new(Mutex::new(None));
+        let hb_wake = Arc::new(Notify::new());
         let (hb_stop, hb_rx) = watch::channel(false);
         let mut g = Self {
             consumer,
@@ -642,6 +648,9 @@ impl ShareGroup {
             hb_err,
             hb_epoch,
             hb_assignment,
+            hb_interval_ms,
+            hb_deadline,
+            hb_wake,
             hb_stop,
             fetch_rounds: 0,
             records_fetched: 0,
@@ -671,6 +680,25 @@ impl ShareGroup {
     #[must_use]
     pub fn group_id(&self) -> &str {
         &self.group_id
+    }
+
+    /// Returns the broker-directed heartbeat interval.
+    #[must_use]
+    pub fn heartbeat_interval(&self) -> Duration {
+        let ms = self.hb_interval_ms.load(Ordering::SeqCst);
+        if ms > 0 {
+            if let Ok(ms_u64) = u64::try_from(ms) {
+                return Duration::from_millis(ms_u64);
+            }
+        }
+        self.cfg.heartbeat_interval
+    }
+
+    /// The recorded next heartbeat deadline computed from the broker interval,
+    /// or `None` if no heartbeat is currently scheduled or the member has left.
+    #[must_use]
+    pub fn next_heartbeat_deadline(&self) -> Option<Instant> {
+        *self.hb_deadline.lock()
     }
 
     /// Subscribed topic names, in join order.
@@ -793,6 +821,19 @@ impl ShareGroup {
             if resp.error_code != 0 {
                 return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat"));
             }
+            if resp.heartbeat_interval_ms <= 0 {
+                return Err(Error::protocol(format!(
+                    "invalid ShareGroupHeartbeat heartbeat_interval_ms: {}",
+                    resp.heartbeat_interval_ms
+                )));
+            }
+            self.hb_interval_ms
+                .store(resp.heartbeat_interval_ms, Ordering::SeqCst);
+            let interval =
+                Duration::from_millis(u64::try_from(resp.heartbeat_interval_ms).unwrap_or(0));
+            let hb_deadline = Instant::now() + interval;
+            *self.hb_deadline.lock() = Some(hb_deadline);
+            self.hb_wake.notify_one();
             if let Some(id) = resp.member_id {
                 if !id.is_empty() {
                     self.member_id = id;
@@ -905,6 +946,19 @@ impl ShareGroup {
             let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
             if resp.error_code != 0 {
                 return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat"));
+            }
+            if resp.heartbeat_interval_ms <= 0 {
+                return Err(Error::protocol(format!(
+                    "invalid ShareGroupHeartbeat heartbeat_interval_ms: {}",
+                    resp.heartbeat_interval_ms
+                )));
+            }
+            if let Ok(ms_u64) = u64::try_from(resp.heartbeat_interval_ms) {
+                self.hb_interval_ms
+                    .store(resp.heartbeat_interval_ms, Ordering::SeqCst);
+                let next_deadline = Instant::now() + Duration::from_millis(ms_u64);
+                *self.hb_deadline.lock() = Some(next_deadline);
+                self.hb_wake.notify_one();
             }
             if let Some(id) = resp.member_id {
                 if !id.is_empty() {
@@ -1217,10 +1271,14 @@ impl ShareGroup {
             self.topic_ids.clear();
             self.share_epochs.clear();
             *self.hb_assignment.lock() = None;
+            *self.hb_deadline.lock() = None;
+            self.hb_interval_ms.store(0, Ordering::SeqCst);
             return Ok(());
         }
         self.topic_match = None;
         self.hb_stop.send(true).unwrap_or(());
+        *self.hb_deadline.lock() = None;
+        self.hb_interval_ms.store(0, Ordering::SeqCst);
         self.close_share_session().await?;
         self.leave_coordinator().await?;
         self.assigned.clear();
@@ -1482,10 +1540,12 @@ impl ShareGroup {
     pub async fn leave(mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
+            *self.hb_deadline.lock() = None;
             self.consumer.close_interceptors();
             return Ok(());
         }
         self.hb_stop.send(true).unwrap_or(());
+        *self.hb_deadline.lock() = None;
         self.close_share_session().await?;
         let out = self.leave_coordinator().await;
         self.consumer.close_interceptors();
@@ -1545,18 +1605,61 @@ impl ShareGroup {
         let hb_err = self.hb_err.clone();
         let hb_epoch = self.hb_epoch.clone();
         let hb_assignment = self.hb_assignment.clone();
+        let hb_interval_ms = self.hb_interval_ms.clone();
+        let hb_deadline = self.hb_deadline.clone();
+        let hb_wake = self.hb_wake.clone();
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
-            let mut tick = tokio::time::interval(Duration::from_millis(150));
+            let init_ms = hb_interval_ms.load(Ordering::SeqCst);
+            let mut current_interval = if let Ok(ms_u64) = u64::try_from(init_ms) {
+                if ms_u64 > 0 {
+                    Duration::from_millis(ms_u64)
+                } else {
+                    cfg.heartbeat_interval.max(Duration::from_millis(1))
+                }
+            } else {
+                cfg.heartbeat_interval.max(Duration::from_millis(1))
+            };
+            // Copy first. parking_lot mutexes are not reentrant, and this task
+            // starts only after join has stored a deadline.
+            let existing_deadline = *hb_deadline.lock();
+            let mut next_hb_deadline = if let Some(d) = existing_deadline {
+                d
+            } else {
+                let d = Instant::now() + current_interval;
+                *hb_deadline.lock() = Some(d);
+                d
+            };
             loop {
+                let now = Instant::now();
+                if let Some(extern_deadline) = *hb_deadline.lock() {
+                    if extern_deadline > now && extern_deadline != next_hb_deadline {
+                        next_hb_deadline = extern_deadline;
+                        let latest_ms = hb_interval_ms.load(Ordering::SeqCst);
+                        if let Ok(ms_u64) = u64::try_from(latest_ms) {
+                            if ms_u64 > 0 {
+                                current_interval = Duration::from_millis(ms_u64);
+                            }
+                        }
+                    }
+                }
+                let wake_deadline = next_hb_deadline;
+                let sleep_duration = wake_deadline.saturating_duration_since(Instant::now());
                 tokio::select! {
-                    _ = stop.changed() => {
-                        if *stop.borrow() {
+                    res = stop.changed() => {
+                        if res.is_err() || *stop.borrow() {
+                            *hb_deadline.lock() = None;
                             break;
                         }
                     }
-                    _ = tick.tick() => {
+                    _ = hb_wake.notified() => {
+                        continue;
+                    }
+                    _ = tokio::time::sleep(sleep_duration) => {
+                        if Instant::now() < next_hb_deadline {
+                            continue;
+                        }
                         if conn
                             .as_ref()
                             .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
@@ -1567,12 +1670,19 @@ impl ShareGroup {
                             conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
                         }
                         let Some(c) = conn.as_mut() else {
+                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                            next_hb_deadline = Instant::now() + retry_delay;
+                            *hb_deadline.lock() = Some(next_hb_deadline);
                             continue;
                         };
                         let epoch = hb_epoch.load(Ordering::SeqCst);
                         let Ok(version) =
                             spoken_share_group_heartbeat(c.share_group_heartbeat_version)
                         else {
+                            conn = None;
+                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                            next_hb_deadline = Instant::now() + retry_delay;
+                            *hb_deadline.lock() = Some(next_hb_deadline);
                             continue;
                         };
                         let req = ShareGroupHeartbeatRequest {
@@ -1598,6 +1708,9 @@ impl ShareGroup {
                                 ) {
                                     if crate::error::coordinator_retriable(resp.error_code) {
                                         conn = None;
+                                        let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                        next_hb_deadline = Instant::now() + retry_delay;
+                                        *hb_deadline.lock() = Some(next_hb_deadline);
                                     } else {
                                         hb_err.store(resp.error_code, Ordering::SeqCst);
                                         if resp.member_epoch > 0 {
@@ -1606,11 +1719,37 @@ impl ShareGroup {
                                         if let Some(assignment) = resp.assignment {
                                             *hb_assignment.lock() = Some(assignment);
                                         }
+                                        if resp.error_code == 0 {
+                                            if resp.heartbeat_interval_ms <= 0 {
+                                                hb_err.store(error::INVALID_REQUEST, Ordering::SeqCst);
+                                                next_hb_deadline = Instant::now() + current_interval;
+                                                *hb_deadline.lock() = Some(next_hb_deadline);
+                                            } else if let Ok(ms_u64) = u64::try_from(resp.heartbeat_interval_ms) {
+                                                current_interval = Duration::from_millis(ms_u64);
+                                                hb_interval_ms.store(resp.heartbeat_interval_ms, Ordering::SeqCst);
+                                                next_hb_deadline = Instant::now() + current_interval;
+                                                *hb_deadline.lock() = Some(next_hb_deadline);
+                                            } else {
+                                                next_hb_deadline = Instant::now() + current_interval;
+                                                *hb_deadline.lock() = Some(next_hb_deadline);
+                                            }
+                                        } else {
+                                            next_hb_deadline = Instant::now() + current_interval;
+                                            *hb_deadline.lock() = Some(next_hb_deadline);
+                                        }
                                     }
+                                } else {
+                                    conn = None;
+                                    let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                    next_hb_deadline = Instant::now() + retry_delay;
+                                    *hb_deadline.lock() = Some(next_hb_deadline);
                                 }
                             }
                             Err(_) => {
                                 conn = None;
+                                let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                next_hb_deadline = Instant::now() + retry_delay;
+                                *hb_deadline.lock() = Some(next_hb_deadline);
                             }
                         }
                     }

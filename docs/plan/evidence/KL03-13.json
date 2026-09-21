@@ -1,0 +1,40 @@
+{
+  "id": "KL03-13",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "e0ac7ffa23b470b3e54c1229762acd2f295ac67d",
+  "commands": [
+    "cargo test --offline --locked --test full_surface share (exit 0)",
+    "cargo test --offline --locked --test full_surface share_broker_heartbeat_interval_scheduling (exit 0)",
+    "rustfmt --edition 2021 src/share.rs tests/full_surface.rs tests/common/mod.rs (exit 0)",
+    "cargo clippy --offline --locked --lib --test full_surface -- -D warnings (exit 0)"
+  ],
+  "results": {
+    "suite": "full_surface (filtered by share)",
+    "total_tests": 25,
+    "passed": 25,
+    "failed": 0,
+    "ignored": 0,
+    "new_test": {
+      "name": "share_broker_heartbeat_interval_scheduling",
+      "asserts": [
+        "Broker-directed multi-second interval (5000ms) on join schedules next share-protocol heartbeat at ~5000ms deadline, proving client no longer defaults to a 150ms loop",
+        "Subsequent broker response changing interval (60ms to 4000ms) is applied dynamically and moves next heartbeat deadline to ~4000ms",
+        "Invalid intervals (<= 0) on join are rejected with Error::Protocol",
+        "Invalid intervals (<= 0) on subsequent responses are safely classified into hb_err without spinning in a hot loop",
+        "Prompt leave/close cancels heartbeat task immediately (< 500ms) without waiting for 5000ms interval",
+        "Unsubscribe clears deadline and resets heartbeat interval to configuration default"
+      ]
+    }
+  },
+  "artifacts": [
+    "src/share.rs",
+    "tests/common/mod.rs",
+    "tests/full_surface.rs",
+    "docs/plan/evidence/KL03-13.json"
+  ],
+  "limits": [
+    "In-memory mock broker test; live multi-broker cluster was not exercised."
+  ],
+  "blocked_reason": null
+}
