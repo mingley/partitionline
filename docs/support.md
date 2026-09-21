@@ -8,12 +8,19 @@ Suite HOLD.
 For API churn rules see [api-stability.md](api-stability.md). For how cuts are
 published see [RELEASE.md](RELEASE.md). For adopter steps see [ADOPTION.md](ADOPTION.md).
 
+**Known qualification limits:** the [2026-09-21 source audit](audits/2026-09-21.md)
+reproduced five consumer correctness cases at `cb7e97d`. CI-backed below means
+the named lanes execute, not that all client semantics are correct.
+Apache 4.1.2/4.2.1/4.3.1 are planned compatibility targets, not covered by the
+existing 3.9.1/4.1.0 matrix. Follow [the task queue](plan/README.md) for repairs
+and evidence before extending support claims.
+
 ## Supported (CI-backed)
 
 | Dimension | Supported now | Evidence |
 |---|---|---|
 | Crate version | `0.1.0` on crates.io | Installable; do not re-cut `0.1.0` |
-| MSRV | Rust **1.85** (`rust-version` in `Cargo.toml`) | `cargo` CI on stable; raising MSRV is a 0.x minor + CHANGELOG note |
+| MSRV | Rust **1.85** (`rust-version` in `Cargo.toml`) | `test (1.85)` and `test (stable)` CI; raising MSRV is a 0.x minor + CHANGELOG note |
 | Host OS (CI) | Linux (GitHub Actions `ubuntu-latest`) | `.github/workflows/ci.yml` |
 | Host arch (CI) | `x86_64` | Actions runners |
 | Brokers | Apache Kafka **3.9.1** and **4.1.0** (`apache/kafka:3.9.1`, `apache/kafka:4.1.0`) | `broker-smoke` matrix (`KAFKA_IMAGE`) |

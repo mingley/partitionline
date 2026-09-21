@@ -1,10 +1,17 @@
 # Civilization plan for partitionline
 
-**North star:** Critical event infrastructure can run on a memory-safe Kafka
-client with no C and no librdkafka — auditable, fast, and boring to operate.
+**Historical foundation plan.** Current execution is
+[one task per session](plan/README.md), with status/dependencies in
+[tasks.json](plan/tasks.json) and profile gates in [ROADMAP.md](ROADMAP.md).
+The [2026-09-21 audit](audits/2026-09-21.md) supersedes broad completion
+inferences from this file's capability checklist.
 
-This file is the execution plan. Agents should pick **Work packages** in
-order unless a later package is unblocked and higher leverage. Do not lift
+**North star:** Critical event infrastructure can run on a memory-safe Kafka
+client without librdkafka or C protocol code, auditable and efficient to operate.
+TLS uses rustls/ring, whose build includes native code.
+
+The older WP packages below preserve foundation history; do not pick them
+as new session assignments. Do not lift
 Suite HOLD claims in `STATUS.md` / `benchmark.md` without signed Lab A
 evidence. Do not add librdkafka, OpenSSL, libzstd, or Cyrus SASL as default
 dependencies. `unsafe_code` stays forbidden.
@@ -36,11 +43,11 @@ client something operators and ecosystems can trust and adopt**.
 5. Schema Registry stays out of this crate’s default surface (`gaps.md`); a
    companion crate is allowed later.
 
-## Current baseline (do not re-litigate)
+## Historical capability baseline (not qualification)
 
 | Area | State |
 |---|---|
-| Produce / fetch / groups / EOS / admin / share | **done** vs librdkafka inventory in `gaps.md` |
+| Produce / fetch / groups / EOS / admin / share | Implemented surfaces in `gaps.md`; known correctness/evidence gaps are tracked in the current audit and task queue |
 | TLS (rustls), SCRAM, OAUTHBEARER/OIDC | **done** |
 | gzip / snappy / lz4 | **done**; zstd / Kerberos blocked on C |
 | Mock protocol tests | large (`tests/full_surface.rs`, `client_api.rs`); mock e2e in `#80` |
@@ -61,8 +68,9 @@ P4 Protocol debt   → only holes that block real deployments (STATUS named hole
 P5 Stewardship     → release cadence, issue hygiene, agent-safe contribution rules
 ```
 
-Agents: complete acceptance checks before marking a work package done. Update
-this file’s **Progress** section in the same PR.
+For new work, complete one task card's acceptance checks and record its
+evidence in the canonical queue. The legacy progress section is not the
+current task-status authority.
 
 ---
 

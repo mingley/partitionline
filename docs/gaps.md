@@ -3,6 +3,13 @@
 This is the tracker for **full client parity with librdkafka**. It is not a
 promise that every row ships in the next commit. Status is the contract:
 
+**Audit qualification:** the inventory's **done** label means an API is
+implemented, not that independent conformance or production qualification is
+complete. The [2026-09-21 audit](audits/2026-09-21.md) reproduces five consumer
+defects and separates codec helpers from runtime support. Use
+[the small-session queue](plan/README.md) for repairs and major-feature
+completion; do not infer an all-features/all-versions pass from this table.
+
 | Status | Meaning |
 |---|---|
 | **done** | Callers can use it in this crate today |

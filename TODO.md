@@ -1,4 +1,78 @@
-# Execution queue
+# Next-session queue
+
+**Default next task: `KL03-01` -- promote the deterministic consumer fixture.**
+
+Use [one task per session](docs/plan/README.md). The canonical
+[task registry](docs/plan/tasks.json) contains dependencies, starting files,
+one deliverable, acceptance criteria, focused checks, owner and evidence for
+each card. Claim **one ready ID**, complete it, record the result, and stop.
+Do not take an entire KL package as one assignment.
+
+The [2026-09-21 source audit](docs/audits/2026-09-21.md) is frozen at `cb7e97d`.
+Exact-source CI is green, but five additional consumer probes fail.
+The probes are retained for reuse; the planning change does not repair the
+client. Installable is met. **Suite HOLD remains.**
+
+## First implementation chain
+
+Each row is a separate session/PR-sized deliverable. The registry is the
+authority for current readiness and completion, not this printed order.
+
+| Order | Task | Observable result |
+|---|---|---|
+| 1 | `KL03-01` | A reusable bounded wire fixture; no mock pre-filtering that hides client bugs |
+| 2 | `KL03-02` | A successful partition's records survive a neighboring partition retry |
+| 3 | `KL03-03` | A committed transaction after an abort under the same PID remains visible |
+| 4 | `KL03-04` | Seeking inside a whole fetched batch does not return earlier offsets |
+| 5 | `KL03-05` | Out-of-range handling obeys Earliest/Latest/None |
+| 6 | `KL03-06` | A capped poll followed by `commit()` cannot skip undelivered buffered records |
+| 7 | `KL03-07` | Interval auto-commit does not commit the batch about to be returned |
+
+Do not edit `src/consumer.rs` concurrently across these cards.
+
+## Independent initial pickups
+
+These have no task dependencies at the initial plan snapshot. Check ownership
+and the ready-task query before starting; they are alternatives for separate
+sessions, not a bundle to finish together.
+
+| Task | Small deliverable |
+|---|---|
+| `KL07-01` | Fix the one private-link strict-rustdoc failure |
+| `KL08-01` | Make the release check reject a green non-CI workflow when CI is missing |
+| `KL01-01` | Create the versioned conformance case/provenance registry |
+| `KL02-01` | Define byte ownership and completed/failed/ambiguous outcome budgets |
+| `KL04-01` | Freeze equal-semantics benchmark scenarios, measurements and claim rules |
+| `KL05-01` | Define the finite major-feature/profile completion matrix |
+| `KL03-12` | Use the broker-provided KIP-848 heartbeat interval |
+| `KL03-13` | Use the broker-provided share heartbeat interval |
+
+## After the first repairs
+
+Follow the dependency graph, not a new open-ended audit:
+
+| Lane | Next outcomes |
+|---|---|
+| `KL01-*` | Independent Java fixtures, fail-closed case reports, upstream adapters, current broker cells and sustained fuzz evidence |
+| `KL02-*` | Retained/decoded-byte bounds, terminal ownership, deadlines and a controlled overload record |
+| `KL03-*` | Lost-ack/epoch/fencing behavior, group/share ownership and separate three-broker crash histories |
+| `KL04-*` | Pinned peer drivers, open-loop load, ID/payload verification, raw artifacts, x86_64/arm64 runs and independent reproduction |
+| `KL05-*` | zstd decode/encode, incremental Fetch, quota handling, sticky partitioning, current API deltas, full-admin and companion-format cards |
+| `KL06-*` | OIDC expiry/refresh, SASL reauth, TLS rotation, redaction and explicitly approved opt-in GSSAPI |
+| `KL07-*` | Strict docs, actual snippet checks, tutorial/recipes, migration, bounded diagnostics and newcomer exercises |
+| `KL08-*` | Exact required-CI gates, one publisher, package/platform checks, separate adopter runs and operator-controlled rollback |
+
+All new cards begin **pending/unassigned**. Future validation commands are
+acceptance criteria, not completed evidence. A harness, example result,
+unsigned benchmark or published crate does not close a package/profile.
+No release, deployment, paid host, external message or destructive operation
+is authorized merely by a task card.
+
+<details>
+<summary>Historical 2026-09-05 handoff (superseded as an execution queue)</summary>
+
+The following records preserve already-landed slices and the old handoff.
+Do not select its broad packages or first-PR ordering as current tasks.
 
 The [Kafka leadership plan](docs/ROADMAP.md) defines scope, dependencies and
 acceptance criteria. Michael Ingley coordinates; implementers and independent
@@ -74,3 +148,5 @@ are only starting points.
 
 Review proposed scorecard thresholds before each exercise. Do not silently move
 the bar, infer missing evidence from old notes, or hide failed matrix cells.
+
+</details>

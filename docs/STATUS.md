@@ -2,6 +2,13 @@
 
 Suite HOLD stands. This file records holes. It does not lift them.
 
+**Latest source audit (2026-09-21):** at `cb7e97d`, exact-source CI is green,
+but five deterministic consumer semantics cases and a strict-rustdoc check
+fail. See the [audit and retained probes](audits/2026-09-21.md). Current
+execution is [one task per session](plan/README.md); task status lives in
+[tasks.json](plan/tasks.json). The dated entries below are historical evidence,
+not a replacement for the current source audit or a complete-profile signoff.
+
 | Hole | Status |
 |---|---|
 | Fetch writeup | **Recorded** 2026-08-28 on this-VM (Apache Kafka 3.9.1 KRaft + rust-rdkafka 0.39.0). **Unsigned** until Kernel Integrity signs. Not Lab A. Not a signed vs-C win. |
@@ -188,4 +195,3 @@ This file tracks holes and unsigned samples. It does not lift Suite HOLD.
 Integrity harnesses (`scripts/lab-a-integrity.sh`, `lab-a-produce.sh`,
 `lab-a-fetch.sh`) and the relative latency gate are **unsigned** evidence only.
 Numbers and reproduce steps: [benchmark.md](benchmark.md).
-

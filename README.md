@@ -13,6 +13,11 @@ partitionline = "0.1"
 
 **Status:** partitionline 0.1.0 is on [crates.io](https://crates.io/crates/partitionline) (`partitionline = "0.1"`). Probe: `bash scripts/check-installable.sh`.
 
+**Qualification:** installable is not production-qualified. The
+[2026-09-21 source audit](docs/audits/2026-09-21.md) reproduced five unresolved
+consumer correctness cases. The [small-session plan](docs/plan/README.md)
+prioritizes those repairs before broader compatibility and performance claims.
+
 ## Produce
 
 ```rust,no_run
@@ -163,7 +168,10 @@ Adoption / pilot checklist: [docs/ADOPTION.md](docs/ADOPTION.md).
 Capability list vs librdkafka: [docs/gaps.md](docs/gaps.md).
 Security: [docs/security.md](docs/security.md).
 Release policy: [docs/RELEASE.md](docs/RELEASE.md).
-Roadmap & execution: [docs/CIVILIZATION.md](docs/CIVILIZATION.md) and [docs/ROADMAP.md](docs/ROADMAP.md).
+Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
+Pick one implementation task: [session guide](docs/plan/README.md) /
+[TODO.md](TODO.md). [CIVILIZATION.md](docs/CIVILIZATION.md) preserves the
+historical foundation plan.
 
 **Not a drop-in for `rd_kafka_*`.** zstd and Kerberos/GSSAPI remain gaps;
 Schema Registry is a separate [companion design](docs/schema-companion.md),

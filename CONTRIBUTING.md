@@ -2,8 +2,12 @@
 
 This project is MIT OR Apache-2.0. Patches are under the same licenses unless you say otherwise.
 
-Execution plan (what to build next, constraints, acceptance checks):
-[docs/CIVILIZATION.md](docs/CIVILIZATION.md). Capability tracker: [docs/gaps.md](docs/gaps.md).
+Execution starts with [one task per session](docs/plan/README.md):
+claim one ready card in [tasks.json](docs/plan/tasks.json), run its focused
+checks, record evidence and stop. [TODO.md](TODO.md) gives the first pickups;
+[ROADMAP.md](docs/ROADMAP.md) defines package/profile gates. The
+[source audit](docs/audits/2026-09-21.md) supplies verified starting evidence.
+Capability tracker: [docs/gaps.md](docs/gaps.md).
 Release / semver: [docs/RELEASE.md](docs/RELEASE.md). Security: [docs/security.md](docs/security.md)
 and [SECURITY.md](SECURITY.md).
 

@@ -6,55 +6,57 @@ semantics, and straightforward to operate. "Best" must mean a reproducible
 result for a named workload, not a universal claim.
 
 This is an execution plan, not a certification or permission to deploy.
-[TODO.md](../TODO.md) tracks the work. Numerical targets below are **proposed**,
-not achieved guarantees. Michael Ingley is the coordinating maintainer and
-scope/signoff DRI; implementers and independent reviewers are unassigned.
+**Implementation starts at [one task per session](plan/README.md).**
+[tasks.json](plan/tasks.json) is the canonical queue: narrow deliverables,
+dependencies, starting files, acceptance criteria and focused checks.
+[TODO.md](../TODO.md) is its short launch order, not a second status database.
+The KL packages below define scope and closing gates, **not session-sized
+assignments**.
 
-## 1. Resume from evidence, not from assumed completion
+Numerical targets below are **proposed**, not achieved guarantees. Michael
+Ingley is the coordinating maintainer and scope/signoff DRI; task owners and
+independent reviewers remain unassigned until actually claimed.
 
-Baseline: [54020e2](https://github.com/mingley/partitionline/tree/54020e2f9e695b6d1c817cc80ec9e99e4e171df9),
-reviewed 2026-09-04. Earlier work stopped mid-flight, leaving code and notes
-frozen. Reconcile [STATUS.md](STATUS.md), [CIVILIZATION.md](CIVILIZATION.md),
-[gaps.md](gaps.md) and the current source before carrying forward a "done" label.
-Distinguish shipped behavior, draft proposals, test coverage and actual results.
-An interrupted handoff does not mean every component is broken.
+## 1. Current audited baseline
+
+Baseline: [cb7e97d](https://github.com/mingley/partitionline/tree/cb7e97d3b92a8555aea34d59266a2990c206395f),
+audited **2026-09-21**. Read the [source audit](audits/2026-09-21.md) for
+frozen source locations, upstream pins, reproduced failures and coverage limits.
+The exact-SHA [CI run 33948193731](https://github.com/mingley/partitionline/actions/runs/33948193731)
+has 14 successful jobs, with actual broker identities checked. Existing CI
+is useful and green; it does not exercise every required behavior.
+
+Five deterministic consumer cases fail: whole-batch seek filtering,
+committed records after an earlier abort under the same PID, preserving
+successful partitions across a partial retry, `auto.offset.reset=None`, and
+committing after a capped poll. Fix these through **KL03-01 through KL03-07**
+before broadening delivery/transaction claims. The strict rustdoc build also
+fails on a private OIDC link (**KL07-01**), and the exact-SHA release probe
+can fall back to a non-CI workflow (**KL08-01**).
+
+The 2026-09-04 `54020e2` formatting/nested-latency failure is historical.
+Incoming fixes through `0146b98`, plus the 2026-09-05 broker identity,
+timeout portability, cancellation, buffer-counter, auth and release slices,
+are already present. Do not schedule their original implementation again.
+Controlled-host qualification and stronger behavioral evidence remain open.
 
 **Honesty bar:** crates.io `0.1.0` is already Installable, with adopter pins and
 the post-cut work on `main`. **Suite HOLD remains** until signed Lab A evidence.
 Unsigned Verifiable/latency samples do not lift it; see
 [CIVILIZATION.md](CIVILIZATION.md) and [STATUS.md](STATUS.md).
 
-One concrete baseline failure is
-[CI run 33938039612](https://github.com/mingley/partitionline/actions/runs/33938039612):
-`fmt` rejected import ordering/spacing in `tests/fuzz_decode_smoke.rs`.
-The `integrity-smoke` job's count checks passed (`acked=2000`,
-`hw_delta=2000`, `consumed=2000`), then its latency gate failed:
-produce-ack p99 was **1,344 us**, above the **750 us** ceiling (500 us baseline
-plus 50% slack). This is not evidence of data loss, nor do matching counts alone
-prove exactly-once behavior. The latency failure's cause is not established.
-
-The run started native Kafka 4.1.0; a Docker 3.9.1 attempt conflicted on port
-9092 before falling back to native tools. Record the broker actually exercised,
-not just the requested image. The separate CI latency job has a different
-absolute ceiling; reconcile those policies rather than blindly relaxing either.
-Release-plz succeeded independently, so publication is not evidence of green CI.
-
-**Integration update:** incoming `main` through `0146b98` was preserved when
-landing this plan. It includes the
-[formatting and CI-policy repair](https://github.com/mingley/partitionline/commit/e38e5ce):
-the nested latency gate is now skipped in the integrity CI job while the
-dedicated latency job remains. Do not schedule those source fixes again.
-Controlled-host latency qualification and verification of current required lanes
-remain work; the old failing run is historical evidence, not a claim that the
-same jobs still fail at the integrated HEAD.
+Current upstream targets are also explicit: on the audit date Apache lists
+4.1.2, 4.2.1 and 4.3.1 as supported releases. Existing 3.9.1/4.1.0 smoke
+does not establish those cells. The audit pins each source revision; KL01-10
+adds the new evidence rather than changing the support promise by prose alone.
 
 | Area | Existing evidence and source | Qualification gap |
 |---|---|---|
 | Package and dependency boundary | [Cargo.toml](../Cargo.toml): published `partitionline` 0.1.0, Rust 1.85 declaration, MIT OR Apache-2.0. Client code forbids unsafe; no librdkafka dependency. TLS uses `rustls`/`ring`, including native compilation via `cc`. | Published/installable does not mean production-qualified. Do not claim the full build has no C dependencies. |
-| Producer, consumer and protocol | [producer](../src/producer.rs), [consumer](../src/consumer.rs), [protocol](../src/protocol), [mock tests](../tests/full_surface.rs): routing, negotiated versions, batching, retries, idempotence and transactions. | Version support needs per-API evidence; mock agreement is not an independent broker oracle. |
+| Producer, consumer and protocol | [producer](../src/producer.rs), [consumer](../src/consumer.rs), [protocol](../src/protocol), [mock tests](../tests/full_surface.rs): routing, negotiated versions, batching, retries, idempotence and transactions. | Five reproduced consumer defects; per-API and mixed-version evidence still needed. Mock agreement is not an independent broker oracle. |
 | Group and share APIs | [group](../src/group.rs), [share](../src/share.rs), [broker smoke](../scripts/ci-broker-smoke.sh): classic/cooperative, KIP-848 and share-group paths. | Existing 3.9.1/4.1.0 CI smoke is not multi-broker chaos. Check executed cases and capability gates; an ignored live test is not covered by default `cargo test`. |
-| Build and safety CI | [CI](../.github/workflows/ci.yml) already includes Rust 1.85/stable, features, package, audit/deny, short fuzz, broker and auth lanes. | Repair failures and verify required lanes cannot silently skip/fallback to a different advertised matrix cell. Extend existing lanes instead of creating duplicates. |
-| Codecs and ecosystem | [zstd spike](zstd-spike.md), [schema companion](schema-companion.md): gzip/snappy/LZ4 exist; zstd is not implemented; Schema Registry is a companion design. | Evaluate zstd decoding and encoding separately. Do not assume `ruzstd` supplies a compressor Keep zstd **out of defaults** (`docs/zstd-spike.md`); treat opt-in C (`zstd-sys`) only if survey #85 demands it — never as a default-feature P0. or that a companion proposal is a published crate. |
+| Build and safety CI | [CI](../.github/workflows/ci.yml) already includes Rust 1.85/stable, features, package, audit/deny, short fuzz, broker and auth lanes; the audited run is green. | Add strict rustdoc/doctests, independent case reports and exact required-lane release checks. Extend existing lanes instead of creating duplicates. |
+| Codecs and ecosystem | [zstd spike](zstd-spike.md), [schema companion](schema-companion.md): gzip/snappy/LZ4 exist; zstd is absent; `partitionline-schema` is an unpublished framing scaffold. | Evaluate zstd decoding and encoding separately. Backend/dependency approval precedes implementation; keep native compression out of defaults. A scaffold or decoder alone is not complete ecosystem/codec support. |
 | Performance | [benchmark.md](benchmark.md) separates locked Lab A produce results from unsigned this-VM fetch/latency results. Recorded produce latency was 62/95 us p50/p99 versus rust-rdkafka 58/90 us. | No universal speed claim. Preserve Suite HOLD and its signoff rules; do not combine different hosts/configurations into one victory. |
 | Operations | [metrics](../src/metrics.rs), optional `tracing`, [security policy](security.md), [adoption checklist](ADOPTION.md) already exist. | Prove diagnostic usefulness, redaction, auth rotation, recovery and operator-driven rollback on a defined profile. |
 
@@ -65,12 +67,26 @@ same jobs still fail at the integrated HEAD.
 | Bounded producer/consumer deployment | KL-01/02, applicable leader-recovery cases in KL-03, transport/security in KL-06, diagnostics in KL-07, baseline measurements in KL-04 and release/adoption in KL-08. | zstd, Schema Registry, Kerberos, every Kafka API or a benchmark victory. |
 | Transactional processing | Above plus KL-03 crash histories, fencing, aborted-record visibility and atomic output/offset proofs. | Exactly-once external side effects without application cooperation. |
 | Dynamic group or share-group deployment | Above plus the corresponding KL-03 broker-version/churn/lock-recovery matrix. | Treating a classic-group success as evidence for KIP-848 or share semantics. |
-| Wider ecosystem support | KL-05 and explicit demand-driven designs for missing capabilities. | Cloning the librdkafka API or adding codec/schema/exporter dependencies to the default graph without a decision. |
+| Core feature-complete client | Applicable correctness gates plus all major producer/consumer/group/transaction/common-admin features, all five Kafka codecs, incremental Fetch, quota behavior and supported current broker lines. | Calling implemented helpers or lower-version fallback proof of an unimplemented feature. |
+| Enterprise/full-admin extensions | Corresponding KL-05/06 cards: opt-in GSSAPI lifecycle, secure rotation, client-facing quorum/election/log-dir operations and explicit platform support. | Broker-internal replication APIs, a C ABI, or native compression/SASL in defaults without approval. |
+| Wider ecosystem support | Companion Registry lookup/cache and independent Avro/Protobuf/JSON Schema adapters in KL-05. | Schema Registry being an Apache Kafka wire requirement, Streams/Connect, or adding companion dependencies to the core runtime. |
 
 Production qualification is profile-specific. Semver 1.0 additionally requires
 a stable API, supported-version/MSRV policy and a maintenance commitment.
 It does not require every optional feature or lifting a performance claim HOLD.
 Keep [api-stability.md](api-stability.md) and the support matrix authoritative.
+
+The complete-client goal cannot be closed by permanently relabeling missing
+major features as demand-gated. A narrower deployment can qualify without
+them, but its exclusions must be named. If a dependency-policy decision blocks
+zstd or GSSAPI, the corresponding complete profile remains blocked.
+
+There is no single portable Kafka certification runner or Apache performance
+threshold in the inspected upstream evidence. KL01 maps pinned protocol JSON,
+Java behavioral tests, Apache system scenarios and applicable librdkafka
+regressions to explicit case dispositions. Performance gates below are
+repository goals, not OSS standards. See the audit's
+[standards boundary](audits/2026-09-21.md#standards-and-upstream-evidence-boundary).
 
 ## 3. Scorecard
 
@@ -92,15 +108,18 @@ them retrospectively merely to make a failing result green.
 Each package may require several small PRs. Existing commands below are
 building blocks, **not proof that new acceptance criteria already pass**.
 New harnesses must be added and wired into CI before their package can close.
+Use the corresponding `KL01-*` through `KL08-*` cards in
+[tasks.json](plan/tasks.json); do not assign an entire numbered package to
+one implementation session.
 
 ### KL-01: Recover the baseline and establish protocol oracles
 
 **Priority:** P0. **Depends on:** none.
 
-1. Reconcile frozen notes with HEAD and name an owner for every unfinished
-   item. Confirm the incoming formatting/CI-policy repairs, reproduce relevant
-   latency configurations on controlled hardware, and distinguish harness noise
-   from a client regression. Preserve integrity checks and historical failures.
+1. Keep the audited baseline and current case registry honest. Name an owner
+   for a single ready card, preserve already-landed recovery work, and map
+   every required upstream case to evidence. Separate harness noise from a
+   client regression; retain historical failures rather than overwriting them.
    **Partial (2026-09-05):** shared-runner vs local-native vs controlled-host
    budgets recorded in [latency-ci-policy.json](latency-ci-policy.json);
    nested 1,344/750 µs miss is historical (`SKIP_LATENCY_GATE` on integrity).
@@ -117,10 +136,12 @@ New harnesses must be added and wired into CI before their package can close.
    Kafka Java clients/brokers 3.9.1 and 4.1.0; expand by API coverage and user
    demand. Compare decoded semantics and required fields, not arbitrary byte
    ordering, client IDs or correlation IDs.
-   **Partial (2026-09-05):** `tests/protocol_oracles.rs` plus
-   `scripts/ci-protocol-oracles.sh` compare decoded required fields for
-   Produce/Fetch/Metadata/ListOffsets against fixture pins 3.9.1 and 4.1.0;
-   live broker optional via `REQUIRE_BROKER=1`. Does not close KL-01.
+   **Partial (2026-09-05), clarified by the 2026-09-21 audit:**
+   `tests/protocol_oracles.rs` and its matrix exercise self-encoded
+   Produce/Fetch/Metadata/ListOffsets fixtures labeled 3.9.1/4.1.0.
+   They are local consistency checks, not independent Java-generated
+   fixtures. The ignored live path is optional via `REQUIRE_BROKER=1`.
+   KL01-03 through KL01-08 add the missing independent evidence.
 4. Extend existing [fuzz targets](../fuzz) beyond short CI smoke, focusing on
    lengths, tagged fields, truncated batches, CRC, allocation and decompression
    bounds. Retain minimized failures and campaign/coverage metadata.
@@ -165,6 +186,11 @@ all accepted work has a documented completed, failed or ambiguous outcome.
 
 **Priority:** P0 for the corresponding production profile. **Depends on:** KL-01/02.
 
+Start with KL03-01 through KL03-07: promote the audit fixture and repair the
+five reproduced consumer failures plus poll-boundary auto-commit. These local
+repairs do not wait for a three-broker lab. Only the later qualification
+campaigns depend on the completed independent/resource contracts.
+
 1. Extend smoke to a three-broker KRaft topology with controller quorum,
    replication factor 3 and explicit `min.insync.replicas`. Exercise leader and
    coordinator moves, lost responses, socket partitions, process pause/restart,
@@ -176,8 +202,10 @@ all accepted work has a documented completed, failed or ambiguous outcome.
    records in transactional tests.
 3. Test PID/sequence/epoch recovery, fencing, transaction commit/abort, coordinator
    failover and `read_committed` output plus committed input offsets against
-   version-pinned Java behavior. Follow broker/protocol recovery rules; never
-   invent a local producer-epoch increment as a generic retry strategy.
+   version-pinned Java behavior. Nontransactional Java recovery can increment
+   a local epoch, with precise sequence/identity rules; transactional recovery
+   is different. Qualify those states and retained in-flight batches rather
+   than replacing them with a blanket rule for or against local epoch bumps.
 4. Cover classic/cooperative/KIP-848 membership churn separately from share
    acquisition, lock expiry, release/reject and redelivery. Define which forms
    of duplicate delivery are expected for each API. Verify assignments, progress,
@@ -226,7 +254,8 @@ signoff follows [benchmark.md](benchmark.md)/Suite HOLD; no new plan bypasses it
 
 ### KL-05: Expand codec and ecosystem coverage only when justified
 
-**Priority:** P1/P2, demand-gated. **Depends on:** KL-01; KL-04 for performance claims.
+**Priority:** P1 core-feature completion; P2 enterprise/full-admin/ecosystem.
+**Depends on:** KL-01; KL-04 for performance claims.
 
 1. Evaluate zstd decompression and compression separately for Kafka framing,
    error handling, memory, throughput, maintenance and licensing. `ruzstd` is
@@ -235,9 +264,16 @@ signoff follows [benchmark.md](benchmark.md)/Suite HOLD; no new plan bypasses it
    and bounded decompression. Select a backend only after a recorded decision.
    Current [deny policy](../deny.toml) bans `zstd-sys`; even optional native
    support needs an explicit policy/design decision, not a quiet feature flag.
-3. Keep Schema Registry in the [companion design](schema-companion.md).
-   Evaluate GSSAPI, broader admin APIs and other gaps by named adopter need,
-   lifecycle cost and alternatives, rather than treating them all as GA blockers.
+3. Use KL05-06 through KL05-15 for incremental Fetch, quota scheduling,
+   opt-in sticky partitioning and selected current protocol deltas. A codec
+   field/version cap is not the corresponding high-level feature.
+4. Use one API-specific card for full-admin extensions. Classify internal
+   broker replication separately; do not clone every key in `ApiKeys`.
+5. Keep Schema Registry in the [companion design](schema-companion.md).
+   Implement lookup, bounded caching and each format adapter separately.
+   GSSAPI's backend, exchange and live lifecycle are KL06-08 through KL06-10.
+   These may be excluded from a narrow deployment profile, not from a claim
+   that the corresponding complete profile is supported.
 
 **Work surfaces:** [records](../src/protocol/records.rs), [Cargo.toml](../Cargo.toml),
 [zstd spike](zstd-spike.md), [gaps](gaps.md).
@@ -277,6 +313,10 @@ and no secret exposure. Preserve existing audit/deny and security-reporting lane
 
 **Priority:** P0 for basic usability. **Depends on:** KL-01; KL-02/03 for recipes.
 
+KL07-01 is independently ready: repair the known strict-rustdoc link error.
+KL07-02 adds the missing CI gate. Navigation, actual snippet compilation,
+recipes, migration, diagnostics and newcomer evidence each have their own card.
+
 1. Compile the existing producer/consumer/transaction and
    [rust-rdkafka migration](migrate-from-rdkafka.md) examples as external package
    consumers. Explain enqueue versus acknowledgment, ownership, partitioning,
@@ -306,8 +346,12 @@ for adoption and API stabilization. Optional KL-05 features do not gate everyone
    Reconcile [release policy](RELEASE.md), metadata checks and stale handoff
    scripts with actual state. Scope "no C" metadata to the Kafka implementation,
    not the entire TLS dependency graph. Rehearse without publishing.
-   **Partial (2026-09-05):** release-plz is PR-only (never auto-publish). Canonical publish is
-   tag → `release.yml` / `owner-cut-release` with exact-SHA `check-main-ci` + `ci-crate-consumer`.
+   **Partial (2026-09-05):** release-plz is PR-only (never auto-publish). The intended
+   canonical path is tag → `release.yml` / `owner-cut-release` with
+   `check-main-ci` + `ci-crate-consumer`. The 2026-09-21 audit found that
+   `check-main-ci` can accept a non-CI workflow when CI is absent. KL08-01/02
+   repair the gate; KL08-03 retires the obsolete first-publish path and fixes
+   publication serialization. These improvements are not yet complete.
    Rehearse with `DRY_RUN=1`; do not cut a new version from this slice.
    **Partial (2026-09-05):** `scripts/rehearse-partial-release.sh --self-test` proves idempotent
    recovery without publishing (0.1.0 stays; day1/handoff DRY_RUN, not another publish).
@@ -343,9 +387,16 @@ version bump is implied by finishing a feature checklist.
 
 | Order | Small first delivery | Then |
 |---|---|---|
-| 1 | KL-01: reconcile frozen notes and incoming recovery fixes, confirm current required lanes and make broker identity/prerequisites explicit. | Preserve every unresolved failure as a named item; do not redo landed fixes. |
-| 2 | KL-01/KL-04: reproduce the latency failure, separate shared-runner smoke from controlled performance qualification and record justified budgets. | Do not mark the failure fixed just by increasing a threshold. |
-| 3 | KL-08: make release eligibility depend on exact-SHA required CI and package-consumer evidence. | Then expand KL-01/02/03 correctness and KL-04 measurements in parallel. |
+| 1 | KL03-01: promote the small consumer wire fixture. | KL03-02: preserve successful records across partial retries. |
+| 2 | KL03-03, then KL03-04: repair abort intervals and seek filtering, one PR each. | KL03-05: honor the reset policy. |
+| 3 | KL03-06, then KL03-07: separate delivered positions and fix auto-commit timing. | Proceed to idempotent/transaction/group recovery proofs. |
+| Parallel, disjoint files | KL07-01: fix one rustdoc link; KL08-01: reject non-CI release evidence. | Their respective strict documentation and release-gate follow-ups. |
+| Parallel, specifications | KL01-01: conformance registry; KL02-01: resource contract; KL04-01: benchmark contract; KL05-01: feature matrix. | Independent fixtures, bounds, comparable peer drivers and one-feature cards. |
+
+Read only one ready card plus its relevant evidence. Stop after that
+deliverable. Long evidence campaigns use resumable jobs, not larger
+implementation sessions. The full handoff/approval contract is in the
+[session guide](plan/README.md).
 
 Existing proof entry points (from the repository root):
 
