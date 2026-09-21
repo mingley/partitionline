@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "list-offsets-v3-throttle",
+  "api": "ListOffsets",
+  "api_key": 2,
+  "api_version": 3,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "ListOffsets v3 classic wire format with client throttling enabled and READ_UNCOMMITTED isolationLevel",
+  "request": {
+    "file": "list_offsets_v3_throttle_request.bin",
+    "size_bytes": 37,
+    "sha256": "397162d6aae86640b6f56f22a5f94df8899a213a22679654dfd490b9fc23b4ca",
+    "hex": "ffffffff0000000001000a6f6666736574732d76330000000100000000ffffffffffffffff"
+  },
+  "response": {
+    "file": "list_offsets_v3_throttle_response.bin",
+    "size_bytes": 46,
+    "sha256": "44733127a3eb8e403c937cbd8feda8f5dbae29a403fa11809adba678e752c548",
+    "hex": "0000002d00000001000a6f6666736574732d7633000000010000000000000000018e23f153d0000000000000012c"
+  }
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# KL01-03, KL01-04, KL01-05 & KL01-06: Pinned Apache Kafka Java wire-protocol fixture generator.
+# KL01-03, KL01-04, KL01-05, KL01-06 & KL01-07: Pinned Apache Kafka Java wire-protocol fixture generator.
 #
 # Generates reproducible reference wire fixtures using pinned Apache Kafka
 # message implementations (Message.write). Generation is independent of
@@ -23,11 +23,14 @@ VERIFY_MODE=0
 KAFKA_VERSION="3.9.1"
 KAFKA_SHA_DIST="25c5e4eb059c35766f645c0e0bd2fe623a1ebdc18250957506b1edbf476d1272"
 KAFKA_SHA_CENTRAL="7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9"
+KAFKA_4_VERSION="4.1.0"
+KAFKA_4_SHA="eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627"
 SLF4J_VERSION="1.7.36"
 SLF4J_SHA="d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
 
 CACHE_DIR="${CONFORMANCE_CACHE_DIR:-/tmp/partitionline-conformance}"
 KAFKA_JAR="$CACHE_DIR/kafka-clients-${KAFKA_VERSION}.jar"
+KAFKA_4_JAR="$CACHE_DIR/kafka-clients-${KAFKA_4_VERSION}.jar"
 SLF4J_JAR="$CACHE_DIR/slf4j-api-${SLF4J_VERSION}.jar"
 CLASSES_DIR="$CACHE_DIR/classes"
 
@@ -49,7 +52,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     -h|--help)
-      echo "Usage: $0 [--verify] [--out-dir <dir>] | [--decode-rust <req|resp|fetch-req|fetch-resp|metadata-req|metadata-resp> <version> <input>]"
+      echo "Usage: $0 [--verify] [--out-dir <dir>] | [--decode-rust <req|resp|fetch-req|fetch-resp|metadata-req|metadata-resp|list-offsets-req|list-offsets-resp> <version> <input>]"
       exit 0
       ;;
     *)
@@ -98,6 +101,7 @@ verify_jar() {
 resolve_dependencies() {
   # Check if already present and verified in CACHE_DIR
   if [[ -f "$KAFKA_JAR" ]] && verify_jar "$KAFKA_JAR" "$KAFKA_SHA_DIST" "$KAFKA_SHA_CENTRAL" && \
+     [[ -f "$KAFKA_4_JAR" ]] && verify_jar "$KAFKA_4_JAR" "$KAFKA_4_SHA" && \
      [[ -f "$SLF4J_JAR" ]] && verify_jar "$SLF4J_JAR" "$SLF4J_SHA"; then
     return 0
   fi
@@ -106,6 +110,9 @@ resolve_dependencies() {
   local local_lib="$ROOT/tests/conformance/java/lib"
   if [[ -f "$local_lib/kafka-clients-${KAFKA_VERSION}.jar" ]]; then
     cp "$local_lib/kafka-clients-${KAFKA_VERSION}.jar" "$KAFKA_JAR"
+  fi
+  if [[ -f "$local_lib/kafka-clients-${KAFKA_4_VERSION}.jar" ]]; then
+    cp "$local_lib/kafka-clients-${KAFKA_4_VERSION}.jar" "$KAFKA_4_JAR"
   fi
   if [[ -f "$local_lib/slf4j-api-${SLF4J_VERSION}.jar" ]]; then
     cp "$local_lib/slf4j-api-${SLF4J_VERSION}.jar" "$SLF4J_JAR"
@@ -131,6 +138,12 @@ resolve_dependencies() {
     verify_jar "$KAFKA_JAR" "$KAFKA_SHA_DIST" "$KAFKA_SHA_CENTRAL" || { rm -f "$KAFKA_JAR"; exit 1; }
   fi
 
+  if [[ ! -f "$KAFKA_4_JAR" ]] || ! verify_jar "$KAFKA_4_JAR" "$KAFKA_4_SHA"; then
+    echo "generate-protocol-fixtures: downloading kafka-clients-${KAFKA_4_VERSION}.jar from Maven Central..."
+    curl -fsSL "https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/${KAFKA_4_VERSION}/kafka-clients-${KAFKA_4_VERSION}.jar" -o "$KAFKA_4_JAR"
+    verify_jar "$KAFKA_4_JAR" "$KAFKA_4_SHA" || { rm -f "$KAFKA_4_JAR"; exit 1; }
+  fi
+
   if [[ ! -f "$SLF4J_JAR" ]] || ! verify_jar "$SLF4J_JAR" "$SLF4J_SHA"; then
     echo "generate-protocol-fixtures: downloading slf4j-api-${SLF4J_VERSION}.jar from Maven Central..."
     curl -fsSL "https://repo1.maven.org/maven2/org/slf4j/slf4j-api/${SLF4J_VERSION}/slf4j-api-${SLF4J_VERSION}.jar" -o "$SLF4J_JAR"
@@ -140,12 +153,13 @@ resolve_dependencies() {
 
 echo "== generate-protocol-fixtures: resolving pinned dependencies =="
 resolve_dependencies
-echo "  kafka-clients: ${KAFKA_JAR} ($(compute_sha256 "$KAFKA_JAR"))"
-echo "  slf4j-api:     ${SLF4J_JAR} ($(compute_sha256 "$SLF4J_JAR"))"
+echo "  kafka-clients-3.9.1: ${KAFKA_JAR} ($(compute_sha256 "$KAFKA_JAR"))"
+echo "  kafka-clients-4.1.0: ${KAFKA_4_JAR} ($(compute_sha256 "$KAFKA_4_JAR"))"
+echo "  slf4j-api:           ${SLF4J_JAR} ($(compute_sha256 "$SLF4J_JAR"))"
 
 # Step 3: Compile generator classes
 mkdir -p "$CLASSES_DIR"
-CP="${KAFKA_JAR}:${SLF4J_JAR}"
+CP="${KAFKA_4_JAR}:${KAFKA_JAR}:${SLF4J_JAR}"
 
 echo "== generate-protocol-fixtures: compiling generator =="
 javac -cp "$CP" -d "$CLASSES_DIR" \

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "list-offsets-v1-classic",
+  "api": "ListOffsets",
+  "api_key": 2,
+  "api_version": 1,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "ListOffsets v1 classic wire format (oldest spoken) with earliest (-2), latest (-1), explicit timestamp (1710000000000L), partition error (UNKNOWN_TOPIC_OR_PARTITION), and omitted isolationLevel and throttleTimeMs",
+  "request": {
+    "file": "list_offsets_v1_classic_request.bin",
+    "size_bytes": 60,
+    "sha256": "ed30f017129b29f018c692f340732ca1c407f72f7e6121b9adaf836625b59edd",
+    "hex": "ffffffff00000001000a6f6666736574732d76310000000300000000fffffffffffffffe00000001ffffffffffffffff000000020000018e23f14c00"
+  },
+  "response": {
+    "file": "list_offsets_v1_classic_response.bin",
+    "size_bytes": 86,
+    "sha256": "b61970a8ed24b8425d15d5886720746675a4d16b7634f306bd8c749563b709ab",
+    "hex": "00000001000a6f6666736574732d763100000003000000000000ffffffffffffffff0000000000000064000000010000ffffffffffffffff00000000000000fa000000020003ffffffffffffffffffffffffffffffff"
+  }
+}
