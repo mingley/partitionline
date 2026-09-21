@@ -72,13 +72,32 @@
     {
       "id": "KL01-03",
       "title": "Build a pinned Apache Java wire-fixture generator",
-      "priority": "P0", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "test-infrastructure", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-01"],
       "files": ["new: tests/conformance/java/", "new: scripts/generate-protocol-fixtures.sh", "tests/fixtures/protocol_oracles/"],
       "deliverable": "A reproducible generator using pinned Apache message implementations, with one smoke request/response pair.",
       "acceptance": ["Record upstream SHA, Java/artifact version, invocation and fixture hashes.", "Generation and regeneration are independent of partitionline encoders; no downloaded unreviewed scripts execute.", "Rust tests consume committed fixtures without requiring Java or network access."],
       "validation": ["Run the new generator twice in its documented environment and compare fixture hashes.", "cargo test --locked --test protocol_oracles"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "e326356dff01829159ceecd39a3f684c6e64c6af",
+                "commands": [
+                        "Java generator ran twice against kafka-clients 3.9.1 and produced identical hashes",
+                        "cargo test --offline --locked --test protocol_oracles (2 passed, 1 ignored live broker, exit 0)"
+                ],
+                "results": "Pinned Apache 3.9.1 SHA ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c. One Produce v9 request/response pair was generated with Apache message classes, not partitionline encoders. Rust test apache_produce_v9_smoke_fixture_decodes reads the committed bytes offline and checks acks=1, timeout=5000, topic smoke-topic, throttle=42, base offset 100.",
+                "artifacts": [
+                        "scripts/generate-protocol-fixtures.sh",
+                        "tests/conformance/java/",
+                        "tests/fixtures/protocol_oracles/smoke_produce_v9_request.bin",
+                        "tests/fixtures/protocol_oracles/smoke_produce_v9_response.bin",
+                        "docs/plan/evidence/KL01-03.json"
+                ],
+                "limits": [
+                        "One smoke pair only. Fetch, Metadata, and ListOffsets independent fixtures remain later KL01 cards. The existing matrix tests are still local consistency, not independent passes."
+                ]
+        }
+]
     },
     {
       "id": "KL01-04",
@@ -160,13 +179,30 @@
     {
       "id": "KL01-11",
       "title": "Detect schema and client-API coverage drift",
-      "priority": "P1", "kind": "tooling", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "tooling", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-01", "KL05-01"],
       "files": ["new: scripts/check-protocol-coverage.py", "tests/conformance/cases.json", "src/protocol/api_keys.rs"],
       "deliverable": "A deterministic comparison of pinned Apache schema/API inventory with codec, runtime and test coverage.",
       "acceptance": ["Do not count a key name or helper type as an implemented client operation.", "Report version gaps, missing runtime wiring and explicitly excluded broker-internal APIs separately.", "One synthetic new API/version makes the drift check fail until classified; no full codec-generator rewrite."],
       "validation": ["Add and run standard-library tests for the new checker.", "Run the checker against the frozen Apache pins and review the complete difference list."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "db14ed477236c651dd115b12b4727e86e53da83b",
+                "commands": [
+                        "python3 -m unittest discover -s tests/conformance -p test_check_protocol_coverage.py (15 passed, exit 0)",
+                        "python3 scripts/check-protocol-coverage.py (exit 0, unclassified drift 0)"
+                ],
+                "results": "Checker reports 62 implemented client APIs, 40 version gaps, 4 missing runtime wiring APIs, 16 missing runtime features, and 22 excluded broker-internal APIs. A key name is not counted as an implemented operation. Synthetic unclassified API/version injection fails. Frozen pins have zero unclassified drift.",
+                "artifacts": [
+                        "scripts/check-protocol-coverage.py",
+                        "tests/conformance/test_check_protocol_coverage.py",
+                        "docs/plan/evidence/KL01-11.json"
+                ],
+                "limits": [
+                        "Inventory comparison only. It does not add the missing runtime wiring."
+                ]
+        }
+]
     },
     {
       "id": "KL01-12",
