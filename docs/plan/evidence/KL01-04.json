@@ -1,0 +1,80 @@
+{
+  "id": "KL01-04",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "642ee29a77d5ab5e3daba4bda37e306b3f5b055a",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "java_version": "25.0.3",
+  "artifact_version": "org.apache.kafka:kafka-clients:3.9.1",
+  "artifact_sha256": {
+    "distribution": "25c5e4eb059c35766f645c0e0bd2fe623a1ebdc18250957506b1edbf476d1272",
+    "maven_central": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9"
+  },
+  "invocation": "bash scripts/generate-protocol-fixtures.sh",
+  "commands": [
+    "bash scripts/generate-protocol-fixtures.sh (exit 0)",
+    "bash scripts/generate-protocol-fixtures.sh --verify (exit 0, byte-for-byte verification passed across 7 fixture pairs)",
+    "bash scripts/generate-protocol-fixtures.sh --out-dir /tmp/fixture-run-1 && bash scripts/generate-protocol-fixtures.sh --out-dir /tmp/fixture-run-2 && diff -u <(shasum -a 256 /tmp/fixture-run-1/*) <(shasum -a 256 /tmp/fixture-run-2/*) (exit 0, clean diff, deterministic)",
+    "cargo test --offline --locked --test protocol_oracles (exit 0, 5 passed, 1 ignored live broker)"
+  ],
+  "results": {
+    "java_executed": true,
+    "reproducibility_verified": true,
+    "bidirectional_decode_verified": true,
+    "mutation_tests_verified": true,
+    "fixture_hashes": {
+      "smoke_produce_v9_request.bin": "16f77371ffb3950535f6dccbca7eac6eb0f32390b662b828e9ebc54bcffa6ec5",
+      "smoke_produce_v9_response.bin": "3c7be5ef0efe4c15c1955986c1c49aff911d0188f461f4e66af556432ad1a48c",
+      "smoke_produce_v9.json": "f7e5b3812eed3d53c20c496d136ba9c7788b4c367c861294a7314c16fa532684",
+      "produce_v3_classic_request.bin": "97f5f847288f9c0e9a36b9e0b575ef701aefdedca30a3c3966ebdc59b44fdc93",
+      "produce_v3_classic_response.bin": "0dd8b372cab3b9522b037f2137a3d367dfc2730c894f020bbcbb7e7db3b9e69a",
+      "produce_v3_classic.json": "0690853df84ff6199c0de3310bea09f243272e3c3e8ee37c4ce38d479c75a74a",
+      "produce_v5_start_offset_request.bin": "ecdd92a2a0ed8d129101978bc77254a6e168f1b30f776a8833bab4389af9fd48",
+      "produce_v5_start_offset_response.bin": "39a8c79eb53686a99fb233a7a1fa759535095f3192a8315a5b4ff32282beb30f",
+      "produce_v5_start_offset.json": "fab7a05464e2748452eb73d515f333ca021cdc3c881e98f7ad3dd42fc72351e1",
+      "produce_v8_classic_errors_request.bin": "450f887d29395c179085b8e07d75c76760345046a741cfc649dd989d9a1b50b7",
+      "produce_v8_classic_errors_response.bin": "1b9de4a9f80e4c76e8fcc6ec3513cc09b00936c47287d2e642cf55f7641f2d6f",
+      "produce_v8_classic_errors.json": "db8ab596a196e338c5a043d86d8fa19968c31a209e0585f8cf8490c66e2895fa",
+      "produce_v9_flexible_nulls_request.bin": "60fcc3531f5e216cd4a52f56eacc439aa1854a8210fc208d996f48d0cab599fb",
+      "produce_v9_flexible_nulls_response.bin": "08f077ea0a118724cefb3fdbbd0eea7531a05c451f6bbce5539e17364af41bd9",
+      "produce_v9_flexible_nulls.json": "af88075a85fc99d2455190e6737d78c880965759fadf653a0765e078889c1d2f",
+      "produce_v10_current_leader_request.bin": "dbebbfddbf1f34cd7710b1aa6dc3a4a6481b2dc7938370d6f52b7f780eef41e1",
+      "produce_v10_current_leader_response.bin": "37f4ba5bfb6b908a4104ca1c3e8f62c3af888bb244f2411172b715d85622d8d8",
+      "produce_v10_current_leader.json": "7f66867d9f5ab8f35978d1a31dff33a9c34bb97a3c71c8896edc6539789b1e16",
+      "produce_v11_max_3_9_1_request.bin": "9bac71f12e526cfeb690f15d9d74c9d7e62eae0995ded981dd4900170110cc4f",
+      "produce_v11_max_3_9_1_response.bin": "9f5ec24ca8a60a2b2b4031dd951e9e8587a5eb06a787a723c83c4324f28abfa6",
+      "produce_v11_max_3_9_1.json": "9c51a07aac93f6ddef51cf2e7ebf6c56c8fb02c0b75cea3187cd395057d2bcf5"
+    },
+    "cargo_test_offline_passed": true,
+    "summary": "Extended Java wire fixture generator and offline Rust test suite to cover Produce advertised version boundaries: v3 classic (null txn ID, null records, throttle placement, partition errors), v5 (log_start_offset gate), v8 (record_errors and error_message before flexible boundary), v9 flexible (compact formatting, nulls, partition errors), v10 (current-leader tagged field present vs omitted/default), and v11 (highest version in 3.9.1 pin). Bidirectional verification decodes Apache output in Rust offline, and decodes Rust output with Apache where Java is available. Negative tests verify that mutating field order (e.g. throttle placement) or required version gates (v4, v5, v7, v8, v9, v10) fails decoding."
+  },
+  "artifacts": [
+    "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+    "scripts/generate-protocol-fixtures.sh",
+    "tests/protocol_oracles.rs",
+    "tests/fixtures/protocol_oracles/produce_v3_classic_request.bin",
+    "tests/fixtures/protocol_oracles/produce_v3_classic_response.bin",
+    "tests/fixtures/protocol_oracles/produce_v3_classic.json",
+    "tests/fixtures/protocol_oracles/produce_v5_start_offset_request.bin",
+    "tests/fixtures/protocol_oracles/produce_v5_start_offset_response.bin",
+    "tests/fixtures/protocol_oracles/produce_v5_start_offset.json",
+    "tests/fixtures/protocol_oracles/produce_v8_classic_errors_request.bin",
+    "tests/fixtures/protocol_oracles/produce_v8_classic_errors_response.bin",
+    "tests/fixtures/protocol_oracles/produce_v8_classic_errors.json",
+    "tests/fixtures/protocol_oracles/produce_v9_flexible_nulls_request.bin",
+    "tests/fixtures/protocol_oracles/produce_v9_flexible_nulls_response.bin",
+    "tests/fixtures/protocol_oracles/produce_v9_flexible_nulls.json",
+    "tests/fixtures/protocol_oracles/produce_v10_current_leader_request.bin",
+    "tests/fixtures/protocol_oracles/produce_v10_current_leader_response.bin",
+    "tests/fixtures/protocol_oracles/produce_v10_current_leader.json",
+    "tests/fixtures/protocol_oracles/produce_v11_max_3_9_1_request.bin",
+    "tests/fixtures/protocol_oracles/produce_v11_max_3_9_1_response.bin",
+    "tests/fixtures/protocol_oracles/produce_v11_max_3_9_1.json",
+    "docs/plan/evidence/KL01-04.json"
+  ],
+  "limits": [
+    "Produce v12 is KIP-890 Part 2 transaction V2 (Kafka 4.0+ only); classified diff against 3.9.1 pin is tracked in matrix.json.",
+    "Fetch, Metadata, and ListOffsets independent fixtures remain scheduled for cards KL01-05 through KL01-07."
+  ],
+  "blocked_reason": null
+}

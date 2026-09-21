@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "produce-v5-start-offset",
+  "api": "Produce",
+  "api_key": 0,
+  "api_version": 5,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Produce v5 classic wire format with log_start_offset gate, non-null transactional_id, and empty records",
+  "request": {
+    "file": "produce_v5_start_offset_request.bin",
+    "size_bytes": 63,
+    "sha256": "ecdd92a2a0ed8d129101978bc77254a6e168f1b30f776a8833bab4389af9fd48",
+    "hex": "000e74786e2d70726f647563652d7635000100000bb800000001001770726f647563652d76352d73746172742d6f6666736574000000010000000000000000"
+  },
+  "response": {
+    "file": "produce_v5_start_offset_response.bin",
+    "size_bytes": 67,
+    "sha256": "39a8c79eb53686a99fb233a7a1fa759535095f3192a8315a5b4ff32282beb30f",
+    "hex": "00000001001770726f647563652d76352d73746172742d6f66667365740000000100000000000000000000000000c80000018e23f14fe8000000000000003200000028"
+  }
+}
