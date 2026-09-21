@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "fetch-v13-topic-ids",
+  "api": "Fetch",
+  "api_key": 1,
+  "api_version": 13,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Fetch v13 flexible wire format with topic IDs transition replacing topic names for request, forgotten topics, and response",
+  "request": {
+    "file": "fetch_v13_topic_ids_request.bin",
+    "size_bytes": 108,
+    "sha256": "1198113b474fc9d9beb3f347aa7329273972712b5c54d42174a820b2fb4f60e0",
+    "hex": "ffffffff000007d00000000100500000010000012c00000001021111222233334444555566667777888802000000000000000c000000000000012c0000000a00000000000000fa00100000000002aaaabbbbccccdddd1111222233334444020000000000077261636b2d3100"
+  },
+  "response": {
+    "file": "fetch_v13_topic_ids_response.bin",
+    "size_bytes": 160,
+    "sha256": "e46a4ad4c020db759f9f42708c77c6787d0f50df74742d986df260acd0764144",
+    "hex": "0000005000000000012c021111222233334444555566667777888802000000000000000000000000015e000000000000015400000000000000fa02000000000000d903000000000000012200ffffffff4d000000000000012c000000400000000c0236ec97950000000000000000018e23f14cc80000018e23f14cc8ffffffffffffffffffffffffffff000000011c000000086b333030087633303000000000"
+  }
+}

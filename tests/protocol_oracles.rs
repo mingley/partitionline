@@ -24,25 +24,30 @@ use partitionline::protocol::api::{
     decode_api_versions_handshake, decode_metadata_response, decode_produce_request,
     decode_produce_response, encode_api_versions_request, encode_metadata_request,
     encode_metadata_response, encode_produce_request, encode_produce_response,
-    encode_produce_response_with_throttle, Broker, MetadataResponse, PartitionMetadata,
-    ProducePartitionData, ProducePartitionResponse, ProduceRecordError, ProduceTopicData,
-    TopicMetadata,
+    encode_produce_response_with_throttle, Broker, MetadataResponse, NodeEndpoint,
+    PartitionMetadata, ProducePartitionData, ProducePartitionResponse, ProduceRecordError,
+    ProduceTopicData, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
     pick_version, API_VERSIONS, FETCH, LIST_OFFSETS, METADATA, PRODUCE,
 };
 use partitionline::protocol::epoch::EpochEndOffset;
 use partitionline::protocol::fetch::{
-    decode_fetch_response, encode_fetch_request, encode_fetch_response,
-    encode_fetch_response_with_throttle, FetchPartition, FetchTopic, FetchedPartition,
-    FetchedTopic,
+    decode_fetch_request, decode_fetch_response, encode_fetch_request,
+    encode_fetch_request_with_cluster_id, encode_fetch_request_with_replica_id,
+    encode_fetch_request_with_replica_state, encode_fetch_request_with_session,
+    encode_fetch_response, encode_fetch_response_with_endpoints,
+    encode_fetch_response_with_throttle, FetchMetadata, FetchPartition, FetchTopic,
+    FetchedPartition, FetchedTopic, CONSUMER_REPLICA_ID, INVALID_LOG_START_OFFSET,
 };
 use partitionline::protocol::offsets::{
     decode_list_offsets_topics_response, encode_list_offsets_request,
     encode_list_offsets_topics_response, encode_list_offsets_topics_response_with_throttle,
     ListOffsetsPartition, ListOffsetsResponsePartition, ListOffsetsTopicResponse, LATEST_TIMESTAMP,
 };
-use partitionline::protocol::records::{Record, RecordBatch};
+use partitionline::protocol::records::{
+    self, ControlRecordType, EndTransactionMarker, Record, RecordBatch,
+};
 
 const MATRIX_REL: &str = "tests/fixtures/protocol_oracles/matrix.json";
 const MATRIX_JSON: &str = include_str!("fixtures/protocol_oracles/matrix.json");
@@ -1662,3 +1667,714 @@ fn rust_produce_output_decodes_with_apache_when_java_available() {
         );
     }
 }
+
+/// KL01-05: Independent Fetch wire fixtures covering advertised version boundaries.
+///
+/// Consumes committed Apache Kafka 3.9.1 binary fixtures offline without requiring
+/// Java or network access. Verifies classic and flexible formats, topic names vs topic IDs,
+/// session metadata, forgotten topics, follower replica fetch, replicaState transition,
+/// aborted transactions, preferred read replica, DivergingEpoch, CurrentLeader, SnapshotId,
+/// node endpoints, replica directory ID, unknown tagged fields, and realistic record batches
+/// containing records before requested offset and ABORT/COMMIT marker sequences.
+#[test]
+fn apache_fetch_boundary_fixtures_decode_offline() {
+    // 1. Fetch v4: classic wire format (oldest spoken, topic name, untagged replicaId = -1, omitted logStartOffset)
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v4_classic_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v4_classic_response.bin");
+
+        let (isolation, max_bytes, topics, rack, session, forgotten, max_wait_ms, min_bytes, replica_id, replica_epoch, cluster_id) =
+            decode_fetch_request(&mut &REQ[..], 4).expect("fetch v4 request");
+        assert_eq!(isolation, 0);
+        assert_eq!(max_bytes, 10485760);
+        assert_eq!(max_wait_ms, 500);
+        assert_eq!(min_bytes, 1);
+        assert_eq!(replica_id, CONSUMER_REPLICA_ID);
+        assert_eq!(replica_epoch, -1);
+        assert!(rack.is_empty());
+        assert_eq!(session.session_id(), 0);
+        assert_eq!(session.epoch(), -1);
+        assert!(forgotten.is_empty());
+        assert!(cluster_id.is_none());
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].topic, "fetch-v4-classic");
+        assert_eq!(topics[0].topic_id, [0u8; 16]);
+        assert_eq!(topics[0].partitions.len(), 2);
+        assert_eq!(topics[0].partitions[0].partition, 0);
+        assert_eq!(topics[0].partitions[0].fetch_offset, 0);
+        assert_eq!(topics[0].partitions[0].partition_max_bytes, 1048576);
+        assert_eq!(topics[0].partitions[0].log_start_offset, INVALID_LOG_START_OFFSET);
+        assert_eq!(topics[0].partitions[1].partition, 1);
+        assert_eq!(topics[0].partitions[1].fetch_offset, 100);
+
+        let (topics_resp, endpoints, error_code, session_id, throttle_ms) =
+            decode_fetch_response(&mut &RESP[..], 4).expect("fetch v4 response");
+        assert_eq!(throttle_ms, 25);
+        assert_eq!(error_code, 0);
+        assert_eq!(session_id, 0);
+        assert!(endpoints.is_empty());
+        assert_eq!(topics_resp.len(), 1);
+        assert_eq!(topics_resp[0].topic, "fetch-v4-classic");
+        assert_eq!(topics_resp[0].partitions.len(), 2);
+        assert_eq!(topics_resp[0].partitions[0].partition, 0);
+        assert_eq!(topics_resp[0].partitions[0].error_code, 0);
+        assert_eq!(topics_resp[0].partitions[0].high_watermark, 50);
+        assert_eq!(topics_resp[0].partitions[0].last_stable_offset, 45);
+        assert_eq!(
+            topics_resp[0].partitions[0].log_start_offset,
+            FetchedPartition::INVALID_LOG_START_OFFSET,
+            "v4 log_start_offset omitted below v5"
+        );
+        assert!(topics_resp[0].partitions[0].records.is_empty());
+        assert_eq!(topics_resp[0].partitions[1].partition, 1);
+        assert_eq!(topics_resp[0].partitions[1].error_code, UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(topics_resp[0].partitions[1].high_watermark, -1);
+    }
+
+    // 2. Fetch v5: classic wire format, follower replica fetch, logStartOffset gate present
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v5_start_offset_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v5_start_offset_response.bin");
+
+        let (_, _, topics, _, _, _, max_wait_ms, _, replica_id, _, _) =
+            decode_fetch_request(&mut &REQ[..], 5).expect("fetch v5 request");
+        assert_eq!(replica_id, 2, "v5 replica fetcher id");
+        assert_eq!(max_wait_ms, 1000);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].topic, "fetch-v5-start-offset");
+        assert_eq!(topics[0].partitions[0].fetch_offset, 150);
+        assert_eq!(topics[0].partitions[0].log_start_offset, 100, "v5 log_start_offset present on wire");
+
+        let (topics_resp, _, _, _, throttle_ms) =
+            decode_fetch_response(&mut &RESP[..], 5).expect("fetch v5 response");
+        assert_eq!(throttle_ms, 35);
+        assert_eq!(topics_resp.len(), 1);
+        assert_eq!(topics_resp[0].topic, "fetch-v5-start-offset");
+        assert_eq!(topics_resp[0].partitions[0].high_watermark, 250);
+        assert_eq!(topics_resp[0].partitions[0].last_stable_offset, 240);
+        assert_eq!(topics_resp[0].partitions[0].log_start_offset, 100, "v5 response log_start_offset");
+    }
+
+    // 3. Fetch v7: classic wire format, session metadata gate (sessionId, sessionEpoch, forgottenTopicsData), abortedTransactions
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v7_session_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v7_session_response.bin");
+
+        let (isolation, _, topics, _, session, forgotten, _, _, _, _, _) =
+            decode_fetch_request(&mut &REQ[..], 7).expect("fetch v7 request");
+        assert_eq!(isolation, 1, "read_committed isolation");
+        assert_eq!(session.session_id(), 42, "v7 session_id");
+        assert_eq!(session.epoch(), 3, "v7 session_epoch");
+        assert_eq!(topics[0].topic, "fetch-v7-session");
+        assert_eq!(forgotten.len(), 1, "v7 forgotten topics");
+        assert_eq!(forgotten[0].topic, "forgotten-v7");
+        assert_eq!(forgotten[0].partitions, vec![0, 1]);
+
+        let (topics_resp, _, error_code, session_id, throttle_ms) =
+            decode_fetch_response(&mut &RESP[..], 7).expect("fetch v7 response");
+        assert_eq!(throttle_ms, 45);
+        assert_eq!(error_code, 0);
+        assert_eq!(session_id, 42, "v7 response session_id");
+        assert_eq!(topics_resp[0].topic, "fetch-v7-session");
+        assert_eq!(
+            topics_resp[0].partitions[0].aborted_transactions,
+            vec![(12345, 10), (67890, 40)],
+            "v7 aborted transactions list"
+        );
+    }
+
+    // 4. Fetch v11: classic format boundary before flexible, rackId, preferredReadReplica, realistic record batches
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v11_batches_records_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v11_batches_records_response.bin");
+
+        let (_, _, topics, rack, session, _, _, _, _, _, _) =
+            decode_fetch_request(&mut &REQ[..], 11).expect("fetch v11 request");
+        assert_eq!(rack, "rack-east-az1", "v11 rackId");
+        assert_eq!(session.session_id(), 100);
+        assert_eq!(session.epoch(), 1);
+        assert_eq!(topics[0].partitions[0].fetch_offset, 102, "requested fetch offset 102");
+        assert_eq!(topics[0].partitions[0].current_leader_epoch, 5);
+        assert_eq!(topics[0].partitions[0].log_start_offset, 100);
+
+        let (topics_resp, _, error_code, session_id, throttle_ms) =
+            decode_fetch_response(&mut &RESP[..], 11).expect("fetch v11 response");
+        assert_eq!(throttle_ms, 55);
+        assert_eq!(error_code, 0);
+        assert_eq!(session_id, 100);
+        let part = &topics_resp[0].partitions[0];
+        assert_eq!(part.preferred_read_replica, 4, "v11 preferred_read_replica");
+        assert_eq!(part.aborted_transactions, vec![(9001, 104)]);
+        assert_eq!(part.records.len(), 5, "5 realistic record batches");
+
+        // Batch 0: regular batch, base offset 100, 4 records (100, 101, 102, 103)
+        // Records 100 and 101 are before the requested offset 102
+        let b0 = &part.records[0];
+        assert_eq!(b0.base_offset, 100);
+        assert_eq!(b0.last_offset(), 103);
+        assert!(!b0.is_transactional());
+        assert!(!b0.is_control_batch());
+        assert_eq!(b0.records.len(), 4);
+        assert_eq!(b0.records[0].offset, 100);
+        assert_eq!(b0.records[0].key.as_deref(), Some(b"k100".as_slice()));
+        assert_eq!(b0.records[0].value.as_deref(), Some(b"v100".as_slice()));
+        assert_eq!(b0.records[1].offset, 101);
+        assert_eq!(b0.records[2].offset, 102);
+        assert_eq!(b0.records[3].offset, 103);
+
+        // Batch 1: transactional batch, producerId 9001, epoch 1, offsets 104, 105
+        let b1 = &part.records[1];
+        assert_eq!(b1.base_offset, 104);
+        assert_eq!(b1.last_offset(), 105);
+        assert!(b1.is_transactional());
+        assert!(!b1.is_control_batch());
+        assert_eq!(b1.producer_id, 9001);
+        assert_eq!(b1.producer_epoch, 1);
+        assert_eq!(b1.records.len(), 2);
+        assert_eq!(b1.records[0].key.as_deref(), Some(b"tx-k1".as_slice()));
+        assert_eq!(b1.records[1].key.as_deref(), Some(b"tx-k2".as_slice()));
+
+        // Batch 2: control batch with ABORT marker at offset 106
+        let b2 = &part.records[2];
+        assert_eq!(b2.base_offset, 106);
+        assert_eq!(b2.last_offset(), 106);
+        assert!(b2.is_transactional());
+        assert!(b2.is_control_batch(), "batch 2 must be control batch");
+        assert_eq!(b2.records.len(), 1);
+        let m2 = EndTransactionMarker::deserialize(&b2.records[0]).expect("abort marker");
+        assert_eq!(m2.control_type(), ControlRecordType::Abort);
+        assert_eq!(m2.coordinator_epoch(), 1);
+
+        // Batch 3: transactional batch, producerId 9001, epoch 1, offset 107
+        let b3 = &part.records[3];
+        assert_eq!(b3.base_offset, 107);
+        assert_eq!(b3.last_offset(), 107);
+        assert!(b3.is_transactional());
+        assert!(!b3.is_control_batch());
+        assert_eq!(b3.records.len(), 1);
+        assert_eq!(b3.records[0].key.as_deref(), Some(b"tx-k3".as_slice()));
+
+        // Batch 4: control batch with COMMIT marker at offset 108
+        let b4 = &part.records[4];
+        assert_eq!(b4.base_offset, 108);
+        assert_eq!(b4.last_offset(), 108);
+        assert!(b4.is_transactional());
+        assert!(b4.is_control_batch(), "batch 4 must be control batch");
+        assert_eq!(b4.records.len(), 1);
+        let m4 = EndTransactionMarker::deserialize(&b4.records[0]).expect("commit marker");
+        assert_eq!(m4.control_type(), ControlRecordType::Commit);
+        assert_eq!(m4.coordinator_epoch(), 1);
+    }
+
+    // 5. Fetch v12: flexible wire format boundary, compact strings/arrays/bytes, clusterId, partition tags (DivergingEpoch, CurrentLeader, SnapshotId), unknown tags
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v12_flexible_tags_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v12_flexible_tags_response.bin");
+
+        let (_, _, topics, rack, session, _, _, _, _, _, cluster_id) =
+            decode_fetch_request(&mut &REQ[..], 12).expect("fetch v12 request");
+        assert_eq!(cluster_id.as_deref(), Some("cluster-v12"), "v12 cluster_id tag 0");
+        assert_eq!(rack, "rack-west-1");
+        assert_eq!(session.session_id(), 200);
+        assert_eq!(session.epoch(), 2);
+        assert_eq!(topics[0].topic, "fetch-v12-flexible");
+        let p = &topics[0].partitions[0];
+        assert_eq!(p.partition, 0);
+        assert_eq!(p.fetch_offset, 200);
+        assert_eq!(p.current_leader_epoch, 8);
+        assert_eq!(p.last_fetched_epoch, 5);
+        assert_eq!(p.log_start_offset, 180);
+
+        let (topics_resp, _, error_code, session_id, throttle_ms) =
+            decode_fetch_response(&mut &RESP[..], 12).expect("fetch v12 response");
+        assert_eq!(throttle_ms, 70);
+        assert_eq!(error_code, 0);
+        assert_eq!(session_id, 200);
+        assert_eq!(topics_resp[0].topic, "fetch-v12-flexible");
+        let resp_p = &topics_resp[0].partitions[0];
+        assert_eq!(resp_p.preferred_read_replica, 3);
+        assert_eq!(resp_p.current_leader_id, 2);
+        assert_eq!(resp_p.current_leader_epoch, 10);
+        assert_eq!(resp_p.diverging_epoch, 4);
+        assert_eq!(resp_p.diverging_end_offset, 195);
+        assert_eq!(resp_p.snapshot_end_offset, 190);
+        assert_eq!(resp_p.snapshot_epoch, 4);
+        assert_eq!(resp_p.records.len(), 1);
+        assert_eq!(resp_p.records[0].base_offset, 200);
+        assert_eq!(resp_p.records[0].records.len(), 2);
+    }
+
+    // 6. Fetch v13: topic IDs wire transition (topicId replaces topic name on wire)
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v13_topic_ids_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v13_topic_ids_response.bin");
+
+        let expected_topic_id = [
+            0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44,
+            0x55, 0x55, 0x66, 0x66, 0x77, 0x77, 0x88, 0x88,
+        ];
+        let expected_forgotten_id = [
+            0xaa, 0xaa, 0xbb, 0xbb, 0xcc, 0xcc, 0xdd, 0xdd,
+            0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44,
+        ];
+
+        let (_, _, topics, _, _, forgotten, _, _, _, _, _) =
+            decode_fetch_request(&mut &REQ[..], 13).expect("fetch v13 request");
+        assert!(topics[0].topic.is_empty(), "v13 request topic name is empty");
+        assert_eq!(topics[0].topic_id, expected_topic_id, "v13 request topicId");
+        assert!(forgotten[0].topic.is_empty(), "v13 forgotten topic name is empty");
+        assert_eq!(forgotten[0].topic_id, expected_forgotten_id, "v13 forgotten topicId");
+
+        let (topics_resp, _, _, session_id, throttle_ms) =
+            decode_fetch_response(&mut &RESP[..], 13).expect("fetch v13 response");
+        assert_eq!(throttle_ms, 80);
+        assert_eq!(session_id, 300);
+        assert!(topics_resp[0].topic.is_empty(), "v13 response topic name is empty");
+        assert_eq!(topics_resp[0].topic_id, expected_topic_id, "v13 response topicId");
+        let resp_p = &topics_resp[0].partitions[0];
+        assert_eq!(resp_p.aborted_transactions, vec![(55555, 290)]);
+        assert_eq!(resp_p.records.len(), 1);
+        assert_eq!(resp_p.records[0].base_offset, 300);
+    }
+
+    // 7. Fetch v15: replica-field transition (untagged replicaId omitted, replicaState tagged field 1 added)
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v15_replica_state_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v15_replica_state_response.bin");
+
+        let expected_topic_id = [
+            0x99, 0x99, 0x88, 0x88, 0x77, 0x77, 0x66, 0x66,
+            0x55, 0x55, 0x44, 0x44, 0x33, 0x33, 0x22, 0x22,
+        ];
+
+        let (_, _, topics, _, session, _, _, _, replica_id, replica_epoch, _) =
+            decode_fetch_request(&mut &REQ[..], 15).expect("fetch v15 request");
+        assert_eq!(replica_id, 5, "v15 replicaState replicaId");
+        assert_eq!(replica_epoch, 12345, "v15 replicaState replicaEpoch");
+        assert_eq!(session.session_id(), 400);
+        assert_eq!(topics[0].topic_id, expected_topic_id);
+
+        let (topics_resp, _, _, session_id, throttle_ms) =
+            decode_fetch_response(&mut &RESP[..], 15).expect("fetch v15 response");
+        assert_eq!(throttle_ms, 90);
+        assert_eq!(session_id, 400);
+        assert_eq!(topics_resp[0].topic_id, expected_topic_id);
+        assert_eq!(topics_resp[0].partitions[0].current_leader_id, 1);
+        assert_eq!(topics_resp[0].partitions[0].current_leader_epoch, 15);
+    }
+
+    // 8. Fetch v16: top-level nodeEndpoints tagged field 0 in response
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v16_endpoints_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v16_endpoints_response.bin");
+
+        let (_, _, _, _, _, _, _, _, replica_id, _, _) =
+            decode_fetch_request(&mut &REQ[..], 16).expect("fetch v16 request");
+        assert_eq!(replica_id, CONSUMER_REPLICA_ID, "v16 consumer replicaId");
+
+        let (topics_resp, endpoints, _, session_id, throttle_ms) =
+            decode_fetch_response(&mut &RESP[..], 16).expect("fetch v16 response");
+        assert_eq!(throttle_ms, 110);
+        assert_eq!(session_id, 500);
+        assert_eq!(endpoints.len(), 2, "v16 nodeEndpoints count");
+        assert_eq!(endpoints[0].node_id, 1);
+        assert_eq!(endpoints[0].host, "broker1.kafka.local");
+        assert_eq!(endpoints[0].port, 9092);
+        assert_eq!(endpoints[0].rack.as_deref(), Some("rack-a"));
+        assert_eq!(endpoints[1].node_id, 2);
+        assert_eq!(endpoints[1].host, "broker2.kafka.local");
+        assert_eq!(endpoints[1].port, 9092);
+        assert_eq!(endpoints[1].rack.as_deref(), Some("rack-b"));
+        assert_eq!(topics_resp[0].partitions[0].high_watermark, 20);
+        assert_eq!(topics_resp[0].partitions[0].last_stable_offset, 18);
+    }
+
+    // 9. Fetch v17: highest valid version in Apache Kafka 3.9.1, partition replicaDirectoryId tagged field 0
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v17_max_3_9_1_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/fetch_v17_max_3_9_1_response.bin");
+
+        let expected_topic_id = [
+            0xfa, 0xce, 0xfe, 0xed, 0xca, 0xfe, 0xbe, 0xef,
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        ];
+        let expected_replica_dir_id = [
+            0xaa, 0xaa, 0xbb, 0xbb, 0x00, 0x00, 0x11, 0x11,
+            0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55,
+        ];
+
+        let (_, _, topics, rack, session, _, _, _, _, _, _) =
+            decode_fetch_request(&mut &REQ[..], 17).expect("fetch v17 request");
+        assert_eq!(rack, "rack-v17");
+        assert_eq!(session.session_id(), 600);
+        assert_eq!(session.epoch(), 5);
+        assert_eq!(topics[0].topic_id, expected_topic_id);
+        let p = &topics[0].partitions[0];
+        assert_eq!(p.current_leader_epoch, 20);
+        assert_eq!(p.last_fetched_epoch, 19);
+        assert_eq!(p.log_start_offset, 900);
+        assert_eq!(p.replica_directory_id, expected_replica_dir_id, "v17 partition replicaDirectoryId");
+
+        let (topics_resp, endpoints, _, session_id, throttle_ms) =
+            decode_fetch_response(&mut &RESP[..], 17).expect("fetch v17 response");
+        assert_eq!(throttle_ms, 120);
+        assert_eq!(session_id, 600);
+        assert_eq!(endpoints.len(), 1);
+        assert_eq!(endpoints[0].node_id, 3);
+        assert_eq!(endpoints[0].host, "broker3.kafka.local");
+        assert_eq!(endpoints[0].port, 9093);
+        assert_eq!(endpoints[0].rack.as_deref(), Some("rack-c"));
+        let resp_p = &topics_resp[0].partitions[0];
+        assert_eq!(resp_p.current_leader_id, 3);
+        assert_eq!(resp_p.current_leader_epoch, 20);
+        assert_eq!(resp_p.diverging_epoch, 19);
+        assert_eq!(resp_p.diverging_end_offset, 995);
+    }
+}
+
+/// KL01-05: Distinguish a valid short final fetch tail from malformed complete records.
+///
+/// Verifies that when a broker truncates a fetch response at max_bytes boundaries,
+/// leaving an incomplete trailing record batch (fewer than 12 bytes or fewer than declared
+/// batch_len), decoding cleanly stops and returns the complete batches before the cut.
+/// In contrast, when a complete record batch has corrupted CRC, invalid magic, or malformed
+/// record contents, decoding fails with an Error::protocol.
+#[test]
+fn fetch_short_tail_and_malformed_records_oracles() {
+    let mut rec_bytes = BytesMut::new();
+    let batch1 = RecordBatch::from_records(vec![Record {
+        offset: 0,
+        timestamp: 1_710_000_000_000,
+        key: Some(Bytes::from_static(b"k1")),
+        value: Some(Bytes::from_static(b"v1")),
+        headers: vec![],
+    }]);
+    let batch2 = RecordBatch::from_records(vec![Record {
+        offset: 1,
+        timestamp: 1_710_000_000_001,
+        key: Some(Bytes::from_static(b"k2")),
+        value: Some(Bytes::from_static(b"v2")),
+        headers: vec![],
+    }]);
+    records::encode_record_batch(&mut rec_bytes, &batch1).unwrap();
+    let batch1_end = rec_bytes.len();
+    records::encode_record_batch(&mut rec_bytes, &batch2).unwrap();
+
+    // 1. Valid short final fetch tail:
+    // Case A: Trailing partial header (< 12 bytes remaining)
+    let mut short_tail_header = rec_bytes.clone();
+    short_tail_header.extend_from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02]); // 8 bytes < 12
+    let mut cur = &short_tail_header[..];
+    let decoded = records::decode_record_batches(&mut cur).expect("short header tail must succeed");
+    assert_eq!(decoded.len(), 2, "decodes the 2 complete batches before short tail");
+    assert_eq!(decoded[0].records[0].value.as_deref(), Some(b"v1".as_slice()));
+    assert_eq!(decoded[1].records[0].value.as_deref(), Some(b"v2".as_slice()));
+
+    // Case B: Declared batch_len = 100 bytes, but only 20 bytes payload provided
+    let mut short_tail_body = rec_bytes.clone();
+    short_tail_body.extend_from_slice(&2i64.to_be_bytes()); // base_offset
+    short_tail_body.extend_from_slice(&100i32.to_be_bytes()); // batch_len = 100
+    short_tail_body.extend_from_slice(&[0x00; 20]); // only 20 bytes provided instead of 100
+    let mut cur = &short_tail_body[..];
+    let decoded = records::decode_record_batches(&mut cur).expect("short body tail must succeed");
+    assert_eq!(decoded.len(), 2, "decodes the 2 complete batches before truncated tail");
+
+    // 2. Malformed complete records:
+    // Case A: Full batch bytes present, but corrupted CRC32-C
+    let mut corrupt_crc = rec_bytes.clone();
+    let corrupt_idx = batch1_end + 25; // inside batch 2 payload
+    corrupt_crc[corrupt_idx] ^= 0xff;
+    let mut cur = &corrupt_crc[..];
+    let err = records::decode_record_batches(&mut cur).unwrap_err();
+    assert!(
+        err.to_string().contains("corrupt"),
+        "corrupted batch CRC must fail decoding: {err}"
+    );
+
+    // Case B: Full batch bytes present, but invalid magic byte (magic 3 instead of 2)
+    let mut corrupt_magic = rec_bytes.clone();
+    corrupt_magic[batch1_end + 16] = 3; // magic offset is 16 (8 base_offset + 4 batch_len + 4 leader_epoch)
+    let mut cur = &corrupt_magic[..];
+    assert!(
+        records::decode_record_batches(&mut cur).is_err(),
+        "invalid magic byte in complete batch must fail"
+    );
+
+    // Case C: Full batch bytes present, but corrupted record varint inside the batch
+    let mut corrupt_record = rec_bytes.clone();
+    let last_byte = corrupt_record.len() - 1;
+    corrupt_record[last_byte] ^= 0x80; // corrupt varint in record
+    // Recompute CRC so CRC passes but inner record parser fails
+    let crc_start = batch1_end + 21;
+    let crc = crc32c::crc32c(&corrupt_record[crc_start..]);
+    corrupt_record[batch1_end + 17..batch1_end + 21].copy_from_slice(&crc.to_be_bytes());
+    let mut cur = &corrupt_record[..];
+    assert!(
+        records::decode_record_batches(&mut cur).is_err(),
+        "corrupted inner record in complete batch must fail"
+    );
+}
+
+/// KL01-05: Negative and mutation tests for Fetch.
+///
+/// Verifies that mutating field order or required version gates fails decoding.
+#[test]
+fn fetch_version_gate_and_field_order_mutations_fail() {
+    const V4_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/fetch_v4_classic_response.bin");
+    const V5_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/fetch_v5_start_offset_response.bin");
+    const V7_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/fetch_v7_session_response.bin");
+    const V11_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/fetch_v11_batches_records_response.bin");
+    const V12_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/fetch_v12_flexible_tags_response.bin");
+    const V13_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/fetch_v13_topic_ids_response.bin");
+    const V15_REQ: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/fetch_v15_replica_state_request.bin");
+
+    // Mutation 1: Version gate mutation for log_start_offset (gate is v5+).
+    // Decoding v4 response (no log_start_offset on wire) with v5 decoder fails with buffer underflow.
+    let mut cur = V4_RESP;
+    assert!(
+        decode_fetch_response(&mut cur, 5).is_err(),
+        "decoding v4 response as v5 must fail because log_start_offset is missing on wire"
+    );
+
+    // Decoding v5 response with v4 decoder ignores log_start_offset and causes protocol desync/error.
+    let mut cur = V5_RESP;
+    assert!(
+        decode_fetch_response(&mut cur, 4).is_err(),
+        "decoding v5 response with v4 decoder must fail due to protocol desync"
+    );
+
+    // Mutation 2: Version gate mutation for session metadata (gate is v7+).
+    // Decoding v7 response with v6 decoder ignores top-level error_code and session_id, leaving unconsumed bytes.
+    let mut cur = V7_RESP;
+    let _ = decode_fetch_response(&mut cur, 6).expect("decodes without v7 session metadata");
+    assert!(
+        !cur.is_empty(),
+        "decoding v7 response with v6 decoder must leave unconsumed session metadata bytes"
+    );
+
+    // Mutation 3: Flexible version gate mutation (gate is v12+).
+    // Decoding v11 classic response as v12 flexible treats 0x00 as null array, leaving unconsumed bytes.
+    let mut cur = V11_RESP;
+    let _ = decode_fetch_response(&mut cur, 12).expect("decodes null array on format mismatch");
+    assert!(
+        !cur.is_empty(),
+        "decoding v11 classic response as v12 flexible must leave unconsumed bytes"
+    );
+
+    // Decoding v12 flexible response as v11 classic must fail with format mismatch.
+    let mut cur = V12_RESP;
+    assert!(
+        decode_fetch_response(&mut cur, 11).is_err(),
+        "decoding v12 flexible response as v11 classic must fail"
+    );
+
+    // Mutation 4: Topic IDs version gate mutation (gate is v13+).
+    // Decoding v12 response as v13 fails because v13 expects UUID (16 bytes) while v12 uses compact string.
+    let mut cur = V12_RESP;
+    assert!(
+        decode_fetch_response(&mut cur, 13).is_err(),
+        "decoding v12 response as v13 must fail due to topic name vs topic ID mismatch"
+    );
+
+    // Decoding v13 response as v12 fails because v12 expects compact string while v13 uses UUID.
+    let mut cur = V13_RESP;
+    assert!(
+        decode_fetch_response(&mut cur, 12).is_err(),
+        "decoding v13 response as v12 must fail due to topic ID vs topic name mismatch"
+    );
+
+    // Mutation 5: ReplicaId omission version gate mutation (gate is v15+).
+    // Decoding v15 request with v14 decoder fails because v14 expects untagged replicaId before max_wait_ms.
+    let mut cur = V15_REQ;
+    assert!(
+        decode_fetch_request(&mut cur, 14).is_err(),
+        "decoding v15 request as v14 must fail because untagged replicaId is missing on v15"
+    );
+
+    // Mutation 6: Mutating field order in FetchResponse (e.g. omitting or moving throttle_time_ms).
+    // In FetchResponse, throttle_time_ms is written first. If topic count is placed first, decode fails.
+    let mut mutated_order = BytesMut::new();
+    mutated_order.extend_from_slice(&1i32.to_be_bytes()); // topic count = 1
+    mutated_order.extend_from_slice(&(2i16).to_be_bytes()); // string len = 2
+    mutated_order.extend_from_slice(b"t1");
+    mutated_order.extend_from_slice(&0i32.to_be_bytes()); // part count = 0
+    let mut cur = mutated_order.as_ref();
+    assert!(
+        decode_fetch_response(&mut cur, 4).is_err(),
+        "mutating FetchResponse field order must fail decoding"
+    );
+}
+
+/// KL01-05: Decode Rust output with Apache where Java is available.
+///
+/// Encodes Fetch requests and responses in Rust across the advertised version boundaries,
+/// then runs Apache Kafka's `FetchRequestData.read` and `FetchResponseData.read` in Java
+/// to verify that Apache successfully decodes partitionline wire output.
+#[test]
+fn rust_fetch_output_decodes_with_apache_when_java_available() {
+    let Some((java_bin, cp)) = java_conformance_classpath() else {
+        println!("java toolchain / conformance jars not available; skipping live Apache decode of Rust output");
+        return;
+    };
+
+    let versions: [(i16, i32, i32); 9] = [
+        (4, 500, 25),
+        (5, 1000, 35),
+        (7, 5000, 45),
+        (11, 2500, 55),
+        (12, 1500, 70),
+        (13, 2000, 80),
+        (15, 1000, 90),
+        (16, 3000, 110),
+        (17, 1200, 120),
+    ];
+
+    for (version, max_wait_ms, throttle_ms) in versions {
+        let topic_id = [0x22u8; 16];
+        let topic_name = if version >= 13 { "" } else { "rust-fetch-topic" };
+        let topic_id_bytes = if version >= 13 { topic_id } else { [0u8; 16] };
+
+        // 1. Rust encodes FetchRequest
+        let mut req_buf = BytesMut::new();
+        let topic = FetchTopic {
+            topic: topic_name.into(),
+            topic_id: topic_id_bytes,
+            partitions: vec![FetchPartition::partition_data(
+                0, 100, 50, 1048576, Some(5), Some(4)
+            )],
+        };
+        if version >= 15 {
+            encode_fetch_request_with_replica_state(
+                &mut req_buf, version, max_wait_ms, 1, 10485760, 0, &[topic], Some("rack-1"), 5, 12345
+            ).expect("encode fetch request in Rust");
+        } else if version >= 12 {
+            encode_fetch_request_with_cluster_id(
+                &mut req_buf, version, max_wait_ms, 1, 10485760, 0, &[topic], Some("rack-1"), -1, -1, Some("cluster-rust")
+            ).expect("encode fetch request in Rust");
+        } else if version >= 7 {
+            encode_fetch_request_with_session(
+                &mut req_buf, version, max_wait_ms, 1, 10485760, 1, &[topic], None, FetchMetadata::new(42, 1)
+            ).expect("encode fetch request in Rust");
+        } else if version >= 5 {
+            encode_fetch_request_with_replica_id(
+                &mut req_buf, version, max_wait_ms, 1, 10485760, 0, &[topic], None, 2
+            ).expect("encode fetch request in Rust");
+        } else {
+            encode_fetch_request(
+                &mut req_buf, version, max_wait_ms, 1, 10485760, 0, &[topic], None
+            ).expect("encode fetch request in Rust");
+        }
+        let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+
+        let req_out = std::process::Command::new(&java_bin)
+            .args([
+                "-cp",
+                &cp,
+                "org.apache.kafka.conformance.FixtureGenerator",
+                "--decode-rust",
+                "fetch-req",
+                &version.to_string(),
+                &req_hex,
+            ])
+            .output()
+            .expect("execute java decode-rust fetch-req");
+        assert!(
+            req_out.status.success(),
+            "Apache Java failed to decode Rust FetchRequest v{version}: {}",
+            String::from_utf8_lossy(&req_out.stderr)
+        );
+        let req_stdout = String::from_utf8_lossy(&req_out.stdout);
+        assert!(
+            req_stdout.contains(&format!("OK: req v{version}")),
+            "Apache output confirmation: {req_stdout}"
+        );
+
+        // 2. Rust encodes FetchResponse
+        let mut resp_buf = BytesMut::new();
+        let mut part = FetchedPartition::partition_response(0, 0);
+        part.high_watermark = 200;
+        part.last_stable_offset = 190;
+        part.log_start_offset = 50;
+        if version >= 11 {
+            part.preferred_read_replica = 2;
+        }
+        if version >= 12 {
+            part.current_leader_id = 1;
+            part.current_leader_epoch = 10;
+        }
+        let topic_resp = FetchedTopic {
+            topic: topic_name.into(),
+            topic_id: topic_id_bytes,
+            partitions: vec![part],
+        };
+        if version >= 16 {
+            let ep = NodeEndpoint {
+                node_id: 1,
+                host: "broker1.kafka.local".into(),
+                port: 9092,
+                rack: Some("rack-a".into()),
+            };
+            encode_fetch_response_with_endpoints(
+                &mut resp_buf, version, &[topic_resp], 0, 42, &[ep]
+            ).expect("encode fetch response in Rust");
+        } else if version >= 7 {
+            encode_fetch_response_with_endpoints(
+                &mut resp_buf, version, &[topic_resp], 0, 42, &[]
+            ).expect("encode fetch response in Rust");
+        } else {
+            encode_fetch_response_with_throttle(
+                &mut resp_buf, version, &[topic_resp], throttle_ms
+            ).expect("encode fetch response in Rust");
+        }
+        let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+
+        let resp_out = std::process::Command::new(&java_bin)
+            .args([
+                "-cp",
+                &cp,
+                "org.apache.kafka.conformance.FixtureGenerator",
+                "--decode-rust",
+                "fetch-resp",
+                &version.to_string(),
+                &resp_hex,
+            ])
+            .output()
+            .expect("execute java decode-rust fetch-resp");
+        assert!(
+            resp_out.status.success(),
+            "Apache Java failed to decode Rust FetchResponse v{version}: {}",
+            String::from_utf8_lossy(&resp_out.stderr)
+        );
+        let resp_stdout = String::from_utf8_lossy(&resp_out.stdout);
+        assert!(
+            resp_stdout.contains(&format!("OK: resp v{version}")),
+            "Apache output confirmation: {resp_stdout}"
+        );
+    }
+}
+

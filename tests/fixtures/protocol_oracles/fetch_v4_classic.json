@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "fetch-v4-classic",
+  "api": "Fetch",
+  "api_key": 1,
+  "api_version": 4,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Fetch v4 classic wire format with topic names, untagged consumer replicaId, partition errors, and omitted logStartOffset",
+  "request": {
+    "file": "fetch_v4_classic_request.bin",
+    "size_bytes": 75,
+    "sha256": "acf6c27205f20fc78be51768885e7c6e13e0f8702820094b7ca49945570dda34",
+    "hex": "ffffffff000001f40000000100a000000000000001001066657463682d76342d636c6173736963000000020000000000000000000000000010000000000001000000000000006400100000"
+  },
+  "response": {
+    "file": "fetch_v4_classic_response.bin",
+    "size_bytes": 90,
+    "sha256": "3f4af0307ce0f1261240b3025f3d65e58cb68861676a644fb85c95094e625a35",
+    "hex": "0000001900000001001066657463682d76342d636c6173736963000000020000000000000000000000000032000000000000002d0000000000000000000000010003ffffffffffffffffffffffffffffffff00000000ffffffff"
+  }
+}
