@@ -1,0 +1,39 @@
+{
+  "id": "KL02-07",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "e0ac7ffa23b470b3e54c1229762acd2f295ac67d",
+  "commands": [
+    "cargo test --offline --locked --test network_deadlines",
+    "cargo test --offline --locked --lib net",
+    "rustfmt --edition 2021 --check src/net.rs tests/network_deadlines.rs"
+  ],
+  "results": {
+    "network_deadlines_tests": 8,
+    "net_lib_tests": 10,
+    "passed": 18,
+    "failed": 0,
+    "test_names": [
+      "combined_delay_cannot_consume_2x_budget",
+      "timeout_does_not_leave_reusable_desynchronized_connection",
+      "partial_read_marks_connection_closed_and_not_reusable",
+      "cancellation_mid_flight_marks_connection_closed_and_not_reusable",
+      "correlation_mismatch_marks_connection_closed_and_not_reusable",
+      "healthy_connection_allows_sequential_roundtrips",
+      "early_response_during_write_preserves_framing_and_correlation",
+      "explicit_deadline_contract_bounds_roundtrip",
+      "deadline_contract_tracks_remaining_and_expiration",
+      "deadline_run_io_enforces_budget"
+    ]
+  },
+  "artifacts": [
+    "src/net.rs",
+    "tests/network_deadlines.rs",
+    "docs/plan/evidence/KL02-07.json"
+  ],
+  "limits": [
+    "Tests use loopback TCP peer (127.0.0.1:0); TLS read-during-write and framing tested with wire buffers without external broker",
+    "src/consumer.rs, src/producer.rs, src/group.rs, and tasks.json untouched per forbidden set"
+  ],
+  "blocked_reason": null
+}
