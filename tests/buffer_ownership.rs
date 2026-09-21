@@ -3,10 +3,6 @@
 //! `buffer_memory` counts key+value bytes reserved from accept until ack/fail.
 //! Saturating `try_send` must never push `metrics().bytes_buffered` over the cap,
 //! and flush/close must drain reserved bytes to zero.
-#![expect(
-    dead_code,
-    reason = "tests/common mock helpers are shared; this file uses a subset"
-)]
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -18,6 +14,8 @@
 mod common;
 
 use bytes::Bytes;
+use partitionline::error;
+use partitionline::producer::PreSendFault;
 use partitionline::protocol::records::{Header, Records};
 use partitionline::{Compression, Error, ProduceRecord, Producer, ProducerConfig};
 use std::sync::Arc;
@@ -419,5 +417,267 @@ async fn permit_stays_owned_across_retry_and_releases_exactly_once() {
         0,
         "retried record must release permit exactly once on success"
     );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn presend_failure_transaction_partition_releases_permit_and_flush_fails() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::from_millis(50))
+            .batch_records(1),
+    )
+    .await
+    .unwrap();
+    warm_metadata(&producer).await;
+
+    producer.inject_pre_send_fault(PreSendFault::TxnPartition);
+    let rec1 = ProduceRecord::to("t")
+        .value(vec![b'a'; 100])
+        .header("h1", "val1");
+    let rec2 = ProduceRecord::to("t")
+        .value(vec![b'b'; 100])
+        .header("h2", "val2");
+
+    let (res1, res2) = tokio::join!(producer.send(rec1), producer.send(rec2));
+
+    let err1 = res1.expect_err("pre-send transaction partition fault must fail future");
+    assert!(
+        !matches!(err1, Error::Closed),
+        "pre-send failure should terminate with specific error, not Closed; got {err1:?}"
+    );
+    assert_eq!(
+        err1.broker_code(),
+        Some(error::OPERATION_NOT_ATTEMPTED),
+        "expected broker error code OPERATION_NOT_ATTEMPTED, got {err1:?}"
+    );
+
+    let md2 = res2.expect("unrelated record in worker pending must not be dropped");
+    assert_eq!(md2.topic, "t");
+
+    let flush_err = producer
+        .flush()
+        .await
+        .expect_err("flush must observe pre-send worker failure");
+    assert!(
+        !matches!(flush_err, Error::Closed),
+        "flush error must not be Closed; got {flush_err:?}"
+    );
+    assert_eq!(
+        producer.metrics().bytes_buffered,
+        0,
+        "pre-send failure must release buffer reservations back to zero"
+    );
+    assert_eq!(
+        producer.retries_in_flight(),
+        0,
+        "retry counter must return to zero"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn presend_failure_encode_releases_permit_and_flush_fails() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::from_millis(50))
+            .batch_records(1),
+    )
+    .await
+    .unwrap();
+    warm_metadata(&producer).await;
+
+    producer.inject_pre_send_fault(PreSendFault::Encode);
+    let rec1 = ProduceRecord::to("t")
+        .value(vec![b'c'; 100])
+        .header("h-enc", "val-enc");
+    let rec2 = ProduceRecord::to("t")
+        .value(vec![b'd'; 100])
+        .header("h-ok", "val-ok");
+
+    let (res1, res2) = tokio::join!(producer.send(rec1), producer.send(rec2));
+
+    let err1 = res1.expect_err("pre-send encode fault must fail future");
+    assert!(
+        matches!(err1, Error::Protocol(_)),
+        "expected protocol encode error, got {err1:?}"
+    );
+
+    let md2 = res2.expect("unrelated record must not be dropped on encode failure");
+    assert_eq!(md2.topic, "t");
+
+    let flush_err = producer
+        .flush()
+        .await
+        .expect_err("flush must observe pre-send encode failure");
+    assert!(
+        matches!(flush_err, Error::Protocol(_)),
+        "flush error must match encode protocol failure, got {flush_err:?}"
+    );
+    assert_eq!(
+        producer.metrics().bytes_buffered,
+        0,
+        "encode failure must release buffer reservations back to zero"
+    );
+    assert_eq!(
+        producer.retries_in_flight(),
+        0,
+        "retry counter must return to zero"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn presend_failure_write_releases_permit_and_flush_fails() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::from_millis(50))
+            .batch_records(1),
+    )
+    .await
+    .unwrap();
+    warm_metadata(&producer).await;
+
+    producer.inject_pre_send_fault(PreSendFault::Write);
+    let rec1 = ProduceRecord::to("t")
+        .value(vec![b'w'; 100])
+        .header("h-wr", "val-wr");
+    let rec2 = ProduceRecord::to("t")
+        .value(vec![b'x'; 100])
+        .header("h-ok", "val-ok");
+
+    let (res1, res2) = tokio::join!(producer.send(rec1), producer.send(rec2));
+
+    let err1 = res1.expect_err("pre-send write fault must fail future");
+    assert!(
+        matches!(err1, Error::Io(_)),
+        "expected write I/O error, got {err1:?}"
+    );
+
+    let md2 = res2.expect("unrelated record must not be dropped on write failure");
+    assert_eq!(md2.topic, "t");
+
+    let flush_err = producer
+        .flush()
+        .await
+        .expect_err("flush must observe pre-send write failure");
+    assert!(
+        matches!(flush_err, Error::Io(_)),
+        "flush error must match write I/O failure, got {flush_err:?}"
+    );
+    assert_eq!(
+        producer.metrics().bytes_buffered,
+        0,
+        "write failure must release buffer reservations back to zero"
+    );
+    assert_eq!(
+        producer.retries_in_flight(),
+        0,
+        "retry counter must return to zero"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn presend_failure_write_retry_exhaustion_releases_permit() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .delivery_timeout(Duration::from_millis(60))
+            .retry_backoff(Duration::from_millis(15))
+            .retry_backoff_max(Duration::from_millis(15)),
+    )
+    .await
+    .unwrap();
+    warm_metadata(&producer).await;
+
+    producer.inject_pre_send_fault_times(PreSendFault::WriteRetriable, 100);
+    let rec = ProduceRecord::to("t")
+        .value(vec![b'e'; 100])
+        .header("h-retry", "val-retry");
+
+    let err = producer
+        .send(rec)
+        .await
+        .expect_err("exhausted write retry must terminate with Timeout ambiguity");
+    assert!(
+        matches!(err, Error::Timeout),
+        "expected Timeout on exhausted delivery_timeout, got {err:?}"
+    );
+
+    assert_eq!(
+        producer.metrics().bytes_buffered,
+        0,
+        "exhausted retries must release buffer reservations"
+    );
+    assert_eq!(
+        producer.retries_in_flight(),
+        0,
+        "retry counter must return to zero after timeout"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn presend_failure_real_mock_add_partitions_to_txn() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(partitionline::protocol::PRODUCE, 11);
+    mock.set_add_partitions_error_times(error::OPERATION_NOT_ATTEMPTED, 1);
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .transactional_id("tx-real-mock"),
+    )
+    .await
+    .unwrap();
+
+    producer.begin_transaction().await.unwrap();
+
+    let rec1 = ProduceRecord::to("t")
+        .value(vec![b't'; 80])
+        .header("h-txn", "val-txn");
+    let err1 = producer
+        .send(rec1)
+        .await
+        .expect_err("add_partitions failure from broker must fail the future");
+    assert_eq!(
+        err1.broker_code(),
+        Some(error::OPERATION_NOT_ATTEMPTED),
+        "expected broker error OPERATION_NOT_ATTEMPTED, got {err1:?}"
+    );
+
+    let flush_err = producer
+        .flush()
+        .await
+        .expect_err("flush must observe transaction partition failure");
+    assert_eq!(
+        flush_err.broker_code(),
+        Some(error::OPERATION_NOT_ATTEMPTED)
+    );
+
+    assert_eq!(
+        producer.metrics().bytes_buffered,
+        0,
+        "real broker AddPartitions error must release buffer reservations"
+    );
+    assert_eq!(producer.retries_in_flight(), 0);
+
+    // Now send an unrelated/subsequent record; mock error was 1-time so it succeeds.
+    let rec2 = ProduceRecord::to("t")
+        .value(vec![b'u'; 80])
+        .header("h-ok", "val-ok");
+    let md2 = producer
+        .send(rec2)
+        .await
+        .expect("subsequent record after 1-time broker error must succeed");
+    assert_eq!(md2.topic, "t");
+
+    producer.flush().await.unwrap();
+    assert_eq!(producer.metrics().bytes_buffered, 0);
+    assert_eq!(producer.retries_in_flight(), 0);
     producer.close().await.unwrap();
 }

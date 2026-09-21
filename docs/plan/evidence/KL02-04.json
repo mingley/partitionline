@@ -1,0 +1,64 @@
+{
+  "id": "KL02-04",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "642ee29a77d5ab5e3daba4bda37e306b3f5b055a",
+  "commands": [
+    "cargo test --offline --locked --test buffer_ownership",
+    "cargo test --offline --locked --test full_surface transactional",
+    "rustfmt --edition 2021 --check src/producer.rs tests/buffer_ownership.rs tests/common/mod.rs"
+  ],
+  "results": {
+    "buffer_ownership_tests": {
+      "passed": 12,
+      "failed": 0,
+      "test_names": [
+        "saturating_try_send_never_exceeds_buffer_memory",
+        "queue_full_under_overload_releases_no_orphan_bytes",
+        "send_timeout_when_buffer_full_and_max_block_expires",
+        "header_heavy_records_count_against_buffer_budget",
+        "zero_value_records_do_not_bypass_saturated_buffer",
+        "shared_backing_and_compressed_records_respect_buffer_budget",
+        "permit_stays_owned_across_retry_and_releases_exactly_once",
+        "presend_failure_transaction_partition_releases_permit_and_flush_fails",
+        "presend_failure_encode_releases_permit_and_flush_fails",
+        "presend_failure_write_releases_permit_and_flush_fails",
+        "presend_failure_write_retry_exhaustion_releases_permit",
+        "presend_failure_real_mock_add_partitions_to_txn"
+      ]
+    },
+    "full_surface_transactional_tests": {
+      "passed": 5,
+      "failed": 0,
+      "test_names": [
+        "transactional_commit_after_unknown_pid_still_fails",
+        "transactional_abort_reinit_sends_last_pid_epoch",
+        "transactional_offsets_and_partitions_one_rpc",
+        "transactional_producer_finds_txn_coordinator",
+        "transactional_commit_visible_abort_hidden"
+      ]
+    },
+    "checks": [
+      "Injected transaction-partition, encode, and write errors at the actual ownership transition (between draining pending records and registering an in-flight request)",
+      "Accepted futures terminate with the right error or ambiguity (broker error, protocol encode error, I/O error, or timeout) and not Error::Closed",
+      "Producer::flush observes worker pre-send failures",
+      "Reserved buffer bytes return to zero exactly once across all failure and success paths",
+      "Retry counters (retries_in_flight) return to zero",
+      "Unrelated records in worker pending are not silently dropped or erroneously failed when a drained batch encounters pre-send failure",
+      "Idempotent/transactional sequence counters rollback on pre-send failure so subsequent records on that topic-partition avoid sequence gaps",
+      "KL02-02 header accounting preserved on pre-send release paths"
+    ]
+  },
+  "artifacts": [
+    "src/producer.rs",
+    "tests/buffer_ownership.rs",
+    "tests/common/mod.rs",
+    "docs/plan/evidence/KL02-04.json"
+  ],
+  "limits": [
+    "Process RSS is not bounded by bytes_buffered or buffer_memory; process memory includes allocator fragmentation, Tokio task state, TLS buffers, socket frames, and batch wire encoding.",
+    "Forbidden file src/consumer.rs was not touched.",
+    "No unsafe code and no new dependencies added."
+  ],
+  "blocked_reason": null
+}
