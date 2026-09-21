@@ -322,7 +322,8 @@ pub async fn authenticate_plain(
             timeout,
         )
         .await?;
-    let (code, msg, _, _) = decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
+    let (code, msg, _, session_lifetime_ms) =
+        decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
         return Err(Error::broker(
             if code == 0 {
@@ -333,6 +334,7 @@ pub async fn authenticate_plain(
             msg.unwrap_or_else(|| "SaslAuthenticate".into()),
         ));
     }
+    conn.record_sasl_session_lifetime(session_lifetime_ms);
     Ok(())
 }
 
@@ -391,7 +393,8 @@ pub async fn authenticate_scram(
             timeout,
         )
         .await?;
-    let (code, msg, bytes, _) = decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
+    let (code, msg, bytes, session_lifetime_ms) =
+        decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
         return Err(Error::broker(
             code,
@@ -407,7 +410,9 @@ pub async fn authenticate_scram(
         &server_first,
         &client_final,
         &server_final,
-    )
+    )?;
+    conn.record_sasl_session_lifetime(session_lifetime_ms);
+    Ok(())
 }
 
 /// [`authenticate_scram`] with [`super::scram::ScramAlg::Sha256`].
@@ -463,7 +468,8 @@ pub async fn authenticate_oauthbearer_token(
             timeout,
         )
         .await?;
-    let (code, msg, bytes, _) = decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
+    let (code, msg, bytes, session_lifetime_ms) =
+        decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
         return Err(Error::broker(
             code,
@@ -486,6 +492,7 @@ pub async fn authenticate_oauthbearer_token(
         );
         return Err(Error::protocol("oauthbearer: authentication failed"));
     }
+    conn.record_sasl_session_lifetime(session_lifetime_ms);
     Ok(())
 }
 
@@ -509,21 +516,13 @@ pub async fn authenticate(
     sasl_oidc: Option<&super::oidc::OidcConfig>,
     timeout: Duration,
 ) -> Result<()> {
-    let n = [
-        sasl_plain.is_some(),
-        sasl_scram.is_some(),
-        sasl_scram_sha512.is_some(),
-        sasl_oauthbearer.is_some(),
-        sasl_oidc.is_some(),
-    ]
-    .into_iter()
-    .filter(|x| *x)
-    .count();
-    if n > 1 {
-        return Err(Error::protocol(
-            "set only one of sasl_plain, sasl_scram, sasl_scram_sha512, sasl_oauthbearer, sasl_oauthbearer_oidc",
-        ));
-    }
+    let _ = count_sasl_mechs(
+        sasl_plain,
+        sasl_scram,
+        sasl_scram_sha512,
+        sasl_oauthbearer,
+        sasl_oidc,
+    )?;
     if let Some((u, p)) = sasl_plain {
         return authenticate_plain(conn, u, p, timeout).await;
     }
@@ -541,6 +540,300 @@ pub async fn authenticate(
         return authenticate_oauthbearer(conn, principal, timeout).await;
     }
     Ok(())
+}
+
+/// Resolve the spoken SaslAuthenticate version for mid-connection reauthentication.
+///
+/// Returns an error if the broker version does not support reauthentication
+/// (SaslAuthenticate v0 does not support KIP-368 reauth) or if the version is unset.
+pub fn spoken_reauthenticate_version(conn: &BrokerConn) -> Result<i16> {
+    match conn.sasl_authenticate_version {
+        1..=2 => Ok(conn.sasl_authenticate_version),
+        0 => Err(Error::Unsupported(
+            "broker does not support SASL reauthentication (SaslAuthenticate v0)".into(),
+        )),
+        _ => Err(Error::Unsupported(
+            "broker has not negotiated SaslAuthenticate version or version is unsupported".into(),
+        )),
+    }
+}
+
+/// Mid-connection PLAIN reauth: SaslAuthenticate only (KIP-368; no SaslHandshake).
+pub async fn reauthenticate_plain(
+    conn: &mut BrokerConn,
+    user: &str,
+    pass: &str,
+    timeout: Duration,
+) -> Result<()> {
+    let auth_version = spoken_reauthenticate_version(conn)?;
+    let auth = plain_auth_bytes(user, pass);
+    let body = conn
+        .roundtrip_sasl(
+            SASL_AUTHENTICATE,
+            auth_version,
+            |buf| encode_sasl_authenticate_request(buf, auth_version, &auth),
+            timeout,
+        )
+        .await?;
+    let (code, msg, _, session_lifetime_ms) =
+        decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
+    if code != 0 {
+        conn.close();
+        return Err(Error::broker(
+            if code == 0 {
+                error::SASL_AUTHENTICATION_FAILED
+            } else {
+                code
+            },
+            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
+        ));
+    }
+    conn.record_sasl_session_lifetime(session_lifetime_ms);
+    Ok(())
+}
+
+/// Mid-connection SCRAM reauth: SaslAuthenticate exchange only (no SaslHandshake).
+pub async fn reauthenticate_scram(
+    conn: &mut BrokerConn,
+    alg: super::scram::ScramAlg,
+    user: &str,
+    pass: &str,
+    timeout: Duration,
+) -> Result<()> {
+    let auth_version = spoken_reauthenticate_version(conn)?;
+    let nonce = super::scram::client_nonce();
+    let (first, bare) = super::scram::client_first(user, &nonce);
+    let body = conn
+        .roundtrip_sasl(
+            SASL_AUTHENTICATE,
+            auth_version,
+            |buf| encode_sasl_authenticate_request(buf, auth_version, first.as_bytes()),
+            timeout,
+        )
+        .await?;
+    let (code, msg, bytes, _) = decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
+    if code != 0 {
+        conn.close();
+        return Err(Error::broker(
+            code,
+            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
+        ));
+    }
+    let server_first =
+        String::from_utf8(bytes).map_err(|_| Error::protocol("scram server-first not utf8"))?;
+    let client_final = super::scram::client_final(alg, pass, &bare, &server_first)?;
+    let body = conn
+        .roundtrip_sasl(
+            SASL_AUTHENTICATE,
+            auth_version,
+            |buf| encode_sasl_authenticate_request(buf, auth_version, client_final.as_bytes()),
+            timeout,
+        )
+        .await?;
+    let (code, msg, bytes, session_lifetime_ms) =
+        decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
+    if code != 0 {
+        conn.close();
+        return Err(Error::broker(
+            code,
+            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
+        ));
+    }
+    let server_final =
+        String::from_utf8(bytes).map_err(|_| Error::protocol("scram server-final not utf8"))?;
+    super::scram::verify_server_final(
+        alg,
+        pass,
+        &bare,
+        &server_first,
+        &client_final,
+        &server_final,
+    )?;
+    conn.record_sasl_session_lifetime(session_lifetime_ms);
+    Ok(())
+}
+
+/// [`reauthenticate_scram`] with [`super::scram::ScramAlg::Sha256`].
+pub async fn reauthenticate_scram_sha256(
+    conn: &mut BrokerConn,
+    user: &str,
+    pass: &str,
+    timeout: Duration,
+) -> Result<()> {
+    reauthenticate_scram(conn, super::scram::ScramAlg::Sha256, user, pass, timeout).await
+}
+
+/// Mid-connection OAUTHBEARER reauth with an unsecured JWT for `principal`.
+pub async fn reauthenticate_oauthbearer(
+    conn: &mut BrokerConn,
+    principal: &str,
+    timeout: Duration,
+) -> Result<()> {
+    let token = super::oauth::unsecured_jwt_now(principal);
+    reauthenticate_oauthbearer_token(conn, &token, timeout).await
+}
+
+/// Mid-connection OAUTHBEARER reauth: SaslAuthenticate only (KIP-368; no SaslHandshake).
+pub async fn reauthenticate_oauthbearer_token(
+    conn: &mut BrokerConn,
+    token: &str,
+    timeout: Duration,
+) -> Result<()> {
+    let auth_version = spoken_reauthenticate_version(conn)?;
+    let auth = super::oauth::client_initial(token);
+    let body = conn
+        .roundtrip_sasl(
+            SASL_AUTHENTICATE,
+            auth_version,
+            |buf| encode_sasl_authenticate_request(buf, auth_version, &auth),
+            timeout,
+        )
+        .await?;
+    let (code, msg, bytes, session_lifetime_ms) =
+        decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
+    if code != 0 {
+        conn.close();
+        return Err(Error::broker(
+            code,
+            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
+        ));
+    }
+    if !bytes.is_empty() {
+        drop(
+            conn.roundtrip_sasl(
+                SASL_AUTHENTICATE,
+                auth_version,
+                |buf| encode_sasl_authenticate_request(buf, auth_version, &[0x01]),
+                timeout,
+            )
+            .await,
+        );
+        conn.close();
+        return Err(Error::protocol("oauthbearer: authentication failed"));
+    }
+    conn.record_sasl_session_lifetime(session_lifetime_ms);
+    Ok(())
+}
+
+/// Mid-connection reauthentication using an asynchronous token provider for SASL OAUTHBEARER.
+pub async fn reauthenticate_with_token_provider<P: super::oidc::TokenProvider + ?Sized>(
+    conn: &mut BrokerConn,
+    provider: &P,
+    timeout: Duration,
+) -> Result<()> {
+    let token = provider.token(timeout).await?;
+    reauthenticate_oauthbearer_token(conn, &token, timeout).await
+}
+
+/// Count configured SASL mechanisms, ensuring at most one is set.
+fn count_sasl_mechs(
+    sasl_plain: Option<&(String, String)>,
+    sasl_scram: Option<&(String, String)>,
+    sasl_scram_sha512: Option<&(String, String)>,
+    sasl_oauthbearer: Option<&str>,
+    sasl_oidc: Option<&super::oidc::OidcConfig>,
+) -> Result<usize> {
+    let n = [
+        sasl_plain.is_some(),
+        sasl_scram.is_some(),
+        sasl_scram_sha512.is_some(),
+        sasl_oauthbearer.is_some(),
+        sasl_oidc.is_some(),
+    ]
+    .into_iter()
+    .filter(|x| *x)
+    .count();
+    if n > 1 {
+        return Err(Error::protocol(
+            "set only one of sasl_plain, sasl_scram, sasl_scram_sha512, sasl_oauthbearer, sasl_oauthbearer_oidc",
+        ));
+    }
+    Ok(n)
+}
+
+/// Mid-connection reauthentication dispatcher (KIP-368): SaslAuthenticate only, no SaslHandshake.
+///
+/// Fetches a fresh OIDC token when OIDC is configured.
+/// Returns [`Error::Unsupported`] if no SASL mechanism is configured, preventing silent auth weakening.
+pub async fn reauthenticate(
+    conn: &mut BrokerConn,
+    sasl_plain: Option<&(String, String)>,
+    sasl_scram: Option<&(String, String)>,
+    sasl_scram_sha512: Option<&(String, String)>,
+    sasl_oauthbearer: Option<&str>,
+    sasl_oidc: Option<&super::oidc::OidcConfig>,
+    timeout: Duration,
+) -> Result<()> {
+    let n = count_sasl_mechs(
+        sasl_plain,
+        sasl_scram,
+        sasl_scram_sha512,
+        sasl_oauthbearer,
+        sasl_oidc,
+    )?;
+    if n == 0 {
+        return Err(Error::Unsupported(
+            "no SASL mechanism configured for reauthentication".into(),
+        ));
+    }
+    if let Some((u, p)) = sasl_plain {
+        return reauthenticate_plain(conn, u, p, timeout).await;
+    }
+    if let Some((u, p)) = sasl_scram {
+        return reauthenticate_scram(conn, super::scram::ScramAlg::Sha256, u, p, timeout).await;
+    }
+    if let Some((u, p)) = sasl_scram_sha512 {
+        return reauthenticate_scram(conn, super::scram::ScramAlg::Sha512, u, p, timeout).await;
+    }
+    if let Some(oidc) = sasl_oidc {
+        let token = super::oidc::fetch_client_credentials_token(oidc, timeout).await?;
+        return reauthenticate_oauthbearer_token(conn, &token, timeout).await;
+    }
+    if let Some(principal) = sasl_oauthbearer {
+        let token = super::oauth::unsecured_jwt_now(principal);
+        return reauthenticate_oauthbearer_token(conn, &token, timeout).await;
+    }
+    Ok(())
+}
+
+/// Prefer mid-connection [`reauthenticate`] when auth lifetime is near expiry.
+///
+/// Returns `Ok(false)` when reauthentication succeeds and the connection remains usable.
+/// Returns `Ok(true)` when the caller should reconnect (e.g. idle expired, or reauth failed).
+#[expect(
+    clippy::too_many_arguments,
+    reason = "matches authenticate arguments plus idle and timeout"
+)]
+pub async fn should_reconnect_after_reauth(
+    conn: &mut BrokerConn,
+    sasl_plain: Option<&(String, String)>,
+    sasl_scram: Option<&(String, String)>,
+    sasl_scram_sha512: Option<&(String, String)>,
+    sasl_oauthbearer: Option<&str>,
+    sasl_oidc: Option<&super::oidc::OidcConfig>,
+    max_idle: Duration,
+    timeout: Duration,
+) -> Result<bool> {
+    if conn.idle_expired(max_idle) {
+        return Ok(true);
+    }
+    if !conn.needs_reauth() && !conn.is_session_expired() {
+        return Ok(false);
+    }
+    match reauthenticate(
+        conn,
+        sasl_plain,
+        sasl_scram,
+        sasl_scram_sha512,
+        sasl_oauthbearer,
+        sasl_oidc,
+        timeout,
+    )
+    .await
+    {
+        Ok(()) => Ok(false),
+        Err(_) => Ok(true),
+    }
 }
 
 #[cfg(test)]
