@@ -18,15 +18,20 @@ use std::collections::BTreeSet;
 use std::time::Duration;
 
 use bytes::{Bytes, BytesMut};
-use partitionline::error::{NOT_LEADER_OR_FOLLOWER, UNKNOWN_TOPIC_OR_PARTITION};
+use partitionline::error::{
+    CLUSTER_AUTHORIZATION_FAILED, LEADER_NOT_AVAILABLE, NOT_LEADER_OR_FOLLOWER,
+    UNKNOWN_TOPIC_OR_PARTITION,
+};
 use partitionline::net::BrokerConn;
 use partitionline::protocol::api::{
-    decode_api_versions_handshake, decode_metadata_response, decode_produce_request,
-    decode_produce_response, encode_api_versions_request, encode_metadata_request,
+    decode_api_versions_handshake, decode_metadata_request_topics,
+    decode_metadata_response, decode_produce_request, decode_produce_response,
+    encode_api_versions_request, encode_metadata_request,
+    encode_metadata_request_topics_with_include_cluster_authorized_operations,
     encode_metadata_response, encode_produce_request, encode_produce_response,
-    encode_produce_response_with_throttle, Broker, MetadataResponse, NodeEndpoint,
-    PartitionMetadata, ProducePartitionData, ProducePartitionResponse, ProduceRecordError,
-    ProduceTopicData, TopicMetadata,
+    encode_produce_response_with_throttle, Broker, MetadataRequest, MetadataRequestTopic,
+    MetadataResponse, NodeEndpoint, PartitionMetadata, ProducePartitionData,
+    ProducePartitionResponse, ProduceRecordError, ProduceTopicData, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
     pick_version, API_VERSIONS, FETCH, LIST_OFFSETS, METADATA, PRODUCE,
@@ -430,16 +435,22 @@ fn metadata_roundtrip(version: i16, gated_present: bool) {
     } else {
         assert_eq!(decoded.throttle_time_ms, 0);
     }
-    assert_eq!(decoded.brokers.len(), 1);
+    assert_eq!(decoded.brokers.len(), 2);
     assert_eq!(decoded.brokers[0].node_id, 1);
     assert_eq!(decoded.brokers[0].host, "localhost");
     assert_eq!(decoded.brokers[0].port, 9092);
+    assert_eq!(decoded.brokers[1].node_id, 2);
+    assert_eq!(decoded.brokers[1].host, "remotehost");
+    assert_eq!(decoded.brokers[1].port, 9093);
     if version >= 1 {
         assert_eq!(decoded.brokers[0].rack.as_deref(), Some("rack-a"));
+        assert_eq!(decoded.brokers[1].rack.as_deref(), Some("rack-b"));
         assert_eq!(decoded.controller_id, 1);
+        assert_eq!(decoded.controller().map(|b| b.node_id), Some(1));
     } else {
         assert_eq!(decoded.controller_id, MetadataResponse::NO_CONTROLLER_ID);
     }
+    assert_eq!(decoded.brokers_by_id().len(), 2);
     if version >= 2 && gated_present {
         assert_eq!(decoded.cluster_id.as_deref(), Some("cluster-x"));
     } else {
@@ -452,34 +463,63 @@ fn metadata_roundtrip(version: i16, gated_present: bool) {
     if version >= 1 {
         assert!(!ok.is_internal);
     }
-    assert_eq!(ok.partitions.len(), 1);
-    let p = &ok.partitions[0];
-    assert_eq!(p.error_code, 0);
-    assert_eq!(p.partition_index, 0);
-    assert_eq!(p.leader_id, 1);
-    assert_eq!(p.replica_nodes, vec![1, 2]);
-    assert_eq!(p.isr_nodes, vec![1]);
+    assert_eq!(ok.partitions.len(), 2);
+    let p0 = &ok.partitions[0];
+    assert_eq!(p0.error_code, 0);
+    assert_eq!(p0.partition_index, 0);
+    assert_eq!(p0.leader_id, 1);
+    assert_eq!(p0.replica_nodes, vec![1, 2]);
+    assert_eq!(p0.isr_nodes, vec![1]);
     if version >= 7 && gated_present {
-        assert_eq!(p.leader_epoch, 4);
+        assert_eq!(p0.leader_epoch, 4);
     } else {
-        assert_eq!(p.leader_epoch, RecordBatch::NO_PARTITION_LEADER_EPOCH);
+        assert_eq!(p0.leader_epoch, RecordBatch::NO_PARTITION_LEADER_EPOCH);
     }
     if version >= 5 {
-        assert_eq!(p.offline_replicas, vec![2]);
+        assert_eq!(p0.offline_replicas, vec![2]);
     } else {
-        assert!(p.offline_replicas.is_empty());
+        assert!(p0.offline_replicas.is_empty());
     }
+
+    let p1 = &ok.partitions[1];
+    assert_eq!(p1.error_code, LEADER_NOT_AVAILABLE);
+    assert_eq!(p1.partition_index, 1);
+    assert_eq!(p1.leader_id, MetadataResponse::NO_LEADER_ID);
+    assert_eq!(p1.leader_epoch, RecordBatch::NO_PARTITION_LEADER_EPOCH);
+    if version >= 5 {
+        assert_eq!(p1.offline_replicas, vec![1, 2]);
+    } else {
+        assert!(p1.offline_replicas.is_empty());
+    }
+
+    if (8..=10).contains(&version) && gated_present {
+        assert_eq!(decoded.cluster_authorized_operations, 0xdf);
+    } else {
+        assert_eq!(
+            decoded.cluster_authorized_operations,
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
+    }
+
     let err = &decoded.topics[1];
     assert_eq!(err.error_code, UNKNOWN_TOPIC_OR_PARTITION);
     assert_eq!(err.name.as_deref(), Some("missing-topic"));
-    assert_eq!(decoded.error_code, 0);
+
+    if version >= 13 && gated_present {
+        assert_eq!(decoded.error_code, 31);
+    } else {
+        assert_eq!(decoded.error_code, 0);
+    }
 }
 
 fn metadata_body(gated_present: bool) -> MetadataResponse {
     let epoch = if gated_present { Some(4) } else { None };
     MetadataResponse {
         throttle_time_ms: THROTTLE_MS,
-        brokers: vec![Broker::new(1, "localhost", 9092, Some("rack-a".into()))],
+        brokers: vec![
+            Broker::new(1, "localhost", 9092, Some("rack-a".into())),
+            Broker::new(2, "remotehost", 9093, Some("rack-b".into())),
+        ],
         cluster_id: gated_present.then(|| "cluster-x".into()),
         controller_id: 1,
         topics: vec![
@@ -487,20 +527,35 @@ fn metadata_body(gated_present: bool) -> MetadataResponse {
                 0,
                 "ok-topic",
                 false,
-                vec![PartitionMetadata::new(
-                    0,
-                    0,
-                    Some(1),
-                    epoch,
-                    vec![1, 2],
-                    vec![1],
-                    vec![2],
-                )],
+                vec![
+                    PartitionMetadata::new(
+                        0,
+                        0,
+                        Some(1),
+                        epoch,
+                        vec![1, 2],
+                        vec![1],
+                        vec![2],
+                    ),
+                    PartitionMetadata::new(
+                        LEADER_NOT_AVAILABLE,
+                        1,
+                        None,
+                        None,
+                        vec![1, 2],
+                        vec![],
+                        vec![1, 2],
+                    ),
+                ],
             ),
             TopicMetadata::error(UNKNOWN_TOPIC_OR_PARTITION, Some("missing-topic"), [0; 16]),
         ],
-        cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
-        error_code: 0,
+        cluster_authorized_operations: if gated_present {
+            0xdf
+        } else {
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        },
+        error_code: if gated_present { 31 } else { 0 },
     }
 }
 
@@ -2377,4 +2432,625 @@ fn rust_fetch_output_decodes_with_apache_when_java_available() {
         );
     }
 }
+
+/// KL01-06: Independent Metadata wire fixtures covering advertised version boundaries.
+///
+/// Consumes committed Apache Kafka 3.9.1 binary fixtures offline without requiring
+/// Java or network access. Verifies classic and flexible formats, null vs empty topics,
+/// topic IDs vs topic names, offline replicas, cluster and topic authorized operations,
+/// stale/unknown leaders, unknown tagged fields, and multiple brokers across racks.
+#[test]
+fn apache_metadata_boundary_fixtures_decode_offline() {
+    // 1. Metadata v1: classic wire format (oldest spoken), null topics (all topics), multiple brokers across racks, controllerId, isInternal, unknown leader
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v1_classic_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v1_classic_response.bin");
+
+        let (topics, allow_auto, include_topic_auth, include_cluster_auth) =
+            decode_metadata_request_topics(&mut &REQ[..], 1).expect("metadata v1 request");
+        assert!(topics.is_none(), "v1 null topics represents all topics");
+        assert!(allow_auto, "v1 allow_auto default true");
+        assert!(!include_topic_auth);
+        assert!(!include_cluster_auth);
+
+        let resp = decode_metadata_response(&mut &RESP[..], 1).expect("metadata v1 response");
+        assert_eq!(resp.throttle_time_ms, 0, "v1 throttle omitted");
+        assert!(resp.cluster_id.is_none(), "v1 cluster_id omitted");
+        assert_eq!(resp.controller_id, 1);
+        assert_eq!(resp.brokers.len(), 3, "multiple brokers across racks");
+        assert_eq!(resp.brokers[0].node_id, 1);
+        assert_eq!(resp.brokers[0].host, "broker1.kafka.local");
+        assert_eq!(resp.brokers[0].port, 9092);
+        assert_eq!(resp.brokers[0].rack.as_deref(), Some("rack-a"));
+        assert_eq!(resp.brokers[1].node_id, 2);
+        assert_eq!(resp.brokers[1].host, "broker2.kafka.local");
+        assert_eq!(resp.brokers[1].port, 9092);
+        assert_eq!(resp.brokers[1].rack.as_deref(), Some("rack-b"));
+        assert_eq!(resp.brokers[2].node_id, 3);
+        assert_eq!(resp.brokers[2].host, "broker3.kafka.local");
+        assert_eq!(resp.brokers[2].port, 9093);
+        assert_eq!(resp.brokers[2].rack, None);
+        assert_eq!(resp.controller().map(|b| b.node_id), Some(1));
+        assert_eq!(resp.brokers_by_id().len(), 3);
+
+        assert_eq!(resp.topics.len(), 2);
+        let t1 = &resp.topics[0];
+        assert_eq!(t1.error_code, 0);
+        assert_eq!(t1.name.as_deref(), Some("meta-v1-topic"));
+        assert!(!t1.is_internal);
+        assert_eq!(t1.topic_id, [0u8; 16]);
+        assert_eq!(t1.partitions.len(), 2);
+
+        // Partition 0: normal leader 1
+        assert_eq!(t1.partitions[0].error_code, 0);
+        assert_eq!(t1.partitions[0].partition_index, 0);
+        assert_eq!(t1.partitions[0].leader_id, 1);
+        assert_eq!(
+            t1.partitions[0].leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(t1.partitions[0].replica_nodes, vec![1, 2]);
+        assert_eq!(t1.partitions[0].isr_nodes, vec![1, 2]);
+        assert!(t1.partitions[0].offline_replicas.is_empty());
+
+        // Partition 1: unknown leader (-1) with LEADER_NOT_AVAILABLE
+        assert_eq!(t1.partitions[1].error_code, LEADER_NOT_AVAILABLE);
+        assert_eq!(t1.partitions[1].partition_index, 1);
+        assert_eq!(t1.partitions[1].leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(t1.partitions[1].replica_nodes, vec![2, 3]);
+        assert_eq!(t1.partitions[1].isr_nodes, vec![2]);
+
+        let t2 = &resp.topics[1];
+        assert_eq!(t2.error_code, UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(t2.name.as_deref(), Some("meta-v1-missing"));
+        assert!(t2.partitions.is_empty());
+        assert_eq!(
+            resp.cluster_authorized_operations,
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert_eq!(resp.error_code, 0);
+    }
+
+    // 2. Metadata v4: classic wire format, empty topics array, allowAutoTopicCreation gate (false), clusterId, throttleTimeMs
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v4_empty_topics_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v4_empty_topics_response.bin");
+
+        let (topics, allow_auto, _, _) =
+            decode_metadata_request_topics(&mut &REQ[..], 4).expect("metadata v4 request");
+        assert_eq!(
+            topics,
+            Some(Vec::new()),
+            "v4 empty topics array (not null)"
+        );
+        assert!(!allow_auto, "v4 allow_auto gate (false)");
+
+        let resp = decode_metadata_response(&mut &RESP[..], 4).expect("metadata v4 response");
+        assert_eq!(resp.throttle_time_ms, 30, "v4 throttle present");
+        assert_eq!(resp.cluster_id.as_deref(), Some("cluster-meta-v4"));
+        assert_eq!(resp.controller_id, 2);
+        assert_eq!(resp.brokers.len(), 3);
+        assert!(resp.topics.is_empty(), "empty topics response");
+    }
+
+    // 3. Metadata v5: classic wire format, offlineReplicas gate present, multiple brokers, unknown leader
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v5_offline_replicas_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v5_offline_replicas_response.bin");
+
+        let (topics, allow_auto, _, _) =
+            decode_metadata_request_topics(&mut &REQ[..], 5).expect("metadata v5 request");
+        assert_eq!(topics.as_ref().map(|t| t.len()), Some(1));
+        assert_eq!(topics.unwrap()[0].name.as_deref(), Some("meta-v5-offline"));
+        assert!(allow_auto);
+
+        let resp = decode_metadata_response(&mut &RESP[..], 5).expect("metadata v5 response");
+        assert_eq!(resp.throttle_time_ms, 45);
+        assert_eq!(resp.cluster_id.as_deref(), Some("cluster-meta-v5"));
+        assert_eq!(resp.controller_id, 1);
+        assert_eq!(resp.brokers.len(), 3);
+        assert_eq!(resp.topics.len(), 1);
+
+        let p0 = &resp.topics[0].partitions[0];
+        assert_eq!(p0.leader_id, 2);
+        assert_eq!(p0.replica_nodes, vec![1, 2, 3]);
+        assert_eq!(p0.isr_nodes, vec![1, 2]);
+        assert_eq!(p0.offline_replicas, vec![3], "v5 offlineReplicas gate");
+
+        let p1 = &resp.topics[0].partitions[1];
+        assert_eq!(p1.error_code, NOT_LEADER_OR_FOLLOWER);
+        assert_eq!(p1.leader_id, MetadataResponse::NO_LEADER_ID, "unknown leader");
+        assert_eq!(p1.replica_nodes, vec![1, 3]);
+        assert_eq!(p1.isr_nodes, vec![1]);
+        assert_eq!(p1.offline_replicas, vec![3]);
+    }
+
+    // 4. Metadata v7: classic wire format, leaderEpoch gate present across multiple partitions, active and stale leader epochs
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v7_leader_epoch_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v7_leader_epoch_response.bin");
+
+        let (topics, _, _, _) =
+            decode_metadata_request_topics(&mut &REQ[..], 7).expect("metadata v7 request");
+        assert_eq!(topics.unwrap()[0].name.as_deref(), Some("meta-v7-epoch"));
+
+        let resp = decode_metadata_response(&mut &RESP[..], 7).expect("metadata v7 response");
+        assert_eq!(resp.throttle_time_ms, 50);
+        assert_eq!(resp.cluster_id.as_deref(), Some("cluster-meta-v7"));
+        assert_eq!(resp.controller_id, 1);
+        assert_eq!(resp.brokers.len(), 3);
+
+        let p0 = &resp.topics[0].partitions[0];
+        assert_eq!(p0.leader_id, 1);
+        assert_eq!(p0.leader_epoch, 8, "v7 leader_epoch gate");
+
+        let p1 = &resp.topics[0].partitions[1];
+        assert_eq!(p1.leader_id, 2);
+        assert_eq!(p1.leader_epoch, 5, "stale leader_epoch");
+    }
+
+    // 5. Metadata v8: classic format boundary before flexible, authorized operations
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v8_authorized_ops_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v8_authorized_ops_response.bin");
+
+        let (topics, allow_auto, include_topic_auth, include_cluster_auth) =
+            decode_metadata_request_topics(&mut &REQ[..], 8).expect("metadata v8 request");
+        assert_eq!(topics.unwrap()[0].name.as_deref(), Some("meta-v8-ops"));
+        assert!(allow_auto);
+        assert!(include_topic_auth, "v8 include_topic_authorized_operations");
+        assert!(include_cluster_auth, "v8-10 include_cluster_authorized_operations");
+
+        let resp = decode_metadata_response(&mut &RESP[..], 8).expect("metadata v8 response");
+        assert_eq!(resp.throttle_time_ms, 60);
+        assert_eq!(resp.cluster_id.as_deref(), Some("cluster-meta-v8"));
+        assert_eq!(resp.controller_id, 2);
+        assert_eq!(resp.cluster_authorized_operations, 0xdf, "v8-10 cluster authorized operations");
+        assert_eq!(
+            resp.topics[0].topic_authorized_operations, 0x1f,
+            "v8 topic authorized operations"
+        );
+        assert_eq!(resp.topics[0].partitions[0].leader_epoch, 12);
+        assert_eq!(resp.topics[0].partitions[0].offline_replicas, vec![2]);
+    }
+
+    // 6. Metadata v9: flexible wire format boundary, compact encoding, clusterId, multiple brokers, unknown tagged fields
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v9_flexible_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v9_flexible_response.bin");
+
+        let (topics, allow_auto, include_topic_auth, include_cluster_auth) =
+            decode_metadata_request_topics(&mut &REQ[..], 9).expect("metadata v9 request");
+        assert_eq!(topics.unwrap()[0].name.as_deref(), Some("meta-v9-flex"));
+        assert!(allow_auto);
+        assert!(include_topic_auth);
+        assert!(!include_cluster_auth);
+
+        let resp = decode_metadata_response(&mut &RESP[..], 9).expect("metadata v9 response");
+        assert_eq!(resp.throttle_time_ms, 75);
+        assert_eq!(resp.cluster_id.as_deref(), Some("cluster-meta-v9"));
+        assert_eq!(resp.controller_id, 3);
+        assert_eq!(
+            resp.cluster_authorized_operations,
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert_eq!(resp.brokers.len(), 3);
+        assert_eq!(resp.topics[0].topic_authorized_operations, 0xdf);
+
+        let p0 = &resp.topics[0].partitions[0];
+        assert_eq!(p0.leader_id, 3);
+        assert_eq!(p0.leader_epoch, 15);
+        assert_eq!(p0.offline_replicas, vec![1]);
+
+        let p1 = &resp.topics[0].partitions[1];
+        assert_eq!(p1.error_code, LEADER_NOT_AVAILABLE);
+        assert_eq!(p1.leader_id, MetadataResponse::NO_LEADER_ID, "unknown leader");
+        assert_eq!(p1.leader_epoch, RecordBatch::NO_PARTITION_LEADER_EPOCH);
+        assert_eq!(p1.offline_replicas, vec![1, 2]);
+    }
+
+    // 7. Metadata v10: flexible wire format, topicId wire transition on request and response topics, clusterAuthorizedOperations, unknown leader
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v10_topic_ids_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v10_topic_ids_response.bin");
+
+        let expected_topic_id = [
+            0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44,
+            0x55, 0x55, 0x66, 0x66, 0x77, 0x77, 0x88, 0x88,
+        ];
+
+        let (topics, allow_auto, include_topic_auth, include_cluster_auth) =
+            decode_metadata_request_topics(&mut &REQ[..], 10).expect("metadata v10 request");
+        assert!(!allow_auto);
+        assert!(include_topic_auth);
+        assert!(include_cluster_auth);
+        let req_topic = &topics.unwrap()[0];
+        assert_eq!(req_topic.name.as_deref(), Some("meta-v10-ids"));
+        assert_eq!(req_topic.topic_id, expected_topic_id, "v10 request topic_id");
+
+        let resp = decode_metadata_response(&mut &RESP[..], 10).expect("metadata v10 response");
+        assert_eq!(resp.throttle_time_ms, 80);
+        assert_eq!(resp.cluster_id.as_deref(), Some("cluster-meta-v10"));
+        assert_eq!(resp.controller_id, 1);
+        assert_eq!(resp.cluster_authorized_operations, 0xdf);
+        assert_eq!(resp.topics[0].topic_id, expected_topic_id, "v10 response topic_id");
+        assert_eq!(resp.topics[0].topic_authorized_operations, 0x1f);
+
+        let p0 = &resp.topics[0].partitions[0];
+        assert_eq!(p0.leader_id, 1);
+        assert_eq!(p0.leader_epoch, 20);
+
+        let p1 = &resp.topics[0].partitions[1];
+        assert_eq!(p1.error_code, NOT_LEADER_OR_FOLLOWER);
+        assert_eq!(p1.leader_id, MetadataResponse::NO_LEADER_ID, "unknown leader");
+        assert_eq!(p1.leader_epoch, 18, "stale leader_epoch on partition without leader");
+        assert_eq!(p1.offline_replicas, vec![3]);
+    }
+
+    // 8. Metadata v11: flexible wire format boundary where clusterAuthorizedOperations is dropped
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v11_no_cluster_auth_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v11_no_cluster_auth_response.bin");
+
+        let expected_topic_id = [
+            0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55,
+            0x66, 0x66, 0x77, 0x77, 0x88, 0x88, 0x99, 0x99,
+        ];
+
+        let (topics, allow_auto, include_topic_auth, include_cluster_auth) =
+            decode_metadata_request_topics(&mut &REQ[..], 11).expect("metadata v11 request");
+        assert!(allow_auto);
+        assert!(include_topic_auth);
+        assert!(!include_cluster_auth, "v11 drops cluster authorized ops");
+        assert_eq!(topics.unwrap()[0].topic_id, expected_topic_id);
+
+        let resp = decode_metadata_response(&mut &RESP[..], 11).expect("metadata v11 response");
+        assert_eq!(resp.throttle_time_ms, 90);
+        assert_eq!(resp.cluster_id.as_deref(), Some("cluster-meta-v11"));
+        assert_eq!(resp.controller_id, 2);
+        assert_eq!(
+            resp.cluster_authorized_operations,
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            "v11 drops cluster authorized ops on wire"
+        );
+        assert_eq!(resp.topics[0].topic_authorized_operations, 0xdf);
+        assert_eq!(resp.topics[0].partitions[0].leader_id, 2);
+        assert_eq!(resp.topics[0].partitions[0].leader_epoch, 25);
+    }
+
+    // 9. Metadata v12: flexible wire format at highest Apache Kafka 3.9.1 valid version boundary with ID-only describe (null name)
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v12_id_only_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/metadata_v12_id_only_response.bin");
+
+        let expected_topic_id = [
+            0x33, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66,
+            0x77, 0x77, 0x88, 0x88, 0x99, 0x99, 0xaa, 0xaa,
+        ];
+
+        let (topics, allow_auto, include_topic_auth, include_cluster_auth) =
+            decode_metadata_request_topics(&mut &REQ[..], 12).expect("metadata v12 request");
+        assert!(!allow_auto);
+        assert!(include_topic_auth);
+        assert!(!include_cluster_auth);
+        let req_topic = &topics.unwrap()[0];
+        assert_eq!(req_topic.name, None, "v12 null topic name when describing by ID");
+        assert_eq!(req_topic.topic_id, expected_topic_id, "v12 describe by topic_id");
+
+        let resp = decode_metadata_response(&mut &RESP[..], 12).expect("metadata v12 response");
+        assert_eq!(resp.throttle_time_ms, 100);
+        assert_eq!(resp.cluster_id.as_deref(), Some("cluster-meta-v12"));
+        assert_eq!(resp.controller_id, 3);
+        assert_eq!(resp.brokers.len(), 3);
+        let t = &resp.topics[0];
+        assert_eq!(t.name.as_deref(), Some("meta-v12-resolved"));
+        assert_eq!(t.topic_id, expected_topic_id);
+        assert_eq!(t.topic_authorized_operations, 0x1f);
+        assert_eq!(t.partitions[0].leader_id, 3);
+        assert_eq!(t.partitions[0].leader_epoch, 30);
+        assert_eq!(t.partitions[1].error_code, LEADER_NOT_AVAILABLE);
+        assert_eq!(t.partitions[1].leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(t.partitions[1].leader_epoch, 28);
+        assert_eq!(t.partitions[1].offline_replicas, vec![3]);
+    }
+}
+
+/// KL01-06: Negative and mutation tests for Metadata.
+///
+/// Verifies that mutating field order or required version gates fails decoding.
+#[test]
+fn metadata_version_gate_and_field_order_mutations_fail() {
+    const V1_REQ: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/metadata_v1_classic_request.bin");
+    const V5_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/metadata_v5_offline_replicas_response.bin");
+    const V7_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/metadata_v7_leader_epoch_response.bin");
+    const V8_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/metadata_v8_authorized_ops_response.bin");
+    const V9_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/metadata_v9_flexible_response.bin");
+    const V10_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/metadata_v10_topic_ids_response.bin");
+    const V12_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/metadata_v12_id_only_response.bin");
+
+    // Mutation 1: AllowAutoTopicCreation gate (v4+).
+    // Decoding v1 request (no allow_auto byte on wire) with v4 decoder fails with buffer underflow.
+    let mut cur = V1_REQ;
+    assert!(
+        decode_metadata_request_topics(&mut cur, 4).is_err(),
+        "decoding v1 request as v4 must fail because allow_auto byte is missing"
+    );
+
+    // Mutation 2: OfflineReplicas gate (v5+).
+    // Decoding v5 response with v4 decoder ignores offline_replicas and leaves unconsumed bytes.
+    let mut cur = V5_RESP;
+    let _ = decode_metadata_response(&mut cur, 4).expect("decodes without offline_replicas");
+    assert!(
+        !cur.is_empty(),
+        "decoding v5 response with v4 decoder must leave unconsumed offline_replicas bytes"
+    );
+
+    // Mutation 3: LeaderEpoch gate (v7+).
+    // Decoding v7 response with v6 decoder fails due to schema desync from unexpected leader_epoch bytes.
+    let mut cur = V7_RESP;
+    assert!(
+        decode_metadata_response(&mut cur, 6).is_err(),
+        "decoding v7 response with v6 decoder must fail due to missing leader_epoch in v6 schema"
+    );
+
+    // Mutation 4: Flexible version gate mutation (gate is v9+).
+    // Decoding v8 classic response as v9 flexible must fail with format mismatch.
+    let mut cur = V8_RESP;
+    assert!(
+        decode_metadata_response(&mut cur, 9).is_err(),
+        "decoding v8 classic response as v9 flexible must fail"
+    );
+
+    // Decoding v9 flexible response as v8 classic must fail with format mismatch.
+    let mut cur = V9_RESP;
+    assert!(
+        decode_metadata_response(&mut cur, 8).is_err(),
+        "decoding v9 flexible response as v8 classic must fail"
+    );
+
+    // Mutation 5: Topic IDs gate (v10+).
+    // Decoding v10 response with v9 decoder fails or causes protocol desync because v9 lacks topicId UUID.
+    let mut cur = V10_RESP;
+    assert!(
+        decode_metadata_response(&mut cur, 9).is_err(),
+        "decoding v10 response as v9 must fail due to topicId UUID in payload"
+    );
+
+    // Mutation 6: ClusterAuthorizedOperations omission gate (v11+).
+    // Decoding v10 response with v11 decoder ignores cluster_authorized_operations, leaving unconsumed bytes.
+    let mut cur = V10_RESP;
+    let _ = decode_metadata_response(&mut cur, 11).expect("decodes without cluster_authorized_ops");
+    assert!(
+        !cur.is_empty(),
+        "decoding v10 response with v11 decoder must leave unconsumed cluster_authorized_ops bytes"
+    );
+
+    // Mutation 7: ID-only describe gate (v12+).
+    // Calling MetadataRequest::build below v12 with a null topic name must fail with Unsupported error.
+    let req_id_only = [MetadataRequestTopic::by_id([0x11; 16])];
+    assert!(
+        MetadataRequest::build(11, Some(&req_id_only), false).is_err(),
+        "describing topic by ID below v12 must fail"
+    );
+
+    // Mutation 8: Mutating field order in MetadataResponse (e.g. putting throttle_time_ms after brokers instead of before brokers).
+    let mut mutated_order = BytesMut::new();
+    mutated_order.extend_from_slice(&0i32.to_be_bytes()); // broker count = 0
+    mutated_order.extend_from_slice(&25i32.to_be_bytes()); // mutated throttle placement
+    mutated_order.extend_from_slice(&(-1i32).to_be_bytes()); // null cluster_id
+    mutated_order.extend_from_slice(&1i32.to_be_bytes()); // controller_id
+    mutated_order.extend_from_slice(&0i32.to_be_bytes()); // topic count = 0
+    let mut cur = mutated_order.as_ref();
+    assert!(
+        decode_metadata_response(&mut cur, 3).is_err(),
+        "mutating MetadataResponse field order must fail decoding"
+    );
+
+    // Mutation 9: Metadata v13 top-level error code handling.
+    // Rust encodes v13 response with top-level error code CLUSTER_AUTHORIZATION_FAILED (31).
+    let mut resp13 = MetadataResponse {
+        throttle_time_ms: 50,
+        brokers: vec![Broker::new(1, "b1", 9092, None)],
+        cluster_id: Some("c1".into()),
+        controller_id: 1,
+        topics: vec![],
+        cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        error_code: CLUSTER_AUTHORIZATION_FAILED,
+    };
+    let mut v13_bytes = BytesMut::new();
+    encode_metadata_response(&mut v13_bytes, 13, &resp13).expect("encode v13 response");
+
+    // Decodes successfully with v13 decoder, error_code matches non-zero error.
+    let mut cur = v13_bytes.as_ref();
+    let decoded13 = decode_metadata_response(&mut cur, 13).expect("decode v13 response");
+    assert_eq!(decoded13.error_code, CLUSTER_AUTHORIZATION_FAILED);
+    assert_ne!(decoded13.error_code, 0);
+
+    // When error_code is 0 on v13, check succeeds.
+    resp13.error_code = 0;
+    let mut v13_ok_bytes = BytesMut::new();
+    encode_metadata_response(&mut v13_ok_bytes, 13, &resp13).expect("encode v13 ok response");
+    let mut cur = v13_ok_bytes.as_ref();
+    let decoded13_ok = decode_metadata_response(&mut cur, 13).expect("decode v13 ok response");
+    assert_eq!(decoded13_ok.error_code, 0);
+
+    // Decoding v12 response with v13 decoder fails because error_code is missing on wire.
+    let mut cur = V12_RESP;
+    assert!(
+        decode_metadata_response(&mut cur, 13).is_err(),
+        "decoding v12 response as v13 must fail because error_code is missing on wire"
+    );
+}
+
+/// KL01-06: Decode Rust output with Apache where Java is available.
+///
+/// Encodes Metadata requests and responses in Rust across the advertised version boundaries,
+/// then runs Apache Kafka's `MetadataRequestData.read` and `MetadataResponseData.read` in Java
+/// to verify that Apache successfully decodes partitionline wire output.
+#[test]
+fn rust_metadata_output_decodes_with_apache_when_java_available() {
+    let Some((java_bin, cp)) = java_conformance_classpath() else {
+        println!("java toolchain / conformance jars not available; skipping live Apache decode of Rust output");
+        return;
+    };
+
+    let versions: [(i16, bool, bool, bool, i32); 9] = [
+        (1, true, false, false, 0),
+        (4, false, false, false, 30),
+        (5, true, false, false, 45),
+        (7, true, false, false, 50),
+        (8, true, true, true, 60),
+        (9, true, true, false, 75),
+        (10, false, true, true, 80),
+        (11, true, true, false, 90),
+        (12, false, true, false, 100),
+    ];
+
+    for (version, allow_auto, include_topic_auth, include_cluster_auth, throttle_ms) in versions {
+        let topic_id = [0x55u8; 16];
+        let req_topic = if version >= 12 {
+            MetadataRequestTopic::by_id(topic_id)
+        } else {
+            MetadataRequestTopic::by_name("rust-meta-topic")
+        };
+
+        // 1. Rust encodes MetadataRequest
+        let mut req_buf = BytesMut::new();
+        encode_metadata_request_topics_with_include_cluster_authorized_operations(
+            &mut req_buf,
+            version,
+            Some(&[req_topic]),
+            allow_auto,
+            include_topic_auth,
+            include_cluster_auth,
+        )
+        .expect("encode metadata request in Rust");
+        let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+
+        let req_out = std::process::Command::new(&java_bin)
+            .args([
+                "-cp",
+                &cp,
+                "org.apache.kafka.conformance.FixtureGenerator",
+                "--decode-rust",
+                "metadata-req",
+                &version.to_string(),
+                &req_hex,
+            ])
+            .output()
+            .expect("execute java decode-rust metadata-req");
+        assert!(
+            req_out.status.success(),
+            "Apache Java failed to decode Rust MetadataRequest v{version}: {}",
+            String::from_utf8_lossy(&req_out.stderr)
+        );
+        let req_stdout = String::from_utf8_lossy(&req_out.stdout);
+        assert!(
+            req_stdout.contains(&format!("OK: req v{version}")),
+            "Apache output confirmation: {req_stdout}"
+        );
+
+        // 2. Rust encodes MetadataResponse
+        let mut resp_buf = BytesMut::new();
+        let resp = MetadataResponse {
+            throttle_time_ms: throttle_ms,
+            brokers: vec![
+                Broker::new(1, "broker1.kafka.local", 9092, Some("rack-a".into())),
+                Broker::new(2, "broker2.kafka.local", 9092, Some("rack-b".into())),
+                Broker::new(3, "broker3.kafka.local", 9093, None),
+            ],
+            cluster_id: (version >= 2).then(|| "rust-cluster".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("rust-meta-topic".into()),
+                topic_id: if version >= 10 { topic_id } else { [0; 16] },
+                is_internal: false,
+                partitions: vec![
+                    PartitionMetadata::new(
+                        0,
+                        0,
+                        Some(1),
+                        (version >= 7).then_some(5),
+                        vec![1, 2],
+                        vec![1],
+                        if version >= 5 { vec![2] } else { vec![] },
+                    ),
+                    PartitionMetadata::new(
+                        LEADER_NOT_AVAILABLE,
+                        1,
+                        None,
+                        None,
+                        vec![1, 2],
+                        vec![],
+                        if version >= 5 { vec![1, 2] } else { vec![] },
+                    ),
+                ],
+                topic_authorized_operations: if version >= 8 {
+                    0x1f
+                } else {
+                    MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+                },
+            }],
+            cluster_authorized_operations: if (8..=10).contains(&version) {
+                0xdf
+            } else {
+                MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+            },
+            error_code: 0,
+        };
+        encode_metadata_response(&mut resp_buf, version, &resp)
+            .expect("encode metadata response in Rust");
+        let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+
+        let resp_out = std::process::Command::new(&java_bin)
+            .args([
+                "-cp",
+                &cp,
+                "org.apache.kafka.conformance.FixtureGenerator",
+                "--decode-rust",
+                "metadata-resp",
+                &version.to_string(),
+                &resp_hex,
+            ])
+            .output()
+            .expect("execute java decode-rust metadata-resp");
+        assert!(
+            resp_out.status.success(),
+            "Apache Java failed to decode Rust MetadataResponse v{version}: {}",
+            String::from_utf8_lossy(&resp_out.stderr)
+        );
+        let resp_stdout = String::from_utf8_lossy(&resp_out.stdout);
+        assert!(
+            resp_stdout.contains(&format!("OK: resp v{version}")),
+            "Apache output confirmation: {resp_stdout}"
+        );
+    }
+}
+
 

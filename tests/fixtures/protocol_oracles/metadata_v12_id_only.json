@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "metadata-v12-id-only",
+  "api": "Metadata",
+  "api_key": 3,
+  "api_version": 12,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Metadata v12 flexible wire format at highest Apache Kafka 3.9.1 valid version boundary with ID-only describe (null name), unknown tagged fields, and multiple brokers",
+  "request": {
+    "file": "metadata_v12_id_only_request.bin",
+    "size_bytes": 27,
+    "sha256": "2db26b54d6a7d036c338061ca3bc2febacf11060a8b9c8e7440d48c382996e76",
+    "hex": "023333444455556666777788889999aaaa0000000101b00902dead"
+  },
+  "response": {
+    "file": "metadata_v12_id_only_response.bin",
+    "size_bytes": 252,
+    "sha256": "155a2fdcb08f51d455875272b415c949574cd46b647644dbcfcff63327dc245b",
+    "hex": "0000006404000000011462726f6b6572312e6b61666b612e6c6f63616c00002384077261636b2d6100000000021462726f6b6572322e6b61666b612e6c6f63616c00002384077261636b2d6200000000031462726f6b6572332e6b61666b612e6c6f63616c00002385077261636b2d630011636c75737465722d6d6574612d76313200000003020000126d6574612d7631322d7265736f6c7665643333444455556666777788889999aaaa0003000000000000000000030000001e0300000002000000030300000002000000030100000500000001ffffffff0000001c03000000010000000302000000010200000003000000001f0001b00902beef"
+  }
+}

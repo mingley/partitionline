@@ -2,6 +2,12 @@ package org.apache.kafka.conformance;
 
 import org.apache.kafka.common.message.FetchRequestData;
 import org.apache.kafka.common.message.FetchResponseData;
+import org.apache.kafka.common.message.MetadataRequestData;
+import org.apache.kafka.common.message.MetadataRequestData.MetadataRequestTopic;
+import org.apache.kafka.common.message.MetadataResponseData;
+import org.apache.kafka.common.message.MetadataResponseData.MetadataResponseBroker;
+import org.apache.kafka.common.message.MetadataResponseData.MetadataResponseTopic;
+import org.apache.kafka.common.message.MetadataResponseData.MetadataResponsePartition;
 import org.apache.kafka.common.message.ProduceRequestData;
 import org.apache.kafka.common.message.ProduceResponseData;
 import org.apache.kafka.common.protocol.ByteBufferAccessor;
@@ -26,11 +32,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
 
 /**
- * KL01-03, KL01-04 & KL01-05: Pinned Apache Kafka wire-protocol fixture generator.
+ * KL01-03, KL01-04, KL01-05 & KL01-06: Pinned Apache Kafka wire-protocol fixture generator.
  *
  * Generates reference wire fixtures directly using Apache Kafka's official
  * message serialization implementations (Message.write). Generation is
@@ -57,18 +64,19 @@ public class FixtureGenerator {
             } else if ("--verify".equals(args[i])) {
                 verify = true;
             } else if ("--help".equals(args[i]) || "-h".equals(args[i])) {
-                System.out.println("Usage: java FixtureGenerator [--out-dir <path>] [--verify] | [--decode-rust <req|resp|fetch-req|fetch-resp> <version> <file_or_hex>]");
+                System.out.println("Usage: java FixtureGenerator [--out-dir <path>] [--verify] | [--decode-rust <req|resp|fetch-req|fetch-resp|metadata-req|metadata-resp> <version> <file_or_hex>]");
                 System.exit(0);
             }
         }
 
         Files.createDirectories(outDir);
-        System.out.println("FixtureGenerator: generating Produce and Fetch fixtures using " + ARTIFACT_VERSION);
+        System.out.println("FixtureGenerator: generating Produce, Fetch, and Metadata fixtures using " + ARTIFACT_VERSION);
         System.out.println("Upstream SHA: " + UPSTREAM_SHA);
         System.out.println("Target directory: " + outDir.toAbsolutePath());
 
         List<ProduceFixture> produceFixtures = createAllProduceFixtures();
         List<FetchFixture> fetchFixtures = createAllFetchFixtures();
+        List<MetadataFixture> metadataFixtures = createAllMetadataFixtures();
 
         // 1. Produce fixtures
         for (ProduceFixture f : produceFixtures) {
@@ -116,12 +124,35 @@ public class FixtureGenerator {
             }
         }
 
-        int total = produceFixtures.size() + fetchFixtures.size();
+        // 3. Metadata fixtures
+        for (MetadataFixture f : metadataFixtures) {
+            verifySelfRoundtrip(f);
+
+            String reqHash = sha256Hex(f.requestBytes);
+            String respHash = sha256Hex(f.responseBytes);
+            String reqHex = HexFormat.of().formatHex(f.requestBytes);
+            String respHex = HexFormat.of().formatHex(f.responseBytes);
+
+            Path reqPath = outDir.resolve(f.filePrefix + "_request.bin");
+            Path respPath = outDir.resolve(f.filePrefix + "_response.bin");
+            Path jsonPath = outDir.resolve(f.filePrefix + ".json");
+
+            String jsonContent = buildMetadataJsonMetadata(f, reqHash, respHash, reqHex, respHex);
+
+            if (verify) {
+                System.out.println("FixtureGenerator: verifying " + f.id + " against existing committed files...");
+                verifyCommitted(f.id, reqPath, respPath, jsonPath, f.requestBytes, f.responseBytes, jsonContent, reqHash, respHash);
+            } else {
+                writeFixtureFiles(reqPath, respPath, jsonPath, f.requestBytes, f.responseBytes, jsonContent, reqHash, respHash);
+            }
+        }
+
+        int total = produceFixtures.size() + fetchFixtures.size() + metadataFixtures.size();
         if (verify) {
             System.out.println("FixtureGenerator: VERIFICATION PASSED (all " + total + " fixtures match byte-for-byte)");
         } else {
             System.out.println("FixtureGenerator: SUCCESS (" + total + " fixtures generated: "
-                + produceFixtures.size() + " Produce, " + fetchFixtures.size() + " Fetch)");
+                + produceFixtures.size() + " Produce, " + fetchFixtures.size() + " Fetch, " + metadataFixtures.size() + " Metadata)");
         }
     }
 
@@ -215,6 +246,25 @@ public class FixtureGenerator {
             }
             System.out.println("OK: resp v" + version + " throttle=" + resp.throttleTimeMs()
                 + " topics=" + resp.responses().size() + " session=" + resp.sessionId());
+        } else if ("metadata-req".equals(kind) || "metadata_req".equals(kind)) {
+            MetadataRequestData req = new MetadataRequestData();
+            req.read(new ByteBufferAccessor(buf), version);
+            if (buf.hasRemaining()) {
+                System.err.println("FAIL: Leftover bytes in MetadataRequest: " + buf.remaining());
+                System.exit(1);
+            }
+            int topicCount = req.topics() == null ? -1 : req.topics().size();
+            System.out.println("OK: req v" + version + " topics=" + topicCount
+                + " allowAuto=" + req.allowAutoTopicCreation());
+        } else if ("metadata-resp".equals(kind) || "metadata_resp".equals(kind)) {
+            MetadataResponseData resp = new MetadataResponseData();
+            resp.read(new ByteBufferAccessor(buf), version);
+            if (buf.hasRemaining()) {
+                System.err.println("FAIL: Leftover bytes in MetadataResponse: " + buf.remaining());
+                System.exit(1);
+            }
+            System.out.println("OK: resp v" + version + " throttle=" + resp.throttleTimeMs()
+                + " brokers=" + resp.brokers().size() + " topics=" + resp.topics().size());
         } else {
             System.err.println("FAIL: Unknown kind: " + kind);
             System.exit(1);
@@ -1220,7 +1270,379 @@ public class FixtureGenerator {
             "}\n";
     }
 
+    public static class MetadataFixture {
+        public final String id;
+        public final String filePrefix;
+        public final short version;
+        public final String description;
+        public final MetadataRequestData requestData;
+        public final MetadataResponseData responseData;
+        public final byte[] requestBytes;
+        public final byte[] responseBytes;
+
+        public MetadataFixture(String id, String filePrefix, short version, String description,
+                               MetadataRequestData requestData, MetadataResponseData responseData,
+                               byte[] requestBytes, byte[] responseBytes) {
+            this.id = id;
+            this.filePrefix = filePrefix;
+            this.version = version;
+            this.description = description;
+            this.requestData = requestData;
+            this.responseData = responseData;
+            this.requestBytes = requestBytes;
+            this.responseBytes = responseBytes;
+        }
+    }
+
+    private static MetadataFixture createMetadataFixture(String id, String filePrefix, short version, String description,
+                                                         MetadataRequestData req, MetadataResponseData resp) {
+        ObjectSerializationCache reqCache = new ObjectSerializationCache();
+        int reqSize = req.size(reqCache, version);
+        ByteBuffer reqBuf = ByteBuffer.allocate(reqSize);
+        req.write(new ByteBufferAccessor(reqBuf), reqCache, version);
+        byte[] reqBytes = reqBuf.array();
+
+        ObjectSerializationCache respCache = new ObjectSerializationCache();
+        int respSize = resp.size(respCache, version);
+        ByteBuffer respBuf = ByteBuffer.allocate(respSize);
+        resp.write(new ByteBufferAccessor(respBuf), respCache, version);
+        byte[] respBytes = respBuf.array();
+
+        return new MetadataFixture(id, filePrefix, version, description, req, resp, reqBytes, respBytes);
+    }
+
+    private static void verifySelfRoundtrip(MetadataFixture f) {
+        MetadataRequestData decodedReq = new MetadataRequestData();
+        decodedReq.read(new ByteBufferAccessor(ByteBuffer.wrap(f.requestBytes)), f.version);
+        if (!decodedReq.equals(f.requestData)) {
+            throw new AssertionError("Self-roundtrip failed on MetadataRequest " + f.id);
+        }
+
+        MetadataResponseData decodedResp = new MetadataResponseData();
+        decodedResp.read(new ByteBufferAccessor(ByteBuffer.wrap(f.responseBytes)), f.version);
+        if (!decodedResp.equals(f.responseData)) {
+            throw new AssertionError("Self-roundtrip failed on MetadataResponse " + f.id);
+        }
+    }
+
+    private static String buildMetadataJsonMetadata(MetadataFixture f, String reqHash, String respHash,
+                                                    String reqHex, String respHex) {
+        return "{\n" +
+            "  \"schema_version\": 1,\n" +
+            "  \"fixture_id\": \"" + f.id + "\",\n" +
+            "  \"api\": \"Metadata\",\n" +
+            "  \"api_key\": 3,\n" +
+            "  \"api_version\": " + f.version + ",\n" +
+            "  \"pin\": \"" + PIN_VERSION + "\",\n" +
+            "  \"upstream_repo\": \"https://github.com/apache/kafka.git\",\n" +
+            "  \"upstream_sha\": \"" + UPSTREAM_SHA + "\",\n" +
+            "  \"artifact\": \"" + ARTIFACT_VERSION + "\",\n" +
+            "  \"generator\": \"tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java\",\n" +
+            "  \"description\": \"" + f.description + "\",\n" +
+            "  \"request\": {\n" +
+            "    \"file\": \"" + f.filePrefix + "_request.bin\",\n" +
+            "    \"size_bytes\": " + f.requestBytes.length + ",\n" +
+            "    \"sha256\": \"" + reqHash + "\",\n" +
+            "    \"hex\": \"" + reqHex + "\"\n" +
+            "  },\n" +
+            "  \"response\": {\n" +
+            "    \"file\": \"" + f.filePrefix + "_response.bin\",\n" +
+            "    \"size_bytes\": " + f.responseBytes.length + ",\n" +
+            "    \"sha256\": \"" + respHash + "\",\n" +
+            "    \"hex\": \"" + respHex + "\"\n" +
+            "  }\n" +
+            "}\n";
+    }
+
+    public static List<MetadataFixture> createAllMetadataFixtures() {
+        List<MetadataFixture> list = new ArrayList<>();
+
+        // 1. Metadata v1: classic wire format (oldest spoken), null topics (all topics), multiple brokers, controllerId, isInternal, unknown leader
+        {
+            short v = 1;
+            MetadataRequestData req = new MetadataRequestData();
+            req.setTopics(null);
+
+            MetadataResponseData resp = new MetadataResponseData();
+            resp.setControllerId(1);
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(1).setHost("broker1.kafka.local").setPort(9092).setRack("rack-a"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(2).setHost("broker2.kafka.local").setPort(9092).setRack("rack-b"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(3).setHost("broker3.kafka.local").setPort(9093).setRack(null));
+
+            MetadataResponseTopic t1 = new MetadataResponseTopic().setErrorCode((short) 0).setName("meta-v1-topic").setIsInternal(false);
+            t1.partitions().add(new MetadataResponsePartition().setErrorCode((short) 0).setPartitionIndex(0).setLeaderId(1).setReplicaNodes(Arrays.asList(1, 2)).setIsrNodes(Arrays.asList(1, 2)));
+            t1.partitions().add(new MetadataResponsePartition().setErrorCode((short) 5).setPartitionIndex(1).setLeaderId(-1).setReplicaNodes(Arrays.asList(2, 3)).setIsrNodes(Arrays.asList(2)));
+
+            MetadataResponseTopic t2 = new MetadataResponseTopic().setErrorCode((short) 3).setName("meta-v1-missing").setIsInternal(false);
+            resp.topics().add(t1);
+            resp.topics().add(t2);
+
+            list.add(createMetadataFixture(
+                "metadata-v1-classic",
+                "metadata_v1_classic",
+                v,
+                "Metadata v1 classic wire format with null topics (all topics), multiple brokers across racks, controllerId, isInternal, and partition with unknown leader",
+                req, resp
+            ));
+        }
+
+        // 2. Metadata v4: classic wire format, empty topics array, allowAutoTopicCreation gate (false), clusterId, throttleTimeMs
+        {
+            short v = 4;
+            MetadataRequestData req = new MetadataRequestData();
+            req.setTopics(new ArrayList<>());
+            req.setAllowAutoTopicCreation(false);
+
+            MetadataResponseData resp = new MetadataResponseData();
+            resp.setThrottleTimeMs(30);
+            resp.setClusterId("cluster-meta-v4");
+            resp.setControllerId(2);
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(1).setHost("broker1.kafka.local").setPort(9092).setRack("rack-a"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(2).setHost("broker2.kafka.local").setPort(9092).setRack("rack-b"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(3).setHost("broker3.kafka.local").setPort(9093).setRack("rack-c"));
+
+            list.add(createMetadataFixture(
+                "metadata-v4-empty-topics",
+                "metadata_v4_empty_topics",
+                v,
+                "Metadata v4 classic wire format with empty topics array, allowAutoTopicCreation gate (false), clusterId, and throttleTimeMs",
+                req, resp
+            ));
+        }
+
+        // 3. Metadata v5: classic wire format, offlineReplicas gate present, multiple brokers, unknown leader
+        {
+            short v = 5;
+            MetadataRequestData req = new MetadataRequestData();
+            req.topics().add(new MetadataRequestTopic().setName("meta-v5-offline"));
+            req.setAllowAutoTopicCreation(true);
+
+            MetadataResponseData resp = new MetadataResponseData();
+            resp.setThrottleTimeMs(45);
+            resp.setClusterId("cluster-meta-v5");
+            resp.setControllerId(1);
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(1).setHost("broker1.kafka.local").setPort(9092).setRack("rack-a"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(2).setHost("broker2.kafka.local").setPort(9092).setRack("rack-b"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(3).setHost("broker3.kafka.local").setPort(9093).setRack(null));
+
+            MetadataResponseTopic t = new MetadataResponseTopic().setErrorCode((short) 0).setName("meta-v5-offline").setIsInternal(false);
+            t.partitions().add(new MetadataResponsePartition().setErrorCode((short) 0).setPartitionIndex(0).setLeaderId(2).setReplicaNodes(Arrays.asList(1, 2, 3)).setIsrNodes(Arrays.asList(1, 2)).setOfflineReplicas(Arrays.asList(3)));
+            t.partitions().add(new MetadataResponsePartition().setErrorCode((short) 6).setPartitionIndex(1).setLeaderId(-1).setReplicaNodes(Arrays.asList(1, 3)).setIsrNodes(Arrays.asList(1)).setOfflineReplicas(Arrays.asList(3)));
+            resp.topics().add(t);
+
+            list.add(createMetadataFixture(
+                "metadata-v5-offline-replicas",
+                "metadata_v5_offline_replicas",
+                v,
+                "Metadata v5 classic wire format with offlineReplicas gate present, multiple brokers, and unknown leader on partitioned topic",
+                req, resp
+            ));
+        }
+
+        // 4. Metadata v7: classic wire format, leaderEpoch gate present across multiple partitions, active and stale leader epochs
+        {
+            short v = 7;
+            MetadataRequestData req = new MetadataRequestData();
+            req.topics().add(new MetadataRequestTopic().setName("meta-v7-epoch"));
+            req.setAllowAutoTopicCreation(true);
+
+            MetadataResponseData resp = new MetadataResponseData();
+            resp.setThrottleTimeMs(50);
+            resp.setClusterId("cluster-meta-v7");
+            resp.setControllerId(1);
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(1).setHost("broker1.kafka.local").setPort(9092).setRack("rack-a"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(2).setHost("broker2.kafka.local").setPort(9092).setRack("rack-b"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(3).setHost("broker3.kafka.local").setPort(9093).setRack(null));
+
+            MetadataResponseTopic t = new MetadataResponseTopic().setErrorCode((short) 0).setName("meta-v7-epoch").setIsInternal(false);
+            t.partitions().add(new MetadataResponsePartition().setErrorCode((short) 0).setPartitionIndex(0).setLeaderId(1).setLeaderEpoch(8).setReplicaNodes(Arrays.asList(1, 2)).setIsrNodes(Arrays.asList(1, 2)).setOfflineReplicas(Collections.emptyList()));
+            t.partitions().add(new MetadataResponsePartition().setErrorCode((short) 0).setPartitionIndex(1).setLeaderId(2).setLeaderEpoch(5).setReplicaNodes(Arrays.asList(2, 3)).setIsrNodes(Arrays.asList(2)).setOfflineReplicas(Collections.emptyList()));
+            resp.topics().add(t);
+
+            list.add(createMetadataFixture(
+                "metadata-v7-leader-epoch",
+                "metadata_v7_leader_epoch",
+                v,
+                "Metadata v7 classic wire format with leaderEpoch gate present across multiple partitions, active and stale leader epochs",
+                req, resp
+            ));
+        }
+
+        // 5. Metadata v8: classic format boundary before flexible, includeClusterAuthorizedOperations, includeTopicAuthorizedOperations, clusterAuthorizedOperations, and topicAuthorizedOperations
+        {
+            short v = 8;
+            MetadataRequestData req = new MetadataRequestData();
+            req.topics().add(new MetadataRequestTopic().setName("meta-v8-ops"));
+            req.setAllowAutoTopicCreation(true);
+            req.setIncludeClusterAuthorizedOperations(true);
+            req.setIncludeTopicAuthorizedOperations(true);
+
+            MetadataResponseData resp = new MetadataResponseData();
+            resp.setThrottleTimeMs(60);
+            resp.setClusterId("cluster-meta-v8");
+            resp.setControllerId(2);
+            resp.setClusterAuthorizedOperations(0x000000df);
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(1).setHost("broker1.kafka.local").setPort(9092).setRack("rack-a"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(2).setHost("broker2.kafka.local").setPort(9092).setRack("rack-b"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(3).setHost("broker3.kafka.local").setPort(9093).setRack("rack-c"));
+
+            MetadataResponseTopic t = new MetadataResponseTopic().setErrorCode((short) 0).setName("meta-v8-ops").setIsInternal(false).setTopicAuthorizedOperations(0x0000001f);
+            t.partitions().add(new MetadataResponsePartition().setErrorCode((short) 0).setPartitionIndex(0).setLeaderId(1).setLeaderEpoch(12).setReplicaNodes(Arrays.asList(1, 2)).setIsrNodes(Arrays.asList(1)).setOfflineReplicas(Arrays.asList(2)));
+            resp.topics().add(t);
+
+            list.add(createMetadataFixture(
+                "metadata-v8-authorized-ops",
+                "metadata_v8_authorized_ops",
+                v,
+                "Metadata v8 classic format boundary before flexible with includeClusterAuthorizedOperations, includeTopicAuthorizedOperations, clusterAuthorizedOperations, and topicAuthorizedOperations",
+                req, resp
+            ));
+        }
+
+        // 6. Metadata v9: flexible wire format boundary, compact encoding, clusterId, multiple brokers across racks, and unknown tagged fields
+        {
+            short v = 9;
+            MetadataRequestData req = new MetadataRequestData();
+            req.topics().add(new MetadataRequestTopic().setName("meta-v9-flex"));
+            req.setAllowAutoTopicCreation(true);
+            req.setIncludeClusterAuthorizedOperations(false);
+            req.setIncludeTopicAuthorizedOperations(true);
+            req.unknownTaggedFields().add(new RawTaggedField(100, new byte[]{(byte) 0x01, (byte) 0x02}));
+
+            MetadataResponseData resp = new MetadataResponseData();
+            resp.setThrottleTimeMs(75);
+            resp.setClusterId("cluster-meta-v9");
+            resp.setControllerId(3);
+
+            MetadataResponseBroker b1 = new MetadataResponseBroker().setNodeId(1).setHost("broker1.kafka.local").setPort(9092).setRack("rack-a");
+            b1.unknownTaggedFields().add(new RawTaggedField(200, new byte[]{(byte) 0x03, (byte) 0x04}));
+            resp.brokers().add(b1);
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(2).setHost("broker2.kafka.local").setPort(9092).setRack("rack-b"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(3).setHost("broker3.kafka.local").setPort(9093).setRack("rack-c"));
+            resp.unknownTaggedFields().add(new RawTaggedField(100, new byte[]{(byte) 0xaa, (byte) 0xbb, (byte) 0xcc}));
+
+            MetadataResponseTopic t = new MetadataResponseTopic().setErrorCode((short) 0).setName("meta-v9-flex").setIsInternal(false).setTopicAuthorizedOperations(0x000000df);
+            t.unknownTaggedFields().add(new RawTaggedField(300, new byte[]{(byte) 0x10, (byte) 0x20}));
+
+            MetadataResponsePartition p0 = new MetadataResponsePartition().setErrorCode((short) 0).setPartitionIndex(0).setLeaderId(3).setLeaderEpoch(15).setReplicaNodes(Arrays.asList(1, 2, 3)).setIsrNodes(Arrays.asList(2, 3)).setOfflineReplicas(Arrays.asList(1));
+            p0.unknownTaggedFields().add(new RawTaggedField(400, new byte[]{(byte) 0x99}));
+
+            MetadataResponsePartition p1 = new MetadataResponsePartition().setErrorCode((short) 5).setPartitionIndex(1).setLeaderId(-1).setLeaderEpoch(-1).setReplicaNodes(Arrays.asList(1, 2)).setIsrNodes(Collections.emptyList()).setOfflineReplicas(Arrays.asList(1, 2));
+
+            t.partitions().add(p0);
+            t.partitions().add(p1);
+            resp.topics().add(t);
+
+            list.add(createMetadataFixture(
+                "metadata-v9-flexible",
+                "metadata_v9_flexible",
+                v,
+                "Metadata v9 flexible wire format boundary with compact encoding, clusterId, multiple brokers across racks, and unknown tagged fields on request, response, brokers, topics, and partitions",
+                req, resp
+            ));
+        }
+
+        // 7. Metadata v10: flexible wire format, topicId wire transition on request and response topics, clusterAuthorizedOperations, and unknown leader
+        {
+            short v = 10;
+            Uuid topicId10 = new Uuid(0x1111222233334444L, 0x5555666677778888L);
+            MetadataRequestData req = new MetadataRequestData();
+            req.topics().add(new MetadataRequestTopic().setName("meta-v10-ids").setTopicId(topicId10));
+            req.setAllowAutoTopicCreation(false);
+            req.setIncludeClusterAuthorizedOperations(true);
+            req.setIncludeTopicAuthorizedOperations(true);
+
+            MetadataResponseData resp = new MetadataResponseData();
+            resp.setThrottleTimeMs(80);
+            resp.setClusterId("cluster-meta-v10");
+            resp.setControllerId(1);
+            resp.setClusterAuthorizedOperations(0x000000df);
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(1).setHost("broker1.kafka.local").setPort(9092).setRack("rack-a"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(2).setHost("broker2.kafka.local").setPort(9092).setRack("rack-b"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(3).setHost("broker3.kafka.local").setPort(9093).setRack(null));
+
+            MetadataResponseTopic t = new MetadataResponseTopic().setErrorCode((short) 0).setName("meta-v10-ids").setTopicId(topicId10).setIsInternal(false).setTopicAuthorizedOperations(0x0000001f);
+            t.partitions().add(new MetadataResponsePartition().setErrorCode((short) 0).setPartitionIndex(0).setLeaderId(1).setLeaderEpoch(20).setReplicaNodes(Arrays.asList(1, 2)).setIsrNodes(Arrays.asList(1, 2)).setOfflineReplicas(Collections.emptyList()));
+            t.partitions().add(new MetadataResponsePartition().setErrorCode((short) 6).setPartitionIndex(1).setLeaderId(-1).setLeaderEpoch(18).setReplicaNodes(Arrays.asList(2, 3)).setIsrNodes(Arrays.asList(2)).setOfflineReplicas(Arrays.asList(3)));
+            resp.topics().add(t);
+
+            list.add(createMetadataFixture(
+                "metadata-v10-topic-ids",
+                "metadata_v10_topic_ids",
+                v,
+                "Metadata v10 flexible wire format with topicId wire transition on request and response topics, clusterAuthorizedOperations, and unknown leader",
+                req, resp
+            ));
+        }
+
+        // 8. Metadata v11: flexible wire format boundary where clusterAuthorizedOperations is dropped from wire while topicAuthorizedOperations is retained
+        {
+            short v = 11;
+            Uuid topicId11 = new Uuid(0x2222333344445555L, 0x6666777788889999L);
+            MetadataRequestData req = new MetadataRequestData();
+            req.topics().add(new MetadataRequestTopic().setName("meta-v11-auth").setTopicId(topicId11));
+            req.setAllowAutoTopicCreation(true);
+            req.setIncludeTopicAuthorizedOperations(true);
+
+            MetadataResponseData resp = new MetadataResponseData();
+            resp.setThrottleTimeMs(90);
+            resp.setClusterId("cluster-meta-v11");
+            resp.setControllerId(2);
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(1).setHost("broker1.kafka.local").setPort(9092).setRack("rack-a"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(2).setHost("broker2.kafka.local").setPort(9092).setRack("rack-b"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(3).setHost("broker3.kafka.local").setPort(9093).setRack("rack-c"));
+
+            MetadataResponseTopic t = new MetadataResponseTopic().setErrorCode((short) 0).setName("meta-v11-auth").setTopicId(topicId11).setIsInternal(false).setTopicAuthorizedOperations(0x000000df);
+            t.partitions().add(new MetadataResponsePartition().setErrorCode((short) 0).setPartitionIndex(0).setLeaderId(2).setLeaderEpoch(25).setReplicaNodes(Arrays.asList(1, 2)).setIsrNodes(Arrays.asList(1, 2)).setOfflineReplicas(Collections.emptyList()));
+            resp.topics().add(t);
+
+            list.add(createMetadataFixture(
+                "metadata-v11-no-cluster-auth",
+                "metadata_v11_no_cluster_auth",
+                v,
+                "Metadata v11 flexible wire format boundary where clusterAuthorizedOperations is dropped from wire while topicAuthorizedOperations is retained",
+                req, resp
+            ));
+        }
+
+        // 9. Metadata v12: flexible wire format at highest Apache Kafka 3.9.1 valid version boundary with ID-only describe (null name), unknown tagged fields, and multiple brokers
+        {
+            short v = 12;
+            Uuid topicId12 = new Uuid(0x3333444455556666L, 0x777788889999aaaaL);
+            MetadataRequestData req = new MetadataRequestData();
+            req.topics().add(new MetadataRequestTopic().setName(null).setTopicId(topicId12));
+            req.setAllowAutoTopicCreation(false);
+            req.setIncludeTopicAuthorizedOperations(true);
+            req.unknownTaggedFields().add(new RawTaggedField(1200, new byte[]{(byte) 0xde, (byte) 0xad}));
+
+            MetadataResponseData resp = new MetadataResponseData();
+            resp.setThrottleTimeMs(100);
+            resp.setClusterId("cluster-meta-v12");
+            resp.setControllerId(3);
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(1).setHost("broker1.kafka.local").setPort(9092).setRack("rack-a"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(2).setHost("broker2.kafka.local").setPort(9092).setRack("rack-b"));
+            resp.brokers().add(new MetadataResponseBroker().setNodeId(3).setHost("broker3.kafka.local").setPort(9093).setRack("rack-c"));
+            resp.unknownTaggedFields().add(new RawTaggedField(1200, new byte[]{(byte) 0xbe, (byte) 0xef}));
+
+            MetadataResponseTopic t = new MetadataResponseTopic().setErrorCode((short) 0).setName("meta-v12-resolved").setTopicId(topicId12).setIsInternal(false).setTopicAuthorizedOperations(0x0000001f);
+            t.partitions().add(new MetadataResponsePartition().setErrorCode((short) 0).setPartitionIndex(0).setLeaderId(3).setLeaderEpoch(30).setReplicaNodes(Arrays.asList(2, 3)).setIsrNodes(Arrays.asList(2, 3)).setOfflineReplicas(Collections.emptyList()));
+            t.partitions().add(new MetadataResponsePartition().setErrorCode((short) 5).setPartitionIndex(1).setLeaderId(-1).setLeaderEpoch(28).setReplicaNodes(Arrays.asList(1, 3)).setIsrNodes(Arrays.asList(1)).setOfflineReplicas(Arrays.asList(3)));
+            resp.topics().add(t);
+
+            list.add(createMetadataFixture(
+                "metadata-v12-id-only",
+                "metadata_v12_id_only",
+                v,
+                "Metadata v12 flexible wire format at highest Apache Kafka 3.9.1 valid version boundary with ID-only describe (null name), unknown tagged fields, and multiple brokers",
+                req, resp
+            ));
+        }
+
+        return list;
+    }
+
     private static String sha256Hex(byte[] bytes) {
+
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] digest = md.digest(bytes);

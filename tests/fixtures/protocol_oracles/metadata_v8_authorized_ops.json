@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "metadata-v8-authorized-ops",
+  "api": "Metadata",
+  "api_key": 3,
+  "api_version": 8,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Metadata v8 classic format boundary before flexible with includeClusterAuthorizedOperations, includeTopicAuthorizedOperations, clusterAuthorizedOperations, and topicAuthorizedOperations",
+  "request": {
+    "file": "metadata_v8_authorized_ops_request.bin",
+    "size_bytes": 20,
+    "sha256": "ba9b9d9323b3a5e64b7e05010493ba16b9a0f88393a1b67406773784d2aa9643",
+    "hex": "00000001000b6d6574612d76382d6f7073010101"
+  },
+  "response": {
+    "file": "metadata_v8_authorized_ops_response.bin",
+    "size_bytes": 214,
+    "sha256": "c2c901a4e48eb32dbaa776843359c75a5aed8474c282aeca96082ec9c7c2d5f5",
+    "hex": "0000003c0000000300000001001362726f6b6572312e6b61666b612e6c6f63616c0000238400067261636b2d6100000002001362726f6b6572322e6b61666b612e6c6f63616c0000238400067261636b2d6200000003001362726f6b6572332e6b61666b612e6c6f63616c0000238500067261636b2d63000f636c75737465722d6d6574612d763800000002000000010000000b6d6574612d76382d6f70730000000001000000000000000000010000000c000000020000000100000002000000010000000100000001000000020000001f000000df"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "metadata-v11-no-cluster-auth",
+  "api": "Metadata",
+  "api_key": 3,
+  "api_version": 11,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Metadata v11 flexible wire format boundary where clusterAuthorizedOperations is dropped from wire while topicAuthorizedOperations is retained",
+  "request": {
+    "file": "metadata_v11_no_cluster_auth_request.bin",
+    "size_bytes": 35,
+    "sha256": "02039718d7ffb63bd476ac60ae1ad42e1399a65f833486ce39a23fbd23d63c25",
+    "hex": "02222233334444555566667777888899990e6d6574612d7631312d6175746800010100"
+  },
+  "response": {
+    "file": "metadata_v11_no_cluster_auth_response.bin",
+    "size_bytes": 209,
+    "sha256": "46eac1e939d7bc6407cc9c4b27ee5fc52b5f31faa938b6673a2e49e4d0f2637e",
+    "hex": "0000005a04000000011462726f6b6572312e6b61666b612e6c6f63616c00002384077261636b2d6100000000021462726f6b6572322e6b61666b612e6c6f63616c00002384077261636b2d6200000000031462726f6b6572332e6b61666b612e6c6f63616c00002385077261636b2d630011636c75737465722d6d6574612d763131000000020200000e6d6574612d7631312d6175746822223333444455556666777788889999000200000000000000000002000000190300000001000000020300000001000000020100000000df0000"
+  }
+}

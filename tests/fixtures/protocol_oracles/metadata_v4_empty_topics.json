@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "metadata-v4-empty-topics",
+  "api": "Metadata",
+  "api_key": 3,
+  "api_version": 4,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Metadata v4 classic wire format with empty topics array, allowAutoTopicCreation gate (false), clusterId, and throttleTimeMs",
+  "request": {
+    "file": "metadata_v4_empty_topics_request.bin",
+    "size_bytes": 5,
+    "sha256": "8855508aade16ec573d21e6a485dfd0a7624085c1a14b5ecdd6485de0c6839a4",
+    "hex": "0000000000"
+  },
+  "response": {
+    "file": "metadata_v4_empty_topics_response.bin",
+    "size_bytes": 144,
+    "sha256": "a0132f896ca1f9ce870634ee0465f619834d89f548e3e95215af3cfb8064e3bc",
+    "hex": "0000001e0000000300000001001362726f6b6572312e6b61666b612e6c6f63616c0000238400067261636b2d6100000002001362726f6b6572322e6b61666b612e6c6f63616c0000238400067261636b2d6200000003001362726f6b6572332e6b61666b612e6c6f63616c0000238500067261636b2d63000f636c75737465722d6d6574612d76340000000200000000"
+  }
+}

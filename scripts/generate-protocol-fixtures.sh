@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# KL01-03, KL01-04 & KL01-05: Pinned Apache Kafka Java wire-protocol fixture generator.
+# KL01-03, KL01-04, KL01-05 & KL01-06: Pinned Apache Kafka Java wire-protocol fixture generator.
 #
 # Generates reproducible reference wire fixtures using pinned Apache Kafka
 # message implementations (Message.write). Generation is independent of
@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     -h|--help)
-      echo "Usage: $0 [--verify] [--out-dir <dir>] | [--decode-rust <req|resp|fetch-req|fetch-resp> <version> <input>]"
+      echo "Usage: $0 [--verify] [--out-dir <dir>] | [--decode-rust <req|resp|fetch-req|fetch-resp|metadata-req|metadata-resp> <version> <input>]"
       exit 0
       ;;
     *)

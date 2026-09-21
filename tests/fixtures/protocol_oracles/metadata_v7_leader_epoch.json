@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "metadata-v7-leader-epoch",
+  "api": "Metadata",
+  "api_key": 3,
+  "api_version": 7,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Metadata v7 classic wire format with leaderEpoch gate present across multiple partitions, active and stale leader epochs",
+  "request": {
+    "file": "metadata_v7_leader_epoch_request.bin",
+    "size_bytes": 20,
+    "sha256": "af06f044b8dc3f542f5d54cfc27a5367be3e4fdfcc7cabcd494f55bc76580014",
+    "hex": "00000001000d6d6574612d76372d65706f636801"
+  },
+  "response": {
+    "file": "metadata_v7_leader_epoch_response.bin",
+    "size_bytes": 240,
+    "sha256": "900227a6f0b923a615d264c053fb18ce4c441dd8c5b6d2a10c07dde2384bcc58",
+    "hex": "000000320000000300000001001362726f6b6572312e6b61666b612e6c6f63616c0000238400067261636b2d6100000002001362726f6b6572322e6b61666b612e6c6f63616c0000238400067261636b2d6200000003001362726f6b6572332e6b61666b612e6c6f63616c00002385ffff000f636c75737465722d6d6574612d763700000001000000010000000d6d6574612d76372d65706f636800000000020000000000000000000100000008000000020000000100000002000000020000000100000002000000000000000000010000000200000005000000020000000200000003000000010000000200000000"
+  }
+}
