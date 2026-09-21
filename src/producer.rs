@@ -893,10 +893,13 @@ impl Shared {
 
     fn try_reserve_buffer(&self, bytes: u64) -> bool {
         let cap = self.cfg.buffer_memory;
-        if cap == 0 || bytes == 0 {
+        if cap == 0 {
             return true;
         }
         let cap = u64::try_from(cap).unwrap_or(u64::MAX);
+        if bytes == 0 {
+            return self.buffered_bytes.load(Ordering::Relaxed) < cap;
+        }
         let prev = self.buffered_bytes.fetch_add(bytes, Ordering::Relaxed);
         if prev.saturating_add(bytes) > cap {
             let _ = self.buffered_bytes.fetch_sub(bytes, Ordering::Relaxed);
@@ -916,9 +919,30 @@ impl Shared {
 }
 
 fn rec_bytes(rec: &ProduceRecord) -> u64 {
-    let k = rec.key.as_ref().map(bytes::Bytes::len).unwrap_or(0);
-    let v = rec.value.as_ref().map(bytes::Bytes::len).unwrap_or(0);
-    u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
+    let k = rec
+        .key
+        .as_ref()
+        .map(|b| u64::try_from(b.len()).unwrap_or(u64::MAX))
+        .unwrap_or(0);
+    let v = rec
+        .value
+        .as_ref()
+        .map(|b| u64::try_from(b.len()).unwrap_or(u64::MAX))
+        .unwrap_or(0);
+    let h: u64 = rec
+        .headers
+        .iter()
+        .map(|h| {
+            let k_len = u64::try_from(h.key.len()).unwrap_or(u64::MAX);
+            let v_len = h
+                .value
+                .as_ref()
+                .map(|b| u64::try_from(b.len()).unwrap_or(u64::MAX))
+                .unwrap_or(0);
+            k_len.saturating_add(v_len)
+        })
+        .fold(0, u64::saturating_add);
+    k.saturating_add(v).saturating_add(h)
 }
 
 fn reject_java_producer_record(rec: &ProduceRecord) -> Result<()> {
