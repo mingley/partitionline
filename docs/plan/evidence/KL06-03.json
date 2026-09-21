@@ -1,0 +1,40 @@
+{
+  "id": "KL06-03",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "c8c54aa84f7ebd0c8a66a948f0374b8fb96e0d21",
+  "commands": [
+    "cargo test --offline --locked --test auth_lifecycle (11 passed, exit 0)",
+    "cargo test --offline --locked --lib protocol::oidc (35 passed, exit 0)",
+    "cargo test --offline --locked --test credential_redact (15 passed, exit 0)",
+    "cargo clippy --offline --locked --lib (exit 0)",
+    "cargo clippy --offline --locked --test auth_lifecycle (exit 0)",
+    "rustfmt --edition 2021 --check src/protocol/oidc.rs src/protocol/sasl.rs tests/auth_lifecycle.rs (exit 0)"
+  ],
+  "results": {
+    "deliverable": "A bounded cache/refresh owner following docs/auth-refresh.md with single-flight stampede prevention, proactive background refresh, and deterministic clock support.",
+    "acceptance_validation": {
+      "deterministic_clocks_for_early_refresh": true,
+      "expiry_and_hard_ceiling_enforced": true,
+      "skew_and_jitter_contracts_respected": true,
+      "concurrent_connection_demand_single_flight": true,
+      "transient_refresh_failure_retains_valid_old_token": true,
+      "expired_or_rejected_credentials_fail_closed": true,
+      "bounded_retries_tasks_and_cache_keys": true,
+      "cancellation_safety_no_task_or_credential_leak": true,
+      "tokens_and_idp_bodies_never_logged": true,
+      "no_native_sasl_dependency": true,
+      "kl06_02_parse_cap_and_retries_preserved": true
+    }
+  },
+  "artifacts": [
+    "src/protocol/oidc.rs",
+    "src/protocol/sasl.rs",
+    "tests/auth_lifecycle.rs",
+    "docs/plan/evidence/KL06-03.json"
+  ],
+  "limits": [
+    "Token caching and proactive refresh owner implemented (KL06-03). In-place reauthentication with session_lifetime_ms (KL06-04) and TLS credential rotation (KL06-05) remain subsequent implementation cards."
+  ],
+  "blocked_reason": null
+}
