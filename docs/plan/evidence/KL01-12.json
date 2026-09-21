@@ -1,0 +1,67 @@
+{
+  "id": "KL01-12",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "6a6baf0bc5435c8882a8390556610916e7691d0e",
+  "commands": [
+    "bash scripts/ci-fuzz-campaign.sh --self-test",
+    "bash scripts/ci-fuzz-campaign.sh --validate fuzz/campaign/metadata.example.json",
+    "bash scripts/ci-fuzz-campaign.sh --validate-evidence fuzz/campaign/metadata.example.json (fails closed as expected)",
+    "bash scripts/ci-fuzz-campaign.sh --verify-seeds",
+    "bash scripts/ci-fuzz-campaign.sh --replay",
+    "cargo test --test fuzz_campaign_meta",
+    "cargo test --test fuzz_decode_smoke"
+  ],
+  "results": {
+    "self_test": "pass",
+    "smoke_distinct_from_campaign": true,
+    "example_metadata_rejected_as_evidence": true,
+    "seed_corpus_counts": {
+      "compressed": 3,
+      "tagged": 8,
+      "transactional": 3,
+      "boundary_length": 7,
+      "total": 25
+    },
+    "seed_targets": [
+      "decode_record_batches",
+      "decode_fetch_response",
+      "decode_produce_response",
+      "decode_metadata_response",
+      "decode_group_responses",
+      "decode_share_fetch_response",
+      "decode_cgheartbeat_responses"
+    ],
+    "metadata_schema_fields": [
+      "kind",
+      "campaign_id",
+      "duration_seconds",
+      "targets",
+      "started_at",
+      "finished_at",
+      "toolchain",
+      "source",
+      "corpus",
+      "coverage",
+      "artifacts_dir",
+      "replayed_failures"
+    ],
+    "coverage_status": "unavailable",
+    "minimized_artifacts_retained": 0,
+    "failure_replay_verified": true,
+    "summary": "Sustained fuzz campaign infrastructure made reproducible and resumable. 15-second smoke remains distinct from sustained campaigns (duration_seconds > 15). Committed example metadata fixture is validated against schema and strictly rejected as execution evidence. Valid seed corpus generated across all 7 targets covering compressed, tagged, transactional, and boundary-length frames. Metadata schema enforces toolchain, source, duration, corpus hashes, coverage or explicit unavailability, and failure replay."
+  },
+  "artifacts": [
+    "scripts/ci-fuzz-campaign.sh",
+    "fuzz/campaign/metadata.schema.json",
+    "fuzz/campaign/metadata.example.json",
+    "fuzz/seeds/",
+    "tests/fuzz_campaign_meta.rs",
+    "docs/plan/evidence/KL01-12.json"
+  ],
+  "limits": [
+    "Example metadata fixture is marked is_example=true and never serves as execution evidence.",
+    "No sustained multi-hour campaign was executed in CI/test cycle (bounded self-test verifies reproducible campaign path, schema, seeds, and replay logic without long fuzz runs)."
+  ],
+  "blocked_reason": null
+}
