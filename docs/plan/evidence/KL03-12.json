@@ -1,0 +1,43 @@
+{
+  "id": "KL03-12",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+  "commands": [
+    "cargo test --offline --locked --test full_surface kip848 (exit 0)",
+    "cargo test --offline --locked --test consumer_close_commit (exit 0)",
+    "cargo test --offline --locked --test full_surface kip848_broker_heartbeat_interval_scheduling (exit 0)",
+    "rustfmt --edition 2021 src/group.rs tests/full_surface.rs tests/common/mod.rs (exit 0)",
+    "cargo clippy --offline --locked -p partitionline --all-targets -- -D warnings (exit 0, duration 7.59s)"
+  ],
+  "results": {
+    "suite": "full_surface (filtered by kip848)",
+    "total_tests": 9,
+    "passed": 9,
+    "failed": 0,
+    "ignored": 0,
+    "new_test": {
+      "name": "kip848_broker_heartbeat_interval_scheduling",
+      "asserts": [
+        "Broker-directed multi-second interval (5000ms) on join schedules next consumer-protocol heartbeat at ~5000ms deadline, proving client no longer defaults to a 150ms loop",
+        "Subsequent broker response changing interval (60ms to 4000ms) is applied dynamically and moves next heartbeat deadline to ~4000ms",
+        "Invalid intervals (<= 0) on join are rejected with Error::Protocol",
+        "Invalid intervals (<= 0) on subsequent responses are safely classified into hb_err without spinning in a hot loop",
+        "Classic group heartbeat timing is unchanged (remains default 150ms interval from ConsumerConfig)",
+        "Prompt leave/close cancels heartbeat task immediately (< 500ms) without waiting for 5000ms interval",
+        "Prompt max-poll expiration leaves group promptly (< 2s) without sleeping through 5000ms heartbeat interval"
+      ]
+    }
+  },
+  "artifacts": [
+    "src/group.rs",
+    "tests/common/mod.rs",
+    "tests/full_surface.rs",
+    "docs/plan/evidence/KL03-12.json"
+  ],
+  "limits": [
+    "Share groups (KIP-932) heartbeats are unchanged (KL03-13 is a separate card).",
+    "In-memory mock broker test; live multi-broker cluster was not exercised."
+  ],
+  "blocked_reason": null
+}

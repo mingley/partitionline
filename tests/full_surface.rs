@@ -3871,6 +3871,161 @@ async fn kip848_follows_moved_coordinator() {
 }
 
 #[tokio::test]
+async fn kip848_broker_heartbeat_interval_scheduling() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    // Classic heartbeat_interval default remains 150ms.
+    assert_eq!(ccfg.heartbeat_interval, Duration::from_millis(150));
+
+    // Part 1: Classic group heartbeat timing is unchanged.
+    let classic_g = ConsumerGroup::join(ccfg.clone(), "classic-timing-check", "t")
+        .await
+        .unwrap();
+    assert_eq!(classic_g.heartbeat_interval(), Duration::from_millis(150));
+    assert!(classic_g.next_heartbeat_deadline().is_none());
+    classic_g.leave().await.unwrap();
+
+    // Part 2: Broker returns heartbeat_interval_ms of multiple seconds (e.g. 5000ms).
+    // Client must schedule the next heartbeat at ~5000ms, NOT ~150ms.
+    mock.set_cg_heartbeat_interval_ms(5000);
+    assert_eq!(mock.cg_heartbeat_interval_ms(), 5000);
+
+    let g = ConsumerGroup::join_consumer(ccfg.clone(), "kip848-hb-5000", "t")
+        .await
+        .unwrap();
+    // Verify client applied broker interval on join.
+    assert_eq!(g.heartbeat_interval(), Duration::from_millis(5000));
+    let deadline = g
+        .next_heartbeat_deadline()
+        .expect("next heartbeat deadline must be recorded");
+    assert!(
+        deadline >= Instant::now() + Duration::from_millis(4000),
+        "deadline must be scheduled at ~5000ms, not ~150ms"
+    );
+
+    // Initial join consumed 1 heartbeat call.
+    assert_eq!(mock.cg_heartbeat_calls(), 1);
+
+    // Wait 250ms (well past the 150ms default).
+    tokio::time::sleep(Duration::from_millis(250)).await;
+
+    // Must NOT have scheduled or sent a heartbeat at ~150ms.
+    assert_eq!(
+        mock.cg_heartbeat_calls(),
+        1,
+        "client sent heartbeat at ~150ms despite broker interval of 5000ms"
+    );
+
+    // Leave must promptly end the heartbeat task without waiting for the 5-second deadline.
+    let t_leave = Instant::now();
+    g.leave().await.unwrap();
+    assert!(
+        t_leave.elapsed() < Duration::from_millis(500),
+        "leave must be prompt: {:?}",
+        t_leave.elapsed()
+    );
+
+    // Part 3: A later response that changes the interval is applied.
+    // Start with a short interval (60ms) so the second heartbeat fires quickly.
+    mock.set_cg_heartbeat_interval_ms(60);
+    let g2 = ConsumerGroup::join_consumer(ccfg.clone(), "kip848-hb-change", "t")
+        .await
+        .unwrap();
+    assert_eq!(g2.heartbeat_interval(), Duration::from_millis(60));
+    let initial_calls = mock.cg_heartbeat_calls();
+
+    // Configure mock to return 4000ms on the subsequent heartbeat.
+    mock.set_cg_heartbeat_interval_ms(4000);
+
+    // Wait for the background heartbeat to fire with the 60ms interval.
+    common::wait_pred("second heartbeat sent", || {
+        mock.cg_heartbeat_calls() > initial_calls
+    })
+    .await;
+
+    // The client must have received the 4000ms interval and applied it.
+    assert_eq!(g2.heartbeat_interval(), Duration::from_millis(4000));
+    let updated_deadline = g2
+        .next_heartbeat_deadline()
+        .expect("updated deadline recorded");
+    assert!(
+        updated_deadline >= Instant::now() + Duration::from_millis(3000),
+        "updated deadline must be ~4000ms out"
+    );
+
+    // In a 200ms window, no third heartbeat should be sent because interval changed to 4000ms.
+    let calls_after_2 = mock.cg_heartbeat_calls();
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert_eq!(
+        mock.cg_heartbeat_calls(),
+        calls_after_2,
+        "heartbeat must not fire within 200ms when interval changed to 4000ms"
+    );
+    g2.leave().await.unwrap();
+
+    // Part 4: Invalid intervals (<= 0) are rejected or safely classified.
+    // 4a. Invalid interval on join is rejected.
+    mock.set_cg_heartbeat_interval_ms(0);
+    let err_zero = ConsumerGroup::join_consumer(ccfg.clone(), "kip848-invalid-0", "t").await;
+    assert!(
+        err_zero.is_err(),
+        "join response with heartbeat_interval_ms <= 0 must be rejected"
+    );
+
+    mock.set_cg_heartbeat_interval_ms(-100);
+    let err_neg = ConsumerGroup::join_consumer(ccfg.clone(), "kip848-invalid-neg", "t").await;
+    assert!(
+        err_neg.is_err(),
+        "join response with negative heartbeat_interval_ms must be rejected"
+    );
+
+    // 4b. Invalid interval on subsequent response is safely classified, not spun into a hot loop.
+    mock.set_cg_heartbeat_interval_ms(50);
+    let g3 = ConsumerGroup::join_consumer(ccfg.clone(), "kip848-invalid-subsequent", "t")
+        .await
+        .unwrap();
+    let calls_before = mock.cg_heartbeat_calls();
+    // Broker returns -50 on subsequent heartbeat.
+    mock.set_cg_heartbeat_interval_ms(-50);
+    common::wait_pred("second heartbeat sent", || {
+        mock.cg_heartbeat_calls() > calls_before
+    })
+    .await;
+    // Check that it does not spin in a hot loop!
+    let calls_snap = mock.cg_heartbeat_calls();
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    let calls_after = mock.cg_heartbeat_calls();
+    assert!(
+        calls_after <= calls_snap + 4,
+        "must not spin into a hot loop on invalid interval: {calls_snap} -> {calls_after}"
+    );
+    g3.leave().await.unwrap();
+
+    // Part 5: Prompt max-poll leave retains prompt behavior even with large heartbeat interval.
+    mock.set_cg_heartbeat_interval_ms(5000);
+    let mut poll_cfg = ccfg.clone();
+    poll_cfg.max_poll_interval = Duration::from_millis(60);
+    let mut g_poll = ConsumerGroup::join_consumer(poll_cfg, "kip848-max-poll-prompt", "t")
+        .await
+        .unwrap();
+    let _ = g_poll.poll().await.unwrap(); // starts max-poll tracking
+                                          // Do not poll anymore. Max poll should expire in ~60ms.
+                                          // The heartbeat task must leave promptly and NOT sleep through the 5000ms heartbeat interval!
+    let t_poll_start = Instant::now();
+    common::wait_pred("heartbeat task leaves promptly on max-poll", || {
+        g_poll.is_left_max_poll()
+    })
+    .await;
+    assert!(
+        t_poll_start.elapsed() < Duration::from_secs(2),
+        "max poll leave must be prompt (< 2s), took {:?}",
+        t_poll_start.elapsed()
+    );
+    let _ = g_poll.leave().await;
+}
+
+#[tokio::test]
 async fn share_fetch_follows_partition_leader() {
     let mock = common::Mock::start_two_node().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
