@@ -231,13 +231,31 @@
     {
       "id": "KL02-02",
       "title": "Enforce the producer's declared retained-byte budget",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL02-01"],
       "files": ["src/producer.rs", "tests/buffer_ownership.rs", "docs/guide.md"],
       "deliverable": "Budget accounting matching the approved ownership contract, including header-heavy records.",
       "acceptance": ["Header-only, zero-value, shared-backing and compressed records cannot bypass the declared budget.", "A permit stays owned across queued, in-flight and retry states and is released exactly once.", "Document any changed public metric meaning or configuration behavior; do not claim a process RSS bound from one counter."],
       "validation": ["cargo test --locked --test buffer_ownership", "cargo test --locked --test produce_cancel"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "bed7dd22ae8bd2416398d9551de85912152f37ef",
+                "commands": [
+                        "cargo test --offline --locked --test buffer_ownership (7 passed, exit 0)",
+                        "cargo test --offline --locked --test produce_cancel (4 passed, exit 0)"
+                ],
+                "results": "rec_bytes now reserves key, value, and header key/value lengths. A zero-length record cannot bypass a saturated buffer. Header-heavy records are rejected at the cap. Permits remain held across retry and return to zero after release. The guide states this is not a process RSS bound. Oversized-first-record progress when the buffer is empty is preserved.",
+                "artifacts": [
+                        "src/producer.rs",
+                        "tests/buffer_ownership.rs",
+                        "docs/guide.md",
+                        "docs/plan/evidence/KL02-02.json"
+                ],
+                "limits": [
+                        "The counter charges slice length, not the retained capacity of a shared Bytes backing allocation. Encoded batch overhead and socket buffers remain outside this counter."
+                ]
+        }
+]
     },
     {
       "id": "KL02-03",
