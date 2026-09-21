@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "fixture_id": "smoke-produce-v9",
+  "api": "Produce",
+  "api_key": 0,
+  "api_version": 9,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "request": {
+    "file": "smoke_produce_v9_request.bin",
+    "size_bytes": 29,
+    "sha256": "16f77371ffb3950535f6dccbca7eac6eb0f32390b662b828e9ebc54bcffa6ec5",
+    "hex": "00000100001388020c736d6f6b652d746f706963020000000001000000"
+  },
+  "response": {
+    "file": "smoke_produce_v9_response.bin",
+    "size_bytes": 53,
+    "sha256": "3c7be5ef0efe4c15c1955986c1c49aff911d0188f461f4e66af556432ad1a48c",
+    "hex": "020c736d6f6b652d746f7069630200000000000000000000000000640000018bcfe568000000000000000000010000000000002a00"
+  }
+}
