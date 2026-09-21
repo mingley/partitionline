@@ -1367,7 +1367,12 @@ impl Producer {
                 .lock()
                 .topic_fresh(rec.topic.as_ref(), self.inner.shared.cfg.metadata_max_age);
             if !fresh {
-                let _ = partitions_for(&self.inner.shared, &rec.topic).await?;
+                let rest = deadline.saturating_duration_since(Instant::now());
+                if rest.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                let timeout = self.inner.shared.cfg.request_timeout.min(rest);
+                let _ = partitions_for_timeout(&self.inner.shared, &rec.topic, timeout).await?;
             }
             let _ = self.apply_cached_partition(rec);
             if self.worker_for(rec).is_some() {
@@ -1453,16 +1458,22 @@ impl Producer {
             let block_deadline = Instant::now() + self.inner.shared.cfg.max_block;
             self.ensure_ready(&mut rec, block_deadline).await?;
             let w = self.worker_for(&rec).ok_or(Error::Closed)?;
-            let now = Instant::now();
-            let deadline = now + self.inner.shared.cfg.delivery_timeout;
-            let topic = rec.topic.clone();
             self.wait_buffer(bytes, block_deadline).await?;
             if self.inner.shared.closed.load(Ordering::SeqCst) {
                 self.inner.shared.release_buffer(bytes);
                 return Err(Error::Closed);
             }
-            if w.data
-                .send(Pending {
+            let now = Instant::now();
+            let deadline = now + self.inner.shared.cfg.delivery_timeout;
+            let topic = rec.topic.clone();
+            let rest_block = block_deadline.saturating_duration_since(now);
+            if rest_block.is_zero() {
+                self.inner.shared.release_buffer(bytes);
+                return Err(Error::Timeout);
+            }
+            let send_res = tokio::time::timeout(
+                rest_block,
+                w.data.send(Pending {
                     rec,
                     tx: Some(tx),
                     seq: None,
@@ -1470,12 +1481,19 @@ impl Producer {
                     queued_at: now,
                     retry: 0,
                     skip_meta_refresh: false,
-                })
-                .await
-                .is_err()
-            {
-                self.inner.shared.release_buffer(bytes);
-                return Err(Error::Closed);
+                }),
+            )
+            .await;
+            match send_res {
+                Ok(Ok(())) => {}
+                Ok(Err(_)) => {
+                    self.inner.shared.release_buffer(bytes);
+                    return Err(Error::Closed);
+                }
+                Err(_) => {
+                    self.inner.shared.release_buffer(bytes);
+                    return Err(Error::Timeout);
+                }
             }
             self.inner.shared.note_queued_n(&topic, 1, bytes);
             rxs.push(rx);
@@ -2081,7 +2099,7 @@ impl Producer {
 
         if let Some(d) = deadline {
             let rest = d.saturating_duration_since(Instant::now());
-            let _ = tokio::time::timeout(rest, wait_drain).await;
+            drop(tokio::time::timeout(rest, wait_drain).await);
         } else {
             wait_drain.await;
         }
@@ -2451,6 +2469,14 @@ async fn group_coord_roundtrip(
 }
 
 async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
+    partitions_for_timeout(shared, topic, shared.cfg.request_timeout).await
+}
+
+async fn partitions_for_timeout(
+    shared: &Shared,
+    topic: &Arc<str>,
+    timeout: Duration,
+) -> Result<i32> {
     // Drop the parking_lot guard before `nudge_leaders`. An `if let` on
     // `cluster.lock().partition_count(...)` keeps the guard alive through the
     // body (edition 2021 temporary scope) and deadlocks the non-reentrant mutex.
@@ -2465,17 +2491,23 @@ async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
         nudge_leaders(shared, topic);
         return Ok(n);
     }
-    let mut conn = shared.meta.lock().await;
+    if timeout.is_zero() {
+        return Err(Error::Timeout);
+    }
+    let deadline = crate::net::Deadline::from_timeout(timeout);
+    let mut conn = match tokio::time::timeout(timeout, shared.meta.lock()).await {
+        Ok(guard) => guard,
+        Err(_) => return Err(Error::Timeout),
+    };
     let version = shared.metadata_version;
     let allow = shared.cfg.allow_auto_topic_creation;
-    let timeout = shared.cfg.request_timeout;
     let topics = [topic.to_string()];
     let body = conn
-        .roundtrip(
+        .roundtrip_deadline(
             METADATA,
             version,
             |buf| encode_metadata_request(buf, version, Some(&topics), allow),
-            timeout,
+            deadline,
         )
         .await?;
     drop(conn);
@@ -2696,7 +2728,9 @@ impl<'a> Drop for RetryGuard<'a> {
 
 async fn retry_one(shared: &Arc<Shared>, p: Pending) {
     let mut guard = RetryGuard { shared, p: Some(p) };
-    let p = guard.p.as_mut().unwrap();
+    let Some(p) = guard.p.as_mut() else {
+        return;
+    };
     if shared.closed.load(Ordering::SeqCst) || Instant::now() >= p.deadline {
         return;
     }
@@ -2726,7 +2760,15 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
     };
     if need_meta {
         invalidate_cached_topic(shared, p.rec.topic.as_ref());
-        if partitions_for(shared, &p.rec.topic).await.is_err() {
+        let rest = p.deadline.saturating_duration_since(Instant::now());
+        if rest.is_zero() {
+            return;
+        }
+        let meta_timeout = shared.cfg.request_timeout.min(rest);
+        if partitions_for_timeout(shared, &p.rec.topic, meta_timeout)
+            .await
+            .is_err()
+        {
             return;
         }
         if shared.closed.load(Ordering::SeqCst) {
@@ -2763,11 +2805,24 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
             })
         };
         if let Some(w) = handle {
-            let p = guard.p.take().unwrap();
-            match w.data.send(p).await {
-                Ok(()) => return,
-                Err(mpsc::error::SendError(p)) => {
-                    fail_pendings(shared, vec![p], Error::Timeout);
+            let rest = deadline.saturating_duration_since(Instant::now());
+            if rest.is_zero() {
+                return;
+            }
+            match tokio::time::timeout(rest, w.data.reserve()).await {
+                Ok(Ok(permit)) => {
+                    if let Some(p) = guard.p.take() {
+                        permit.send(p);
+                    }
+                    return;
+                }
+                Ok(Err(_)) => {
+                    if let Some(p) = guard.p.take() {
+                        fail_pendings(shared, vec![p], Error::Closed);
+                    }
+                    return;
+                }
+                Err(_) => {
                     return;
                 }
             }
@@ -2865,6 +2920,30 @@ impl Worker {
         }
     }
 
+    fn purge_expired_pending(&mut self) {
+        if self.pending.is_empty() {
+            return;
+        }
+        let now = Instant::now();
+        let mut i = 0;
+        let mut expired = Vec::new();
+        while i < self.pending.len() {
+            let is_expired = self.pending.get(i).is_some_and(|p| now >= p.deadline);
+            if is_expired {
+                expired.push(self.pending.remove(i));
+            } else {
+                i += 1;
+            }
+        }
+        if !expired.is_empty() {
+            fail_pendings(&self.shared, expired, Error::Timeout);
+        }
+    }
+
+    fn earliest_pending_deadline(&self) -> Option<Instant> {
+        self.pending.iter().map(|p| p.deadline).min()
+    }
+
     fn linger_expired(&self, start: Option<Instant>) -> bool {
         let linger = self.shared.cfg.linger;
         if self.pending.is_empty() {
@@ -2900,13 +2979,17 @@ impl Worker {
                 break;
             }
             self.pull_ready();
-            if linger_start.is_none() && !self.pending.is_empty() {
+            self.purge_expired_pending();
+            if self.pending.is_empty() {
+                linger_start = None;
+            } else if linger_start.is_none() {
                 linger_start = Some(Instant::now());
             }
             if self.can_fire(linger_start) {
                 if let Err(e) = self.fire().await {
                     self.note_fail(e);
                 }
+                self.purge_expired_pending();
                 linger_start = if self.pending.is_empty() {
                     None
                 } else {
@@ -2931,6 +3014,18 @@ impl Worker {
             let wait_linger =
                 linger_start.filter(|_| !linger.is_zero() && !self.pending.is_empty());
 
+            let now = Instant::now();
+            let next_wake = match (wait_linger, self.earliest_pending_deadline()) {
+                (Some(s), Some(dl)) => {
+                    let linger_rest = linger.saturating_sub(s.elapsed());
+                    let dl_rest = dl.saturating_duration_since(now);
+                    Some(linger_rest.min(dl_rest))
+                }
+                (Some(s), None) => Some(linger.saturating_sub(s.elapsed())),
+                (None, Some(dl)) => Some(dl.saturating_duration_since(now)),
+                (None, None) => None,
+            };
+
             tokio::select! {
                 biased;
                 n = self.data.recv_many(&mut self.pending, room) => {
@@ -2939,7 +3034,8 @@ impl Worker {
                         self.drain_inflight().await;
                         break;
                     }
-                    if linger_start.is_none() {
+                    self.purge_expired_pending();
+                    if linger_start.is_none() && !self.pending.is_empty() {
                         linger_start = Some(Instant::now());
                     }
                 }
@@ -2967,15 +3063,16 @@ impl Worker {
                     }
                 }
                 _ = tokio::time::sleep(
-                    wait_linger
-                        .map(|s| linger.saturating_sub(s.elapsed()))
-                        .unwrap_or(Duration::from_secs(86400)),
-                ), if wait_linger.is_some() => {}
+                    next_wake.unwrap_or(Duration::from_secs(86400)),
+                ), if next_wake.is_some() => {
+                    self.purge_expired_pending();
+                }
             }
         }
     }
 
     async fn fire(&mut self) -> Result<()> {
+        self.purge_expired_pending();
         if self.pending.is_empty() {
             return Ok(());
         }
@@ -3009,6 +3106,11 @@ impl Worker {
             self.note_fail(e.clone());
             return Err(e);
         }
+        let batch_deadline = batch
+            .iter()
+            .map(|p| p.deadline)
+            .min()
+            .unwrap_or_else(|| Instant::now() + self.shared.cfg.delivery_timeout);
         let now = now_ms();
         let mut groups = group_pending(batch);
         if groups.is_empty() {
@@ -3135,9 +3237,20 @@ impl Worker {
             self.requeue(groups);
             return Ok(());
         }
+        let now_inst = Instant::now();
+        if now_inst >= batch_deadline {
+            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            fail_groups(&self.shared, groups, Error::Timeout);
+            return Ok(());
+        }
+        let write_timeout = self
+            .shared
+            .cfg
+            .request_timeout
+            .min(batch_deadline.saturating_duration_since(now_inst));
         if let Err(e) = self
             .conn
-            .write_all_timeout(&self.write_buf, self.shared.cfg.request_timeout)
+            .write_all_timeout(&self.write_buf, write_timeout)
             .await
         {
             if e.is_retriable() {
@@ -3171,26 +3284,43 @@ impl Worker {
             inf: Some(inf),
         };
         let version = self.shared.produce_version;
-        let correlation = guard.inf.as_ref().unwrap().correlation;
+        let (correlation, batch_deadline) = match guard.inf.as_ref() {
+            Some(inf) => {
+                let dl = inf
+                    .groups
+                    .iter()
+                    .flat_map(|(_, _, ps)| ps.iter())
+                    .map(|p| p.deadline)
+                    .min()
+                    .unwrap_or_else(|| Instant::now() + self.shared.cfg.delivery_timeout);
+                (inf.correlation, dl)
+            }
+            None => (0, Instant::now() + self.shared.cfg.delivery_timeout),
+        };
+        let now = Instant::now();
+        let timeout = if now >= batch_deadline {
+            Duration::ZERO
+        } else {
+            self.shared
+                .cfg
+                .request_timeout
+                .min(batch_deadline.saturating_duration_since(now))
+        };
         let body = match self
             .conn
-            .read_response(
-                PRODUCE,
-                version,
-                correlation,
-                self.shared.cfg.request_timeout,
-            )
+            .read_response(PRODUCE, version, correlation, timeout)
             .await
         {
             Ok(b) => b,
             Err(e) => {
-                let inf = guard.inf.take().unwrap();
-                if e.is_retriable() {
-                    let _ = self.shared.nodes.lock().remove(&self.node_id);
-                    self.requeue(inf.groups);
-                    return Ok(());
+                if let Some(inf) = guard.inf.take() {
+                    if e.is_retriable() {
+                        let _ = self.shared.nodes.lock().remove(&self.node_id);
+                        self.requeue(inf.groups);
+                        return Ok(());
+                    }
+                    fail_groups(&self.shared, inf.groups, clone_err(&e));
                 }
-                fail_groups(&self.shared, inf.groups, clone_err(&e));
                 return Err(e);
             }
         };
@@ -3198,12 +3328,15 @@ impl Worker {
         let (responses, endpoints, ..) = match decode_produce_response(&mut body, version) {
             Ok(r) => r,
             Err(e) => {
-                let inf = guard.inf.take().unwrap();
-                fail_groups(&self.shared, inf.groups, clone_err(&e));
+                if let Some(inf) = guard.inf.take() {
+                    fail_groups(&self.shared, inf.groups, clone_err(&e));
+                }
                 return Err(e);
             }
         };
-        let inf = guard.inf.take().unwrap();
+        let Some(inf) = guard.inf.take() else {
+            return Ok(());
+        };
         self.shared.cluster.lock().apply_node_endpoints(&endpoints);
         let mut first_err: Option<Error> = None;
         for (topic, part, pendings) in inf.groups {
@@ -3395,6 +3528,10 @@ impl Worker {
     fn requeue_pendings(&mut self, pendings: Vec<Pending>) {
         for mut p in pendings {
             p.retry = p.retry.saturating_add(1);
+            if Instant::now() >= p.deadline {
+                fail_pendings(&self.shared, vec![p], Error::Timeout);
+                continue;
+            }
             let _ = self.shared.retries_out.fetch_add(1, Ordering::SeqCst);
             match self.shared.retry_tx.try_send(p) {
                 Ok(()) => {}
@@ -3414,6 +3551,7 @@ impl Worker {
 
     async fn drain_inflight(&mut self) {
         while !self.pending.is_empty() || !self.in_flight.is_empty() {
+            self.purge_expired_pending();
             if !self.pending.is_empty() {
                 while self.in_flight.len() >= self.shared.cfg.max_in_flight {
                     if let Err(e) = self.wait_one().await {
