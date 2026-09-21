@@ -518,13 +518,30 @@
     {
       "id": "KL03-04",
       "title": "Honor the requested offset inside a whole fetched batch",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL03-03"],
       "files": ["src/consumer.rs", "tests/consumer_fetch_semantics.rs"],
       "deliverable": "Fix audit A01 by filtering records before each partition's requested position.",
       "acceptance": ["Assign/seek to offset 2 in a 0..2 batch returns only offset 2.", "Cover compressed batches, sparse/compacted offsets and multiple partitions.", "The filter and retry logic cannot regress position, lose a later record or bypass aborted/control filtering."],
       "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test client_api seek"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "fc4af05c4977e7d7719dbca211be757a54ca309b",
+                "commands": [
+                        "cargo test --offline --locked --test consumer_fetch_semantics (22 passed, exit 0)",
+                        "cargo test --offline --locked --test client_api seek (6 passed, exit 0)"
+                ],
+                "results": "Assigning or seeking to offset 2 in a 0..2 batch returns only offset 2. Covered compressed batches, sparse/compacted offsets, and multiple partitions. Abort/control filtering and partial-retry preservation still pass. The cursor does not move backward.",
+                "artifacts": [
+                        "src/consumer.rs",
+                        "tests/consumer_fetch_semantics.rs",
+                        "docs/plan/evidence/KL03-04.json"
+                ],
+                "limits": [
+                        "A04 out-of-range policy and A05 capped-poll commit remain open. A batch entirely below the requested offset does not move the position backward."
+                ]
+        }
+]
     },
     {
       "id": "KL03-05",
