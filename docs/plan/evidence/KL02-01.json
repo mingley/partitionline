@@ -1,0 +1,22 @@
+{
+  "id": "KL02-01",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+  "commands": [
+    "cargo test --offline --locked --test buffer_ownership --test produce_cancel",
+    "python3 -c 'verified 45 symbols and file:line citations across src/producer.rs, src/consumer.rs, src/net.rs, and src/protocol/records.rs against HEAD bed63ae'"
+  ],
+  "results": "All existing buffer ownership (3/3) and produce cancel (4/4) tests pass. Traced four concrete record lifecycles (successful, retried, cancelled, failed) with verified file:line citations. 45 symbols verified against current source. Ownership table defines single release owner on all terminal paths. Distinguishes key/value bytes from headers, object overhead, shared backing allocations, compressed/decoded bytes, tasks, and RSS. Outcomes classified into completed, failed, and ambiguous without collapsing ambiguous into failed. Oversized-first-batch progress preserved.",
+  "artifacts": [
+    "docs/resource-contract.md"
+  ],
+  "limits": [
+    "Existing buffer_ownership tests only test empty headers and 100-byte payloads; header-heavy records are uncounted by current rec_bytes (tracked for KL02-02).",
+    "Decompression routines in src/protocol/records.rs do not enforce an in-flight decoded output ceiling (tracked for KL02-03).",
+    "Shared backing allocations (Bytes slices) account only for slice length rather than underlying buffer capacity.",
+    "Produce cancel tests cover linger-buffer cancellation; post-wire cancellation under network partition or leader change is not yet exercised in a dedicated integration test.",
+    "Pre-send worker failures after buffer reservation but before in-flight registration lack fault-injection test coverage (tracked for KL02-04)."
+  ],
+  "blocked_reason": null
+}
