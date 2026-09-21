@@ -1,0 +1,42 @@
+{
+  "id": "KL06-02",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "642ee29a77d5ab5e3daba4bda37e306b3f5b055a",
+  "commands": [
+    "cargo test --offline --locked --lib protocol::oidc (27 passed, exit 0)",
+    "cargo test --offline --locked --test credential_redact (15 passed, exit 0)",
+    "cargo clippy --offline --locked --lib (exit 0)",
+    "cargo clippy --offline --locked --test credential_redact (exit 0)"
+  ],
+  "results": {
+    "deliverable": "Structured token metadata parsing with bounded HTTP/JSON handling, preserving the public one-shot path.",
+    "acceptance_validation": {
+      "escaped_json_handled": true,
+      "missing_fields_rejected": true,
+      "wrong_type_fields_rejected": true,
+      "expires_in_parsed": true,
+      "token_type_parsed_and_validated": true,
+      "chunked_http_responses_decoded": true,
+      "truncated_responses_rejected": true,
+      "malformed_responses_rejected": true,
+      "size_limits_enforced": true,
+      "three_attempt_transient_retry_preserved": true,
+      "immediate_4xx_rejection_preserved": true,
+      "public_one_shot_path_preserved": true,
+      "no_response_bodies_in_errors": true,
+      "debug_redaction_implemented": true,
+      "no_unsafe": true,
+      "no_unapproved_dependencies": true
+    }
+  },
+  "artifacts": [
+    "src/protocol/oidc.rs",
+    "tests/credential_redact.rs",
+    "docs/plan/evidence/KL06-02.json"
+  ],
+  "limits": [
+    "Token metadata parsing and bounded HTTP/JSON handling only (KL06-02). Stampede-free proactive refresh (KL06-03) and in-place reauthentication with session_lifetime_ms (KL06-04) remain subsequent implementation cards."
+  ],
+  "blocked_reason": null
+}

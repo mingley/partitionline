@@ -64,6 +64,45 @@ impl OidcConfig {
     }
 }
 
+/// Parsed OIDC token response metadata.
+///
+/// Redacts [`Self::access_token`] in [`fmt::Debug`] to prevent credential leakage.
+#[derive(Clone, PartialEq, Eq)]
+pub struct OidcTokenResponse {
+    /// The access token string issued by the authorization server.
+    pub access_token: String,
+    /// The type of the token issued (e.g. "Bearer").
+    pub token_type: String,
+    /// The lifetime in seconds of the access token, if provided.
+    pub expires_in: Option<u64>,
+}
+
+impl fmt::Debug for OidcTokenResponse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("OidcTokenResponse")
+            .field("access_token", &"<redacted>")
+            .field("token_type", &self.token_type)
+            .field("expires_in", &self.expires_in)
+            .finish()
+    }
+}
+
+impl OidcTokenResponse {
+    /// Create a new parsed token response.
+    #[must_use]
+    pub fn new(
+        access_token: impl Into<String>,
+        token_type: impl Into<String>,
+        expires_in: Option<u64>,
+    ) -> Self {
+        Self {
+            access_token: access_token.into(),
+            token_type: token_type.into(),
+            expires_in,
+        }
+    }
+}
+
 struct HttpUrl {
     https: bool,
     host: String,
@@ -82,16 +121,33 @@ const OIDC_RETRY_BACKOFF_START: Duration = Duration::from_millis(20);
 /// attempts within `request_timeout`. HTTP 4xx fails immediately
 /// (no credential hammering). This is bounded reconnect-time recovery, **not**
 /// mid-connection token refresh / `expires_in` handling (KL-06 still open).
+///
+/// Preserves the public one-shot acquisition path. See
+/// [`fetch_client_credentials_token_response`] for full token metadata.
 pub async fn fetch_client_credentials_token(
     cfg: &OidcConfig,
     request_timeout: Duration,
 ) -> Result<String> {
+    fetch_client_credentials_token_response(cfg, request_timeout)
+        .await
+        .map(|resp| resp.access_token)
+}
+
+/// POST `grant_type=client_credentials` and return parsed [`OidcTokenResponse`].
+///
+/// Transient IdP failures (HTTP 5xx, I/O, timeout) are retried up to three
+/// attempts within `request_timeout`. HTTP 4xx fails immediately
+/// (no credential hammering).
+pub async fn fetch_client_credentials_token_response(
+    cfg: &OidcConfig,
+    request_timeout: Duration,
+) -> Result<OidcTokenResponse> {
     let deadline = Instant::now() + request_timeout;
     let mut backoff = OIDC_RETRY_BACKOFF_START;
     let mut last_err = None;
     for attempt in 1..=OIDC_FETCH_ATTEMPTS {
-        match fetch_client_credentials_token_once(cfg, deadline).await {
-            Ok(token) => return Ok(token),
+        match fetch_client_credentials_token_response_once(cfg, deadline).await {
+            Ok(resp) => return Ok(resp),
             Err(err) if attempt < OIDC_FETCH_ATTEMPTS && is_transient_oidc_error(&err) => {
                 last_err = Some(err);
                 let sleep_for = match time_left(deadline) {
@@ -123,10 +179,10 @@ fn oidc_http_status(msg: &str) -> Option<u16> {
     msg.strip_prefix(PREFIX)?.parse().ok()
 }
 
-async fn fetch_client_credentials_token_once(
+async fn fetch_client_credentials_token_response_once(
     cfg: &OidcConfig,
     deadline: Instant,
-) -> Result<String> {
+) -> Result<OidcTokenResponse> {
     let url = parse_http_url(&cfg.token_url)?;
     let addr = connect_addr(&url.host, url.port);
     let left = time_left(deadline)?;
@@ -165,7 +221,6 @@ async fn fetch_client_credentials_token_once(
     } else {
         token_http_roundtrip(&mut stream, req.as_bytes(), deadline).await?
     };
-    let text = String::from_utf8_lossy(&body);
     if status != 200 {
         // Do not embed IdP response bodies in Error — they can echo client_secret,
         // tokens, or other credential-adjacent material (KL-06 error hygiene).
@@ -173,7 +228,9 @@ async fn fetch_client_credentials_token_once(
             "oidc token endpoint HTTP {status}"
         )));
     }
-    access_token_from_json(&text)
+    let text =
+        std::str::from_utf8(&body).map_err(|_| Error::protocol("oidc token response not utf8"))?;
+    parse_oidc_token_response(text)
 }
 
 fn time_left(deadline: Instant) -> Result<Duration> {
@@ -308,6 +365,7 @@ fn parse_status(head: &[u8]) -> Result<u16> {
 
 fn parse_content_length(head: &[u8]) -> Result<Option<usize>> {
     let text = std::str::from_utf8(head).map_err(|_| Error::protocol("oidc headers not utf8"))?;
+    let mut cl = None;
     for line in text.split("\r\n") {
         let Some((k, v)) = line.split_once(':') else {
             continue;
@@ -317,10 +375,93 @@ fn parse_content_length(head: &[u8]) -> Result<Option<usize>> {
                 .trim()
                 .parse::<usize>()
                 .map_err(|_| Error::protocol("oidc content-length"))?;
-            return Ok(Some(n));
+            if let Some(prev) = cl {
+                if prev != n {
+                    return Err(Error::protocol("oidc conflicting content-length"));
+                }
+            } else {
+                cl = Some(n);
+            }
         }
     }
-    Ok(None)
+    Ok(cl)
+}
+
+fn is_chunked_transfer_encoding(head: &[u8]) -> Result<bool> {
+    let text = std::str::from_utf8(head).map_err(|_| Error::protocol("oidc headers not utf8"))?;
+    for line in text.split("\r\n") {
+        let Some((k, v)) = line.split_once(':') else {
+            continue;
+        };
+        if k.eq_ignore_ascii_case("transfer-encoding") {
+            for part in v.split(',') {
+                if part.trim().eq_ignore_ascii_case("chunked") {
+                    return Ok(true);
+                }
+            }
+            return Err(Error::protocol("oidc unsupported transfer-encoding"));
+        }
+    }
+    Ok(false)
+}
+
+fn try_decode_chunked_body(raw: &[u8]) -> Result<Option<Vec<u8>>> {
+    let mut cursor = 0usize;
+    let mut decoded = Vec::new();
+    loop {
+        let remaining = raw.get(cursor..).unwrap_or(&[]);
+        let Some(pos) = remaining.windows(2).position(|w| w == b"\r\n") else {
+            return Ok(None);
+        };
+        let line_bytes = remaining.get(..pos).unwrap_or(&[]);
+        let line_str = std::str::from_utf8(line_bytes)
+            .map_err(|_| Error::protocol("oidc malformed chunked body"))?;
+        let size_str = match line_str.split_once(';') {
+            Some((s, _)) => s.trim(),
+            None => line_str.trim(),
+        };
+        if size_str.is_empty() || !size_str.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(Error::protocol("oidc malformed chunked body"));
+        }
+        let chunk_size = usize::from_str_radix(size_str, 16)
+            .map_err(|_| Error::protocol("oidc malformed chunked body"))?;
+
+        cursor = cursor.saturating_add(pos).saturating_add(2);
+
+        if chunk_size == 0 {
+            let trailer_bytes = raw.get(cursor..).unwrap_or(&[]);
+            if trailer_bytes.starts_with(b"\r\n") {
+                return Ok(Some(decoded));
+            }
+            if let Some(_trailer_end) = trailer_bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+                return Ok(Some(decoded));
+            }
+            return Ok(None);
+        }
+
+        if chunk_size > MAX_RESPONSE || decoded.len().saturating_add(chunk_size) > MAX_RESPONSE {
+            return Err(Error::protocol("oidc token response too large"));
+        }
+
+        let chunk_end = cursor.saturating_add(chunk_size);
+        let crlf_end = chunk_end.saturating_add(2);
+        if raw.len() < crlf_end {
+            return Ok(None);
+        }
+
+        let chunk_data = raw
+            .get(cursor..chunk_end)
+            .ok_or_else(|| Error::protocol("oidc token read"))?;
+        let chunk_crlf = raw
+            .get(chunk_end..crlf_end)
+            .ok_or_else(|| Error::protocol("oidc token read"))?;
+        if chunk_crlf != b"\r\n" {
+            return Err(Error::protocol("oidc malformed chunked body"));
+        }
+
+        decoded.extend_from_slice(chunk_data);
+        cursor = crlf_end;
+    }
 }
 
 async fn token_http_roundtrip<S: AsyncReadExt + AsyncWriteExt + Unpin>(
@@ -342,16 +483,92 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
     deadline: Instant,
 ) -> Result<(u16, Vec<u8>)> {
     let mut buf = Vec::new();
-    loop {
+    let end = loop {
+        if let Some(end) = find_header_end(&buf) {
+            break end;
+        }
         if buf.len() > MAX_RESPONSE {
             return Err(Error::protocol("oidc token response too large"));
         }
-        if let Some(end) = find_header_end(&buf) {
-            if let Some(n) = parse_content_length(buf.get(..end).unwrap_or(&[]))? {
-                if buf.len().saturating_sub(end) >= n {
-                    break;
-                }
+        let left = time_left(deadline)?;
+        let mut tmp = [0u8; 2048];
+        let n = match timeout(left, stream.read(&mut tmp)).await {
+            Ok(Ok(0)) => return Err(Error::protocol("oidc truncated headers")),
+            Ok(Ok(n)) => n,
+            Ok(Err(e)) => return Err(e.into()),
+            Err(_) => return Err(Error::Timeout),
+        };
+        let chunk = tmp
+            .get(..n)
+            .ok_or_else(|| Error::protocol("oidc token read"))?;
+        buf.extend_from_slice(chunk);
+    };
+
+    let head = buf
+        .get(..end)
+        .ok_or_else(|| Error::protocol("oidc truncated headers"))?;
+    let status = parse_status(head)?;
+
+    if is_chunked_transfer_encoding(head)? {
+        loop {
+            if buf.len() > MAX_RESPONSE {
+                return Err(Error::protocol("oidc token response too large"));
             }
+            let raw_chunked = buf.get(end..).unwrap_or(&[]);
+            if let Some(body) = try_decode_chunked_body(raw_chunked)? {
+                if body.len() > MAX_RESPONSE {
+                    return Err(Error::protocol("oidc token response too large"));
+                }
+                return Ok((status, body));
+            }
+            let left = time_left(deadline)?;
+            let mut tmp = [0u8; 2048];
+            let n = match timeout(left, stream.read(&mut tmp)).await {
+                Ok(Ok(0)) => return Err(Error::protocol("oidc truncated chunked body")),
+                Ok(Ok(n)) => n,
+                Ok(Err(e)) => return Err(e.into()),
+                Err(_) => return Err(Error::Timeout),
+            };
+            let chunk = tmp
+                .get(..n)
+                .ok_or_else(|| Error::protocol("oidc token read"))?;
+            buf.extend_from_slice(chunk);
+        }
+    }
+
+    if let Some(content_len) = parse_content_length(head)? {
+        if content_len > MAX_RESPONSE {
+            return Err(Error::protocol("oidc token response too large"));
+        }
+        while buf.len().saturating_sub(end) < content_len {
+            if buf.len() > MAX_RESPONSE {
+                return Err(Error::protocol("oidc token response too large"));
+            }
+            let left = time_left(deadline)?;
+            let mut tmp = [0u8; 2048];
+            let n = match timeout(left, stream.read(&mut tmp)).await {
+                Ok(Ok(0)) => return Err(Error::protocol("oidc truncated response body")),
+                Ok(Ok(n)) => n,
+                Ok(Err(e)) => return Err(e.into()),
+                Err(_) => return Err(Error::Timeout),
+            };
+            let chunk = tmp
+                .get(..n)
+                .ok_or_else(|| Error::protocol("oidc token read"))?;
+            buf.extend_from_slice(chunk);
+        }
+        let body_end = end.saturating_add(content_len);
+        let body = buf
+            .get(end..body_end)
+            .ok_or_else(|| Error::protocol("oidc truncated response body"))?
+            .to_vec();
+        return Ok((status, body));
+    }
+
+    // Neither chunked nor Content-Length: read until EOF (e.g. Connection: close)
+    loop {
+        if buf.len() > MAX_RESPONSE {
+            return Err(Error::protocol("oidc token response too large"));
         }
         let left = time_left(deadline)?;
         let mut tmp = [0u8; 2048];
@@ -366,40 +583,440 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
             .ok_or_else(|| Error::protocol("oidc token read"))?;
         buf.extend_from_slice(chunk);
     }
-    let end =
-        find_header_end(&buf).ok_or_else(|| Error::protocol("oidc token response headers"))?;
-    let head = buf
-        .get(..end)
-        .ok_or_else(|| Error::protocol("oidc truncated headers"))?;
-    let status = parse_status(head)?;
-    let body = match parse_content_length(head)? {
-        Some(n) => buf.get(end..end.saturating_add(n)).unwrap_or(&[]).to_vec(),
-        None => buf.get(end..).unwrap_or(&[]).to_vec(),
-    };
+    if buf.len() > MAX_RESPONSE {
+        return Err(Error::protocol("oidc token response too large"));
+    }
+    let body = buf.get(end..).unwrap_or(&[]).to_vec();
     Ok((status, body))
 }
 
-pub(crate) fn access_token_from_json(json: &str) -> Result<String> {
-    let rest = json
-        .split_once("\"access_token\"")
-        .map(|(_, r)| r)
-        .ok_or_else(|| Error::protocol("oidc response missing access_token"))?;
-    let rest = rest.trim_start();
-    let rest = rest
-        .strip_prefix(':')
-        .ok_or_else(|| Error::protocol("oidc access_token"))?;
-    let rest = rest.trim_start();
-    let rest = rest
-        .strip_prefix('"')
-        .ok_or_else(|| Error::protocol("oidc access_token not a string"))?;
-    let val = rest
-        .split('"')
-        .next()
-        .ok_or_else(|| Error::protocol("oidc truncated access_token"))?;
-    if val.is_empty() {
-        return Err(Error::protocol("oidc empty access_token"));
+/// Parse an OIDC token endpoint JSON response into [`OidcTokenResponse`].
+///
+/// Validates required fields (`access_token`, `token_type`), parses optional `expires_in`,
+/// handles JSON escape sequences, and enforces size bounds without exposing response bodies
+/// in errors.
+pub fn parse_oidc_token_response(json: &str) -> Result<OidcTokenResponse> {
+    if json.len() > MAX_RESPONSE {
+        return Err(Error::protocol("oidc token response too large"));
     }
-    Ok(val.to_string())
+    let mut parser = JsonParser::new(json);
+    let val = parser.parse()?;
+    let entries = match val {
+        JsonValue::Object(entries) => entries,
+        _ => return Err(Error::protocol("oidc response not a json object")),
+    };
+
+    let mut access_token = None;
+    let mut token_type = None;
+    let mut expires_in = None;
+    let mut seen_keys = std::collections::HashSet::new();
+
+    for (key, val) in entries {
+        if !seen_keys.insert(key.clone()) {
+            return Err(Error::protocol("oidc duplicate json key"));
+        }
+        match key.as_str() {
+            "access_token" => match val {
+                JsonValue::String(s) => {
+                    if s.is_empty() {
+                        return Err(Error::protocol("oidc empty access_token"));
+                    }
+                    access_token = Some(s);
+                }
+                _ => return Err(Error::protocol("oidc access_token not a string")),
+            },
+            "token_type" => match val {
+                JsonValue::String(s) => {
+                    if s.is_empty() {
+                        return Err(Error::protocol("oidc empty token_type"));
+                    }
+                    if !s.eq_ignore_ascii_case("Bearer") {
+                        return Err(Error::protocol("oidc unsupported token_type"));
+                    }
+                    token_type = Some(s);
+                }
+                _ => return Err(Error::protocol("oidc token_type not a string")),
+            },
+            "expires_in" => match val {
+                JsonValue::Number(n) => {
+                    let secs = n
+                        .as_u64
+                        .ok_or_else(|| Error::protocol("oidc invalid expires_in"))?;
+                    expires_in = Some(secs);
+                }
+                _ => return Err(Error::protocol("oidc invalid expires_in")),
+            },
+            _ => {
+                // Ignore unrecognized extension fields
+            }
+        }
+    }
+
+    let access_token =
+        access_token.ok_or_else(|| Error::protocol("oidc response missing access_token"))?;
+    let token_type =
+        token_type.ok_or_else(|| Error::protocol("oidc response missing token_type"))?;
+
+    Ok(OidcTokenResponse {
+        access_token,
+        token_type,
+        expires_in,
+    })
+}
+
+/// Extract access token string from JSON response.
+///
+/// Preserves the public helper interface.
+pub fn access_token_from_json(json: &str) -> Result<String> {
+    parse_oidc_token_response(json).map(|resp| resp.access_token)
+}
+
+#[derive(Debug, PartialEq)]
+enum JsonValue {
+    Null,
+    Bool(bool),
+    Number(JsonNumber),
+    String(String),
+    Array(Vec<JsonValue>),
+    Object(Vec<(String, JsonValue)>),
+}
+
+#[derive(Debug, PartialEq)]
+struct JsonNumber {
+    as_u64: Option<u64>,
+}
+
+struct JsonParser<'a> {
+    chars: std::iter::Peekable<std::str::Chars<'a>>,
+    depth: usize,
+}
+
+impl<'a> JsonParser<'a> {
+    fn new(input: &'a str) -> Self {
+        Self {
+            chars: input.chars().peekable(),
+            depth: 0,
+        }
+    }
+
+    fn parse(&mut self) -> Result<JsonValue> {
+        self.skip_whitespace();
+        let val = self.parse_value()?;
+        self.skip_whitespace();
+        if self.chars.next().is_some() {
+            return Err(Error::protocol("oidc malformed json"));
+        }
+        Ok(val)
+    }
+
+    fn skip_whitespace(&mut self) {
+        while let Some(&c) = self.chars.peek() {
+            if c == ' ' || c == '\t' || c == '\r' || c == '\n' {
+                let _ = self.chars.next();
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn parse_value(&mut self) -> Result<JsonValue> {
+        self.skip_whitespace();
+        let val = match self.chars.peek().copied() {
+            Some('{') => self.parse_object()?,
+            Some('[') => self.parse_array()?,
+            Some('"') => JsonValue::String(self.parse_string()?),
+            Some('t' | 'f') => JsonValue::Bool(self.parse_bool()?),
+            Some('n') => {
+                self.parse_null()?;
+                JsonValue::Null
+            }
+            Some('-' | '0'..='9') => JsonValue::Number(self.parse_number()?),
+            _ => return Err(Error::protocol("oidc malformed json")),
+        };
+        Ok(val)
+    }
+
+    fn parse_object(&mut self) -> Result<JsonValue> {
+        if self.depth > 32 {
+            return Err(Error::protocol("oidc json depth limit"));
+        }
+        self.depth += 1;
+        let _ = self.chars.next();
+        let mut entries = Vec::new();
+        self.skip_whitespace();
+        if let Some('}') = self.chars.peek().copied() {
+            let _ = self.chars.next();
+            self.depth -= 1;
+            return Ok(JsonValue::Object(entries));
+        }
+        loop {
+            self.skip_whitespace();
+            let key = self.parse_string()?;
+            self.skip_whitespace();
+            match self.chars.next() {
+                Some(':') => {}
+                _ => return Err(Error::protocol("oidc malformed json")),
+            }
+            let val = self.parse_value()?;
+            entries.push((key, val));
+            self.skip_whitespace();
+            match self.chars.peek().copied() {
+                Some(',') => {
+                    let _ = self.chars.next();
+                    self.skip_whitespace();
+                    if let Some('}') = self.chars.peek().copied() {
+                        return Err(Error::protocol("oidc malformed json"));
+                    }
+                }
+                Some('}') => {
+                    let _ = self.chars.next();
+                    break;
+                }
+                _ => return Err(Error::protocol("oidc malformed json")),
+            }
+        }
+        self.depth -= 1;
+        Ok(JsonValue::Object(entries))
+    }
+
+    fn parse_array(&mut self) -> Result<JsonValue> {
+        if self.depth > 32 {
+            return Err(Error::protocol("oidc json depth limit"));
+        }
+        self.depth += 1;
+        let _ = self.chars.next();
+        let mut items = Vec::new();
+        self.skip_whitespace();
+        if let Some(']') = self.chars.peek().copied() {
+            let _ = self.chars.next();
+            self.depth -= 1;
+            return Ok(JsonValue::Array(items));
+        }
+        loop {
+            let val = self.parse_value()?;
+            items.push(val);
+            self.skip_whitespace();
+            match self.chars.peek().copied() {
+                Some(',') => {
+                    let _ = self.chars.next();
+                    self.skip_whitespace();
+                    if let Some(']') = self.chars.peek().copied() {
+                        return Err(Error::protocol("oidc malformed json"));
+                    }
+                }
+                Some(']') => {
+                    let _ = self.chars.next();
+                    break;
+                }
+                _ => return Err(Error::protocol("oidc malformed json")),
+            }
+        }
+        self.depth -= 1;
+        Ok(JsonValue::Array(items))
+    }
+
+    fn parse_string(&mut self) -> Result<String> {
+        match self.chars.next() {
+            Some('"') => {}
+            _ => return Err(Error::protocol("oidc malformed json")),
+        }
+        let mut out = String::new();
+        loop {
+            if out.len() > MAX_RESPONSE {
+                return Err(Error::protocol("oidc token response too large"));
+            }
+            let c = self
+                .chars
+                .next()
+                .ok_or_else(|| Error::protocol("oidc malformed json"))?;
+            match c {
+                '"' => return Ok(out),
+                '\\' => {
+                    let esc = self
+                        .chars
+                        .next()
+                        .ok_or_else(|| Error::protocol("oidc malformed json"))?;
+                    match esc {
+                        '"' => out.push('"'),
+                        '\\' => out.push('\\'),
+                        '/' => out.push('/'),
+                        'b' => out.push('\x08'),
+                        'f' => out.push('\x0c'),
+                        'n' => out.push('\n'),
+                        'r' => out.push('\r'),
+                        't' => out.push('\t'),
+                        'u' => {
+                            let cp = self.parse_hex_4()?;
+                            if (0xd800..=0xdbff).contains(&cp) {
+                                match self.chars.next() {
+                                    Some('\\') => {}
+                                    _ => return Err(Error::protocol("oidc malformed json")),
+                                }
+                                match self.chars.next() {
+                                    Some('u') => {}
+                                    _ => return Err(Error::protocol("oidc malformed json")),
+                                }
+                                let low = self.parse_hex_4()?;
+                                if !(0xdc00..=0xdfff).contains(&low) {
+                                    return Err(Error::protocol("oidc malformed json"));
+                                }
+                                let scalar = 0x10000 + ((cp - 0xd800) << 10) + (low - 0xdc00);
+                                let ch = char::from_u32(scalar)
+                                    .ok_or_else(|| Error::protocol("oidc malformed json"))?;
+                                out.push(ch);
+                            } else if (0xdc00..=0xdfff).contains(&cp) {
+                                return Err(Error::protocol("oidc malformed json"));
+                            } else {
+                                let ch = char::from_u32(cp)
+                                    .ok_or_else(|| Error::protocol("oidc malformed json"))?;
+                                out.push(ch);
+                            }
+                        }
+                        _ => return Err(Error::protocol("oidc malformed json")),
+                    }
+                }
+                c if u32::from(c) < 0x20 => {
+                    return Err(Error::protocol("oidc malformed json"));
+                }
+                other => {
+                    out.push(other);
+                }
+            }
+        }
+    }
+
+    fn parse_hex_4(&mut self) -> Result<u32> {
+        let mut val = 0u32;
+        for _ in 0..4 {
+            let c = self
+                .chars
+                .next()
+                .ok_or_else(|| Error::protocol("oidc malformed json"))?;
+            let digit = c
+                .to_digit(16)
+                .ok_or_else(|| Error::protocol("oidc malformed json"))?;
+            val = (val << 4) | digit;
+        }
+        Ok(val)
+    }
+
+    fn parse_bool(&mut self) -> Result<bool> {
+        if self.consume_literal("true") {
+            Ok(true)
+        } else if self.consume_literal("false") {
+            Ok(false)
+        } else {
+            Err(Error::protocol("oidc malformed json"))
+        }
+    }
+
+    fn parse_null(&mut self) -> Result<()> {
+        if self.consume_literal("null") {
+            Ok(())
+        } else {
+            Err(Error::protocol("oidc malformed json"))
+        }
+    }
+
+    fn consume_literal(&mut self, expected: &str) -> bool {
+        let mut matched = 0;
+        for exp_ch in expected.chars() {
+            if let Some(&c) = self.chars.peek() {
+                if c == exp_ch {
+                    let _ = self.chars.next();
+                    matched += 1;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        matched == expected.chars().count()
+    }
+
+    fn parse_number(&mut self) -> Result<JsonNumber> {
+        let mut digits = String::new();
+        let mut is_negative = false;
+        let mut has_fraction_or_exp = false;
+
+        if let Some(&'-') = self.chars.peek() {
+            is_negative = true;
+            let _ = self.chars.next();
+        }
+
+        match self.chars.peek().copied() {
+            Some('0') => {
+                digits.push('0');
+                let _ = self.chars.next();
+                if let Some(&c) = self.chars.peek() {
+                    if c.is_ascii_digit() {
+                        return Err(Error::protocol("oidc malformed json"));
+                    }
+                }
+            }
+            Some('1'..='9') => {
+                while let Some(&c) = self.chars.peek() {
+                    if c.is_ascii_digit() {
+                        digits.push(c);
+                        let _ = self.chars.next();
+                    } else {
+                        break;
+                    }
+                }
+            }
+            _ => return Err(Error::protocol("oidc malformed json")),
+        }
+
+        if let Some(&'.') = self.chars.peek() {
+            has_fraction_or_exp = true;
+            let _ = self.chars.next();
+            let mut frac_digits = 0;
+            while let Some(&c) = self.chars.peek() {
+                if c.is_ascii_digit() {
+                    let _ = self.chars.next();
+                    frac_digits += 1;
+                } else {
+                    break;
+                }
+            }
+            if frac_digits == 0 {
+                return Err(Error::protocol("oidc malformed json"));
+            }
+        }
+
+        if let Some(&c) = self.chars.peek() {
+            if c == 'e' || c == 'E' {
+                has_fraction_or_exp = true;
+                let _ = self.chars.next();
+                if let Some(&sign) = self.chars.peek() {
+                    if sign == '+' || sign == '-' {
+                        let _ = self.chars.next();
+                    }
+                }
+                let mut exp_digits = 0;
+                while let Some(&d) = self.chars.peek() {
+                    if d.is_ascii_digit() {
+                        let _ = self.chars.next();
+                        exp_digits += 1;
+                    } else {
+                        break;
+                    }
+                }
+                if exp_digits == 0 {
+                    return Err(Error::protocol("oidc malformed json"));
+                }
+            }
+        }
+
+        let as_u64 = if !is_negative && !has_fraction_or_exp {
+            digits.parse::<u64>().ok()
+        } else {
+            None
+        };
+
+        Ok(JsonNumber { as_u64 })
+    }
 }
 
 #[cfg(test)]
@@ -629,5 +1246,440 @@ mod tests {
             Error::Timeout => {}
             other => panic!("expected Timeout on IdP hang, got {other}"),
         }
+    }
+
+    #[test]
+    fn parse_token_response_success_all_fields() {
+        let json = "{\"access_token\":\"tok-123\",\"token_type\":\"Bearer\",\"expires_in\":3600}";
+        let resp = parse_oidc_token_response(json).unwrap();
+        assert_eq!(resp.access_token, "tok-123");
+        assert_eq!(resp.token_type, "Bearer");
+        assert_eq!(resp.expires_in, Some(3600));
+    }
+
+    #[test]
+    fn parse_token_response_escaped_json() {
+        let json = "{\"access_token\":\"tok\\\"escaped\\\\slashes\\/newlines\\n\\r\\ttabs\\b\\f\\u0041\\uD83D\\uDE00\",\"token_type\":\"bearer\",\"expires_in\":0}";
+        let resp = parse_oidc_token_response(json).unwrap();
+        assert_eq!(
+            resp.access_token,
+            "tok\"escaped\\slashes/newlines\n\r\ttabs\x08\x0cA\u{1F600}"
+        );
+        assert_eq!(resp.token_type, "bearer");
+        assert_eq!(resp.expires_in, Some(0));
+    }
+
+    #[test]
+    fn parse_token_response_missing_expires_in() {
+        let json = "{\"access_token\":\"tok-no-exp\",\"token_type\":\"Bearer\"}";
+        let resp = parse_oidc_token_response(json).unwrap();
+        assert_eq!(resp.access_token, "tok-no-exp");
+        assert_eq!(resp.token_type, "Bearer");
+        assert_eq!(resp.expires_in, None);
+    }
+
+    #[test]
+    fn parse_token_response_bearer_case_insensitive() {
+        for tt in ["Bearer", "bearer", "BEARER", "BeArEr"] {
+            let json = format!("{{\"access_token\":\"tok\",\"token_type\":\"{tt}\"}}");
+            let resp = parse_oidc_token_response(&json).unwrap();
+            assert_eq!(resp.token_type, tt);
+        }
+    }
+
+    #[test]
+    fn parse_token_response_ignores_extra_fields() {
+        let json = "{\
+            \"access_token\":\"tok-extra\",\
+            \"token_type\":\"Bearer\",\
+            \"scope\":\"read write\",\
+            \"refresh_token\":\"ref-123\",\
+            \"active\":true,\
+            \"nested\":{\"k\":[1,2,null]}\
+        }";
+        let resp = parse_oidc_token_response(json).unwrap();
+        assert_eq!(resp.access_token, "tok-extra");
+        assert_eq!(resp.token_type, "Bearer");
+    }
+
+    #[test]
+    fn parse_token_response_missing_required_fields() {
+        let no_token = "{\"token_type\":\"Bearer\",\"expires_in\":3600}";
+        match parse_oidc_token_response(no_token).unwrap_err() {
+            Error::Protocol(m) => assert_eq!(m, "oidc response missing access_token"),
+            other => panic!("expected missing access_token, got {other:?}"),
+        }
+
+        let no_type = "{\"access_token\":\"tok\",\"expires_in\":3600}";
+        match parse_oidc_token_response(no_type).unwrap_err() {
+            Error::Protocol(m) => assert_eq!(m, "oidc response missing token_type"),
+            other => panic!("expected missing token_type, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parse_token_response_empty_fields_fail() {
+        let empty_token = "{\"access_token\":\"\",\"token_type\":\"Bearer\"}";
+        match parse_oidc_token_response(empty_token).unwrap_err() {
+            Error::Protocol(m) => assert_eq!(m, "oidc empty access_token"),
+            other => panic!("expected empty access_token error, got {other:?}"),
+        }
+
+        let empty_type = "{\"access_token\":\"tok\",\"token_type\":\"\"}";
+        match parse_oidc_token_response(empty_type).unwrap_err() {
+            Error::Protocol(m) => assert_eq!(m, "oidc empty token_type"),
+            other => panic!("expected empty token_type error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parse_token_response_wrong_type_fields() {
+        let cases = [
+            (
+                "{\"access_token\":123,\"token_type\":\"Bearer\"}",
+                "oidc access_token not a string",
+            ),
+            (
+                "{\"access_token\":true,\"token_type\":\"Bearer\"}",
+                "oidc access_token not a string",
+            ),
+            (
+                "{\"access_token\":null,\"token_type\":\"Bearer\"}",
+                "oidc access_token not a string",
+            ),
+            (
+                "{\"access_token\":[],\"token_type\":\"Bearer\"}",
+                "oidc access_token not a string",
+            ),
+            (
+                "{\"access_token\":{},\"token_type\":\"Bearer\"}",
+                "oidc access_token not a string",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":123}",
+                "oidc token_type not a string",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":false}",
+                "oidc token_type not a string",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":[\"Bearer\"]}",
+                "oidc token_type not a string",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":\"mac\"}",
+                "oidc unsupported token_type",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":\"dpop\"}",
+                "oidc unsupported token_type",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":\"Bearer\",\"expires_in\":\"3600\"}",
+                "oidc invalid expires_in",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":\"Bearer\",\"expires_in\":true}",
+                "oidc invalid expires_in",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":\"Bearer\",\"expires_in\":null}",
+                "oidc invalid expires_in",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":\"Bearer\",\"expires_in\":-10}",
+                "oidc invalid expires_in",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":\"Bearer\",\"expires_in\":3600.5}",
+                "oidc invalid expires_in",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":\"Bearer\",\"expires_in\":1e3}",
+                "oidc invalid expires_in",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":\"Bearer\",\"expires_in\":[3600]}",
+                "oidc invalid expires_in",
+            ),
+            (
+                "{\"access_token\":\"tok\",\"token_type\":\"Bearer\",\"expires_in\":{}}",
+                "oidc invalid expires_in",
+            ),
+        ];
+        for (json, expected_err) in cases {
+            match parse_oidc_token_response(json).unwrap_err() {
+                Error::Protocol(m) => assert_eq!(m, expected_err, "failed for {json}"),
+                other => panic!("expected {expected_err}, got {other:?} for {json}"),
+            }
+        }
+    }
+
+    #[test]
+    fn parse_token_response_malformed_and_truncated() {
+        let cases = [
+            "",
+            "   ",
+            "{",
+            "{\"access_token\":",
+            "{\"access_token\":\"tok\"",
+            "{\"access_token\":\"tok\",",
+            "{\"access_token\":\"tok\",\"token_type\":\"Bearer\",}",
+            "{\"access_token\":\"tok\",\"token_type\":\"Bearer\"} extra",
+            "{\"access_token\":\"tok\\u12\",\"token_type\":\"Bearer\"}",
+            "{\"access_token\":\"tok\\uD800\",\"token_type\":\"Bearer\"}",
+            "{\"access_token\":\"tok\\uD800\\u0041\",\"token_type\":\"Bearer\"}",
+            "{\"access_token\":\"tok\\uDC00\",\"token_type\":\"Bearer\"}",
+            "{\"access_token\":\"tok\nunescaped\",\"token_type\":\"Bearer\"}",
+            "{\"access_token\":0123,\"token_type\":\"Bearer\"}",
+            "{\"access_token\":\"tok\",\"expires_in\":1.}",
+            "{\"access_token\":\"tok\",\"expires_in\":1e}",
+        ];
+        for json in cases {
+            assert!(
+                parse_oidc_token_response(json).is_err(),
+                "malformed JSON should be rejected: {json}"
+            );
+        }
+
+        let non_objects = [
+            "[\"access_token\",\"tok\"]",
+            "\"string-only\"",
+            "12345",
+            "true",
+            "null",
+        ];
+        for json in non_objects {
+            match parse_oidc_token_response(json).unwrap_err() {
+                Error::Protocol(m) => assert_eq!(m, "oidc response not a json object"),
+                other => panic!("expected not a json object, got {other:?} for {json}"),
+            }
+        }
+    }
+
+    #[test]
+    fn parse_token_response_duplicate_keys() {
+        let cases = [
+            "{\"access_token\":\"tok1\",\"access_token\":\"tok2\",\"token_type\":\"Bearer\"}",
+            "{\"access_token\":\"tok\",\"token_type\":\"Bearer\",\"token_type\":\"Bearer\"}",
+            "{\"access_token\":\"tok\",\"token_type\":\"Bearer\",\"expires_in\":3600,\"expires_in\":7200}",
+        ];
+        for json in cases {
+            match parse_oidc_token_response(json).unwrap_err() {
+                Error::Protocol(m) => assert_eq!(m, "oidc duplicate json key"),
+                other => panic!("expected duplicate key error, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn parse_token_response_size_limits() {
+        let oversized = format!(
+            "{{\"access_token\":\"{}\",\"token_type\":\"Bearer\"}}",
+            "a".repeat(MAX_RESPONSE + 1)
+        );
+        match parse_oidc_token_response(&oversized).unwrap_err() {
+            Error::Protocol(m) => assert_eq!(m, "oidc token response too large"),
+            other => panic!("expected token response too large, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn read_http_response_chunked_decoding() {
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        let resp = b"HTTP/1.1 200 OK\r\n\
+                     Transfer-Encoding: chunked\r\n\
+                     Content-Type: application/json\r\n\
+                     Connection: close\r\n\
+                     \r\n\
+                     4\r\n\
+                     Wiki\r\n\
+                     5\r\n\
+                     pedia\r\n\
+                     0\r\n\
+                     \r\n";
+        server.write_all(resp).await.unwrap();
+        drop(server);
+
+        let (status, body) =
+            read_http_response(&mut client, Instant::now() + Duration::from_secs(5))
+                .await
+                .unwrap();
+        assert_eq!(status, 200);
+        assert_eq!(body, b"Wikipedia");
+    }
+
+    #[tokio::test]
+    async fn read_http_response_chunked_with_extensions_and_trailers() {
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        let resp = b"HTTP/1.1 200 OK\r\n\
+                     Transfer-Encoding: chunked\r\n\
+                     Connection: close\r\n\
+                     \r\n\
+                     4;ext=foo;bar=baz\r\n\
+                     Wiki\r\n\
+                     5\r\n\
+                     pedia\r\n\
+                     0\r\n\
+                     Expires: never\r\n\
+                     X-Checksum: 1234\r\n\
+                     \r\n";
+        server.write_all(resp).await.unwrap();
+        drop(server);
+
+        let (status, body) =
+            read_http_response(&mut client, Instant::now() + Duration::from_secs(5))
+                .await
+                .unwrap();
+        assert_eq!(status, 200);
+        assert_eq!(body, b"Wikipedia");
+    }
+
+    #[tokio::test]
+    async fn read_http_response_chunked_truncated_fails() {
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        let resp = b"HTTP/1.1 200 OK\r\n\
+                     Transfer-Encoding: chunked\r\n\
+                     Connection: close\r\n\
+                     \r\n\
+                     10\r\n\
+                     short";
+        server.write_all(resp).await.unwrap();
+        drop(server);
+
+        let err = read_http_response(&mut client, Instant::now() + Duration::from_secs(5))
+            .await
+            .unwrap_err();
+        match err {
+            Error::Protocol(m) => assert_eq!(m, "oidc truncated chunked body"),
+            other => panic!("expected truncated chunked body, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn read_http_response_chunked_malformed_fails() {
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        let resp = b"HTTP/1.1 200 OK\r\n\
+                     Transfer-Encoding: chunked\r\n\
+                     Connection: close\r\n\
+                     \r\n\
+                     ZZ\r\n\
+                     data\r\n\
+                     0\r\n\
+                     \r\n";
+        server.write_all(resp).await.unwrap();
+        drop(server);
+
+        let err = read_http_response(&mut client, Instant::now() + Duration::from_secs(5))
+            .await
+            .unwrap_err();
+        match err {
+            Error::Protocol(m) => assert_eq!(m, "oidc malformed chunked body"),
+            other => panic!("expected malformed chunked body, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn read_http_response_truncated_content_length() {
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        let resp = b"HTTP/1.1 200 OK\r\n\
+                     Content-Length: 100\r\n\
+                     Connection: close\r\n\
+                     \r\n\
+                     partially-sent-body";
+        server.write_all(resp).await.unwrap();
+        drop(server);
+
+        let err = read_http_response(&mut client, Instant::now() + Duration::from_secs(5))
+            .await
+            .unwrap_err();
+        match err {
+            Error::Protocol(m) => assert_eq!(m, "oidc truncated response body"),
+            other => panic!("expected truncated response body, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn read_http_response_oversized_content_length() {
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        let resp = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            MAX_RESPONSE + 100
+        );
+        server.write_all(resp.as_bytes()).await.unwrap();
+        drop(server);
+
+        let err = read_http_response(&mut client, Instant::now() + Duration::from_secs(5))
+            .await
+            .unwrap_err();
+        match err {
+            Error::Protocol(m) => assert_eq!(m, "oidc token response too large"),
+            other => panic!("expected token response too large, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn read_http_response_truncated_headers() {
+        let (mut client, mut server) = tokio::io::duplex(4096);
+        server
+            .write_all(b"HTTP/1.1 200 OK\r\nIncomplete-Header: 1")
+            .await
+            .unwrap();
+        drop(server);
+
+        let err = read_http_response(&mut client, Instant::now() + Duration::from_secs(5))
+            .await
+            .unwrap_err();
+        match err {
+            Error::Protocol(m) => assert_eq!(m, "oidc truncated headers"),
+            other => panic!("expected truncated headers, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_token_response_chunked_end_to_end() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        drop(tokio::spawn(async move {
+            loop {
+                let Ok((mut sock, _)) = listener.accept().await else {
+                    break;
+                };
+                let mut buf = vec![0u8; 1024];
+                let _n = sock.read(&mut buf).await.unwrap();
+                let c1 = "{\"access_token\":\"chunked-tok-1\",";
+                let c2 = "\"token_type\":\"Bearer\",\"expires_in\":1800}";
+                let resp = format!(
+                    "HTTP/1.1 200 OK\r\n\
+                     Transfer-Encoding: chunked\r\n\
+                     Content-Type: application/json\r\n\
+                     Connection: close\r\n\
+                     \r\n\
+                     {:x}\r\n{}\r\n\
+                     {:x}\r\n{}\r\n\
+                     0\r\n\r\n",
+                    c1.len(),
+                    c1,
+                    c2.len(),
+                    c2
+                );
+                sock.write_all(resp.as_bytes()).await.unwrap();
+            }
+        }));
+
+        let cfg = OidcConfig::new(format!("http://{addr}/token"), "cid", "csecret");
+        let resp = fetch_client_credentials_token_response(&cfg, Duration::from_secs(5))
+            .await
+            .unwrap();
+        assert_eq!(resp.access_token, "chunked-tok-1");
+        assert_eq!(resp.token_type, "Bearer");
+        assert_eq!(resp.expires_in, Some(1800));
+
+        // One-shot method also preserves public path
+        let token = fetch_client_credentials_token(&cfg, Duration::from_secs(5))
+            .await
+            .unwrap();
+        assert_eq!(token, "chunked-tok-1");
     }
 }
