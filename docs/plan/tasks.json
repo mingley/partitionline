@@ -102,13 +102,31 @@
     {
       "id": "KL01-04",
       "title": "Add independent Produce wire fixtures",
-      "priority": "P0", "kind": "conformance", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "conformance", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-03"],
       "files": ["tests/protocol_oracles.rs", "tests/fixtures/protocol_oracles/", "tests/conformance/java/"],
       "deliverable": "Independent Produce request/response cases over the advertised version boundaries.",
       "acceptance": ["Cover classic/flexible transition, null records/transaction ID, throttle placement, partition errors and current-leader tags.", "Decode Apache output in Rust and decode Rust output with Apache; compare semantics where byte ordering is legitimately variable.", "Mutating a field order or required version gate makes at least one test fail."],
       "validation": ["cargo test --locked --test protocol_oracles", "Run the pinned Java comparison for the Produce fixture family."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "3a81b68853a8859a141aedf99fa91b7edcff3ed6",
+                "commands": [
+                        "cargo test --offline --locked --test protocol_oracles (5 passed, 1 ignored live broker, exit 0)"
+                ],
+                "results": "Committed Apache Produce fixtures cover v3 classic, v5 log start, v8 errors, v9 flexible nulls, v10 current leader, and v11. Rust decodes them offline. A field-order mutation fails. The Java generator uses kafka-clients message classes. The bidirectional Java decode test ran in this environment rather than skipping.",
+                "artifacts": [
+                        "tests/fixtures/protocol_oracles/produce_v3_classic_request.bin",
+                        "tests/fixtures/protocol_oracles/produce_v9_flexible_nulls_request.bin",
+                        "tests/fixtures/protocol_oracles/produce_v10_current_leader_response.bin",
+                        "tests/protocol_oracles.rs",
+                        "docs/plan/evidence/KL01-04.json"
+                ],
+                "limits": [
+                        "Produce family only. Fetch, Metadata, and ListOffsets independent fixtures remain later cards. Existing matrix tests are still local consistency."
+                ]
+        }
+]
     },
     {
       "id": "KL01-05",
