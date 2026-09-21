@@ -55,6 +55,10 @@ public class FixtureGenerator {
     public static final String ARTIFACT_VERSION = "org.apache.kafka:kafka-clients:3.9.1";
     public static final String PIN_VERSION = "3.9.1";
 
+    public static final String UPSTREAM_4_SHA = "080a42c343d919971985102a38c82dc6da0623d5";
+    public static final String ARTIFACT_4_VERSION = "org.apache.kafka:kafka-clients:4.1.0";
+    public static final String PIN_4_VERSION = "4.1.0";
+
     public static void main(String[] args) throws Exception {
         if (args.length >= 4 && "--decode-rust".equals(args[0])) {
             decodeRust(args[1], Short.parseShort(args[2]), args[3]);
@@ -304,7 +308,8 @@ public class FixtureGenerator {
                 System.exit(1);
             }
             System.out.println("OK: req v" + version + " replicaId=" + req.replicaId()
-                + " isolation=" + req.isolationLevel() + " topics=" + req.topics().size());
+                + " isolation=" + req.isolationLevel() + " timeoutMs=" + req.timeoutMs()
+                + " topics=" + req.topics().size());
         } else if ("list-offsets-resp".equals(kind) || "list_offsets_resp".equals(kind)) {
             ListOffsetsResponseData resp = new ListOffsetsResponseData();
             resp.read(new ByteBufferAccessor(buf), version);
@@ -1747,16 +1752,19 @@ public class FixtureGenerator {
 
     private static String buildListOffsetsJsonMetadata(ListOffsetsFixture f, String reqHash, String respHash,
                                                        String reqHex, String respHex) {
+        String pin = f.version >= 10 ? PIN_4_VERSION : PIN_VERSION;
+        String upstreamSha = f.version >= 10 ? UPSTREAM_4_SHA : UPSTREAM_SHA;
+        String artifact = f.version >= 10 ? ARTIFACT_4_VERSION : ARTIFACT_VERSION;
         return "{\n" +
             "  \"schema_version\": 1,\n" +
             "  \"fixture_id\": \"" + f.id + "\",\n" +
             "  \"api\": \"ListOffsets\",\n" +
             "  \"api_key\": 2,\n" +
             "  \"api_version\": " + f.version + ",\n" +
-            "  \"pin\": \"" + PIN_VERSION + "\",\n" +
+            "  \"pin\": \"" + pin + "\",\n" +
             "  \"upstream_repo\": \"https://github.com/apache/kafka.git\",\n" +
-            "  \"upstream_sha\": \"" + UPSTREAM_SHA + "\",\n" +
-            "  \"artifact\": \"" + ARTIFACT_VERSION + "\",\n" +
+            "  \"upstream_sha\": \"" + upstreamSha + "\",\n" +
+            "  \"artifact\": \"" + artifact + "\",\n" +
             "  \"generator\": \"tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java\",\n" +
             "  \"description\": \"" + f.description + "\",\n" +
             "  \"request\": {\n" +
@@ -1995,6 +2003,29 @@ public class FixtureGenerator {
                 "list_offsets_v9_latest_tiered",
                 v,
                 "ListOffsets v9 flexible wire format at highest Apache Kafka 3.9.1 valid version boundary with LATEST_TIERED_TIMESTAMP (-5, KIP-1005)",
+                req, resp
+            ));
+        }
+
+        // 10. ListOffsets v10: flexible wire format with TimeoutMs (1500 ms, KIP-1075)
+        {
+            short v = 10;
+            ListOffsetsRequestData req = new ListOffsetsRequestData().setReplicaId(-1).setIsolationLevel((byte) 1);
+            req.setTimeoutMs(1500);
+            ListOffsetsTopic t = new ListOffsetsTopic().setName("offsets-v10-timeout");
+            t.partitions().add(new ListOffsetsPartition().setPartitionIndex(0).setCurrentLeaderEpoch(15).setTimestamp(-1L));
+            req.topics().add(t);
+
+            ListOffsetsResponseData resp = new ListOffsetsResponseData().setThrottleTimeMs(50);
+            ListOffsetsTopicResponse tr = new ListOffsetsTopicResponse().setName("offsets-v10-timeout");
+            tr.partitions().add(new ListOffsetsPartitionResponse().setPartitionIndex(0).setErrorCode((short) 0).setTimestamp(1710000000000L).setOffset(100L).setLeaderEpoch(15));
+            resp.topics().add(tr);
+
+            list.add(createListOffsetsFixture(
+                "list-offsets-v10-timeout",
+                "list_offsets_v10_timeout",
+                v,
+                "ListOffsets v10 flexible wire format with non-default timeoutMs (1500 ms, KIP-1075)",
                 req, resp
             ));
         }

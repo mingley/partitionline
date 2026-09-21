@@ -14,7 +14,8 @@
     "version": "4.1.0",
     "upstream_tag": "4.1.0",
     "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
-    "maven_coordinates": "org.apache.kafka:kafka-clients:4.1.0"
+    "maven_coordinates": "org.apache.kafka:kafka-clients:4.1.0",
+    "jar_sha256_maven_central": "eb74709dc3be35e06208827860c87a94872e8a4b00f466880670785c85a20627"
   },
   "smoke_fixture": {
     "api": "Produce",

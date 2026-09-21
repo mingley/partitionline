@@ -13,7 +13,7 @@
   "invocation": "bash scripts/generate-protocol-fixtures.sh",
   "commands": [
     "bash scripts/generate-protocol-fixtures.sh (exit 0)",
-    "bash scripts/generate-protocol-fixtures.sh --verify (exit 0, byte-for-byte verification passed across 34 fixture pairs: 7 Produce, 9 Fetch, 9 Metadata, 9 ListOffsets)",
+    "bash scripts/generate-protocol-fixtures.sh --verify (exit 0, byte-for-byte verification passed across 35 fixture pairs: 7 Produce, 9 Fetch, 9 Metadata, 10 ListOffsets)",
     "bash scripts/generate-protocol-fixtures.sh --out-dir /tmp/fixture-run-1 && bash scripts/generate-protocol-fixtures.sh --out-dir /tmp/fixture-run-2 && diff -u <(shasum -a 256 /tmp/fixture-run-1/*) <(shasum -a 256 /tmp/fixture-run-2/*) (exit 0, clean diff, deterministic)",
     "cargo test --offline --locked --test protocol_oracles (exit 0, 15 passed, 1 ignored live broker)"
   ],
@@ -49,13 +49,17 @@
       "list_offsets_v8_earliest_local.json": "11358a2ed4c51cb719da69b70fe2056f68d21638f623cef276d69f85fe36e6ab",
       "list_offsets_v9_latest_tiered_request.bin": "d39af02290360c09eba97ed0b47ccd2e1e61b405c9fb94c3fd1ab0332da35fe2",
       "list_offsets_v9_latest_tiered_response.bin": "705b5a50d2069ac1e2631b5cff8f413cd24b6370fa4132616f04bb94837d96de",
-      "list_offsets_v9_latest_tiered.json": "eaba584ef7b685f3cd15c86f397c0c34ad6a2d3c3292d468cb01b23e4e9b5547"
+      "list_offsets_v9_latest_tiered.json": "eaba584ef7b685f3cd15c86f397c0c34ad6a2d3c3292d468cb01b23e4e9b5547",
+      "list_offsets_v10_timeout_request.bin": "51d0b7057943fa1acb5bc2a764ef35d71c01aa0373f895e7ed9852acdc1c2ede",
+      "list_offsets_v10_timeout_response.bin": "bdc83f4525052c6b730f55a123e021aea007bea59558fc133bad93d5f1fcd80f",
+      "list_offsets_v10_timeout.json": "0e0a4fb3b13f59570686bc4e0ba19bf3737e3e560950fd1fdf2031459a48a408"
     },
     "cargo_test_offline_passed": true,
-    "summary": "Extended Java wire fixture generator and offline Rust test suite to cover ListOffsets advertised version boundaries: v1 classic (oldest spoken, earliest/latest/explicit timestamp variants, partition errors, omitted isolationLevel and throttleTimeMs), v2 (isolationLevel gate READ_COMMITTED, throttleTimeMs gate, and partition errors), v3 (client throttling enabled, READ_UNCOMMITTED), v4 (currentLeaderEpoch in request and leaderEpoch in response, known and unknown epoch handling), v5 (highest classic boundary with multiple topics and debugging replicaId), v6 (flexible wire format boundary with compact encoding and unknown tagged fields), v7 (MAX_TIMESTAMP -3, KIP-734), v8 (EARLIEST_LOCAL_TIMESTAMP -4, KIP-405 tiered storage), and v9 (LATEST_TIERED_TIMESTAMP -5, KIP-1005, highest 3.9.1 valid version). Version 10 TimeoutMs (KIP-1075) wire encoding/decoding and version gates verified. Unsupported timestamp/version combinations and out-of-range versions tested with explicit outcomes."
+    "summary": "Extended Java wire fixture generator and offline Rust test suite to cover ListOffsets advertised version boundaries: v1 classic (oldest spoken, earliest/latest/explicit timestamp variants, partition errors, omitted isolationLevel and throttleTimeMs), v2 (isolationLevel gate READ_COMMITTED, throttleTimeMs gate, and partition errors), v3 (client throttling enabled, READ_UNCOMMITTED), v4 (currentLeaderEpoch in request and leaderEpoch in response, known and unknown epoch handling), v5 (highest classic boundary with multiple topics and debugging replicaId), v6 (flexible wire format boundary with compact encoding and unknown tagged fields), v7 (MAX_TIMESTAMP -3, KIP-734), v8 (EARLIEST_LOCAL_TIMESTAMP -4, KIP-405 tiered storage), v9 (LATEST_TIERED_TIMESTAMP -5, KIP-1005, highest 3.9.1 valid version), and v10 (TimeoutMs 1500 ms, KIP-1075, pinned Kafka 4.1.0 client serialization). Bidirectional decode against Apache verified across all 10 versions. Unsupported timestamp/version combinations and out-of-range versions tested with explicit outcomes."
   },
   "artifacts": [
     "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+    "tests/conformance/java/pins.json",
     "scripts/generate-protocol-fixtures.sh",
     "tests/protocol_oracles.rs",
     "tests/fixtures/protocol_oracles/list_offsets_v1_classic_request.bin",
@@ -85,10 +89,11 @@
     "tests/fixtures/protocol_oracles/list_offsets_v9_latest_tiered_request.bin",
     "tests/fixtures/protocol_oracles/list_offsets_v9_latest_tiered_response.bin",
     "tests/fixtures/protocol_oracles/list_offsets_v9_latest_tiered.json",
+    "tests/fixtures/protocol_oracles/list_offsets_v10_timeout_request.bin",
+    "tests/fixtures/protocol_oracles/list_offsets_v10_timeout_response.bin",
+    "tests/fixtures/protocol_oracles/list_offsets_v10_timeout.json",
     "docs/plan/evidence/KL01-07.json"
   ],
-  "limits": [
-    "ListOffsets v10 adds TimeoutMs (Kafka 4.0+ only); classified diff against 3.9.1 pin is tracked in matrix.json and tested via Rust oracles."
-  ],
+  "limits": [],
   "blocked_reason": null
 }

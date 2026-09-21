@@ -1608,6 +1608,7 @@ fn java_conformance_classpath() -> Option<(String, String)> {
     let cache_dir = std::env::var("CONFORMANCE_CACHE_DIR")
         .unwrap_or_else(|_| "/tmp/partitionline-conformance".into());
     let kafka_jar = format!("{cache_dir}/kafka-clients-3.9.1.jar");
+    let kafka_4_jar = format!("{cache_dir}/kafka-clients-4.1.0.jar");
     let slf4j_jar = format!("{cache_dir}/slf4j-api-1.7.36.jar");
     let classes_dir = format!("{cache_dir}/classes");
 
@@ -1618,7 +1619,11 @@ fn java_conformance_classpath() -> Option<(String, String)> {
         return None;
     }
 
-    let cp = format!("{kafka_jar}:{slf4j_jar}:{classes_dir}");
+    let cp = if std::path::Path::new(&kafka_4_jar).exists() {
+        format!("{kafka_4_jar}:{kafka_jar}:{slf4j_jar}:{classes_dir}")
+    } else {
+        format!("{kafka_jar}:{slf4j_jar}:{classes_dir}")
+    };
     Some(("java".into(), cp))
 }
 
@@ -3346,6 +3351,33 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
         assert_eq!(resp_topics[0].partitions[0].offset, 799);
         assert_eq!(resp_topics[0].partitions[0].leader_epoch, 25);
     }
+
+    // 10. ListOffsets v10: flexible wire format with non-default TimeoutMs (1500 ms, KIP-1075)
+    {
+        const REQ: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/list_offsets_v10_timeout_request.bin");
+        const RESP: &[u8] =
+            include_bytes!("fixtures/protocol_oracles/list_offsets_v10_timeout_response.bin");
+
+        let (isolation, topics, timeout_ms, replica_id) =
+            decode_list_offsets_topics_request(&mut &REQ[..], 10).expect("list_offsets v10 request");
+        assert_eq!(replica_id, CONSUMER_REPLICA_ID);
+        assert_eq!(isolation, 1);
+        assert_eq!(timeout_ms, Some(1500), "v10 non-default timeoutMs 1500 ms");
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].name, "offsets-v10-timeout");
+        assert_eq!(topics[0].partitions[0].current_leader_epoch, 15);
+        assert_eq!(topics[0].partitions[0].timestamp, LATEST_TIMESTAMP);
+
+        let (resp_topics, throttle_ms) =
+            decode_list_offsets_topics_response(&mut &RESP[..], 10).expect("list_offsets v10 response");
+        assert_eq!(throttle_ms, 50);
+        assert_eq!(resp_topics.len(), 1);
+        assert_eq!(resp_topics[0].name, "offsets-v10-timeout");
+        assert_eq!(resp_topics[0].partitions[0].offset, 100);
+        assert_eq!(resp_topics[0].partitions[0].leader_epoch, 15);
+        assert_eq!(resp_topics[0].partitions[0].timestamp, 1_710_000_000_000);
+    }
 }
 
 /// KL01-07: Negative, mutation, and unsupported combinations tests for ListOffsets.
@@ -3371,6 +3403,10 @@ fn list_offsets_version_gate_and_field_order_mutations_fail() {
         include_bytes!("fixtures/protocol_oracles/list_offsets_v6_flexible_response.bin");
     const V9_REQ: &[u8] =
         include_bytes!("fixtures/protocol_oracles/list_offsets_v9_latest_tiered_request.bin");
+    const V10_REQ: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/list_offsets_v10_timeout_request.bin");
+    const V10_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/list_offsets_v10_timeout_response.bin");
 
     // Mutation 1: IsolationLevel gate on request (gate is v2+).
     // Decoding v1 request (no isolationLevel on wire) with v2 decoder fails or causes protocol desync.
@@ -3478,12 +3514,31 @@ fn list_offsets_version_gate_and_field_order_mutations_fail() {
         "decoding v10 request with v9 decoder must leave unconsumed 4 bytes of TimeoutMs"
     );
 
+    // Decoding committed Apache v10 request with v9 decoder ignores timeout_ms and leaves 4 unconsumed bytes.
+    let mut cur = V10_REQ;
+    let (_, _, timeout_committed9, _) =
+        decode_list_offsets_topics_request(&mut cur, 9).expect("decode committed v10 as v9");
+    assert_eq!(timeout_committed9, None);
+    assert_eq!(
+        cur.len(),
+        4,
+        "decoding committed v10 request with v9 decoder must leave unconsumed 4 bytes of TimeoutMs"
+    );
+
     // Decoding v9 request with v10 decoder fails because TimeoutMs is missing on wire.
     let mut cur = V9_REQ;
     assert!(
         decode_list_offsets_topics_request(&mut cur, 10).is_err(),
         "decoding v9 request as v10 must fail because TimeoutMs is missing on wire"
     );
+
+    // Decoding committed v10 response with v10 decoder.
+    let mut cur = V10_RESP;
+    let (v10_resp_topics, throttle) =
+        decode_list_offsets_topics_response(&mut cur, 10).expect("decode committed v10 response");
+    leftover_empty(cur, "committed ListOffsets v10 response");
+    assert_eq!(throttle, 50);
+    assert_eq!(v10_resp_topics[0].name, "offsets-v10-timeout");
 
     // Mutation 7: Unsupported timestamp / version combinations and builder requirements.
     // ListOffsetsRequest::for_consumer maps feature requirements to minimum allowed versions:
@@ -3548,7 +3603,7 @@ fn list_offsets_version_gate_and_field_order_mutations_fail() {
 
 /// KL01-07: Decode Rust output with Apache where Java is available.
 ///
-/// Encodes ListOffsets requests and responses in Rust across the advertised version boundaries (v1..=9),
+/// Encodes ListOffsets requests and responses in Rust across the advertised version boundaries (v1..=10),
 /// then runs Apache Kafka's `ListOffsetsRequestData.read` and `ListOffsetsResponseData.read` in Java
 /// to verify that Apache successfully decodes partitionline wire output.
 #[test]
@@ -3558,19 +3613,20 @@ fn rust_list_offsets_output_decodes_with_apache_when_java_available() {
         return;
     };
 
-    let versions: [(i16, i8, i64, i32, i32); 9] = [
-        (1, 0, -2, -1, 0),
-        (2, 1, 1_710_000_001_000, -1, 25),
-        (3, 0, -1, -1, 45),
-        (4, 1, 1_710_000_003_000, 10, 60),
-        (5, 0, -1, 12, 75),
-        (6, 1, 1_710_000_005_000, 15, 80),
-        (7, 0, -3, 20, 90),
-        (8, 0, -4, 22, 95),
-        (9, 1, -5, 25, 100),
+    let versions: [(i16, i8, i64, i32, i32, i32); 10] = [
+        (1, 0, -2, -1, 0, 0),
+        (2, 1, 1_710_000_001_000, -1, 25, 0),
+        (3, 0, -1, -1, 45, 0),
+        (4, 1, 1_710_000_003_000, 10, 60, 0),
+        (5, 0, -1, 12, 75, 0),
+        (6, 1, 1_710_000_005_000, 15, 80, 0),
+        (7, 0, -3, 20, 90, 0),
+        (8, 0, -4, 22, 95, 0),
+        (9, 1, -5, 25, 100, 0),
+        (10, 1, -1, 15, 50, 1500),
     ];
 
-    for (version, isolation, timestamp, epoch, throttle_ms) in versions {
+    for (version, isolation, timestamp, epoch, throttle_ms, timeout_ms) in versions {
         // 1. Rust encodes ListOffsetsRequest
         let mut req_buf = BytesMut::new();
         let topic_req = ListOffsetsTopicRequest::new(
@@ -3582,7 +3638,7 @@ fn rust_list_offsets_output_decodes_with_apache_when_java_available() {
             version,
             isolation,
             &[topic_req],
-            0,
+            timeout_ms,
         )
         .expect("encode list offsets request in Rust");
         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
@@ -3609,6 +3665,12 @@ fn rust_list_offsets_output_decodes_with_apache_when_java_available() {
             req_stdout.contains(&format!("OK: req v{version}")),
             "Apache output confirmation: {req_stdout}"
         );
+        if version >= 10 {
+            assert!(
+                req_stdout.contains("timeoutMs=1500"),
+                "Apache output must confirm timeoutMs=1500: {req_stdout}"
+            );
+        }
 
         // 2. Rust encodes ListOffsetsResponse
         let mut resp_buf = BytesMut::new();
