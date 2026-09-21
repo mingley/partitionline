@@ -2223,11 +2223,16 @@ impl ConsumerGroup {
             } else {
                 cfg.heartbeat_interval.max(Duration::from_millis(1))
             };
-            let mut next_hb_deadline = hb_deadline.lock().unwrap_or_else(|| {
+            // Copy first. parking_lot mutexes are not reentrant, and this task
+            // starts only after join has stored a deadline.
+            let existing_deadline = *hb_deadline.lock();
+            let mut next_hb_deadline = if let Some(d) = existing_deadline {
+                d
+            } else {
                 let d = Instant::now() + current_interval;
                 *hb_deadline.lock() = Some(d);
                 d
-            });
+            };
             loop {
                 let now = Instant::now();
                 if let Some(extern_deadline) = *hb_deadline.lock() {

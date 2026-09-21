@@ -835,7 +835,11 @@ fn new_state(
         acls: Vec::new(),
         join_group_calls: 0,
         cg_heartbeat_calls: 0,
-        cg_heartbeat_interval_ms: 50,
+        // Previously hardcoded to 5000 while the client ignored it and used the
+        // 150 ms config interval. Now that the client honors this field, keep
+        // the default at the old effective cadence so existing 2s waits still
+        // observe a heartbeat. Tests that need another interval set it explicitly.
+        cg_heartbeat_interval_ms: 150,
         sync_group_calls: 0,
         share_heartbeat_calls: 0,
         share_fetch_calls: 0,
