@@ -53,11 +53,12 @@ permissions:
   id-token: write
   actions: read
 
-# Prefer github.event.inputs (empty on push) over bare inputs.* so a ghost
-# branch-push evaluation cannot fail while resolving the concurrency group.
+# Shared non-cancelling release lock (KL08-03).
+# Serializes different tags, same-tag reruns, and obsolete dispatch attempts.
+# In-progress publish runs to completion without cancellation; queued runs wait.
 concurrency:
-  group: release-${{ github.event.inputs.tag || github.ref }}
-  cancel-in-progress: true
+  group: release-publish-lock
+  cancel-in-progress: false
 
 jobs:
   # Always run when publish is skipped so ghost branch-push evaluations
@@ -179,12 +180,18 @@ jobs:
           cargo publish --no-verify
       - name: Confirm crates.io
         run: |
+          set -euo pipefail
           ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          if [ "${{ steps.already.outputs.skip }}" = "1" ]; then
+            echo "release: ${name} ${ver} already confirmed on crates.io (skipped publish)"
+            exit 0
+          fi
           ok=0
           for i in $(seq 1 30); do
             if curl -fsSA 'partitionline-ci/1' \
-              "https://crates.io/api/v1/crates/partitionline/${ver}" >/tmp/pl-crate.json; then
-              echo "crates.io has partitionline ${ver}"
+              "https://crates.io/api/v1/crates/${name}/${ver}" >/tmp/pl-crate.json; then
+              echo "crates.io has ${name} ${ver}"
               ok=1
               break
             fi
@@ -198,6 +205,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           tag="v${ver}"
           # Prefer an existing annotated tag body; otherwise write a short crates.io pointer.

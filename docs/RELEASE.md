@@ -17,11 +17,25 @@ support matrix lives in [`support.md`](support.md) (KL-08 partial).
 ## Publication path (KL-08)
 
 **Canonical publisher:** annotated tag `vX.Y.Z` → `.github/workflows/release.yml`, or
-`bash scripts/owner-cut-release.sh` (local publish / tag). Both require exact-SHA green
-`ci` (`scripts/check-main-ci.sh`) and package-consumer evidence (`scripts/ci-crate-consumer.sh`).
+`bash scripts/owner-cut-release.sh` (which invokes `scripts/owner-publish.sh`). Both require:
+- clean working tree on `main`
+- final version format `X.Y.Z` (no prereleases/hyphens)
+- exact-SHA green `ci` (`scripts/check-main-ci.sh` with `REQUIRE_MAIN_CI=1`)
+- package-consumer evidence (`scripts/ci-crate-consumer.sh` / `scripts/ci-publish-ready.sh`)
+- crates.io probe soft-skip when version is already published (safe re-entry; no re-cuts)
+
+**Shared non-cancelling release lock (KL08-03):** release execution in `.github/workflows/release.yml`
+is serialized via a single shared concurrency group (`release-publish-lock`) with `cancel-in-progress: false`.
+This ensures competing tags, same-tag reruns, and obsolete dispatch attempts queue in strict serial
+order rather than running concurrently or cancelling an in-progress publish. Interrupted publish,
+crates.io index confirmation, and GitHub release note creation steps are idempotent and safe to rerun.
+
+**Retired obsolete publisher:** `.github/workflows/first-publish.yml` is retired and fails closed.
+Version `0.1.0` was published on crates.io on 2026-09-05; `0.1.0` must never be recut. All future
+releases use the canonical `.github/workflows/release.yml` or `scripts/owner-cut-release.sh`.
 
 **release-plz** opens version PRs only — it must not publish to crates.io (token presence
-must not enable auto-release). Do not re-cut `0.1.0`.
+must not enable auto-release; command is `release-pr`). Do not re-cut `0.1.0`.
 ## Cadence
 
 Cut a crates.io release when there is a user-facing batch (fix, feature, or
@@ -58,7 +72,7 @@ One-time setup (first crates.io cut):
      Direct link (override with `PARTITIONLINE_CURSOR_ENV_SECRETS_URL` if the env
      moves): https://cursor.com/dashboard/cloud-agents/environments/e/55ff85be-9e3a-11f1-a7d1-d6b4613131ce/secrets
    - **GitHub Actions** repository secret (Settings → Secrets → Actions) for
-     `release.yml` / `first-publish.yml`.
+     `release.yml` (and post-cut Trusted Publishing fallback).
    Probe without printing: `bash scripts/check-registry-token.sh` (exit 2 = missing,
    0 = crates.io accepted the token for publish-new auth via a structured
    empty-tarball PUT that cannot create a crate, 1 = rejected). Misnamed env
@@ -92,7 +106,14 @@ day1, and proves Installable. Before cut it probes main CI via
 `scripts/check-main-ci.sh` so a known-red or still-running Verifiable tip
 cannot silently ship (real cuts require terminal green unless overridden).
 
-If the token is only in **GitHub Actions** secrets (not Cloud Agent):
+### Historical note on Actions first-publish (0.1.0 bootstrap)
+
+`first-publish.yml` was the one-time manual bootstrap workflow for initial crates.io creation.
+Now that `0.1.0` is published, `first-publish.yml` is **retired and fails closed**.
+Do not attempt to dispatch it or recut 0.1.0. All subsequent cuts use tag → `release.yml`
+or `owner-cut-release.sh`.
+
+If the token was only in **GitHub Actions** secrets (historical reference):
 
 1. Merge/FF civilization tip → `main` first — GitHub only lists
    `workflow_dispatch` workflows from the default branch, so

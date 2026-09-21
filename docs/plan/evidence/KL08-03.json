@@ -1,0 +1,30 @@
+{
+  "id": "KL08-03",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "e0ac7ffa23b470b3e54c1229762acd2f295ac67d",
+  "commands": [
+    "bash scripts/rehearse-partial-release.sh --self-test (rc=0)",
+    "python3 -m unittest discover tests/release (rc=0)",
+    "python3 -m unittest tests/release/test_publish_serialization.py (rc=0)"
+  ],
+  "results": {
+    "test_count": 32,
+    "passed": 32,
+    "failed": 0,
+    "skipped": 0,
+    "summary": "Retired version-0.1.0 first-publish.yml workflow by making workflow_dispatch fail closed and removing the publish job. Configured shared non-cancelling release lock (release-publish-lock, cancel-in-progress: false) across release execution so competing tags and same-tag reruns serialize without cancelling in-flight publishes. Verified interrupted publish, confirmation, and release note creation steps are idempotent. Ensured scripts/owner-publish.sh enforces eligibility parity (semver, clean tree, main branch, crates.io probe soft-skip, exact-SHA CI, and ci-publish-ready). Verified release-plz remains PR-only. Added 15 unit tests covering serialization, locking, idempotence, and publisher retirement."
+  },
+  "artifacts": [
+    ".github/workflows/first-publish.yml",
+    ".github/workflows/release.yml",
+    "scripts/owner-publish.sh",
+    "docs/RELEASE.md",
+    "tests/release/test_publish_serialization.py",
+    "docs/plan/evidence/KL08-03.json"
+  ],
+  "limits": [
+    "Offline test validation; no crates.io publication, git tag creation, or network operations performed."
+  ],
+  "blocked_reason": null
+}
