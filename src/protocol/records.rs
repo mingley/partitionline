@@ -11,6 +11,14 @@ use crate::error::{Error, Result};
 /// Record batch magic for Kafka 0.11+ (v2).
 pub const MAGIC_V2: i8 = 2;
 
+/// Default upper bound on decompressed record-batch bytes (64 MiB).
+///
+/// This ceiling protects against decompression bombs during gzip, snappy,
+/// and LZ4 decoding. It is set strictly above `ConsumerConfig::max_partition_fetch_bytes`
+/// (16 MiB default) so that legitimate oversized first batches can still make
+/// progress under Kafka's oversized-first-batch delivery rule.
+pub const DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES: usize = 64 * 1024 * 1024;
+
 /// Java `Records` log-entry layout (offset + size prefix before the batch body).
 pub struct Records;
 
@@ -309,13 +317,26 @@ impl Compression {
         }
     }
 
-    /// Decompress a payload the way record batches / PushTelemetry do.
+    /// Decompress a payload the way record batches / PushTelemetry do,
+    /// enforcing [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`].
     pub(crate) fn codec_decompress(self, src: &[u8]) -> Result<Vec<u8>> {
+        self.codec_decompress_bounded(src, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
+    }
+
+    /// Decompress a payload enforcing an explicit decoded-byte ceiling.
+    pub(crate) fn codec_decompress_bounded(self, src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
         match self {
-            Self::None => Ok(src.to_vec()),
-            Self::Gzip => gzip_decompress(src),
-            Self::Snappy => snappy_decompress(src),
-            Self::Lz4 => lz4_decompress(src),
+            Self::None => {
+                if src.len() > max_bytes {
+                    return Err(Error::protocol(
+                        "Decompressed batch exceeds maximum allowable size",
+                    ));
+                }
+                Ok(src.to_vec())
+            }
+            Self::Gzip => gzip_decompress(src, max_bytes),
+            Self::Snappy => snappy_decompress(src, max_bytes),
+            Self::Lz4 => lz4_decompress(src, max_bytes),
         }
     }
 }
@@ -1009,6 +1030,8 @@ impl RecordBatch {
     pub const BASE_SEQUENCE_OFFSET: i32 = 53;
     /// Java `DefaultRecordBatch.RECORDS_COUNT_OFFSET`.
     pub const RECORDS_COUNT_OFFSET: i32 = 57;
+    /// Default upper bound on decompressed batch bytes (64 MiB).
+    pub const DEFAULT_MAX_DECODE_BYTES: usize = DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES;
 
     /// Build a batch from records. Offsets become `0..n`; timestamps set
     /// `base_timestamp` / `max_timestamp`. Producer id / epoch / sequence
@@ -1617,13 +1640,37 @@ fn gzip_compress(src: &[u8]) -> Result<Vec<u8>> {
     encoder.finish().map_err(|e| Error::protocol(e.to_string()))
 }
 
-fn gzip_decompress(src: &[u8]) -> Result<Vec<u8>> {
-    let mut decoder = flate2::read::GzDecoder::new(src);
+fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize) -> Result<Vec<u8>> {
     let mut out = Vec::new();
-    let _n = decoder
-        .read_to_end(&mut out)
-        .map_err(|e| Error::protocol(e.to_string()))?;
+    let mut chunk = [0u8; 8192];
+    loop {
+        let remaining_budget_plus_one = max_bytes.saturating_sub(out.len()).saturating_add(1);
+        let to_read = chunk.len().min(remaining_budget_plus_one);
+        let slice = chunk
+            .get_mut(..to_read)
+            .ok_or_else(|| Error::protocol("invalid chunk slice"))?;
+        let n = reader
+            .read(slice)
+            .map_err(|e| Error::protocol(e.to_string()))?;
+        if n == 0 {
+            break;
+        }
+        if out.len().saturating_add(n) > max_bytes {
+            return Err(Error::protocol(
+                "Decompressed batch exceeds maximum allowable size",
+            ));
+        }
+        let piece = chunk
+            .get(..n)
+            .ok_or_else(|| Error::protocol("invalid chunk slice"))?;
+        out.extend_from_slice(piece);
+    }
     Ok(out)
+}
+
+fn gzip_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
+    let mut decoder = flate2::read::GzDecoder::new(src);
+    read_bounded(&mut decoder, max_bytes)
 }
 
 /// xerial snappy-java header used by the Java Kafka client.
@@ -1644,7 +1691,7 @@ fn snappy_compress(src: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-fn snappy_decompress(src: &[u8]) -> Result<Vec<u8>> {
+fn snappy_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
     if src.len() > 20 && src.starts_with(SNAPPY_JAVA_MAGIC) {
         let mut cur = src.get(16..).unwrap_or(&[]);
         let mut out = Vec::new();
@@ -1665,17 +1712,45 @@ fn snappy_decompress(src: &[u8]) -> Result<Vec<u8>> {
             let block = cur
                 .get(..clen)
                 .ok_or_else(|| Error::protocol("snappy-java chunk overruns buffer"))?;
+            let chunk_len =
+                snap::raw::decompress_len(block).map_err(|e| Error::protocol(e.to_string()))?;
+            if out.len().saturating_add(chunk_len) > max_bytes {
+                return Err(Error::protocol(
+                    "Decompressed batch exceeds maximum allowable size",
+                ));
+            }
             let chunk = decoder
                 .decompress_vec(block)
                 .map_err(|e| Error::protocol(e.to_string()))?;
+            if out.len().saturating_add(chunk.len()) > max_bytes {
+                return Err(Error::protocol(
+                    "Decompressed batch exceeds maximum allowable size",
+                ));
+            }
             out.extend_from_slice(&chunk);
             cur = cur.get(clen..).unwrap_or(&[]);
         }
+        if !cur.is_empty() {
+            return Err(Error::protocol("snappy-java short chunk"));
+        }
         Ok(out)
     } else {
-        snap::raw::Decoder::new()
+        let uncompressed_len =
+            snap::raw::decompress_len(src).map_err(|e| Error::protocol(e.to_string()))?;
+        if uncompressed_len > max_bytes {
+            return Err(Error::protocol(
+                "Decompressed batch exceeds maximum allowable size",
+            ));
+        }
+        let out = snap::raw::Decoder::new()
             .decompress_vec(src)
-            .map_err(|e| Error::protocol(e.to_string()))
+            .map_err(|e| Error::protocol(e.to_string()))?;
+        if out.len() > max_bytes {
+            return Err(Error::protocol(
+                "Decompressed batch exceeds maximum allowable size",
+            ));
+        }
+        Ok(out)
     }
 }
 
@@ -1696,13 +1771,27 @@ fn lz4_compress(src: &[u8]) -> Result<Vec<u8>> {
     encoder.finish().map_err(|e| Error::protocol(e.to_string()))
 }
 
-fn lz4_decompress(src: &[u8]) -> Result<Vec<u8>> {
+fn lz4_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
+    if src.len() >= 14 && src.starts_with(&[0x04, 0x22, 0x4D, 0x18]) {
+        if let Some(&flg) = src.get(4) {
+            if flg & 0x08 != 0 {
+                if let Some(slice) = src.get(6..14) {
+                    if let Ok(content_size_bytes) = slice.try_into() {
+                        let declared_size = u64::from_le_bytes(content_size_bytes);
+                        if let Ok(max_bytes_u64) = u64::try_from(max_bytes) {
+                            if declared_size > max_bytes_u64 {
+                                return Err(Error::protocol(
+                                    "Decompressed batch exceeds maximum allowable size",
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
-    let mut out = Vec::new();
-    let _n = decoder
-        .read_to_end(&mut out)
-        .map_err(|e| Error::protocol(e.to_string()))?;
-    Ok(out)
+    read_bounded(&mut decoder, max_bytes)
 }
 
 /// One record as borrowed slices for the produce encode path.
@@ -1988,14 +2077,27 @@ fn encode_record(
     Ok(())
 }
 
-/// Decode zero or more consecutive magic-v2 batches until the buffer is too short.
+/// Decode zero or more consecutive magic-v2 batches until the buffer is too short,
+/// enforcing [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`] during decompression.
 pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
+    decode_record_batches_with_limit(buf, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
+}
+
+/// Decode zero or more consecutive magic-v2 batches until the buffer is too short,
+/// enforcing an explicit decoded-byte ceiling during decompression.
+pub fn decode_record_batches_with_limit<B: Buf>(
+    buf: &mut B,
+    max_decode_bytes: usize,
+) -> Result<Vec<RecordBatch>> {
     let mut out = Vec::new();
     while buf.remaining() >= 12 {
         let chunk = buf.chunk();
         if chunk.len() < 12 {
             let mut rest = buf.copy_to_bytes(buf.remaining());
-            out.append(&mut decode_record_batches(&mut rest)?);
+            out.append(&mut decode_record_batches_with_limit(
+                &mut rest,
+                max_decode_bytes,
+            )?);
             break;
         }
         let len_bytes = chunk
@@ -2013,12 +2115,12 @@ pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
         if buf.remaining() < need {
             break;
         }
-        out.push(decode_record_batch(buf)?);
+        out.push(decode_record_batch_with_limit(buf, max_decode_bytes)?);
     }
     Ok(out)
 }
 
-/// Decode one magic-v2 batch (CRC32-C checked).
+/// Decode one magic-v2 batch (CRC32-C checked), enforcing [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`].
 ///
 /// Nested records match Java `DefaultRecord.readFrom`: a negative header
 /// count, a header count larger than remaining bytes, a negative header
@@ -2029,6 +2131,14 @@ pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
 /// count, premature EOF when the count is larger than the payload).
 /// Size and CRC checks match Java `DefaultRecordBatch.ensureValid`.
 pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
+    decode_record_batch_with_limit(buf, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
+}
+
+/// Decode one magic-v2 batch (CRC32-C checked), enforcing an explicit decoded-byte ceiling.
+pub fn decode_record_batch_with_limit<B: Buf>(
+    buf: &mut B,
+    max_decode_bytes: usize,
+) -> Result<RecordBatch> {
     let base_offset = buf::get_i64(buf)?;
     let batch_len = buf::get_i32(buf)?;
     let size_in_bytes = Records::LOG_OVERHEAD.wrapping_add(batch_len);
@@ -2068,10 +2178,17 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
         )));
     }
     let mut records_cur = match compression {
-        Compression::None => body,
-        Compression::Gzip => Bytes::from(gzip_decompress(&body)?),
-        Compression::Snappy => Bytes::from(snappy_decompress(&body)?),
-        Compression::Lz4 => Bytes::from(lz4_decompress(&body)?),
+        Compression::None => {
+            if body.len() > max_decode_bytes {
+                return Err(Error::protocol(
+                    "Decompressed batch exceeds maximum allowable size",
+                ));
+            }
+            body
+        }
+        Compression::Gzip => Bytes::from(gzip_decompress(&body, max_decode_bytes)?),
+        Compression::Snappy => Bytes::from(snappy_decompress(&body, max_decode_bytes)?),
+        Compression::Lz4 => Bytes::from(lz4_decompress(&body, max_decode_bytes)?),
     };
     let count_usize = buf::usize_from_i32(count)?;
     if count_usize > records_cur.remaining() {
@@ -2745,10 +2862,16 @@ mod tests {
     fn snappy_decompress_raw_block_from_librdkafka() {
         let payload = b"raw-snappy-from-c-client";
         let raw = snap::raw::Encoder::new().compress_vec(payload).unwrap();
-        assert_eq!(snappy_decompress(&raw).unwrap(), payload);
+        assert_eq!(
+            snappy_decompress(&raw, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES).unwrap(),
+            payload
+        );
         let framed = snappy_compress(payload).unwrap();
         assert!(framed.starts_with(SNAPPY_JAVA_MAGIC));
-        assert_eq!(snappy_decompress(&framed).unwrap(), payload);
+        assert_eq!(
+            snappy_decompress(&framed, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES).unwrap(),
+            payload
+        );
     }
 
     #[test]
@@ -2781,7 +2904,10 @@ mod tests {
         let payload = vec![b'x'; 4096];
         let framed = lz4_compress(&payload).unwrap();
         assert_eq!(&framed[..4], &[0x04, 0x22, 0x4d, 0x18]);
-        assert_eq!(lz4_decompress(&framed).unwrap(), payload);
+        assert_eq!(
+            lz4_decompress(&framed, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES).unwrap(),
+            payload
+        );
     }
 
     fn one_batch(value: &'static [u8]) -> BytesMut {
@@ -3906,5 +4032,234 @@ mod tests {
             err.contains("Record size 0 is less than the minimum record overhead (14)"),
             "{err}"
         );
+    }
+
+    #[test]
+    fn gzip_bounded_decompression_and_bomb() {
+        let payload = vec![0x42u8; 2048];
+        let compressed = gzip_compress(&payload).unwrap();
+
+        // Exactly at limit succeeds
+        let decomp = gzip_decompress(&compressed, 2048).unwrap();
+        assert_eq!(decomp, payload);
+
+        // One-over limit fails
+        let err = gzip_decompress(&compressed, 2047).unwrap_err().to_string();
+        assert!(
+            err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{err}"
+        );
+
+        // Gzip bomb (500 KB zeroes compressed) with a 10 KB limit
+        let bomb_payload = vec![0u8; 500 * 1024];
+        let bomb_compressed = gzip_compress(&bomb_payload).unwrap();
+        let bomb_err = gzip_decompress(&bomb_compressed, 10 * 1024)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            bomb_err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{bomb_err}"
+        );
+
+        // Truncated gzip stream fails with corruption/EOF error, not expansion limit error
+        let truncated = &compressed[..compressed.len() / 2];
+        let trunc_err = gzip_decompress(truncated, 2048).unwrap_err().to_string();
+        assert!(
+            !trunc_err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{trunc_err}"
+        );
+    }
+
+    #[test]
+    fn snappy_raw_and_framed_bounded_decompression_and_bomb() {
+        let payload = vec![0x37u8; 2048];
+
+        // 1. Raw snappy
+        let raw_compressed = snap::raw::Encoder::new().compress_vec(&payload).unwrap();
+
+        // Raw: exactly at limit succeeds
+        let raw_decomp = snappy_decompress(&raw_compressed, 2048).unwrap();
+        assert_eq!(raw_decomp, payload);
+
+        // Raw: one-over limit fails
+        let err = snappy_decompress(&raw_compressed, 2047)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{err}"
+        );
+
+        // Raw: bomb claiming 100 MB uncompressed via varint header with 10 KB limit
+        // 100_000_000 = 0x05F5E100 -> varint: [0x80, 0xC2, 0xD7, 0x2F]
+        let raw_bomb = [0x80, 0xC2, 0xD7, 0x2F, 0x00, 0x00];
+        let raw_bomb_err = snappy_decompress(&raw_bomb, 10 * 1024)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            raw_bomb_err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{raw_bomb_err}"
+        );
+
+        // 2. Framed snappy (snappy-java format)
+        let framed = snappy_compress(&payload).unwrap();
+
+        // Framed: exactly at limit succeeds
+        let framed_decomp = snappy_decompress(&framed, 2048).unwrap();
+        assert_eq!(framed_decomp, payload);
+
+        // Framed: one-over limit fails
+        let err = snappy_decompress(&framed, 2047).unwrap_err().to_string();
+        assert!(
+            err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{err}"
+        );
+
+        // Framed: bomb chunk claiming 100 MB
+        let mut framed_bomb = Vec::new();
+        framed_bomb.extend_from_slice(SNAPPY_JAVA_MAGIC);
+        framed_bomb.extend_from_slice(&1u32.to_be_bytes());
+        framed_bomb.extend_from_slice(&1u32.to_be_bytes());
+        let chunk_block = [0x80, 0xC2, 0xD7, 0x2F, 0x00, 0x00];
+        let clen = buf::u32_from_usize(chunk_block.len()).unwrap();
+        framed_bomb.extend_from_slice(&clen.to_be_bytes());
+        framed_bomb.extend_from_slice(&chunk_block);
+        let framed_bomb_err = snappy_decompress(&framed_bomb, 10 * 1024)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            framed_bomb_err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{framed_bomb_err}"
+        );
+
+        // Framed: truncated chunk fails with short chunk error, not expansion error
+        let truncated_framed = &framed[..framed.len() - 5];
+        let trunc_err = snappy_decompress(truncated_framed, 2048)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            !trunc_err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{trunc_err}"
+        );
+    }
+
+    #[test]
+    fn lz4_bounded_decompression_and_bomb() {
+        let payload = vec![0x5au8; 2048];
+        let compressed = lz4_compress(&payload).unwrap();
+
+        // Exactly at limit succeeds
+        let decomp = lz4_decompress(&compressed, 2048).unwrap();
+        assert_eq!(decomp, payload);
+
+        // One-over limit fails
+        let err = lz4_decompress(&compressed, 2047).unwrap_err().to_string();
+        assert!(
+            err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{err}"
+        );
+
+        // LZ4 frame declaring 100 MB content_size with 10 KB limit
+        use lz4_flex::frame::{BlockMode, BlockSize, FrameEncoder, FrameInfo};
+        let bomb_info = FrameInfo::new()
+            .block_mode(BlockMode::Independent)
+            .block_size(BlockSize::Max64KB)
+            .content_size(Some(13));
+        let mut enc = FrameEncoder::with_frame_info(bomb_info, Vec::new());
+        enc.write_all(b"short-payload").unwrap();
+        let mut bomb_framed = enc.finish().unwrap();
+        // Tamper content_size in frame header (bytes 6..14) to claim 100 MB
+        bomb_framed[6..14].copy_from_slice(&(100u64 * 1024 * 1024).to_le_bytes());
+        let bomb_err = lz4_decompress(&bomb_framed, 10 * 1024)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            bomb_err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{bomb_err}"
+        );
+
+        // LZ4 frame without content_size expanding past limit
+        let no_size_info = FrameInfo::new()
+            .block_mode(BlockMode::Independent)
+            .block_size(BlockSize::Max64KB)
+            .content_size(None);
+        let mut enc_large = FrameEncoder::with_frame_info(no_size_info, Vec::new());
+        enc_large.write_all(&vec![0u8; 100 * 1024]).unwrap();
+        let large_framed = enc_large.finish().unwrap();
+        let large_err = lz4_decompress(&large_framed, 10 * 1024)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            large_err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{large_err}"
+        );
+
+        // Truncated LZ4 stream fails with truncation error, not expansion error
+        let truncated = &compressed[..compressed.len() / 2];
+        let trunc_err = lz4_decompress(truncated, 2048).unwrap_err().to_string();
+        assert!(
+            !trunc_err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{trunc_err}"
+        );
+    }
+
+    #[test]
+    fn record_batch_decode_with_limit_and_crc() {
+        for compression in [
+            Compression::None,
+            Compression::Gzip,
+            Compression::Snappy,
+            Compression::Lz4,
+        ] {
+            let rec = Record {
+                offset: 0,
+                timestamp: 10,
+                key: Some(Bytes::from_static(b"test-key")),
+                value: Some(Bytes::from(vec![0x42u8; 512])),
+                headers: vec![],
+            };
+            let batch = RecordBatch::from_records(vec![rec]).with_compression(compression);
+            let mut buf = BytesMut::new();
+            encode_record_batch(&mut buf, &batch).unwrap();
+
+            // Decode with default limit succeeds
+            let decoded_default = decode_record_batches(&mut &buf[..]).unwrap();
+            assert_eq!(decoded_default.len(), 1);
+            assert_eq!(
+                decoded_default[0].records[0].value.as_deref(),
+                Some(&vec![0x42u8; 512][..])
+            );
+
+            // Decode with large explicit limit succeeds
+            let decoded_explicit =
+                decode_record_batch_with_limit(&mut &buf[..], 64 * 1024 * 1024).unwrap();
+            assert_eq!(
+                decoded_explicit.records[0].value.as_deref(),
+                Some(&vec![0x42u8; 512][..])
+            );
+
+            // Decode with tiny limit fails if compressed
+            if compression != Compression::None {
+                let err = decode_record_batch_with_limit(&mut &buf[..], 10)
+                    .unwrap_err()
+                    .to_string();
+                assert!(
+                    err.contains("Decompressed batch exceeds maximum allowable size"),
+                    "compression {compression}: {err}"
+                );
+            }
+
+            // CRC corruption fails with CRC error, NOT expansion error
+            let mut corrupted = buf.clone();
+            let attr = RecordBatch::CRC_OFFSET as usize + 4;
+            corrupted[attr] ^= 0xff;
+            let crc_err = decode_record_batch_with_limit(&mut &corrupted[..], 10)
+                .unwrap_err()
+                .to_string();
+            assert!(
+                crc_err.contains("Record is corrupt (stored crc ="),
+                "expected CRC error for {compression}, got: {crc_err}"
+            );
+        }
     }
 }
