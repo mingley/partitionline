@@ -1,6 +1,7 @@
 {
   "kind": "campaign",
   "campaign_id": "kl-01-example-fixture",
+  "is_example": true,
   "duration_seconds": 3600,
   "targets": [
     "decode_fetch_response",
@@ -13,10 +14,43 @@
   ],
   "started_at": "2026-09-05T00:00:00Z",
   "finished_at": "2026-09-05T01:00:00Z",
+  "toolchain": {
+    "rustc": "rustc 1.86.0-nightly (2026-09-01)",
+    "cargo": "cargo 1.86.0-nightly",
+    "cargo_fuzz": "cargo-fuzz 0.12.0"
+  },
+  "source": {
+    "git_commit": "3e9a0fbb0f3769d3acdb38a11bf88b944115e674",
+    "branch": "main"
+  },
   "corpus": {
     "path": "fuzz/corpus",
-    "input_count": 0
+    "seeds_path": "fuzz/seeds",
+    "input_count": 25,
+    "corpus_hashes": {
+      "decode_record_batches": "cddc68acead4b4aa6ed728fa1bb06db8d19025cd7afc6be58877fc853fc26feb",
+      "decode_fetch_response": "c78e8acd91eccc1f65fc33c818bb2bbdeeea4322b25741966216a5129bf150bd",
+      "decode_produce_response": "5b938a02dc11894655d5afc8f837891dd3aa13b88bf4fe87d0fe66710f9c4fc9",
+      "decode_metadata_response": "b201213d23176b727248a5716d7b9844445904f642fac871831071b3002b893d",
+      "decode_group_responses": "0d2800a7d4b6220883d8da1275e2eaefebf7e7425ccf9d11d3676ac9d7d197f4",
+      "decode_share_fetch_response": "0e1f92c3e7df5d616a4e39e5976549d61044a3c903044d26da303c7b191e0215",
+      "decode_cgheartbeat_responses": "7994076fa72ac966567950ad8561b26b1477959e5275303b14ee5bcba3248f77"
+    }
+  },
+  "corpus_hashes": {
+    "decode_record_batches": "cddc68acead4b4aa6ed728fa1bb06db8d19025cd7afc6be58877fc853fc26feb",
+    "decode_fetch_response": "c78e8acd91eccc1f65fc33c818bb2bbdeeea4322b25741966216a5129bf150bd",
+    "decode_produce_response": "5b938a02dc11894655d5afc8f837891dd3aa13b88bf4fe87d0fe66710f9c4fc9",
+    "decode_metadata_response": "b201213d23176b727248a5716d7b9844445904f642fac871831071b3002b893d",
+    "decode_group_responses": "0d2800a7d4b6220883d8da1275e2eaefebf7e7425ccf9d11d3676ac9d7d197f4",
+    "decode_share_fetch_response": "0e1f92c3e7df5d616a4e39e5976549d61044a3c903044d26da303c7b191e0215",
+    "decode_cgheartbeat_responses": "7994076fa72ac966567950ad8561b26b1477959e5275303b14ee5bcba3248f77"
   },
   "coverage": "unavailable",
-  "artifacts_dir": "fuzz/artifacts/minimized"
+  "artifacts_dir": "fuzz/artifacts/minimized",
+  "replayed_failures": {
+    "count": 0,
+    "replayed": 0,
+    "failed": 0
+  }
 }
