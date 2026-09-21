@@ -234,6 +234,8 @@ struct State {
     produce_error: Option<i16>,
     produce_error_left: Option<u32>,
     produce_delay: Option<std::time::Duration>,
+    produce_delay_left: Option<u32>,
+    metadata_delay: Option<std::time::Duration>,
     add_partitions_error: Option<i16>,
     add_partitions_error_left: Option<u32>,
     log_start: HashMap<(String, i32), i64>,
@@ -609,6 +611,8 @@ fn new_state(
         produce_error: None,
         produce_error_left: None,
         produce_delay: None,
+        produce_delay_left: None,
+        metadata_delay: None,
         add_partitions_error: None,
         add_partitions_error_left: None,
         log_start: HashMap::new(),
@@ -1698,6 +1702,18 @@ impl Mock {
     pub fn set_produce_delay(&self, delay: std::time::Duration) {
         let mut st = self.state.lock();
         st.produce_delay = Some(delay);
+        st.produce_delay_left = None;
+    }
+
+    pub fn set_produce_delay_times(&self, delay: std::time::Duration, n: u32) {
+        let mut st = self.state.lock();
+        st.produce_delay = Some(delay);
+        st.produce_delay_left = Some(n);
+    }
+
+    pub fn set_metadata_delay(&self, delay: std::time::Duration) {
+        let mut st = self.state.lock();
+        st.metadata_delay = Some(delay);
     }
 
     pub fn produce_nodes(&self) -> Vec<i32> {
@@ -3548,6 +3564,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             METADATA => {
+                let metadata_delay = {
+                    let st = state.lock();
+                    st.metadata_delay
+                };
+                if let Some(delay) = metadata_delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let mut st = state.lock();
                 st.metadata_calls = st.metadata_calls.saturating_add(1);
                 let (topics, allow, include_topic, ..) =
@@ -4961,8 +4984,20 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.produce_requests.push(node_id);
                 }
                 let produce_delay = {
-                    let st = state.lock();
-                    st.produce_delay
+                    let mut st = state.lock();
+                    match (st.produce_delay, st.produce_delay_left) {
+                        (Some(_), Some(0)) => {
+                            st.produce_delay = None;
+                            st.produce_delay_left = None;
+                            None
+                        }
+                        (Some(d), Some(n)) => {
+                            st.produce_delay_left = Some(n.saturating_sub(1));
+                            Some(d)
+                        }
+                        (Some(d), None) => Some(d),
+                        _ => None,
+                    }
                 };
                 if let Some(delay) = produce_delay {
                     tokio::time::sleep(delay).await;

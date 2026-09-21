@@ -346,7 +346,7 @@ async fn concurrent_sends_during_close_do_not_hang_and_observe_closed() {
             }
         }
     });
-    let _ = close_res.expect("close task must not panic");
+    drop(close_res.expect("close task must not panic"));
 
     assert_eq!(
         producer.metrics().bytes_buffered,
@@ -402,4 +402,276 @@ async fn durable_closed_flag_across_clones() {
 
     // Repeated close on clone is idempotent Ok(())
     p3.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn delivery_deadline_shared_across_retries_and_consumes_remaining_time() {
+    let mock = common::Mock::start().await;
+    // Broker always returns retriable error
+    mock.set_produce_error(error::REQUEST_TIMED_OUT);
+
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .delivery_timeout(Duration::from_millis(150))
+            .retry_backoff(Duration::from_millis(25))
+            .retry_backoff_max(Duration::from_millis(25))
+            .request_timeout(Duration::from_secs(10)),
+    )
+    .await
+    .unwrap();
+
+    let start = std::time::Instant::now();
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"retry-budget"[..]))
+        .await
+        .expect_err("send must time out when delivery deadline expires across retries");
+    let elapsed = start.elapsed();
+
+    assert!(
+        matches!(err, Error::Timeout),
+        "expected Timeout on exhausted delivery deadline, got {err:?}"
+    );
+    assert!(
+        elapsed < Duration::from_millis(800),
+        "delivery timeout must bound all retries, not restart a 10s request budget; elapsed: {elapsed:?}"
+    );
+    assert!(
+        elapsed >= Duration::from_millis(100),
+        "retries must consume time against the deadline; elapsed: {elapsed:?}"
+    );
+
+    // Multiple produce requests were attempted across retries
+    let reqs = mock.produce_request_nodes().len();
+    assert!(
+        reqs > 1,
+        "multiple retries should have been attempted, got {reqs}"
+    );
+
+    assert_eq!(
+        producer.metrics().bytes_buffered,
+        0,
+        "buffer reservations must return to zero after timeout"
+    );
+    assert_eq!(
+        producer.retries_in_flight(),
+        0,
+        "retries in flight must return to zero after timeout"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn delivery_deadline_enforces_acknowledgment_wait_bounded_by_remaining() {
+    let mock = common::Mock::start().await;
+    // Broker delays response for 5s, well beyond delivery_timeout
+    mock.set_produce_delay(Duration::from_secs(5));
+
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .delivery_timeout(Duration::from_millis(150))
+            .request_timeout(Duration::from_secs(10)),
+    )
+    .await
+    .unwrap();
+
+    let start = std::time::Instant::now();
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"ack-wait"[..]))
+        .await
+        .expect_err("send must time out when ack wait exceeds remaining delivery deadline");
+    let elapsed = start.elapsed();
+
+    assert!(
+        matches!(err, Error::Timeout),
+        "transmitted record that timed out waiting for ack must report Timeout, got {err:?}"
+    );
+    assert!(
+        elapsed < Duration::from_millis(800),
+        "acknowledgment wait must be bounded by delivery deadline, not 5s produce delay; elapsed: {elapsed:?}"
+    );
+
+    // The record was actually transmitted to the broker socket
+    assert!(
+        !mock.produce_request_nodes().is_empty(),
+        "record must have reached the broker socket"
+    );
+
+    assert_eq!(
+        producer.metrics().bytes_buffered,
+        0,
+        "buffer reservations must return to zero after ack timeout"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn delivery_deadline_enforces_queueing_wait_under_long_linger() {
+    let mock = common::Mock::start().await;
+
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            // 10s linger would stall the record if delivery deadline was not checked
+            .linger(Duration::from_secs(10))
+            .delivery_timeout(Duration::from_millis(100)),
+    )
+    .await
+    .unwrap();
+
+    let start = std::time::Instant::now();
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"linger-expire"[..]))
+        .await
+        .expect_err("send must time out in queue when delivery deadline expires before linger");
+    let elapsed = start.elapsed();
+
+    assert!(
+        matches!(err, Error::Timeout),
+        "expected Timeout for record expiring in queue, got {err:?}"
+    );
+    assert!(
+        elapsed < Duration::from_millis(800),
+        "queueing wait must be bounded by delivery deadline, not 10s linger; elapsed: {elapsed:?}"
+    );
+
+    // Record was expired in queue before transmission
+    assert!(
+        mock.produce_request_nodes().is_empty(),
+        "expired queued record must not be transmitted to broker"
+    );
+
+    assert_eq!(
+        producer.metrics().bytes_buffered,
+        0,
+        "buffer reservations must return to zero after queue expiration"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn max_block_and_request_timeout_keep_distinct_documented_meanings() {
+    let mock = common::Mock::start().await;
+    mock.set_metadata_delay(Duration::from_secs(5));
+
+    // max_block is 80ms; request_timeout is 5s; delivery_timeout is 10s
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .max_block(Duration::from_millis(80))
+            .request_timeout(Duration::from_secs(5))
+            .delivery_timeout(Duration::from_secs(10)),
+    )
+    .await
+    .unwrap();
+
+    // With a topic that requires metadata and connection, ensure_ready blocks up to max_block
+    let start = std::time::Instant::now();
+    let err = producer
+        .send(ProduceRecord::to("unknown-topic").value(&b"val"[..]))
+        .await
+        .expect_err("send must time out after max_block waiting for metadata/connection");
+    let elapsed = start.elapsed();
+
+    assert!(
+        matches!(err, Error::Timeout),
+        "expected Timeout from max_block expiration, got {err:?}"
+    );
+    assert!(
+        elapsed < Duration::from_millis(600),
+        "max_block must bound pre-enqueue wait (80ms), not 5s request_timeout or 10s delivery_timeout; elapsed: {elapsed:?}"
+    );
+    assert_eq!(
+        producer.metrics().bytes_buffered,
+        0,
+        "unaccepted record must not hold buffer memory"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn retry_succeeds_when_broker_recovers_within_delivery_deadline() {
+    let mock = common::Mock::start().await;
+    // Fails twice with retriable error, then succeeds
+    mock.set_produce_error_times(error::NOT_ENOUGH_REPLICAS, 2);
+
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .delivery_timeout(Duration::from_secs(2))
+            .retry_backoff(Duration::from_millis(20))
+            .retry_backoff_max(Duration::from_millis(20)),
+    )
+    .await
+    .unwrap();
+
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"recovered"[..]))
+        .await
+        .expect("send should succeed once retriable errors clear within deadline");
+
+    assert_eq!(md.topic, "t");
+    assert!(
+        mock.produce_request_nodes().len() >= 3,
+        "expected at least 3 produce attempts (2 failed + 1 success), got {}",
+        mock.produce_request_nodes().len()
+    );
+    assert_eq!(
+        producer.metrics().bytes_buffered,
+        0,
+        "buffer reservations must return to zero after successful retry"
+    );
+    assert_eq!(
+        producer.retries_in_flight(),
+        0,
+        "retries in flight must be zero"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn delivery_deadline_bounds_metadata_refresh_during_retry() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .delivery_timeout(Duration::from_millis(150))
+            .retry_backoff(Duration::ZERO)
+            .request_timeout(Duration::from_secs(10)),
+    )
+    .await
+    .unwrap();
+
+    // Warm up metadata and connection for topic "t"
+    let _md = producer
+        .send(ProduceRecord::to("t").value(&b"warm"[..]))
+        .await
+        .unwrap();
+
+    // Now produce returns NOT_LEADER_OR_FOLLOWER which forces a metadata refresh
+    mock.set_produce_error(error::NOT_LEADER_OR_FOLLOWER);
+    // Metadata responses are delayed by 5s
+    mock.set_metadata_delay(Duration::from_secs(5));
+
+    let start = std::time::Instant::now();
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"meta-delay"[..]))
+        .await
+        .expect_err("send must time out when retry metadata refresh exceeds delivery deadline");
+    let elapsed = start.elapsed();
+
+    assert!(
+        matches!(err, Error::Timeout),
+        "expected Timeout on metadata refresh deadline expiration, got {err:?}"
+    );
+    assert!(
+        elapsed < Duration::from_millis(800),
+        "metadata refresh during retry must be bounded by delivery deadline, not 5s delay or 10s request_timeout; elapsed: {elapsed:?}"
+    );
+    assert_eq!(
+        producer.metrics().bytes_buffered,
+        0,
+        "buffer reservations must return to zero after timeout"
+    );
+    producer.close().await.unwrap();
 }

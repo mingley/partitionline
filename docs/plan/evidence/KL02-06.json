@@ -1,0 +1,82 @@
+{
+  "id": "KL02-06",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "6193c08d18dba9f2d9d72ce63c783f7d27e1f2e2",
+  "commands": [
+    "cargo test --offline --locked --test produce_cancel",
+    "cargo test --offline --locked --test full_surface timeout",
+    "cargo test --offline --locked --test buffer_ownership",
+    "rustfmt --edition 2021 --check src/producer.rs tests/produce_cancel.rs tests/common/mod.rs"
+  ],
+  "results": {
+    "produce_cancel_tests": {
+      "passed": 15,
+      "failed": 0,
+      "test_names": [
+        "send_completes_with_record_metadata",
+        "send_fails_when_broker_returns_produce_error",
+        "dropping_send_future_while_buffered_is_ambiguous_but_still_delivers",
+        "send_after_close_returns_closed",
+        "stalled_broker_close_timeout_terminates_boundedly_and_completes_inflight",
+        "retry_queue_shutdown_boundedly_completes_and_releases_permits",
+        "last_handle_drop_releases_permits_and_aborts_tasks",
+        "concurrent_sends_during_close_do_not_hang_and_observe_closed",
+        "durable_closed_flag_across_clones",
+        "delivery_deadline_shared_across_retries_and_consumes_remaining_time",
+        "delivery_deadline_enforces_acknowledgment_wait_bounded_by_remaining",
+        "delivery_deadline_enforces_queueing_wait_under_long_linger",
+        "max_block_and_request_timeout_keep_distinct_documented_meanings",
+        "retry_succeeds_when_broker_recovers_within_delivery_deadline",
+        "delivery_deadline_bounds_metadata_refresh_during_retry"
+      ]
+    },
+    "full_surface_timeout_tests": {
+      "passed": 3,
+      "failed": 0,
+      "test_names": [
+        "admin_update_features_timeout",
+        "admin_alter_list_partition_reassignments_timeout",
+        "admin_create_delete_topics_partitions_timeout"
+      ]
+    },
+    "buffer_ownership_tests": {
+      "passed": 12,
+      "failed": 0,
+      "test_names": [
+        "saturating_try_send_never_exceeds_buffer_memory",
+        "queue_full_under_overload_releases_no_orphan_bytes",
+        "send_timeout_when_buffer_full_and_max_block_expires",
+        "header_heavy_records_count_against_buffer_budget",
+        "zero_value_records_do_not_bypass_saturated_buffer",
+        "shared_backing_and_compressed_records_respect_buffer_budget",
+        "permit_stays_owned_across_retry_and_releases_exactly_once",
+        "presend_failure_transaction_partition_releases_permit_and_flush_fails",
+        "presend_failure_encode_releases_permit_and_flush_fails",
+        "presend_failure_write_releases_permit_and_flush_fails",
+        "presend_failure_write_retry_exhaustion_releases_permit",
+        "presend_failure_real_mock_add_partitions_to_txn"
+      ]
+    },
+    "checks": [
+      "Single producer delivery deadline propagated across metadata, reconnect, queueing, retry backoff, and acknowledgment wait",
+      "Each retry consumes remaining delivery time rather than restarting a full delivery budget",
+      "max_block bounds pre-enqueue waits (metadata, leader connection, buffer reservation); request_timeout caps per-RPC socket waits",
+      "Timed-out transmitted records resolve with Error::Timeout, preserving ambiguous delivery without claiming non-delivery",
+      "Expired queued records under linger or overload are purged with Error::Timeout before transmission without leaking permits",
+      "KL02-02 header accounting, KL02-04 pre-send release, and KL02-05 bounded shutdown fully preserved"
+    ]
+  },
+  "artifacts": [
+    "src/producer.rs",
+    "tests/produce_cancel.rs",
+    "tests/common/mod.rs",
+    "docs/plan/evidence/KL02-06.json"
+  ],
+  "limits": [
+    "Timeout after transmission remains ambiguous delivery; it guarantees the caller outcome is Timeout without proving non-delivery on the broker.",
+    "Forbidden files were not touched.",
+    "No unsafe code and no new dependencies added."
+  ],
+  "blocked_reason": null
+}
