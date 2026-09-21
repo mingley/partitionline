@@ -1,0 +1,51 @@
+{
+  "id": "KL03-04",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "642ee29a77d5ab5e3daba4bda37e306b3f5b055a",
+  "commands": [
+    "cargo test --offline --locked --test consumer_fetch_semantics (exit 0)",
+    "cargo test --offline --locked --test client_api seek (exit 0)",
+    "rustfmt --edition 2021 --check src/consumer.rs tests/consumer_fetch_semantics.rs (exit 0)"
+  ],
+  "results": {
+    "suite": "consumer_fetch_semantics",
+    "total_tests": 22,
+    "passed": 22,
+    "failed": 0,
+    "ignored": 0,
+    "test_names": [
+      "aborted_transaction_spanning_across_fetches_must_return_subsequent_committed_record",
+      "committed_transaction_after_abort_for_same_pid_must_be_visible",
+      "control_scenario_aligned_batch_delivers_and_shuts_down",
+      "fetch_offset_filter_compressed_batches",
+      "fetch_offset_filter_multiple_partitions",
+      "fetch_offset_filter_must_not_bypass_aborted_or_control_filtering",
+      "fetch_offset_filter_must_not_regress_position_or_lose_later_records",
+      "fetch_offset_filter_sparse_and_compacted_offsets",
+      "fixture_broker_drop_aborts_tasks",
+      "fixture_broker_wire_handshake_and_bounded_shutdown",
+      "fixture_builds_abort_then_commit_control_marker_sequence",
+      "fixture_builds_one_partition_retry_beside_successful_partition",
+      "fixture_builds_out_of_range_partition_response",
+      "fixture_builds_whole_batch_with_records_before_requested_offset_without_prefiltering",
+      "mixed_partition_retry_aborted_must_not_advance_positions_for_discarded_records",
+      "mixed_partition_retry_must_preserve_successful_records",
+      "mixed_partition_retry_with_preferred_replica_redirect_must_preserve_successful_records",
+      "mixed_partition_retry_with_transport_failure_must_preserve_successful_records",
+      "nontransactional_records_sharing_aborted_pid_must_be_visible",
+      "read_committed_multiple_aborted_intervals_and_pids",
+      "read_committed_stops_at_last_stable_offset_boundary",
+      "seek_inside_batch_must_not_return_earlier_records"
+    ]
+  },
+  "artifacts": [
+    "src/consumer.rs",
+    "tests/consumer_fetch_semantics.rs",
+    "docs/plan/evidence/KL03-04.json"
+  ],
+  "limits": [
+    "A04 (auto.offset.reset=None error handling) and A05 (buffered fetch cursor commit) remain scoped to their respective cards KL03-05 through KL03-07."
+  ],
+  "blocked_reason": null
+}
