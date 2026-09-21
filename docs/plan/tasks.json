@@ -359,13 +359,31 @@
     {
       "id": "KL02-04",
       "title": "Release producer reservations on pre-send failures",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL02-01"],
       "files": ["src/producer.rs", "tests/buffer_ownership.rs", "tests/common/mod.rs"],
       "deliverable": "Regression coverage and fixes for failures after draining pending records but before registering an in-flight request.",
       "acceptance": ["Inject transaction-partition, encode and write errors at the actual ownership transition.", "All accepted futures terminate with the right error/ambiguity and flush observes failure.", "Reserved bytes and retry counters return to zero; unrelated records are not silently dropped."],
       "validation": ["cargo test --locked --test buffer_ownership", "cargo test --locked --test full_surface transactional"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "8cae6936a8fda65fc0b731475b6cd0b988337260",
+                "commands": [
+                        "cargo test --offline --locked --test buffer_ownership (12 passed, exit 0)",
+                        "cargo test --offline --locked --test full_surface transactional (5 passed, exit 0)"
+                ],
+                "results": "Transaction-partition, encode, and injected write failures before an in-flight registration release the buffer permit once, roll back uncommitted sequences, fail the accepted futures, and make flush observe the failure. A full retry queue also releases rather than leaking the permit. Unrelated pending records stay queued.",
+                "artifacts": [
+                        "src/producer.rs",
+                        "tests/buffer_ownership.rs",
+                        "tests/common/mod.rs",
+                        "docs/plan/evidence/KL02-04.json"
+                ],
+                "limits": [
+                        "A real socket error after some bytes may have reached the broker is still classified as retriable or failed, not a separate ambiguous outcome. That remains the KL02-07 producer split-timeout limit."
+                ]
+        }
+]
     },
     {
       "id": "KL02-05",
