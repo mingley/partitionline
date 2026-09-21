@@ -215,13 +215,31 @@
     {
       "id": "KL01-08",
       "title": "Wire independent conformance reports into CI",
-      "priority": "P0", "kind": "ci", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "ci", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-02", "KL01-04", "KL01-05", "KL01-06", "KL01-07"],
       "files": [".github/workflows/ci.yml", "scripts/ci-protocol-oracles.sh", "scripts/conformance-report.py"],
       "deliverable": "A required fixture lane and explicit opt-in/live lane with durable result artifacts.",
       "acceptance": ["Missing Java/broker prerequisites fail required cells rather than silently substituting peers.", "Upload actual peer identity, negotiated API versions and all case dispositions.", "Default unit consistency tests retain their fast offline path and accurate label."],
       "validation": ["bash scripts/ci-protocol-oracles.sh --self-test", "Exercise missing-artifact and wrong-peer negative paths in the report tests.", "Inspect one completed CI artifact and its exact source SHA."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "57fa162a4fa0bb39f0efdefcc2a113ef0e50ba0b",
+                "commands": [
+                        "bash scripts/ci-protocol-oracles.sh --self-test (exit 0)",
+                        "bash scripts/ci-protocol-oracles.sh --report /tmp/pl-fixture-report.json (exit 0, 8 local_consistency cells, 0 independent_pass)"
+                ],
+                "results": "CI has a required fixture lane and an opt-in live lane. Missing Java, missing broker, missing artifacts, and wrong-peer substitution fail. The full registry with historical failed cases still fails closed. The fixture lane labels matrix cells as local consistency, not independent passes. Offline protocol_oracles remain the fast path.",
+                "artifacts": [
+                        ".github/workflows/ci.yml",
+                        "scripts/ci-protocol-oracles.sh",
+                        "scripts/conformance-report.py",
+                        "docs/plan/evidence/KL01-08.json"
+                ],
+                "limits": [
+                        "A completed GitHub Actions artifact was not inspected. The fixture lane does not claim the consumer regressions are independent passes."
+                ]
+        }
+]
     },
     {
       "id": "KL01-09",
