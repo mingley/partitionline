@@ -1,0 +1,28 @@
+{
+  "id": "KL03-17",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "6a6baf0bc5435c8882a8390556610916e7691d0e",
+  "commands": [
+    "bash scripts/cluster-fixture.sh --self-test (exit 0)",
+    "python3 -m unittest discover -s tests/cluster -p 'test_*.py' (12 passed, exit 0)"
+  ],
+  "results": {
+    "test_count": 12,
+    "passed": 12,
+    "failed": 0,
+    "self_test": "passed",
+    "summary": "Isolated three-broker KRaft RF=3/min-ISR=2 cluster fixture implemented. Pinned official images (apache/kafka:4.1.0, apache/kafka:3.9.1), broker and controller roles on nodes 1-3, distinct ports (19092-19097), feature levels (share.version=1, metadata.version=4.1-IV0), and topology manifest. Lifecycle and deterministic fault controls (start, status, stop, restart, disconnect, reconnect, leader-move) address only recorded owned resources in resources.json. Missing approval, Docker, or Java fails explicitly. Safe cleanup purges only recorded owned containers/PIDs and recorded owned topics; never kills by name or deletes unowned topics."
+  },
+  "artifacts": [
+    "tests/cluster/topology.json",
+    "tests/cluster/test_fixture.py",
+    "scripts/cluster-fixture.sh",
+    "docs/plan/evidence/KL03-17.json"
+  ],
+  "limits": [
+    "Tested with isolated fake backend only; no real Kafka cluster, Docker container, or broker process was started. Real cluster execution requires explicit operator approval (CLUSTER_FIXTURE_APPROVED=1) and remains a recorded limit, not an offline test pass.",
+    "Data-plane fault campaigns (KL03-19), transactional fencing histories (KL03-20), and group churn evidence (KL03-21) remain separate dependent cards."
+  ],
+  "blocked_reason": null
+}

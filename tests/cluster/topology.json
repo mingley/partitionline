@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "cluster_id": "pl-kraft-cluster-0000000001",
+  "name": "partitionline-three-broker-fixture",
+  "replication_factor": 3,
+  "min_insync_replicas": 2,
+  "image": "apache/kafka:4.1.0",
+  "alternative_images": [
+    "apache/kafka:3.9.1"
+  ],
+  "feature_levels": {
+    "metadata.version": "4.1-IV0",
+    "share.version": 1,
+    "group.version": 1,
+    "transaction.version": 2
+  },
+  "configs": {
+    "default.replication.factor": 3,
+    "min.insync.replicas": 2,
+    "offsets.topic.replication.factor": 3,
+    "transaction.state.log.replication.factor": 3,
+    "transaction.state.log.min.isr": 2,
+    "share.coordinator.state.topic.replication.factor": 3,
+    "share.coordinator.state.topic.min.isr": 2,
+    "group.initial.rebalance.delay.ms": 0,
+    "unstable.api.versions.enable": true,
+    "group.share.enable": true
+  },
+  "quorum_voters": "1@127.0.0.1:19093,2@127.0.0.1:19095,3@127.0.0.1:19097",
+  "bootstrap_servers": "127.0.0.1:19092,127.0.0.1:19094,127.0.0.1:19096",
+  "nodes": [
+    {
+      "node_id": 1,
+      "roles": ["broker", "controller"],
+      "client_port": 19092,
+      "controller_port": 19093,
+      "client_listener": "PLAINTEXT://127.0.0.1:19092",
+      "controller_listener": "CONTROLLER://127.0.0.1:19093",
+      "advertised_listeners": "PLAINTEXT://127.0.0.1:19092"
+    },
+    {
+      "node_id": 2,
+      "roles": ["broker", "controller"],
+      "client_port": 19094,
+      "controller_port": 19095,
+      "client_listener": "PLAINTEXT://127.0.0.1:19094",
+      "controller_listener": "CONTROLLER://127.0.0.1:19095",
+      "advertised_listeners": "PLAINTEXT://127.0.0.1:19094"
+    },
+    {
+      "node_id": 3,
+      "roles": ["broker", "controller"],
+      "client_port": 19096,
+      "controller_port": 19097,
+      "client_listener": "PLAINTEXT://127.0.0.1:19096",
+      "controller_listener": "CONTROLLER://127.0.0.1:19097",
+      "advertised_listeners": "PLAINTEXT://127.0.0.1:19096"
+    }
+  ]
+}
