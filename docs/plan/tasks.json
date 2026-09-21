@@ -617,13 +617,30 @@
     {
       "id": "KL04-02",
       "title": "Add the raw benchmark result and provenance format",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL04-01"],
       "files": ["new: benchmarks/result-schema.json", "new: scripts/benchmark-report.py", "new: benchmarks/tests/test_report.py"],
       "deliverable": "A fail-closed result format and validator shared by all peer drivers.",
       "acceptance": ["Include source/binary/config hashes, toolchains, actual broker/image, host/CPU/OS, topology, timestamps, seeds and artifact checksums.", "Record offered, accepted, acknowledged, consumed, rejected, timed-out and unknown outcomes separately.", "Retain raw histograms/samples and client/broker CPU, allocations, RSS, lag and errors; reject incompatible units, missing required measurements or integrity failures."],
       "validation": ["python3 -m unittest discover -s benchmarks/tests -p test_report.py", "Reject a fixture with excellent throughput but missing IDs or mismatched acks."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "84f8d8eb3e7d5a37ec52f7dd2192619194b548ce",
+                "commands": [
+                        "python3 -m unittest discover -s benchmarks/tests -p test_report.py (17 passed, exit 0)"
+                ],
+                "results": "Fail-closed result schema records provenance, separate offered/accepted/acknowledged/consumed/rejected/timed-out/unknown outcomes, and raw measurements. Excellent throughput with missing IDs or mismatched acks is rejected. Suite HOLD remains active. No benchmark campaign was run.",
+                "artifacts": [
+                        "benchmarks/result-schema.json",
+                        "scripts/benchmark-report.py",
+                        "benchmarks/tests/test_report.py",
+                        "docs/plan/evidence/KL04-02.json"
+                ],
+                "limits": [
+                        "Format only. Peer drivers and measured runs remain later KL04 cards."
+                ]
+        }
+]
     },
     {
       "id": "KL04-03",
@@ -1348,13 +1365,32 @@
     {
       "id": "KL08-03",
       "title": "Retire obsolete publishers and serialize release execution",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL08-01"],
       "files": [".github/workflows/first-publish.yml", ".github/workflows/release.yml", "scripts/owner-publish.sh", "docs/RELEASE.md"],
       "deliverable": "One authorized publication path and a shared non-cancelling release lock.",
       "acceptance": ["Disable/retire the version-0.1.0 first-publish workflow without recutting 0.1.0.", "Serialize different tags and same-tag reruns; interrupted publish/confirmation/release-note steps are idempotent.", "Owner/local paths call the same eligibility logic, while release-plz remains PR-only; no actual publication in this task."],
       "validation": ["bash scripts/rehearse-partial-release.sh --self-test", "Add workflow/fixture checks for competing tags, retries and obsolete dispatch paths."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "8f6721f75eb605cd04191cb41860d4582dce00cb",
+                "commands": [
+                        "python3 -m unittest discover -s tests/release -p test_*.py (32 passed, exit 0)",
+                        "bash scripts/rehearse-partial-release.sh --self-test (exit 0, recorded by the card)"
+                ],
+                "results": "first-publish.yml fails closed and does not recut 0.1.0. release.yml and the retired workflow share release-publish-lock with cancel-in-progress false. owner-publish refuses non-final versions and still uses the existing crates.io skip. release-plz remains PR-only. No publish, tag, or registry upload was performed.",
+                "artifacts": [
+                        ".github/workflows/first-publish.yml",
+                        ".github/workflows/release.yml",
+                        "scripts/owner-publish.sh",
+                        "tests/release/test_publish_serialization.py",
+                        "docs/plan/evidence/KL08-03.json"
+                ],
+                "limits": [
+                        "No live release was executed. A completed GitHub Actions run of the new lock was not inspected."
+                ]
+        }
+]
     },
     {
       "id": "KL08-04",
