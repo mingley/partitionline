@@ -1,0 +1,30 @@
+{
+  "id": "KL08-01",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "3043bbc5302bb89c4db26c0aa1c1e40654fd2433",
+  "commands": [
+    "python3 -m unittest discover -s tests/release -p test_ci_gate.py (rc=0)",
+    "cargo fmt --all -- --check (rc=0)",
+    "cargo clippy --all-targets --all-features -- -D warnings (rc=0)",
+    "CHECK_SHA=cb7e97d3b92a8555aea34d59266a2990c206395f REQUIRE_MAIN_CI=1 bash scripts/check-main-ci.sh (rc=0)",
+    "CHECK_SHA=cb7e97d3b92a8555aea34d59266a2990c206395f REQUIRE_MAIN_CI=1 GH_RUNS_JSON=<synthetic_non_ci> bash scripts/check-main-ci.sh (rc=1)",
+    "CHECK_SHA=bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000 REQUIRE_MAIN_CI=1 bash scripts/check-main-ci.sh (rc=1)"
+  ],
+  "results": {
+    "test_count": 17,
+    "passed": 17,
+    "failed": 0,
+    "skipped": 0,
+    "summary": "17 unittest cases in tests/release/test_ci_gate.py passed. Verified exact workflow identity rejection of non-CI runs (Release-plz, release, first-publish), exact SHA matching, attempt selection across multiple runs/attempts, multi-page and colon-separated file pagination, and distinct stderr outcome signatures for wrong_sha, missing, pending, cancelled, and failed."
+  },
+  "artifacts": [
+    "scripts/check-main-ci.sh",
+    "tests/release/test_ci_gate.py",
+    "docs/plan/evidence/KL08-01.json"
+  ],
+  "limits": [
+    "Live positive check against known-green SHA cb7e97d is read-only and depends on GitHub Actions run retention for run 33948193731. Unit tests use offline read-only fixtures without network or GitHub auth."
+  ],
+  "blocked_reason": null
+}
