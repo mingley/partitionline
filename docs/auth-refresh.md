@@ -18,7 +18,7 @@ Every citation below has been verified against the current source in this worktr
 
 ### 2.1. OIDC Token Endpoint (`src/protocol/oidc.rs`)
 - **Configuration & Redaction:** [`OidcConfig`](../src/protocol/oidc.rs:22) stores `token_url`, `client_id`, `client_secret`, and optional TLS configuration [`TlsConfig`](../src/net.rs). Its [`fmt::Debug`](../src/protocol/oidc.rs:32) implementation redacts `client_secret` as `"<redacted>"`.
-- **Landed One-Shot Bounded Retry:** [`fetch_client_credentials_token`](../src/protocol/oidc.rs:80) executes up to [`OIDC_FETCH_ATTEMPTS = 3`](../src/protocol/oidc.rs:70) attempts, starting with backoff [`OIDC_RETRY_BACKOFF_START = 20ms`](../src/protocol/oidc.rs:72) doubling per attempt, bounded by the caller's overall `request_timeout` deadline.
+- **Landed One-Shot Bounded Retry:** [`fetch_client_credentials_token`](../src/protocol/oidc.rs:85) executes up to [`OIDC_FETCH_ATTEMPTS = 3`](../src/protocol/oidc.rs:75) attempts, starting with backoff [`OIDC_RETRY_BACKOFF_START = 20ms`](../src/protocol/oidc.rs:77) doubling per attempt, bounded by the caller's overall `request_timeout` deadline.
 - **Classification:** [`is_transient_oidc_error`](../src/protocol/oidc.rs:106) treats `Error::Timeout`, `Error::Io`, and HTTP 5xx (parsed via [`oidc_http_status`](../src/protocol/oidc.rs:121)) as transient. Non-transient errors (such as HTTP 4xx client errors) fail immediately without retrying.
 - **Network Roundtrip:** [`fetch_client_credentials_token_once`](../src/protocol/oidc.rs:126) parses the URL via [`parse_http_url`](../src/protocol/oidc.rs:207), establishes a raw TCP/TLS connection, encodes HTTP Basic Auth credentials via [`basic_auth`](../src/protocol/oidc.rs:286), and invokes [`token_http_roundtrip`](../src/protocol/oidc.rs:324) and [`read_http_response`](../src/protocol/oidc.rs:335).
 - **Secret-Redacted Errors:** Non-200 HTTP responses return `Error::protocol(format!("oidc token endpoint HTTP {status}"))` ([`src/protocol/oidc.rs:167`](../src/protocol/oidc.rs:167)) without copying the IdP response body, preventing token or secret echo in logs.
@@ -29,7 +29,7 @@ Every citation below has been verified against the current source in this worktr
 - **Encoders & Decoders:**
   - `SaslHandshake`: [`encode_sasl_handshake_request`](../src/protocol/sasl.rs:80), [`decode_sasl_handshake_response`](../src/protocol/sasl.rs:94).
   - `SaslAuthenticate`: [`encode_sasl_authenticate_request`](../src/protocol/sasl.rs:166), [`decode_sasl_authenticate_request`](../src/protocol/sasl.rs:180), [`encode_sasl_authenticate_response`](../src/protocol/sasl.rs:194), and [`decode_sasl_authenticate_response`](../src/protocol/sasl.rs:219).
-- **Session Lifetime Decoding:** [`decode_sasl_authenticate_response`](../src/protocol/sasl.rs:219) decodes `(error_code, error_message, auth_bytes, session_lifetime_ms)` (returning `session_lifetime_ms` at line 228 on v1+).
+- **Session Lifetime Decoding:** [`decode_sasl_authenticate_response`](../src/protocol/sasl.rs:219) decodes `(error_code, error_message, auth_bytes, session_lifetime_ms)` (returning `session_lifetime_ms` at line 227 on v1+).
 - **Dropped Lifetime In OAUTHBEARER:** [`authenticate_oauthbearer_token`](../src/protocol/sasl.rs:434) sends `SaslHandshake` with mechanism `"OAUTHBEARER"` and `SaslAuthenticate` with `client_initial(token)`. At line 466:
   ```rust
   let (code, msg, bytes, _) = decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
