@@ -187,13 +187,30 @@
     {
       "id": "KL01-07",
       "title": "Add independent ListOffsets wire fixtures",
-      "priority": "P1", "kind": "conformance", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "conformance", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-03"],
       "files": ["tests/protocol_oracles.rs", "tests/fixtures/protocol_oracles/", "tests/conformance/java/"],
       "deliverable": "Independent ListOffsets fixtures for the existing spoken range.",
       "acceptance": ["Cover earliest/latest/timestamp variants, leader epochs, isolation, errors and v10 timeout.", "Requests and responses are checked against Apache rather than only round-tripped locally.", "Unsupported timestamp/version combinations have explicit outcomes."],
       "validation": ["cargo test --locked --test protocol_oracles", "Run the pinned Java comparison for the ListOffsets fixture family."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "7f355f1460404314c731d455ef59abe3aaf948f3",
+                "commands": [
+                        "cargo test --offline --locked --test protocol_oracles (15 passed, 1 ignored live broker, exit 0)"
+                ],
+                "results": "Committed Apache ListOffsets fixtures cover v1 through v10, including isolation, leader epoch, earliest/latest/max timestamp, earliest-local, latest-tiered, and v10 timeoutMs=1500. Rust decodes them offline and asserts the v10 timeout. A field-order mutation fails. The Java comparison test ran rather than skipping.",
+                "artifacts": [
+                        "tests/fixtures/protocol_oracles/list_offsets_v10_timeout_request.bin",
+                        "tests/fixtures/protocol_oracles/list_offsets_v2_isolation_request.bin",
+                        "tests/protocol_oracles.rs",
+                        "docs/plan/evidence/KL01-07.json"
+                ],
+                "limits": [
+                        "ListOffsets family only. Existing matrix tests are still local consistency, not independent passes."
+                ]
+        }
+]
     },
     {
       "id": "KL01-08",
