@@ -582,13 +582,30 @@
     {
       "id": "KL03-05",
       "title": "Apply auto.offset.reset after out-of-range fetches",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL03-04"],
       "files": ["src/consumer.rs", "tests/consumer_fetch_semantics.rs", "tests/full_surface.rs"],
       "deliverable": "Fix audit A04 for Earliest, Latest and None, including follower recovery.",
       "acceptance": ["None returns an explicit error without silently changing position.", "Earliest/Latest resolve the appropriate leader offset and clear stale pending/epoch state.", "An out-of-range preferred replica is retried at the leader before applying a destructive reset policy; retain earlier intended behavior where applicable."],
       "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test full_surface fetch_offset_out_of_range"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "f6cfc6696db4748d55583a57fec06c6761cdcaa1",
+                "commands": [
+                        "cargo test --offline --locked --test consumer_fetch_semantics (27 passed, exit 0)",
+                        "cargo test --offline --locked --test full_surface fetch_offset_out_of_range (1 passed, exit 0)"
+                ],
+                "results": "auto.offset.reset=None returns OFFSET_OUT_OF_RANGE and does not move the position. Earliest uses log start and Latest uses the high watermark, clearing stale pending and epoch state. An out-of-range preferred replica is retried at the leader before a reset. Prior offset-filter, abort-marker, and partial-retry tests still pass.",
+                "artifacts": [
+                        "src/consumer.rs",
+                        "tests/consumer_fetch_semantics.rs",
+                        "docs/plan/evidence/KL03-05.json"
+                ],
+                "limits": [
+                        "A05 capped-poll commit remains open. The existing full_surface case still covers the Earliest log-start jump, not None."
+                ]
+        }
+]
     },
     {
       "id": "KL03-06",
