@@ -1,0 +1,145 @@
+{
+  "id": "KL01-11",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "6a6baf0bc5435c8882a8390556610916e7691d0e",
+  "commands": [
+    "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/conformance -p test_check_protocol_coverage.py (rc=0, 15 tests passed)",
+    "PYTHONDONTWRITEBYTECODE=1 python3 scripts/check-protocol-coverage.py --self-test (rc=0)",
+    "PYTHONDONTWRITEBYTECODE=1 python3 scripts/check-protocol-coverage.py (rc=0, clean frozen pins report, 0 unclassified drift)",
+    "PYTHONDONTWRITEBYTECODE=1 python3 scripts/check-protocol-coverage.py --diff-only (rc=0)",
+    "PYTHONDONTWRITEBYTECODE=1 python3 scripts/check-protocol-coverage.py --json (rc=0)"
+  ],
+  "results": {
+    "frozen_pins": ["3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1"],
+    "total_pinned_apis": 88,
+    "total_catalog_keys": 91,
+    "gap_counts": {
+      "implemented_client_apis": 62,
+      "version_gaps": 40,
+      "missing_runtime_wiring_apis": 4,
+      "missing_runtime_features": 16,
+      "partial_runtime_features": 12,
+      "excluded_broker_internal_apis": 22,
+      "excluded_frameworks": 3,
+      "unclassified_drift": 0
+    },
+    "synthetic_injection_failure_verified": true,
+    "key_names_not_counted_as_implemented": true,
+    "no_uncovered_apis_claimed_implemented": true,
+    "difference_summary": {
+      "missing_runtime_wiring_apis": [
+        {
+          "api_key": 43,
+          "name": "ElectLeaders",
+          "feature_id": "full_admin.elect_leaders",
+          "reason": "ElectLeaders api_key exists in api_keys.rs, but client runtime method Admin::elect_leaders is missing (entrypoint: none in features.json)."
+        },
+        {
+          "api_key": 55,
+          "name": "DescribeQuorum",
+          "feature_id": "full_admin.describe_quorum",
+          "reason": "DescribeQuorum api_key exists in api_keys.rs, but client runtime method Admin::describe_quorum is missing (entrypoint: none in features.json)."
+        },
+        {
+          "api_key": 80,
+          "name": "AddRaftVoter",
+          "feature_id": "full_admin.add_raft_voter",
+          "reason": "AddRaftVoter api_key exists in api_keys.rs, but client runtime method Admin::add_raft_voter is missing (entrypoint: none in features.json)."
+        },
+        {
+          "api_key": 81,
+          "name": "RemoveRaftVoter",
+          "feature_id": "full_admin.remove_raft_voter",
+          "reason": "RemoveRaftVoter api_key exists in api_keys.rs, but client runtime method Admin::remove_raft_voter is missing (entrypoint: none in features.json)."
+        }
+      ],
+      "key_version_gaps": [
+        {
+          "api_key": 0,
+          "name": "Produce",
+          "version": 13,
+          "direction": "upstream_cap",
+          "reason": "Produce v13 adds topic IDs (KIP-516); client capped at v12 (producer.v13_wire missing in features.json, cases.json)"
+        },
+        {
+          "api_key": 1,
+          "name": "Fetch",
+          "version": 18,
+          "direction": "upstream_cap",
+          "reason": "Fetch v18 adds HighWatermark (KIP-1166); client capped at v17 (manual_consumer.v18_wire missing in features.json, cases.json)"
+        },
+        {
+          "api_key": 2,
+          "name": "ListOffsets",
+          "version": 11,
+          "direction": "upstream_cap",
+          "reason": "ListOffsets v11 in Kafka 4.3.1; client capped at v10 (manual_consumer.list_offsets_v11 missing in features.json, cases.json)"
+        },
+        {
+          "api_key": 24,
+          "name": "AddPartitionsToTxn",
+          "version": 4,
+          "direction": "upstream_cap",
+          "reason": "AddPartitionsToTxn v4 adds batched transactions; client capped at v3 (src/protocol/header.rs)"
+        },
+        {
+          "api_key": 24,
+          "name": "AddPartitionsToTxn",
+          "version": 5,
+          "direction": "upstream_cap",
+          "reason": "AddPartitionsToTxn v5 adds batched transactions; client capped at v3 (src/protocol/header.rs)"
+        },
+        {
+          "api_key": 35,
+          "name": "DescribeLogDirs",
+          "version": 5,
+          "direction": "upstream_cap",
+          "reason": "DescribeLogDirs v5 in Kafka 4.3.1; client capped at v4 (full_admin.describe_log_dirs_v5 missing in features.json)"
+        },
+        {
+          "api_key": 78,
+          "name": "ShareFetch",
+          "version": 2,
+          "direction": "upstream_cap",
+          "reason": "ShareFetch v2 in Kafka 4.3.1; client capped at v1 (share.v2_wire_delta missing in features.json)"
+        }
+      ],
+      "excluded_broker_internal_apis": [
+        {"api_key": 4, "name": "LeaderAndIsr", "reason": "inter-broker replica state propagation"},
+        {"api_key": 5, "name": "StopReplica", "reason": "controller-to-broker replica deletion"},
+        {"api_key": 6, "name": "UpdateMetadata", "reason": "controller-to-broker cluster state broadcast"},
+        {"api_key": 7, "name": "ControlledShutdown", "reason": "broker-to-controller graceful shutdown"},
+        {"api_key": 27, "name": "WriteTxnMarkers", "reason": "inter-broker transaction marker propagation"},
+        {"api_key": 52, "name": "Vote", "reason": "KRaft consensus leader voting"},
+        {"api_key": 53, "name": "BeginQuorumEpoch", "reason": "KRaft consensus leader epoch transition"},
+        {"api_key": 54, "name": "EndQuorumEpoch", "reason": "KRaft consensus leader resign"},
+        {"api_key": 56, "name": "AlterPartition", "reason": "broker leader ISR state update to controller"},
+        {"api_key": 57, "name": "UpdateFeatures", "reason": "cluster feature flag update (clusterAction)"},
+        {"api_key": 58, "name": "Envelope", "reason": "inter-broker request forwarding wrapper"},
+        {"api_key": 59, "name": "FetchSnapshot", "reason": "KRaft controller state machine snapshot replication"},
+        {"api_key": 62, "name": "BrokerRegistration", "reason": "KRaft broker bootstrap registration"},
+        {"api_key": 63, "name": "BrokerHeartbeat", "reason": "KRaft broker liveness heartbeat to controller"},
+        {"api_key": 67, "name": "AllocateProducerIds", "reason": "inter-broker transactional PID block allocation"},
+        {"api_key": 70, "name": "ControllerRegistration", "reason": "KRaft controller registration"},
+        {"api_key": 82, "name": "UpdateRaftVoter", "reason": "KRaft voter membership reconfig"},
+        {"api_key": 83, "name": "InitializeShareGroupState", "reason": "broker-to-persister share state storage"},
+        {"api_key": 84, "name": "ReadShareGroupState", "reason": "broker-to-persister share state read"},
+        {"api_key": 85, "name": "WriteShareGroupState", "reason": "broker-to-persister share state write"},
+        {"api_key": 86, "name": "DeleteShareGroupState", "reason": "broker-to-persister share state deletion"},
+        {"api_key": 87, "name": "ReadShareGroupStateSummary", "reason": "broker-to-persister share state summary"}
+      ]
+    }
+  },
+  "artifacts": [
+    "scripts/check-protocol-coverage.py",
+    "tests/conformance/test_check_protocol_coverage.py",
+    "docs/plan/evidence/KL01-11.json"
+  ],
+  "limits": [
+    "Standard-library checker and unit tests only; offline deterministic comparison without network or live broker dependencies.",
+    "Frozen Apache pins evaluated: 3.9.1, 4.1.0, 4.1.2, 4.2.1, 4.3.1.",
+    "No codec-generator rewrite performed; read-only conformance registry and features matrix preserved untouched."
+  ],
+  "blocked_reason": null
+}
