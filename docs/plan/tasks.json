@@ -450,13 +450,31 @@
     {
       "id": "KL03-12",
       "title": "Honor the KIP-848 broker heartbeat interval",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": [],
       "files": ["src/group.rs", "tests/full_surface.rs", "tests/common/mod.rs"],
       "deliverable": "Broker-directed scheduling for consumer-protocol heartbeats without changing classic-group timing.",
       "acceptance": ["Apply heartbeat_interval_ms on join and subsequent responses, including changes.", "Reject or safely classify invalid intervals and retain prompt stop/max-poll behavior.", "Use deterministic timing controls to prove the client no longer defaults to a 150 ms loop when the broker requests seconds."],
       "validation": ["cargo test --locked --test full_surface kip848", "cargo test --locked --test consumer_close_commit"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "4c9cc0d61f81ff74a2542da57e41cd80c6eebee5",
+                "commands": [
+                        "cargo test --offline --locked --test full_surface kip848 (9 passed, exit 0)",
+                        "cargo test --offline --locked --test consumer_close_commit (4 passed, exit 0)"
+                ],
+                "results": "KIP-848 heartbeats use broker heartbeat_interval_ms on join and on later responses. Invalid intervals are rejected on join and do not hot-loop later. Classic heartbeat timing is unchanged. Leave and max-poll wake without waiting out a multi-second broker interval. Follow-up removed a reentrant parking_lot lock and set the mock default to 150 ms so existing 2s heartbeat waits still observe a beat.",
+                "artifacts": [
+                        "src/group.rs",
+                        "tests/full_surface.rs",
+                        "tests/common/mod.rs",
+                        "docs/plan/evidence/KL03-12.json"
+                ],
+                "limits": [
+                        "Share-group heartbeat interval remains KL03-13. No live broker run."
+                ]
+        }
+]
     },
     {
       "id": "KL03-13",
