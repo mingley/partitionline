@@ -1,0 +1,39 @@
+{
+  "id": "KL03-01",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+  "commands": [
+    "cargo test --offline --locked --test consumer_fetch_semantics (exit 0)",
+    "rustfmt --edition 2021 --check tests/common/fetch_fixture.rs tests/consumer_fetch_semantics.rs (exit 0)",
+    "cargo test --offline --locked --test audit_probe [diagnostic audit probe verification] (exit 101, 5 failed as expected)"
+  ],
+  "results": {
+    "suite": "consumer_fetch_semantics",
+    "total_tests": 7,
+    "passed": 7,
+    "failed": 0,
+    "ignored": 0,
+    "test_names": [
+      "control_scenario_aligned_batch_delivers_and_shuts_down",
+      "fixture_builds_abort_then_commit_control_marker_sequence",
+      "fixture_builds_one_partition_retry_beside_successful_partition",
+      "fixture_builds_out_of_range_partition_response",
+      "fixture_builds_whole_batch_with_records_before_requested_offset_without_prefiltering",
+      "fixture_broker_drop_aborts_tasks",
+      "fixture_broker_wire_handshake_and_bounded_shutdown"
+    ]
+  },
+  "artifacts": [
+    "tests/common/fetch_fixture.rs",
+    "tests/consumer_fetch_semantics.rs",
+    "docs/plan/evidence/KL03-01.json"
+  ],
+  "limits": [
+    "Five audit defects (A01-A05 documented in docs/audits/2026-09-21-consumer-probes.rs) are not promoted to consumer_fetch_semantics and are still failing when re-run; each will be promoted alongside its specific repair in KL03-02 through KL03-06.",
+    "src/consumer.rs and other src/** files were not modified (forbidden by card scope).",
+    "tests/common/mod.rs was not modified (owned by KL03-12 this wave).",
+    "Loopback socket test only; no live multi-broker cluster or external network was exercised."
+  ],
+  "blocked_reason": null
+}
