@@ -9,6 +9,12 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      live_broker:
+        description: 'Run explicit opt-in live broker conformance lane'
+        required: false
+        default: false
+        type: boolean
 
 # One CI group per ref. Always cancel superseded runs — including on main —
 # so a stuck queued job cannot hold the only org runner for hours (seen
@@ -221,3 +227,60 @@ jobs:
           SKIP_LATENCY_GATE: "1"
           COUNT: "2000"
         run: bash scripts/ci-integrity-smoke.sh
+
+  # KL01-08: Required conformance fixture lane with durable result artifacts.
+  # Fails closed on missing Java prerequisites, missing artifacts, or wrong peers.
+  conformance-fixtures:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Setup Java (Kafka fixture verification)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Conformance harness self-test
+        run: bash scripts/ci-protocol-oracles.sh --self-test
+      - name: Run conformance fixture lane
+        env:
+          CI: "true"
+          REQUIRE_JAVA: "1"
+        run: |
+          mkdir -p target/conformance
+          bash scripts/ci-protocol-oracles.sh --report target/conformance/fixture-report.json
+      - name: Upload conformance fixture artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: conformance-fixture-artifacts
+          path: target/conformance/*
+
+  # KL01-08: Explicit opt-in live broker conformance lane with durable result artifacts.
+  # Fails closed on missing broker prerequisites or peer substitution.
+  conformance-live:
+    if: (github.event_name == 'workflow_dispatch' && inputs.live_broker == true) || contains(github.event.pull_request.labels.*.name, 'live-broker')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        kafka_image: ["apache/kafka:3.9.1", "apache/kafka:4.1.0"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run live broker conformance lane
+        env:
+          CI: "true"
+          KAFKA_IMAGE: ${{ matrix.kafka_image }}
+          REQUIRE_BROKER: "1"
+        run: |
+          mkdir -p target/conformance
+          slug="$(echo "${{ matrix.kafka_image }}" | tr '/:' '-')"
+          bash scripts/ci-protocol-oracles.sh --live --report "target/conformance/live-report-${slug}.json"
+      - name: Upload conformance live artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: conformance-live-artifacts
+          path: target/conformance/*

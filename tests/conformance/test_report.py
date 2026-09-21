@@ -347,6 +347,149 @@ class TestConformanceReportValidation(ConformanceReportTestBase):
             conformance_report.validate_and_aggregate_reports(registry, [("rep", report)])
         self.assertIn("without an explicit reason", str(ctx.exception))
 
+    def test_missing_artifact_empty_string_rejected(self):
+        """Reject independent_pass when artifact is an empty or whitespace string."""
+        registry = self.create_minimal_registry()
+        report = {
+            "cases": [
+                {"id": "case-produce-1", "status": "independent_pass", "artifact": "   "},
+                {"id": "case-fetch-1", "status": "independent_pass", "artifact": "dummy"},
+                {"id": "case-internal-1", "status": "not_applicable", "reason": "Excluded"},
+            ]
+        }
+        with self.assertRaises(conformance_report.ConformanceValidationError) as ctx:
+            conformance_report.validate_and_aggregate_reports(registry, [("rep", report)], check_artifacts=False)
+        self.assertIn("absent artifact", str(ctx.exception))
+
+    def test_missing_artifact_empty_list_rejected(self):
+        """Reject independent_pass when artifacts list is empty."""
+        registry = self.create_minimal_registry()
+        report = {
+            "cases": [
+                {"id": "case-produce-1", "status": "independent_pass", "artifacts": []},
+                {"id": "case-fetch-1", "status": "independent_pass", "artifact": "dummy"},
+                {"id": "case-internal-1", "status": "not_applicable", "reason": "Excluded"},
+            ]
+        }
+        with self.assertRaises(conformance_report.ConformanceValidationError) as ctx:
+            conformance_report.validate_and_aggregate_reports(registry, [("rep", report)], check_artifacts=False)
+        self.assertIn("absent artifact", str(ctx.exception))
+
+    def test_wrong_peer_identity_rejected(self):
+        """Reject case specifying peer identity conflicting with expected peer pin."""
+        registry = self.create_minimal_registry()
+        art = self.create_artifact()
+        # Case 1 expects 3.9.1, but peer_identity is 4.1.0
+        report = {
+            "cases": [
+                {
+                    "id": "case-produce-1",
+                    "status": "independent_pass",
+                    "artifact": str(art),
+                    "peer_identity": "fixture:apache/kafka:4.1.0",
+                },
+                {"id": "case-fetch-1", "status": "independent_pass", "artifact": str(art)},
+                {"id": "case-internal-1", "status": "not_applicable", "reason": "Excluded"},
+            ]
+        }
+        with self.assertRaises(conformance_report.ConformanceValidationError) as ctx:
+            conformance_report.validate_and_aggregate_reports(registry, [("rep", report)])
+        self.assertIn("wrong peer identity", str(ctx.exception))
+
+    def test_wrong_top_level_peer_identity_rejected(self):
+        """Reject report with top-level peer identity conflicting with case peer pin."""
+        registry = self.create_minimal_registry()
+        art = self.create_artifact()
+        report = {
+            "peer_identity": "docker:apache/kafka:2.8.0",
+            "cases": [
+                {"id": "case-produce-1", "status": "independent_pass", "artifact": str(art)},
+                {"id": "case-fetch-1", "status": "independent_pass", "artifact": str(art)},
+                {"id": "case-internal-1", "status": "not_applicable", "reason": "Excluded"},
+            ],
+        }
+        with self.assertRaises(conformance_report.ConformanceValidationError) as ctx:
+            conformance_report.validate_and_aggregate_reports(registry, [("rep", report)])
+        self.assertIn("peer", str(ctx.exception).lower())
+
+    def test_unknown_or_wrong_peer_marker_rejected(self):
+        """Reject explicit 'wrong-peer' identity marker."""
+        registry = self.create_minimal_registry()
+        art = self.create_artifact()
+        report = {
+            "cases": [
+                {
+                    "id": "case-produce-1",
+                    "status": "independent_pass",
+                    "artifact": str(art),
+                    "peer_identity": "wrong-peer-substituted",
+                },
+                {"id": "case-fetch-1", "status": "independent_pass", "artifact": str(art)},
+                {"id": "case-internal-1", "status": "not_applicable", "reason": "Excluded"},
+            ]
+        }
+        with self.assertRaises(conformance_report.ConformanceValidationError) as ctx:
+            conformance_report.validate_and_aggregate_reports(registry, [("rep", report)])
+        self.assertIn("wrong peer identity", str(ctx.exception))
+
+    def test_report_includes_peer_identity_negotiated_versions_and_dispositions(self):
+        """Summary and human report must include peer identity, negotiated API versions, and case dispositions."""
+        registry = self.create_minimal_registry()
+        art = self.create_artifact()
+        report = {
+            "peer_identity": "fixture:apache/kafka:3.9.1, fixture:apache/kafka:4.1.0",
+            "negotiated_api_versions": {
+                "Produce": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                "Fetch": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
+            },
+            "cases": [
+                {"id": "case-produce-1", "status": "independent_pass", "artifact": str(art), "peer_identity": "fixture:apache/kafka:3.9.1"},
+                {"id": "case-fetch-1", "status": "independent_pass", "artifact": str(art), "peer_identity": "fixture:apache/kafka:4.1.0"},
+                {"id": "case-internal-1", "status": "not_applicable", "reason": "Excluded"},
+            ]
+        }
+        summary = conformance_report.validate_and_aggregate_reports(registry, [("rep", report)])
+        self.assertIn("fixture:apache/kafka:3.9.1", summary["peer_identity"])
+        self.assertEqual(summary["negotiated_api_versions"]["Produce"], [3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+        self.assertIn("case-produce-1", summary["dispositions"])
+        self.assertEqual(summary["dispositions"]["case-produce-1"], "independent_pass")
+        self.assertEqual(summary["dispositions"]["case-internal-1"], "not_applicable")
+
+        human = conformance_report.format_human_summary(summary)
+        self.assertIn("Peer Identity:", human)
+        self.assertIn("fixture:apache/kafka:3.9.1", human)
+        self.assertIn("Negotiated API Versions:", human)
+
+    def test_matrix_json_can_be_loaded_as_registry(self):
+        """matrix.json with 'cells' is supported as a registry by load_registry."""
+        matrix_path = REPO_ROOT / "tests" / "fixtures" / "protocol_oracles" / "matrix.json"
+        reg = conformance_report.load_registry(matrix_path)
+        self.assertIn("cases", reg)
+        self.assertEqual(len(reg["cases"]), 8)
+        case_ids = {c["id"] for c in reg["cases"]}
+        self.assertIn("matrix-cell-produce-3-9-1", case_ids)
+        self.assertIn("matrix-cell-listoffsets-4-1-0", case_ids)
+
+    def test_local_consistency_rejected_under_require_independent_pass(self):
+        """local_consistency is an accurate label and cannot be accepted as independent_pass when required."""
+        registry = self.create_minimal_registry()
+        art = self.create_artifact()
+        report = {
+            "cases": [
+                {"id": "case-produce-1", "status": "local_consistency"},
+                {"id": "case-fetch-1", "status": "independent_pass", "artifact": str(art)},
+                {"id": "case-internal-1", "status": "not_applicable", "reason": "Excluded"},
+            ]
+        }
+        # Without require_independent_pass, local_consistency passes
+        summary1 = conformance_report.validate_and_aggregate_reports(registry, [("rep", report)], require_independent_pass=False)
+        self.assertTrue(summary1["success"])
+
+        # With require_independent_pass, local_consistency causes non-zero exit
+        summary2 = conformance_report.validate_and_aggregate_reports(registry, [("rep", report)], require_independent_pass=True)
+        self.assertFalse(summary2["success"])
+        self.assertEqual(summary2["exit_code"], 1)
+
 
 class TestConformanceReportDenominatorAndExitCodes(ConformanceReportTestBase):
     """Tests covering denominator rules and fail-closed exit codes."""

@@ -82,7 +82,28 @@ def load_registry(registry_path: Path) -> Dict[str, Any]:
         raise ConformanceValidationError("Registry JSON root must be an object")
 
     cases = data.get("cases")
-    if not isinstance(cases, list):
+    if cases is None and "cells" in data and isinstance(data["cells"], list):
+        # Support matrix.json as an advertised cell registry
+        cases = []
+        for cell in data["cells"]:
+            api = cell.get("api", "")
+            pin = str(cell.get("pin", ""))
+            api_slug = api.lower()
+            pin_slug = pin.replace(".", "-")
+            cid = f"matrix-cell-{api_slug}-{pin_slug}"
+            cases.append({
+                "id": cid,
+                "api_family": api,
+                "peer_version_pin": pin,
+                "peer_identity": cell.get("identity"),
+                "denominator": True,
+                "disposition": "local_consistency",
+                "reason": f"Cell {api} x {pin} local consistency",
+                "crate_spoken": cell.get("crate_spoken"),
+                "pin_supported": cell.get("pin_supported"),
+            })
+        data["cases"] = cases
+    elif not isinstance(cases, list):
         raise ConformanceValidationError("Registry JSON must contain a 'cases' list")
 
     return data
@@ -111,9 +132,25 @@ def normalize_report_input(raw_data: Any, source_name: str) -> Tuple[Dict[str, A
             case_items = raw_data["cases"]
         elif "results" in raw_data:
             case_items = raw_data["results"]
+        elif "cells" in raw_data and isinstance(raw_data["cells"], list):
+            case_items = []
+            for cell in raw_data["cells"]:
+                api = cell.get("api", "")
+                pin = str(cell.get("pin", ""))
+                api_slug = api.lower()
+                pin_slug = pin.replace(".", "-")
+                cid = f"matrix-cell-{api_slug}-{pin_slug}"
+                case_items.append({
+                    "id": cid,
+                    "api_family": api,
+                    "peer_version": pin,
+                    "peer_identity": cell.get("identity"),
+                    "status": "local_consistency",
+                    "reason": f"Cell {api} x {pin} local consistency",
+                })
         else:
             raise ConformanceValidationError(
-                f"Report '{source_name}' must contain 'cases' or 'results' key (or be a list of case items)"
+                f"Report '{source_name}' must contain 'cases', 'results', or 'cells' key (or be a list of case items)"
             )
 
         if isinstance(case_items, list):
@@ -205,6 +242,8 @@ def validate_and_aggregate_reports(
     # }
     case_attempts: Dict[str, List[Dict[str, Any]]] = {cid: [] for cid in registry_map}
     reported_case_ids: Set[str] = set()
+    reported_peer_identities: Set[str] = set()
+    aggregated_negotiated_versions: Dict[str, Any] = {}
 
     for src_name, raw_data in report_sources:
         meta, case_entries = normalize_report_input(raw_data, src_name)
@@ -215,6 +254,12 @@ def validate_and_aggregate_reports(
             raise ConformanceValidationError(
                 f"Wrong top-level source revision in '{src_name}': expected '{audited_source}', got '{top_source}'"
             )
+
+        top_peer_identity = meta.get("peer_identity") or meta.get("peer") or meta.get("identity")
+        top_peer_version = meta.get("peer_version") or meta.get("peer_pin")
+        top_negotiated_versions = meta.get("negotiated_api_versions") or meta.get("api_versions")
+        if top_negotiated_versions and isinstance(top_negotiated_versions, dict):
+            aggregated_negotiated_versions.update(top_negotiated_versions)
 
         # Base directories for artifact resolution
         src_path = Path(src_name)
@@ -281,7 +326,8 @@ def validate_and_aggregate_reports(
                             )
 
                     source_pin = att_obj.get("source_pin") or att_obj.get("source_sha") or entry.get("source_pin") or entry.get("source_sha") or top_source
-                    peer_pin = att_obj.get("peer_pin") or att_obj.get("peer_version") or att_obj.get("peer_version_pin") or entry.get("peer_pin") or entry.get("peer_version") or entry.get("peer_version_pin") or meta.get("peer_version")
+                    peer_pin = att_obj.get("peer_pin") or att_obj.get("peer_version") or att_obj.get("peer_version_pin") or entry.get("peer_pin") or entry.get("peer_version") or entry.get("peer_version_pin") or top_peer_version
+                    peer_ident = att_obj.get("peer_identity") or att_obj.get("identity") or entry.get("peer_identity") or entry.get("identity") or top_peer_identity
                     reason = att_obj.get("reason") or entry.get("reason") or reg_case.get("reason")
                     raw_art = att_obj.get("artifact") or att_obj.get("artifacts") or entry.get("artifact") or entry.get("artifacts")
 
@@ -291,6 +337,7 @@ def validate_and_aggregate_reports(
                         status=status,
                         source_pin=source_pin,
                         peer_pin=peer_pin,
+                        peer_ident=peer_ident,
                         reason=reason,
                         raw_art=raw_art,
                         reg_case=reg_case,
@@ -300,6 +347,9 @@ def validate_and_aggregate_reports(
                         base_dirs=base_dirs,
                         src_name=src_name,
                         case_attempts=case_attempts,
+                        reported_peer_identities=reported_peer_identities,
+                        top_peer_identity=top_peer_identity,
+                        top_peer_version=top_peer_version,
                     )
             else:
                 # Single attempt entry
@@ -344,7 +394,8 @@ def validate_and_aggregate_reports(
 
                 status = entry.get("status") or entry.get("disposition")
                 source_pin = entry.get("source_pin") or entry.get("source_sha") or top_source
-                peer_pin = entry.get("peer_pin") or entry.get("peer_version") or entry.get("peer_version_pin") or meta.get("peer_version")
+                peer_pin = entry.get("peer_pin") or entry.get("peer_version") or entry.get("peer_version_pin") or top_peer_version
+                peer_ident = entry.get("peer_identity") or entry.get("identity") or top_peer_identity
                 reason = entry.get("reason") or reg_case.get("reason")
                 raw_art = entry.get("artifact") or entry.get("artifacts")
 
@@ -354,6 +405,7 @@ def validate_and_aggregate_reports(
                     status=status,
                     source_pin=source_pin,
                     peer_pin=peer_pin,
+                    peer_ident=peer_ident,
                     reason=reason,
                     raw_art=raw_art,
                     reg_case=reg_case,
@@ -363,6 +415,9 @@ def validate_and_aggregate_reports(
                     base_dirs=base_dirs,
                     src_name=src_name,
                     case_attempts=case_attempts,
+                    reported_peer_identities=reported_peer_identities,
+                    top_peer_identity=top_peer_identity,
+                    top_peer_version=top_peer_version,
                 )
 
     # 1. Missing Cases Check: Every registry case must be reported
@@ -451,6 +506,7 @@ def validate_and_aggregate_reports(
                 case_notes.append(f"Case has non-passing denominator status: '{final_status}'")
             elif require_independent_pass and final_status != "independent_pass":
                 case_verdict_pass = False
+                failing_cases.append(cid)
                 case_notes.append(f"Strict independent pass required; got '{final_status}'")
             else:
                 passed_cases.append(cid)
@@ -479,9 +535,32 @@ def validate_and_aggregate_reports(
 
     exit_code = 0 if is_success else 1
 
+    peer_identities_list = sorted(list(reported_peer_identities))
+    primary_peer_identity = (
+        top_peer_identity
+        if top_peer_identity
+        else (", ".join(peer_identities_list) if peer_identities_list else "unknown")
+    )
+    if not aggregated_negotiated_versions:
+        derived_versions: Dict[str, Set[int]] = {}
+        for cid, reg_case in registry_map.items():
+            fam = reg_case.get("api_family")
+            vers = reg_case.get("pin_supported") or reg_case.get("client_spoken_versions")
+            if fam and vers:
+                derived_versions.setdefault(fam, set()).update(vers)
+        if derived_versions:
+            aggregated_negotiated_versions = {
+                fam: sorted(list(vers)) for fam, vers in sorted(derived_versions.items())
+            }
+
+    dispositions = {cid: info["final_status"] for cid, info in per_case_summary.items()}
+
     summary = {
         "schema_version": 1,
         "audited_source": audited_source,
+        "peer_identity": primary_peer_identity,
+        "peer_identities": peer_identities_list,
+        "negotiated_api_versions": aggregated_negotiated_versions,
         "total_cases": total_cases,
         "denominator_cases": denominator_cases_count,
         "excluded_cases": excluded_cases_count,
@@ -493,6 +572,7 @@ def validate_and_aggregate_reports(
         "not_run_cases": sorted(not_run_cases),
         "unsupported_cases": sorted(unsupported_cases),
         "flaky_cases": sorted(flaky_cases),
+        "dispositions": dispositions,
         "cases": per_case_summary,
         "preserved_attempt_log": preserved_attempt_log,
         "success": is_success,
@@ -508,6 +588,7 @@ def _validate_and_record_attempt(
     status: Optional[str],
     source_pin: Optional[str],
     peer_pin: Optional[str],
+    peer_ident: Optional[str],
     reason: Optional[str],
     raw_art: Any,
     reg_case: Dict[str, Any],
@@ -517,6 +598,9 @@ def _validate_and_record_attempt(
     base_dirs: List[Path],
     src_name: str,
     case_attempts: Dict[str, List[Dict[str, Any]]],
+    reported_peer_identities: Optional[Set[str]] = None,
+    top_peer_identity: Optional[str] = None,
+    top_peer_version: Optional[str] = None,
 ) -> None:
     """Helper to validate single attempt fields and record it."""
     if not status:
@@ -542,6 +626,46 @@ def _validate_and_record_attempt(
         raise ConformanceValidationError(
             f"In '{src_name}', case '{cid}' attempt {att_num} wrong peer revision: expected '{expected_peer}', got '{peer_pin}'"
         )
+    if top_peer_version and expected_peer and str(top_peer_version) != str(expected_peer):
+        if not peer_pin or peer_pin == top_peer_version:
+            raise ConformanceValidationError(
+                f"In '{src_name}', case '{cid}' attempt {att_num} wrong peer revision: expected '{expected_peer}', got '{top_peer_version}'"
+            )
+
+    # Peer identity validation
+    expected_identity = reg_case.get("peer_identity") or reg_case.get("identity")
+    if peer_ident:
+        peer_ident_str = str(peer_ident).strip()
+        if reported_peer_identities is not None and peer_ident_str:
+            reported_peer_identities.add(peer_ident_str)
+        if expected_identity and peer_ident_str != str(expected_identity).strip():
+            raise ConformanceValidationError(
+                f"In '{src_name}', case '{cid}' attempt #{att_num} wrong peer identity: expected '{expected_identity}', got '{peer_ident_str}'"
+            )
+        if expected_peer and str(expected_peer) not in peer_ident_str:
+            for v in ("3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1", "2.8.0", "3.8.0"):
+                if v in peer_ident_str and v != str(expected_peer):
+                    raise ConformanceValidationError(
+                        f"In '{src_name}', case '{cid}' attempt #{att_num} wrong peer identity: '{peer_ident_str}' conflicts with expected peer '{expected_peer}'"
+                    )
+            if "wrong-peer" in peer_ident_str.lower() or "wrong_peer" in peer_ident_str.lower():
+                raise ConformanceValidationError(
+                    f"In '{src_name}', case '{cid}' attempt #{att_num} wrong peer identity: '{peer_ident_str}'"
+                )
+
+    if top_peer_identity and expected_peer:
+        top_ident_str = str(top_peer_identity).strip()
+        if "wrong-peer" in top_ident_str.lower() or "wrong_peer" in top_ident_str.lower():
+            raise ConformanceValidationError(
+                f"In '{src_name}', wrong top-level peer identity: '{top_ident_str}'"
+            )
+        if str(expected_peer) not in top_ident_str:
+            for v in ("3.9.1", "4.1.0", "4.1.2", "4.2.1", "4.3.1", "2.8.0", "3.8.0"):
+                if v in top_ident_str and v != str(expected_peer):
+                    if not (peer_ident and peer_ident != top_peer_identity):
+                        raise ConformanceValidationError(
+                            f"In '{src_name}', wrong top-level peer identity '{top_ident_str}' conflicts with case '{cid}' expected peer '{expected_peer}'"
+                        )
 
     # Artifact validation
     artifacts_list: List[str] = []
@@ -585,6 +709,7 @@ def _validate_and_record_attempt(
         "artifacts": artifacts_list,
         "source_pin": source_pin,
         "peer_pin": peer_pin,
+        "peer_identity": peer_ident,
         "reason": reason,
         "report_source": src_name,
     })
@@ -596,6 +721,8 @@ def format_human_summary(summary: Dict[str, Any]) -> str:
         "============================================================",
         "               CONFORMANCE REPORT SUMMARY",
         "============================================================",
+        f"Peer Identity:             {summary.get('peer_identity', 'unknown')}",
+        f"Negotiated API Versions:   {summary.get('negotiated_api_versions', {})}",
         f"Total Registry Cases:      {summary['total_cases']}",
         f"Denominator Cases:         {summary['denominator_cases']}",
         f"Excluded Cases:            {summary['excluded_cases']}",
