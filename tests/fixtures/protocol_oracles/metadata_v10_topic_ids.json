@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "metadata-v10-topic-ids",
+  "api": "Metadata",
+  "api_key": 3,
+  "api_version": 10,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Metadata v10 flexible wire format with topicId wire transition on request and response topics, clusterAuthorizedOperations, and unknown leader",
+  "request": {
+    "file": "metadata_v10_topic_ids_request.bin",
+    "size_bytes": 35,
+    "sha256": "a9a249d6f5a829f9e7ade6413cb3ba77110b0f81277a214e66aa759b6d20ec12",
+    "hex": "02111122223333444455556666777788880d6d6574612d7631302d6964730000010100"
+  },
+  "response": {
+    "file": "metadata_v10_topic_ids_response.bin",
+    "size_bytes": 240,
+    "sha256": "85b828c58ddfabac61b11e77842fa27c537600524e9acfad6d2cf46eff8f08ee",
+    "hex": "0000005004000000011462726f6b6572312e6b61666b612e6c6f63616c00002384077261636b2d6100000000021462726f6b6572322e6b61666b612e6c6f63616c00002384077261636b2d6200000000031462726f6b6572332e6b61666b612e6c6f63616c00002385000011636c75737465722d6d6574612d763130000000010200000d6d6574612d7631302d69647311112222333344445555666677778888000300000000000000000001000000140300000001000000020300000001000000020100000600000001ffffffff0000001203000000020000000302000000020200000003000000001f00000000df00"
+  }
+}

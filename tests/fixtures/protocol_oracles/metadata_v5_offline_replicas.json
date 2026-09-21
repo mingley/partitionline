@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "metadata-v5-offline-replicas",
+  "api": "Metadata",
+  "api_key": 3,
+  "api_version": 5,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Metadata v5 classic wire format with offlineReplicas gate present, multiple brokers, and unknown leader on partitioned topic",
+  "request": {
+    "file": "metadata_v5_offline_replicas_request.bin",
+    "size_bytes": 22,
+    "sha256": "b3f0930ba8b808496e0c8841293be8e97ba113f50ce491951764af744240a592",
+    "hex": "00000001000f6d6574612d76352d6f66666c696e6501"
+  },
+  "response": {
+    "file": "metadata_v5_offline_replicas_response.bin",
+    "size_bytes": 246,
+    "sha256": "9c31ae4f7c24e45e0e2db268f5c30eb5630c7b88ec83af487d4b746c1088f761",
+    "hex": "0000002d0000000300000001001362726f6b6572312e6b61666b612e6c6f63616c0000238400067261636b2d6100000002001362726f6b6572322e6b61666b612e6c6f63616c0000238400067261636b2d6200000003001362726f6b6572332e6b61666b612e6c6f63616c00002385ffff000f636c75737465722d6d6574612d763500000001000000010000000f6d6574612d76352d6f66666c696e65000000000200000000000000000002000000030000000100000002000000030000000200000001000000020000000100000003000600000001ffffffff00000002000000010000000300000001000000010000000100000003"
+  }
+}

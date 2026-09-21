@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "metadata-v1-classic",
+  "api": "Metadata",
+  "api_key": 3,
+  "api_version": 1,
+  "pin": "3.9.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "artifact": "org.apache.kafka:kafka-clients:3.9.1",
+  "generator": "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+  "description": "Metadata v1 classic wire format with null topics (all topics), multiple brokers across racks, controllerId, isInternal, and partition with unknown leader",
+  "request": {
+    "file": "metadata_v1_classic_request.bin",
+    "size_bytes": 4,
+    "sha256": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+    "hex": "ffffffff"
+  },
+  "response": {
+    "file": "metadata_v1_classic_response.bin",
+    "size_bytes": 227,
+    "sha256": "fc84e2f248d92fa270757f1924cf8fa9eba9d8e7f58576e81f3fca34da28acc5",
+    "hex": "0000000300000001001362726f6b6572312e6b61666b612e6c6f63616c0000238400067261636b2d6100000002001362726f6b6572322e6b61666b612e6c6f63616c0000238400067261636b2d6200000003001362726f6b6572332e6b61666b612e6c6f63616c00002385ffff00000001000000020000000d6d6574612d76312d746f706963000000000200000000000000000001000000020000000100000002000000020000000100000002000500000001ffffffff00000002000000020000000300000001000000020003000f6d6574612d76312d6d697373696e670000000000"
+  }
+}
