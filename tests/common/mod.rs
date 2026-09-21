@@ -233,6 +233,7 @@ struct State {
     expected_seq: HashMap<(i64, i16, String, i32), i32>,
     produce_error: Option<i16>,
     produce_error_left: Option<u32>,
+    produce_delay: Option<std::time::Duration>,
     add_partitions_error: Option<i16>,
     add_partitions_error_left: Option<u32>,
     log_start: HashMap<(String, i32), i64>,
@@ -607,6 +608,7 @@ fn new_state(
         expected_seq: HashMap::new(),
         produce_error: None,
         produce_error_left: None,
+        produce_delay: None,
         add_partitions_error: None,
         add_partitions_error_left: None,
         log_start: HashMap::new(),
@@ -1691,6 +1693,11 @@ impl Mock {
         let mut st = self.state.lock();
         st.add_partitions_error = Some(code);
         st.add_partitions_error_left = Some(n);
+    }
+
+    pub fn set_produce_delay(&self, delay: std::time::Duration) {
+        let mut st = self.state.lock();
+        st.produce_delay = Some(delay);
     }
 
     pub fn produce_nodes(&self) -> Vec<i32> {
@@ -4949,11 +4956,21 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             PRODUCE => {
+                {
+                    let mut st = state.lock();
+                    st.produce_requests.push(node_id);
+                }
+                let produce_delay = {
+                    let st = state.lock();
+                    st.produce_delay
+                };
+                if let Some(delay) = produce_delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
                 let txn_id = decoded.0;
                 let mut parts = Vec::new();
                 let mut st = state.lock();
-                st.produce_requests.push(node_id);
                 st.last_produce_version = Some(header.api_version);
                 if header.api_version >= 12 && txn_id.is_some() {
                     // Produce v12 transaction V2: the partition leader

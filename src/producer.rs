@@ -797,6 +797,7 @@ enum Ctrl {
 struct WorkerHandle {
     data: mpsc::Sender<Pending>,
     ctrl: mpsc::Sender<Ctrl>,
+    task: Arc<tokio::task::JoinHandle<()>>,
 }
 
 struct FastRoute {
@@ -834,6 +835,9 @@ struct Shared {
     meta_tx: mpsc::Sender<Arc<str>>,
     connect_tx: mpsc::Sender<i32>,
     retry_tx: mpsc::Sender<Pending>,
+    meta_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
+    connect_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
+    retry_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
     last_meta_err: parking_lot::Mutex<Option<Error>>,
     nodes: parking_lot::Mutex<HashMap<i32, Vec<WorkerHandle>>>,
     reconnect_fails: parking_lot::Mutex<HashMap<i32, u32>>,
@@ -866,6 +870,40 @@ pub struct Producer {
 
 struct Inner {
     shared: Arc<Shared>,
+}
+
+impl Drop for Inner {
+    fn drop(&mut self) {
+        self.shared.closed.store(true, Ordering::SeqCst);
+        self.shared.buffer_nudge.notify_waiters();
+        self.shared.cache_nudge.notify_waiters();
+
+        let workers: Vec<WorkerHandle> = self
+            .shared
+            .nodes
+            .lock()
+            .values()
+            .flatten()
+            .cloned()
+            .collect();
+        for w in &workers {
+            w.task.abort();
+        }
+        self.shared.nodes.lock().clear();
+        *self.shared.fast.lock() = None;
+
+        if let Some(h) = self.shared.meta_task.lock().take() {
+            h.abort();
+        }
+        if let Some(h) = self.shared.connect_task.lock().take() {
+            h.abort();
+        }
+        if let Some(h) = self.shared.retry_task.lock().take() {
+            h.abort();
+        }
+
+        self.shared.interceptors.close();
+    }
 }
 
 impl Shared {
@@ -1197,6 +1235,9 @@ impl Producer {
             meta_tx,
             connect_tx,
             retry_tx,
+            meta_task: parking_lot::Mutex::new(None),
+            connect_task: parking_lot::Mutex::new(None),
+            retry_task: parking_lot::Mutex::new(None),
             last_meta_err: parking_lot::Mutex::new(None),
             nodes: parking_lot::Mutex::new(HashMap::new()),
             reconnect_fails: parking_lot::Mutex::new(HashMap::new()),
@@ -1218,12 +1259,15 @@ impl Producer {
             pre_send_fault: parking_lot::Mutex::new(cfg.pre_send_fault),
         });
         let weak = Arc::downgrade(&shared);
-        drop(tokio::spawn(async move {
+        let meta_handle = tokio::spawn(async move {
             let mut meta_rx = meta_rx;
             while let Some(topic) = meta_rx.recv().await {
                 let Some(shared) = weak.upgrade() else {
                     break;
                 };
+                if shared.closed.load(Ordering::SeqCst) {
+                    break;
+                }
                 if shared
                     .cluster
                     .lock()
@@ -1242,15 +1286,19 @@ impl Producer {
                 }
                 shared.cache_nudge.notify_waiters();
             }
-        }));
+        });
         let weak = Arc::downgrade(&shared);
-        drop(tokio::spawn(async move {
+        let connect_handle = tokio::spawn(async move {
             connect_loop(weak, connect_rx, cap).await;
-        }));
+        });
         let weak = Arc::downgrade(&shared);
-        drop(tokio::spawn(async move {
+        let retry_handle = tokio::spawn(async move {
             retry_loop(weak, retry_rx).await;
-        }));
+        });
+
+        *shared.meta_task.lock() = Some(meta_handle);
+        *shared.connect_task.lock() = Some(connect_handle);
+        *shared.retry_task.lock() = Some(retry_handle);
 
         Ok(Self {
             inner: Arc::new(Inner { shared }),
@@ -1306,6 +1354,9 @@ impl Producer {
 
     async fn ensure_ready(&self, rec: &mut ProduceRecord, deadline: Instant) -> Result<()> {
         loop {
+            if self.inner.shared.closed.load(Ordering::SeqCst) {
+                return Err(Error::Closed);
+            }
             if let Some(e) = peek_meta_err(&self.inner.shared) {
                 return Err(e);
             }
@@ -1331,13 +1382,16 @@ impl Producer {
             tokio::pin!(notified);
             tokio::select! {
                 _ = notified => {}
-                _ = tokio::time::sleep(rest) => return Err(Error::Timeout),
+                _ = tokio::time::sleep(rest.min(Duration::from_millis(5))) => {}
             }
         }
     }
 
     async fn wait_buffer(&self, bytes: u64, deadline: Instant) -> Result<()> {
         loop {
+            if self.inner.shared.closed.load(Ordering::SeqCst) {
+                return Err(Error::Closed);
+            }
             if self.inner.shared.try_reserve_buffer(bytes) {
                 return Ok(());
             }
@@ -1403,6 +1457,10 @@ impl Producer {
             let deadline = now + self.inner.shared.cfg.delivery_timeout;
             let topic = rec.topic.clone();
             self.wait_buffer(bytes, block_deadline).await?;
+            if self.inner.shared.closed.load(Ordering::SeqCst) {
+                self.inner.shared.release_buffer(bytes);
+                return Err(Error::Closed);
+            }
             if w.data
                 .send(Pending {
                     rec,
@@ -1554,6 +1612,19 @@ impl Producer {
     #[must_use]
     pub fn retries_in_flight(&self) -> usize {
         self.inner.shared.retries_out.load(Ordering::SeqCst)
+    }
+
+    /// Test hook: inspect worker task handles to verify task termination.
+    #[doc(hidden)]
+    pub fn test_worker_tasks(&self) -> Vec<Arc<tokio::task::JoinHandle<()>>> {
+        self.inner
+            .shared
+            .nodes
+            .lock()
+            .values()
+            .flatten()
+            .map(|w| Arc::clone(&w.task))
+            .collect()
     }
 
     /// Produce counters and ack latency since connect (min/mean/max and p50/p99).
@@ -1912,9 +1983,22 @@ impl Producer {
 
     async fn flush_until(&self, deadline: Instant) -> Result<()> {
         loop {
-            self.flush_workers().await?;
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            let rest = deadline.saturating_duration_since(Instant::now());
+            match tokio::time::timeout(rest, self.flush_workers()).await {
+                Ok(Ok(())) => {}
+                Ok(Err(e)) => return Err(e),
+                Err(_) => return Err(Error::Timeout),
+            }
             if self.inner.shared.retries_out.load(Ordering::SeqCst) == 0 {
-                self.flush_workers().await?;
+                let rest = deadline.saturating_duration_since(Instant::now());
+                match tokio::time::timeout(rest, self.flush_workers()).await {
+                    Ok(Ok(())) => {}
+                    Ok(Err(e)) => return Err(e),
+                    Err(_) => return Err(Error::Timeout),
+                }
                 if self.inner.shared.retries_out.load(Ordering::SeqCst) == 0 {
                     return Ok(());
                 }
@@ -1937,24 +2021,42 @@ impl Producer {
     /// Prefer an explicit `close` over dropping the last handle: drop alone does
     /// not wait for in-flight produce outcomes (see the guide cancellation table).
     pub async fn close(self) -> Result<()> {
-        self.shutdown_workers().await;
+        let timeout = self
+            .inner
+            .shared
+            .cfg
+            .delivery_timeout
+            .max(self.inner.shared.cfg.request_timeout);
+        let deadline = Instant::now() + timeout;
+        let flush = self.flush_until(deadline).await;
+        self.shutdown_workers(Some(deadline)).await;
         self.inner.shared.interceptors.close();
-        Ok(())
+        match flush {
+            Err(Error::Timeout) => Err(Error::Timeout),
+            _ => Ok(()),
+        }
     }
 
     /// Flush for up to `timeout`, then stop workers (Java `close(Duration)`).
     ///
     /// A flush timeout is returned after the producer is closed.
     pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
-        let flush = self.flush_timeout(timeout).await;
-        self.shutdown_workers().await;
+        let deadline = Instant::now() + timeout;
+        let flush = self.flush_until(deadline).await;
+        self.shutdown_workers(Some(deadline)).await;
         self.inner.shared.interceptors.close();
-        flush
+        match flush {
+            Err(Error::Timeout) => Err(Error::Timeout),
+            _ => Ok(()),
+        }
     }
 
-    async fn shutdown_workers(&self) {
+    async fn shutdown_workers(&self, deadline: Option<Instant>) {
         // Refuse new enqueue before workers drain so clones observe Closed.
         self.inner.shared.closed.store(true, Ordering::SeqCst);
+        self.inner.shared.buffer_nudge.notify_waiters();
+        self.inner.shared.cache_nudge.notify_waiters();
+
         let workers: Vec<WorkerHandle> = self
             .inner
             .shared
@@ -1970,8 +2072,34 @@ impl Producer {
             drop(w.ctrl.send(Ctrl::Close(tx)).await);
             rxs.push(rx);
         }
-        for rx in rxs {
-            drop(rx.await);
+
+        let wait_drain = async {
+            for rx in rxs {
+                drop(rx.await);
+            }
+        };
+
+        if let Some(d) = deadline {
+            let rest = d.saturating_duration_since(Instant::now());
+            let _ = tokio::time::timeout(rest, wait_drain).await;
+        } else {
+            wait_drain.await;
+        }
+
+        for w in &workers {
+            w.task.abort();
+        }
+        self.inner.shared.nodes.lock().clear();
+        *self.inner.shared.fast.lock() = None;
+
+        if let Some(h) = self.inner.shared.meta_task.lock().take() {
+            h.abort();
+        }
+        if let Some(h) = self.inner.shared.connect_task.lock().take() {
+            h.abort();
+        }
+        if let Some(h) = self.inner.shared.retry_task.lock().take() {
+            h.abort();
         }
     }
 
@@ -2406,6 +2534,9 @@ async fn connect_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<i32>
         let Some(shared) = weak.upgrade() else {
             break;
         };
+        if shared.closed.load(Ordering::SeqCst) {
+            break;
+        }
         if shared
             .nodes
             .lock()
@@ -2473,10 +2604,25 @@ async fn spawn_node_workers(
     addr: &str,
     cap: usize,
 ) -> Result<Vec<WorkerHandle>> {
+    if shared.closed.load(Ordering::SeqCst) {
+        return Err(Error::Closed);
+    }
     let n_conn = shared.cfg.connections.max(1);
-    let mut workers = Vec::with_capacity(n_conn);
+    let mut workers: Vec<WorkerHandle> = Vec::with_capacity(n_conn);
     for _ in 0..n_conn {
+        if shared.closed.load(Ordering::SeqCst) {
+            for w in &workers {
+                w.task.abort();
+            }
+            return Err(Error::Closed);
+        }
         let conn = open_conn(addr, &shared.cfg).await?;
+        if shared.closed.load(Ordering::SeqCst) {
+            for w in &workers {
+                w.task.abort();
+            }
+            return Err(Error::Closed);
+        }
         let (data_tx, data_rx) = mpsc::channel(cap);
         let (ctrl_tx, ctrl_rx) = mpsc::channel(16);
         let worker = Worker {
@@ -2490,28 +2636,68 @@ async fn spawn_node_workers(
             in_flight: VecDeque::new(),
             fail: None,
         };
-        drop(tokio::spawn(worker.run()));
+        let handle = tokio::spawn(worker.run());
         workers.push(WorkerHandle {
             data: data_tx,
             ctrl: ctrl_tx,
+            task: Arc::new(handle),
         });
     }
     Ok(workers)
 }
 
 async fn retry_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<Pending>) {
-    while let Some(p) = rx.recv().await {
-        if let Some(shared) = weak.upgrade() {
-            retry_one(&shared, p).await;
+    struct RxDrain<'a> {
+        weak: &'a std::sync::Weak<Shared>,
+        rx: &'a mut mpsc::Receiver<Pending>,
+    }
+    impl<'a> Drop for RxDrain<'a> {
+        fn drop(&mut self) {
+            if let Some(shared) = self.weak.upgrade() {
+                while let Ok(p) = self.rx.try_recv() {
+                    let _ = shared.retries_out.fetch_sub(1, Ordering::SeqCst);
+                    fail_pendings(&shared, vec![p], Error::Timeout);
+                }
+            }
+        }
+    }
+    let drainer = RxDrain {
+        weak: &weak,
+        rx: &mut rx,
+    };
+    while let Some(p) = drainer.rx.recv().await {
+        let Some(shared) = weak.upgrade() else {
+            break;
+        };
+        if shared.closed.load(Ordering::SeqCst) {
             let _ = shared.retries_out.fetch_sub(1, Ordering::SeqCst);
+            fail_pendings(&shared, vec![p], Error::Timeout);
             shared.cache_nudge.notify_waiters();
+            continue;
+        }
+        retry_one(&shared, p).await;
+        let _ = shared.retries_out.fetch_sub(1, Ordering::SeqCst);
+        shared.cache_nudge.notify_waiters();
+    }
+}
+
+struct RetryGuard<'a> {
+    shared: &'a Arc<Shared>,
+    p: Option<Pending>,
+}
+
+impl<'a> Drop for RetryGuard<'a> {
+    fn drop(&mut self) {
+        if let Some(p) = self.p.take() {
+            fail_pendings(self.shared, vec![p], Error::Timeout);
         }
     }
 }
 
-async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
-    if Instant::now() >= p.deadline {
-        fail_pendings(shared, vec![p], Error::Timeout);
+async fn retry_one(shared: &Arc<Shared>, p: Pending) {
+    let mut guard = RetryGuard { shared, p: Some(p) };
+    let p = guard.p.as_mut().unwrap();
+    if shared.closed.load(Ordering::SeqCst) || Instant::now() >= p.deadline {
         return;
     }
     crate::config::sleep_retry_backoff(
@@ -2521,8 +2707,7 @@ async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
         p.deadline,
     )
     .await;
-    if Instant::now() >= p.deadline {
-        fail_pendings(shared, vec![p], Error::Timeout);
+    if shared.closed.load(Ordering::SeqCst) || Instant::now() >= p.deadline {
         return;
     }
     let skip_meta = p.skip_meta_refresh;
@@ -2541,8 +2726,10 @@ async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
     };
     if need_meta {
         invalidate_cached_topic(shared, p.rec.topic.as_ref());
-        if let Err(e) = partitions_for(shared, &p.rec.topic).await {
-            fail_pendings(shared, vec![p], e);
+        if partitions_for(shared, &p.rec.topic).await.is_err() {
+            return;
+        }
+        if shared.closed.load(Ordering::SeqCst) {
             return;
         }
     }
@@ -2552,27 +2739,16 @@ async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
         }
     }
     let Some(part) = p.rec.partition else {
-        fail_pendings(shared, vec![p], Error::protocol("retry without partition"));
         return;
     };
     let leader = shared.cluster.lock().leader(p.rec.topic.as_ref(), part);
     let Ok((node, _)) = leader else {
-        let topic = p.rec.topic.to_string();
-        fail_pendings(
-            shared,
-            vec![p],
-            Error::NoLeader {
-                topic,
-                partition: part,
-            },
-        );
         return;
     };
     try_nudge_node(&shared.connect_tx, node);
     let deadline = p.deadline;
     loop {
-        if Instant::now() >= deadline {
-            fail_pendings(shared, vec![p], Error::Timeout);
+        if shared.closed.load(Ordering::SeqCst) || Instant::now() >= deadline {
             return;
         }
         let handle = {
@@ -2587,19 +2763,24 @@ async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
             })
         };
         if let Some(w) = handle {
-            if w.data.send(p).await.is_err() {
-                return;
+            let p = guard.p.take().unwrap();
+            match w.data.send(p).await {
+                Ok(()) => return,
+                Err(mpsc::error::SendError(p)) => {
+                    fail_pendings(shared, vec![p], Error::Timeout);
+                    return;
+                }
             }
-            return;
         }
         let notified = shared.cache_nudge.notified();
         tokio::pin!(notified);
         let rest = deadline.saturating_duration_since(Instant::now());
         tokio::select! {
             _ = notified => {}
-            _ = tokio::time::sleep(rest) => {
-                fail_pendings(shared, vec![p], Error::Timeout);
-                return;
+            _ = tokio::time::sleep(rest.min(Duration::from_millis(10))) => {
+                if Instant::now() >= deadline || shared.closed.load(Ordering::SeqCst) {
+                    return;
+                }
             }
         }
     }
@@ -2620,6 +2801,48 @@ struct Worker {
 struct InFlight {
     correlation: i32,
     groups: Vec<(Arc<str>, i32, Vec<Pending>)>,
+}
+
+struct InFlightGuard {
+    shared: Arc<Shared>,
+    inf: Option<InFlight>,
+}
+
+impl Drop for InFlightGuard {
+    fn drop(&mut self) {
+        if let Some(inf) = self.inf.take() {
+            fail_groups(&self.shared, inf.groups, Error::Timeout);
+        }
+    }
+}
+
+impl Drop for Worker {
+    fn drop(&mut self) {
+        while let Ok(p) = self.data.try_recv() {
+            self.pending.push(p);
+        }
+        if !self.in_flight.is_empty() {
+            fail_inflight(&self.shared, &mut self.in_flight, Error::Timeout);
+        }
+        if !self.pending.is_empty() {
+            let pendings = std::mem::take(&mut self.pending);
+            for p in pendings {
+                let err = if p.retry > 0 {
+                    Error::Timeout
+                } else {
+                    Error::Closed
+                };
+                fail_pendings(&self.shared, vec![p], err);
+            }
+        }
+        while let Ok(c) = self.ctrl.try_recv() {
+            match c {
+                Ctrl::Flush(tx) | Ctrl::Close(tx) => {
+                    drop(tx.send(self.take_fail()));
+                }
+            }
+        }
+    }
 }
 
 impl Worker {
@@ -2670,6 +2893,12 @@ impl Worker {
     async fn run(mut self) {
         let mut linger_start: Option<Instant> = None;
         loop {
+            if self.shared.closed.load(Ordering::SeqCst)
+                && self.pending.is_empty()
+                && self.in_flight.is_empty()
+            {
+                break;
+            }
             self.pull_ready();
             if linger_start.is_none() && !self.pending.is_empty() {
                 linger_start = Some(Instant::now());
@@ -2937,19 +3166,25 @@ impl Worker {
         let Some(inf) = self.in_flight.pop_front() else {
             return Ok(());
         };
+        let mut guard = InFlightGuard {
+            shared: Arc::clone(&self.shared),
+            inf: Some(inf),
+        };
         let version = self.shared.produce_version;
+        let correlation = guard.inf.as_ref().unwrap().correlation;
         let body = match self
             .conn
             .read_response(
                 PRODUCE,
                 version,
-                inf.correlation,
+                correlation,
                 self.shared.cfg.request_timeout,
             )
             .await
         {
             Ok(b) => b,
             Err(e) => {
+                let inf = guard.inf.take().unwrap();
                 if e.is_retriable() {
                     let _ = self.shared.nodes.lock().remove(&self.node_id);
                     self.requeue(inf.groups);
@@ -2963,10 +3198,12 @@ impl Worker {
         let (responses, endpoints, ..) = match decode_produce_response(&mut body, version) {
             Ok(r) => r,
             Err(e) => {
+                let inf = guard.inf.take().unwrap();
                 fail_groups(&self.shared, inf.groups, clone_err(&e));
                 return Err(e);
             }
         };
+        let inf = guard.inf.take().unwrap();
         self.shared.cluster.lock().apply_node_endpoints(&endpoints);
         let mut first_err: Option<Error> = None;
         for (topic, part, pendings) in inf.groups {
