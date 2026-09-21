@@ -742,13 +742,29 @@
     {
       "id": "KL05-01",
       "title": "Define the major-feature completion matrix",
-      "priority": "P1", "kind": "specification", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "specification", "status": "done", "owner": "mingley",
       "depends_on": [],
       "files": ["docs/gaps.md", "docs/support.md", "new: tests/conformance/features.json"],
       "deliverable": "A finite profile matrix separating wire helpers, runtime behavior, tested support and qualification.",
       "acceptance": ["Cover producer, manual/group/share consumer, transactions, codecs, auth, quotas, common/full admin and optional schema ecosystem.", "zstd and enterprise GSSAPI remain explicit missing features of their respective complete profiles, not optional omissions disguised as completion.", "Classify broker-internal replication APIs, Streams/Connect and C ABI as out of scope; distinguish Apache standards from vendor/ecosystem interfaces."],
       "validation": ["python3 -m json.tool tests/conformance/features.json >/dev/null", "Trace every README capability claim to a runtime entrypoint and an evidence disposition."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "bce05cbcbc440b5073554031574ec84fbbf281ab",
+                "commands": [
+                        "python3 -m json.tool tests/conformance/features.json (exit 0)",
+                        "structural check of 173 entries"
+                ],
+                "results": "173 entries, 0 duplicates, 0 qualified. Dispositions: present 123, missing 22, out_of_scope 15, partial 13. zstd decode/encode and GSSAPI are missing. Streams, Connect, C ABI, and broker-internal replication are out_of_scope. Every entry has an entrypoint.",
+                "artifacts": [
+                        "tests/conformance/features.json",
+                        "docs/plan/evidence/KL05-01.json"
+                ],
+                "limits": [
+                        "Matrix only. No features implemented. README and support docs were not edited."
+                ]
+        }
+]
     },
     {
       "id": "KL05-02",
