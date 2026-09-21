@@ -1,0 +1,30 @@
+{
+  "id": "KL03-18",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "6a6baf0bc5435c8882a8390556610916e7691d0e",
+  "commands": [
+    "python3 -m unittest discover -s tests/history (rc=0, 45 tests passed)",
+    "python3 scripts/check-record-history.py --json <valid_history> (rc=0, pass)",
+    "python3 scripts/check-record-history.py <synthetic_swap_history> (rc=1, minimal counterexample SYNTHETIC_SWAP)",
+    "echo '{}' | python3 scripts/check-record-history.py - (rc=2, empty history rejected fail-closed)",
+    "echo '{\"attempted\": [], \"consumed\": []}' | python3 scripts/check-record-history.py - (rc=2, empty records rejected fail-closed)"
+  ],
+  "results": {
+    "test_count": 45,
+    "passed": 45,
+    "failed": 0,
+    "summary": "Deterministic record-history checker implemented in scripts/check-record-history.py with comprehensive unittest suite in tests/history/. Compares unique IDs, payload hashes, and per-key/partition ordering across topics and partitions without cross-topic count or offset assumptions. Implements distinct duplicate and visibility rules for acks modes (0, 1, -1/all), idempotence, transactional isolation (read_committed vs read_uncommitted), control marker suppression, atomicity, output/offset consistency, and KIP-932 share group delivery (accept/release/reject lifecycle). Deliberately invalid histories produce minimal explanatory counterexamples. Empty histories fail closed with exit code 2."
+  },
+  "artifacts": [
+    "scripts/check-record-history.py",
+    "tests/history/__init__.py",
+    "tests/history/test_checker.py",
+    "docs/plan/evidence/KL03-18.json"
+  ],
+  "limits": [
+    "Test infrastructure and offline verification tool only; does not run live Kafka cluster or modify client source code.",
+    "Python standard library only (no external dependencies)."
+  ],
+  "blocked_reason": null
+}
