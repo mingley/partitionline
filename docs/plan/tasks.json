@@ -637,13 +637,29 @@
     {
       "id": "KL03-18",
       "title": "Build the record-history correctness checker",
-      "priority": "P0", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "test-infrastructure", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-02"],
       "files": ["new: tests/history/", "new: scripts/check-record-history.py"],
       "deliverable": "A deterministic checker for attempted/accepted/acked/failed/ambiguous records and independently consumed output.",
       "acceptance": ["Compare unique IDs, payload hashes and per-key/partition order, not counts or offsets across different topics.", "Apply separate duplicate/visibility rules for acks modes, idempotence, transactions and share delivery.", "Detect synthetic missing/duplicate swaps, corruption, aborted exposure and non-atomic output/offset histories."],
       "validation": ["python3 -m unittest discover -s tests/history", "Require all deliberately invalid histories to fail with a minimal explanatory counterexample."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "95d8fc85bbae21f84454c35464fbdab5982bec11",
+                "commands": [
+                        "python3 -m unittest discover -s tests/history (45 passed, exit 0)"
+                ],
+                "results": "Checker compares unique IDs, payload hashes, and per-key/partition order. Invalid histories for missing, duplicate, corruption, aborted exposure, and non-atomic offset updates fail with a counterexample. Count equality is not treated as a pass.",
+                "artifacts": [
+                        "scripts/check-record-history.py",
+                        "tests/history/test_checker.py",
+                        "docs/plan/evidence/KL03-18.json"
+                ],
+                "limits": [
+                        "Checker only. It was not run against a live produce/consume history."
+                ]
+        }
+]
     },
     {
       "id": "KL03-19",
