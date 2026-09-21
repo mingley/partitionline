@@ -44,7 +44,10 @@ use partitionline::protocol::header::{
     decode_request_header, decode_response_header, encode_request_header, encode_response_header,
     RequestHeader,
 };
-use partitionline::{Consumer, ConsumerConfig, TopicPartition};
+use partitionline::protocol::records::{
+    ControlRecordType, EndTransactionMarker, Record, RecordBatch,
+};
+use partitionline::{Consumer, ConsumerConfig, IsolationLevel, TopicPartition};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::oneshot;
@@ -839,6 +842,366 @@ async fn mixed_partition_retry_aborted_must_not_advance_positions_for_discarded_
             (TopicPartition::new("t", 1), 0),
         ],
         "positions must remain at offset 0 when fetch is aborted"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+fn custom_batch(
+    offset: i64,
+    values: &[&[u8]],
+    producer_id: i64,
+    producer_epoch: i16,
+    sequence: Option<i32>,
+    is_transactional: bool,
+) -> RecordBatch {
+    let records = values
+        .iter()
+        .map(|value| Record {
+            offset: 0,
+            timestamp: 0,
+            key: None,
+            value: Some(bytes::Bytes::copy_from_slice(value)),
+            headers: Vec::new(),
+        })
+        .collect();
+    let mut batch = RecordBatch::from_records(records).with_transactional(is_transactional);
+    batch.base_offset = offset;
+    batch.producer_id = producer_id;
+    batch.producer_epoch = producer_epoch;
+    if let Some(seq) = sequence {
+        batch.base_sequence = seq;
+    }
+    batch
+}
+
+fn custom_marker(
+    offset: i64,
+    control: ControlRecordType,
+    producer_id: i64,
+    producer_epoch: i16,
+) -> RecordBatch {
+    RecordBatch::with_end_transaction_marker(
+        offset,
+        0,
+        0,
+        producer_id,
+        producer_epoch,
+        &EndTransactionMarker::new(control, 0).expect("valid control marker"),
+    )
+    .expect("valid end transaction marker batch")
+}
+
+/// Audit defect A02 reproduction / regression test:
+/// PID 7 aborts a transaction at offset 0 (ABORT marker at offset 1),
+/// then commits another transaction at offset 2 (COMMIT marker at offset 3).
+/// In `read_committed` mode, the consumer must return the committed record at offset 2,
+/// and must never return control records or aborted records.
+#[tokio::test]
+async fn committed_transaction_after_abort_for_same_pid_must_be_visible() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start(fetch_fixture::Scenario::AbortThenCommit).await;
+    let mut cfg = broker.config();
+    cfg.isolation_level = IsolationLevel::ReadCommitted;
+    let mut consumer = Consumer::new(cfg)
+        .await
+        .expect("consumer starts successfully");
+
+    consumer
+        .assign("t", 0, 0)
+        .await
+        .expect("assign topic t partition 0 at offset 0");
+    let records = consumer.fetch().await.expect("fetch succeeds");
+
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![2],
+        "read_committed must deliver the later committed record (offset 2) after an abort under PID 7"
+    );
+    assert_eq!(
+        records[0].value.as_deref(),
+        Some(&b"committed"[..]),
+        "delivered record value must match the committed batch"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 4)],
+        "fetch cursor must advance past the COMMIT marker (offset 4)"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify handling of multiple aborted intervals under the same PID as well as across
+/// different PIDs:
+/// - PID 7 aborts at offset 0 (ABORT marker 1)
+/// - PID 7 commits at offset 2 (COMMIT marker 3)
+/// - PID 7 aborts again at offset 4 (ABORT marker 5)
+/// - PID 7 commits again at offset 6 (COMMIT marker 7)
+/// - PID 8 commits at offset 8 (COMMIT marker 9)
+/// - PID 8 aborts at offset 10 (ABORT marker 11)
+///
+/// In `read_committed` mode: only committed records (offsets 2, 6, 8) must be delivered.
+/// Neither aborted data records (0, 4, 10) nor control records (1, 3, 5, 7, 9, 11) must appear.
+#[tokio::test]
+async fn read_committed_multiple_aborted_intervals_and_pids() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.high_watermark = 12;
+                    part.last_stable_offset = 12;
+                    part.aborted_transactions = vec![(7, 0), (7, 4), (8, 10)];
+                    part.records = vec![
+                        custom_batch(0, &[b"p7-aborted-0"], 7, 0, Some(0), true),
+                        custom_marker(1, ControlRecordType::Abort, 7, 0),
+                        custom_batch(2, &[b"p7-committed-2"], 7, 0, Some(1), true),
+                        custom_marker(3, ControlRecordType::Commit, 7, 0),
+                        custom_batch(4, &[b"p7-aborted-4"], 7, 0, Some(2), true),
+                        custom_marker(5, ControlRecordType::Abort, 7, 0),
+                        custom_batch(6, &[b"p7-committed-6"], 7, 0, Some(3), true),
+                        custom_marker(7, ControlRecordType::Commit, 7, 0),
+                        custom_batch(8, &[b"p8-committed-8"], 8, 0, Some(0), true),
+                        custom_marker(9, ControlRecordType::Commit, 8, 0),
+                        custom_batch(10, &[b"p8-aborted-10"], 8, 0, Some(1), true),
+                        custom_marker(11, ControlRecordType::Abort, 8, 0),
+                    ];
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut cfg = broker.config();
+    cfg.isolation_level = IsolationLevel::ReadCommitted;
+    let mut consumer = Consumer::new(cfg)
+        .await
+        .expect("consumer starts successfully");
+
+    consumer.assign("t", 0, 0).await.expect("assign partition");
+    let records = consumer.fetch().await.expect("fetch succeeds");
+
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![2, 6, 8],
+        "must return committed records for multiple intervals and PIDs"
+    );
+    assert_eq!(records[0].value.as_deref(), Some(&b"p7-committed-2"[..]));
+    assert_eq!(records[1].value.as_deref(), Some(&b"p7-committed-6"[..]));
+    assert_eq!(records[2].value.as_deref(), Some(&b"p8-committed-8"[..]));
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 12)],
+        "cursor must advance to offset 12 after all batches"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify that non-transactional batches are NOT suppressed merely because they share
+/// a producer ID that is currently in the aborted transactions list.
+#[tokio::test]
+async fn nontransactional_records_sharing_aborted_pid_must_be_visible() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.high_watermark = 5;
+                    part.last_stable_offset = 5;
+                    part.aborted_transactions = vec![(7, 0)];
+                    part.records = vec![
+                        // Transactional batch for PID 7, aborted
+                        custom_batch(0, &[b"p7-aborted-0"], 7, 0, Some(0), true),
+                        // Non-transactional batch for PID 7 (must NOT be suppressed)
+                        custom_batch(1, &[b"p7-nontransactional-1"], 7, 0, None, false),
+                        // ABORT marker for PID 7
+                        custom_marker(2, ControlRecordType::Abort, 7, 0),
+                        // Transactional batch for PID 7, committed
+                        custom_batch(3, &[b"p7-committed-3"], 7, 0, Some(1), true),
+                        // COMMIT marker for PID 7
+                        custom_marker(4, ControlRecordType::Commit, 7, 0),
+                    ];
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut cfg = broker.config();
+    cfg.isolation_level = IsolationLevel::ReadCommitted;
+    let mut consumer = Consumer::new(cfg)
+        .await
+        .expect("consumer starts successfully");
+
+    consumer.assign("t", 0, 0).await.expect("assign partition");
+    let records = consumer.fetch().await.expect("fetch succeeds");
+
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![1, 3],
+        "must deliver non-transactional record 1 and committed record 3"
+    );
+    assert_eq!(
+        records[0].value.as_deref(),
+        Some(&b"p7-nontransactional-1"[..])
+    );
+    assert_eq!(records[1].value.as_deref(), Some(&b"p7-committed-3"[..]));
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 5)],
+        "cursor must advance to offset 5"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify that an aborted transaction spanning across multiple fetches correctly filters
+/// aborted records in the first fetch and returns the subsequent committed record after
+/// the ABORT marker in the second fetch.
+#[tokio::test]
+async fn aborted_transaction_spanning_across_fetches_must_return_subsequent_committed_record() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |topics, _attempt| {
+            let fetch_offset = topics
+                .first()
+                .and_then(|t| t.partitions.first())
+                .map_or(0, |p| p.fetch_offset);
+
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.high_watermark = 4;
+                    part.last_stable_offset = 4;
+                    if fetch_offset == 0 {
+                        // Fetch 1: only returns the aborted data batch; no marker yet
+                        part.aborted_transactions = vec![(7, 0)];
+                        part.records = vec![custom_batch(
+                            0,
+                            &[b"p7-aborted-span-0"],
+                            7,
+                            0,
+                            Some(0),
+                            true,
+                        )];
+                    } else if fetch_offset == 1 {
+                        // Fetch 2: returns the ABORT marker, then committed data and COMMIT marker
+                        part.aborted_transactions = vec![(7, 0)];
+                        part.records = vec![
+                            custom_marker(1, ControlRecordType::Abort, 7, 0),
+                            custom_batch(2, &[b"p7-committed-span-2"], 7, 0, Some(1), true),
+                            custom_marker(3, ControlRecordType::Commit, 7, 0),
+                        ];
+                    }
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut cfg = broker.config();
+    cfg.isolation_level = IsolationLevel::ReadCommitted;
+    let mut consumer = Consumer::new(cfg)
+        .await
+        .expect("consumer starts successfully");
+
+    consumer.assign("t", 0, 0).await.expect("assign partition");
+
+    // Fetch 1: aborted batch only -> no records returned, position advances to 1
+    let records1 = consumer.fetch().await.expect("fetch 1 succeeds");
+    assert!(
+        records1.is_empty(),
+        "aborted record in fetch 1 must not be delivered"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 1)],
+        "position must advance to 1 after aborted batch in fetch 1"
+    );
+
+    // Fetch 2: abort marker consumed, committed batch delivered -> offset 2 returned
+    let records2 = consumer.fetch().await.expect("fetch 2 succeeds");
+    assert_eq!(
+        records2.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![2],
+        "fetch 2 must return the committed record at offset 2"
+    );
+    assert_eq!(
+        records2[0].value.as_deref(),
+        Some(&b"p7-committed-span-2"[..])
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 4)],
+        "position must advance to 4 after COMMIT marker in fetch 2"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify that in `read_committed` mode, consumption stops at the `last_stable_offset`
+/// boundary. Batches/records at or after `last_stable_offset` must not be returned and
+/// the consumer's position must not advance past `last_stable_offset`.
+#[tokio::test]
+async fn read_committed_stops_at_last_stable_offset_boundary() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    // LSO is 4, high watermark is 6
+                    part.high_watermark = 6;
+                    part.last_stable_offset = 4;
+                    part.aborted_transactions = vec![(7, 0)];
+                    part.records = vec![
+                        // Offsets 0..3 are below LSO (4)
+                        custom_batch(0, &[b"p7-aborted-0"], 7, 0, Some(0), true),
+                        custom_marker(1, ControlRecordType::Abort, 7, 0),
+                        custom_batch(2, &[b"p7-committed-2"], 7, 0, Some(1), true),
+                        custom_marker(3, ControlRecordType::Commit, 7, 0),
+                        // Offsets 4..5 are at/above LSO (4) -> uncommitted data
+                        custom_batch(4, &[b"p8-uncommitted-4"], 8, 0, Some(0), true),
+                        custom_batch(5, &[b"p8-uncommitted-5"], 8, 0, Some(1), true),
+                    ];
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut cfg = broker.config();
+    cfg.isolation_level = IsolationLevel::ReadCommitted;
+    let mut consumer = Consumer::new(cfg)
+        .await
+        .expect("consumer starts successfully");
+
+    consumer.assign("t", 0, 0).await.expect("assign partition");
+    let records = consumer.fetch().await.expect("fetch succeeds");
+
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![2],
+        "must only return committed records below LSO (offset 2)"
+    );
+    assert_eq!(records[0].value.as_deref(), Some(&b"p7-committed-2"[..]));
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 4)],
+        "cursor must stop at LSO boundary (offset 4) and not advance past it"
     );
 
     consumer.close().await.expect("consumer closes cleanly");

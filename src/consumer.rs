@@ -1253,6 +1253,9 @@ pub struct Consumer {
     preferred: HashMap<(String, i32), i32>,
     paused: HashSet<(String, i32)>,
     pending: VecDeque<FetchedRecord>,
+    aborted_pids: HashMap<(String, i32), HashMap<i64, i64>>,
+    aborted_txs: HashMap<(String, i32), Vec<(i64, i64)>>,
+    completed_txs: HashMap<(String, i32), HashSet<(i64, i64)>>,
     m_fetch_rounds: AtomicU64,
     m_records: AtomicU64,
     m_bytes: AtomicU64,
@@ -1342,6 +1345,9 @@ impl Consumer {
             preferred: HashMap::new(),
             paused: HashSet::new(),
             pending: VecDeque::new(),
+            aborted_pids: HashMap::new(),
+            aborted_txs: HashMap::new(),
+            completed_txs: HashMap::new(),
             m_fetch_rounds: AtomicU64::new(0),
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
@@ -1590,6 +1596,9 @@ impl Consumer {
         self.assigned.clear();
         self.pending.clear();
         self.last_fetched_epochs.clear();
+        self.aborted_pids.clear();
+        self.aborted_txs.clear();
+        self.completed_txs.clear();
     }
 
     /// Replace the assignment. One Metadata refresh for the topic set.
@@ -2636,34 +2645,115 @@ impl Consumer {
                     retry = retry.merge(FetchRetry::Redirect);
                     continue;
                 }
+                let part_key = (name.clone(), part.partition);
+                let isolation = self.cfg.isolation_level;
+                let has_txn_headers = part
+                    .records
+                    .iter()
+                    .any(|b| b.is_transactional() || b.is_control_batch())
+                    || self
+                        .aborted_pids
+                        .get(&part_key)
+                        .is_some_and(|m| !m.is_empty());
+
+                if isolation == crate::IsolationLevel::ReadCommitted {
+                    let pending = self.aborted_txs.entry(part_key.clone()).or_default();
+                    let completed_txs = self.completed_txs.entry(part_key.clone()).or_default();
+                    let active = self.aborted_pids.entry(part_key.clone()).or_default();
+                    for &(pid, first) in &part.aborted_transactions {
+                        if !completed_txs.contains(&(pid, first))
+                            && active.get(&pid) != Some(&first)
+                            && !pending.iter().any(|&(p, f)| p == pid && f == first)
+                        {
+                            pending.push((pid, first));
+                        }
+                    }
+                    pending.sort_by_key(|a| std::cmp::Reverse(a.1));
+                }
+
                 let mut next = None;
                 let mut last_epoch = crate::RecordBatch::NO_PARTITION_LEADER_EPOCH;
-                let isolation = self.cfg.isolation_level;
+                let mut reached_lso = false;
+
                 for batch in part.records {
-                    if batch.attributes & crate::protocol::records::ATTR_CONTROL != 0 {
-                        if let Some(last) = batch.records.last() {
-                            next = Some(last.offset + 1);
-                            last_epoch = batch.partition_leader_epoch;
+                    if isolation == crate::IsolationLevel::ReadCommitted
+                        && part.last_stable_offset >= 0
+                        && batch.base_offset >= part.last_stable_offset
+                    {
+                        break;
+                    }
+
+                    let batch_last = batch.last_offset();
+                    let batch_next = batch.records.last().map_or_else(
+                        || batch.next_offset(),
+                        |r| (r.offset + 1).max(batch.next_offset()),
+                    );
+
+                    if isolation == crate::IsolationLevel::ReadCommitted {
+                        let pending = self.aborted_txs.entry(part_key.clone()).or_default();
+                        let active = self.aborted_pids.entry(part_key.clone()).or_default();
+                        while let Some(&(pid, first)) = pending.last() {
+                            if first <= batch_last {
+                                let _ = pending.pop();
+                                let _ = active.insert(pid, first);
+                            } else {
+                                break;
+                            }
                         }
+
+                        if batch.is_control_batch() {
+                            if is_abort_marker(&batch) {
+                                let active = self.aborted_pids.entry(part_key.clone()).or_default();
+                                if let Some(first) = active.remove(&batch.producer_id) {
+                                    let completed_txs =
+                                        self.completed_txs.entry(part_key.clone()).or_default();
+                                    let _ = completed_txs.insert((batch.producer_id, first));
+                                }
+                            }
+                            next = Some(batch_next);
+                            last_epoch = batch.partition_leader_epoch;
+                            continue;
+                        }
+
+                        if has_txn_headers && batch.is_transactional() {
+                            let active = self.aborted_pids.entry(part_key.clone()).or_default();
+                            if let Some(&first) = active.get(&batch.producer_id) {
+                                if batch.base_offset >= first {
+                                    next = Some(batch_next);
+                                    last_epoch = batch.partition_leader_epoch;
+                                    continue;
+                                }
+                            }
+                        }
+                    } else if batch.is_control_batch() {
+                        next = Some(batch_next);
+                        last_epoch = batch.partition_leader_epoch;
                         continue;
                     }
+
+                    let is_transactional = batch.is_transactional();
                     let timestamp_type = batch.timestamp_type();
                     for rec in batch.records {
                         let offset = rec.offset;
                         if isolation == crate::IsolationLevel::ReadCommitted
+                            && part.last_stable_offset >= 0
                             && offset >= part.last_stable_offset
                         {
+                            reached_lso = true;
                             break;
                         }
                         next = Some(offset + 1);
                         last_epoch = batch.partition_leader_epoch;
                         if isolation == crate::IsolationLevel::ReadCommitted {
-                            let aborted = part
-                                .aborted_transactions
-                                .iter()
-                                .any(|(pid, first)| batch.producer_id == *pid && offset >= *first);
-                            if aborted {
-                                continue;
+                            let active = self.aborted_pids.entry(part_key.clone()).or_default();
+                            if let Some(&first) = active.get(&batch.producer_id) {
+                                if has_txn_headers {
+                                    if is_transactional && offset >= first {
+                                        continue;
+                                    }
+                                } else if offset >= first {
+                                    continue;
+                                }
                             }
                         }
                         out.push(FetchedRecord {
@@ -2678,6 +2768,9 @@ impl Consumer {
                             leader_epoch: (batch.partition_leader_epoch >= 0)
                                 .then_some(batch.partition_leader_epoch),
                         });
+                    }
+                    if reached_lso {
+                        break;
                     }
                 }
                 if let Some(n) = next {
@@ -3189,6 +3282,10 @@ impl Consumer {
     fn drop_pending_for(&mut self, topic: &str, partition: i32) {
         self.pending
             .retain(|r| !(r.topic == topic && r.partition == partition));
+        let key = (topic.to_string(), partition);
+        let _ = self.aborted_pids.remove(&key);
+        let _ = self.aborted_txs.remove(&key);
+        let _ = self.completed_txs.remove(&key);
     }
 
     fn retain_pending_assigned(&mut self) {
@@ -3268,6 +3365,20 @@ impl FetchRetry {
             (Self::None, Self::None) => Self::None,
         }
     }
+}
+
+fn is_abort_marker(batch: &crate::protocol::records::RecordBatch) -> bool {
+    if !batch.is_control_batch() {
+        return false;
+    }
+    batch
+        .records
+        .first()
+        .and_then(|r| r.key.as_ref())
+        .is_some_and(|k| {
+            crate::protocol::records::ControlRecordType::parse(k)
+                .is_ok_and(|t| t == crate::protocol::records::ControlRecordType::Abort)
+        })
 }
 
 fn fetch_topics(
