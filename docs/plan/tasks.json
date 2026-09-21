@@ -286,13 +286,30 @@
     {
       "id": "KL02-07",
       "title": "Use an absolute deadline for a network round trip",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL02-01"],
       "files": ["src/net.rs", "new: tests/network_deadlines.rs"],
       "deliverable": "A shared remaining-time contract for request write, header/body read and partial-frame progress.",
       "acceptance": ["A peer that delays both write and response cannot consume two independent full RPC budgets.", "Partial reads, wakeup/cancellation and TLS read-during-write preserve framing and correlation safety.", "No timeout returns a reusable desynchronized connection."],
       "validation": ["cargo test --locked --test network_deadlines", "cargo test --locked --lib net"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "42cd6fc2abc02386a837159b329cdde1d4bcde53",
+                "commands": [
+                        "cargo test --offline --locked --test network_deadlines (8 passed, exit 0)",
+                        "cargo test --offline --locked --lib net (10 passed, exit 0)"
+                ],
+                "results": "BrokerConn::roundtrip shares one absolute deadline across write and read. A peer that delays both cannot consume two full budgets. Timeout, cancellation, partial read, and correlation mismatch mark the connection closed so it is not reused. Framing is preserved when a response arrives during write.",
+                "artifacts": [
+                        "src/net.rs",
+                        "tests/network_deadlines.rs",
+                        "docs/plan/evidence/KL02-07.json"
+                ],
+                "limits": [
+                        "Producer::fire still calls write_all_timeout and read_response separately, so that path can still spend two request_timeout budgets. Callers of BrokerConn::roundtrip, including consumer fetch and coordinator RPCs, share one deadline."
+                ]
+        }
+]
     },
     {
       "id": "KL02-08",
