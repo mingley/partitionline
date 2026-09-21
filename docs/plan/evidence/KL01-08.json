@@ -1,0 +1,51 @@
+{
+  "id": "KL01-08",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "29fff7d568bc9c6dcd71224d1ccb056fee599100",
+  "commands": [
+    "bash scripts/ci-protocol-oracles.sh --self-test (exit 0, exercises matrix, missing Java/broker prerequisites, wrong peer substitution, missing artifacts, and full registry fail-closed negative paths)",
+    "python3 -m unittest discover -s tests/conformance -p test_report.py (exit 0, 29 tests passed)",
+    "bash scripts/ci-protocol-oracles.sh --report target/conformance/fixture-report.json (exit 0, durable fixture report and summary generated)",
+    "python3 scripts/conformance-report.py -r tests/fixtures/protocol_oracles/matrix.json tests/fixtures/protocol_oracles/matrix.json (exit 0, 8 advertised cells verified)",
+    "python3 scripts/conformance-report.py -r tests/fixtures/protocol_oracles/matrix.json --require-independent-pass tests/fixtures/protocol_oracles/matrix.json (exit 1, fails closed; local consistency round-trips not treated as independent passes)",
+    "python3 scripts/conformance-report.py tests/conformance/cases.json (exit 1, fails closed due to historical failing consumer cases A01-A05)"
+  ],
+  "results": {
+    "self_test_passed": true,
+    "required_fixture_lane_configured": true,
+    "opt_in_live_lane_configured": true,
+    "durable_artifacts_configured": true,
+    "negative_paths_verified": {
+      "missing_java_prerequisite_fails": true,
+      "missing_broker_prerequisite_fails": true,
+      "wrong_peer_substitution_fails": true,
+      "missing_artifact_report_fails": true,
+      "wrong_peer_report_fails": true,
+      "full_registry_failed_consumer_cases_fail_closed": true
+    },
+    "report_features": {
+      "peer_identity_recorded": true,
+      "negotiated_api_versions_recorded": true,
+      "all_dispositions_reported": true
+    },
+    "offline_unit_consistency": {
+      "fast_offline_path_preserved": true,
+      "accurate_local_consistency_label": true,
+      "local_roundtrips_not_treated_as_independent_passes": true
+    },
+    "summary": "Configured required conformance fixture lane ('conformance-fixtures') and explicit opt-in live broker lane ('conformance-live') with durable result artifacts in .github/workflows/ci.yml. Extended scripts/ci-protocol-oracles.sh to verify Java and broker prerequisites fail-closed rather than silently substituting peers, support --report durable artifact emission, and execute an exhaustive --self-test covering missing Java, missing broker, wrong-peer substitution, missing-artifact, and registry fail-closed negative paths. Updated scripts/conformance-report.py to capture peer identity, negotiated API versions, all case dispositions, and validate peer identity against expected pins and matrix cells. Preserved fast offline path for unit consistency tests under their accurate 'local_consistency' label without conflating them with independent passes. Verified that evaluating the full case registry fails closed due to historical consumer failures (A01-A05)."
+  },
+  "artifacts": [
+    ".github/workflows/ci.yml",
+    "scripts/ci-protocol-oracles.sh",
+    "scripts/conformance-report.py",
+    "tests/conformance/test_report.py",
+    "docs/plan/evidence/KL01-08.json"
+  ],
+  "limits": [
+    "You cannot inspect a completed GitHub Actions artifact without pushing. Recorded as a limit; no remote CI URL claimed.",
+    "Historical consumer defect cases A01-A05 remain failing in the registry; full profile report fails closed until subsequent cards implement consumer repairs."
+  ],
+  "blocked_reason": null
+}
