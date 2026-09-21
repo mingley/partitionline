@@ -12061,3 +12061,40 @@ async fn produce_mixed_version_multi_partition_distinct_leaders() {
 
     producer.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn produce_v12_skip_does_not_suppress_add_partitions_after_move_to_v7() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_node_api_max(1, PRODUCE, 12);
+    mock.set_node_api_max(2, PRODUCE, 7);
+    mock.set_partition_leader("t", 0, 1);
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-move".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").partition(0).value(&b"on-v12"[..]))
+        .await
+        .unwrap();
+    assert_eq!(mock.last_produce_version_for_node(1), Some(12));
+    assert_eq!(
+        mock.add_partitions_to_txn_calls(),
+        0,
+        "Produce v12 must skip AddPartitionsToTxn"
+    );
+
+    mock.set_partition_leader("t", 0, 2);
+    producer
+        .send(ProduceRecord::to("t").partition(0).value(&b"on-v7"[..]))
+        .await
+        .expect("produce after movement to a v7 leader must succeed");
+    assert_eq!(mock.last_produce_version_for_node(2), Some(7));
+    assert!(
+        mock.add_partitions_to_txn_calls() >= 1,
+        "a v12 skip must not suppress AddPartitionsToTxn after the partition moves to a v7 leader"
+    );
+    producer.abort_transaction().await.unwrap();
+    producer.close().await.unwrap();
+}

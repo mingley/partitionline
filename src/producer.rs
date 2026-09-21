@@ -3534,13 +3534,10 @@ impl Worker {
             }
         }
         // Produce v12 is transaction V2 (KIP-890 Part 2): Produce also
-        // performs AddPartitionsToTxn. Skip that RPC when the broker
-        // advertised v12 (Java `isTransactionV2Enabled`).
+        // performs AddPartitionsToTxn. Skip that RPC only for this leader.
+        // Do not record the skip in the shared set: a later v3–v11 leader
+        // must still send AddPartitionsToTxn after leader movement.
         if ProduceRequest::is_transaction_v2_requested(self.conn.produce_version()) {
-            let mut sent = self.shared.txn_added.lock();
-            for (topic, part, _) in groups {
-                let _ = sent.insert((topic.clone(), *part));
-            }
             return Ok(());
         }
         let timeout = self.shared.cfg.request_timeout;
