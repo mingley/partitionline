@@ -844,13 +844,35 @@
     {
       "id": "KL03-11",
       "title": "Negotiate Produce versions per partition leader",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-04"],
       "files": ["src/producer.rs", "src/net.rs", "tests/common/mod.rs", "tests/full_surface.rs"],
       "deliverable": "A mixed-version two-broker Produce regression and per-connection negotiation where needed.",
       "acceptance": ["A newer bootstrap broker cannot force an unsupported Produce version on an older partition leader.", "Reconnection/leader movement refreshes that peer's capabilities and preserves request/response framing.", "Keep consumer negotiation in KL03-22; share only a small transport capability helper if needed."],
       "validation": ["cargo test --locked --test full_surface", "Run the explicit mixed-version fixture with both leader orders."],
-      "evidence": []
+      "evidence": [
+        {
+          "source_sha": "4927d266f79c9b0df4aa69bec796e51685bfa28a",
+          "commands": [
+            "cargo test --offline --locked --test full_surface produce_mixed_version (3 passed, exit 0)",
+            "cargo test --offline --locked --test full_surface produce_v12_skip_does_not_suppress_add_partitions_after_move_to_v7 (1 passed, exit 0)",
+            "cargo test --offline --locked --test full_surface transactional_offsets_and_partitions_one_rpc (1 passed, exit 0)",
+            "cargo test --offline --locked --test full_surface idempotent_lost_ack (6 passed, exit 0)",
+            "cargo test --offline --locked --test produce_cancel (15 passed, exit 0)"
+          ],
+          "results": "Each leader connection negotiates Produce v3-v12 from its own ApiVersions. A v12 bootstrap cannot force v12 onto a v7 leader, and a v7 bootstrap does not cap a v12 leader. Reconnect and leader movement refresh that peer's version. A v12 AddPartitions skip is not recorded globally, so movement to a v7 leader still sends AddPartitionsToTxn. Consumer negotiation is unchanged.",
+          "artifacts": [
+            "src/producer.rs",
+            "src/net.rs",
+            "tests/common/mod.rs",
+            "tests/full_surface.rs",
+            "docs/plan/evidence/KL03-11.json"
+          ],
+          "limits": [
+            "In-memory mock only. A live mixed-version cluster was not exercised."
+          ]
+        }
+      ]
     },
     {
       "id": "KL03-12",
