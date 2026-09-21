@@ -1,0 +1,89 @@
+{
+  "id": "KL03-08",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "535a1da8bca7d8b67872d68be9b8af7dc1e76876",
+  "commands": [
+    "cargo test --offline --locked --test full_surface idempotent",
+    "cargo test --offline --locked --test produce_cancel",
+    "cargo test --offline --locked --test buffer_ownership",
+    "rustfmt --edition 2021 --check src/producer.rs tests/common/mod.rs tests/full_surface.rs"
+  ],
+  "results": {
+    "full_surface_idempotent_tests": {
+      "passed": 9,
+      "failed": 0,
+      "test_names": [
+        "idempotent_produce_gets_pid_and_offset",
+        "idempotent_unkeyed_multi_conn_stays_in_order",
+        "idempotent_unknown_producer_id_bumps_epoch_and_retries",
+        "idempotent_lost_ack_single_batch_retry_succeeds_without_duplicate",
+        "idempotent_lost_ack_several_inflight_batches_same_partition",
+        "idempotent_lost_ack_several_inflight_appended_before_disconnect",
+        "idempotent_lost_ack_with_progressing_partition",
+        "idempotent_lost_ack_multi_record_batch_retries_without_duplicate",
+        "idempotent_lost_ack_ambiguous_expiration_remains_explicit"
+      ]
+    },
+    "produce_cancel_tests": {
+      "passed": 15,
+      "failed": 0,
+      "test_names": [
+        "durable_closed_flag_across_clones",
+        "send_after_close_returns_closed",
+        "concurrent_sends_during_close_do_not_hang_and_observe_closed",
+        "send_fails_when_broker_returns_produce_error",
+        "send_completes_with_record_metadata",
+        "dropping_send_future_while_buffered_is_ambiguous_but_still_delivers",
+        "last_handle_drop_releases_permits_and_aborts_tasks",
+        "retry_succeeds_when_broker_recovers_within_delivery_deadline",
+        "max_block_and_request_timeout_keep_distinct_documented_meanings",
+        "delivery_deadline_enforces_queueing_wait_under_long_linger",
+        "stalled_broker_close_timeout_terminates_boundedly_and_completes_inflight",
+        "retry_queue_shutdown_boundedly_completes_and_releases_permits",
+        "delivery_deadline_shared_across_retries_and_consumes_remaining_time",
+        "delivery_deadline_enforces_acknowledgment_wait_bounded_by_remaining",
+        "delivery_deadline_bounds_metadata_refresh_during_retry"
+      ]
+    },
+    "buffer_ownership_tests": {
+      "passed": 12,
+      "failed": 0,
+      "test_names": [
+        "presend_failure_encode_releases_permit_and_flush_fails",
+        "presend_failure_write_releases_permit_and_flush_fails",
+        "saturating_try_send_never_exceeds_buffer_memory",
+        "presend_failure_transaction_partition_releases_permit_and_flush_fails",
+        "shared_backing_and_compressed_records_respect_buffer_budget",
+        "header_heavy_records_count_against_buffer_budget",
+        "queue_full_under_overload_releases_no_orphan_bytes",
+        "presend_failure_real_mock_add_partitions_to_txn",
+        "permit_stays_owned_across_retry_and_releases_exactly_once",
+        "presend_failure_write_retry_exhaustion_releases_permit",
+        "zero_value_records_do_not_bypass_saturated_buffer",
+        "send_timeout_when_buffer_full_and_max_block_expires"
+      ]
+    },
+    "checks": [
+      "The mock broker fixture appends produce records before dropping the response frame and closing the socket",
+      "Retry after a lost acknowledgment preserves the original producer_id, producer_epoch, and base_sequence",
+      "Broker deduplication detects the already-appended batch and returns its original base_offset without duplicate appends",
+      "Single in-flight batch and several in-flight batches on the same partition retry cleanly across broker reconnection",
+      "Another progressing partition on an independent broker node advances normally while the disconnected partition recovers",
+      "Enqueue success is never relabeled as broker acknowledgment; ambiguous expiration remains explicit via Error::Timeout",
+      "KL02-02, KL02-04, KL02-05, and KL02-06 constraints fully preserved"
+    ]
+  },
+  "artifacts": [
+    "src/producer.rs",
+    "tests/common/mod.rs",
+    "tests/full_surface.rs",
+    "docs/plan/evidence/KL03-08.json"
+  ],
+  "limits": [
+    "Non-transactional epoch bumps on UNKNOWN_PRODUCER_ID remain scoped to card KL03-09.",
+    "Transactional recovery mechanisms remain scoped to cards KL03-10 and KL03-11.",
+    "No unsafe code and no new dependencies added."
+  ],
+  "blocked_reason": null
+}
