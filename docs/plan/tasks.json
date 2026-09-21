@@ -496,13 +496,30 @@
     {
       "id": "KL03-13",
       "title": "Honor the share-group broker heartbeat interval",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": [],
       "files": ["src/share.rs", "tests/full_surface.rs", "tests/common/mod.rs"],
       "deliverable": "Broker-directed share heartbeat scheduling instead of the hard-coded 150 ms interval.",
       "acceptance": ["Apply valid join/update intervals and handle invalid values explicitly.", "Leave, coordinator reconnect and session changes cannot strand the scheduling task.", "Keep this change separate from share acquisition/acknowledgment semantics."],
       "validation": ["cargo test --locked --test full_surface share", "Add a deterministic changed-interval assertion, not only a decoded-field assertion."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "081595a16b6e6a9823a80138c30e4086df65e4e9",
+                "commands": [
+                        "cargo test --offline --locked --test full_surface share (25 passed, 0 failed, exit 0)"
+                ],
+                "results": "Share heartbeats use broker heartbeat_interval_ms on join and on later responses. A 5000 ms broker interval does not send another heartbeat at 150 ms. Invalid intervals are rejected on join and do not hot-loop later. Leave returns without waiting out the broker interval. Mock default stays 150 ms. Share fetch/ack semantics were not changed.",
+                "artifacts": [
+                        "src/share.rs",
+                        "tests/full_surface.rs",
+                        "tests/common/mod.rs",
+                        "docs/plan/evidence/KL03-13.json"
+                ],
+                "limits": [
+                        "No live broker run. Acquisition and acknowledgment behavior were not part of this card."
+                ]
+        }
+]
     },
     {
       "id": "KL03-14",
