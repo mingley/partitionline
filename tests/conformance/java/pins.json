@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Apache Kafka Protocol Conformance Pins",
+  "upstream_repository": "https://github.com/apache/kafka.git",
+  "primary_pin": {
+    "version": "3.9.1",
+    "upstream_tag": "3.9.1",
+    "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+    "maven_coordinates": "org.apache.kafka:kafka-clients:3.9.1",
+    "jar_sha256_distribution": "25c5e4eb059c35766f645c0e0bd2fe623a1ebdc18250957506b1edbf476d1272",
+    "jar_sha256_maven_central": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9"
+  },
+  "secondary_pin": {
+    "version": "4.1.0",
+    "upstream_tag": "4.1.0",
+    "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+    "maven_coordinates": "org.apache.kafka:kafka-clients:4.1.0"
+  },
+  "smoke_fixture": {
+    "api": "Produce",
+    "api_key": 0,
+    "api_version": 9,
+    "pin": "3.9.1",
+    "request_bin": "smoke_produce_v9_request.bin",
+    "response_bin": "smoke_produce_v9_response.bin",
+    "metadata_json": "smoke_produce_v9.json"
+  }
+}

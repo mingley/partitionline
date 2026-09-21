@@ -1,0 +1,48 @@
+{
+  "id": "KL01-03",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "6a6baf0bc5435c8882a8390556610916e7691d0e",
+  "upstream_sha": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "java_version": "25.0.3",
+  "artifact_version": "org.apache.kafka:kafka-clients:3.9.1",
+  "artifact_sha256": {
+    "distribution": "25c5e4eb059c35766f645c0e0bd2fe623a1ebdc18250957506b1edbf476d1272",
+    "maven_central": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9"
+  },
+  "invocation": "bash scripts/generate-protocol-fixtures.sh",
+  "commands": [
+    "bash scripts/generate-protocol-fixtures.sh (exit 0)",
+    "bash scripts/generate-protocol-fixtures.sh --verify (exit 0, byte-for-byte verification passed)",
+    "bash scripts/generate-protocol-fixtures.sh --out-dir /tmp/fixture-run-1 && bash scripts/generate-protocol-fixtures.sh --out-dir /tmp/fixture-run-2 && diff -u <(shasum -a 256 /tmp/fixture-run-1/*) <(shasum -a 256 /tmp/fixture-run-2/*) (exit 0, clean diff)",
+    "cargo test --offline --locked --test protocol_oracles (exit 0, offline passing)"
+  ],
+  "results": {
+    "java_executed": true,
+    "reproducibility_verified": true,
+    "fixture_hashes": {
+      "smoke_produce_v9_request.bin": "16f77371ffb3950535f6dccbca7eac6eb0f32390b662b828e9ebc54bcffa6ec5",
+      "smoke_produce_v9_response.bin": "3c7be5ef0efe4c15c1955986c1c49aff911d0188f461f4e66af556432ad1a48c",
+      "smoke_produce_v9.json": "f7e5b3812eed3d53c20c496d136ba9c7788b4c367c861294a7314c16fa532684"
+    },
+    "cargo_test_offline_passed": true,
+    "summary": "Reproducible generator using pinned Apache Kafka 3.9.1 message implementations (Message.write). Generation is independent of partitionline encoders. One smoke Produce v9 request/response pair generated twice and verified byte-for-byte identical. Committed fixtures verified offline with cargo test --offline --locked --test protocol_oracles."
+  },
+  "artifacts": [
+    "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+    "tests/conformance/java/src/main/java/org/slf4j/impl/StaticLoggerBinder.java",
+    "tests/conformance/java/pins.json",
+    "tests/conformance/java/pom.xml",
+    "tests/conformance/java/README.md",
+    "scripts/generate-protocol-fixtures.sh",
+    "tests/fixtures/protocol_oracles/smoke_produce_v9_request.bin",
+    "tests/fixtures/protocol_oracles/smoke_produce_v9_response.bin",
+    "tests/fixtures/protocol_oracles/smoke_produce_v9.json",
+    "docs/plan/evidence/KL01-03.json"
+  ],
+  "limits": [
+    "Generator currently produces one smoke Produce v9 request/response pair; expansion across all advertised version boundaries and API families (Produce, Fetch, Metadata, ListOffsets) is scheduled in cards KL01-04 through KL01-07.",
+    "Requires OpenJDK 17+ and Apache Kafka 3.9.1 client library for regeneration; committed fixtures require neither Java nor network to consume."
+  ],
+  "blocked_reason": null
+}
