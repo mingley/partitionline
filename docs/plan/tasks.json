@@ -543,13 +543,32 @@
     {
       "id": "KL02-08",
       "title": "Bound consumer fetch buffering across brokers",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL02-01", "KL02-03", "KL03-06"],
       "files": ["src/consumer.rs", "new: tests/fetch_buffer_budget.rs", "docs/guide.md"],
       "deliverable": "A bounded aggregate fetch/decode/pending-record policy, not only per-request max_bytes.",
       "acceptance": ["Slow processing and max_poll_records do not permit unbounded prefetched memory across partitions/brokers.", "Preserve progress for a valid first batch larger than the soft fetch limit, with an explicit hard decode ceiling.", "Pause/resume/seek/drop release or retain buffers according to the ownership contract without committing undelivered data."],
       "validation": ["cargo test --locked --test fetch_buffer_budget", "cargo test --locked --test consumer_fetch_semantics"],
-      "evidence": []
+      "evidence": [
+        {
+          "source_sha": "015ff2d1f0d6d10d52595b572934c9b45443998e",
+          "commands": [
+            "cargo test --offline --locked --test fetch_buffer_budget (8 passed, exit 0)",
+            "cargo test --offline --locked --test consumer_fetch_semantics (29 passed, exit 0)",
+            "cargo test --offline --locked --test consumer_close_commit (13 passed, exit 0)"
+          ],
+          "results": "ConsumerConfig::buffer_memory defaults to 32 MiB and bounds retained prefetch bytes (key, value, and headers) across partitions and brokers. Zero disables the cap. A valid first batch larger than the soft fetch limit is accepted so the partition can make progress, up to the existing 64 MiB decode ceiling. Pause retains those bytes, seek and clear release them, and position stays the delivered offset.",
+          "artifacts": [
+            "src/consumer.rs",
+            "tests/fetch_buffer_budget.rs",
+            "docs/guide.md",
+            "docs/plan/evidence/KL02-08.json"
+          ],
+          "limits": [
+            "Process RSS is not bounded. A single Fetch response is fully decoded before the retention check, and one round may request every leader before later responses are discarded. The 64 MiB decode ceiling is unchanged."
+          ]
+        }
+      ]
     },
     {
       "id": "KL02-09",
