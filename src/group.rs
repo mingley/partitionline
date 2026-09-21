@@ -889,10 +889,28 @@ impl ConsumerGroup {
         self.assignment()
     }
 
-    /// Assigned partitions with their next fetch offsets.
+    /// Assigned partitions with their next consumable offsets (delivered positions).
+    ///
+    /// If records are buffered in the consumer (e.g. via [`ConsumerConfig::max_poll_records`]),
+    /// each partition reports its next undelivered record offset rather than the
+    /// ahead-of-delivery broker fetch cursor.
     #[must_use]
     pub fn positions(&self) -> Vec<(TopicPartition, i64)> {
         self.consumer.positions()
+    }
+
+    /// Broker fetch cursor (next offset to request from the broker) for an assigned partition.
+    ///
+    /// This may be ahead of [`Self::position`] when records are buffered in the consumer
+    /// under [`ConsumerConfig::max_poll_records`].
+    pub fn fetch_cursor(&self, topic: &str, partition: i32) -> Result<i64> {
+        self.consumer.fetch_cursor(topic, partition)
+    }
+
+    /// Assigned partitions with their current broker fetch cursors.
+    #[must_use]
+    pub fn fetch_cursors(&self) -> Vec<(TopicPartition, i64)> {
+        self.consumer.fetch_cursors()
     }
 
     /// Kafka `group.id`.
@@ -940,7 +958,12 @@ impl ConsumerGroup {
         self.consumer.paused()
     }
 
-    /// Next fetch offset for an assigned partition.
+    /// Next consumable offset (delivered position) for an assigned partition.
+    ///
+    /// If records have been fetched and buffered (for example under
+    /// [`ConsumerConfig::max_poll_records`]), this returns the offset of the
+    /// next undelivered record. If all fetched records have been delivered,
+    /// this matches the broker fetch cursor.
     ///
     /// An unassigned partition is Java `IllegalStateException`
     /// (`You can only check the position for partitions assigned to this consumer.`).
@@ -1395,8 +1418,14 @@ impl ConsumerGroup {
         });
     }
 
-    /// Commit the next fetch offsets for the current assignment
+    /// Commit the delivered positions for the current assignment
     /// (Java `commitSync()` with no arguments).
+    ///
+    /// Commits each assigned partition's current delivered position (the next
+    /// consumable offset), not the ahead-of-delivery broker fetch cursor. When
+    /// [`ConsumerConfig::max_poll_records`] leaves fetched records buffered in
+    /// the consumer, undelivered records remain uncommitted so they are available
+    /// on restart or rejoin.
     ///
     /// Waits up to [`ConsumerConfig::request_timeout`]. To commit only
     /// partitions from the last poll, pass [`ConsumerRecords::next_offsets`]
@@ -1412,14 +1441,8 @@ impl ConsumerGroup {
         if self.kip848 {
             self.apply_pending_assignment().await?;
         }
-        let assigned = self.consumer.assigned_offsets().to_vec();
-        self.commit_offsets_timeout(
-            assigned
-                .into_iter()
-                .map(|(topic, partition, offset)| (TopicPartition::new(topic, partition), offset)),
-            timeout,
-        )
-        .await?;
+        let positions = self.consumer.positions();
+        self.commit_offsets_timeout(positions, timeout).await?;
         self.last_auto_commit = Instant::now();
         Ok(())
     }
@@ -1522,10 +1545,11 @@ impl ConsumerGroup {
 
     /// Queue an OffsetCommit of the current assignment (Java `commitAsync()`).
     ///
-    /// Snapshots positions now. The RPC is sent on the next [`Self::poll`],
-    /// [`Self::leave`], [`Self::close`], or [`Self::unsubscribe`]. Does not
-    /// spawn a task. Failures are not returned from poll; use
-    /// [`Self::commit_async_with`] for a callback.
+    /// Snapshots delivered positions now, committing only records delivered to
+    /// the application and leaving buffered-but-undelivered records uncommitted.
+    /// The RPC is sent on the next [`Self::poll`], [`Self::leave`], [`Self::close`],
+    /// or [`Self::unsubscribe`]. Does not spawn a task. Failures are not returned from
+    /// poll; use [`Self::commit_async_with`] for a callback.
     pub fn commit_async(&mut self) {
         let offsets = self.assigned_commit_offsets();
         self.pending_async_commits.push((offsets, None));
@@ -1533,8 +1557,8 @@ impl ConsumerGroup {
 
     /// Java `commitAsync(OffsetCommitCallback)`.
     ///
-    /// `callback` runs on the next poll / leave with the snapshotted offsets
-    /// or the OffsetCommit error. Poll still returns the fetch result.
+    /// `callback` runs on the next poll / leave with the snapshotted delivered
+    /// positions or the OffsetCommit error. Poll still returns the fetch result.
     pub fn commit_async_with<F>(&mut self, callback: F)
     where
         F: FnOnce(Result<Vec<(TopicPartition, OffsetAndMetadata)>>) + Send + 'static,
@@ -1571,13 +1595,13 @@ impl ConsumerGroup {
 
     fn assigned_commit_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
         self.consumer
-            .assigned_offsets()
-            .iter()
-            .map(|(topic, partition, offset)| {
-                let epoch = self.consumer.leader_epoch(topic, *partition);
+            .positions()
+            .into_iter()
+            .map(|(tp, offset)| {
+                let epoch = self.consumer.leader_epoch(&tp.topic, tp.partition);
                 (
-                    TopicPartition::new(topic.clone(), *partition),
-                    OffsetAndMetadata::from_wire(*offset, epoch, String::new()),
+                    tp,
+                    OffsetAndMetadata::from_wire(offset, epoch, String::new()),
                 )
             })
             .collect()

@@ -2,14 +2,13 @@
 //!
 //! Poll-interval auto-commit and explicit `commit*` remain the OffsetCommit
 //! paths for positions. Leave/close/unsubscribe flush `commitAsync` only.
-#![expect(
-    dead_code,
-    reason = "tests/common mock helpers are shared; this file uses a subset"
-)]
 
 mod common;
 
-use partitionline::{ConsumerConfig, ConsumerGroup, ProduceRecord, Producer, ProducerConfig};
+use partitionline::{
+    ConsumerConfig, ConsumerGroup, OffsetAndMetadata, ProduceRecord, Producer, ProducerConfig,
+    TopicPartition,
+};
 use std::time::Duration;
 
 #[tokio::test]
@@ -190,4 +189,274 @@ async fn unsubscribe_with_auto_commit_does_not_commit_positions() {
         before,
         "unsubscribe must not auto-commit positions"
     );
+}
+
+#[tokio::test]
+async fn commit_after_capped_poll_must_not_commit_buffered_records() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"a"[..]),
+            ProduceRecord::to("t").value(&b"b"[..]),
+            ProduceRecord::to("t").value(&b"c"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false);
+    cfg.max_poll_records = Some(1);
+    let mut group = ConsumerGroup::join(cfg, "audit-capped-poll", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(
+        first.iter().map(|record| record.offset).collect::<Vec<_>>(),
+        vec![0]
+    );
+    group.commit().await.unwrap();
+    group.leave().await.unwrap();
+
+    let mut replacement = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false),
+        "audit-capped-poll",
+        "t",
+    )
+    .await
+    .unwrap();
+    let remaining = replacement.poll().await.unwrap();
+    replacement.leave().await.unwrap();
+    assert_eq!(
+        remaining
+            .iter()
+            .map(|record| record.offset)
+            .collect::<Vec<_>>(),
+        vec![1, 2]
+    );
+}
+
+#[tokio::test]
+async fn commit_after_capped_poll_with_pause_and_resume() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"a"[..]),
+            ProduceRecord::to("t").value(&b"b"[..]),
+            ProduceRecord::to("t").value(&b"c"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false);
+    cfg.max_poll_records = Some(1);
+    let mut group = ConsumerGroup::join(cfg, "audit-pause-resume", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![0]);
+    assert_eq!(group.position("t", 0).unwrap(), 1);
+    assert_eq!(group.fetch_cursor("t", 0).unwrap(), 3);
+
+    group.pause([TopicPartition::new("t", 0)]);
+    assert_eq!(group.paused(), vec![TopicPartition::new("t", 0)]);
+
+    // Polling while paused returns no records
+    let paused_poll = group.poll().await.unwrap();
+    assert!(paused_poll.is_empty());
+    // Delivered position remains at offset 1 while paused
+    assert_eq!(group.position("t", 0).unwrap(), 1);
+
+    // Commit while paused commits only the delivered position (1)
+    group.commit().await.unwrap();
+
+    group.resume([("t", 0)]);
+    assert!(group.paused().is_empty());
+
+    // Resume delivers next buffered record (offset 1)
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![1]);
+    assert_eq!(group.position("t", 0).unwrap(), 2);
+    group.commit().await.unwrap();
+
+    // Next poll delivers last buffered record (offset 2)
+    let third = group.poll().await.unwrap();
+    assert_eq!(third.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![2]);
+    assert_eq!(group.position("t", 0).unwrap(), 3);
+    group.commit().await.unwrap();
+    group.leave().await.unwrap();
+
+    // Rejoin: all records committed, poll is empty
+    let mut replacement = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false),
+        "audit-pause-resume",
+        "t",
+    )
+    .await
+    .unwrap();
+    let remaining = replacement.poll().await.unwrap();
+    replacement.leave().await.unwrap();
+    assert!(remaining.is_empty());
+}
+
+#[tokio::test]
+async fn commit_after_capped_poll_with_seek() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"0"[..]),
+            ProduceRecord::to("t").value(&b"1"[..]),
+            ProduceRecord::to("t").value(&b"2"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false);
+    cfg.max_poll_records = Some(1);
+    let mut group = ConsumerGroup::join(cfg, "audit-seek", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![0]);
+    assert_eq!(group.position("t", 0).unwrap(), 1);
+
+    // Seek drops pending buffered records (1, 2) and sets position to 2
+    group.seek("t", 0, 2).unwrap();
+    assert_eq!(group.position("t", 0).unwrap(), 2);
+    assert_eq!(group.fetch_cursor("t", 0).unwrap(), 2);
+
+    group.commit().await.unwrap();
+    group.leave().await.unwrap();
+
+    // Rejoin resumes from committed offset 2
+    let mut replacement = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false),
+        "audit-seek",
+        "t",
+    )
+    .await
+    .unwrap();
+    let remaining = replacement.poll().await.unwrap();
+    replacement.leave().await.unwrap();
+    assert_eq!(
+        remaining.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![2]
+    );
+}
+
+#[tokio::test]
+async fn commit_with_metadata_preserves_explicit_offsets() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"0"[..]),
+            ProduceRecord::to("t").value(&b"1"[..]),
+            ProduceRecord::to("t").value(&b"2"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false);
+    cfg.max_poll_records = Some(1);
+    let mut group = ConsumerGroup::join(cfg, "audit-explicit-md", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![0]);
+
+    // Explicitly commit offset 2 with metadata, ignoring delivered position 1
+    group
+        .commit_with_metadata([(
+            TopicPartition::new("t", 0),
+            OffsetAndMetadata::with_metadata(2, "custom-metadata").with_leader_epoch(0),
+        )])
+        .await
+        .unwrap();
+    group.leave().await.unwrap();
+
+    // Rejoin: should start at committed offset 2
+    let mut replacement = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false),
+        "audit-explicit-md",
+        "t",
+    )
+    .await
+    .unwrap();
+    let remaining = replacement.poll().await.unwrap();
+    replacement.leave().await.unwrap();
+    assert_eq!(
+        remaining.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![2]
+    );
+}
+
+#[tokio::test]
+async fn rebalance_preserves_buffered_records_for_retained_partitions() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"0"[..]),
+            ProduceRecord::to("t").value(&b"1"[..]),
+            ProduceRecord::to("t").value(&b"2"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false);
+    cfg.max_poll_records = Some(1);
+    let mut group = ConsumerGroup::join(cfg, "audit-rebalance", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![0]);
+    assert_eq!(group.position("t", 0).unwrap(), 1);
+    assert_eq!(group.fetch_cursor("t", 0).unwrap(), 3);
+
+    // Trigger rebalance; partition "t"-0 is retained by the single consumer
+    group.enforce_rebalance();
+
+    // Poll re-joins group and retains buffered records 1 and 2
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![1]);
+    assert_eq!(group.position("t", 0).unwrap(), 2);
+
+    let third = group.poll().await.unwrap();
+    assert_eq!(third.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![2]);
+    assert_eq!(group.position("t", 0).unwrap(), 3);
+
+    group.commit().await.unwrap();
+    group.leave().await.unwrap();
+
+    // Rejoin: everything committed
+    let mut replacement = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false),
+        "audit-rebalance",
+        "t",
+    )
+    .await
+    .unwrap();
+    let remaining = replacement.poll().await.unwrap();
+    replacement.leave().await.unwrap();
+    assert!(remaining.is_empty());
 }

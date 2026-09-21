@@ -2052,3 +2052,156 @@ async fn out_of_range_preferred_replica_resets_if_leader_also_out_of_range() {
     consumer.close().await.expect("consumer closes cleanly");
     cluster.shutdown().await;
 }
+
+/// Verify that with max_poll_records, consumer.position() reports the delivered position
+/// (the next consumable record offset), while consumer.fetch_cursor() reports the
+/// ahead-of-delivery broker fetch cursor.
+#[tokio::test]
+async fn max_poll_records_distinguishes_delivered_position_and_fetch_cursor() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.high_watermark = 3;
+                    part.last_stable_offset = 3;
+                    part.records = vec![fetch_fixture::data_batch(
+                        0,
+                        &[b"rec-0", b"rec-1", b"rec-2"],
+                        None,
+                    )];
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut cfg = broker.config();
+    cfg.max_poll_records = Some(1);
+    let mut consumer = Consumer::new(cfg)
+        .await
+        .expect("consumer starts successfully");
+
+    consumer
+        .assign("t", 0, 0)
+        .await
+        .expect("assign at offset 0");
+    assert_eq!(consumer.position("t", 0).unwrap(), 0);
+    assert_eq!(consumer.fetch_cursor("t", 0).unwrap(), 0);
+    assert_eq!(consumer.positions(), vec![(TopicPartition::new("t", 0), 0)]);
+    assert_eq!(
+        consumer.fetch_cursors(),
+        vec![(TopicPartition::new("t", 0), 0)]
+    );
+
+    // Fetch 1: broker returns [0, 1, 2], max_poll_records=1 delivers [0]
+    let recs1 = consumer.fetch().await.expect("fetch 1 succeeds");
+    assert_eq!(recs1.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![0]);
+    assert_eq!(
+        consumer.position("t", 0).unwrap(),
+        1,
+        "delivered position must be 1 after consuming offset 0"
+    );
+    assert_eq!(
+        consumer.fetch_cursor("t", 0).unwrap(),
+        3,
+        "fetch cursor must be 3 after fetching whole batch"
+    );
+    assert_eq!(consumer.positions(), vec![(TopicPartition::new("t", 0), 1)]);
+    assert_eq!(
+        consumer.fetch_cursors(),
+        vec![(TopicPartition::new("t", 0), 3)]
+    );
+
+    // Fetch 2: drains [1] from buffer without broker request
+    let recs2 = consumer.fetch().await.expect("fetch 2 succeeds");
+    assert_eq!(recs2.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![1]);
+    assert_eq!(
+        consumer.position("t", 0).unwrap(),
+        2,
+        "delivered position must be 2 after consuming offset 1"
+    );
+    assert_eq!(consumer.fetch_cursor("t", 0).unwrap(), 3);
+
+    // Fetch 3: drains [2] from buffer
+    let recs3 = consumer.fetch().await.expect("fetch 3 succeeds");
+    assert_eq!(recs3.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![2]);
+    assert_eq!(
+        consumer.position("t", 0).unwrap(),
+        3,
+        "delivered position must be 3 after consuming offset 2 (buffer now empty)"
+    );
+    assert_eq!(consumer.fetch_cursor("t", 0).unwrap(), 3);
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify that a control-only batch advances both delivered position and fetch cursor
+/// even though no records are delivered to the application.
+#[tokio::test]
+async fn control_only_batch_advances_delivered_position_and_fetch_cursor() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |_topics, attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    if attempt == 0 {
+                        part.high_watermark = 1;
+                        part.last_stable_offset = 1;
+                        // Control-only batch: transaction abort marker at offset 0
+                        part.records = vec![custom_marker(0, ControlRecordType::Abort, 7, 0)];
+                    } else {
+                        part.high_watermark = 2;
+                        part.last_stable_offset = 2;
+                        part.records = vec![fetch_fixture::data_batch(1, &[b"data-1"], None)];
+                    }
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut consumer = Consumer::new(broker.config())
+        .await
+        .expect("consumer starts successfully");
+
+    consumer
+        .assign("t", 0, 0)
+        .await
+        .expect("assign at offset 0");
+
+    // Fetch 1: control marker only, no user records returned
+    let recs1 = consumer.fetch().await.expect("fetch 1 succeeds");
+    assert!(
+        recs1.is_empty(),
+        "control record must not be delivered as a data record"
+    );
+    assert_eq!(
+        consumer.position("t", 0).unwrap(),
+        1,
+        "position must advance to 1 past the control record"
+    );
+    assert_eq!(
+        consumer.fetch_cursor("t", 0).unwrap(),
+        1,
+        "fetch cursor must advance to 1 past the control record"
+    );
+
+    // Fetch 2: data record at offset 1
+    let recs2 = consumer.fetch().await.expect("fetch 2 succeeds");
+    assert_eq!(recs2.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![1]);
+    assert_eq!(
+        consumer.position("t", 0).unwrap(),
+        2,
+        "position must advance to 2 after delivering offset 1"
+    );
+    assert_eq!(consumer.fetch_cursor("t", 0).unwrap(), 2);
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
