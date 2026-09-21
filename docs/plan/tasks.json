@@ -1359,13 +1359,30 @@
     {
       "id": "KL06-02",
       "title": "Parse bounded OIDC token responses and lifetime metadata",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL06-01"],
       "files": ["src/protocol/oidc.rs", "Cargo.toml", "tests/credential_redact.rs"],
       "deliverable": "Structured token metadata parsing with bounded HTTP/JSON handling, preserving the public one-shot path.",
       "acceptance": ["Cover escaped JSON, missing/wrong-type fields, expires_in, token_type, malformed/chunked/truncated responses and size limits.", "Preserve the existing three-attempt transient retry budget and immediate invalid-credential rejection.", "Use approved manifest-declared parsing support where appropriate rather than growing ad hoc string splitting; never expose response bodies in errors."],
       "validation": ["cargo test --locked --lib protocol::oidc", "cargo test --locked --test credential_redact"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "4df72f42deb11152c63103cdcf170dcc9a56d887",
+                "commands": [
+                        "cargo test --offline --locked --lib protocol::oidc (27 passed, exit 0)",
+                        "cargo test --offline --locked --test credential_redact (15 passed, exit 0)"
+                ],
+                "results": "OIDC responses are parsed for access_token, token_type, and expires_in with a 64 KiB cap. Escaped JSON, wrong types, truncated and chunked bodies, and oversized content-length fail closed. HTTP 4xx is not retried. Transient 503 still retries within three attempts. Errors and Debug omit tokens and response bodies. No new native dependency.",
+                "artifacts": [
+                        "src/protocol/oidc.rs",
+                        "tests/credential_redact.rs",
+                        "docs/plan/evidence/KL06-02.json"
+                ],
+                "limits": [
+                        "Parsing only. Proactive refresh and session_lifetime_ms handling remain later KL06 cards."
+                ]
+        }
+]
     },
     {
       "id": "KL06-03",
