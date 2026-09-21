@@ -1,0 +1,28 @@
+{
+  "id": "KL07-02",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "e0ac7ffa23b470b3e54c1229762acd2f295ac67d",
+  "commands": [
+    "bash scripts/ci-docs.sh (exit 0)",
+    "bash scripts/ci-docs.sh --self-test (exit 0)",
+    "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features --offline (exit 0)",
+    "cargo test --locked --doc --all-features --offline (exit 0)"
+  ],
+  "results": {
+    "summary": "Replaced phrase matching with strict documentation gate in scripts/ci-docs.sh and added docs job in .github/workflows/ci.yml. Denies rustdoc warnings across all features without allow attributes. Doctests execute in a separate cargo test --doc lane (4 passed). Self-test mode proves private intra-doc links fail the gate with rc=101, creating and deleting a temporary fixture without permanent crate changes.",
+    "doctests_passed": 4,
+    "self_test_exit_code": 0,
+    "gate_exit_code": 0
+  },
+  "artifacts": [
+    ".github/workflows/ci.yml",
+    "scripts/ci-docs.sh",
+    "CONTRIBUTING.md",
+    "docs/plan/evidence/KL07-02.json"
+  ],
+  "limits": [
+    "CI run not inspected (cannot inspect a completed GitHub Actions run from this worktree without pushing; push forbidden by task boundary)"
+  ],
+  "blocked_reason": null
+}
