@@ -3,10 +3,6 @@
 //! Dropping a `send` future must not be read as "never written". Buffered work
 //! can still reach the broker; the caller's outcome is ambiguous until
 //! `flush`/`close` settles delivery.
-#![expect(
-    dead_code,
-    reason = "tests/common mock helpers are shared; this file uses a subset"
-)]
 
 mod common;
 
