@@ -451,13 +451,31 @@
     {
       "id": "KL02-06",
       "title": "Apply one producer delivery deadline across retries",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL02-01"],
       "files": ["src/producer.rs", "tests/produce_cancel.rs", "tests/common/mod.rs"],
       "deliverable": "Deadline propagation through metadata, reconnect, queueing, retry backoff and acknowledgment wait.",
       "acceptance": ["Each retry consumes remaining time rather than restarting a full delivery budget.", "max_block and request_timeout keep their distinct documented meanings.", "Use deterministic timing/fault controls and classify a timed-out transmitted record as potentially delivered."],
       "validation": ["cargo test --locked --test produce_cancel", "cargo test --locked --test full_surface timeout"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "b639df8112f25cfaf1c7a72c32fc9ea1049ce3ec",
+                "commands": [
+                        "cargo test --offline --locked --test produce_cancel (15 passed, exit 0)",
+                        "cargo test --offline --locked --test full_surface timeout (3 passed, exit 0)",
+                        "cargo test --offline --locked --test buffer_ownership (12 passed, recorded by the card)"
+                ],
+                "results": "A record's delivery deadline is reused across metadata refresh, retry backoff, write, and acknowledgment wait. Retries do not restart a full delivery budget. max_block still bounds enqueue admission separately from request_timeout. A timed-out transmitted record completes as Timeout, not as proof of non-delivery.",
+                "artifacts": [
+                        "src/producer.rs",
+                        "tests/produce_cancel.rs",
+                        "docs/plan/evidence/KL02-06.json"
+                ],
+                "limits": [
+                        "Timeout after transmission is still not a broker-confirmed ambiguous receipt."
+                ]
+        }
+]
     },
     {
       "id": "KL02-07",
