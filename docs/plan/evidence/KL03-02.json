@@ -1,0 +1,42 @@
+{
+  "id": "KL03-02",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "e0ac7ffa23b470b3e54c1229762acd2f295ac67d",
+  "commands": [
+    "cargo test --offline --locked --test consumer_fetch_semantics (exit 0)",
+    "cargo test --offline --locked --test full_surface fetch (exit 0)",
+    "cargo clippy --offline --locked -p partitionline --all-targets -- -D warnings (exit 0)",
+    "rustfmt --edition 2021 --check src/consumer.rs tests/consumer_fetch_semantics.rs (exit 0)"
+  ],
+  "results": {
+    "suite": "consumer_fetch_semantics",
+    "total_tests": 11,
+    "passed": 11,
+    "failed": 0,
+    "ignored": 0,
+    "test_names": [
+      "control_scenario_aligned_batch_delivers_and_shuts_down",
+      "fixture_broker_drop_aborts_tasks",
+      "fixture_broker_wire_handshake_and_bounded_shutdown",
+      "fixture_builds_abort_then_commit_control_marker_sequence",
+      "fixture_builds_one_partition_retry_beside_successful_partition",
+      "fixture_builds_out_of_range_partition_response",
+      "fixture_builds_whole_batch_with_records_before_requested_offset_without_prefiltering",
+      "mixed_partition_retry_aborted_must_not_advance_positions_for_discarded_records",
+      "mixed_partition_retry_must_preserve_successful_records",
+      "mixed_partition_retry_with_preferred_replica_redirect_must_preserve_successful_records",
+      "mixed_partition_retry_with_transport_failure_must_preserve_successful_records"
+    ]
+  },
+  "artifacts": [
+    "src/consumer.rs",
+    "tests/consumer_fetch_semantics.rs",
+    "docs/plan/evidence/KL03-02.json"
+  ],
+  "limits": [
+    "The single-broker fixture in tests/common/fetch_fixture.rs was preserved without modification; multi-broker transport failure and preferred-replica redirect scenarios are exercised via two-node loopback fixtures in tests/consumer_fetch_semantics.rs.",
+    "A01 (lower-bound offset filter), A02 (control marker aborted-PID reset), A04 (auto.offset.reset=None error handling), and A05 (buffered fetch cursor commit) remain scoped to their respective cards KL03-03 through KL03-07."
+  ],
+  "blocked_reason": null
+}

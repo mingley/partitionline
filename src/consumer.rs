@@ -2278,14 +2278,32 @@ impl Consumer {
             return Ok(Vec::new());
         }
         let deadline = Instant::now() + self.cfg.request_timeout;
+        let initial_assigned = self.assigned.clone();
+        let initial_epochs = self.last_fetched_epochs.clone();
+        match self.fetch_assigned_inner(deadline).await {
+            Ok(records) => Ok(records),
+            Err(e) => {
+                self.assigned = initial_assigned;
+                self.last_fetched_epochs = initial_epochs;
+                Err(e)
+            }
+        }
+    }
+
+    async fn fetch_assigned_inner(&mut self, deadline: Instant) -> Result<Vec<FetchedRecord>> {
         let mut attempt = 0u32;
+        let mut out = Vec::new();
+        let mut completed: HashSet<(String, i32)> = HashSet::new();
         loop {
             if self.woken() {
                 return Err(Error::Wakeup);
             }
             let mut topics = Vec::new();
             let mut seen = HashSet::new();
-            for (t, _, _) in &self.assigned {
+            for (t, p, _) in &self.assigned {
+                if completed.contains(&(t.clone(), *p)) {
+                    continue;
+                }
                 if seen.insert(t.clone()) {
                     topics.push(t.clone());
                 }
@@ -2300,6 +2318,9 @@ impl Consumer {
             let mut missing_leader = false;
             for (topic, part, offset) in &self.assigned {
                 if self.paused.contains(&(topic.clone(), *part)) {
+                    continue;
+                }
+                if completed.contains(&(topic.clone(), *part)) {
                     continue;
                 }
                 let node = if self.cfg.rack.is_some() {
@@ -2336,12 +2357,20 @@ impl Consumer {
             }
             if missing_leader {
                 if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
+                    return if !out.is_empty() {
+                        Ok(self.finish_fetch(out))
+                    } else {
+                        Err(Error::Timeout)
+                    };
                 }
                 self.sleep_retry_backoff(attempt, deadline).await?;
                 attempt = attempt.saturating_add(1);
                 if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
+                    return if !out.is_empty() {
+                        Ok(self.finish_fetch(out))
+                    } else {
+                        Err(Error::Timeout)
+                    };
                 }
                 for (t, _, _) in &self.assigned {
                     self.cluster.invalidate_topic(t);
@@ -2350,8 +2379,10 @@ impl Consumer {
                 self.refresh_metadata(Some(&topics)).await?;
                 continue;
             }
+            if by_leader.is_empty() {
+                return Ok(self.finish_fetch(out));
+            }
             let bodies = self.fetch_from_leaders(by_leader).await?;
-            let mut out = Vec::new();
             let mut retry = FetchRetry::None;
             let mut fenced = Vec::new();
             for (node, body) in bodies {
@@ -2364,8 +2395,13 @@ impl Consumer {
                     }
                     Err(e) => return Err(e),
                 };
-                retry =
-                    retry.merge(self.apply_fetch_body(node, &mut body, &mut out, &mut fenced)?);
+                retry = retry.merge(self.apply_fetch_body(
+                    node,
+                    &mut body,
+                    &mut out,
+                    &mut fenced,
+                    &mut completed,
+                )?);
             }
             if !fenced.is_empty() {
                 fenced.sort();
@@ -2373,15 +2409,26 @@ impl Consumer {
                 self.recover_leader_epochs(&fenced).await?;
                 retry = retry.merge(FetchRetry::Backoff);
             }
-            if retry.should_retry() {
+            let all_done = self.assigned.iter().all(|(t, p, _)| {
+                self.paused.contains(&(t.clone(), *p)) || completed.contains(&(t.clone(), *p))
+            });
+            if !all_done && retry.should_retry() {
                 if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
+                    return if !out.is_empty() {
+                        Ok(self.finish_fetch(out))
+                    } else {
+                        Err(Error::Timeout)
+                    };
                 }
                 if retry.needs_backoff() {
                     self.sleep_retry_backoff(attempt, deadline).await?;
                     attempt = attempt.saturating_add(1);
                     if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
+                        return if !out.is_empty() {
+                            Ok(self.finish_fetch(out))
+                        } else {
+                            Err(Error::Timeout)
+                        };
                     }
                     let topics: Vec<String> =
                         self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
@@ -2518,6 +2565,7 @@ impl Consumer {
         body: &mut Bytes,
         out: &mut Vec<FetchedRecord>,
         fenced: &mut Vec<(String, i32)>,
+        completed: &mut HashSet<(String, i32)>,
     ) -> Result<FetchRetry> {
         let (fetched, endpoints, ..) = decode_fetch_response(body, self.fetch_version)?;
         self.cluster.apply_node_endpoints(&endpoints);
@@ -2550,6 +2598,7 @@ impl Consumer {
                         part.partition,
                         crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     );
+                    let _ = completed.insert((name.clone(), part.partition));
                     continue;
                 }
                 if part.error_code == error::FENCED_LEADER_EPOCH
@@ -2635,6 +2684,7 @@ impl Consumer {
                     self.advance(&name, part.partition, n);
                     self.set_last_fetched_epoch(&name, part.partition, last_epoch);
                 }
+                let _ = completed.insert((name.clone(), part.partition));
             }
         }
         Ok(retry)

@@ -8,20 +8,47 @@
 //!
 //! Note: Diagnostic defect cases A01-A05 remain in docs/audits/2026-09-21-consumer-probes.rs
 //! and will be promoted to this suite alongside their respective repairs in KL03-02 through KL03-06.
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::let_underscore_must_use,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::type_complexity,
+    clippy::unnecessary_map_or,
+    clippy::too_many_arguments,
+    clippy::allow_attributes_without_reason,
+    reason = "integration tests use test assertions and unwrap on mock sockets"
+)]
 
 #[path = "common/fetch_fixture.rs"]
 mod fetch_fixture;
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+
 use bytes::BytesMut;
 use partitionline::error::{NOT_LEADER_OR_FOLLOWER, OFFSET_OUT_OF_RANGE};
-use partitionline::protocol::api_keys::API_VERSIONS;
-use partitionline::protocol::fetch::{encode_fetch_response, FetchPartition, FetchTopic};
-use partitionline::protocol::header::{
-    decode_response_header, encode_request_header, RequestHeader,
+use partitionline::protocol::api::{
+    encode_api_versions_response, encode_metadata_response, ApiVersion, ApiVersionsResponse,
+    Broker, MetadataResponse, PartitionMetadata, TopicMetadata,
 };
-use partitionline::Consumer;
+use partitionline::protocol::api_keys::{API_VERSIONS, FETCH, METADATA};
+use partitionline::protocol::fetch::{
+    decode_fetch_request, encode_fetch_response, FetchPartition, FetchTopic, FetchedPartition,
+    FetchedTopic,
+};
+use partitionline::protocol::header::{
+    decode_request_header, decode_response_header, encode_request_header, encode_response_header,
+    RequestHeader,
+};
+use partitionline::{Consumer, ConsumerConfig, TopicPartition};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::oneshot;
+use tokio::task::JoinSet;
 
 /// Control scenario: a batch whose first record offset equals the requested
 /// assignment offset (0). The current client already handles this correctly,
@@ -362,4 +389,458 @@ async fn fixture_broker_drop_aborts_tasks() {
             ) => {}
         other => panic!("expected EOF or reset after broker drop, got: {:?}", other),
     }
+}
+
+/// Audit defect A03 reproduction / regression test:
+/// When partition 0 succeeds with data while partition 1 returns a retriable error
+/// (NOT_LEADER_OR_FOLLOWER), the consumer retries partition 1. The records from partition 0
+/// must be preserved across the retry round, and both partition records must be returned
+/// exactly once without duplicates.
+#[tokio::test]
+async fn mixed_partition_retry_must_preserve_successful_records() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start(fetch_fixture::Scenario::PartialRetry).await;
+    let mut consumer = Consumer::new(broker.config())
+        .await
+        .expect("consumer starts successfully");
+
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .expect("assign partitions 0 and 1 at offset 0");
+
+    let records = consumer.fetch().await.expect("fetch succeeds");
+    assert_eq!(
+        records
+            .iter()
+            .map(|record| (record.partition, record.offset))
+            .collect::<Vec<_>>(),
+        vec![(0, 0), (1, 0)],
+        "both partition records must be returned exactly once"
+    );
+
+    assert_eq!(
+        consumer.positions(),
+        vec![
+            (TopicPartition::new("t", 0), 1),
+            (TopicPartition::new("t", 1), 1),
+        ],
+        "positions must advance to the next fetch offset after delivery"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+struct TwoNodeCluster {
+    addr0: String,
+    shutdown_tx0: Option<oneshot::Sender<()>>,
+    shutdown_tx1: Option<oneshot::Sender<()>>,
+    task0: Option<tokio::task::JoinHandle<()>>,
+    task1: Option<tokio::task::JoinHandle<()>>,
+}
+
+impl TwoNodeCluster {
+    fn config(&self) -> ConsumerConfig {
+        ConsumerConfig::bootstrap([self.addr0.clone()])
+            .request_timeout(Duration::from_secs(2))
+            .retry_backoff(Duration::from_millis(1))
+    }
+
+    async fn shutdown(&mut self) {
+        if let Some(tx) = self.shutdown_tx0.take() {
+            let _ = tx.send(());
+        }
+        if let Some(tx) = self.shutdown_tx1.take() {
+            let _ = tx.send(());
+        }
+        if let Some(task) = self.task0.take() {
+            let _ = task.await;
+        }
+        if let Some(task) = self.task1.take() {
+            let _ = task.await;
+        }
+    }
+}
+
+async fn spawn_two_node_cluster<F0, F1>(
+    leader0: i32,
+    leader1: i32,
+    replicas1: Vec<i32>,
+    rack0: Option<String>,
+    rack1: Option<String>,
+    handler0: F0,
+    handler1: F1,
+) -> TwoNodeCluster
+where
+    F0: Fn(&[FetchTopic], usize) -> Option<Vec<FetchedTopic>> + Send + Sync + 'static,
+    F1: Fn(&[FetchTopic], usize) -> Option<Vec<FetchedTopic>> + Send + Sync + 'static,
+{
+    let listener0 = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind listener 0");
+    let listener1 = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind listener 1");
+    let port0 = listener0.local_addr().unwrap().port();
+    let port1 = listener1.local_addr().unwrap().port();
+    let addr0 = format!("127.0.0.1:{port0}");
+
+    let (tx0, rx0) = oneshot::channel();
+    let (tx1, rx1) = oneshot::channel();
+
+    let task0 = spawn_mock_node(
+        listener0,
+        rx0,
+        port0,
+        port1,
+        leader0,
+        leader1,
+        replicas1.clone(),
+        rack0.clone(),
+        rack1.clone(),
+        Arc::new(handler0),
+    );
+
+    let task1 = spawn_mock_node(
+        listener1,
+        rx1,
+        port0,
+        port1,
+        leader0,
+        leader1,
+        replicas1,
+        rack0,
+        rack1,
+        Arc::new(handler1),
+    );
+
+    TwoNodeCluster {
+        addr0,
+        shutdown_tx0: Some(tx0),
+        shutdown_tx1: Some(tx1),
+        task0: Some(task0),
+        task1: Some(task1),
+    }
+}
+
+fn spawn_mock_node<F>(
+    listener: TcpListener,
+    mut shutdown_rx: oneshot::Receiver<()>,
+    port0: u16,
+    port1: u16,
+    leader0: i32,
+    leader1: i32,
+    replicas1: Vec<i32>,
+    rack0: Option<String>,
+    rack1: Option<String>,
+    handler: Arc<F>,
+) -> tokio::task::JoinHandle<()>
+where
+    F: Fn(&[FetchTopic], usize) -> Option<Vec<FetchedTopic>> + Send + Sync + 'static,
+{
+    let attempts = Arc::new(AtomicUsize::new(0));
+    tokio::spawn(async move {
+        let mut conns = JoinSet::new();
+        loop {
+            tokio::select! {
+                _ = &mut shutdown_rx => {
+                    conns.shutdown().await;
+                    break;
+                }
+                accepted = listener.accept() => {
+                    let (mut socket, _) = match accepted {
+                        Ok(s) => s,
+                        Err(_) => break,
+                    };
+                    let attempts = Arc::clone(&attempts);
+                    let handler = Arc::clone(&handler);
+                    let rack0 = rack0.clone();
+                    let rack1 = rack1.clone();
+                    let replicas1 = replicas1.clone();
+                    let _ = conns.spawn(async move {
+                        let io_deadline = Duration::from_secs(5);
+                        loop {
+                            let size = match tokio::time::timeout(io_deadline, socket.read_i32()).await {
+                                Ok(Ok(size)) => match usize::try_from(size) {
+                                    Ok(s) => s,
+                                    Err(_) => return,
+                                },
+                                _ => return,
+                            };
+                            if size > 16 * 1024 * 1024 {
+                                return;
+                            }
+                            let mut frame = vec![0u8; size];
+                            if tokio::time::timeout(io_deadline, socket.read_exact(&mut frame)).await.is_err() {
+                                return;
+                            }
+                            let mut req_slice = frame.as_slice();
+                            let header = match decode_request_header(&mut req_slice) {
+                                Ok(h) => h,
+                                Err(_) => return,
+                            };
+                            let mut response = BytesMut::new();
+                            if encode_response_header(&mut response, header.api_key, header.api_version, header.correlation_id).is_err() {
+                                return;
+                            }
+                            match header.api_key {
+                                API_VERSIONS => {
+                                    let api_keys = [(API_VERSIONS, 0, 4), (METADATA, 1, 9), (FETCH, 4, 12)]
+                                        .into_iter()
+                                        .map(|(api_key, min_version, max_version)| ApiVersion { api_key, min_version, max_version })
+                                        .collect();
+                                    if encode_api_versions_response(&mut response, header.api_version, &ApiVersionsResponse { api_keys, ..Default::default() }).is_err() {
+                                        return;
+                                    }
+                                }
+                                METADATA => {
+                                    let partitions = vec![
+                                        PartitionMetadata::new(0, 0, Some(leader0), Some(0), vec![0], vec![0], Vec::new()),
+                                        PartitionMetadata::new(0, 1, Some(leader1), Some(0), replicas1.clone(), vec![leader1], Vec::new()),
+                                    ];
+                                    let metadata = MetadataResponse {
+                                        throttle_time_ms: 0,
+                                        brokers: vec![
+                                            Broker::new(0, "127.0.0.1", i32::from(port0), rack0.clone()),
+                                            Broker::new(1, "127.0.0.1", i32::from(port1), rack1.clone()),
+                                        ],
+                                        cluster_id: Some("two-node-cluster".into()),
+                                        controller_id: 0,
+                                        topics: vec![TopicMetadata::new(0, "t", false, partitions)],
+                                        cluster_authorized_operations: i32::MIN,
+                                        error_code: 0,
+                                    };
+                                    if encode_metadata_response(&mut response, header.api_version, &metadata).is_err() {
+                                        return;
+                                    }
+                                }
+                                FETCH => {
+                                    let (_, _, topics, ..) = match decode_fetch_request(&mut req_slice, header.api_version) {
+                                        Ok(d) => d,
+                                        Err(_) => return,
+                                    };
+                                    let attempt = attempts.fetch_add(1, Ordering::SeqCst);
+                                    let fetched = match handler(&topics, attempt) {
+                                        Some(f) => f,
+                                        None => {
+                                            // Close socket without responding (simulates transport failure)
+                                            return;
+                                        }
+                                    };
+                                    if encode_fetch_response(&mut response, header.api_version, &fetched).is_err() {
+                                        return;
+                                    }
+                                }
+                                _ => return,
+                            }
+                            let len = match i32::try_from(response.len()) {
+                                Ok(l) => l,
+                                Err(_) => return,
+                            };
+                            let write_ok = tokio::time::timeout(io_deadline, async {
+                                socket.write_i32(len).await?;
+                                socket.write_all(&response).await?;
+                                socket.flush().await
+                            }).await;
+                            if write_ok.is_err() || write_ok.unwrap().is_err() {
+                                return;
+                            }
+                        }
+                    });
+                }
+                finished = conns.join_next(), if !conns.is_empty() => {
+                    let _ = finished;
+                }
+            }
+        }
+    })
+}
+
+/// Verify that when partition 0 succeeds on node 0 while partition 1 encounters
+/// a transport failure (connection drop) on node 1, the consumer preserves partition 0's
+/// records across the transport retry round and returns both partition records exactly once.
+#[tokio::test]
+async fn mixed_partition_retry_with_transport_failure_must_preserve_successful_records() {
+    let mut cluster = spawn_two_node_cluster(
+        0,
+        1,
+        vec![1],
+        None,
+        None,
+        |_topics, _attempt| {
+            // Node 0 succeeds with partition 0 records
+            Some(vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.records = vec![fetch_fixture::data_batch(0, &[b"p0-transport"], None)];
+                    part
+                }],
+            }])
+        },
+        |_topics, attempt| {
+            if attempt == 0 {
+                // Attempt 0: transport failure (drop connection without response)
+                None
+            } else {
+                // Attempt 1: retry succeeds with partition 1 records
+                Some(vec![FetchedTopic {
+                    topic: "t".to_string(),
+                    topic_id: [0u8; 16],
+                    partitions: vec![{
+                        let mut part = FetchedPartition::partition_response(1, 0);
+                        part.records = vec![fetch_fixture::data_batch(0, &[b"p1-transport"], None)];
+                        part
+                    }],
+                }])
+            }
+        },
+    )
+    .await;
+
+    let mut consumer = Consumer::new(cluster.config())
+        .await
+        .expect("consumer starts");
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .expect("assign partitions");
+
+    let records = consumer.fetch().await.expect("fetch succeeds after retry");
+    assert_eq!(
+        records
+            .iter()
+            .map(|r| (r.partition, r.offset))
+            .collect::<Vec<_>>(),
+        vec![(0, 0), (1, 0)],
+        "both partition records must be returned exactly once"
+    );
+
+    assert_eq!(
+        consumer.positions(),
+        vec![
+            (TopicPartition::new("t", 0), 1),
+            (TopicPartition::new("t", 1), 1),
+        ],
+        "positions must advance after delivery"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    cluster.shutdown().await;
+}
+
+/// Verify that when partition 0 succeeds on leader node 0 while partition 1 is
+/// redirected to preferred replica node 1 (via KIP-392 preferred_read_replica),
+/// the consumer preserves partition 0's records across the redirect round and
+/// returns both partition records exactly once.
+#[tokio::test]
+async fn mixed_partition_retry_with_preferred_replica_redirect_must_preserve_successful_records() {
+    let mut cluster = spawn_two_node_cluster(
+        0,
+        0, // Both partitions initially led by node 0
+        vec![0, 1],
+        Some("r0".to_string()),
+        Some("r1".to_string()),
+        |_topics, _attempt| {
+            // Node 0 succeeds for partition 0, but redirects partition 1 to replica 1
+            Some(vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![
+                    {
+                        let mut p0 = FetchedPartition::partition_response(0, 0);
+                        p0.records = vec![fetch_fixture::data_batch(0, &[b"p0-redirect"], None)];
+                        p0
+                    },
+                    {
+                        let mut p1 = FetchedPartition::partition_response(1, 0);
+                        p1.preferred_read_replica = 1;
+                        p1
+                    },
+                ],
+            }])
+        },
+        |_topics, _attempt| {
+            // Preferred replica node 1 serves partition 1
+            Some(vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut p1 = FetchedPartition::partition_response(1, 0);
+                    p1.records = vec![fetch_fixture::data_batch(0, &[b"p1-redirect"], None)];
+                    p1
+                }],
+            }])
+        },
+    )
+    .await;
+
+    let mut cfg = cluster.config();
+    cfg.rack = Some("r1".to_string());
+    let mut consumer = Consumer::new(cfg).await.expect("consumer starts");
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .expect("assign partitions");
+
+    let records = consumer
+        .fetch()
+        .await
+        .expect("fetch succeeds after redirect");
+    assert_eq!(
+        records
+            .iter()
+            .map(|r| (r.partition, r.offset))
+            .collect::<Vec<_>>(),
+        vec![(0, 0), (1, 0)],
+        "both partition records must be returned exactly once"
+    );
+
+    assert_eq!(
+        consumer.positions(),
+        vec![
+            (TopicPartition::new("t", 0), 1),
+            (TopicPartition::new("t", 1), 1),
+        ],
+        "positions must advance after delivery"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    cluster.shutdown().await;
+}
+
+/// Verify that if a fetch is aborted (e.g. by wakeup or fatal error) after a subset
+/// of partitions received records, positions are NOT advanced past the discarded records.
+#[tokio::test]
+async fn mixed_partition_retry_aborted_must_not_advance_positions_for_discarded_records() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start(fetch_fixture::Scenario::PartialRetry).await;
+    let mut consumer = Consumer::new(broker.config())
+        .await
+        .expect("consumer starts successfully");
+
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .expect("assign partitions 0 and 1 at offset 0");
+
+    // Wakeup consumer before or during fetch so it aborts
+    consumer.wakeup();
+    let result = consumer.fetch().await;
+    assert!(result.is_err(), "fetch must fail when aborted by wakeup");
+
+    // Positions must NOT advance past data discarded from application delivery
+    assert_eq!(
+        consumer.positions(),
+        vec![
+            (TopicPartition::new("t", 0), 0),
+            (TopicPartition::new("t", 1), 0),
+        ],
+        "positions must remain at offset 0 when fetch is aborted"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
 }
