@@ -37,6 +37,21 @@ use crate::protocol::txn::{
     TxnOffsetPartition, TxnOffsetTopic, TxnPartitionsTopic,
 };
 
+/// Pre-send failure injection point for testing buffer ownership and resource contracts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PreSendFault {
+    /// No pre-send fault injection.
+    None,
+    /// Inject a transaction-partition error during `add_txn_partitions`.
+    TxnPartition,
+    /// Inject a serialization/encoding error during produce body encoding.
+    Encode,
+    /// Inject a non-retriable socket write failure.
+    Write,
+    /// Inject a retriable socket write failure.
+    WriteRetriable,
+}
+
 /// Produce settings. Prefer the chainable builders; raw fields remain writable.
 #[derive(Clone)]
 pub struct ProducerConfig {
@@ -142,6 +157,9 @@ pub struct ProducerConfig {
     pub partitioner: PartitionerBox,
     /// Produce interceptors. Empty is a no-op.
     pub interceptors: crate::interceptor::ProducerInterceptors,
+    /// Test-only pre-send fault injection hook at the actual ownership transition.
+    #[doc(hidden)]
+    pub pre_send_fault: Option<(PreSendFault, Option<u32>)>,
 }
 
 impl fmt::Debug for ProducerConfig {
@@ -189,6 +207,7 @@ impl fmt::Debug for ProducerConfig {
             .field("tls", &self.tls)
             .field("partitioner", &self.partitioner)
             .field("interceptors", &self.interceptors)
+            .field("pre_send_fault", &self.pre_send_fault)
             .finish()
     }
 }
@@ -229,11 +248,28 @@ impl Default for ProducerConfig {
             tls: None,
             partitioner: PartitionerBox::default(),
             interceptors: crate::interceptor::ProducerInterceptors::default(),
+            pre_send_fault: None,
         }
     }
 }
 
 impl ProducerConfig {
+    /// Test hook: inject pre-send failures at the actual ownership transition.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn pre_send_fault(mut self, fault: PreSendFault) -> Self {
+        self.pre_send_fault = Some((fault, Some(1)));
+        self
+    }
+
+    /// Test hook: inject pre-send failures for the next `n` batches.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn pre_send_fault_times(mut self, fault: PreSendFault, n: u32) -> Self {
+        self.pre_send_fault = Some((fault, Some(n)));
+        self
+    }
+
     /// Bootstrap brokers, for example `["127.0.0.1:9092"]`.
     pub fn bootstrap<S: Into<String>>(servers: impl IntoIterator<Item = S>) -> Self {
         Self {
@@ -819,6 +855,7 @@ struct Shared {
     ack_latency: crate::metrics::LatencyTracker,
     interceptors: crate::interceptor::ProducerInterceptors,
     topics: parking_lot::Mutex<HashMap<Arc<str>, Arc<crate::metrics::ProduceTopicTracker>>>,
+    pub(crate) pre_send_fault: parking_lot::Mutex<Option<(PreSendFault, Option<u32>)>>,
 }
 
 /// Produce client: queue records, batch, and wait for offsets.
@@ -1178,6 +1215,7 @@ impl Producer {
             ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
             topics: parking_lot::Mutex::new(HashMap::new()),
+            pre_send_fault: parking_lot::Mutex::new(cfg.pre_send_fault),
         });
         let weak = Arc::downgrade(&shared);
         drop(tokio::spawn(async move {
@@ -1498,6 +1536,24 @@ impl Producer {
         }
         self.inner.shared.note_queued_n(&topic, 1, bytes);
         Ok(())
+    }
+
+    /// Test hook: inject a pre-send fault for the next drained batch.
+    #[doc(hidden)]
+    pub fn inject_pre_send_fault(&self, fault: PreSendFault) {
+        *self.inner.shared.pre_send_fault.lock() = Some((fault, Some(1)));
+    }
+
+    /// Test hook: inject a pre-send fault for the next `n` drained batches.
+    #[doc(hidden)]
+    pub fn inject_pre_send_fault_times(&self, fault: PreSendFault, n: u32) {
+        *self.inner.shared.pre_send_fault.lock() = Some((fault, Some(n)));
+    }
+
+    /// Count of retries currently in flight.
+    #[must_use]
+    pub fn retries_in_flight(&self) -> usize {
+        self.inner.shared.retries_out.load(Ordering::SeqCst)
     }
 
     /// Produce counters and ack latency since connect (min/mean/max and p50/p99).
@@ -2620,11 +2676,6 @@ impl Worker {
             }
             if self.can_fire(linger_start) {
                 if let Err(e) = self.fire().await {
-                    fail_pendings(
-                        &self.shared,
-                        std::mem::take(&mut self.pending),
-                        clone_err(&e),
-                    );
                     self.note_fail(e);
                 }
                 linger_start = if self.pending.is_empty() {
@@ -2702,7 +2753,20 @@ impl Worker {
         if self.in_flight.is_empty() && self.conn.idle_expired(self.shared.cfg.connections_max_idle)
         {
             let addr = self.conn.addr().to_string();
-            self.conn = open_conn(&addr, &self.shared.cfg).await?;
+            match open_conn(&addr, &self.shared.cfg).await {
+                Ok(c) => self.conn = c,
+                Err(e) => {
+                    let pending = std::mem::take(&mut self.pending);
+                    if e.is_retriable() {
+                        let _ = self.shared.nodes.lock().remove(&self.node_id);
+                        self.requeue_pendings(pending);
+                        return Ok(());
+                    }
+                    fail_pendings(&self.shared, pending, clone_err(&e));
+                    self.note_fail(e.clone());
+                    return Err(e);
+                }
+            }
         }
         let n = take_count(
             &self.pending,
@@ -2713,6 +2777,7 @@ impl Worker {
         if let Some(p) = batch.iter().find(|p| p.rec.partition.is_none()) {
             let e = Error::protocol(format!("produce without partition topic={}", p.rec.topic));
             fail_pendings(&self.shared, batch, clone_err(&e));
+            self.note_fail(e.clone());
             return Err(e);
         }
         let now = now_ms();
@@ -2723,7 +2788,41 @@ impl Worker {
         let producer_id = self.shared.producer_id.load(Ordering::SeqCst);
         let producer_epoch = self.shared.producer_epoch.load(Ordering::SeqCst);
         assign_sequences(&mut groups, producer_id, &self.shared.seqs);
-        self.add_txn_partitions(&groups).await?;
+
+        let fault = {
+            let mut g = self.shared.pre_send_fault.lock();
+            match *g {
+                None => None,
+                Some((f, None)) => {
+                    *g = None;
+                    Some(f)
+                }
+                Some((f, Some(1))) => {
+                    *g = None;
+                    Some(f)
+                }
+                Some((f, Some(count))) => {
+                    *g = Some((f, Some(count - 1)));
+                    Some(f)
+                }
+            }
+        };
+        if fault == Some(PreSendFault::TxnPartition) {
+            let e = Error::broker(
+                crate::error::OPERATION_NOT_ATTEMPTED,
+                "injected transaction partition failure",
+            );
+            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            fail_groups(&self.shared, groups, clone_err(&e));
+            self.note_fail(e.clone());
+            return Err(e);
+        }
+        if let Err(e) = self.add_txn_partitions(&groups).await {
+            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            fail_groups(&self.shared, groups, clone_err(&e));
+            self.note_fail(e.clone());
+            return Err(e);
+        }
         let transactional_id = if self.shared.in_txn.load(Ordering::SeqCst) {
             self.shared.cfg.transactional_id.as_deref()
         } else {
@@ -2738,14 +2837,27 @@ impl Worker {
         self.write_buf.clear();
         self.write_buf.put_i32(0);
         let correlation = self.conn.next_correlation();
-        encode_request_header_fields(
+
+        if fault == Some(PreSendFault::Encode) {
+            let e = Error::protocol("injected produce encode failure");
+            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            fail_groups(&self.shared, groups, clone_err(&e));
+            self.note_fail(e.clone());
+            return Err(e);
+        }
+        if let Err(e) = encode_request_header_fields(
             &mut self.write_buf,
             PRODUCE,
             version,
             correlation,
             Some(self.conn.client_id()),
-        )?;
-        encode_produce_body(
+        ) {
+            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            fail_groups(&self.shared, groups, clone_err(&e));
+            self.note_fail(e.clone());
+            return Err(e);
+        }
+        if let Err(e) = encode_produce_body(
             &mut self.write_buf,
             version,
             acks,
@@ -2756,9 +2868,44 @@ impl Worker {
             producer_id,
             producer_epoch,
             transactional_id,
-        )?;
-        let size = crate::protocol::buf::i32_from_usize(self.write_buf.len().saturating_sub(4))?;
-        crate::protocol::buf::patch_i32(&mut self.write_buf, 0, size)?;
+        ) {
+            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            fail_groups(&self.shared, groups, clone_err(&e));
+            self.note_fail(e.clone());
+            return Err(e);
+        }
+        let size =
+            match crate::protocol::buf::i32_from_usize(self.write_buf.len().saturating_sub(4)) {
+                Ok(s) => s,
+                Err(e) => {
+                    rollback_sequences(&groups, producer_id, &self.shared.seqs);
+                    fail_groups(&self.shared, groups, clone_err(&e));
+                    self.note_fail(e.clone());
+                    return Err(e);
+                }
+            };
+        if let Err(e) = crate::protocol::buf::patch_i32(&mut self.write_buf, 0, size) {
+            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            fail_groups(&self.shared, groups, clone_err(&e));
+            self.note_fail(e.clone());
+            return Err(e);
+        }
+
+        if fault == Some(PreSendFault::Write) {
+            let e = Error::Io(std::io::Error::new(
+                std::io::ErrorKind::ConnectionReset,
+                "injected socket write failure",
+            ));
+            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            fail_groups(&self.shared, groups, clone_err(&e));
+            self.note_fail(e.clone());
+            return Err(e);
+        }
+        if fault == Some(PreSendFault::WriteRetriable) {
+            let _ = self.shared.nodes.lock().remove(&self.node_id);
+            self.requeue(groups);
+            return Ok(());
+        }
         if let Err(e) = self
             .conn
             .write_all_timeout(&self.write_buf, self.shared.cfg.request_timeout)
@@ -2769,7 +2916,9 @@ impl Worker {
                 self.requeue(groups);
                 return Ok(());
             }
+            rollback_sequences(&groups, producer_id, &self.shared.seqs);
             fail_groups(&self.shared, groups, clone_err(&e));
+            self.note_fail(e.clone());
             return Err(e);
         }
 
@@ -2961,7 +3110,7 @@ impl Worker {
             return Ok(());
         }
         let topics = group_txn_partitions(&added);
-        let body = txn_roundtrip(
+        let body = match txn_roundtrip(
             &self.shared,
             ADD_PARTITIONS_TO_TXN,
             version,
@@ -2969,9 +3118,32 @@ impl Worker {
             timeout,
             |body| decode_add_partitions_to_txn_response(&mut { body }, version),
         )
-        .await?;
-        let err = decode_add_partitions_to_txn_response(&mut body.clone(), version)?;
+        .await
+        {
+            Ok(b) => b,
+            Err(e) => {
+                let mut set = self.shared.txn_partitions.lock();
+                for k in &added {
+                    let _ = set.remove(k);
+                }
+                return Err(e);
+            }
+        };
+        let err = match decode_add_partitions_to_txn_response(&mut body.clone(), version) {
+            Ok(e) => e,
+            Err(e) => {
+                let mut set = self.shared.txn_partitions.lock();
+                for k in &added {
+                    let _ = set.remove(k);
+                }
+                return Err(e);
+            }
+        };
         if err != 0 {
+            let mut set = self.shared.txn_partitions.lock();
+            for k in &added {
+                let _ = set.remove(k);
+            }
             return Err(Error::broker(err, "AddPartitionsToTxn"));
         }
         {
@@ -3013,11 +3185,6 @@ impl Worker {
                     }
                 }
                 if let Err(e) = self.fire().await {
-                    fail_pendings(
-                        &self.shared,
-                        std::mem::take(&mut self.pending),
-                        clone_err(&e),
-                    );
                     self.note_fail(e);
                 }
             } else if let Err(e) = self.wait_one().await {
@@ -3148,6 +3315,31 @@ fn assign_sequences(
         for (i, p) in pendings.iter_mut().enumerate() {
             if p.seq.is_none() {
                 p.seq = Some(base.saturating_add(i32::try_from(i).unwrap_or(0)));
+            }
+        }
+    }
+}
+
+fn rollback_sequences(
+    groups: &[(Arc<str>, i32, Vec<Pending>)],
+    producer_id: i64,
+    seqs: &parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
+) {
+    if producer_id <= RecordBatch::NO_PRODUCER_ID {
+        return;
+    }
+    let mut g = seqs.lock();
+    for (topic, partition, pendings) in groups {
+        let Some(first) = pendings.first() else {
+            continue;
+        };
+        let Some(base) = first.seq else {
+            continue;
+        };
+        let count = i32::try_from(pendings.len()).unwrap_or(0);
+        if let Some(curr) = g.get_mut(&(topic.clone(), *partition)) {
+            if *curr == base.saturating_add(count) {
+                *curr = base;
             }
         }
     }

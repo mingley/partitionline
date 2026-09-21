@@ -15,6 +15,10 @@
     reason = "mod common is private to each integration test binary; mock detaches accept loops"
 )]
 #![expect(
+    dead_code,
+    reason = "mock helpers are shared across multiple integration tests"
+)]
+#![expect(
     clippy::let_underscore_must_use,
     reason = "mock discards frame length prefixes"
 )]
@@ -229,6 +233,8 @@ struct State {
     expected_seq: HashMap<(i64, i16, String, i32), i32>,
     produce_error: Option<i16>,
     produce_error_left: Option<u32>,
+    add_partitions_error: Option<i16>,
+    add_partitions_error_left: Option<u32>,
     log_start: HashMap<(String, i32), i64>,
     created_topics: HashMap<String, CreatedTopic>,
     metadata_calls: u32,
@@ -601,6 +607,8 @@ fn new_state(
         expected_seq: HashMap::new(),
         produce_error: None,
         produce_error_left: None,
+        add_partitions_error: None,
+        add_partitions_error_left: None,
         log_start: HashMap::new(),
         created_topics,
         metadata_calls: 0,
@@ -1677,6 +1685,12 @@ impl Mock {
         let mut st = self.state.lock();
         st.produce_error = Some(code);
         st.produce_error_left = Some(n);
+    }
+
+    pub fn set_add_partitions_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.add_partitions_error = Some(code);
+        st.add_partitions_error_left = Some(n);
     }
 
     pub fn produce_nodes(&self) -> Vec<i32> {
@@ -4767,12 +4781,37 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (_tid, _pid, epoch, topics) =
                     decode_add_partitions_to_txn_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
+                let forced = match (st.add_partitions_error, st.add_partitions_error_left) {
+                    (Some(_), Some(0)) => {
+                        st.add_partitions_error = None;
+                        st.add_partitions_error_left = None;
+                        None
+                    }
+                    (Some(c), Some(left)) => {
+                        st.add_partitions_error_left = Some(left.saturating_sub(1));
+                        if left <= 1 {
+                            st.add_partitions_error = None;
+                            st.add_partitions_error_left = None;
+                        }
+                        Some(c)
+                    }
+                    (Some(c), None) => Some(c),
+                    (None, _) => None,
+                };
                 if st.txn_coord_node != node_id {
                     encode_add_partitions_to_txn_response(
                         &mut body,
                         header.api_version,
                         &topics,
                         16,
+                    )
+                    .unwrap();
+                } else if let Some(err) = forced {
+                    encode_add_partitions_to_txn_response(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        err,
                     )
                     .unwrap();
                 } else {
