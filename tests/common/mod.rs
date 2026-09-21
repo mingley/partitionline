@@ -267,6 +267,10 @@ struct State {
     hidden_brokers: HashSet<i32>,
     /// Override advertised ApiVersions max per api key.
     api_max: HashMap<i16, i16>,
+    /// Override advertised ApiVersions max per node and api key.
+    node_api_max: HashMap<(i32, i16), i16>,
+    /// Last Produce version received per node.
+    last_produce_version_by_node: HashMap<i32, i16>,
     /// Api keys omitted from ApiVersions (cannot be advertised via
     /// [`Mock::set_api_max`], which clamps to the key's min version).
     hidden_apis: HashSet<i16>,
@@ -544,6 +548,7 @@ struct State {
     last_txn_offset_member_id: Option<String>,
     last_txn_offset_epochs: Vec<i32>,
     drop_gen: watch::Sender<u32>,
+    drop_node_gen: HashMap<i32, watch::Sender<u32>>,
     refuse_conns: u32,
     accepts: u32,
     coord_node: i32,
@@ -645,6 +650,8 @@ fn new_state(
         brokers: Vec::new(),
         hidden_brokers: HashSet::new(),
         api_max: HashMap::new(),
+        node_api_max: HashMap::new(),
+        last_produce_version_by_node: HashMap::new(),
         hidden_apis: HashSet::new(),
         partition_leaders: HashMap::new(),
         partition_epochs: HashMap::new(),
@@ -920,6 +927,7 @@ fn new_state(
         last_txn_offset_member_id: None,
         last_txn_offset_epochs: Vec::new(),
         drop_gen: watch::channel(0).0,
+        drop_node_gen: HashMap::new(),
         refuse_conns: 0,
         accepts: 0,
         coord_node: 1,
@@ -1802,6 +1810,30 @@ impl Mock {
 
     pub fn set_api_max(&self, api_key: i16, max: i16) {
         let _ = self.state.lock().api_max.insert(api_key, max);
+    }
+
+    pub fn set_node_api_max(&self, node_id: i32, api_key: i16, max: i16) {
+        let _ = self
+            .state
+            .lock()
+            .node_api_max
+            .insert((node_id, api_key), max);
+    }
+
+    pub fn last_produce_version_for_node(&self, node_id: i32) -> Option<i16> {
+        self.state
+            .lock()
+            .last_produce_version_by_node
+            .get(&node_id)
+            .copied()
+    }
+
+    pub fn broker_addr(&self, node_id: i32) -> Option<String> {
+        let st = self.state.lock();
+        st.brokers
+            .iter()
+            .find(|b| b.node_id == node_id)
+            .map(|b| format!("{}:{}", b.host, b.port))
     }
 
     pub fn hide_api(&self, api_key: i16) {
@@ -2922,6 +2954,16 @@ impl Mock {
         let _ = st.drop_gen.send(n.saturating_add(1));
     }
 
+    pub fn drop_node_connections(&self, node_id: i32) {
+        let mut st = self.state.lock();
+        let sender = st
+            .drop_node_gen
+            .entry(node_id)
+            .or_insert_with(|| watch::channel(0).0);
+        let n = *sender.borrow();
+        let _ = sender.send(n.saturating_add(1));
+    }
+
     /// Accept then immediately drop the next `n` TCP connections (no Kafka handshake).
     pub fn refuse_connections(&self, n: u32) {
         self.state.lock().refuse_conns = n;
@@ -3333,7 +3375,7 @@ fn share_record_batches(taken: Vec<Record>, leader_epoch: i32) -> Vec<RecordBatc
         .collect()
 }
 
-fn versions(st: &State) -> ApiVersionsResponse {
+fn versions(st: &State, node_id: i32) -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 12),
         (FETCH, 4, 17),
@@ -3413,9 +3455,10 @@ fn versions(st: &State) -> ApiVersionsResponse {
                 api_key,
                 min_version,
                 max_version: st
-                    .api_max
-                    .get(&api_key)
+                    .node_api_max
+                    .get(&(node_id, api_key))
                     .copied()
+                    .or_else(|| st.api_max.get(&api_key).copied())
                     .unwrap_or(max_version)
                     .max(min_version),
             })
@@ -3523,6 +3566,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
 ) {
     let mut buf = BytesMut::new();
     let mut drop_rx = state.lock().drop_gen.subscribe();
+    let mut node_drop_rx = {
+        let mut st = state.lock();
+        st.drop_node_gen
+            .entry(node_id)
+            .or_insert_with(|| watch::channel(0).0)
+            .subscribe()
+    };
     let mut authed = {
         let st = state.lock();
         st.sasl_user.is_none() && st.scram_user.is_none() && st.oauth_principal.is_none()
@@ -3531,6 +3581,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
     loop {
         let mut frame = tokio::select! {
             _ = drop_rx.changed() => break,
+            _ = node_drop_rx.changed() => break,
             frame = read_frame(&mut stream, &mut buf) => match frame {
                 Ok(f) => f,
                 Err(_) => break,
@@ -3597,7 +3648,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_api_versions_version = Some(header.api_version);
                 st.api_versions_versions.push(header.api_version);
-                let advertised = versions(&st);
+                let advertised = versions(&st, node_id);
                 let (av_min, av_max) = advertised
                     .api_version(API_VERSIONS)
                     .map(|k| (k.min_version, k.max_version))
@@ -5063,11 +5114,59 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 if let Some(delay) = produce_delay {
                     tokio::time::sleep(delay).await;
                 }
+                let max_supported = {
+                    let st = state.lock();
+                    st.node_api_max
+                        .get(&(node_id, PRODUCE))
+                        .copied()
+                        .or_else(|| st.api_max.get(&PRODUCE).copied())
+                        .unwrap_or(12)
+                };
+                if header.api_version > max_supported {
+                    let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
+                    let mut parts = Vec::new();
+                    {
+                        let mut st = state.lock();
+                        st.last_produce_version = Some(header.api_version);
+                        st.last_produce_version_by_node
+                            .insert(node_id, header.api_version);
+                    }
+                    for topic in decoded.3 {
+                        for p in topic.partitions {
+                            parts.push(ProducePartitionResponse {
+                                topic: topic.topic.clone(),
+                                partition: p.index,
+                                error_code: error::UNSUPPORTED_VERSION,
+                                base_offset: ProducePartitionResponse::INVALID_OFFSET,
+                                log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+                                log_start_offset: 0,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
+                                record_errors: Vec::new(),
+                                error_message: Some(format!(
+                                    "broker {node_id} does not support Produce version {}",
+                                    header.api_version
+                                )),
+                            });
+                        }
+                    }
+                    encode_produce_response_with_endpoints(
+                        &mut body,
+                        header.api_version,
+                        &parts,
+                        &[],
+                    )
+                    .unwrap();
+                    write_frame(&mut stream, &body).await.ok();
+                    continue;
+                }
                 let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
                 let txn_id = decoded.0;
                 let mut parts = Vec::new();
                 let mut st = state.lock();
                 st.last_produce_version = Some(header.api_version);
+                st.last_produce_version_by_node
+                    .insert(node_id, header.api_version);
                 if header.api_version >= 12 && txn_id.is_some() {
                     // Produce v12 transaction V2: the partition leader
                     // also performs AddPartitionsToTxn.

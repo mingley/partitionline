@@ -21,7 +21,7 @@ use partitionline::protocol::api_keys::{
     DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT,
     INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
-    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
+    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
     SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
     SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
@@ -11906,4 +11906,158 @@ async fn admin_against_kafka_if_present() {
     );
     let deleted = admin.delete_topics(&[&name], 10_000).await.unwrap();
     assert_eq!(deleted[0].error_code, 0, "{deleted:?}");
+}
+
+#[tokio::test]
+async fn produce_mixed_version_two_brokers_both_leader_orders() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_node_api_max(1, PRODUCE, 12);
+    mock.set_node_api_max(2, PRODUCE, 7);
+
+    // Leader order 1: Node 1 is newer bootstrap broker, Node 2 is older partition leader.
+    mock.set_partition_leader("t", 0, 2);
+    let mut pcfg1 = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg1.linger = Duration::ZERO;
+    let producer1 = Producer::new(pcfg1).await.unwrap();
+    let md1 = producer1
+        .send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"msg-older-leader"[..]),
+        )
+        .await
+        .expect("produce to older leader must succeed with negotiated version");
+    assert_eq!(md1.offset, 0);
+    assert_eq!(
+        mock.last_produce_version_for_node(2),
+        Some(7),
+        "newer bootstrap broker 1 must not force unsupported Produce version on older leader 2"
+    );
+    producer1.close().await.unwrap();
+
+    // Leader order 2: Node 2 is older bootstrap broker, Node 1 is newer partition leader.
+    mock.set_partition_leader("t", 0, 1);
+    let node2_addr = mock.broker_addr(2).expect("node 2 address");
+    let mut pcfg2 = ProducerConfig::bootstrap([node2_addr]);
+    pcfg2.linger = Duration::ZERO;
+    let producer2 = Producer::new(pcfg2).await.unwrap();
+    let md2 = producer2
+        .send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"msg-newer-leader"[..]),
+        )
+        .await
+        .expect("produce to newer leader must succeed with negotiated version");
+    assert_eq!(md2.offset, 1);
+    assert_eq!(
+        mock.last_produce_version_for_node(1),
+        Some(12),
+        "older bootstrap broker 2 must not constrain newer leader 1 below its supported Produce version"
+    );
+    producer2.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn produce_mixed_version_leader_movement_and_reconnection() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_node_api_max(1, PRODUCE, 12);
+    mock.set_node_api_max(2, PRODUCE, 7);
+
+    // Initially partition 0 leader is Node 1 (newer).
+    mock.set_partition_leader("t", 0, 1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md1 = producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"msg1-node1"[..]),
+        )
+        .await
+        .unwrap();
+    assert_eq!(md1.offset, 0);
+    assert_eq!(
+        mock.last_produce_version_for_node(1),
+        Some(12),
+        "produce to node 1 must speak v12"
+    );
+
+    // Leader movement: partition 0 moves to Node 2 (older, supports max v7).
+    mock.set_partition_leader("t", 0, 2);
+    let md2 = producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"msg2-node2"[..]),
+        )
+        .await
+        .expect("produce after leader movement to older node must succeed with negotiated v7");
+    assert_eq!(md2.offset, 1);
+    assert_eq!(
+        mock.last_produce_version_for_node(2),
+        Some(7),
+        "leader movement to older node must refresh capabilities and use v7"
+    );
+
+    // Reconnection and capability refresh: Node 2 disconnects and upgrades to Produce v8.
+    mock.drop_node_connections(2);
+    mock.set_node_api_max(2, PRODUCE, 8);
+    let md3 = producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"msg3-node2-v8"[..]),
+        )
+        .await
+        .expect("produce after reconnect must succeed with refreshed capabilities");
+    assert_eq!(md3.offset, 2);
+    assert_eq!(
+        mock.last_produce_version_for_node(2),
+        Some(8),
+        "reconnection must refresh peer capabilities to v8 and preserve framing"
+    );
+
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn produce_mixed_version_multi_partition_distinct_leaders() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_node_api_max(1, PRODUCE, 12);
+    mock.set_node_api_max(2, PRODUCE, 7);
+
+    // Partition 0 on Node 1 (v12), partition 1 on Node 2 (v7).
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+
+    let md0 = producer
+        .send(ProduceRecord::to("t").partition(0).value(&b"part0"[..]))
+        .await
+        .expect("produce to partition 0 on node 1 must succeed");
+    let md1 = producer
+        .send(ProduceRecord::to("t").partition(1).value(&b"part1"[..]))
+        .await
+        .expect("produce to partition 1 on node 2 must succeed");
+
+    assert_eq!(md0.partition, 0);
+    assert_eq!(md1.partition, 1);
+    assert_eq!(
+        mock.last_produce_version_for_node(1),
+        Some(12),
+        "partition 0 on node 1 must use Produce v12"
+    );
+    assert_eq!(
+        mock.last_produce_version_for_node(2),
+        Some(7),
+        "partition 1 on node 2 must use Produce v7"
+    );
+
+    producer.close().await.unwrap();
 }

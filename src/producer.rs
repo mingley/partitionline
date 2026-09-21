@@ -816,7 +816,6 @@ struct Shared {
     /// Transaction coordinator. `None` when `transactional.id` is unset.
     txn: Mutex<Option<BrokerConn>>,
     metadata_version: i16,
-    produce_version: i16,
     add_partitions_version: i16,
     add_offsets_version: i16,
     end_txn_version: i16,
@@ -1149,8 +1148,9 @@ impl Producer {
         let find_coord_version = pick(&versions, FIND_COORDINATOR, 1, 6).ok_or_else(|| {
             Error::Unsupported("broker does not support FindCoordinator v1-6".into())
         })?;
-        let produce_version = pick(&versions, PRODUCE, 3, 12)
-            .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-12".into()))?;
+        if let Some(pv) = pick(&versions, PRODUCE, 3, 12) {
+            meta.set_produce_version(pv);
+        }
         let metadata_version = pick(&versions, METADATA, 1, 13)
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let (add_partitions_version, add_offsets_version, end_txn_version, txn_offset_version) =
@@ -1219,7 +1219,6 @@ impl Producer {
             meta: Mutex::new(meta),
             txn: Mutex::new(txn),
             metadata_version,
-            produce_version,
             add_partitions_version,
             add_offsets_version,
             end_txn_version,
@@ -2193,6 +2192,12 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
             .await?;
     let versions_resp =
         crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
+    if let Some(pv) = versions_resp
+        .api_version(PRODUCE)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 3, 12))
+    {
+        conn.set_produce_version(pv);
+    }
     crate::protocol::sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
     crate::protocol::sasl::authenticate(
         &mut conn,
@@ -2658,6 +2663,14 @@ async fn spawn_node_workers(
             return Err(Error::Closed);
         }
         let conn = open_conn(addr, &shared.cfg).await?;
+        if conn.produce_version() < 0 {
+            for w in &workers {
+                w.task.abort();
+            }
+            return Err(Error::Unsupported(format!(
+                "broker at {addr} does not support Produce v3-12"
+            )));
+        }
         if shared.closed.load(Ordering::SeqCst) {
             for w in &workers {
                 w.task.abort();
@@ -2863,6 +2876,7 @@ struct Worker {
 
 struct InFlight {
     correlation: i32,
+    version: i16,
     groups: Vec<(Arc<str>, i32, Vec<Pending>)>,
 }
 
@@ -3121,7 +3135,16 @@ impl Worker {
         {
             let addr = self.conn.addr().to_string();
             match open_conn(&addr, &self.shared.cfg).await {
-                Ok(c) => self.conn = c,
+                Ok(c) if c.produce_version() >= 0 => self.conn = c,
+                Ok(_) => {
+                    let e = Error::Unsupported(format!(
+                        "broker at {addr} does not support Produce v3-12"
+                    ));
+                    let pending = std::mem::take(&mut self.pending);
+                    fail_pendings(&self.shared, pending, clone_err(&e));
+                    self.note_fail(e.clone());
+                    return Err(e);
+                }
                 Err(e) => {
                     let pending = std::mem::take(&mut self.pending);
                     if e.is_retriable() {
@@ -3201,7 +3224,7 @@ impl Worker {
             None
         };
 
-        let version = self.shared.produce_version;
+        let version = self.conn.produce_version();
         let acks = self.shared.cfg.acks;
         let timeout_ms =
             i32::try_from(self.shared.cfg.request_timeout.as_millis()).unwrap_or(i32::MAX);
@@ -3317,6 +3340,7 @@ impl Worker {
         }
         self.in_flight.push_back(InFlight {
             correlation,
+            version,
             groups,
         });
         Ok(())
@@ -3330,8 +3354,7 @@ impl Worker {
             shared: Arc::clone(&self.shared),
             inf: Some(inf),
         };
-        let version = self.shared.produce_version;
-        let (correlation, batch_deadline) = match guard.inf.as_ref() {
+        let (correlation, version, batch_deadline) = match guard.inf.as_ref() {
             Some(inf) => {
                 let dl = inf
                     .groups
@@ -3340,9 +3363,13 @@ impl Worker {
                     .map(|p| p.deadline)
                     .min()
                     .unwrap_or_else(|| Instant::now() + self.shared.cfg.delivery_timeout);
-                (inf.correlation, dl)
+                (inf.correlation, inf.version, dl)
             }
-            None => (0, Instant::now() + self.shared.cfg.delivery_timeout),
+            None => (
+                0,
+                self.conn.produce_version(),
+                Instant::now() + self.shared.cfg.delivery_timeout,
+            ),
         };
         let now = Instant::now();
         let timeout = if now >= batch_deadline {
@@ -3509,7 +3536,7 @@ impl Worker {
         // Produce v12 is transaction V2 (KIP-890 Part 2): Produce also
         // performs AddPartitionsToTxn. Skip that RPC when the broker
         // advertised v12 (Java `isTransactionV2Enabled`).
-        if ProduceRequest::is_transaction_v2_requested(self.shared.produce_version) {
+        if ProduceRequest::is_transaction_v2_requested(self.conn.produce_version()) {
             let mut sent = self.shared.txn_added.lock();
             for (topic, part, _) in groups {
                 let _ = sent.insert((topic.clone(), *part));

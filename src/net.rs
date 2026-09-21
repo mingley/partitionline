@@ -604,6 +604,9 @@ pub struct BrokerConn {
     /// Admin-only. Producer and consumer sockets leave this `None` so
     /// [`Self::send`] plus [`Self::read_response`] is not double-counted.
     stats: Option<Arc<crate::metrics::AdminTracker>>,
+    /// Produce version negotiated on data sockets (`-1` unset).
+    /// This crate picks 3–12 from ApiVersions.
+    pub(crate) produce_version: i16,
     /// OffsetCommit version negotiated on coordinator sockets (`0` unset).
     /// Classic consumer groups pick 2–9 from ApiVersions. Kafka 4.0
     /// removed v0–v1, so `0` is not a spoken version.
@@ -706,6 +709,7 @@ impl BrokerConn {
             last_io: Instant::now(),
             closed: Arc::new(AtomicBool::new(false)),
             stats: None,
+            produce_version: -1,
             offset_commit_version: 0,
             offset_fetch_version: 0,
             heartbeat_version: -1,
@@ -728,6 +732,17 @@ impl BrokerConn {
     #[must_use]
     pub fn client_id(&self) -> &str {
         &self.client_id
+    }
+
+    /// Negotiated Produce version on this broker connection (`-1` unset).
+    #[must_use]
+    pub fn produce_version(&self) -> i16 {
+        self.produce_version
+    }
+
+    /// Set negotiated Produce version on this broker connection.
+    pub fn set_produce_version(&mut self, version: i16) {
+        self.produce_version = version;
     }
 
     /// Next request correlation id.

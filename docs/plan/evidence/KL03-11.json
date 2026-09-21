@@ -1,0 +1,47 @@
+{
+  "id": "KL03-11",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "29fff7d568bc9c6dcd71224d1ccb056fee599100",
+  "commands": [
+    "cargo test --offline --locked --test full_surface produce_mixed_version",
+    "cargo test --offline --locked --test produce_cancel",
+    "cargo test --offline --locked --test full_surface idempotent",
+    "cargo test --offline --locked --test buffer_ownership",
+    "rustfmt --edition 2021 --check src/producer.rs src/net.rs tests/common/mod.rs tests/full_surface.rs",
+    "cargo clippy --offline --locked --lib --test full_surface -- -D warnings"
+  ],
+  "results": {
+    "suite": "full_surface (filtered by produce_mixed_version)",
+    "total_tests": 3,
+    "passed": 3,
+    "failed": 0,
+    "test_names": [
+      "produce_mixed_version_two_brokers_both_leader_orders",
+      "produce_mixed_version_leader_movement_and_reconnection",
+      "produce_mixed_version_multi_partition_distinct_leaders"
+    ],
+    "checks": [
+      "A newer bootstrap broker (v12) cannot force an unsupported Produce version on an older partition leader (v7)",
+      "An older bootstrap broker (v7) does not constrain a newer partition leader (v12) below its supported version",
+      "Per-connection ApiVersions negotiation determines and records produce_version on data connections",
+      "Leader movement to an older or newer broker uses the destination node's negotiated version and preserves request/response framing",
+      "Broker reconnection refreshes that peer's capabilities and preserves framing",
+      "Multiple partitions assigned to distinct broker leaders simultaneously speak each leader's negotiated Produce version",
+      "Consumer negotiation (KL03-22) is unchanged",
+      "Delivery deadlines (KL02-06) and lost-ack retries (KL03-08) remain intact"
+    ]
+  },
+  "artifacts": [
+    "src/producer.rs",
+    "src/net.rs",
+    "tests/common/mod.rs",
+    "tests/full_surface.rs",
+    "docs/plan/evidence/KL03-11.json"
+  ],
+  "limits": [
+    "In-memory mock broker test; live multi-broker cluster was not exercised.",
+    "No new dependencies or unsafe code added."
+  ],
+  "blocked_reason": null
+}
