@@ -1,0 +1,907 @@
+{
+  "schema_version": "1.0.0",
+  "contract_version": "1.0.0",
+  "suite_hold": {
+    "status": "active",
+    "policy": "Preserve Suite HOLD. Unsigned Verifiable samples do not lift Suite HOLD. Historical signoff rules stay: do not silently move thresholds; the 2026-09-05 nested 1344us vs 750us miss is historical; GHA 5000us and local 750us relative gates are not redefined here.",
+    "historical_nested_gate": {
+      "measured_p99_us": 1344,
+      "ceiling_us": 750,
+      "status": "historical",
+      "ci_run": "33938039612",
+      "note": "integrity job nested latency under GHA load; now skipped via SKIP_LATENCY_GATE when REQUIRE_INTEGRITY=1"
+    },
+    "shared_runner_ceiling_us": 5000,
+    "local_relative_ceiling_us": 750,
+    "controlled_host_qualification": "Lab A / Kernel Integrity signoff required for official performance qualification"
+  },
+  "equal_semantics": {
+    "description": "A benchmark comparison is strictly invalid if durability/acks/idempotence/isolation/security differ. All comparison pairs must match across the frozen required match fields.",
+    "required_match_fields": [
+      "durability",
+      "acks",
+      "idempotence",
+      "isolation",
+      "security"
+    ],
+    "rules": [
+      "Durability, min.insync.replicas, replication factor, and broker ISR topology must match across all compared peers.",
+      "Producer acks level (0, 1, or -1/all) must be identical across compared clients.",
+      "Idempotence must be identically configured (both enabled or both disabled); when enabled, max.in.flight.requests.per.connection must be bounded <= 5.",
+      "Consumer isolation.level (read_uncommitted vs read_committed) must match across all compared clients.",
+      "Security protocol (PLAINTEXT, SSL/TLS, SASL_PLAINTEXT, SASL_SSL) and authentication mechanism (PLAIN, SCRAM-SHA-256, SCRAM-SHA-512, OAUTHBEARER) must match.",
+      "Enqueue acceptance (e.g. try_send returning Ok) is local buffering and must not be counted as broker acknowledgment; only broker produce responses count as acked.",
+      "Broker acknowledgment is not proof of a per-record fsync; fsync depends on broker log.flush configuration and OS page cache writeback.",
+      "High-watermark and count equality are necessary baseline assertions, but insufficient to establish exactly-once delivery; record payload and ID integrity must be verified."
+    ]
+  },
+  "measurement_protocol": {
+    "warmup": {
+      "required": true,
+      "min_duration_s": 15,
+      "min_records": 10000,
+      "percentile_inclusion": false,
+      "description": "Warmup traffic must run prior to steady-state measurement to stabilize JIT, TCP connection caches, and broker thread pools. All warmup records are discarded from steady-state percentiles and throughput totals."
+    },
+    "repetitions": {
+      "min_repetitions": 5,
+      "pairing": "paired_randomized",
+      "order": "randomized A/B or Latin square per repetition",
+      "description": "At least five paired randomized repetitions per cell to neutralize temporal drift, background noise, and host thermal throttling."
+    },
+    "duration": {
+      "steady_state_duration_s": 60,
+      "min_record_count": 1000000,
+      "description": "Each steady-state repetition must run for at least 60 seconds or until the sample floor is satisfied."
+    },
+    "sample_floor": {
+      "min_latency_samples": 10000,
+      "min_throughput_records": 1000000,
+      "description": "Strict sample floor required before computing percentiles or statistical aggregates."
+    },
+    "uncertainty": {
+      "metrics": [
+        "p50",
+        "p95",
+        "p99",
+        "p99.9",
+        "mean",
+        "min",
+        "max",
+        "throughput_rec_s"
+      ],
+      "confidence_level": 0.95,
+      "method": "95% bootstrap confidence interval and median +- MAD (Median Absolute Deviation)",
+      "description": "All published comparative results must report uncertainty intervals. Single-run peak values or unanchored point estimates are prohibited."
+    },
+    "failed_run_policy": {
+      "rule": "A failed cell stays failed; rerun success does not erase it; no progress-string success.",
+      "triggers": [
+        "Broker error code returned (e.g. NOT_ENOUGH_REPLICAS, OUT_OF_ORDER_SEQUENCE_NUMBER)",
+        "Missing or dropped records (sum of high watermarks != acked records)",
+        "Connection reset, broken pipe, or unhandled socket timeout",
+        "Client panic, SIGSEGV, unhandled exception, or unexpected termination",
+        "Progress strings without verified end-to-end completion",
+        "Latency sample count below declared sample floor"
+      ],
+      "rerun_erasure_forbidden": true,
+      "progress_string_success_forbidden": true
+    },
+    "historical_lab_a_rules": {
+      "reference_hardware": "Apple M4 Pro, macOS 26.6.2, arm64 (historical locked produce reference)",
+      "broker": "Docker apache/kafka:3.9.1 on 127.0.0.1:9092 or native KRaft 3.9.1 / 4.1.0",
+      "fresh_topic": "Topic must be deleted and recreated before each run",
+      "high_watermark_audit": "kafka-get-offsets sum of partition high watermarks must strictly equal acked record count",
+      "integrity_signoff": "Results are unsigned until Kernel Integrity signs; unsigned samples never lift Suite HOLD."
+    },
+    "universal_certification_disclaimer": "No universal Kafka performance certification exists in the inspected evidence. Repository targets and scorecard comparisons are proposed benchmarks, not industry-wide standards."
+  },
+  "profiles": {
+    "low-latency": {
+      "name": "low-latency",
+      "description": "Single-record and minimal-linger latency under scheduled open-loop arrivals to evaluate p50/p99 service time and queueing delay without coordinated omission.",
+      "cells": [
+        {
+          "id": "lat-req-openloop-p99-acks1",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Scheduled open-loop arrivals at 10,000 req/s, single message per batch, measuring produce-ack round-trip latency.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 1,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 1000,
+              "batch_num_messages": 1
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 1,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "lat-req-openloop-p99-acks-all",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Scheduled open-loop arrivals at 10,000 req/s with acks=-1 and idempotence enabled.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 1000,
+              "batch_num_messages": 1
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "lat-exp-saturation-curve",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "Latency vs throughput saturation curve stepping from 1,000 to 100,000 req/s to locate knee of latency.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 256,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 1,
+              "batch_size_bytes": 16384,
+              "batch_num_messages": 100
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        }
+      ]
+    },
+    "bulk": {
+      "name": "bulk",
+      "description": "High-throughput saturated batch production and consumption measuring maximum sustained record and byte throughput.",
+      "cells": [
+        {
+          "id": "bulk-req-standard-acks1-uncompressed",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Standard 8,000,000 record bulk produce test at 100 bytes, acks=1, linger=5ms, 6 partitions, uncompressed.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "bulk-req-idempotent-acks-all-uncompressed",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Idempotent produce test at 8,000,000 records, acks=-1, linger=5ms, in-flight capped at 5.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "bulk-exp-large-payload-64kb",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "Large payload batching throughput test with 64 KB messages to stress network buffer management and zero-copy transfer.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 65536,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": true,
+              "partition_skew": "uniform"
+            },
+            "partitions": 12,
+            "batching": {
+              "linger_ms": 10,
+              "batch_size_bytes": 4194304,
+              "batch_num_messages": 1024
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        }
+      ]
+    },
+    "fetch": {
+      "name": "fetch",
+      "description": "Consumer throughput and Fetch RPC round-trip latency from pre-populated topic partitions.",
+      "cells": [
+        {
+          "id": "fetch-req-standard-6p-uncompressed",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Consumer reading 8,000,000 records from pre-filled 6-partition topic with min_bytes=1, max_bytes=16MB, max_wait_ms=100.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 16777216,
+              "batch_num_messages": 65536
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 1,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "fetch-exp-high-partition-fanout",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "Consumer reading across 64 partitions to measure request framing and multi-partition batch splitting overhead.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 512,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 64,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 33554432,
+              "batch_num_messages": 131072
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 2,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        }
+      ]
+    },
+    "transactional": {
+      "name": "transactional",
+      "description": "Exactly-once transactional production and read_committed consumption under transaction coordinator epochs and commit markers.",
+      "cells": [
+        {
+          "id": "txn-req-produce-commit-cycle",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Transactional producer executing 1,000 sequential transactions of 100 records each, committing after each batch.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 3,
+              "min_insync_replicas": 2
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 200,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": true,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 65536,
+              "batch_num_messages": 100
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "three_node_local_kraft",
+              "rtt_ms": 0.2
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "txn-exp-abort-filter-overhead",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "Consumer read_committed throughput when 20% of batches are aborted transactions, verifying abort-filtering cost.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 3,
+              "min_insync_replicas": 2
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 200,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1048576,
+              "batch_num_messages": 5000
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "three_node_local_kraft",
+              "rtt_ms": 0.2
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        }
+      ]
+    },
+    "group/share": {
+      "name": "group/share",
+      "description": "Consumer group rebalance and partition assignment protocols (classic and KIP-848), plus KIP-932 Share Group concurrent record consumption.",
+      "cells": [
+        {
+          "id": "grp-req-kip848-steady-consumption",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "KIP-848 next-generation consumer group with 3 members consuming 6 partitions under server-side assignment.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 1048576,
+              "batch_num_messages": 10000
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 2,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "share-exp-kip932-concurrency",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "KIP-932 Share Group with 4 concurrent share consumers fetching and acknowledging records without static partition lock.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 256,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 0,
+              "batch_size_bytes": 1048576,
+              "batch_num_messages": 5000
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 2,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            }
+          }
+        }
+      ]
+    },
+    "secure": {
+      "name": "secure",
+      "description": "Secure transport and authentication overhead under TLS/SSL, SASL SCRAM-SHA-256, SCRAM-SHA-512, and OAUTHBEARER.",
+      "cells": [
+        {
+          "id": "sec-req-tls-bulk-produce",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "TLS 1.3 encrypted produce test matching the uncompressed bulk profile on 8,000,000 records.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "SSL",
+              "tls_version": "TLSv1.3",
+              "cipher_suite": "TLS_AES_256_GCM_SHA384"
+            }
+          }
+        },
+        {
+          "id": "sec-req-sasl-scram256-bulk-produce",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "SASL_PLAINTEXT authenticated produce with SCRAM-SHA-256 (RFC 7677, 4096 iterations) on 8,000,000 records.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "SASL_PLAINTEXT",
+              "sasl_mechanism": "SCRAM-SHA-256",
+              "iterations": 4096
+            }
+          }
+        },
+        {
+          "id": "sec-exp-mtls-rehandshake",
+          "tier": "exploratory",
+          "status": "specified",
+          "disposition": "not_run",
+          "description": "Mutual TLS (mTLS) with client certificate verification and periodic connection cycling to evaluate handshake overhead.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": 1,
+            "idempotence": false,
+            "isolation_level": "read_uncommitted",
+            "payload": {
+              "size_bytes": 1024,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "string_uuid",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1048576,
+              "batch_num_messages": 10000
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "SSL",
+              "client_auth": "required",
+              "tls_version": "TLSv1.3"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "matched_scenarios": [
+    {
+      "id": "matched-bulk-acks-all-6p-uncompressed",
+      "profile": "bulk",
+      "tier": "required",
+      "status": "not_run",
+      "disposition": "not_run",
+      "description": "Fully specified three-way matched scenario for C (librdkafka), Java (kafka-clients), and Rust (partitionline) with identical frozen knobs.",
+      "frozen_knobs": {
+        "durability_isr": {
+          "replication_factor": 1,
+          "min_insync_replicas": 1,
+          "broker_version": "3.9.1",
+          "cluster_type": "KRaft"
+        },
+        "acks": -1,
+        "idempotence": true,
+        "isolation_level": "read_committed",
+        "payload": {
+          "size_bytes": 100,
+          "entropy": "uniform_random",
+          "seed": "0x5EED0001"
+        },
+        "headers_keys_skew": {
+          "key_type": "string_uuid_16b",
+          "has_headers": false,
+          "partition_skew": "uniform"
+        },
+        "partitions": 6,
+        "batching": {
+          "linger_ms": 5,
+          "batch_size_bytes": 1048576,
+          "batch_num_messages": 32768
+        },
+        "connection_in_flight": {
+          "max_in_flight_requests_per_connection": 5,
+          "connections_per_broker": 1,
+          "tcp_nodelay": true
+        },
+        "network_topology": {
+          "environment": "loopback_single_host",
+          "interface": "127.0.0.1",
+          "port": 9092,
+          "rtt_ms": 0.1
+        },
+        "security": {
+          "protocol": "PLAINTEXT"
+        },
+        "workload": {
+          "record_count": 8000000,
+          "warmup_records": 10000,
+          "repetitions": 5,
+          "topic": "plbench-matched"
+        }
+      },
+      "peer_configurations": {
+        "rust_partitionline": {
+          "client_name": "partitionline",
+          "crate_version": "0.1.0+",
+          "invocation": "COUNT=8000000 WARMUP=10000 PAYLOAD_BYTES=100 ACKS=-1 LINGER_MS=5 BATCH_SIZE=1048576 BATCH_RECORDS=32768 IDEMPOTENT=1 MAX_IN_FLIGHT=5 KAFKA_TOPIC=plbench-matched cargo run --release --example bench_produce",
+          "config_properties": {
+            "acks": -1,
+            "linger_ms": 5,
+            "batch_bytes": 1048576,
+            "batch_records": 32768,
+            "idempotent": true,
+            "max_in_flight": 5,
+            "tcp_nodelay": true
+          }
+        },
+        "c_librdkafka": {
+          "client_name": "librdkafka",
+          "version": "2.15.0",
+          "binary": "examples/rdkafka_performance.c linked to librdkafka 2.15.0",
+          "invocation": "rdkafka_performance -P -t plbench-matched -s 100 -c 8000000 -b 127.0.0.1:9092 -a -1 -q -X enable.idempotence=true -X max.in.flight.requests.per.connection=5 -X linger.ms=5 -X batch.size=1048576 -X batch.num.messages=32768 -X queue.buffering.max.messages=1000000 -X socket.nagle.disable=true -X compression.codec=none",
+          "config_properties": {
+            "acks": -1,
+            "enable.idempotence": "true",
+            "max.in.flight.requests.per.connection": 5,
+            "linger.ms": 5,
+            "batch.size": 1048576,
+            "batch.num.messages": 32768,
+            "queue.buffering.max.messages": 1000000,
+            "socket.nagle.disable": "true",
+            "compression.codec": "none"
+          }
+        },
+        "java_kafka_clients": {
+          "client_name": "org.apache.kafka:kafka-clients",
+          "version": "3.9.1",
+          "driver": "org.apache.kafka.tools.ProducerPerformance",
+          "invocation": "bin/kafka-run-class.sh org.apache.kafka.tools.ProducerPerformance --topic plbench-matched --num-records 8000000 --record-size 100 --throughput -1 --producer-props bootstrap.servers=127.0.0.1:9092 acks=all enable.idempotence=true max.in.flight.requests.per.connection=5 linger.ms=5 batch.size=1048576 compression.type=none",
+          "config_properties": {
+            "acks": "all",
+            "enable.idempotence": "true",
+            "max.in.flight.requests.per.connection": 5,
+            "linger.ms": 5,
+            "batch.size": 1048576,
+            "compression.type": "none"
+          }
+        }
+      }
+    }
+  ],
+  "unsupported_peer_cells": [
+    {
+      "id": "unsupported-librdkafka-share-groups",
+      "profile": "group/share",
+      "cell_id": "share-exp-kip932-concurrency",
+      "target_capability": "KIP-932 Share Groups (ShareConsume / ShareAcknowledge protocol)",
+      "peer": "librdkafka",
+      "peer_version": "2.15.0",
+      "missing_capability": "KIP-932 Share Groups (ShareConsume and ShareAcknowledge protocol RPCs for concurrent partitionless record acquisition)",
+      "status": "specified",
+      "disposition": "unsupported",
+      "rule": "Must not be scored as a win. A benchmark comparison where a peer client lacks the required protocol capability is invalid as a performance victory. It must be explicitly reported as unsupported_peer.",
+      "note": "librdkafka 2.15.0 implements traditional consumer group rebalances (KIP-345/KIP-429) but does not implement KIP-932 Share Groups. Comparing partitionline's share group consumer against librdkafka cannot produce a comparative score."
+    }
+  ]
+}

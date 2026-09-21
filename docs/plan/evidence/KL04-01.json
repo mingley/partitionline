@@ -1,0 +1,21 @@
+{
+  "id": "KL04-01",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+  "commands": [
+    "python3 -m json.tool benchmarks/scenarios.json",
+    "python3 -c '... structural assertion script verifying profiles, tiers, measurement protocol, Suite HOLD, unsupported cell, dispositions ...'"
+  ],
+  "results": "Structural validation passed: all 6 named profiles ('low-latency', 'bulk', 'fetch', 'transactional', 'group/share', 'secure') defined with explicit required and exploratory tiers; measurement protocol defines warmup, >=5 repetitions, duration, sample floors, uncertainty, and failed-run policy; Suite HOLD preserved; matched C/Java/Rust scenario specified as not_run; 1 unsupported peer cell (librdkafka share groups) defined with non-win rule; zero cells with passed disposition.",
+  "artifacts": [
+    "docs/benchmark-contract.md",
+    "benchmarks/scenarios.json"
+  ],
+  "limits": [
+    "Specification only; no benchmark campaigns executed (benchmarks deferred to KL04-03..KL04-11)",
+    "Suite HOLD remains active; unsigned samples do not lift Suite HOLD",
+    "Peer drivers are not vendored (deferred to KL04-03, KL04-04, KL04-05)"
+  ],
+  "blocked_reason": null
+}
