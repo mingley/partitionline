@@ -313,13 +313,29 @@
     {
       "id": "KL03-01",
       "title": "Promote the deterministic consumer wire fixture",
-      "priority": "P0", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "test-infrastructure", "status": "done", "owner": "mingley",
       "depends_on": [],
       "files": ["docs/audits/2026-09-21-consumer-probes.rs", "new: tests/common/fetch_fixture.rs", "new: tests/consumer_fetch_semantics.rs"],
       "deliverable": "A reusable bounded loopback fixture extracted from the audit, with a passing control scenario.",
       "acceptance": ["Support whole batches, control markers, requested offsets and one-partition retry injection without pre-filtering away the behaviors under test.", "Own and terminate listener/connection tasks; use ephemeral ports and bounded request deadlines.", "Keep the five known-failing audit cases visible in the audit artifact; promote each to the required suite with its repair, not as permanently ignored tests."],
       "validation": ["cargo test --locked --test consumer_fetch_semantics", "Re-run the standalone audit probes to confirm the fixture extraction did not change their diagnostic meaning."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "d6c8343ab2f88cfdd8f50d417747f59dc42f5ef9",
+                "commands": [
+                        "cargo test --offline --locked --test consumer_fetch_semantics (7 passed, 0 failed, 0 ignored, exit 0)"
+                ],
+                "results": "Reusable loopback fixture supports whole batches, control markers, requested offsets, and one-partition retry injection without pre-filtering. Control scenario is an aligned batch the current client already delivers. Listener and connection tasks shut down. Five audit defects were not promoted and were not ignored.",
+                "artifacts": [
+                        "tests/common/fetch_fixture.rs",
+                        "tests/consumer_fetch_semantics.rs",
+                        "docs/plan/evidence/KL03-01.json"
+                ],
+                "limits": [
+                        "A01-A05 remain open in the audit artifact. src/consumer.rs was not changed."
+                ]
+        }
+]
     },
     {
       "id": "KL03-02",
@@ -1260,13 +1276,29 @@
     {
       "id": "KL08-01",
       "title": "Reject non-CI workflows in the release eligibility check",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": [],
       "files": ["scripts/check-main-ci.sh", "new: tests/release/test_ci_gate.py"],
       "deliverable": "Fix audit A12's fallback from missing ci runs to any matching-SHA workflow.",
       "acceptance": ["A green Release-plz run with no ci run fails when REQUIRE_MAIN_CI=1.", "Use exact workflow identity and exact SHA; wrong SHA, missing, pending, cancelled and failed CI are distinct non-success outcomes.", "Read-only fixtures cover pagination/attempt selection without querying or mutating real workflow state."],
       "validation": ["python3 -m unittest discover -s tests/release -p test_ci_gate.py", "Run the checker against the frozen known-green CI SHA as a read-only positive check."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "243cf3dd98e0651c0ba08a4c4669b45245839093",
+                "commands": [
+                        "python3 -m unittest discover -s tests/release -p test_ci_gate.py (17 passed, exit 0)"
+                ],
+                "results": "A green non-CI run with no ci workflow fails closed when REQUIRE_MAIN_CI=1. Exact ci workflow identity is required. wrong_sha, missing, pending, cancelled, and failed have distinct outcome tags. Fixture tests do not query GitHub.",
+                "artifacts": [
+                        "scripts/check-main-ci.sh",
+                        "tests/release/test_ci_gate.py",
+                        "docs/plan/evidence/KL08-01.json"
+                ],
+                "limits": [
+                        "Live gh positive check against the historical green SHA was not required for the fixture proof and was not claimed."
+                ]
+        }
+]
     },
     {
       "id": "KL08-02",
