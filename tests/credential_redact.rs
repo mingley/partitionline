@@ -56,6 +56,32 @@ fn oidc_config_debug_redacts_client_secret() {
 }
 
 #[test]
+fn oidc_token_response_debug_redacts_access_token() {
+    let resp = partitionline::protocol::oidc::OidcTokenResponse {
+        access_token: "super-secret-token-material-kl06".into(),
+        token_type: "Bearer".into(),
+        expires_in: Some(3600),
+    };
+    let dbg = format!("{resp:?}");
+    assert!(
+        !dbg.contains("super-secret-token-material-kl06"),
+        "OidcTokenResponse Debug leaked token material: {dbg}"
+    );
+    assert!(
+        dbg.contains("<redacted>"),
+        "OidcTokenResponse Debug must redact access_token: {dbg}"
+    );
+    assert!(
+        dbg.contains("Bearer"),
+        "token_type should remain visible: {dbg}"
+    );
+    assert!(
+        dbg.contains("3600"),
+        "expires_in should remain visible: {dbg}"
+    );
+}
+
+#[test]
 fn tls_config_debug_redacts_client_key_pem() {
     let tls = TlsConfig::default().client_identity(CERT_PEM.as_bytes(), KEY_PEM.as_bytes());
     let dbg = format!("{tls:?}");
@@ -150,6 +176,83 @@ async fn oidc_http_error_display_omits_response_body() {
     match err {
         Error::Protocol(m) => assert_eq!(m, "oidc token endpoint HTTP 401"),
         other => panic!("expected Protocol, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn oidc_http_error_structured_fetch_omits_response_body() {
+    use partitionline::Error;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    drop(tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        let mut buf = vec![0u8; 2048];
+        let _ = sock.read(&mut buf).await.unwrap();
+        let body = format!(
+            "{{\"error\":\"invalid_client\",\"error_description\":\"secret={CLIENT_SECRET} token=leak-token-kl06\"}}"
+        );
+        let resp = format!(
+            "HTTP/1.1 401 Unauthorized\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        sock.write_all(resp.as_bytes()).await.unwrap();
+    }));
+
+    let cfg = OidcConfig::new(format!("http://{addr}/token"), "cid", CLIENT_SECRET);
+    let err = partitionline::protocol::oidc::fetch_client_credentials_token_response(
+        &cfg,
+        std::time::Duration::from_secs(5),
+    )
+    .await
+    .unwrap_err();
+
+    let display = err.to_string();
+    let debug = format!("{err:?}");
+    for surface in [&display, &debug] {
+        assert!(
+            !surface.contains(CLIENT_SECRET),
+            "OIDC Error leaked client_secret: {surface}"
+        );
+        assert!(
+            !surface.contains("leak-token-kl06"),
+            "OIDC Error leaked token material: {surface}"
+        );
+        assert!(
+            !surface.contains("invalid_client"),
+            "OIDC Error must not embed IdP body: {surface}"
+        );
+    }
+    match err {
+        Error::Protocol(m) => assert_eq!(m, "oidc token endpoint HTTP 401"),
+        other => panic!("expected Protocol, got {other:?}"),
+    }
+}
+
+#[test]
+fn oidc_token_parse_errors_never_leak_body_or_token() {
+    let secret_payload = format!(
+        "{{\"error\":\"fail\",\"access_token\":\"{CLIENT_SECRET}\",\"expires_in\":\"bad_type\"}}"
+    );
+    let err =
+        partitionline::protocol::oidc::parse_oidc_token_response(&secret_payload).unwrap_err();
+    let display = err.to_string();
+    let debug = format!("{err:?}");
+    for surface in [&display, &debug] {
+        assert!(
+            !surface.contains(CLIENT_SECRET),
+            "leaked secret in error: {surface}"
+        );
+        assert!(
+            !surface.contains("bad_type"),
+            "leaked payload in error: {surface}"
+        );
+        assert!(
+            !surface.contains("fail"),
+            "leaked error description: {surface}"
+        );
     }
 }
 
