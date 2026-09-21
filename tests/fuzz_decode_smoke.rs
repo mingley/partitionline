@@ -24,7 +24,10 @@ use partitionline::protocol::group::{
 };
 use partitionline::protocol::header::{decode_request_header, decode_response_header};
 use partitionline::protocol::idem::decode_init_producer_id_response;
-use partitionline::protocol::records::decode_record_batches;
+use partitionline::protocol::records::{
+    decode_record_batches, decode_record_batches_with_limit, encode_record_batch, Compression,
+    Record, RecordBatch, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+};
 use partitionline::protocol::share::decode_share_fetch_response;
 use partitionline::protocol::txn::{
     decode_add_partitions_to_txn_response, decode_end_txn_response,
@@ -218,4 +221,62 @@ fn truncated_varint_is_error_not_panic() {
     let mut cur = &[0xff_u8, 0xff, 0xff, 0xff, 0xff][..];
     // Five continuation-style bytes may be illegal or short; must not panic.
     drop(get_varint(&mut cur));
+}
+
+#[test]
+fn decode_record_batches_with_limit_adversarial() {
+    // 1. Extreme limit values on empty or truncated buffers
+    for limit in [0, 1, 10, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES, usize::MAX] {
+        let mut empty = &[][..];
+        assert_eq!(
+            decode_record_batches_with_limit(&mut empty, limit)
+                .unwrap()
+                .len(),
+            0
+        );
+
+        let mut short = &[0u8; 11][..];
+        assert_eq!(
+            decode_record_batches_with_limit(&mut short, limit)
+                .unwrap()
+                .len(),
+            0
+        );
+
+        let mut corrupt = &[0xffu8; 32][..];
+        drop(decode_record_batches_with_limit(&mut corrupt, limit));
+    }
+}
+
+#[test]
+fn decompression_bombs_adversarial_smoke() {
+    let rec = Record {
+        offset: 0,
+        timestamp: 100,
+        key: None,
+        value: Some(bytes::Bytes::from(vec![0u8; 10_000])),
+        headers: vec![],
+    };
+
+    for compression in [Compression::Gzip, Compression::Snappy, Compression::Lz4] {
+        let batch = RecordBatch::from_records(vec![rec.clone()]).with_compression(compression);
+        let mut encoded = bytes::BytesMut::new();
+        encode_record_batch(&mut encoded, &batch).expect("encode");
+
+        // Bounded decode with limit below payload size must return Error, never panic or succeed.
+        let mut cur = encoded.as_ref();
+        let res = decode_record_batches_with_limit(&mut cur, 100);
+        assert!(
+            res.is_err(),
+            "compression {compression} should fail under budget"
+        );
+
+        // Bounded decode with limit >= payload size succeeds.
+        let mut cur = encoded.as_ref();
+        let res = decode_record_batches_with_limit(&mut cur, 20_000);
+        assert!(
+            res.is_ok(),
+            "compression {compression} should pass over budget"
+        );
+    }
 }

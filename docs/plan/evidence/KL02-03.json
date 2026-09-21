@@ -1,0 +1,48 @@
+{
+  "id": "KL02-03",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "e0ac7ffa23b470b3e54c1229762acd2f295ac67d",
+  "commands": [
+    "cargo test --offline --locked --lib protocol::records",
+    "cargo test --offline --locked --test fuzz_decode_smoke",
+    "cargo clippy --offline --locked --lib",
+    "cargo clippy --offline --locked --test fuzz_decode_smoke",
+    "rustfmt src/protocol/records.rs tests/fuzz_decode_smoke.rs"
+  ],
+  "results": {
+    "protocol_records_tests": {
+      "passed": 39,
+      "failed": 0
+    },
+    "fuzz_decode_smoke_tests": {
+      "passed": 8,
+      "failed": 0
+    },
+    "decompression_limit_enforcement": {
+      "default_limit_bytes": 67108864,
+      "codecs_covered": ["gzip", "snappy (raw & framed)", "lz4"],
+      "checks": [
+        "Rejects expansion before allocating full over-budget output",
+        "Rejects snappy raw varint claiming huge uncompressed size prior to allocation",
+        "Rejects snappy framed chunk claiming huge uncompressed size prior to allocation",
+        "Rejects LZ4 frame header declaring content_size exceeding ceiling prior to allocation",
+        "Rejects streaming expansion exceeding ceiling during decompression across all codecs",
+        "Exactly-at-limit succeeds across all codecs",
+        "One-over-limit fails with 'Decompressed batch exceeds maximum allowable size'",
+        "Batch CRC32-C corruption fails with CRC error before or independent of expansion",
+        "Truncation behavior preserved across framed and raw codecs without silent truncation or empty successful batches"
+      ]
+    }
+  },
+  "artifacts": [
+    "src/protocol/records.rs",
+    "tests/fuzz_decode_smoke.rs",
+    "docs/plan/evidence/KL02-03.json"
+  ],
+  "limits": [
+    "Default ceiling is set at 64 MiB (DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES), strictly above ConsumerConfig::max_partition_fetch_bytes (16 MiB default) to preserve oversized-first-batch forward progress.",
+    "No new dependencies, no unsafe code, no changes to forbidden consumer/producer files."
+  ],
+  "blocked_reason": null
+}
