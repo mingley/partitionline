@@ -1540,13 +1540,32 @@
     {
       "id": "KL06-04",
       "title": "Honor broker SASL session lifetimes",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL06-03", "KL02-07"],
       "files": ["src/net.rs", "src/protocol/sasl.rs", "tests/auth_lifecycle.rs"],
       "deliverable": "A reauthentication transition driven by session_lifetime_ms and the approved connection contract.",
       "acceptance": ["Capture rather than discard lifetime metadata for supported mechanisms/versions.", "Quiesce/resume pipelined traffic without mixing SASL and application correlation IDs or losing accepted work.", "Cover expiration, failed reauth, disconnect and shutdown; explicitly unsupported mechanisms/peers never silently weaken authentication."],
       "validation": ["cargo test --locked --test auth_lifecycle", "cargo test --locked --test full_surface sasl", "cargo test --locked --lib net"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "2f2deb2ff2eb68b2a3b5d12e261ef4d6d7d99563",
+                "commands": [
+                        "cargo test --offline --locked --test auth_lifecycle (22 passed, exit 0)",
+                        "cargo test --offline --locked --test full_surface sasl (18 passed, exit 0)",
+                        "cargo test --offline --locked --lib net (10 passed, exit 0)"
+                ],
+                "results": "SaslAuthenticate now records session_lifetime_ms for PLAIN, SCRAM, and OAUTHBEARER. BrokerPipeline quiesces pipelined traffic, reauthenticates, and resumes without mixing SASL and application correlation IDs. Expiration, failed reauth, disconnect, and shutdown fail accepted work and close the connection. Unsupported mechanisms fail closed. Credentials are not logged.",
+                "artifacts": [
+                        "src/net.rs",
+                        "src/protocol/sasl.rs",
+                        "tests/auth_lifecycle.rs",
+                        "docs/plan/evidence/KL06-04.json"
+                ],
+                "limits": [
+                        "The default produce and fetch path still uses BrokerConn::roundtrip and does not automatically enter BrokerPipeline. Callers must use the pipeline to get quiesce and reauthentication."
+                ]
+        }
+]
     },
     {
       "id": "KL06-05",
