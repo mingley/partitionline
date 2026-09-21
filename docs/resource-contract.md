@@ -1,7 +1,7 @@
 # Resource Ownership and Outcome Budget Contract
 
 **Specification ID:** KL02-01  
-**Status:** Approved Specification  
+**Status:** Specification  
 **Current HEAD:** `bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000` (`bed63ae`)  
 **Audit Baseline:** `cb7e97d3b92a8555aea34d59266a2990c206395f` (`cb7e97d`)  
 **Scope:** Memory ownership, accounting boundaries, outcome classification, and release lifecycles across produce, network, and consume pipelines.
