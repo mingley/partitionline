@@ -489,6 +489,16 @@ pub async fn authenticate_oauthbearer_token(
     Ok(())
 }
 
+/// Authenticate using an asynchronous token provider for SASL OAUTHBEARER.
+pub async fn authenticate_with_token_provider<P: super::oidc::TokenProvider + ?Sized>(
+    conn: &mut BrokerConn,
+    provider: &P,
+    timeout: Duration,
+) -> Result<()> {
+    let token = provider.token(timeout).await?;
+    authenticate_oauthbearer_token(conn, &token, timeout).await
+}
+
 /// Run the one configured SASL mechanism, or return immediately when none is set.
 pub async fn authenticate(
     conn: &mut BrokerConn,
