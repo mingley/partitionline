@@ -1,0 +1,101 @@
+{
+  "id": "KL03-07",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "535a1da8bca7d8b67872d68be9b8af7dc1e76876",
+  "commands": [
+    "cargo test --offline --locked --test consumer_close_commit (exit 0)",
+    "cargo test --offline --locked --test client_api auto_commit (exit 0)",
+    "cargo test --offline --locked --test consumer_fetch_semantics (exit 0)",
+    "cargo test --offline --locked --test client_api max_poll (exit 0)",
+    "rustfmt --edition 2021 --check src/group.rs tests/consumer_close_commit.rs (exit 0)"
+  ],
+  "results": {
+    "consumer_close_commit": {
+      "total_tests": 13,
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0,
+      "test_names": [
+        "auto_commit_on_leave_with_long_interval_does_not_commit",
+        "auto_commit_on_poll_interval_still_commits",
+        "capped_poll_crash_with_interval_auto_commit_does_not_skip_prefetched_records",
+        "commit_after_capped_poll_must_not_commit_buffered_records",
+        "commit_after_capped_poll_with_pause_and_resume",
+        "commit_after_capped_poll_with_seek",
+        "commit_with_metadata_preserves_explicit_offsets",
+        "default_leave_does_not_offset_commit",
+        "expired_interval_does_not_commit_before_first_application_delivery",
+        "interval_auto_commit_does_not_commit_batch_about_to_be_returned",
+        "rebalance_preserves_buffered_records_for_retained_partitions",
+        "unsubscribe_with_auto_commit_does_not_commit_positions",
+        "zero_interval_does_not_commit_before_first_application_delivery"
+      ]
+    },
+    "client_api_auto_commit": {
+      "total_tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "test_names": [
+        "auto_commit_on_poll_then_rejoin"
+      ]
+    },
+    "consumer_fetch_semantics": {
+      "total_tests": 29,
+      "passed": 29,
+      "failed": 0,
+      "ignored": 0,
+      "test_names": [
+        "aborted_transaction_spanning_across_fetches_must_return_subsequent_committed_record",
+        "committed_transaction_after_abort_for_same_pid_must_be_visible",
+        "control_only_batch_advances_delivered_position_and_fetch_cursor",
+        "control_scenario_aligned_batch_delivers_and_shuts_down",
+        "fetch_offset_filter_compressed_batches",
+        "fetch_offset_filter_multiple_partitions",
+        "fetch_offset_filter_must_not_bypass_aborted_or_control_filtering",
+        "fetch_offset_filter_must_not_regress_position_or_lose_later_records",
+        "fetch_offset_filter_sparse_and_compacted_offsets",
+        "fixture_broker_drop_aborts_tasks",
+        "fixture_broker_wire_handshake_and_bounded_shutdown",
+        "fixture_builds_abort_then_commit_control_marker_sequence",
+        "fixture_builds_one_partition_retry_beside_successful_partition",
+        "fixture_builds_out_of_range_partition_response",
+        "fixture_builds_whole_batch_with_records_before_requested_offset_without_prefiltering",
+        "max_poll_records_distinguishes_delivered_position_and_fetch_cursor",
+        "mixed_partition_retry_aborted_must_not_advance_positions_for_discarded_records",
+        "mixed_partition_retry_must_preserve_successful_records",
+        "mixed_partition_retry_with_preferred_replica_redirect_must_preserve_successful_records",
+        "mixed_partition_retry_with_transport_failure_must_preserve_successful_records",
+        "nontransactional_records_sharing_aborted_pid_must_be_visible",
+        "out_of_range_preferred_replica_resets_if_leader_also_out_of_range",
+        "out_of_range_preferred_replica_retries_at_leader_before_destructive_reset",
+        "out_of_range_with_reset_earliest_resolves_log_start_and_clears_stale_state",
+        "out_of_range_with_reset_latest_resolves_high_watermark_and_clears_stale_state",
+        "out_of_range_with_reset_none_must_fail_without_advancing",
+        "read_committed_multiple_aborted_intervals_and_pids",
+        "read_committed_stops_at_last_stable_offset_boundary",
+        "seek_inside_batch_must_not_return_earlier_records"
+      ]
+    },
+    "client_api_max_poll": {
+      "total_tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "test_names": [
+        "max_poll_interval_errors_on_second_poll",
+        "max_poll_interval_heartbeat_leaves_group",
+        "max_poll_records_returns_rest_on_next_fetch"
+      ]
+    }
+  },
+  "artifacts": [
+    "src/group.rs",
+    "tests/consumer_close_commit.rs",
+    "docs/guide.md",
+    "docs/plan/evidence/KL03-07.json"
+  ],
+  "limits": [],
+  "blocked_reason": null
+}

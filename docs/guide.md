@@ -199,8 +199,9 @@ permits or connections. Mock coverage: `tests/produce_cancel.rs`.
 ### Consumer leave/close and auto-commit
 
 `ConsumerConfig::enable_auto_commit` defaults to **false**. When enabled, offsets
-are stored only on the **poll-interval** path (after a successful fetch once the
-interval elapses). `leave` / `close` / `unsubscribe` flush queued `commitAsync`
+are stored only on the **poll-interval** path (committing previously delivered
+records once the interval elapses; the batch about to be returned is never committed
+before delivery). `leave` / `close` / `unsubscribe` flush queued `commitAsync`
 work but do **not** auto-commit positions — so polled-but-unprocessed records are
 not silently marked done (KL-02). Prefer `commit` / `commit_with_metadata` (for
 example `recs.next_offsets()`) before leave when you need stored offsets.
