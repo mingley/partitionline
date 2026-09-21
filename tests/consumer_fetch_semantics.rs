@@ -1207,3 +1207,491 @@ async fn read_committed_stops_at_last_stable_offset_boundary() {
     consumer.close().await.expect("consumer closes cleanly");
     broker.shutdown().await;
 }
+
+/// Audit defect A01 reproduction / regression test:
+/// Assign or seek to offset 2 when a broker returns a batch containing offsets 0, 1, 2.
+/// The consumer must return only offset 2 and advance its position to 3.
+#[tokio::test]
+async fn seek_inside_batch_must_not_return_earlier_records() {
+    let mut broker = fetch_fixture::FixtureBroker::start(fetch_fixture::Scenario::WholeBatch).await;
+    let mut consumer = Consumer::new(broker.config())
+        .await
+        .expect("consumer starts successfully");
+
+    // Case 1: Initial assign at offset 2
+    consumer
+        .assign("t", 0, 2)
+        .await
+        .expect("assign topic t partition 0 at offset 2");
+    let records = consumer.fetch().await.expect("fetch succeeds");
+
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![2],
+        "must return only offset 2 when assigned at offset 2 inside a [0, 1, 2] batch"
+    );
+    assert_eq!(records[0].value.as_deref(), Some(&b"c"[..]));
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 3)],
+        "cursor must advance to offset 3"
+    );
+
+    // Case 2: Seek to offset 1 inside the same batch
+    consumer.seek("t", 0, 1).expect("seek to offset 1");
+    let records = consumer.fetch().await.expect("fetch succeeds after seek");
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![1, 2],
+        "must return offsets [1, 2] when seeking to offset 1 inside a [0, 1, 2] batch"
+    );
+    assert_eq!(records[0].value.as_deref(), Some(&b"b"[..]));
+    assert_eq!(records[1].value.as_deref(), Some(&b"c"[..]));
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 3)],
+        "cursor must advance to offset 3"
+    );
+
+    // Case 3: Seek to offset 0 (start of batch)
+    consumer.seek("t", 0, 0).expect("seek to offset 0");
+    let records = consumer
+        .fetch()
+        .await
+        .expect("fetch succeeds after seek to 0");
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![0, 1, 2],
+        "must return all offsets [0, 1, 2] when seeking to offset 0"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 3)],
+        "cursor must advance to offset 3"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify that the lower-bound fetch offset filter operates correctly on
+/// compressed batches (Gzip, Snappy, and Lz4).
+#[tokio::test]
+async fn fetch_offset_filter_compressed_batches() {
+    for compression in [
+        partitionline::Compression::Gzip,
+        partitionline::Compression::Snappy,
+        partitionline::Compression::Lz4,
+    ] {
+        let mut broker =
+            fetch_fixture::FixtureBroker::start_with_handler("t", 1, move |_topics, _attempt| {
+                vec![FetchedTopic {
+                    topic: "t".to_string(),
+                    topic_id: [0u8; 16],
+                    partitions: vec![{
+                        let mut part = FetchedPartition::partition_response(0, 0);
+                        part.high_watermark = 3;
+                        part.last_stable_offset = 3;
+                        part.records = vec![fetch_fixture::data_batch(
+                            0,
+                            &[b"comp-0", b"comp-1", b"comp-2"],
+                            None,
+                        )
+                        .with_compression(compression)];
+                        part
+                    }],
+                }]
+            })
+            .await;
+
+        let mut consumer = Consumer::new(broker.config())
+            .await
+            .expect("consumer starts successfully");
+
+        // Seek/assign to offset 2 inside compressed batch [0, 1, 2]
+        consumer
+            .assign("t", 0, 2)
+            .await
+            .expect("assign partition 0 at offset 2");
+        let records = consumer.fetch().await.expect("fetch succeeds");
+
+        assert_eq!(
+            records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+            vec![2],
+            "compressed batch with {compression:?} must return only offset 2 when requested at offset 2"
+        );
+        assert_eq!(records[0].value.as_deref(), Some(&b"comp-2"[..]));
+        assert_eq!(
+            consumer.positions(),
+            vec![(TopicPartition::new("t", 0), 3)],
+            "cursor must advance to offset 3 for {compression:?}"
+        );
+
+        // Seek to offset 1 inside the compressed batch
+        consumer.seek("t", 0, 1).expect("seek to offset 1");
+        let records = consumer.fetch().await.expect("fetch succeeds");
+        assert_eq!(
+            records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+            vec![1, 2],
+            "compressed batch with {compression:?} must return [1, 2] when seeking to offset 1"
+        );
+
+        consumer.close().await.expect("consumer closes cleanly");
+        broker.shutdown().await;
+    }
+}
+
+/// Verify fetch offset filtering across sparse and compacted offsets.
+/// Tests gaps between batches, seeking into gaps, and seeking to the end.
+#[tokio::test]
+async fn fetch_offset_filter_sparse_and_compacted_offsets() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.high_watermark = 12;
+                    part.last_stable_offset = 12;
+                    // Three batches with compacted gaps between them:
+                    // Batch 0: offsets 0, 1
+                    // Batch 1: offsets 5, 6 (offsets 2, 3, 4 compacted away)
+                    // Batch 2: offsets 10, 11 (offsets 7, 8, 9 compacted away)
+                    part.records = vec![
+                        fetch_fixture::data_batch(0, &[b"gap-0", b"gap-1"], None),
+                        fetch_fixture::data_batch(5, &[b"gap-5", b"gap-6"], None),
+                        fetch_fixture::data_batch(10, &[b"gap-10", b"gap-11"], None),
+                    ];
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut consumer = Consumer::new(broker.config())
+        .await
+        .expect("consumer starts successfully");
+
+    // Case 1: Seek to offset 5 -> drops batch 0 (0, 1), returns batches 1 and 2 (5, 6, 10, 11)
+    consumer
+        .assign("t", 0, 5)
+        .await
+        .expect("assign at offset 5");
+    let records = consumer.fetch().await.expect("fetch succeeds");
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![5, 6, 10, 11],
+        "must drop batch 0 and deliver records from batch 1 and 2"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 12)],
+        "cursor must advance to offset 12"
+    );
+
+    // Case 2: Seek to offset 2 (landing in the compacted gap 2..5)
+    // Must drop batch 0 (0, 1), and return batches 1 and 2 (5, 6, 10, 11)
+    consumer.seek("t", 0, 2).expect("seek to offset 2");
+    let records = consumer.fetch().await.expect("fetch succeeds");
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![5, 6, 10, 11],
+        "must drop batch 0 and deliver from first available offset >= 2 (5)"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 12)],
+        "cursor must advance to offset 12"
+    );
+
+    // Case 3: Seek to offset 7 (landing in the compacted gap 7..10)
+    // Must drop batches 0 and 1, and return batch 2 (10, 11)
+    consumer.seek("t", 0, 7).expect("seek to offset 7");
+    let records = consumer.fetch().await.expect("fetch succeeds");
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![10, 11],
+        "must drop batches 0 and 1, delivering from first available offset >= 7 (10)"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 12)],
+        "cursor must advance to offset 12"
+    );
+
+    // Case 4: Seek to offset 12 (at end of all batches)
+    consumer.seek("t", 0, 12).expect("seek to offset 12");
+    let records = consumer.fetch().await.expect("fetch succeeds");
+    assert!(
+        records.is_empty(),
+        "must return empty when seeking past all batch offsets"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 12)],
+        "cursor must remain at offset 12 without regressing"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify that fetch offset filtering applies per-partition across multiple partitions
+/// in the same fetch request/response.
+#[tokio::test]
+async fn fetch_offset_filter_multiple_partitions() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 3, |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: (0..3)
+                    .map(|p| {
+                        let mut part = FetchedPartition::partition_response(p, 0);
+                        part.high_watermark = 3;
+                        part.last_stable_offset = 3;
+                        let val0 = format!("p{p}-0");
+                        let val1 = format!("p{p}-1");
+                        let val2 = format!("p{p}-2");
+                        part.records = vec![fetch_fixture::data_batch(
+                            0,
+                            &[val0.as_bytes(), val1.as_bytes(), val2.as_bytes()],
+                            None,
+                        )];
+                        part
+                    })
+                    .collect(),
+            }]
+        })
+        .await;
+
+    let mut consumer = Consumer::new(broker.config())
+        .await
+        .expect("consumer starts successfully");
+
+    // Assign partition 0 at 2, partition 1 at 1, partition 2 at 0
+    consumer
+        .assign_many([(("t", 0), 2), (("t", 1), 1), (("t", 2), 0)])
+        .await
+        .expect("assign 3 partitions at different offsets");
+
+    let records = consumer.fetch().await.expect("fetch succeeds");
+
+    let p0_offsets: Vec<_> = records
+        .iter()
+        .filter(|r| r.partition == 0)
+        .map(|r| r.offset)
+        .collect();
+    let p1_offsets: Vec<_> = records
+        .iter()
+        .filter(|r| r.partition == 1)
+        .map(|r| r.offset)
+        .collect();
+    let p2_offsets: Vec<_> = records
+        .iter()
+        .filter(|r| r.partition == 2)
+        .map(|r| r.offset)
+        .collect();
+
+    assert_eq!(
+        p0_offsets,
+        vec![2],
+        "partition 0 (requested 2) must return [2]"
+    );
+    assert_eq!(
+        p1_offsets,
+        vec![1, 2],
+        "partition 1 (requested 1) must return [1, 2]"
+    );
+    assert_eq!(
+        p2_offsets,
+        vec![0, 1, 2],
+        "partition 2 (requested 0) must return [0, 1, 2]"
+    );
+
+    assert_eq!(
+        consumer.positions(),
+        vec![
+            (TopicPartition::new("t", 0), 3),
+            (TopicPartition::new("t", 1), 3),
+            (TopicPartition::new("t", 2), 3),
+        ],
+        "positions for all 3 partitions must advance to offset 3"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify that fetch offset filtering does NOT bypass aborted transaction filtering
+/// or control record filtering (KL03-03 contract).
+#[tokio::test]
+async fn fetch_offset_filter_must_not_bypass_aborted_or_control_filtering() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |_topics, _attempt| {
+            vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![{
+                    let mut part = FetchedPartition::partition_response(0, 0);
+                    part.high_watermark = 6;
+                    part.last_stable_offset = 6;
+                    part.aborted_transactions = vec![(7, 0)];
+                    part.records = vec![
+                        // PID 7 aborted batch at offset 0
+                        custom_batch(0, &[b"p7-aborted-0"], 7, 0, Some(0), true),
+                        // ABORT marker at offset 1
+                        custom_marker(1, ControlRecordType::Abort, 7, 0),
+                        // PID 7 committed batch at offsets 2, 3, 4
+                        custom_batch(
+                            2,
+                            &[b"p7-comm-2", b"p7-comm-3", b"p7-comm-4"],
+                            7,
+                            0,
+                            Some(1),
+                            true,
+                        ),
+                        // COMMIT marker at offset 5
+                        custom_marker(5, ControlRecordType::Commit, 7, 0),
+                    ];
+                    part
+                }],
+            }]
+        })
+        .await;
+
+    let mut cfg = broker.config();
+    cfg.isolation_level = IsolationLevel::ReadCommitted;
+    let mut consumer = Consumer::new(cfg)
+        .await
+        .expect("consumer starts successfully");
+
+    // Case 1: Seek/assign to offset 3 inside the committed batch [2, 3, 4]
+    // Record 0 (aborted) and marker 1 (abort) are before offset 3.
+    // Record 2 is committed, but before offset 3 -> must be dropped.
+    // Records 3 and 4 are committed and >= offset 3 -> must be delivered.
+    // Marker 5 is control marker -> must NOT be delivered.
+    consumer
+        .assign("t", 0, 3)
+        .await
+        .expect("assign at offset 3");
+    let records = consumer.fetch().await.expect("fetch succeeds");
+
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![3, 4],
+        "must deliver only committed records at or above requested offset 3"
+    );
+    assert_eq!(records[0].value.as_deref(), Some(&b"p7-comm-3"[..]));
+    assert_eq!(records[1].value.as_deref(), Some(&b"p7-comm-4"[..]));
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 6)],
+        "cursor must advance to offset 6 past the commit marker"
+    );
+
+    // Case 2: Seek to offset 1
+    // Offset 0 is aborted. Offset 1 is abort marker.
+    // Offsets 2, 3, 4 are committed and >= 1 -> must be delivered.
+    // Neither aborted record nor control records must appear.
+    consumer.seek("t", 0, 1).expect("seek to offset 1");
+    let records = consumer
+        .fetch()
+        .await
+        .expect("fetch succeeds after seek to 1");
+    assert_eq!(
+        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![2, 3, 4],
+        "must deliver committed records [2, 3, 4] and skip abort marker and commit marker"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 6)],
+        "cursor must advance to offset 6"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+/// Verify that dropping records below the requested offset does NOT regress the consumer
+/// position and does NOT lose later valid records.
+#[tokio::test]
+async fn fetch_offset_filter_must_not_regress_position_or_lose_later_records() {
+    let mut broker = fetch_fixture::FixtureBroker::start_with_handler("t", 1, |topics, attempt| {
+        let fetch_offset = topics
+            .first()
+            .and_then(|t| t.partitions.first())
+            .map_or(0, |p| p.fetch_offset);
+
+        vec![FetchedTopic {
+            topic: "t".to_string(),
+            topic_id: [0u8; 16],
+            partitions: vec![{
+                let mut part = FetchedPartition::partition_response(0, 0);
+                part.high_watermark = 8;
+                part.last_stable_offset = 8;
+                if attempt == 0 {
+                    // Attempt 0: broker sends a stale batch with offsets 0, 1, 2
+                    // even though consumer requested offset 5.
+                    part.records = vec![fetch_fixture::data_batch(
+                        0,
+                        &[b"stale-0", b"stale-1", b"stale-2"],
+                        None,
+                    )];
+                } else {
+                    // Attempt 1: broker sends the expected records starting at fetch_offset
+                    part.records = vec![fetch_fixture::data_batch(
+                        fetch_offset,
+                        &[b"valid-5", b"valid-6"],
+                        None,
+                    )];
+                }
+                part
+            }],
+        }]
+    })
+    .await;
+
+    let mut consumer = Consumer::new(broker.config())
+        .await
+        .expect("consumer starts successfully");
+
+    consumer
+        .assign("t", 0, 5)
+        .await
+        .expect("assign at offset 5");
+
+    // Fetch 1: broker returns stale batch [0, 1, 2]
+    // All records are < 5, so none must be delivered.
+    let records1 = consumer.fetch().await.expect("fetch 1 succeeds");
+    assert!(
+        records1.is_empty(),
+        "stale records below requested offset must not be delivered"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 5)],
+        "cursor must NOT regress to stale batch offsets; must stay at 5"
+    );
+
+    // Fetch 2: broker now returns valid records starting at 5
+    // Later records [5, 6] must NOT be lost!
+    let records2 = consumer.fetch().await.expect("fetch 2 succeeds");
+    assert_eq!(
+        records2.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![5, 6],
+        "must deliver records [5, 6] without losing them"
+    );
+    assert_eq!(records2[0].value.as_deref(), Some(&b"valid-5"[..]));
+    assert_eq!(records2[1].value.as_deref(), Some(&b"valid-6"[..]));
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 7)],
+        "cursor must advance to offset 7"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}

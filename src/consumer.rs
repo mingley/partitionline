@@ -2671,7 +2671,13 @@ impl Consumer {
                     pending.sort_by_key(|a| std::cmp::Reverse(a.1));
                 }
 
-                let mut next = None;
+                let req_offset = self
+                    .assigned
+                    .iter()
+                    .find(|(t, p, _)| t == &name && *p == part.partition)
+                    .map_or(0, |(_, _, off)| *off);
+
+                let mut next: Option<i64> = None;
                 let mut last_epoch = crate::RecordBatch::NO_PARTITION_LEADER_EPOCH;
                 let mut reached_lso = false;
 
@@ -2710,8 +2716,10 @@ impl Consumer {
                                     let _ = completed_txs.insert((batch.producer_id, first));
                                 }
                             }
-                            next = Some(batch_next);
-                            last_epoch = batch.partition_leader_epoch;
+                            if batch_next >= req_offset {
+                                next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+                                last_epoch = batch.partition_leader_epoch;
+                            }
                             continue;
                         }
 
@@ -2719,15 +2727,19 @@ impl Consumer {
                             let active = self.aborted_pids.entry(part_key.clone()).or_default();
                             if let Some(&first) = active.get(&batch.producer_id) {
                                 if batch.base_offset >= first {
-                                    next = Some(batch_next);
-                                    last_epoch = batch.partition_leader_epoch;
+                                    if batch_next >= req_offset {
+                                        next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+                                        last_epoch = batch.partition_leader_epoch;
+                                    }
                                     continue;
                                 }
                             }
                         }
                     } else if batch.is_control_batch() {
-                        next = Some(batch_next);
-                        last_epoch = batch.partition_leader_epoch;
+                        if batch_next >= req_offset {
+                            next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+                            last_epoch = batch.partition_leader_epoch;
+                        }
                         continue;
                     }
 
@@ -2742,8 +2754,12 @@ impl Consumer {
                             reached_lso = true;
                             break;
                         }
-                        next = Some(offset + 1);
-                        last_epoch = batch.partition_leader_epoch;
+                        if offset >= req_offset {
+                            next = Some(next.map_or(offset + 1, |c| c.max(offset + 1)));
+                            last_epoch = batch.partition_leader_epoch;
+                        } else {
+                            continue;
+                        }
                         if isolation == crate::IsolationLevel::ReadCommitted {
                             let active = self.aborted_pids.entry(part_key.clone()).or_default();
                             if let Some(&first) = active.get(&batch.producer_id) {
@@ -2771,6 +2787,10 @@ impl Consumer {
                     }
                     if reached_lso {
                         break;
+                    }
+                    if batch_next >= req_offset {
+                        next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+                        last_epoch = batch.partition_leader_epoch;
                     }
                 }
                 if let Some(n) = next {
