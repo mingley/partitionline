@@ -1,0 +1,41 @@
+{
+  "id": "KL04-02",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "e0ac7ffa23b470b3e54c1229762acd2f295ac67d",
+  "commands": [
+    "python3 -m unittest discover -s benchmarks/tests -p test_report.py -v",
+    "python3 -m json.tool benchmarks/result-schema.json > /dev/null",
+    "python3 scripts/benchmark-report.py --help"
+  ],
+  "results": {
+    "test_suite": "benchmarks/tests/test_report.py",
+    "test_count": 17,
+    "tests_passed": 17,
+    "tests_failed": 0,
+    "schema_file": "benchmarks/result-schema.json",
+    "validator_script": "scripts/benchmark-report.py",
+    "rules_enforced": [
+      "Fail-closed validation across source/binary/config hashes, toolchains, broker image/version, host CPU/OS, topology, timestamps, seeds, and artifact checksums",
+      "Separation of all 7 outcome categories: offered, accepted, acknowledged, consumed, rejected, timed-out, unknown",
+      "Retention of raw latency histograms and samples, client/broker CPU, allocations, RSS, lag, and errors",
+      "Strict unit matching: microseconds for latency, records/s and MB/s for throughput, bytes for RSS/memory, percent for CPU",
+      "Mismatched acks rejection (scenario equal_semantics vs effective config acks, and high-watermark delta vs acknowledged count)",
+      "Rejection of fixtures with excellent throughput but missing record IDs or unverified payloads",
+      "Suite HOLD stays active; a single result file cannot claim scenario cell passed disposition",
+      "Non-erasure of failed attempts: earlier integrity failures cannot be erased or greenwashed by subsequent reruns"
+    ]
+  },
+  "artifacts": [
+    "benchmarks/result-schema.json",
+    "scripts/benchmark-report.py",
+    "benchmarks/tests/test_report.py",
+    "docs/plan/evidence/KL04-02.json"
+  ],
+  "limits": [
+    "Result format and validator only; benchmark campaigns remain unexecuted (deferred to KL04-06..KL04-11)",
+    "Suite HOLD remains active; unsigned samples do not lift Suite HOLD",
+    "No scenario cell is marked as passed"
+  ],
+  "blocked_reason": null
+}
