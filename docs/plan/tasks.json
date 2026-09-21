@@ -187,13 +187,29 @@
     {
       "id": "KL02-01",
       "title": "Specify byte ownership and outcome budgets",
-      "priority": "P0", "kind": "specification", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "specification", "status": "done", "owner": "mingley",
       "depends_on": [],
       "files": ["src/producer.rs", "src/consumer.rs", "src/net.rs", "new: docs/resource-contract.md"],
       "deliverable": "A short ownership table from accepted record through queue, retry, encode, socket, decode, delivery and shutdown.",
       "acceptance": ["Distinguish key/value counters from headers, object overhead, shared backing allocations, compressed/decoded bytes, tasks and RSS.", "Define completed/failed/ambiguous outcomes and exactly one release owner on every terminal path.", "Specify intentional configuration/default changes before implementation; preserve Kafka's oversized-first-batch progress rule."],
       "validation": ["Trace one successful, retried, cancelled and failed record against the current source.", "Cross-check existing buffer_ownership and produce_cancel tests against the table."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ad07c609191f1adf214083bcd2f94342dbfad711",
+                "commands": [
+                        "citation check: 129 src file:line references resolved in the KL02-01 worktree",
+                        "cargo test --offline --locked --test buffer_ownership --test produce_cancel (recorded by the card; existing tests, not new budget enforcement)"
+                ],
+                "results": "Ownership table, four record traces, and completed/failed/ambiguous outcomes are specified against current source. bytes_buffered counts key and value lengths only. RSS is explicitly not bounded. Oversized-first-batch progress is preserved as current behavior, not a new default.",
+                "artifacts": [
+                        "docs/resource-contract.md",
+                        "docs/plan/evidence/KL02-01.json"
+                ],
+                "limits": [
+                        "Specification only. Header accounting, decoded-byte limits, and post-wire cancel coverage remain later KL02 cards."
+                ]
+        }
+]
     },
     {
       "id": "KL02-02",
