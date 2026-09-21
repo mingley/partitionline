@@ -1,0 +1,39 @@
+{
+  "id": "KL06-04",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "6193c08d18dba9f2d9d72ce63c783f7d27e1f2e2",
+  "commands": [
+    "cargo test --offline --locked --test auth_lifecycle (22 passed, exit 0)",
+    "cargo test --offline --locked --test full_surface sasl (18 passed, exit 0)",
+    "cargo test --offline --locked --lib net (10 passed, exit 0)",
+    "cargo test --offline --locked --lib protocol::sasl (9 passed, exit 0)",
+    "rustfmt --edition 2021 --check src/net.rs src/protocol/sasl.rs tests/auth_lifecycle.rs (exit 0)"
+  ],
+  "results": {
+    "deliverable": "A reauthentication transition driven by session_lifetime_ms and the approved connection contract.",
+    "acceptance_validation": {
+      "capture_lifetime_for_supported_mechanisms_and_versions": true,
+      "quiesce_and_resume_pipelined_traffic": true,
+      "no_mixing_sasl_and_application_correlation_ids": true,
+      "no_loss_of_accepted_work": true,
+      "cover_expiration": true,
+      "cover_failed_reauth": true,
+      "cover_disconnect": true,
+      "cover_shutdown": true,
+      "unsupported_mechanisms_fail_closed_without_weakening": true,
+      "credentials_and_response_bodies_never_logged": true,
+      "no_native_sasl_dependency": true
+    }
+  },
+  "artifacts": [
+    "src/net.rs",
+    "src/protocol/sasl.rs",
+    "tests/auth_lifecycle.rs",
+    "docs/plan/evidence/KL06-04.json"
+  ],
+  "limits": [
+    "Reauthentication driven by broker session_lifetime_ms implemented with BrokerPipeline quiesce/resume orchestration (KL06-04). TLS qualification and credential rotation (KL06-05) remain subsequent cards."
+  ],
+  "blocked_reason": null
+}

@@ -1,4 +1,5 @@
-//! KL06-03 integration tests: Bounded cache and refresh owner lifecycle following docs/auth-refresh.md.
+//! KL06-03 & KL06-04 integration tests: Bounded cache and refresh owner lifecycle,
+//! broker SASL session lifetimes, in-place reauthentication, and pipelined traffic quiescing.
 
 mod common;
 
@@ -6,15 +7,25 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use bytes::BytesMut;
 use partitionline::error::Error;
-use partitionline::net::BrokerConn;
-use partitionline::protocol::api::negotiate_api_versions;
+use partitionline::net::{
+    is_reserved_correlation_id, BrokerConn, BrokerPipeline, Deadline, PipelineState,
+};
+use partitionline::protocol::api::{encode_api_versions_response, negotiate_api_versions};
+use partitionline::protocol::api_keys::{API_VERSIONS, SASL_AUTHENTICATE, SASL_HANDSHAKE};
 use partitionline::protocol::oauth::unsecured_jwt_now;
 use partitionline::protocol::oidc::{
     FixedJitter, MockClock, MockTokenFetcher, OidcConfig, OidcRefreshConfig, OidcTokenManager,
     OidcTokenResponse, SystemClock, TokenData, TokenLifecycleState, ZeroJitter,
 };
-use partitionline::protocol::sasl::{apply_api_keys, authenticate_with_token_provider};
+use partitionline::protocol::sasl::{
+    apply_api_keys, authenticate_oauthbearer_token, authenticate_with_token_provider,
+    decode_sasl_authenticate_request, decode_sasl_handshake_request,
+    encode_sasl_authenticate_response, encode_sasl_handshake_response, reauthenticate,
+    reauthenticate_oauthbearer_token, reauthenticate_plain, reauthenticate_scram,
+    reauthenticate_with_token_provider, should_reconnect_after_reauth,
+};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
@@ -550,4 +561,836 @@ async fn sasl_oauthbearer_handshake_with_token_provider() {
     authenticate_with_token_provider(&mut conn2, &manager, Duration::from_secs(5))
         .await
         .unwrap();
+}
+
+fn make_response_frame(correlation_id: i32, body: &[u8]) -> Vec<u8> {
+    let frame_len = 4 + body.len();
+    let mut frame = Vec::with_capacity(4 + frame_len);
+    frame.extend_from_slice(&(frame_len as i32).to_be_bytes());
+    frame.extend_from_slice(&correlation_id.to_be_bytes());
+    frame.extend_from_slice(body);
+    frame
+}
+
+fn dummy_api_versions_response() -> partitionline::protocol::api::ApiVersionsResponse {
+    partitionline::protocol::api::ApiVersionsResponse {
+        error_code: 0,
+        api_keys: vec![],
+        throttle_time_ms: 0,
+        supported_features: vec![],
+        finalized_features_epoch: None,
+        finalized_features: vec![],
+        zk_migration_ready: false,
+    }
+}
+
+async fn read_request_frame(
+    socket: &mut tokio::net::TcpStream,
+) -> (partitionline::protocol::header::RequestHeader, Vec<u8>) {
+    let mut size_buf = [0u8; 4];
+    let _ = socket.read_exact(&mut size_buf).await.unwrap();
+    let size = i32::from_be_bytes(size_buf) as usize;
+    let mut req_buf = vec![0u8; size];
+    let _ = socket.read_exact(&mut req_buf).await.unwrap();
+    let mut cur = &req_buf[..];
+    let header = partitionline::protocol::header::decode_request_header(&mut cur).unwrap();
+    let body = cur.to_vec();
+    (header, body)
+}
+
+#[tokio::test]
+async fn sasl_session_lifetime_captured_and_timing_calculated() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let mut conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(1))
+        .await
+        .unwrap();
+
+    let start = Instant::now();
+    conn.record_sasl_session_lifetime_at(10000, start);
+    assert_eq!(conn.session_lifetime_ms(), Some(10000));
+    assert_eq!(conn.authenticated_at(), Some(start));
+    assert_eq!(
+        conn.session_expiry(),
+        Some(start + Duration::from_millis(10000))
+    );
+    assert_eq!(conn.reauth_at(), Some(start + Duration::from_millis(8500)));
+
+    assert!(!conn.needs_reauth_at(start + Duration::from_millis(8499)));
+    assert!(conn.needs_reauth_at(start + Duration::from_millis(8500)));
+    assert!(!conn.is_session_expired_at(start + Duration::from_millis(9999)));
+    assert!(conn.is_session_expired_at(start + Duration::from_millis(10000)));
+
+    // Zero / v0 lifetime: no expiry
+    conn.record_sasl_session_lifetime_at(0, start);
+    assert_eq!(conn.session_lifetime_ms(), None);
+    assert_eq!(conn.session_expiry(), None);
+    assert_eq!(conn.reauth_at(), None);
+    assert!(!conn.needs_reauth_at(start + Duration::from_secs(3600)));
+    assert!(!conn.is_session_expired_at(start + Duration::from_secs(3600)));
+
+    // Negative lifetime: cleared
+    conn.record_sasl_session_lifetime_at(10000, start);
+    assert_eq!(conn.session_lifetime_ms(), Some(10000));
+    conn.record_sasl_session_lifetime_at(-1, start);
+    assert_eq!(conn.session_lifetime_ms(), None);
+    assert_eq!(conn.session_expiry(), None);
+    assert_eq!(conn.reauth_at(), None);
+
+    // clear_sasl_session
+    conn.record_sasl_session_lifetime_at(10000, start);
+    conn.clear_sasl_session();
+    assert_eq!(conn.session_lifetime_ms(), None);
+    assert_eq!(conn.session_expiry(), None);
+    assert_eq!(conn.reauth_at(), None);
+}
+
+#[tokio::test]
+async fn sasl_reauthenticate_v1_and_v2_wire_exchange() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+
+    let server_task = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+
+        // 1. Initial Handshake request
+        let (h1, b1) = read_request_frame(&mut socket).await;
+        assert_eq!(h1.api_key(), SASL_HANDSHAKE);
+        let mech = decode_sasl_handshake_request(&mut &b1[..], h1.api_version()).unwrap();
+        assert_eq!(mech, "OAUTHBEARER");
+        let mut resp = BytesMut::new();
+        encode_sasl_handshake_response(
+            &mut resp,
+            h1.api_version(),
+            0,
+            &["OAUTHBEARER", "PLAIN", "SCRAM-SHA-256"],
+        )
+        .unwrap();
+        socket
+            .write_all(&make_response_frame(h1.correlation_id(), &resp))
+            .await
+            .unwrap();
+
+        // 2. Initial Authenticate request
+        let (h2, b2) = read_request_frame(&mut socket).await;
+        assert_eq!(h2.api_key(), SASL_AUTHENTICATE);
+        let auth_bytes = decode_sasl_authenticate_request(&mut &b2[..], h2.api_version()).unwrap();
+        assert!(!auth_bytes.is_empty());
+        let mut resp2 = BytesMut::new();
+        encode_sasl_authenticate_response(&mut resp2, h2.api_version(), 0, None, &[], 5000)
+            .unwrap();
+        socket
+            .write_all(&make_response_frame(h2.correlation_id(), &resp2))
+            .await
+            .unwrap();
+
+        // 3. Reauthenticate request (SaslAuthenticate ONLY, NO Handshake!)
+        let (h3, b3) = read_request_frame(&mut socket).await;
+        assert_eq!(
+            h3.api_key(),
+            SASL_AUTHENTICATE,
+            "reauth must send SaslAuthenticate without handshake"
+        );
+        assert!(
+            is_reserved_correlation_id(h3.correlation_id()),
+            "reauth must use reserved SASL correlation ID"
+        );
+        let reauth_bytes =
+            decode_sasl_authenticate_request(&mut &b3[..], h3.api_version()).unwrap();
+        assert!(!reauth_bytes.is_empty());
+        let mut resp3 = BytesMut::new();
+        encode_sasl_authenticate_response(&mut resp3, h3.api_version(), 0, None, &[], 25000)
+            .unwrap();
+        socket
+            .write_all(&make_response_frame(h3.correlation_id(), &resp3))
+            .await
+            .unwrap();
+
+        // 4. Reauthenticate PLAIN
+        let (h4, b4) = read_request_frame(&mut socket).await;
+        assert_eq!(h4.api_key(), SASL_AUTHENTICATE);
+        assert!(is_reserved_correlation_id(h4.correlation_id()));
+        let plain_bytes = decode_sasl_authenticate_request(&mut &b4[..], h4.api_version()).unwrap();
+        assert!(!plain_bytes.is_empty());
+        let mut resp4 = BytesMut::new();
+        encode_sasl_authenticate_response(&mut resp4, h4.api_version(), 0, None, &[], 35000)
+            .unwrap();
+        socket
+            .write_all(&make_response_frame(h4.correlation_id(), &resp4))
+            .await
+            .unwrap();
+
+        // 5. Reauthenticate with token provider
+        let (h5, b5) = read_request_frame(&mut socket).await;
+        assert_eq!(h5.api_key(), SASL_AUTHENTICATE);
+        assert!(is_reserved_correlation_id(h5.correlation_id()));
+        let tok_bytes = decode_sasl_authenticate_request(&mut &b5[..], h5.api_version()).unwrap();
+        assert!(!tok_bytes.is_empty());
+        let mut resp5 = BytesMut::new();
+        encode_sasl_authenticate_response(&mut resp5, h5.api_version(), 0, None, &[], 45000)
+            .unwrap();
+        socket
+            .write_all(&make_response_frame(h5.correlation_id(), &resp5))
+            .await
+            .unwrap();
+    });
+
+    let mut conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(2))
+        .await
+        .unwrap();
+    conn.set_sasl_versions(1, 1);
+
+    // Initial auth
+    authenticate_oauthbearer_token(&mut conn, "initial-token", Duration::from_secs(2))
+        .await
+        .unwrap();
+    assert_eq!(conn.session_lifetime_ms(), Some(5000));
+
+    // Mid-connection reauth OAUTHBEARER
+    reauthenticate_oauthbearer_token(&mut conn, "refreshed-token", Duration::from_secs(2))
+        .await
+        .unwrap();
+    assert_eq!(conn.session_lifetime_ms(), Some(25000));
+
+    // Mid-connection reauth PLAIN
+    reauthenticate_plain(&mut conn, "user", "pass", Duration::from_secs(2))
+        .await
+        .unwrap();
+    assert_eq!(conn.session_lifetime_ms(), Some(35000));
+
+    // Mid-connection reauth with TokenProvider
+    let fetcher = Arc::new(MockTokenFetcher::new(|_timeout| {
+        Box::pin(async {
+            Ok(OidcTokenResponse::new(
+                "provider-token",
+                "Bearer",
+                Some(3600),
+            ))
+        })
+    }));
+    let manager = OidcTokenManager::with_fetcher(
+        fetcher,
+        OidcRefreshConfig::default(),
+        Arc::new(SystemClock),
+        Arc::new(ZeroJitter),
+    );
+    reauthenticate_with_token_provider(&mut conn, &manager, Duration::from_secs(2))
+        .await
+        .unwrap();
+    assert_eq!(conn.session_lifetime_ms(), Some(45000));
+
+    server_task.await.unwrap();
+}
+
+#[tokio::test]
+async fn unsupported_sasl_mechanisms_and_versions_fail_closed() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let mut conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(1))
+        .await
+        .unwrap();
+
+    // v0 peer does not support reauth (KIP-368 is v1+)
+    conn.set_sasl_authenticate_version(0);
+    let res = reauthenticate_oauthbearer_token(&mut conn, "token", Duration::from_secs(1)).await;
+    assert!(
+        matches!(res, Err(Error::Unsupported(_))),
+        "v0 peer must return Unsupported, got {res:?}"
+    );
+
+    let res_plain = reauthenticate_plain(&mut conn, "u", "p", Duration::from_secs(1)).await;
+    assert!(matches!(res_plain, Err(Error::Unsupported(_))));
+
+    let res_scram = reauthenticate_scram(
+        &mut conn,
+        partitionline::protocol::scram::ScramAlg::Sha256,
+        "u",
+        "p",
+        Duration::from_secs(1),
+    )
+    .await;
+    assert!(matches!(res_scram, Err(Error::Unsupported(_))));
+
+    // unset version (-1)
+    conn.set_sasl_authenticate_version(-1);
+    let res = reauthenticate_oauthbearer_token(&mut conn, "token", Duration::from_secs(1)).await;
+    assert!(matches!(res, Err(Error::Unsupported(_))));
+
+    // unified reauthenticate with no mechanisms configured
+    conn.set_sasl_authenticate_version(1);
+    let res = reauthenticate(
+        &mut conn,
+        None,
+        None,
+        None,
+        None,
+        None,
+        Duration::from_secs(1),
+    )
+    .await;
+    assert!(
+        matches!(res, Err(Error::Unsupported(_))),
+        "no mechanism configured must return Unsupported, got {res:?}"
+    );
+
+    // multiple mechanisms configured
+    let plain = ("u".into(), "p".into());
+    let res = reauthenticate(
+        &mut conn,
+        Some(&plain),
+        None,
+        None,
+        Some("alice"),
+        None,
+        Duration::from_secs(1),
+    )
+    .await;
+    assert!(matches!(res, Err(Error::Protocol(_))));
+}
+
+#[tokio::test]
+async fn quiesce_and_resume_pipelined_traffic_without_mixing_correlation_ids() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+
+    let server_task = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+
+        // 1. Initial Handshake + Authenticate
+        let (h1, _) = read_request_frame(&mut socket).await;
+        let mut resp1 = BytesMut::new();
+        encode_sasl_handshake_response(&mut resp1, h1.api_version(), 0, &["OAUTHBEARER"]).unwrap();
+        socket
+            .write_all(&make_response_frame(h1.correlation_id(), &resp1))
+            .await
+            .unwrap();
+
+        let (h2, _) = read_request_frame(&mut socket).await;
+        let mut resp2 = BytesMut::new();
+        encode_sasl_authenticate_response(&mut resp2, h2.api_version(), 0, None, &[], 10000)
+            .unwrap();
+        socket
+            .write_all(&make_response_frame(h2.correlation_id(), &resp2))
+            .await
+            .unwrap();
+
+        // 2. Read 2 pipelined application requests (API_VERSIONS)
+        let (app1, _) = read_request_frame(&mut socket).await;
+        assert_eq!(app1.api_key(), API_VERSIONS);
+        assert!(
+            !is_reserved_correlation_id(app1.correlation_id()),
+            "application request must not use reserved SASL correlation ID"
+        );
+
+        let (app2, _) = read_request_frame(&mut socket).await;
+        assert_eq!(app2.api_key(), API_VERSIONS);
+        assert!(!is_reserved_correlation_id(app2.correlation_id()));
+
+        // Delay responses slightly so reauth is triggered while in-flight
+        tokio::time::sleep(Duration::from_millis(40)).await;
+
+        // Respond to app1
+        let mut app_resp1 = BytesMut::new();
+        encode_api_versions_response(&mut app_resp1, 0, &dummy_api_versions_response()).unwrap();
+        socket
+            .write_all(&make_response_frame(app1.correlation_id(), &app_resp1))
+            .await
+            .unwrap();
+
+        // Respond to app2
+        let mut app_resp2 = BytesMut::new();
+        encode_api_versions_response(&mut app_resp2, 0, &dummy_api_versions_response()).unwrap();
+        socket
+            .write_all(&make_response_frame(app2.correlation_id(), &app_resp2))
+            .await
+            .unwrap();
+
+        // 3. Next request received MUST be SaslAuthenticate with reserved SASL correlation ID!
+        let (sasl_req, _) = read_request_frame(&mut socket).await;
+        assert_eq!(sasl_req.api_key(), SASL_AUTHENTICATE);
+        assert!(
+            is_reserved_correlation_id(sasl_req.correlation_id()),
+            "SASL reauth must use reserved SASL correlation ID"
+        );
+
+        let mut sasl_resp = BytesMut::new();
+        encode_sasl_authenticate_response(
+            &mut sasl_resp,
+            sasl_req.api_version(),
+            0,
+            None,
+            &[],
+            60000,
+        )
+        .unwrap();
+        socket
+            .write_all(&make_response_frame(sasl_req.correlation_id(), &sasl_resp))
+            .await
+            .unwrap();
+
+        // 4. After reauth completes, queued request app3 arrives with application correlation ID!
+        let (app3, _) = read_request_frame(&mut socket).await;
+        assert_eq!(app3.api_key(), API_VERSIONS);
+        assert!(
+            !is_reserved_correlation_id(app3.correlation_id()),
+            "resumed request must use application correlation ID"
+        );
+
+        let mut app_resp3 = BytesMut::new();
+        encode_api_versions_response(&mut app_resp3, 0, &dummy_api_versions_response()).unwrap();
+        socket
+            .write_all(&make_response_frame(app3.correlation_id(), &app_resp3))
+            .await
+            .unwrap();
+    });
+
+    let mut conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(2))
+        .await
+        .unwrap();
+    conn.set_sasl_versions(1, 1);
+
+    // Initial auth
+    authenticate_oauthbearer_token(&mut conn, "initial-token", Duration::from_secs(2))
+        .await
+        .unwrap();
+
+    let pipeline = BrokerPipeline::new(conn);
+
+    // Send 2 requests concurrently
+    let p1 = pipeline.clone();
+    let f1 = tokio::spawn(async move {
+        p1.request(API_VERSIONS, 0, |_| Ok(()), Duration::from_secs(2))
+            .await
+    });
+    let p2 = pipeline.clone();
+    let f2 = tokio::spawn(async move {
+        p2.request(API_VERSIONS, 0, |_| Ok(()), Duration::from_secs(2))
+            .await
+    });
+
+    // Give requests time to reach server
+    tokio::time::sleep(Duration::from_millis(15)).await;
+
+    // Trigger reauthentication on pipeline
+    let p_reauth = pipeline.clone();
+    let reauth_handle = tokio::spawn(async move {
+        p_reauth
+            .reauthenticate_oauthbearer_token("refreshed-token", Duration::from_secs(2))
+            .await
+    });
+
+    // While quiescing/reauthenticating, enqueue request 3
+    let p3 = pipeline.clone();
+    let f3 = tokio::spawn(async move {
+        p3.request(API_VERSIONS, 0, |_| Ok(()), Duration::from_secs(2))
+            .await
+    });
+
+    // All must complete successfully!
+    let r1 = f1.await.unwrap().unwrap();
+    let r2 = f2.await.unwrap().unwrap();
+    reauth_handle.await.unwrap().unwrap();
+    let r3 = f3.await.unwrap().unwrap();
+
+    assert!(!r1.is_empty());
+    assert!(!r2.is_empty());
+    assert!(!r3.is_empty());
+    assert_eq!(pipeline.session_lifetime_ms().await.unwrap(), Some(60000));
+    assert_eq!(pipeline.in_flight_count().await.unwrap(), 0);
+    assert_eq!(pipeline.queued_count().await.unwrap(), 0);
+
+    server_task.await.unwrap();
+}
+
+#[tokio::test]
+async fn failed_reauthentication_closes_connection_and_fails_accepted_work() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+
+    let server_task = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+
+        // 1. Initial Handshake + Authenticate
+        let (h1, _) = read_request_frame(&mut socket).await;
+        let mut resp1 = BytesMut::new();
+        encode_sasl_handshake_response(&mut resp1, h1.api_version(), 0, &["OAUTHBEARER"]).unwrap();
+        socket
+            .write_all(&make_response_frame(h1.correlation_id(), &resp1))
+            .await
+            .unwrap();
+
+        let (h2, _) = read_request_frame(&mut socket).await;
+        let mut resp2 = BytesMut::new();
+        encode_sasl_authenticate_response(&mut resp2, h2.api_version(), 0, None, &[], 5000)
+            .unwrap();
+        socket
+            .write_all(&make_response_frame(h2.correlation_id(), &resp2))
+            .await
+            .unwrap();
+
+        // 2. Reauth arrives -> respond with error 58 (SASL_AUTHENTICATION_FAILED)
+        let (h3, _) = read_request_frame(&mut socket).await;
+        assert_eq!(h3.api_key(), SASL_AUTHENTICATE);
+        let mut resp3 = BytesMut::new();
+        encode_sasl_authenticate_response(
+            &mut resp3,
+            h3.api_version(),
+            58,
+            Some("bad credentials"),
+            &[],
+            0,
+        )
+        .unwrap();
+        socket
+            .write_all(&make_response_frame(h3.correlation_id(), &resp3))
+            .await
+            .unwrap();
+    });
+
+    let mut conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(2))
+        .await
+        .unwrap();
+    conn.set_sasl_versions(1, 1);
+
+    authenticate_oauthbearer_token(&mut conn, "initial-token", Duration::from_secs(2))
+        .await
+        .unwrap();
+
+    let pipeline = BrokerPipeline::new(conn);
+
+    // Trigger reauth which will fail
+    let p_reauth = pipeline.clone();
+    let reauth_handle = tokio::spawn(async move {
+        p_reauth
+            .reauthenticate_oauthbearer_token("bad-token", Duration::from_secs(2))
+            .await
+    });
+
+    // Enqueue request while reauth is pending
+    let p_req = pipeline.clone();
+    let req_handle = tokio::spawn(async move {
+        p_req
+            .request(API_VERSIONS, 0, |_| Ok(()), Duration::from_secs(2))
+            .await
+    });
+
+    let reauth_err = reauth_handle.await.unwrap().unwrap_err();
+    assert!(
+        matches!(reauth_err, Error::Broker { code: 58, .. }),
+        "expected broker error 58, got {reauth_err:?}"
+    );
+
+    let req_err = req_handle.await.unwrap().unwrap_err();
+    assert!(
+        pipeline.is_closed(),
+        "pipeline must be marked closed after failed reauth"
+    );
+    assert!(
+        matches!(req_err, Error::Broker { code: 58, .. } | Error::Closed),
+        "queued request must fail, got {req_err:?}"
+    );
+
+    // Subsequent request must fail immediately with Closed
+    let sub = pipeline
+        .request(API_VERSIONS, 0, |_| Ok(()), Duration::from_secs(1))
+        .await;
+    assert!(matches!(sub, Err(Error::Closed)));
+
+    server_task.await.unwrap();
+}
+
+#[tokio::test]
+async fn session_expiration_blocks_new_requests() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+
+    let mut conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(1))
+        .await
+        .unwrap();
+
+    // Record session lifetime of 50ms in the past (already expired)
+    let past = Instant::now() - Duration::from_millis(100);
+    conn.record_sasl_session_lifetime_at(50, past);
+
+    assert!(conn.is_session_expired());
+
+    // Direct send_deadline must fail
+    let res = conn
+        .send_deadline(
+            API_VERSIONS,
+            0,
+            |_| Ok(()),
+            Deadline::from_timeout(Duration::from_secs(1)),
+        )
+        .await;
+    assert!(
+        matches!(res, Err(Error::Protocol(_))),
+        "expected Protocol error on expired session, got {res:?}"
+    );
+
+    // Pipeline request must also fail
+    let pipeline = BrokerPipeline::new(conn);
+    let pres = pipeline
+        .request(API_VERSIONS, 0, |_| Ok(()), Duration::from_secs(1))
+        .await;
+    assert!(
+        matches!(pres, Err(Error::Protocol(_))),
+        "pipeline request must fail on expired session, got {pres:?}"
+    );
+}
+
+#[tokio::test]
+async fn reauth_disconnect_closes_connection_and_fails_accepted_work() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+
+    let server_task = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+
+        // 1. Initial Handshake + Authenticate
+        let (h1, _) = read_request_frame(&mut socket).await;
+        let mut resp1 = BytesMut::new();
+        encode_sasl_handshake_response(&mut resp1, h1.api_version(), 0, &["OAUTHBEARER"]).unwrap();
+        socket
+            .write_all(&make_response_frame(h1.correlation_id(), &resp1))
+            .await
+            .unwrap();
+
+        let (h2, _) = read_request_frame(&mut socket).await;
+        let mut resp2 = BytesMut::new();
+        encode_sasl_authenticate_response(&mut resp2, h2.api_version(), 0, None, &[], 5000)
+            .unwrap();
+        socket
+            .write_all(&make_response_frame(h2.correlation_id(), &resp2))
+            .await
+            .unwrap();
+
+        // 2. Read reauth frame then abruptly drop socket (EOF / disconnect)
+        let _ = read_request_frame(&mut socket).await;
+        drop(socket);
+    });
+
+    let mut conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(2))
+        .await
+        .unwrap();
+    conn.set_sasl_versions(1, 1);
+
+    authenticate_oauthbearer_token(&mut conn, "token", Duration::from_secs(2))
+        .await
+        .unwrap();
+
+    let pipeline = BrokerPipeline::new(conn);
+
+    let p_reauth = pipeline.clone();
+    let reauth_handle = tokio::spawn(async move {
+        p_reauth
+            .reauthenticate_oauthbearer_token("refreshed", Duration::from_secs(2))
+            .await
+    });
+
+    let p_req = pipeline.clone();
+    let req_handle = tokio::spawn(async move {
+        p_req
+            .request(API_VERSIONS, 0, |_| Ok(()), Duration::from_secs(2))
+            .await
+    });
+
+    let reauth_err = reauth_handle.await.unwrap().unwrap_err();
+    assert!(
+        matches!(reauth_err, Error::Io(_)),
+        "expected Io error on disconnect, got {reauth_err:?}"
+    );
+
+    let req_err = req_handle.await.unwrap().unwrap_err();
+    assert!(matches!(req_err, Error::Io(_) | Error::Closed));
+    assert!(pipeline.is_closed());
+
+    server_task.await.unwrap();
+}
+
+#[tokio::test]
+async fn pipeline_shutdown_cleanly_terminates() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+
+    let conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(1))
+        .await
+        .unwrap();
+    let pipeline = BrokerPipeline::new(conn);
+
+    assert_eq!(pipeline.state(), PipelineState::Active);
+    assert!(!pipeline.is_closed());
+
+    pipeline.shutdown().await;
+
+    assert!(pipeline.is_closed());
+    assert_eq!(pipeline.state(), PipelineState::Closed);
+
+    let res = pipeline
+        .request(API_VERSIONS, 0, |_| Ok(()), Duration::from_secs(1))
+        .await;
+    assert!(matches!(res, Err(Error::Closed)));
+}
+
+#[tokio::test]
+async fn direct_broker_conn_quiesce_guard() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+
+    let server_task = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let (h1, _) = read_request_frame(&mut socket).await;
+        // Delay response
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let mut resp = BytesMut::new();
+        encode_api_versions_response(&mut resp, 0, &dummy_api_versions_response()).unwrap();
+        socket
+            .write_all(&make_response_frame(h1.correlation_id(), &resp))
+            .await
+            .unwrap();
+    });
+
+    let mut conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(1))
+        .await
+        .unwrap();
+
+    let corr = conn
+        .send_deadline(
+            API_VERSIONS,
+            0,
+            |_| Ok(()),
+            Deadline::from_timeout(Duration::from_secs(1)),
+        )
+        .await
+        .unwrap();
+    assert_eq!(conn.in_flight(), 1);
+    assert!(!conn.can_reauthenticate());
+
+    // Calling roundtrip_sasl while in_flight > 0 MUST fail immediately with protocol error
+    let sasl_res = conn
+        .roundtrip_sasl(SASL_AUTHENTICATE, 1, |_| Ok(()), Duration::from_secs(1))
+        .await;
+    assert!(
+        matches!(sasl_res, Err(Error::Protocol(_))),
+        "must reject SASL request while requests in flight, got {sasl_res:?}"
+    );
+
+    // Read response -> in_flight becomes 0
+    let _ = conn
+        .read_response_deadline(
+            API_VERSIONS,
+            0,
+            corr,
+            Deadline::from_timeout(Duration::from_secs(1)),
+        )
+        .await
+        .unwrap();
+    assert_eq!(conn.in_flight(), 0);
+    assert!(conn.can_reauthenticate());
+
+    server_task.await.unwrap();
+}
+
+#[tokio::test]
+async fn credential_redaction_and_response_body_hygiene_on_reauth() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+
+    let secret_token = "sentinel-super-secret-token-xyz-987654";
+
+    let server_task = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let (h, _) = read_request_frame(&mut socket).await;
+        let mut resp = BytesMut::new();
+        // Broker failure JSON echoing sensitive material
+        let failure_json = format!("{{\"error\":\"invalid token {secret_token}\"}}");
+        encode_sasl_authenticate_response(
+            &mut resp,
+            h.api_version(),
+            0,
+            None,
+            failure_json.as_bytes(),
+            0,
+        )
+        .unwrap();
+        socket
+            .write_all(&make_response_frame(h.correlation_id(), &resp))
+            .await
+            .unwrap();
+
+        // Read final SOH
+        let (h2, _) = read_request_frame(&mut socket).await;
+        assert_eq!(h2.api_key(), SASL_AUTHENTICATE);
+    });
+
+    let mut conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(1))
+        .await
+        .unwrap();
+    conn.set_sasl_authenticate_version(1);
+
+    let err = reauthenticate_oauthbearer_token(&mut conn, secret_token, Duration::from_secs(1))
+        .await
+        .unwrap_err();
+
+    let disp = format!("{err}");
+    let dbg = format!("{err:?}");
+    assert!(
+        !disp.contains(secret_token),
+        "Display leaked secret: {disp}"
+    );
+    assert!(!dbg.contains(secret_token), "Debug leaked secret: {dbg}");
+    assert!(
+        !disp.contains("invalid token"),
+        "Display leaked broker body: {disp}"
+    );
+    assert!(
+        !dbg.contains("invalid token"),
+        "Debug leaked broker body: {dbg}"
+    );
+
+    server_task.await.unwrap();
+}
+
+#[tokio::test]
+async fn should_reconnect_after_reauth_checks_idle_and_reauth() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+
+    let mut conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(1))
+        .await
+        .unwrap();
+    conn.set_sasl_authenticate_version(1);
+
+    // Fresh session: no reconnect needed
+    conn.record_sasl_session_lifetime(100_000);
+    let rec = should_reconnect_after_reauth(
+        &mut conn,
+        None,
+        None,
+        None,
+        None,
+        None,
+        Duration::from_secs(60),
+        Duration::from_secs(1),
+    )
+    .await
+    .unwrap();
+    assert!(!rec, "fresh connection should not reconnect");
+
+    // Session needing reauth with no mechanism configured fails reauth -> triggers reconnect
+    conn.record_sasl_session_lifetime_at(100, Instant::now() - Duration::from_millis(90));
+    assert!(conn.needs_reauth());
+    let rec = should_reconnect_after_reauth(
+        &mut conn,
+        None,
+        None,
+        None,
+        None,
+        None,
+        Duration::from_secs(60),
+        Duration::from_secs(1),
+    )
+    .await
+    .unwrap();
+    assert!(rec, "failed reauth must indicate reconnect is needed");
 }

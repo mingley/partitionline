@@ -1,10 +1,11 @@
 //! TCP and TLS broker connections.
 
+use std::collections::VecDeque;
 use std::fmt;
-use std::future::poll_fn;
+use std::future::{poll_fn, Future};
 use std::io;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Arc;
 use std::sync::Once;
 use std::task::{Context, Poll};
@@ -157,7 +158,7 @@ impl Deadline {
         if now >= self.instant {
             Err(Error::Timeout)
         } else {
-            Ok((self.instant - now).into())
+            Ok(self.instant - now)
         }
     }
 
@@ -642,6 +643,16 @@ pub struct BrokerConn {
     /// This crate picks 0–2. `0` is a spoken version, so it cannot mean
     /// unset.
     pub(crate) sasl_authenticate_version: i16,
+    /// Broker session lifetime in milliseconds, if negotiated via SaslAuthenticate v1+ (KIP-368).
+    pub(crate) session_lifetime_ms: Option<i64>,
+    /// Instant when SASL authentication completed.
+    pub(crate) authenticated_at: Option<Instant>,
+    /// Absolute instant when the broker SASL session expires (`authenticated_at + session_lifetime_ms`).
+    pub(crate) sasl_session_expires_at: Option<Instant>,
+    /// Instant at which proactive reauthentication should start (85% of session lifetime).
+    pub(crate) reauth_at: Option<Instant>,
+    /// In-flight application request count on this connection.
+    pub(crate) in_flight: usize,
 }
 
 impl BrokerConn {
@@ -705,6 +716,11 @@ impl BrokerConn {
             share_group_heartbeat_version: -1,
             sasl_handshake_version: -1,
             sasl_authenticate_version: -1,
+            session_lifetime_ms: None,
+            authenticated_at: None,
+            sasl_session_expires_at: None,
+            reauth_at: None,
+            in_flight: 0,
         })
     }
 
@@ -740,6 +756,111 @@ impl BrokerConn {
     /// Mark this connection as permanently closed/failed.
     pub fn close(&mut self) {
         self.closed.store(true, Ordering::SeqCst);
+        self.in_flight = 0;
+    }
+
+    /// Broker session lifetime in milliseconds, if negotiated via SaslAuthenticate v1+ (KIP-368).
+    #[must_use]
+    pub fn session_lifetime_ms(&self) -> Option<i64> {
+        self.session_lifetime_ms
+    }
+
+    /// Instant when SASL authentication completed.
+    #[must_use]
+    pub fn authenticated_at(&self) -> Option<Instant> {
+        self.authenticated_at
+    }
+
+    /// Absolute instant when the broker SASL session expires.
+    #[must_use]
+    pub fn session_expiry(&self) -> Option<Instant> {
+        self.sasl_session_expires_at
+    }
+
+    /// Instant at which proactive reauthentication should start (85% of session lifetime).
+    #[must_use]
+    pub fn reauth_at(&self) -> Option<Instant> {
+        self.reauth_at
+    }
+
+    /// Check if the session has expired at the given instant.
+    #[must_use]
+    pub fn is_session_expired_at(&self, now: Instant) -> bool {
+        self.sasl_session_expires_at.is_some_and(|exp| now >= exp)
+    }
+
+    /// Check if the session has expired now.
+    #[must_use]
+    pub fn is_session_expired(&self) -> bool {
+        self.is_session_expired_at(Instant::now())
+    }
+
+    /// Check if reauthentication is needed at the given instant (85% threshold reached).
+    #[must_use]
+    pub fn needs_reauth_at(&self, now: Instant) -> bool {
+        self.reauth_at.is_some_and(|r| now >= r)
+    }
+
+    /// Check if reauthentication is needed now.
+    #[must_use]
+    pub fn needs_reauth(&self) -> bool {
+        self.needs_reauth_at(Instant::now())
+    }
+
+    /// Number of in-flight application requests on this connection.
+    #[must_use]
+    pub fn in_flight(&self) -> usize {
+        self.in_flight
+    }
+
+    /// Whether this connection can safely execute SASL reauthentication without interleaving with in-flight requests.
+    #[must_use]
+    pub fn can_reauthenticate(&self) -> bool {
+        self.in_flight == 0 && !self.is_closed()
+    }
+
+    /// Record broker `session_lifetime_ms` at a specific instant.
+    pub fn record_sasl_session_lifetime_at(&mut self, session_lifetime_ms: i64, now: Instant) {
+        if session_lifetime_ms > 0 {
+            let Ok(lifetime_ms) = u64::try_from(session_lifetime_ms) else {
+                self.clear_sasl_session();
+                return;
+            };
+            let lifetime = Duration::from_millis(lifetime_ms);
+            let reauth_millis = lifetime_ms.saturating_mul(85) / 100;
+            let reauth_duration = Duration::from_millis(reauth_millis);
+            self.session_lifetime_ms = Some(session_lifetime_ms);
+            self.authenticated_at = Some(now);
+            self.sasl_session_expires_at = Some(now + lifetime);
+            self.reauth_at = Some(now + reauth_duration);
+        } else {
+            self.clear_sasl_session();
+        }
+    }
+
+    /// Record broker `session_lifetime_ms` from a successful SaslAuthenticate.
+    pub fn record_sasl_session_lifetime(&mut self, session_lifetime_ms: i64) {
+        self.record_sasl_session_lifetime_at(session_lifetime_ms, Instant::now());
+    }
+
+    /// Clear SASL session lifetime state.
+    pub fn clear_sasl_session(&mut self) {
+        self.session_lifetime_ms = None;
+        self.authenticated_at = None;
+        self.sasl_session_expires_at = None;
+        self.reauth_at = None;
+    }
+
+    /// Convert this connection into a pipelined connection manager.
+    #[must_use]
+    pub fn into_pipeline(self) -> BrokerPipeline {
+        BrokerPipeline::new(self)
+    }
+
+    /// Convert this connection into a pipelined connection manager with custom max in-flight.
+    #[must_use]
+    pub fn into_pipeline_with_max_in_flight(self, max_in_flight: usize) -> BrokerPipeline {
+        BrokerPipeline::with_max_in_flight(self, max_in_flight)
     }
 
     /// Write `bytes` bounded by `deadline` or fail with [`Error::Timeout`].
@@ -769,11 +890,19 @@ impl BrokerConn {
             .await
     }
 
-    async fn read_frame_deadline(&mut self, deadline: Deadline) -> Result<Bytes> {
+    async fn read_frame_deadline_internal(
+        &mut self,
+        deadline: Deadline,
+        close_on_drop: bool,
+    ) -> Result<Bytes> {
         if self.is_closed() {
             return Err(Error::Closed);
         }
-        let mut guard = CloseOnDrop::new(self.closed.clone());
+        let mut guard = if close_on_drop {
+            Some(CloseOnDrop::new(self.closed.clone()))
+        } else {
+            None
+        };
         loop {
             if self.read_buf.len() >= 4 {
                 let prefix = self
@@ -786,21 +915,35 @@ impl BrokerConn {
                         .map_err(|_| Error::protocol("short frame prefix"))?,
                 );
                 if !(0..=MAX_FRAME).contains(&size) {
+                    if let Some(ref mut g) = guard {
+                        g.complete();
+                    }
+                    self.close();
                     return Err(Error::protocol(format!("invalid frame size {size}")));
                 }
                 let total = 4 + crate::protocol::buf::usize_from_i32(size)?;
                 if self.read_buf.len() >= total {
                     let mut frame = self.read_buf.split_to(total);
                     drop(frame.split_to(4));
-                    guard.complete();
+                    if let Some(ref mut g) = guard {
+                        g.complete();
+                    }
                     return Ok(frame.freeze());
                 }
                 reserve_frame(&mut self.read_buf, total);
             }
-            let n = deadline
+            let n = match deadline
                 .run_io(self.stream.read_buf(&mut self.read_buf))
-                .await?;
+                .await
+            {
+                Ok(n) => n,
+                Err(e) => {
+                    self.close();
+                    return Err(e);
+                }
+            };
             if n == 0 {
+                self.close();
                 return Err(Error::Io(std::io::Error::new(
                     std::io::ErrorKind::UnexpectedEof,
                     "broker closed connection",
@@ -817,14 +960,36 @@ impl BrokerConn {
         correlation: i32,
         deadline: Deadline,
     ) -> Result<Bytes> {
+        self.read_response_deadline_internal(api_key, api_version, correlation, deadline, true)
+            .await
+    }
+
+    pub(crate) async fn read_response_deadline_internal(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        correlation: i32,
+        deadline: Deadline,
+        close_on_drop: bool,
+    ) -> Result<Bytes> {
         if self.is_closed() {
             return Err(Error::Closed);
         }
-        let mut guard = CloseOnDrop::new(self.closed.clone());
-        let frame = self.read_frame_deadline(deadline).await?;
+        let mut guard = if close_on_drop {
+            Some(CloseOnDrop::new(self.closed.clone()))
+        } else {
+            None
+        };
+        let frame = self
+            .read_frame_deadline_internal(deadline, close_on_drop)
+            .await?;
         let mut cur = frame;
         let header = decode_response_header(&mut cur, api_key, api_version)?;
         if header.correlation_id != correlation {
+            if let Some(ref mut g) = guard {
+                g.complete();
+            }
+            self.close();
             check_parse_response_correlation(
                 &RequestHeader {
                     api_key,
@@ -835,7 +1000,12 @@ impl BrokerConn {
                 &header,
             )?;
         }
-        guard.complete();
+        if let Some(ref mut g) = guard {
+            g.complete();
+        }
+        if !is_reserved_correlation_id(correlation) {
+            self.in_flight = self.in_flight.saturating_sub(1);
+        }
         self.touch();
         Ok(cur)
     }
@@ -918,9 +1088,15 @@ impl BrokerConn {
         encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
         deadline: Deadline,
     ) -> Result<i32> {
+        if self.is_session_expired() {
+            return Err(Error::protocol(
+                "broker SASL session lifetime expired; connection must be reauthenticated or closed",
+            ));
+        }
         let correlation = self.next_correlation();
         self.write_request_deadline(api_key, api_version, correlation, encode_body, deadline)
             .await?;
+        self.in_flight += 1;
         Ok(correlation)
     }
 
@@ -989,8 +1165,31 @@ impl BrokerConn {
             .await
     }
 
+    /// Set negotiated SASL Handshake and Authenticate API versions.
+    pub fn set_sasl_versions(&mut self, handshake: i16, authenticate: i16) {
+        self.sasl_handshake_version = handshake;
+        self.sasl_authenticate_version = authenticate;
+    }
+
+    /// Set negotiated SASL Authenticate API version.
+    pub fn set_sasl_authenticate_version(&mut self, version: i16) {
+        self.sasl_authenticate_version = version;
+    }
+
+    /// Negotiated SASL Handshake API version (-1 if unset).
+    #[must_use]
+    pub fn sasl_handshake_version(&self) -> i16 {
+        self.sasl_handshake_version
+    }
+
+    /// Negotiated SASL Authenticate API version (-1 if unset).
+    #[must_use]
+    pub fn sasl_authenticate_version(&self) -> i16 {
+        self.sasl_authenticate_version
+    }
+
     /// Write a SASL request and read its response bounded by a single absolute `deadline`.
-    pub(crate) async fn roundtrip_sasl_deadline(
+    pub async fn roundtrip_sasl_deadline(
         &mut self,
         api_key: i16,
         api_version: i16,
@@ -999,6 +1198,11 @@ impl BrokerConn {
     ) -> Result<Bytes> {
         if self.is_closed() {
             return Err(Error::Closed);
+        }
+        if self.in_flight > 0 {
+            return Err(Error::protocol(
+                "cannot send SASL request while application requests are in-flight; pipeline must be quiesced first",
+            ));
         }
         let started = Instant::now();
         let mut guard = CloseOnDrop::new(self.closed.clone());
@@ -1031,7 +1235,7 @@ impl BrokerConn {
     /// Java `SaslClientAuthenticator.nextRequestHeader`: correlation ids
     /// come from [`next_sasl_correlation_id`], not
     /// [`next_correlation_id`].
-    pub(crate) async fn roundtrip_sasl(
+    pub async fn roundtrip_sasl(
         &mut self,
         api_key: i16,
         api_version: i16,
@@ -1041,6 +1245,764 @@ impl BrokerConn {
         let deadline = Deadline::from_timeout(request_timeout);
         self.roundtrip_sasl_deadline(api_key, api_version, encode_body, deadline)
             .await
+    }
+}
+
+/// State of a pipelined broker connection.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PipelineState {
+    /// Active and processing application requests.
+    Active,
+    /// Quiescing: waiting for all in-flight application requests on the wire to complete.
+    /// New requests are queued in memory and held.
+    Quiescing,
+    /// Reauthenticating: mid-connection SASL reauthentication is executing on the wire.
+    /// In-flight application request count is 0. New requests are queued in memory.
+    Reauthenticating,
+    /// Connection has been closed, disconnected, shut down, or session expired.
+    Closed,
+}
+
+impl PipelineState {
+    fn to_u8(self) -> u8 {
+        match self {
+            Self::Active => 0,
+            Self::Quiescing => 1,
+            Self::Reauthenticating => 2,
+            Self::Closed => 3,
+        }
+    }
+
+    fn from_u8(v: u8) -> Self {
+        match v {
+            0 => Self::Active,
+            1 => Self::Quiescing,
+            2 => Self::Reauthenticating,
+            _ => Self::Closed,
+        }
+    }
+}
+
+/// A status snapshot of a [`BrokerPipeline`].
+#[derive(Clone, Debug)]
+pub struct PipelineStatus {
+    /// Current state of the pipeline.
+    pub state: PipelineState,
+    /// Number of application requests currently in flight on the wire.
+    pub in_flight: usize,
+    /// Number of accepted application requests waiting in the queue.
+    pub queued: usize,
+    /// Broker session lifetime in milliseconds, if negotiated via SaslAuthenticate v1+.
+    pub session_lifetime_ms: Option<i64>,
+    /// Instant when SASL authentication completed.
+    pub authenticated_at: Option<Instant>,
+    /// Absolute instant when the broker SASL session expires.
+    pub session_expiry: Option<Instant>,
+    /// Instant at which proactive reauthentication should start (85% threshold).
+    pub reauth_at: Option<Instant>,
+    /// Whether the broker SASL session has expired.
+    pub is_session_expired: bool,
+    /// Whether the connection needs reauthentication.
+    pub needs_reauth: bool,
+    /// Whether the underlying connection is closed.
+    pub is_closed: bool,
+}
+
+type ReauthFn = Box<
+    dyn for<'a> FnOnce(
+            &'a mut BrokerConn,
+            Duration,
+        ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>
+        + Send,
+>;
+
+type EncodeBody = Box<dyn FnOnce(&mut BytesMut) -> Result<()> + Send>;
+
+enum PipelineCommand {
+    Request {
+        api_key: i16,
+        api_version: i16,
+        encode_body: EncodeBody,
+        tx: tokio::sync::oneshot::Sender<Result<Bytes>>,
+        deadline: Deadline,
+    },
+    Quiesce {
+        tx: tokio::sync::oneshot::Sender<Result<()>>,
+        deadline: Deadline,
+    },
+    Resume {
+        tx: tokio::sync::oneshot::Sender<Result<()>>,
+    },
+    Reauthenticate {
+        reauth: ReauthFn,
+        tx: tokio::sync::oneshot::Sender<Result<()>>,
+        timeout: Duration,
+    },
+    Status {
+        tx: tokio::sync::oneshot::Sender<PipelineStatus>,
+    },
+    Shutdown {
+        tx: tokio::sync::oneshot::Sender<()>,
+    },
+}
+
+struct InFlightItem {
+    correlation_id: i32,
+    api_key: i16,
+    api_version: i16,
+    tx: tokio::sync::oneshot::Sender<Result<Bytes>>,
+    deadline: Deadline,
+}
+
+struct QueuedItem {
+    api_key: i16,
+    api_version: i16,
+    encode_body: EncodeBody,
+    tx: tokio::sync::oneshot::Sender<Result<Bytes>>,
+    deadline: Deadline,
+}
+
+fn fail_command(cmd: PipelineCommand, err: &Error) {
+    match cmd {
+        PipelineCommand::Request { tx, .. } => {
+            drop(tx.send(Err(err.clone())));
+        }
+        PipelineCommand::Quiesce { tx, .. } => {
+            drop(tx.send(Err(err.clone())));
+        }
+        PipelineCommand::Resume { tx } => {
+            drop(tx.send(Err(err.clone())));
+        }
+        PipelineCommand::Reauthenticate { tx, .. } => {
+            drop(tx.send(Err(err.clone())));
+        }
+        PipelineCommand::Status { tx } => {
+            drop(tx.send(PipelineStatus {
+                state: PipelineState::Closed,
+                in_flight: 0,
+                queued: 0,
+                session_lifetime_ms: None,
+                authenticated_at: None,
+                session_expiry: None,
+                reauth_at: None,
+                is_session_expired: false,
+                needs_reauth: false,
+                is_closed: true,
+            }));
+        }
+        PipelineCommand::Shutdown { tx } => match tx.send(()) {
+            Ok(()) | Err(()) => (),
+        },
+    }
+}
+
+fn fail_all_requests(
+    in_flight: &mut VecDeque<InFlightItem>,
+    queued: &mut VecDeque<QueuedItem>,
+    quiesce_waiters: &mut Vec<tokio::sync::oneshot::Sender<Result<()>>>,
+    err: &Error,
+) {
+    while let Some(item) = in_flight.pop_front() {
+        drop(item.tx.send(Err(err.clone())));
+    }
+    while let Some(item) = queued.pop_front() {
+        drop(item.tx.send(Err(err.clone())));
+    }
+    for tx in quiesce_waiters.drain(..) {
+        drop(tx.send(Err(err.clone())));
+    }
+}
+
+fn make_status(
+    conn: &BrokerConn,
+    state: PipelineState,
+    in_flight: usize,
+    queued: usize,
+) -> PipelineStatus {
+    PipelineStatus {
+        state: if conn.is_closed() {
+            PipelineState::Closed
+        } else {
+            state
+        },
+        in_flight,
+        queued,
+        session_lifetime_ms: conn.session_lifetime_ms(),
+        authenticated_at: conn.authenticated_at(),
+        session_expiry: conn.session_expiry(),
+        reauth_at: conn.reauth_at(),
+        is_session_expired: conn.is_session_expired(),
+        needs_reauth: conn.needs_reauth(),
+        is_closed: conn.is_closed(),
+    }
+}
+
+async fn run_pipeline_loop(
+    mut conn: BrokerConn,
+    max_in_flight: usize,
+    mut cmd_rx: tokio::sync::mpsc::Receiver<PipelineCommand>,
+    shared_state: Arc<AtomicU8>,
+) {
+    let mut in_flight: VecDeque<InFlightItem> = VecDeque::new();
+    let mut queued: VecDeque<QueuedItem> = VecDeque::new();
+    let mut quiesce_waiters: Vec<tokio::sync::oneshot::Sender<Result<()>>> = Vec::new();
+    let mut state = PipelineState::Active;
+    shared_state.store(state.to_u8(), Ordering::SeqCst);
+
+    loop {
+        while state == PipelineState::Active
+            && in_flight.len() < max_in_flight
+            && !queued.is_empty()
+            && !conn.is_closed()
+        {
+            if conn.is_session_expired() {
+                conn.close();
+                state = PipelineState::Closed;
+                shared_state.store(state.to_u8(), Ordering::SeqCst);
+                let err = Error::protocol(
+                    "broker SASL session lifetime expired; connection must be reauthenticated or closed",
+                );
+                fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &err);
+                break;
+            }
+            let Some(item) = queued.pop_front() else {
+                break;
+            };
+            if item.deadline.is_expired() {
+                drop(item.tx.send(Err(Error::Timeout)));
+                continue;
+            }
+            match conn
+                .send_deadline(
+                    item.api_key,
+                    item.api_version,
+                    item.encode_body,
+                    item.deadline,
+                )
+                .await
+            {
+                Ok(correlation_id) => {
+                    in_flight.push_back(InFlightItem {
+                        correlation_id,
+                        api_key: item.api_key,
+                        api_version: item.api_version,
+                        tx: item.tx,
+                        deadline: item.deadline,
+                    });
+                }
+                Err(e) => {
+                    conn.close();
+                    state = PipelineState::Closed;
+                    shared_state.store(state.to_u8(), Ordering::SeqCst);
+                    drop(item.tx.send(Err(e.clone())));
+                    fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &e);
+                    break;
+                }
+            }
+        }
+
+        if state == PipelineState::Closed {
+            while let Ok(cmd) = cmd_rx.try_recv() {
+                fail_command(cmd, &Error::Closed);
+            }
+            break;
+        }
+
+        tokio::select! {
+            read_res = async {
+                if let Some(front) = in_flight.front() {
+                    conn.read_response_deadline_internal(
+                        front.api_key,
+                        front.api_version,
+                        front.correlation_id,
+                        front.deadline,
+                        false,
+                    ).await
+                } else {
+                    std::future::pending::<Result<Bytes>>().await
+                }
+            } => {
+                match read_res {
+                    Ok(body) => {
+                        if let Some(item) = in_flight.pop_front() {
+                            drop(item.tx.send(Ok(body)));
+                        }
+                        if in_flight.is_empty() && state == PipelineState::Quiescing {
+                            for tx in quiesce_waiters.drain(..) {
+                                drop(tx.send(Ok(())));
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        conn.close();
+                        state = PipelineState::Closed;
+                        shared_state.store(state.to_u8(), Ordering::SeqCst);
+                        fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &e);
+                    }
+                }
+            }
+            cmd_opt = cmd_rx.recv() => {
+                let Some(cmd) = cmd_opt else {
+                    conn.close();
+                    state = PipelineState::Closed;
+                    shared_state.store(state.to_u8(), Ordering::SeqCst);
+                    break;
+                };
+                match cmd {
+                    PipelineCommand::Request {
+                        api_key,
+                        api_version,
+                        encode_body,
+                        tx,
+                        deadline,
+                    } => {
+                        if conn.is_closed() || state == PipelineState::Closed {
+                            drop(tx.send(Err(Error::Closed)));
+                        } else if conn.is_session_expired() {
+                            conn.close();
+                            state = PipelineState::Closed;
+                            shared_state.store(state.to_u8(), Ordering::SeqCst);
+                            let err = Error::protocol(
+                                "broker SASL session lifetime expired; connection must be reauthenticated or closed",
+                            );
+                            drop(tx.send(Err(err.clone())));
+                            fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &err);
+                        } else if state == PipelineState::Active && in_flight.len() < max_in_flight {
+                            if deadline.is_expired() {
+                                drop(tx.send(Err(Error::Timeout)));
+                            } else {
+                                match conn.send_deadline(api_key, api_version, encode_body, deadline).await {
+                                    Ok(correlation_id) => {
+                                        in_flight.push_back(InFlightItem {
+                                            correlation_id,
+                                            api_key,
+                                            api_version,
+                                            tx,
+                                            deadline,
+                                        });
+                                    }
+                                    Err(e) => {
+                                        conn.close();
+                                        state = PipelineState::Closed;
+                                        shared_state.store(state.to_u8(), Ordering::SeqCst);
+                                        drop(tx.send(Err(e.clone())));
+                                        fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &e);
+                                    }
+                                }
+                            }
+                        } else {
+                            queued.push_back(QueuedItem {
+                                api_key,
+                                api_version,
+                                encode_body,
+                                tx,
+                                deadline,
+                            });
+                        }
+                    }
+                    PipelineCommand::Quiesce { tx, deadline } => {
+                        if conn.is_closed() || state == PipelineState::Closed {
+                            drop(tx.send(Err(Error::Closed)));
+                        } else if deadline.is_expired() {
+                            drop(tx.send(Err(Error::Timeout)));
+                        } else if in_flight.is_empty() {
+                            state = PipelineState::Quiescing;
+                            shared_state.store(state.to_u8(), Ordering::SeqCst);
+                            drop(tx.send(Ok(())));
+                        } else {
+                            state = PipelineState::Quiescing;
+                            shared_state.store(state.to_u8(), Ordering::SeqCst);
+                            quiesce_waiters.push(tx);
+                        }
+                    }
+                    PipelineCommand::Resume { tx } => {
+                        if conn.is_closed() || state == PipelineState::Closed {
+                            drop(tx.send(Err(Error::Closed)));
+                        } else {
+                            state = PipelineState::Active;
+                            shared_state.store(state.to_u8(), Ordering::SeqCst);
+                            drop(tx.send(Ok(())));
+                        }
+                    }
+                    PipelineCommand::Reauthenticate { reauth, tx, timeout } => {
+                        if conn.is_closed() || state == PipelineState::Closed {
+                            drop(tx.send(Err(Error::Closed)));
+                            continue;
+                        }
+                        state = PipelineState::Quiescing;
+                        shared_state.store(state.to_u8(), Ordering::SeqCst);
+                        let mut drain_err = None;
+                        while let Some(front) = in_flight.front() {
+                            match conn.read_response_deadline_internal(
+                                front.api_key,
+                                front.api_version,
+                                front.correlation_id,
+                                front.deadline,
+                                false,
+                            ).await {
+                                Ok(body) => {
+                                    if let Some(item) = in_flight.pop_front() {
+                                        drop(item.tx.send(Ok(body)));
+                                    }
+                                }
+                                Err(e) => {
+                                    drain_err = Some(e);
+                                    break;
+                                }
+                            }
+                            while let Ok(pending_cmd) = cmd_rx.try_recv() {
+                                match pending_cmd {
+                                    PipelineCommand::Request { api_key, api_version, encode_body, tx: req_tx, deadline } => {
+                                        queued.push_back(QueuedItem { api_key, api_version, encode_body, tx: req_tx, deadline });
+                                    }
+                                    PipelineCommand::Status { tx: stat_tx } => {
+                                        drop(stat_tx.send(make_status(&conn, state, in_flight.len(), queued.len())));
+                                    }
+                                    PipelineCommand::Shutdown { tx: shut_tx } => {
+                                        conn.close();
+                                        state = PipelineState::Closed;
+                                        shared_state.store(state.to_u8(), Ordering::SeqCst);
+                                        fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &Error::Closed);
+                                        match shut_tx.send(()) {
+                                            Ok(()) | Err(()) => (),
+                                        }
+                                        return;
+                                    }
+                                    PipelineCommand::Quiesce { tx: qtx, .. } => {
+                                        quiesce_waiters.push(qtx);
+                                    }
+                                    PipelineCommand::Resume { tx: rtx } => {
+                                        drop(rtx.send(Err(Error::protocol("cannot resume while reauthenticating"))));
+                                    }
+                                    PipelineCommand::Reauthenticate { tx: dtx, .. } => {
+                                        drop(dtx.send(Err(Error::protocol("reauthentication already in progress"))));
+                                    }
+                                }
+                            }
+                        }
+
+                        if let Some(e) = drain_err {
+                            conn.close();
+                            state = PipelineState::Closed;
+                            shared_state.store(state.to_u8(), Ordering::SeqCst);
+                            drop(tx.send(Err(e.clone())));
+                            fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &e);
+                            continue;
+                        }
+
+                        for qtx in quiesce_waiters.drain(..) {
+                            drop(qtx.send(Ok(())));
+                        }
+
+                        state = PipelineState::Reauthenticating;
+                        shared_state.store(state.to_u8(), Ordering::SeqCst);
+                        let reauth_res = reauth(&mut conn, timeout).await;
+                        match reauth_res {
+                            Ok(()) => {
+                                state = PipelineState::Active;
+                                shared_state.store(state.to_u8(), Ordering::SeqCst);
+                                drop(tx.send(Ok(())));
+                            }
+                            Err(e) => {
+                                conn.close();
+                                state = PipelineState::Closed;
+                                shared_state.store(state.to_u8(), Ordering::SeqCst);
+                                drop(tx.send(Err(e.clone())));
+                                fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &e);
+                            }
+                        }
+                    }
+                    PipelineCommand::Status { tx } => {
+                        drop(tx.send(make_status(&conn, state, in_flight.len(), queued.len())));
+                    }
+                    PipelineCommand::Shutdown { tx } => {
+                        conn.close();
+                        state = PipelineState::Closed;
+                        shared_state.store(state.to_u8(), Ordering::SeqCst);
+                        fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &Error::Closed);
+                        match tx.send(()) {
+                            Ok(()) | Err(()) => (),
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Pipelined connection manager supporting non-interleaved mid-connection SASL reauthentication.
+///
+/// Ensures that when session reauthentication is triggered:
+/// 1. Pipelined application traffic is quiesced (all in-flight wire requests drain).
+/// 2. Any new application requests submitted during quiescing or reauthentication are queued
+///    in memory and accepted (no accepted work is lost).
+/// 3. Reauthentication executes on the quiet wire using reserved SASL correlation IDs.
+///    Application and SASL correlation IDs are never mixed.
+/// 4. Upon successful reauth, pipelined traffic resumes and queued requests are dispatched.
+/// 5. Upon failure, disconnect, or expiry, all accepted and in-flight work fails cleanly.
+#[derive(Clone)]
+pub struct BrokerPipeline {
+    cmd_tx: tokio::sync::mpsc::Sender<PipelineCommand>,
+    closed: Arc<AtomicBool>,
+    shared_state: Arc<AtomicU8>,
+}
+
+impl fmt::Debug for BrokerPipeline {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BrokerPipeline")
+            .field("state", &self.state())
+            .field("closed", &self.is_closed())
+            .finish()
+    }
+}
+
+impl BrokerPipeline {
+    /// Create a new pipelined connection wrapper with default max in-flight (5).
+    #[must_use]
+    pub fn new(conn: BrokerConn) -> Self {
+        Self::with_max_in_flight(conn, 5)
+    }
+
+    /// Create a new pipelined connection wrapper with specified max in-flight requests.
+    #[must_use]
+    pub fn with_max_in_flight(conn: BrokerConn, max_in_flight: usize) -> Self {
+        let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel(128);
+        let closed = conn.closed.clone();
+        let shared_state = Arc::new(AtomicU8::new(PipelineState::Active.to_u8()));
+        drop(tokio::spawn(run_pipeline_loop(
+            conn,
+            max_in_flight.max(1),
+            cmd_rx,
+            shared_state.clone(),
+        )));
+        Self {
+            cmd_tx,
+            closed,
+            shared_state,
+        }
+    }
+
+    /// Whether this pipeline's underlying connection is closed.
+    #[must_use]
+    pub fn is_closed(&self) -> bool {
+        self.closed.load(Ordering::SeqCst) || self.state() == PipelineState::Closed
+    }
+
+    /// Current pipeline state.
+    #[must_use]
+    pub fn state(&self) -> PipelineState {
+        PipelineState::from_u8(self.shared_state.load(Ordering::SeqCst))
+    }
+
+    /// Submit an application request to the pipeline.
+    ///
+    /// If the pipeline is currently quiescing or reauthenticating, the request is
+    /// accepted into the queue and will be dispatched once reauthentication succeeds
+    /// and the pipeline resumes. Accepted work is never lost.
+    pub async fn request<F>(
+        &self,
+        api_key: i16,
+        api_version: i16,
+        encode_body: F,
+        timeout: Duration,
+    ) -> Result<Bytes>
+    where
+        F: FnOnce(&mut BytesMut) -> Result<()> + Send + 'static,
+    {
+        if self.is_closed() {
+            return Err(Error::Closed);
+        }
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        let deadline = Deadline::from_timeout(timeout);
+        let cmd = PipelineCommand::Request {
+            api_key,
+            api_version,
+            encode_body: Box::new(encode_body),
+            tx,
+            deadline,
+        };
+        self.cmd_tx.send(cmd).await.map_err(|_| Error::Closed)?;
+        rx.await.map_err(|_| Error::Closed)?
+    }
+
+    /// Quiesce the pipeline: stop sending new requests and wait until all in-flight
+    /// requests on the wire have received their responses.
+    pub async fn quiesce(&self, timeout: Duration) -> Result<()> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        let deadline = Deadline::from_timeout(timeout);
+        self.cmd_tx
+            .send(PipelineCommand::Quiesce { tx, deadline })
+            .await
+            .map_err(|_| Error::Closed)?;
+        rx.await.map_err(|_| Error::Closed)?
+    }
+
+    /// Resume the pipeline after a manual quiesce.
+    pub async fn resume(&self) -> Result<()> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.cmd_tx
+            .send(PipelineCommand::Resume { tx })
+            .await
+            .map_err(|_| Error::Closed)?;
+        rx.await.map_err(|_| Error::Closed)?
+    }
+
+    /// Execute mid-connection reauthentication.
+    ///
+    /// Automatically quiesces in-flight application requests before invoking `reauth`,
+    /// executes `reauth` on the quiet wire using reserved SASL correlation IDs, and
+    /// resumes the pipeline upon success. Any application requests accepted while
+    /// quiescing or reauthenticating are queued and dispatched upon resumption.
+    pub async fn reauthenticate<F>(&self, reauth: F, timeout: Duration) -> Result<()>
+    where
+        F: for<'a> FnOnce(
+                &'a mut BrokerConn,
+                Duration,
+            ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>
+            + Send
+            + 'static,
+    {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        let boxed_reauth: ReauthFn = Box::new(reauth);
+        self.cmd_tx
+            .send(PipelineCommand::Reauthenticate {
+                reauth: boxed_reauth,
+                tx,
+                timeout,
+            })
+            .await
+            .map_err(|_| Error::Closed)?;
+        rx.await.map_err(|_| Error::Closed)?
+    }
+
+    /// Mid-connection OAUTHBEARER reauthentication with access token.
+    pub async fn reauthenticate_oauthbearer_token(
+        &self,
+        token: &str,
+        timeout: Duration,
+    ) -> Result<()> {
+        let token = token.to_string();
+        self.reauthenticate(
+            move |conn, timeout| {
+                Box::pin(async move {
+                    crate::protocol::sasl::reauthenticate_oauthbearer_token(conn, &token, timeout)
+                        .await
+                })
+            },
+            timeout,
+        )
+        .await
+    }
+
+    /// Mid-connection OAUTHBEARER reauthentication with token provider.
+    pub async fn reauthenticate_with_token_provider<
+        P: crate::protocol::oidc::TokenProvider + ?Sized,
+    >(
+        &self,
+        provider: &P,
+        timeout: Duration,
+    ) -> Result<()> {
+        let token = provider.token(timeout).await?;
+        self.reauthenticate_oauthbearer_token(&token, timeout).await
+    }
+
+    /// Mid-connection PLAIN reauthentication.
+    pub async fn reauthenticate_plain(
+        &self,
+        user: &str,
+        pass: &str,
+        timeout: Duration,
+    ) -> Result<()> {
+        let user = user.to_string();
+        let pass = pass.to_string();
+        self.reauthenticate(
+            move |conn, timeout| {
+                Box::pin(async move {
+                    crate::protocol::sasl::reauthenticate_plain(conn, &user, &pass, timeout).await
+                })
+            },
+            timeout,
+        )
+        .await
+    }
+
+    /// Mid-connection SCRAM reauthentication.
+    pub async fn reauthenticate_scram(
+        &self,
+        alg: crate::protocol::scram::ScramAlg,
+        user: &str,
+        pass: &str,
+        timeout: Duration,
+    ) -> Result<()> {
+        let user = user.to_string();
+        let pass = pass.to_string();
+        self.reauthenticate(
+            move |conn, timeout| {
+                Box::pin(async move {
+                    crate::protocol::sasl::reauthenticate_scram(conn, alg, &user, &pass, timeout)
+                        .await
+                })
+            },
+            timeout,
+        )
+        .await
+    }
+
+    /// Query the pipeline status.
+    pub async fn status(&self) -> Result<PipelineStatus> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.cmd_tx
+            .send(PipelineCommand::Status { tx })
+            .await
+            .map_err(|_| Error::Closed)?;
+        rx.await.map_err(|_| Error::Closed)
+    }
+
+    /// Number of in-flight application requests currently on the wire.
+    pub async fn in_flight_count(&self) -> Result<usize> {
+        Ok(self.status().await?.in_flight)
+    }
+
+    /// Number of accepted application requests waiting in the queue.
+    pub async fn queued_count(&self) -> Result<usize> {
+        Ok(self.status().await?.queued)
+    }
+
+    /// Whether the pipeline is currently quiesced with 0 in-flight requests.
+    pub async fn is_quiesced(&self) -> Result<bool> {
+        let st = self.status().await?;
+        Ok(st.state == PipelineState::Quiescing && st.in_flight == 0)
+    }
+
+    /// Broker session lifetime in milliseconds.
+    pub async fn session_lifetime_ms(&self) -> Result<Option<i64>> {
+        Ok(self.status().await?.session_lifetime_ms)
+    }
+
+    /// Whether the broker SASL session has expired.
+    pub async fn is_session_expired(&self) -> Result<bool> {
+        Ok(self.status().await?.is_session_expired)
+    }
+
+    /// Whether proactive reauthentication threshold has been reached.
+    pub async fn needs_reauth(&self) -> Result<bool> {
+        Ok(self.status().await?.needs_reauth)
+    }
+
+    /// Gracefully shutdown the pipeline and close the connection.
+    pub async fn shutdown(&self) {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        if self
+            .cmd_tx
+            .send(PipelineCommand::Shutdown { tx })
+            .await
+            .is_ok()
+        {
+            match rx.await {
+                Ok(()) | Err(_) => (),
+            }
+        }
     }
 }
 
