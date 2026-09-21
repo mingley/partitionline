@@ -608,13 +608,31 @@
     {
       "id": "KL03-17",
       "title": "Create an isolated three-broker fault topology",
-      "priority": "P1", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "test-infrastructure", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-02"],
       "files": ["new: tests/cluster/", "new: scripts/cluster-fixture.sh"],
       "deliverable": "A reproducible KRaft RF=3/min-ISR=2 lab with owned resources and deterministic fault controls.",
       "acceptance": ["Pin official images, broker/controller roles, ports, feature levels and topology manifest.", "Start, stop, leader/coordinator movement, disconnect and restart address only recorded owned resources.", "Missing Docker/Java/approval fails explicitly; cleanup never kills processes by name or deletes shared topics."],
       "validation": ["Run the topology script's start/status/stop self-tests with an isolated fake backend.", "With approval, start the real fixture, prove readiness/replication and clean up only its resources."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "b5fc8689888e4ef51cac5cabfde2f030e627e91a",
+                "commands": [
+                        "bash scripts/cluster-fixture.sh --self-test (exit 0, fake backend)",
+                        "python3 -m unittest discover -s tests/cluster -p test_*.py (12 passed, exit 0)"
+                ],
+                "results": "Pinned RF=3/min-ISR=2 topology with owned container names and recorded PIDs. Start/status/stop/fault self-tests pass on an isolated fake backend. Missing approval or binaries fail closed. Cleanup addresses recorded resources only. No real cluster was started.",
+                "artifacts": [
+                        "scripts/cluster-fixture.sh",
+                        "tests/cluster/topology.json",
+                        "tests/cluster/test_fixture.py",
+                        "docs/plan/evidence/KL03-17.json"
+                ],
+                "limits": [
+                        "Real Docker/native KRaft start, readiness, and replication were not run. That remains an approved later exercise."
+                ]
+        }
+]
     },
     {
       "id": "KL03-18",
@@ -1175,13 +1193,29 @@
     {
       "id": "KL06-01",
       "title": "Specify credential refresh and reauthentication ownership",
-      "priority": "P0", "kind": "specification", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "specification", "status": "done", "owner": "mingley",
       "depends_on": ["KL02-01"],
       "files": ["src/protocol/oidc.rs", "src/protocol/sasl.rs", "src/net.rs", "docs/security.md"],
       "deliverable": "A small state/ownership contract for token acquisition, expiry, refresh, reconnect and broker-requested reauthentication.",
       "acceptance": ["Separate one-shot bounded retry already implemented from missing proactive refresh and session_lifetime_ms handling.", "Define valid-old-token behavior during refresh failure, clock skew, jitter, concurrent connections and absolute deadlines.", "Approve any credential-provider/config API change before implementation; no plaintext fallback or secret-bearing diagnostics."],
       "validation": ["Trace producer, consumer, admin and group/share coordinator authentication entrypoints.", "Review the state table against the pinned Apache SASL/OIDC lifecycle contract."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "541310c9ea0f5625dc776159d3b2f1a2cb761714",
+                "commands": [
+                        "citation check of OIDC retry constants and SaslAuthenticate session_lifetime_ms against the worktree"
+                ],
+                "results": "Specification separates the landed three-attempt OIDC retry from missing proactive refresh and ignored session_lifetime_ms. Refresh-failure, skew, jitter, concurrent connections, and deadline behavior are defined. API additions are marked proposed. No runtime change.",
+                "artifacts": [
+                        "docs/auth-refresh.md",
+                        "docs/security.md",
+                        "docs/plan/evidence/KL06-01.json"
+                ],
+                "limits": [
+                        "Specification only. Mid-connection refresh and SASL reauthentication remain later KL06 cards."
+                ]
+        }
+]
     },
     {
       "id": "KL06-02",
