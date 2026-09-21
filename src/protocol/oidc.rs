@@ -78,8 +78,8 @@ const OIDC_RETRY_BACKOFF_START: Duration = Duration::from_millis(20);
 
 /// POST `grant_type=client_credentials` and return `access_token`.
 ///
-/// Transient IdP failures (HTTP 5xx, I/O, timeout) are retried up to
-/// [`OIDC_FETCH_ATTEMPTS`] within `request_timeout`. HTTP 4xx fails immediately
+/// Transient IdP failures (HTTP 5xx, I/O, timeout) are retried up to three
+/// attempts within `request_timeout`. HTTP 4xx fails immediately
 /// (no credential hammering). This is bounded reconnect-time recovery, **not**
 /// mid-connection token refresh / `expires_in` handling (KL-06 still open).
 pub async fn fetch_client_credentials_token(
