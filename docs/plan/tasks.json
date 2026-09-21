@@ -44,13 +44,30 @@
     {
       "id": "KL01-02",
       "title": "Validate and aggregate conformance results fail-closed",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-01"],
       "files": ["new: scripts/conformance-report.py", "new: tests/conformance/test_report.py", "tests/conformance/cases.json"],
       "deliverable": "A standard-library result validator and summary for the case registry.",
       "acceptance": ["Reject missing/duplicate cases, unknown statuses, wrong source/peer revisions and absent artifacts.", "Required failed/not-run/unsupported/blocked cases cannot produce a success exit code.", "Preserve every attempt; rerun success cannot erase a first failure or change the case denominator."],
       "validation": ["python3 -m unittest discover -s tests/conformance -p test_report.py", "Exercise an intentionally incomplete report and require a nonzero exit."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "7e45ebe3b4d8db45073b6ea1d699fa4d639c3b70",
+                "commands": [
+                        "python3 -m unittest discover -s tests/conformance -p test_report.py (21 passed, exit 0)",
+                        "python3 scripts/conformance-report.py tests/conformance/cases.json (exit 1)"
+                ],
+                "results": "Validator rejects missing, duplicate, unknown, wrong-revision, and artifact-less results. The current registry exits 1: 99 cases, 79 in the denominator, 5 failed (A01-A05), 5 not_run, 4 blocked, 8 unsupported, 0 independent_pass. Rerun success cannot erase a first failure.",
+                "artifacts": [
+                        "scripts/conformance-report.py",
+                        "tests/conformance/test_report.py",
+                        "docs/plan/evidence/KL01-02.json"
+                ],
+                "limits": [
+                        "Reporter only. Independent Java fixtures remain KL01-03. cases.json was not edited."
+                ]
+        }
+]
     },
     {
       "id": "KL01-03",
