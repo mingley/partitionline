@@ -1,0 +1,19 @@
+{
+  "id": "KL07-01",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "8cc0ba3a21a03df08d9f703294a2d62fc7f020fd",
+  "commands": [
+    "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features --offline exit 0",
+    "cargo test --locked --doc --all-features --offline exit 0",
+    "cargo test --locked --all-features --offline protocol::oidc exit 0"
+  ],
+  "results": "rustdoc built without warnings or private-item link failure; 4 doctests passed; 8 OIDC unit tests passed",
+  "artifacts": [
+    "src/protocol/oidc.rs"
+  ],
+  "limits": [
+    "Documentation-only fix; bounded reconnect-time recovery retained without runtime change; mid-connection token refresh remains open (KL-06)"
+  ],
+  "blocked_reason": null
+}
