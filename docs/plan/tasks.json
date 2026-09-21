@@ -405,13 +405,31 @@
     {
       "id": "KL02-05",
       "title": "Make worker shutdown and clone races bounded",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL02-04"],
       "files": ["src/producer.rs", "tests/produce_cancel.rs", "docs/guide.md"],
       "deliverable": "A tested terminal lifecycle for close, close_timeout, last-handle drop and concurrent sends.",
       "acceptance": ["Do not regress the existing durable Closed flag across clones.", "Stalled brokers/retry queues cannot leave completions or owned tasks alive indefinitely after the declared shutdown outcome.", "Preserve documented ambiguous delivery after transmission; never translate cancellation into proof of non-delivery."],
       "validation": ["cargo test --locked --test produce_cancel", "cargo test --locked --test buffer_ownership"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "54f06cbc19faa7eec0e7491bc764b9db9e3f7e31",
+                "commands": [
+                        "cargo test --offline --locked --test produce_cancel (9 passed, exit 0)",
+                        "cargo test --offline --locked --test buffer_ownership (12 passed, exit 0)"
+                ],
+                "results": "close_timeout against a stalled broker returns Timeout within the deadline. An in-flight record completes with Timeout, which is ambiguous delivery, not proof it was never written. Concurrent sends after close see Closed on every clone. Dropping the last handle aborts workers and releases buffer permits. The durable Closed flag is unchanged.",
+                "artifacts": [
+                        "src/producer.rs",
+                        "tests/produce_cancel.rs",
+                        "docs/guide.md",
+                        "docs/plan/evidence/KL02-05.json"
+                ],
+                "limits": [
+                        "Timeout after transmission is still not a broker-confirmed ambiguous receipt. It only refuses to claim non-delivery."
+                ]
+        }
+]
     },
     {
       "id": "KL02-06",
