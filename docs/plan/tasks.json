@@ -1245,13 +1245,31 @@
     {
       "id": "KL07-02",
       "title": "Require strict rustdoc and doctests in CI",
-      "priority": "P0", "kind": "ci", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "ci", "status": "done", "owner": "mingley",
       "depends_on": ["KL07-01"],
       "files": [".github/workflows/ci.yml", "scripts/ci-docs.sh", "CONTRIBUTING.md"],
       "deliverable": "A real documentation gate instead of matching one warning phrase.",
       "acceptance": ["Run all-feature cargo doc with warnings denied and a separate cargo test --doc lane.", "A deliberately broken/private intra-doc link fails the gate.", "Do not count cargo test --all-targets as doctest coverage or hide warnings with allow attributes."],
       "validation": ["bash scripts/ci-docs.sh", "cargo test --locked --doc --all-features", "Inspect a CI run containing the new required documentation lane."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ab89e5343fbc75d247b57328df1f9b6829eb8907",
+                "commands": [
+                        "bash scripts/ci-docs.sh (exit 0, recorded by the card)",
+                        "bash scripts/ci-docs.sh --self-test (exit 0; private intra-doc link rejected, fixture removed)"
+                ],
+                "results": "CI docs lane runs RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features and a separate cargo test --locked --doc --all-features. The self-test proves a private intra-doc link fails the gate and restores the tree. No allow(rustdoc) suppression was added.",
+                "artifacts": [
+                        ".github/workflows/ci.yml",
+                        "scripts/ci-docs.sh",
+                        "CONTRIBUTING.md",
+                        "docs/plan/evidence/KL07-02.json"
+                ],
+                "limits": [
+                        "A completed GitHub Actions run of the new docs job was not inspected. The job is not separately marked required in branch protection."
+                ]
+        }
+]
     },
     {
       "id": "KL07-03",
