@@ -1,0 +1,28 @@
+{
+  "id": "KL01-02",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "e0ac7ffa23b470b3e54c1229762acd2f295ac67d",
+  "commands": [
+    "python3 -m unittest discover -s tests/conformance -p test_report.py (rc=0, 21 tests passed)",
+    "python3 scripts/conformance-report.py tests/conformance/cases.json (rc=1, baseline cases fail closed on A01-A05, unsupported, blocked, not_run)",
+    "echo '{}' | python3 scripts/conformance-report.py (rc=2, empty input rejected fail closed)",
+    "echo '{\"cases\": [{\"id\": \"matrix-cell-produce-3-9-1\", \"status\": \"local_consistency\"}]}' | python3 scripts/conformance-report.py (rc=2, missing cases rejected fail closed)"
+  ],
+  "results": {
+    "test_count": 21,
+    "passed": 21,
+    "failed": 0,
+    "summary": "Standard-library conformance report validator and aggregator implemented. Successfully rejects empty input, missing cases, duplicate case IDs, duplicate attempts, unknown statuses, wrong source and peer revisions, and absent artifacts. Enforces that denominator statuses (failed, not_run, unsupported, blocked) exit non-zero. Preserves every attempt in an immutable attempt log, preventing rerun success from erasing first failures or shrinking the denominator. Validates that not_applicable exclusions require registry denominator=false and an explicit reason."
+  },
+  "artifacts": [
+    "scripts/conformance-report.py",
+    "tests/conformance/test_report.py",
+    "docs/plan/evidence/KL01-02.json"
+  ],
+  "limits": [
+    "Validator and aggregator only. Independent Java wire-fixture generation remains deferred to KL01-03+; baseline registry cases remain local_consistency, failed, unsupported, or blocked pending subsequent repair cards.",
+    "Artifact filesystem check verifies on-disk file existence for file paths and accepts URI/fixture scheme references."
+  ],
+  "blocked_reason": null
+}
