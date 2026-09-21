@@ -43,6 +43,18 @@ fi
 ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 
+# Refuse non-final or prerelease version tags (matches release.yml gate).
+case "$ver" in
+  *-*|*+*)
+    echo "owner-publish: refusing prerelease/build version '$ver' — crates.io publish is for final X.Y.Z only." >&2
+    exit 1
+    ;;
+esac
+if ! printf '%s' "$ver" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+  echo "owner-publish: refusing non-final version '$ver' (need X.Y.Z)." >&2
+  exit 1
+fi
+
 # KL-08: never cargo-publish a version crates.io already has (owner-cut
 # PUBLISH_LOCAL=1 re-entry after 0.1.0 must recover via day1/handoff).
 # shellcheck source=scripts/lib/crates-io.sh
