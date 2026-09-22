@@ -1595,13 +1595,39 @@
     {
       "id": "KL05-23",
       "title": "Implement companion Schema Registry lookups",
-      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P2", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL05-01"],
       "files": ["partitionline-schema/Cargo.toml", "new: partitionline-schema/src/registry.rs", "docs/schema-companion.md"],
       "deliverable": "A bounded HTTP lookup client for schema IDs and subject/version references in the companion only.",
       "acceptance": ["Use approved manifest-declared dependencies, TLS verification, typed errors and explicit timeout/retry/auth behavior.", "Cover references, not-found, authorization, rate limiting and malformed responses using local fixtures.", "Keep publish=false and avoid schema registration/mutation or core-client dependencies in this task."],
       "validation": ["cargo test --locked --manifest-path partitionline-schema/Cargo.toml", "Inspect the companion feature/dependency tree and failure-message redaction."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ebe9e0e26ad512dbe423f1191da16ff06b966f33",
+                "commands": [
+                        "cargo test --locked --manifest-path partitionline-schema/Cargo.toml (43 passed, exit 0)",
+                        "cargo test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features (4 passed, exit 0)",
+                        "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml --lib (43 passed, MSRV, exit 0)",
+                        "cargo clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings (exit 0)",
+                        "bash scripts/check-schema-companion-scaffold.sh (exit 0)"
+                ],
+                "results": "Bounded read-only Schema Registry client in the companion only: get_schema_by_id, get_schema_by_subject, fetch_references over GET-only HTTP/1.1 (tokio+rustls, webpki roots or custom ca_pem, full hostname verification). Typed RegistryError, explicit timeout/retry/backoff bounds, redacted Debug/errors. 43 tests incl. TLS positive/negative, auth, rate-limit, malformed, and redaction cases; no-default-features core stays dep-free.",
+                "artifacts": [
+                        "partitionline-schema/src/registry.rs",
+                        "partitionline-schema/Cargo.toml",
+                        "partitionline-schema/Cargo.lock",
+                        "partitionline-schema/src/lib.rs",
+                        "docs/schema-companion.md",
+                        "docs/plan/evidence/KL05-23.json"
+                ],
+                "limits": [
+                        "No live Schema Registry exercised; loopback mock HTTP/TLS servers plus embedded private-CA fixtures only.",
+                        "Default webpki-roots path verified negatively (rejects private CA); no external PKI touched.",
+                        "cargo audit/deny not run on the companion lockfile (no such card gate); deps reuse core-cleared families, rustls 0.23.45 pinned.",
+                        "Sequential reference resolution, no caching/dedup, no redirects, no mTLS; ca_pem replaces (not unions) webpki roots."
+                ]
+        }
+      ]
     },
     {
       "id": "KL05-24",

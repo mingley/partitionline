@@ -9,10 +9,13 @@ Scaffold companion for Confluent-compatible **wire framing** used with
 ## Now
 
 - `encode` / `decode`: magic byte `0` + big-endian schema id + payload
+- `registry::RegistryClient` (default feature `registry`): bounded
+  read-only Schema Registry lookups (by id, by subject/version, plus
+  reference resolution). No registration or mutation APIs.
 
 ## Later (demand-gated)
 
-HTTP Schema Registry client + Avro / Protobuf / JSON codecs — see
+Avro / Protobuf / JSON codecs — see
 [`docs/schema-companion.md`](../docs/schema-companion.md) and survey
 [#85](https://github.com/mingley/partitionline/issues/85).
 

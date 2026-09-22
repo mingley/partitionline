@@ -10,8 +10,33 @@ publish = false
 keywords = ["kafka", "schema-registry", "confluent"]
 categories = ["encoding", "network-programming"]
 
+[features]
+default = ["registry"]
+# Bounded Schema Registry lookup client (GET-only HTTP/1.1 over tokio +
+# rustls with webpki roots). It is a default feature so the card's plain
+# `cargo test` exercises it, and stays optional so
+# `default-features = false` keeps the dep-free wire-framing core.
+# No C, no OpenSSL in any feature; never depends on the core client crate.
+registry = [
+    "dep:base64",
+    "dep:rustls",
+    "dep:tokio",
+    "dep:tokio-rustls",
+    "dep:webpki-roots",
+]
+
 [dependencies]
-# Wire framing is dep-free. Future HTTP/Schema Registry client + codecs stay
-# optional features — never pull native TLS stacks into defaults.
+# Wire framing is dep-free. The `registry` client reuses the same pure-Rust
+# TLS stack the core partitionline crate already clears (rustls +
+# webpki-roots, no serde, no url crate) and never pulls native TLS.
+base64 = { version = "0.22", optional = true }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"], optional = true }
+tokio = { version = "1", default-features = false, features = ["io-util", "net", "time"], optional = true }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"], optional = true }
+webpki-roots = { version = "1", optional = true }
 
 [dev-dependencies]
+# Test runtime only; the library itself needs no executor macros.
+# (`sync` for tokio::sync::Mutex in the mock harness: the repo clippy.toml
+# forbids std::sync::Mutex anywhere clippy runs, tests included.)
+tokio = { version = "1", default-features = false, features = ["macros", "rt", "sync"] }
