@@ -1510,13 +1510,43 @@
     {
       "id": "KL05-18",
       "title": "Add DescribeQuorum request/response codecs",
-      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P2", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL05-01", "KL01-03"],
       "files": ["src/protocol/admin.rs", "src/protocol/api_keys.rs", "tests/fixtures/protocol_oracles/"],
       "deliverable": "Source-pinned quorum-description codecs and independent fixtures.",
       "acceptance": ["Cover supported version transitions, leader/voter/observer state and nullable/error fields.", "Do not confuse display/key-name support with a functional implementation.", "Keep vote/replication state-machine APIs outside the client codec claim."],
       "validation": ["cargo test --locked --lib protocol::admin", "Run the independent DescribeQuorum fixture comparison."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ca50ca1103e37b5159875b8b5562c7cc1087c335",
+                "commands": [
+                        "cargo test --offline --locked --lib describe_quorum (9 passed, exit 0)",
+                        "cargo test --offline --locked --lib protocol::admin (331 passed, exit 0)",
+                        "cargo test --offline --locked --lib protocol::api_keys (3 passed, exit 0)",
+                        "cargo test --offline --locked --lib (1085 passed, 0 failed, exit 0)",
+                        "python3 -m unittest tests.conformance.test_check_protocol_coverage (15 passed, exit 0)",
+                        "rustfmt --edition 2021 --check src/protocol/admin.rs src/protocol/api_keys.rs (exit 0)",
+                        "cargo clippy --offline --locked --lib --all-features -- -D warnings (exit 0)"
+                ],
+                "results": "DescribeQuorum v0/v1/v2 request/response codecs pinned to Apache-generated fixtures (kafka-clients 3.9.1 and 4.1.0 bytes byte-identical): version transitions, leader/voter/observer state, nullable and error fields. 9 new fixture tests plus 331 protocol::admin tests pass; full lib suite green (1085 passed).",
+                "artifacts": [
+                        "src/protocol/admin.rs",
+                        "src/protocol/api_keys.rs",
+                        "tests/fixtures/protocol_oracles/describe_quorum_v0_initial.json",
+                        "tests/fixtures/protocol_oracles/describe_quorum_v1_fetch_timestamps.json",
+                        "tests/fixtures/protocol_oracles/describe_quorum_v2_nodes_errors.json",
+                        "tests/fixtures/protocol_oracles/describe_quorum_v2_partition_error.json",
+                        "tests/fixtures/protocol_oracles/describe_quorum_v2_top_level_error.json",
+                        "docs/plan/evidence/KL05-18.json"
+                ],
+                "limits": [
+                        "clippy --all-targets fails on pre-existing lints in untouched integration tests under clippy 1.98; the lib target is warning-free.",
+                        "Fixtures encoded by a scratch program in /tmp/dq-gen (not committed) with pinned kafka-clients artifacts; commands in evidence file.",
+                        "ErrorMessage empty-vs-null follows repo nullable convention (None for version-absent) except where Java helpers write empty, byte-pinned by the v2 partition-error fixture.",
+                        "No high-level Admin routing, header version-table entries, or features.json change; key 55 runtime wiring belongs to KL05-19. matrix.json untouched."
+                ]
+        }
+      ]
     },
     {
       "id": "KL05-19",

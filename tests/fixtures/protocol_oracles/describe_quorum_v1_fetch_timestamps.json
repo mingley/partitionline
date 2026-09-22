@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "describe-quorum-v1-fetch-timestamps",
+  "api": "DescribeQuorum",
+  "api_key": 55,
+  "api_version": 1,
+  "pin": "4.1.0",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+  "artifact": "org.apache.kafka:kafka-clients:4.1.0",
+  "generator": "KL05-18 standalone DescribeQuorum fixture encode versus pinned kafka-client message classes; see docs/plan/evidence/KL05-18.json",
+  "description": "DescribeQuorum v1 adds KIP-836 LastFetchTimestamp/LastCaughtUpTimestamp per replica; leader and unknown entries use -1; request bytes identical to v0 (request unchanged, flexible 0+)",
+  "request": {
+    "file": "describe_quorum_v1_fetch_timestamps_request.bin",
+    "size_bytes": 33,
+    "sha256": "908d13b15e032435bec8b63c4122cd405c9f1216c2d7f01bfded4f936e58dbe9",
+    "hex": "02135f5f636c75737465725f6d6574616461746103000000000000000001000000"
+  },
+  "response": {
+    "file": "describe_quorum_v1_fetch_timestamps_response.bin",
+    "size_bytes": 220,
+    "sha256": "0b7a438b997726cd7e8da9016e18a671f947a7445175304bbf7f667b04bc62c8",
+    "hex": "000002135f5f636c75737465725f6d6574616461746103000000000000000000020000000900000000000001f4040000000200000000000001f4ffffffffffffffff0000018bcfe56800000000000100000000000001f30000018bcfe56be80000018bcfe569f4000000000300000000000001900000018bcfe56418ffffffffffffffff00020000000500000000000001f30000018bcfe56be80000018bcfe569900000000000010000ffffffff00000009ffffffffffffffff020000000200000000000001f4ffffffffffffffffffffffffffffffff0001000000"
+  }
+}

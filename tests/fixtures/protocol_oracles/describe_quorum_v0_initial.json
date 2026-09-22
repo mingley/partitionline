@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "describe-quorum-v0-initial",
+  "api": "DescribeQuorum",
+  "api_key": 55,
+  "api_version": 0,
+  "pin": "4.1.0",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+  "artifact": "org.apache.kafka:kafka-clients:4.1.0",
+  "generator": "KL05-18 standalone DescribeQuorum fixture encode versus pinned kafka-client message classes; see docs/plan/evidence/KL05-18.json",
+  "description": "DescribeQuorum v0 always-flexible baseline: __cluster_metadata partitions 0-1; p0 leader 1 epoch 7 with 3 voters and 1 observer, p1 unknown leader (-1); no timestamps, directory ids, messages, or nodes on v0",
+  "request": {
+    "file": "describe_quorum_v0_initial_request.bin",
+    "size_bytes": 33,
+    "sha256": "908d13b15e032435bec8b63c4122cd405c9f1216c2d7f01bfded4f936e58dbe9",
+    "hex": "02135f5f636c75737465725f6d6574616461746103000000000000000001000000"
+  },
+  "response": {
+    "file": "describe_quorum_v0_initial_response.bin",
+    "size_bytes": 140,
+    "sha256": "4b6a456afe35aa472dd8264cd0419eb1aa61aab5d7e48ee281d3898cd981844d",
+    "hex": "000002135f5f636c75737465725f6d65746164617461030000000000000000000100000007000000000000007804000000010000000000000078000000000200000000000000770000000003000000000000006400020000000400000000000000760000000000010000ffffffff00000007ffffffffffffffff020000000100000000000000780001000000"
+  }
+}

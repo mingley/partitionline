@@ -9,7 +9,7 @@
 //! GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
 //! AlterReplicaLogDirs, DescribeLogDirs, CreateDelegationToken,
 //! RenewDelegationToken, ExpireDelegationToken, DescribeDelegationToken,
-//! ElectLeaders.
+//! ElectLeaders, DescribeQuorum.
 //!
 //! ACL codecs live in [`crate::protocol::acl`].
 
@@ -17659,6 +17659,584 @@ pub fn decode_elect_leaders_response<B: Buf>(
         throttle_time_ms,
         error_code,
         results,
+    })
+}
+
+/// DescribeQuorum `ReplicaState` timestamp for "unknown" (JSON default
+/// `-1`): the leader's own `LastFetchTimestamp`, and any voter/observer
+/// whose fetch or catch-up time the leader has not observed (KIP-836).
+pub const DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP: i64 = -1;
+
+/// One topic's partitions in a DescribeQuorum request.
+///
+/// Java `DescribeQuorumRequestData.TopicData` (`TopicName` then
+/// `Partitions`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeQuorumTopic {
+    /// Topic name.
+    pub topic: String,
+    /// Partitions of this topic to describe.
+    pub partitions: Vec<i32>,
+}
+
+impl DescribeQuorumTopic {
+    /// Topic plus partitions.
+    #[must_use]
+    pub fn new(topic: impl Into<String>, partitions: Vec<i32>) -> Self {
+        Self {
+            topic: topic.into(),
+            partitions,
+        }
+    }
+}
+
+/// DescribeQuorum request body (api 55, KIP-595).
+///
+/// Java `DescribeQuorumRequestData` (`Topics`). The request is unchanged
+/// across v0–v2 and is always flexible (`flexibleVersions: "0+"`), so the
+/// same topic set encodes to identical bytes on every version.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeQuorumRequest {
+    /// Topics to describe.
+    pub topics: Vec<DescribeQuorumTopic>,
+}
+
+impl DescribeQuorumRequest {
+    /// Java `DescribeQuorumRequest.singletonRequest`.
+    #[must_use]
+    pub fn singleton(topic: impl Into<String>, partition: i32) -> Self {
+        Self {
+            topics: vec![DescribeQuorumTopic::new(topic, vec![partition])],
+        }
+    }
+
+    /// Java `DescribeQuorumRequest.getErrorResponse`.
+    ///
+    /// `getErrorResponse` ignores its throttle argument (the response has
+    /// no throttle field) and returns
+    /// `getTopLevelErrorResponse(Errors.forException(...))`: the error is
+    /// top-level only, with empty topics and nodes. Below v2 the
+    /// `ErrorMessage` is omitted from the wire even when `error_message`
+    /// is set; decode fills `None`.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        error_message: Option<&str>,
+    ) -> crate::error::Result<()> {
+        encode_describe_quorum_response(
+            buf,
+            version,
+            &DescribeQuorumResponse {
+                error_code,
+                error_message: error_message.map(str::to_owned),
+                topics: Vec::new(),
+                nodes: Vec::new(),
+            },
+        )
+    }
+
+    /// Java `DescribeQuorumRequest.getPartitionLevelErrorResponse`.
+    ///
+    /// Copies each request topic name and partition id into the results;
+    /// every partition entry carries `error_code` with `error_message`,
+    /// and leader/epoch/watermark stay at the Java fresh-object zeros with
+    /// empty voter/observer lists (verified against the pinned 4.1.0
+    /// class). The top-level code stays `0`; the top-level message is the
+    /// Java ignorable-field empty-string default, which encodes as an
+    /// empty (not null) string on v2+. Below v2 the messages are omitted
+    /// from the wire; decode fills `None`.
+    pub fn partition_error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        topics: &[DescribeQuorumTopic],
+        error_code: i16,
+        error_message: Option<&str>,
+    ) -> crate::error::Result<()> {
+        let results: Vec<DescribeQuorumResult> = topics
+            .iter()
+            .map(|topic| DescribeQuorumResult {
+                topic: topic.topic.clone(),
+                partitions: topic
+                    .partitions
+                    .iter()
+                    .map(|partition_index| DescribeQuorumPartition {
+                        partition_index: *partition_index,
+                        error_code,
+                        error_message: error_message.map(str::to_owned),
+                        leader_id: 0,
+                        leader_epoch: 0,
+                        high_watermark: 0,
+                        current_voters: Vec::new(),
+                        observers: Vec::new(),
+                    })
+                    .collect(),
+            })
+            .collect();
+        encode_describe_quorum_response(
+            buf,
+            version,
+            &DescribeQuorumResponse {
+                error_code: 0,
+                error_message: Some(String::new()),
+                topics: results,
+                nodes: Vec::new(),
+            },
+        )
+    }
+}
+
+/// One voter's or observer's replication state.
+///
+/// Java `DescribeQuorumResponseData.ReplicaState` (`ReplicaId`,
+/// `ReplicaDirectoryId` on v2+, `LogEndOffset`, `LastFetchTimestamp` and
+/// `LastCaughtUpTimestamp` on v1+).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeQuorumReplicaState {
+    /// Replica broker id.
+    pub replica_id: i32,
+    /// Replica directory id (KIP-853). v2+ on the wire; decode fills zero.
+    pub replica_directory_id: [u8; 16],
+    /// Last known log end offset of the replica (`-1` if unknown).
+    pub log_end_offset: i64,
+    /// Leader wall-clock time of the replica's last fetch (KIP-836). v1+
+    /// on the wire; [`DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP`] when the replica
+    /// is the leader or the time is unknown.
+    pub last_fetch_timestamp: i64,
+    /// Leader wall-clock append time of the offset of the replica's most
+    /// recent fetch (KIP-836). v1+ on the wire; same unknown sentinel.
+    pub last_caught_up_timestamp: i64,
+}
+
+/// One partition's quorum description.
+///
+/// Java `DescribeQuorumResponseData.PartitionData` (`PartitionIndex`,
+/// `ErrorCode`, `ErrorMessage` on v2+, `LeaderId`, `LeaderEpoch`,
+/// `HighWatermark`, `CurrentVoters`, `Observers`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeQuorumPartition {
+    /// Partition id.
+    pub partition_index: i32,
+    /// Per-partition error code (`0` is success).
+    pub error_code: i16,
+    /// Broker error message, when present. v2+ on the wire.
+    pub error_message: Option<String>,
+    /// Current leader id, or `-1` when the leader is unknown.
+    pub leader_id: i32,
+    /// Latest known leader epoch.
+    pub leader_epoch: i32,
+    /// Partition high watermark.
+    pub high_watermark: i64,
+    /// Current voters of the partition.
+    pub current_voters: Vec<DescribeQuorumReplicaState>,
+    /// Observers of the partition.
+    pub observers: Vec<DescribeQuorumReplicaState>,
+}
+
+/// One topic's quorum descriptions.
+///
+/// Java `DescribeQuorumResponseData.TopicData` (`TopicName` then
+/// `Partitions`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeQuorumResult {
+    /// Topic name.
+    pub topic: String,
+    /// Quorum description for each partition.
+    pub partitions: Vec<DescribeQuorumPartition>,
+}
+
+/// One listener of a quorum node.
+///
+/// Java `DescribeQuorumResponseData.Listener` (`Name`, `Host`, `Port`).
+/// v2+ on the wire (KIP-853).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeQuorumListener {
+    /// Listener name.
+    pub name: String,
+    /// Listener hostname.
+    pub host: String,
+    /// Listener port (`UINT16` on the wire).
+    pub port: u16,
+}
+
+/// One node in the quorum.
+///
+/// Java `DescribeQuorumResponseData.Node` (`NodeId`, `Listeners`). v2+ on
+/// the wire (KIP-853).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeQuorumNode {
+    /// Node id.
+    pub node_id: i32,
+    /// Node listeners.
+    pub listeners: Vec<DescribeQuorumListener>,
+}
+
+/// DescribeQuorum response body (api 55, KIP-595).
+///
+/// Java `DescribeQuorumResponseData` (`ErrorCode`, `ErrorMessage` on v2+,
+/// `Topics`, `Nodes` on v2+). v1 adds the `ReplicaState` fetch/catch-up
+/// timestamps (KIP-836); v2 adds the error messages, `Nodes` and
+/// `ReplicaDirectoryId` (KIP-853). There is no throttle field: Java
+/// `throttleTimeMs()` is constant `0` and `maybeSetThrottleTimeMs` is a
+/// no-op (verified by decompiling the pinned 4.1.0 class).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeQuorumResponse {
+    /// Top-level error code (`0` is success).
+    pub error_code: i16,
+    /// Top-level error message, when present. v2+ on the wire.
+    pub error_message: Option<String>,
+    /// Quorum descriptions per topic.
+    pub topics: Vec<DescribeQuorumResult>,
+    /// Nodes in the quorum. v2+ on the wire.
+    pub nodes: Vec<DescribeQuorumNode>,
+}
+
+impl DescribeQuorumResponse {
+    /// Construct [`Self`].
+    #[must_use]
+    pub fn new(
+        error_code: i16,
+        error_message: Option<String>,
+        topics: Vec<DescribeQuorumResult>,
+        nodes: Vec<DescribeQuorumNode>,
+    ) -> Self {
+        Self {
+            error_code,
+            error_message,
+            topics,
+            nodes,
+        }
+    }
+
+    /// Top-level error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Java `AbstractResponse.shouldClientThrottle` default (constant
+    /// `false`; `DescribeQuorumResponse` does not override it because the
+    /// response carries no throttle time).
+    #[must_use]
+    pub const fn should_client_throttle(_version: i16) -> bool {
+        false
+    }
+
+    /// Java `DescribeQuorumResponse.errorCounts`.
+    ///
+    /// The top-level code is always counted once (even `NONE`), plus one
+    /// count per per-partition error code.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        let count = counts.entry(self.error_code).or_insert(0);
+        *count += 1;
+        for topic in &self.topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
+    }
+}
+
+/// `true` when DescribeQuorum `version` is flexible.
+///
+/// All versions are flexible (Apache JSON `validVersions: "0-2"`,
+/// `flexibleVersions: "0+"`; identical in Kafka 3.9.1 and 4.1.0). The
+/// request is unchanged across versions; v1 adds the `ReplicaState`
+/// fetch/catch-up timestamps (KIP-836) and v2 adds the error messages,
+/// `Nodes` and `ReplicaDirectoryId` (KIP-853). v3+ is not spoken.
+fn describe_quorum_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=2 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "DescribeQuorum version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode a DescribeQuorum request (v0–2).
+///
+/// The request is unchanged across versions: compact strings/arrays plus
+/// tagged fields at every level on all versions.
+pub fn encode_describe_quorum_request(
+    buf: &mut BytesMut,
+    version: i16,
+    req: &DescribeQuorumRequest,
+) -> crate::error::Result<()> {
+    let flexible = describe_quorum_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(req.topics.len()))?;
+    for topic in &req.topics {
+        buf::put_string(buf, flexible, Some(&topic.topic))?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(*partition);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+/// Decode a DescribeQuorum request (v0–2).
+///
+/// Always flexible; see [`encode_describe_quorum_request`].
+pub fn decode_describe_quorum_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<DescribeQuorumRequest> {
+    let flexible = describe_quorum_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            partitions.push(buf::get_i32(buf)?);
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        topics.push(DescribeQuorumTopic { topic, partitions });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(DescribeQuorumRequest { topics })
+}
+
+/// Encode one `CurrentVoters`/`Observers` replica list.
+fn encode_describe_quorum_replicas(
+    buf: &mut BytesMut,
+    version: i16,
+    flexible: bool,
+    replicas: &[DescribeQuorumReplicaState],
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, flexible, Some(replicas.len()))?;
+    for replica in replicas {
+        buf.put_i32(replica.replica_id);
+        if version >= 2 {
+            buf.extend_from_slice(&replica.replica_directory_id);
+        }
+        buf.put_i64(replica.log_end_offset);
+        if version >= 1 {
+            buf.put_i64(replica.last_fetch_timestamp);
+            buf.put_i64(replica.last_caught_up_timestamp);
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    Ok(())
+}
+
+/// Decode one `CurrentVoters`/`Observers` replica list.
+///
+/// Below v1 the timestamps are absent; decode fills
+/// [`DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP`]. Below v2 the directory id is
+/// absent; decode fills zero.
+fn decode_describe_quorum_replicas<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+) -> Result<Vec<DescribeQuorumReplicaState>> {
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut replicas = Vec::with_capacity(n);
+    for _ in 0..n {
+        let replica_id = buf::get_i32(buf)?;
+        let replica_directory_id = if version >= 2 {
+            buf::get_uuid(buf)?
+        } else {
+            [0u8; 16]
+        };
+        let log_end_offset = buf::get_i64(buf)?;
+        let (last_fetch_timestamp, last_caught_up_timestamp) = if version >= 1 {
+            (buf::get_i64(buf)?, buf::get_i64(buf)?)
+        } else {
+            (
+                DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP,
+                DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP,
+            )
+        };
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        replicas.push(DescribeQuorumReplicaState {
+            replica_id,
+            replica_directory_id,
+            log_end_offset,
+            last_fetch_timestamp,
+            last_caught_up_timestamp,
+        });
+    }
+    Ok(replicas)
+}
+
+/// Encode a DescribeQuorum response (v0–2).
+///
+/// Below v2 the top-level and per-partition `ErrorMessage` fields, the
+/// `ReplicaDirectoryId` values and `Nodes` are omitted even when set;
+/// decode fills `None`/zero/empty. Below v1 the `ReplicaState`
+/// timestamps are omitted; decode fills
+/// [`DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP`].
+pub fn encode_describe_quorum_response(
+    buf: &mut BytesMut,
+    version: i16,
+    resp: &DescribeQuorumResponse,
+) -> crate::error::Result<()> {
+    let flexible = describe_quorum_flexible(version)?;
+    buf.put_i16(resp.error_code);
+    if version >= 2 {
+        buf::put_string(buf, flexible, resp.error_message.as_deref())?;
+    }
+    buf::put_array_len(buf, flexible, Some(resp.topics.len()))?;
+    for topic in &resp.topics {
+        buf::put_string(buf, flexible, Some(&topic.topic))?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(partition.partition_index);
+            buf.put_i16(partition.error_code);
+            if version >= 2 {
+                buf::put_string(buf, flexible, partition.error_message.as_deref())?;
+            }
+            buf.put_i32(partition.leader_id);
+            buf.put_i32(partition.leader_epoch);
+            buf.put_i64(partition.high_watermark);
+            encode_describe_quorum_replicas(buf, version, flexible, &partition.current_voters)?;
+            encode_describe_quorum_replicas(buf, version, flexible, &partition.observers)?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if version >= 2 {
+        buf::put_array_len(buf, flexible, Some(resp.nodes.len()))?;
+        for node in &resp.nodes {
+            buf.put_i32(node.node_id);
+            buf::put_array_len(buf, flexible, Some(node.listeners.len()))?;
+            for listener in &node.listeners {
+                buf::put_string(buf, flexible, Some(&listener.name))?;
+                buf::put_string(buf, flexible, Some(&listener.host))?;
+                buf.put_u16(listener.port);
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+/// Decode a DescribeQuorum response (v0–2).
+///
+/// Below v2 the error messages, directory ids and nodes are absent; decode
+/// fills `None`/zero/empty. Below v1 the timestamps are absent; decode
+/// fills [`DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP`].
+pub fn decode_describe_quorum_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<DescribeQuorumResponse> {
+    let flexible = describe_quorum_flexible(version)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = if version >= 2 {
+        buf::get_string(buf, flexible)?
+    } else {
+        None
+    };
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition_index = buf::get_i32(buf)?;
+            let partition_error_code = buf::get_i16(buf)?;
+            let partition_error_message = if version >= 2 {
+                buf::get_string(buf, flexible)?
+            } else {
+                None
+            };
+            let leader_id = buf::get_i32(buf)?;
+            let leader_epoch = buf::get_i32(buf)?;
+            let high_watermark = buf::get_i64(buf)?;
+            let current_voters = decode_describe_quorum_replicas(buf, version, flexible)?;
+            let observers = decode_describe_quorum_replicas(buf, version, flexible)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            partitions.push(DescribeQuorumPartition {
+                partition_index,
+                error_code: partition_error_code,
+                error_message: partition_error_message,
+                leader_id,
+                leader_epoch,
+                high_watermark,
+                current_voters,
+                observers,
+            });
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        topics.push(DescribeQuorumResult { topic, partitions });
+    }
+    let nodes = if version >= 2 {
+        let nn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut nodes = Vec::with_capacity(nn);
+        for _ in 0..nn {
+            let node_id = buf::get_i32(buf)?;
+            let ln = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+            let mut listeners = Vec::with_capacity(ln);
+            for _ in 0..ln {
+                let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+                let host = buf::get_string(buf, flexible)?.unwrap_or_default();
+                buf::need(buf, 2)?;
+                let port = buf.get_u16();
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
+                listeners.push(DescribeQuorumListener { name, host, port });
+            }
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            nodes.push(DescribeQuorumNode { node_id, listeners });
+        }
+        nodes
+    } else {
+        Vec::new()
+    };
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(DescribeQuorumResponse {
+        error_code,
+        error_message,
+        topics,
+        nodes,
     })
 }
 
@@ -36616,6 +37194,698 @@ mod tests {
             );
             let mut cur = buf.as_ref();
             let err = decode_elect_leaders_response(&mut cur, version).unwrap_err();
+            assert!(
+                err.to_string().contains("not implemented"),
+                "v{version} is not spoken, got {err}"
+            );
+        }
+    }
+
+    const NOT_CONTROLLER_MESSAGE: &str = "This is not the correct controller for this cluster.";
+
+    fn describe_quorum_replica(
+        replica_id: i32,
+        replica_directory_id: [u8; 16],
+        log_end_offset: i64,
+        last_fetch_timestamp: i64,
+        last_caught_up_timestamp: i64,
+    ) -> DescribeQuorumReplicaState {
+        DescribeQuorumReplicaState {
+            replica_id,
+            replica_directory_id,
+            log_end_offset,
+            last_fetch_timestamp,
+            last_caught_up_timestamp,
+        }
+    }
+
+    #[test]
+    fn describe_quorum_v0_matches_apache_fixtures() {
+        // Independent encode from pinned Apache kafka-clients 4.1.0
+        // message classes (byte-identical under 3.9.1). Official JSON
+        // api 55 validVersions 0-2, flexibleVersions 0+: v0 is already
+        // flexible (compact strings/arrays plus tagged fields). v0 has no
+        // timestamps, directory ids, error messages, or nodes. p1 pins the
+        // unknown-leader (-1) state.
+        const DIR_ZERO: [u8; 16] = [0u8; 16];
+        const REQ: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/describe_quorum_v0_initial_request.bin"
+        );
+        const RESP: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/describe_quorum_v0_initial_response.bin"
+        );
+        let mut cur = REQ;
+        let req = decode_describe_quorum_request(&mut cur, 0).unwrap();
+        assert_eq!(
+            req,
+            DescribeQuorumRequest {
+                topics: vec![DescribeQuorumTopic::new("__cluster_metadata", vec![0, 1])],
+            }
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeQuorum v0 request must be leftover-empty"
+        );
+        let mut buf = BytesMut::new();
+        encode_describe_quorum_request(&mut buf, 0, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+
+        let mut cur = RESP;
+        let resp = decode_describe_quorum_response(&mut cur, 0).unwrap();
+        assert_eq!(resp.error_code(), 0);
+        assert_eq!(resp.error_message, None);
+        assert!(resp.nodes.is_empty());
+        assert_eq!(
+            resp.topics,
+            vec![DescribeQuorumResult {
+                topic: "__cluster_metadata".into(),
+                partitions: vec![
+                    DescribeQuorumPartition {
+                        partition_index: 0,
+                        error_code: 0,
+                        error_message: None,
+                        leader_id: 1,
+                        leader_epoch: 7,
+                        high_watermark: 120,
+                        current_voters: vec![
+                            describe_quorum_replica(
+                                1,
+                                DIR_ZERO,
+                                120,
+                                DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP,
+                                DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP
+                            ),
+                            describe_quorum_replica(
+                                2,
+                                DIR_ZERO,
+                                119,
+                                DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP,
+                                DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP
+                            ),
+                            describe_quorum_replica(
+                                3,
+                                DIR_ZERO,
+                                100,
+                                DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP,
+                                DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP
+                            ),
+                        ],
+                        observers: vec![describe_quorum_replica(
+                            4,
+                            DIR_ZERO,
+                            118,
+                            DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP,
+                            DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP
+                        )],
+                    },
+                    DescribeQuorumPartition {
+                        partition_index: 1,
+                        error_code: 0,
+                        error_message: None,
+                        leader_id: -1,
+                        leader_epoch: 7,
+                        high_watermark: -1,
+                        current_voters: vec![describe_quorum_replica(
+                            1,
+                            DIR_ZERO,
+                            120,
+                            DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP,
+                            DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP
+                        )],
+                        observers: Vec::new(),
+                    },
+                ],
+            }]
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeQuorum v0 response must be leftover-empty"
+        );
+        buf.clear();
+        encode_describe_quorum_response(&mut buf, 0, &resp).unwrap();
+        assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn describe_quorum_v1_matches_apache_fixtures() {
+        // Independent encode from pinned Apache kafka-clients 4.1.0
+        // message classes (byte-identical under 3.9.1). v1 adds the
+        // KIP-836 LastFetchTimestamp/LastCaughtUpTimestamp per replica;
+        // the leader's own fetch time and unobserved times stay -1. The
+        // request is unchanged across versions, so its bytes equal v0's.
+        const DIR_ZERO: [u8; 16] = [0u8; 16];
+        const REQ_V0: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/describe_quorum_v0_initial_request.bin"
+        );
+        const REQ: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/describe_quorum_v1_fetch_timestamps_request.bin"
+        );
+        const RESP: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/describe_quorum_v1_fetch_timestamps_response.bin"
+        );
+        assert_eq!(
+            REQ, REQ_V0,
+            "DescribeQuorum request is unchanged across versions"
+        );
+        let mut cur = REQ;
+        let req = decode_describe_quorum_request(&mut cur, 1).unwrap();
+        assert_eq!(
+            req,
+            DescribeQuorumRequest {
+                topics: vec![DescribeQuorumTopic::new("__cluster_metadata", vec![0, 1])],
+            }
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeQuorum v1 request must be leftover-empty"
+        );
+        let mut buf = BytesMut::new();
+        encode_describe_quorum_request(&mut buf, 1, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+
+        let mut cur = RESP;
+        let resp = decode_describe_quorum_response(&mut cur, 1).unwrap();
+        assert_eq!(resp.error_code(), 0);
+        assert_eq!(resp.error_message, None);
+        assert!(resp.nodes.is_empty());
+        assert_eq!(
+            resp.topics,
+            vec![DescribeQuorumResult {
+                topic: "__cluster_metadata".into(),
+                partitions: vec![
+                    DescribeQuorumPartition {
+                        partition_index: 0,
+                        error_code: 0,
+                        error_message: None,
+                        leader_id: 2,
+                        leader_epoch: 9,
+                        high_watermark: 500,
+                        current_voters: vec![
+                            describe_quorum_replica(
+                                2,
+                                DIR_ZERO,
+                                500,
+                                DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP,
+                                1_700_000_000_000
+                            ),
+                            describe_quorum_replica(
+                                1,
+                                DIR_ZERO,
+                                499,
+                                1_700_000_001_000,
+                                1_700_000_000_500
+                            ),
+                            describe_quorum_replica(
+                                3,
+                                DIR_ZERO,
+                                400,
+                                1_699_999_999_000,
+                                DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP
+                            ),
+                        ],
+                        observers: vec![describe_quorum_replica(
+                            5,
+                            DIR_ZERO,
+                            499,
+                            1_700_000_001_000,
+                            1_700_000_000_400
+                        )],
+                    },
+                    DescribeQuorumPartition {
+                        partition_index: 1,
+                        error_code: 0,
+                        error_message: None,
+                        leader_id: -1,
+                        leader_epoch: 9,
+                        high_watermark: -1,
+                        current_voters: vec![describe_quorum_replica(
+                            2,
+                            DIR_ZERO,
+                            500,
+                            DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP,
+                            DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP
+                        )],
+                        observers: Vec::new(),
+                    },
+                ],
+            }]
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeQuorum v1 response must be leftover-empty"
+        );
+        buf.clear();
+        encode_describe_quorum_response(&mut buf, 1, &resp).unwrap();
+        assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn describe_quorum_v2_matches_apache_fixtures() {
+        // Independent encode from pinned Apache kafka-clients 4.1.0
+        // message classes (byte-identical under 3.9.1). v2 adds the
+        // KIP-853 top-level and partition ErrorMessage (null and
+        // "unknown topic"), ReplicaDirectoryId UUIDs, and Nodes with
+        // controller/broker listeners (uint16 ports). p1 carries
+        // UNKNOWN_TOPIC_OR_PARTITION with empty voter/observer lists.
+        const DIR_1: [u8; 16] = [0x11u8; 16];
+        const DIR_2: [u8; 16] = [0x22u8; 16];
+        const DIR_3: [u8; 16] = [0x33u8; 16];
+        const REQ: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/describe_quorum_v2_nodes_errors_request.bin"
+        );
+        const RESP: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/describe_quorum_v2_nodes_errors_response.bin"
+        );
+        let mut cur = REQ;
+        let req = decode_describe_quorum_request(&mut cur, 2).unwrap();
+        assert_eq!(
+            req,
+            DescribeQuorumRequest {
+                topics: vec![DescribeQuorumTopic::new("__cluster_metadata", vec![0, 1])],
+            }
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeQuorum v2 request must be leftover-empty"
+        );
+        let mut buf = BytesMut::new();
+        encode_describe_quorum_request(&mut buf, 2, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+
+        let mut cur = RESP;
+        let resp = decode_describe_quorum_response(&mut cur, 2).unwrap();
+        assert_eq!(resp.error_code(), 0);
+        assert_eq!(resp.error_message, None);
+        assert_eq!(
+            resp.topics,
+            vec![DescribeQuorumResult {
+                topic: "__cluster_metadata".into(),
+                partitions: vec![
+                    DescribeQuorumPartition {
+                        partition_index: 0,
+                        error_code: 0,
+                        error_message: None,
+                        leader_id: 1,
+                        leader_epoch: 12,
+                        high_watermark: 900,
+                        current_voters: vec![
+                            describe_quorum_replica(
+                                1,
+                                DIR_1,
+                                900,
+                                DESCRIBE_QUORUM_UNKNOWN_TIMESTAMP,
+                                1_700_000_002_000
+                            ),
+                            describe_quorum_replica(
+                                2,
+                                DIR_2,
+                                899,
+                                1_700_000_002_100,
+                                1_700_000_002_050
+                            ),
+                        ],
+                        observers: vec![describe_quorum_replica(
+                            3,
+                            DIR_3,
+                            890,
+                            1_700_000_002_100,
+                            1_700_000_002_000
+                        )],
+                    },
+                    DescribeQuorumPartition {
+                        partition_index: 1,
+                        error_code: 3,
+                        error_message: Some("unknown topic".into()),
+                        leader_id: -1,
+                        leader_epoch: 0,
+                        high_watermark: -1,
+                        current_voters: Vec::new(),
+                        observers: Vec::new(),
+                    },
+                ],
+            }]
+        );
+        assert_eq!(
+            resp.nodes,
+            vec![
+                DescribeQuorumNode {
+                    node_id: 1,
+                    listeners: vec![
+                        DescribeQuorumListener {
+                            name: "CONTROLLER".into(),
+                            host: "controller-1.example".into(),
+                            port: 9093,
+                        },
+                        DescribeQuorumListener {
+                            name: "BROKER".into(),
+                            host: "broker-1.example".into(),
+                            port: 9092,
+                        },
+                    ],
+                },
+                DescribeQuorumNode {
+                    node_id: 2,
+                    listeners: vec![DescribeQuorumListener {
+                        name: "CONTROLLER".into(),
+                        host: "controller-2.example".into(),
+                        port: 9093,
+                    }],
+                },
+            ]
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeQuorum v2 response must be leftover-empty"
+        );
+        buf.clear();
+        encode_describe_quorum_response(&mut buf, 2, &resp).unwrap();
+        assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn describe_quorum_v2_top_level_error_matches_apache_fixtures() {
+        // Java `DescribeQuorumRequest.getTopLevelErrorResponse`
+        // (NOT_CONTROLLER), encoded by the pinned 4.1.0 message classes
+        // (byte-identical under 3.9.1): error 41 with the broker message,
+        // empty topics and nodes. `error_response` must reproduce these
+        // exact bytes: `getErrorResponse` ignores its throttle argument.
+        const RESP: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/describe_quorum_v2_top_level_error_response.bin"
+        );
+        let mut cur = RESP;
+        let resp = decode_describe_quorum_response(&mut cur, 2).unwrap();
+        assert_eq!(resp.error_code(), crate::error::NOT_CONTROLLER);
+        assert_eq!(resp.error_message, Some(NOT_CONTROLLER_MESSAGE.into()));
+        assert!(resp.topics.is_empty());
+        assert!(resp.nodes.is_empty());
+        assert!(
+            !cur.has_remaining(),
+            "DescribeQuorum v2 top-level error must be leftover-empty"
+        );
+
+        let mut buf = BytesMut::new();
+        DescribeQuorumRequest::error_response(
+            &mut buf,
+            2,
+            crate::error::NOT_CONTROLLER,
+            Some(NOT_CONTROLLER_MESSAGE),
+        )
+        .unwrap();
+        assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn describe_quorum_v2_partition_error_matches_apache_fixtures() {
+        // Java `DescribeQuorumRequest.getPartitionLevelErrorResponse`
+        // (NOT_CONTROLLER), encoded by the pinned 4.1.0 message classes
+        // (byte-identical under 3.9.1): both request partitions are
+        // copied with zero leader state, and the top-level message is
+        // Java's ignorable-field empty-string default (empty, not null).
+        const RESP: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/describe_quorum_v2_partition_error_response.bin"
+        );
+        let topics = [DescribeQuorumTopic::new("__cluster_metadata", vec![0, 1])];
+        let mut buf = BytesMut::new();
+        DescribeQuorumRequest::partition_error_response(
+            &mut buf,
+            2,
+            &topics,
+            crate::error::NOT_CONTROLLER,
+            Some(NOT_CONTROLLER_MESSAGE),
+        )
+        .unwrap();
+        assert_eq!(&buf[..], RESP);
+
+        let mut cur = &buf[..];
+        let resp = decode_describe_quorum_response(&mut cur, 2).unwrap();
+        assert_eq!(resp.error_code(), 0);
+        assert_eq!(resp.error_message, Some(String::new()));
+        assert_eq!(resp.topics.len(), 1);
+        assert_eq!(resp.topics[0].topic, "__cluster_metadata");
+        for (partition, index) in resp.topics[0].partitions.iter().zip([0, 1]) {
+            assert_eq!(partition.partition_index, index);
+            assert_eq!(partition.error_code, crate::error::NOT_CONTROLLER);
+            assert_eq!(partition.error_message, Some(NOT_CONTROLLER_MESSAGE.into()));
+            assert_eq!(partition.leader_id, 0);
+            assert_eq!(partition.leader_epoch, 0);
+            assert_eq!(partition.high_watermark, 0);
+            assert!(partition.current_voters.is_empty());
+            assert!(partition.observers.is_empty());
+        }
+        assert!(resp.nodes.is_empty());
+        assert!(
+            !cur.has_remaining(),
+            "DescribeQuorum v2 partition error must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_quorum_error_responses_match_java() {
+        // Java `DescribeQuorumRequest.singletonRequest`,
+        // `getErrorResponse` (throttle ignored, top-level only) and
+        // `getPartitionLevelErrorResponse` (topics copied, top-level code
+        // stays 0). Below v2 the messages are omitted from the wire even
+        // when set; decode fills `None`.
+        let req = DescribeQuorumRequest::singleton("__cluster_metadata", 0);
+        assert_eq!(
+            req.topics,
+            vec![DescribeQuorumTopic::new("__cluster_metadata", vec![0])]
+        );
+
+        for version in 0..=2 {
+            let mut buf = BytesMut::new();
+            DescribeQuorumRequest::error_response(
+                &mut buf,
+                version,
+                crate::error::NOT_CONTROLLER,
+                Some(NOT_CONTROLLER_MESSAGE),
+            )
+            .unwrap();
+            let mut cur = &buf[..];
+            let resp = decode_describe_quorum_response(&mut cur, version).unwrap();
+            assert_eq!(resp.error_code(), crate::error::NOT_CONTROLLER);
+            if version >= 2 {
+                assert_eq!(resp.error_message, Some(NOT_CONTROLLER_MESSAGE.into()));
+            } else {
+                assert_eq!(
+                    resp.error_message, None,
+                    "v{version} has no top-level ErrorMessage on the wire"
+                );
+            }
+            assert!(resp.topics.is_empty());
+            assert!(resp.nodes.is_empty());
+            assert!(
+                !cur.has_remaining(),
+                "DescribeQuorum v{version} error response must be leftover-empty"
+            );
+
+            let topics = [DescribeQuorumTopic::new("__cluster_metadata", vec![0, 1])];
+            let mut buf = BytesMut::new();
+            DescribeQuorumRequest::partition_error_response(
+                &mut buf,
+                version,
+                &topics,
+                crate::error::NOT_CONTROLLER,
+                Some(NOT_CONTROLLER_MESSAGE),
+            )
+            .unwrap();
+            let mut cur = &buf[..];
+            let resp = decode_describe_quorum_response(&mut cur, version).unwrap();
+            assert_eq!(resp.error_code(), 0);
+            assert_eq!(resp.topics.len(), 1);
+            assert_eq!(resp.topics[0].partitions.len(), 2);
+            for partition in &resp.topics[0].partitions {
+                assert_eq!(partition.error_code, crate::error::NOT_CONTROLLER);
+                if version >= 2 {
+                    assert_eq!(partition.error_message, Some(NOT_CONTROLLER_MESSAGE.into()));
+                } else {
+                    assert_eq!(
+                        partition.error_message, None,
+                        "v{version} has no partition ErrorMessage on the wire"
+                    );
+                }
+            }
+            assert!(
+                !cur.has_remaining(),
+                "DescribeQuorum v{version} partition error must be leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        DescribeQuorumRequest::partition_error_response(
+            &mut buf,
+            2,
+            &[],
+            crate::error::NOT_CONTROLLER,
+            Some(NOT_CONTROLLER_MESSAGE),
+        )
+        .unwrap();
+        let mut cur = &buf[..];
+        let resp = decode_describe_quorum_response(&mut cur, 2).unwrap();
+        assert!(
+            resp.topics.is_empty(),
+            "empty request topics yield empty results"
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeQuorum v2 empty partition error must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_quorum_error_counts_matches_java() {
+        // Java `DescribeQuorumResponse.errorCounts`: the top-level code is
+        // always counted once (even `NONE`), plus one count per
+        // per-partition code. Distributions verified against the pinned
+        // 4.1.0 class (`{NONE=3}` all-success, `{NONE=2,
+        // UNKNOWN_TOPIC_OR_PARTITION=1}` mixed, `{NOT_CONTROLLER=1}`
+        // top-level only, `{NONE=1, NOT_CONTROLLER=2}` partition errors).
+        let resp = DescribeQuorumResponse::new(0, None, Vec::new(), Vec::new());
+        assert_eq!(resp.error_counts(), HashMap::from([(0, 1)]));
+        let resp = DescribeQuorumResponse::new(
+            0,
+            None,
+            vec![DescribeQuorumResult {
+                topic: "t".into(),
+                partitions: vec![
+                    DescribeQuorumPartition {
+                        partition_index: 0,
+                        error_code: 0,
+                        error_message: None,
+                        leader_id: 1,
+                        leader_epoch: 7,
+                        high_watermark: 120,
+                        current_voters: Vec::new(),
+                        observers: Vec::new(),
+                    },
+                    DescribeQuorumPartition {
+                        partition_index: 1,
+                        error_code: 0,
+                        error_message: None,
+                        leader_id: -1,
+                        leader_epoch: 7,
+                        high_watermark: -1,
+                        current_voters: Vec::new(),
+                        observers: Vec::new(),
+                    },
+                ],
+            }],
+            Vec::new(),
+        );
+        assert_eq!(resp.error_counts(), HashMap::from([(0, 3)]));
+        let resp = DescribeQuorumResponse::new(
+            0,
+            None,
+            vec![DescribeQuorumResult {
+                topic: "t".into(),
+                partitions: vec![
+                    DescribeQuorumPartition {
+                        partition_index: 0,
+                        error_code: 0,
+                        error_message: None,
+                        leader_id: 1,
+                        leader_epoch: 12,
+                        high_watermark: 900,
+                        current_voters: Vec::new(),
+                        observers: Vec::new(),
+                    },
+                    DescribeQuorumPartition {
+                        partition_index: 1,
+                        error_code: 3,
+                        error_message: Some("unknown topic".into()),
+                        leader_id: -1,
+                        leader_epoch: 0,
+                        high_watermark: -1,
+                        current_voters: Vec::new(),
+                        observers: Vec::new(),
+                    },
+                ],
+            }],
+            Vec::new(),
+        );
+        assert_eq!(resp.error_counts(), HashMap::from([(0, 2), (3, 1)]));
+        let resp = DescribeQuorumResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some(NOT_CONTROLLER_MESSAGE.into()),
+            Vec::new(),
+            Vec::new(),
+        );
+        assert_eq!(
+            resp.error_counts(),
+            HashMap::from([(crate::error::NOT_CONTROLLER, 1)])
+        );
+        let resp = DescribeQuorumResponse::new(
+            0,
+            Some(String::new()),
+            vec![DescribeQuorumResult {
+                topic: "t".into(),
+                partitions: vec![
+                    DescribeQuorumPartition {
+                        partition_index: 0,
+                        error_code: crate::error::NOT_CONTROLLER,
+                        error_message: Some(NOT_CONTROLLER_MESSAGE.into()),
+                        leader_id: 0,
+                        leader_epoch: 0,
+                        high_watermark: 0,
+                        current_voters: Vec::new(),
+                        observers: Vec::new(),
+                    },
+                    DescribeQuorumPartition {
+                        partition_index: 1,
+                        error_code: crate::error::NOT_CONTROLLER,
+                        error_message: Some(NOT_CONTROLLER_MESSAGE.into()),
+                        leader_id: 0,
+                        leader_epoch: 0,
+                        high_watermark: 0,
+                        current_voters: Vec::new(),
+                        observers: Vec::new(),
+                    },
+                ],
+            }],
+            Vec::new(),
+        );
+        assert_eq!(
+            resp.error_counts(),
+            HashMap::from([(0, 1), (crate::error::NOT_CONTROLLER, 2)])
+        );
+    }
+
+    #[test]
+    fn describe_quorum_should_client_throttle_matches_java() {
+        // Java `AbstractResponse.shouldClientThrottle` default is constant
+        // `false` (verified by decompiling the pinned 4.1.0 class);
+        // `DescribeQuorumResponse` does not override it because the
+        // response carries no throttle time.
+        for version in 0..=2 {
+            assert!(!DescribeQuorumResponse::should_client_throttle(version));
+        }
+    }
+
+    #[test]
+    fn describe_quorum_unspoken_versions_are_not_spoken() {
+        let req = DescribeQuorumRequest::singleton("__cluster_metadata", 0);
+        for version in [-1, 3, 4] {
+            let mut buf = BytesMut::new();
+            let err = encode_describe_quorum_request(&mut buf, version, &req).unwrap_err();
+            assert!(
+                err.to_string().contains("not implemented"),
+                "v{version} is not spoken, got {err}"
+            );
+            let mut cur = buf.as_ref();
+            let err = decode_describe_quorum_request(&mut cur, version).unwrap_err();
+            assert!(
+                err.to_string().contains("not implemented"),
+                "v{version} is not spoken, got {err}"
+            );
+            buf.clear();
+            let resp = DescribeQuorumResponse::new(0, None, Vec::new(), Vec::new());
+            let err = encode_describe_quorum_response(&mut buf, version, &resp).unwrap_err();
+            assert!(
+                err.to_string().contains("not implemented"),
+                "v{version} is not spoken, got {err}"
+            );
+            let mut cur = buf.as_ref();
+            let err = decode_describe_quorum_response(&mut cur, version).unwrap_err();
             assert!(
                 err.to_string().contains("not implemented"),
                 "v{version} is not spoken, got {err}"

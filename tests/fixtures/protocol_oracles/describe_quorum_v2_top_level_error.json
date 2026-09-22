@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "describe-quorum-v2-top-level-error",
+  "api": "DescribeQuorum",
+  "api_key": 55,
+  "api_version": 2,
+  "pin": "4.1.0",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+  "artifact": "org.apache.kafka:kafka-clients:4.1.0",
+  "generator": "KL05-18 standalone DescribeQuorum fixture encode versus pinned kafka-client message classes; see docs/plan/evidence/KL05-18.json",
+  "description": "DescribeQuorum v2 top-level error from Java getTopLevelErrorResponse(NOT_CONTROLLER): error 41 with broker message, empty topics and nodes; singleton request shape",
+  "request": {
+    "file": "describe_quorum_v2_top_level_error_request.bin",
+    "size_bytes": 28,
+    "sha256": "b58e589ad30ea5ab9a5022b9b6c69fcb0fb781497b016b53484a89eeeecc23b0",
+    "hex": "02135f5f636c75737465725f6d657461646174610200000000000000"
+  },
+  "response": {
+    "file": "describe_quorum_v2_top_level_error_response.bin",
+    "size_bytes": 58,
+    "sha256": "6340e51a415d129d7cdc09f035e83f7abbad91e63adeb33a980c7f1a0b9807a7",
+    "hex": "00293554686973206973206e6f742074686520636f727265637420636f6e74726f6c6c657220666f72207468697320636c75737465722e010100"
+  }
+}
