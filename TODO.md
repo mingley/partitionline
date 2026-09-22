@@ -1,6 +1,6 @@
 # Next-session queue
 
-**Default next task: `KL03-01` -- promote the deterministic consumer fixture.**
+**Default next task: `KL03-09` -- qualify nontransactional producer epoch recovery.**
 
 Use [one task per session](docs/plan/README.md). The canonical
 [task registry](docs/plan/tasks.json) contains dependencies, starting files,
