@@ -2526,13 +2526,37 @@
     {
       "id": "KL08-21",
       "title": "Repair clippy/fmt/features drift blocking green main",
-      "priority": "P0", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": [],
-      "files": ["tests/mock_produce.rs", "tests/roundtrip.rs", "tests/auth_lifecycle.rs", "tests/protocol_oracles.rs"],
+      "files": ["tests/mock_produce.rs", "tests/roundtrip.rs", "tests/auth_lifecycle.rs", "tests/protocol_oracles.rs", "tests/e2e.rs", "tests/network_deadlines.rs"],
       "deliverable": "Green clippy, fmt, and features lanes on the exact main SHA with no behavior change.",
       "acceptance": ["Unfulfilled #[expect] attributes in mock_produce/roundtrip resolved without weakening lint coverage on the gated toolchain.", "usize-to-i32 cast lints in auth_lifecycle fixed with explicit handling (no silent truncation).", "protocol_oracles.rs passes cargo fmt --check with zero changes to test semantics; no other file reformatted.", "No production-code behavior change; all touched test targets pass."],
       "validation": ["cargo clippy --locked --all-targets --all-features -- -D warnings", "cargo clippy --locked --all-targets --features tracing -- -D warnings", "cargo fmt --all -- --check"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "d1970e13a119cc50628e226649bb46cd59947e0c",
+                "commands": [
+                        "cargo clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+                        "cargo clippy --locked --all-targets --features tracing -- -D warnings (exit 0)",
+                        "cargo fmt --all -- --check (exit 0)",
+                        "Touched test targets, all green: mock_produce 1, roundtrip 1, auth_lifecycle 22, protocol_oracles 20 (+1 pre-existing ignore), e2e 1, network_deadlines 8"
+                ],
+                "results": "clippy, fmt, and features lanes green with test-only changes: 3 stale dead_code #![expect]s removed outright (mock_produce, roundtrip, e2e — zero coverage lost), auth_lifecycle/network_deadlines helpers rewritten to Result+try_from (no silent truncation; panic behavior preserved), protocol_oracles.rs reformatted (whitespace+comma-stripped md5 identical pre/post, re-wrap only). Scope extended parent-side from 4 to 6 files to cover residual e2e/network_deadlines failures found during validation.",
+                "artifacts": [
+                        "tests/mock_produce.rs",
+                        "tests/roundtrip.rs",
+                        "tests/auth_lifecycle.rs",
+                        "tests/protocol_oracles.rs",
+                        "tests/e2e.rs",
+                        "tests/network_deadlines.rs",
+                        "docs/plan/evidence/KL08-21.json"
+                ],
+                "limits": [
+                        "Live-broker protocol_oracles case ignored as on main (REQUIRE_BROKER=1 not set).",
+                        "Failures were pre-existing toolchain drift (CI red on these lanes before this session); no production code touched."
+                ]
+        }
+      ]
     }
   ]
 }

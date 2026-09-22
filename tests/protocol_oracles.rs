@@ -25,9 +25,9 @@ use partitionline::error::{
 };
 use partitionline::net::BrokerConn;
 use partitionline::protocol::api::{
-    decode_api_versions_handshake, decode_metadata_request_topics,
-    decode_metadata_response, decode_produce_request, decode_produce_response,
-    encode_api_versions_request, encode_metadata_request,
+    decode_api_versions_handshake, decode_metadata_request_topics, decode_metadata_response,
+    decode_produce_request, decode_produce_response, encode_api_versions_request,
+    encode_metadata_request,
     encode_metadata_request_topics_with_include_cluster_authorized_operations,
     encode_metadata_response, encode_produce_request, encode_produce_response,
     encode_produce_response_with_throttle, Broker, MetadataRequest, MetadataRequestTopic,
@@ -50,10 +50,10 @@ use partitionline::protocol::offsets::{
     decode_list_offsets_topics_request, decode_list_offsets_topics_response,
     encode_list_offsets_request, encode_list_offsets_topics_request,
     encode_list_offsets_topics_response, encode_list_offsets_topics_response_with_throttle,
-    ListOffsetsPartition, ListOffsetsPartitionRequest, ListOffsetsRequest,
-    ListOffsetsResponse, ListOffsetsResponsePartition, ListOffsetsTopicRequest,
-    ListOffsetsTopicResponse, DEBUGGING_REPLICA_ID, EARLIEST_LOCAL_TIMESTAMP,
-    EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, MAX_TIMESTAMP,
+    ListOffsetsPartition, ListOffsetsPartitionRequest, ListOffsetsRequest, ListOffsetsResponse,
+    ListOffsetsResponsePartition, ListOffsetsTopicRequest, ListOffsetsTopicResponse,
+    DEBUGGING_REPLICA_ID, EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP,
+    LATEST_TIMESTAMP, MAX_TIMESTAMP,
 };
 use partitionline::protocol::records::{
     self, ControlRecordType, EndTransactionMarker, Record, RecordBatch,
@@ -539,15 +539,7 @@ fn metadata_body(gated_present: bool) -> MetadataResponse {
                 "ok-topic",
                 false,
                 vec![
-                    PartitionMetadata::new(
-                        0,
-                        0,
-                        Some(1),
-                        epoch,
-                        vec![1, 2],
-                        vec![1],
-                        vec![2],
-                    ),
+                    PartitionMetadata::new(0, 0, Some(1), epoch, vec![1, 2], vec![1], vec![2]),
                     PartitionMetadata::new(
                         LEADER_NOT_AVAILABLE,
                         1,
@@ -1462,10 +1454,7 @@ fn apache_produce_boundary_fixtures_decode_offline() {
         assert_eq!(parts[1].partition, 1);
         assert_eq!(parts[1].error_code, NOT_LEADER_OR_FOLLOWER);
         assert_eq!(parts[1].base_offset, -1);
-        assert_eq!(
-            parts[1].error_message.as_deref(),
-            Some("Broker not leader")
-        );
+        assert_eq!(parts[1].error_message.as_deref(), Some("Broker not leader"));
         assert_eq!(
             parts[1].current_leader_id,
             MetadataResponse::NO_LEADER_ID,
@@ -1578,7 +1567,8 @@ fn produce_version_gate_and_field_order_mutations_fail() {
     // Mutation 5: Version gate mutation for current_leader (gate is v10+).
     // Decoding v10 response as v9 ignores current_leader tag and decodes default sentinels.
     let mut cur = V10_RESP;
-    let (parts, _, _) = decode_produce_response(&mut cur, 9).expect("v9 decodes without leader tag");
+    let (parts, _, _) =
+        decode_produce_response(&mut cur, 9).expect("v9 decodes without leader tag");
     assert_eq!(
         parts[0].current_leader_id,
         MetadataResponse::NO_LEADER_ID,
@@ -1751,13 +1741,23 @@ fn rust_produce_output_decodes_with_apache_when_java_available() {
 fn apache_fetch_boundary_fixtures_decode_offline() {
     // 1. Fetch v4: classic wire format (oldest spoken, topic name, untagged replicaId = -1, omitted logStartOffset)
     {
-        const REQ: &[u8] =
-            include_bytes!("fixtures/protocol_oracles/fetch_v4_classic_request.bin");
+        const REQ: &[u8] = include_bytes!("fixtures/protocol_oracles/fetch_v4_classic_request.bin");
         const RESP: &[u8] =
             include_bytes!("fixtures/protocol_oracles/fetch_v4_classic_response.bin");
 
-        let (isolation, max_bytes, topics, rack, session, forgotten, max_wait_ms, min_bytes, replica_id, replica_epoch, cluster_id) =
-            decode_fetch_request(&mut &REQ[..], 4).expect("fetch v4 request");
+        let (
+            isolation,
+            max_bytes,
+            topics,
+            rack,
+            session,
+            forgotten,
+            max_wait_ms,
+            min_bytes,
+            replica_id,
+            replica_epoch,
+            cluster_id,
+        ) = decode_fetch_request(&mut &REQ[..], 4).expect("fetch v4 request");
         assert_eq!(isolation, 0);
         assert_eq!(max_bytes, 10485760);
         assert_eq!(max_wait_ms, 500);
@@ -1776,7 +1776,10 @@ fn apache_fetch_boundary_fixtures_decode_offline() {
         assert_eq!(topics[0].partitions[0].partition, 0);
         assert_eq!(topics[0].partitions[0].fetch_offset, 0);
         assert_eq!(topics[0].partitions[0].partition_max_bytes, 1048576);
-        assert_eq!(topics[0].partitions[0].log_start_offset, INVALID_LOG_START_OFFSET);
+        assert_eq!(
+            topics[0].partitions[0].log_start_offset,
+            INVALID_LOG_START_OFFSET
+        );
         assert_eq!(topics[0].partitions[1].partition, 1);
         assert_eq!(topics[0].partitions[1].fetch_offset, 100);
 
@@ -1800,7 +1803,10 @@ fn apache_fetch_boundary_fixtures_decode_offline() {
         );
         assert!(topics_resp[0].partitions[0].records.is_empty());
         assert_eq!(topics_resp[0].partitions[1].partition, 1);
-        assert_eq!(topics_resp[0].partitions[1].error_code, UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            topics_resp[0].partitions[1].error_code,
+            UNKNOWN_TOPIC_OR_PARTITION
+        );
         assert_eq!(topics_resp[0].partitions[1].high_watermark, -1);
     }
 
@@ -1818,7 +1824,10 @@ fn apache_fetch_boundary_fixtures_decode_offline() {
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].topic, "fetch-v5-start-offset");
         assert_eq!(topics[0].partitions[0].fetch_offset, 150);
-        assert_eq!(topics[0].partitions[0].log_start_offset, 100, "v5 log_start_offset present on wire");
+        assert_eq!(
+            topics[0].partitions[0].log_start_offset, 100,
+            "v5 log_start_offset present on wire"
+        );
 
         let (topics_resp, _, _, _, throttle_ms) =
             decode_fetch_response(&mut &RESP[..], 5).expect("fetch v5 response");
@@ -1827,13 +1836,15 @@ fn apache_fetch_boundary_fixtures_decode_offline() {
         assert_eq!(topics_resp[0].topic, "fetch-v5-start-offset");
         assert_eq!(topics_resp[0].partitions[0].high_watermark, 250);
         assert_eq!(topics_resp[0].partitions[0].last_stable_offset, 240);
-        assert_eq!(topics_resp[0].partitions[0].log_start_offset, 100, "v5 response log_start_offset");
+        assert_eq!(
+            topics_resp[0].partitions[0].log_start_offset, 100,
+            "v5 response log_start_offset"
+        );
     }
 
     // 3. Fetch v7: classic wire format, session metadata gate (sessionId, sessionEpoch, forgottenTopicsData), abortedTransactions
     {
-        const REQ: &[u8] =
-            include_bytes!("fixtures/protocol_oracles/fetch_v7_session_request.bin");
+        const REQ: &[u8] = include_bytes!("fixtures/protocol_oracles/fetch_v7_session_request.bin");
         const RESP: &[u8] =
             include_bytes!("fixtures/protocol_oracles/fetch_v7_session_response.bin");
 
@@ -1872,7 +1883,10 @@ fn apache_fetch_boundary_fixtures_decode_offline() {
         assert_eq!(rack, "rack-east-az1", "v11 rackId");
         assert_eq!(session.session_id(), 100);
         assert_eq!(session.epoch(), 1);
-        assert_eq!(topics[0].partitions[0].fetch_offset, 102, "requested fetch offset 102");
+        assert_eq!(
+            topics[0].partitions[0].fetch_offset, 102,
+            "requested fetch offset 102"
+        );
         assert_eq!(topics[0].partitions[0].current_leader_epoch, 5);
         assert_eq!(topics[0].partitions[0].log_start_offset, 100);
 
@@ -1954,7 +1968,11 @@ fn apache_fetch_boundary_fixtures_decode_offline() {
 
         let (_, _, topics, rack, session, _, _, _, _, _, cluster_id) =
             decode_fetch_request(&mut &REQ[..], 12).expect("fetch v12 request");
-        assert_eq!(cluster_id.as_deref(), Some("cluster-v12"), "v12 cluster_id tag 0");
+        assert_eq!(
+            cluster_id.as_deref(),
+            Some("cluster-v12"),
+            "v12 cluster_id tag 0"
+        );
         assert_eq!(rack, "rack-west-1");
         assert_eq!(session.session_id(), 200);
         assert_eq!(session.epoch(), 2);
@@ -1993,27 +2011,42 @@ fn apache_fetch_boundary_fixtures_decode_offline() {
             include_bytes!("fixtures/protocol_oracles/fetch_v13_topic_ids_response.bin");
 
         let expected_topic_id = [
-            0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44,
-            0x55, 0x55, 0x66, 0x66, 0x77, 0x77, 0x88, 0x88,
+            0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66, 0x77, 0x77,
+            0x88, 0x88,
         ];
         let expected_forgotten_id = [
-            0xaa, 0xaa, 0xbb, 0xbb, 0xcc, 0xcc, 0xdd, 0xdd,
-            0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44,
+            0xaa, 0xaa, 0xbb, 0xbb, 0xcc, 0xcc, 0xdd, 0xdd, 0x11, 0x11, 0x22, 0x22, 0x33, 0x33,
+            0x44, 0x44,
         ];
 
         let (_, _, topics, _, _, forgotten, _, _, _, _, _) =
             decode_fetch_request(&mut &REQ[..], 13).expect("fetch v13 request");
-        assert!(topics[0].topic.is_empty(), "v13 request topic name is empty");
+        assert!(
+            topics[0].topic.is_empty(),
+            "v13 request topic name is empty"
+        );
         assert_eq!(topics[0].topic_id, expected_topic_id, "v13 request topicId");
-        assert!(forgotten[0].topic.is_empty(), "v13 forgotten topic name is empty");
-        assert_eq!(forgotten[0].topic_id, expected_forgotten_id, "v13 forgotten topicId");
+        assert!(
+            forgotten[0].topic.is_empty(),
+            "v13 forgotten topic name is empty"
+        );
+        assert_eq!(
+            forgotten[0].topic_id, expected_forgotten_id,
+            "v13 forgotten topicId"
+        );
 
         let (topics_resp, _, _, session_id, throttle_ms) =
             decode_fetch_response(&mut &RESP[..], 13).expect("fetch v13 response");
         assert_eq!(throttle_ms, 80);
         assert_eq!(session_id, 300);
-        assert!(topics_resp[0].topic.is_empty(), "v13 response topic name is empty");
-        assert_eq!(topics_resp[0].topic_id, expected_topic_id, "v13 response topicId");
+        assert!(
+            topics_resp[0].topic.is_empty(),
+            "v13 response topic name is empty"
+        );
+        assert_eq!(
+            topics_resp[0].topic_id, expected_topic_id,
+            "v13 response topicId"
+        );
         let resp_p = &topics_resp[0].partitions[0];
         assert_eq!(resp_p.aborted_transactions, vec![(55555, 290)]);
         assert_eq!(resp_p.records.len(), 1);
@@ -2028,8 +2061,8 @@ fn apache_fetch_boundary_fixtures_decode_offline() {
             include_bytes!("fixtures/protocol_oracles/fetch_v15_replica_state_response.bin");
 
         let expected_topic_id = [
-            0x99, 0x99, 0x88, 0x88, 0x77, 0x77, 0x66, 0x66,
-            0x55, 0x55, 0x44, 0x44, 0x33, 0x33, 0x22, 0x22,
+            0x99, 0x99, 0x88, 0x88, 0x77, 0x77, 0x66, 0x66, 0x55, 0x55, 0x44, 0x44, 0x33, 0x33,
+            0x22, 0x22,
         ];
 
         let (_, _, topics, _, session, _, _, _, replica_id, replica_epoch, _) =
@@ -2084,12 +2117,12 @@ fn apache_fetch_boundary_fixtures_decode_offline() {
             include_bytes!("fixtures/protocol_oracles/fetch_v17_max_3_9_1_response.bin");
 
         let expected_topic_id = [
-            0xfa, 0xce, 0xfe, 0xed, 0xca, 0xfe, 0xbe, 0xef,
-            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+            0xfa, 0xce, 0xfe, 0xed, 0xca, 0xfe, 0xbe, 0xef, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+            0x07, 0x08,
         ];
         let expected_replica_dir_id = [
-            0xaa, 0xaa, 0xbb, 0xbb, 0x00, 0x00, 0x11, 0x11,
-            0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55,
+            0xaa, 0xaa, 0xbb, 0xbb, 0x00, 0x00, 0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44,
+            0x55, 0x55,
         ];
 
         let (_, _, topics, rack, session, _, _, _, _, _, _) =
@@ -2102,7 +2135,10 @@ fn apache_fetch_boundary_fixtures_decode_offline() {
         assert_eq!(p.current_leader_epoch, 20);
         assert_eq!(p.last_fetched_epoch, 19);
         assert_eq!(p.log_start_offset, 900);
-        assert_eq!(p.replica_directory_id, expected_replica_dir_id, "v17 partition replicaDirectoryId");
+        assert_eq!(
+            p.replica_directory_id, expected_replica_dir_id,
+            "v17 partition replicaDirectoryId"
+        );
 
         let (topics_resp, endpoints, _, session_id, throttle_ms) =
             decode_fetch_response(&mut &RESP[..], 17).expect("fetch v17 response");
@@ -2155,9 +2191,19 @@ fn fetch_short_tail_and_malformed_records_oracles() {
     short_tail_header.extend_from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02]); // 8 bytes < 12
     let mut cur = &short_tail_header[..];
     let decoded = records::decode_record_batches(&mut cur).expect("short header tail must succeed");
-    assert_eq!(decoded.len(), 2, "decodes the 2 complete batches before short tail");
-    assert_eq!(decoded[0].records[0].value.as_deref(), Some(b"v1".as_slice()));
-    assert_eq!(decoded[1].records[0].value.as_deref(), Some(b"v2".as_slice()));
+    assert_eq!(
+        decoded.len(),
+        2,
+        "decodes the 2 complete batches before short tail"
+    );
+    assert_eq!(
+        decoded[0].records[0].value.as_deref(),
+        Some(b"v1".as_slice())
+    );
+    assert_eq!(
+        decoded[1].records[0].value.as_deref(),
+        Some(b"v2".as_slice())
+    );
 
     // Case B: Declared batch_len = 100 bytes, but only 20 bytes payload provided
     let mut short_tail_body = rec_bytes.clone();
@@ -2166,7 +2212,11 @@ fn fetch_short_tail_and_malformed_records_oracles() {
     short_tail_body.extend_from_slice(&[0x00; 20]); // only 20 bytes provided instead of 100
     let mut cur = &short_tail_body[..];
     let decoded = records::decode_record_batches(&mut cur).expect("short body tail must succeed");
-    assert_eq!(decoded.len(), 2, "decodes the 2 complete batches before truncated tail");
+    assert_eq!(
+        decoded.len(),
+        2,
+        "decodes the 2 complete batches before truncated tail"
+    );
 
     // 2. Malformed complete records:
     // Case A: Full batch bytes present, but corrupted CRC32-C
@@ -2193,7 +2243,7 @@ fn fetch_short_tail_and_malformed_records_oracles() {
     let mut corrupt_record = rec_bytes.clone();
     let last_byte = corrupt_record.len() - 1;
     corrupt_record[last_byte] ^= 0x80; // corrupt varint in record
-    // Recompute CRC so CRC passes but inner record parser fails
+                                       // Recompute CRC so CRC passes but inner record parser fails
     let crc_start = batch1_end + 21;
     let crc = crc32c::crc32c(&corrupt_record[crc_start..]);
     corrupt_record[batch1_end + 17..batch1_end + 21].copy_from_slice(&crc.to_be_bytes());
@@ -2327,7 +2377,11 @@ fn rust_fetch_output_decodes_with_apache_when_java_available() {
 
     for (version, max_wait_ms, throttle_ms) in versions {
         let topic_id = [0x22u8; 16];
-        let topic_name = if version >= 13 { "" } else { "rust-fetch-topic" };
+        let topic_name = if version >= 13 {
+            ""
+        } else {
+            "rust-fetch-topic"
+        };
         let topic_id_bytes = if version >= 13 { topic_id } else { [0u8; 16] };
 
         // 1. Rust encodes FetchRequest
@@ -2336,29 +2390,81 @@ fn rust_fetch_output_decodes_with_apache_when_java_available() {
             topic: topic_name.into(),
             topic_id: topic_id_bytes,
             partitions: vec![FetchPartition::partition_data(
-                0, 100, 50, 1048576, Some(5), Some(4)
+                0,
+                100,
+                50,
+                1048576,
+                Some(5),
+                Some(4),
             )],
         };
         if version >= 15 {
             encode_fetch_request_with_replica_state(
-                &mut req_buf, version, max_wait_ms, 1, 10485760, 0, &[topic], Some("rack-1"), 5, 12345
-            ).expect("encode fetch request in Rust");
+                &mut req_buf,
+                version,
+                max_wait_ms,
+                1,
+                10485760,
+                0,
+                &[topic],
+                Some("rack-1"),
+                5,
+                12345,
+            )
+            .expect("encode fetch request in Rust");
         } else if version >= 12 {
             encode_fetch_request_with_cluster_id(
-                &mut req_buf, version, max_wait_ms, 1, 10485760, 0, &[topic], Some("rack-1"), -1, -1, Some("cluster-rust")
-            ).expect("encode fetch request in Rust");
+                &mut req_buf,
+                version,
+                max_wait_ms,
+                1,
+                10485760,
+                0,
+                &[topic],
+                Some("rack-1"),
+                -1,
+                -1,
+                Some("cluster-rust"),
+            )
+            .expect("encode fetch request in Rust");
         } else if version >= 7 {
             encode_fetch_request_with_session(
-                &mut req_buf, version, max_wait_ms, 1, 10485760, 1, &[topic], None, FetchMetadata::new(42, 1)
-            ).expect("encode fetch request in Rust");
+                &mut req_buf,
+                version,
+                max_wait_ms,
+                1,
+                10485760,
+                1,
+                &[topic],
+                None,
+                FetchMetadata::new(42, 1),
+            )
+            .expect("encode fetch request in Rust");
         } else if version >= 5 {
             encode_fetch_request_with_replica_id(
-                &mut req_buf, version, max_wait_ms, 1, 10485760, 0, &[topic], None, 2
-            ).expect("encode fetch request in Rust");
+                &mut req_buf,
+                version,
+                max_wait_ms,
+                1,
+                10485760,
+                0,
+                &[topic],
+                None,
+                2,
+            )
+            .expect("encode fetch request in Rust");
         } else {
             encode_fetch_request(
-                &mut req_buf, version, max_wait_ms, 1, 10485760, 0, &[topic], None
-            ).expect("encode fetch request in Rust");
+                &mut req_buf,
+                version,
+                max_wait_ms,
+                1,
+                10485760,
+                0,
+                &[topic],
+                None,
+            )
+            .expect("encode fetch request in Rust");
         }
         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
 
@@ -2411,16 +2517,20 @@ fn rust_fetch_output_decodes_with_apache_when_java_available() {
                 rack: Some("rack-a".into()),
             };
             encode_fetch_response_with_endpoints(
-                &mut resp_buf, version, &[topic_resp], 0, 42, &[ep]
-            ).expect("encode fetch response in Rust");
+                &mut resp_buf,
+                version,
+                &[topic_resp],
+                0,
+                42,
+                &[ep],
+            )
+            .expect("encode fetch response in Rust");
         } else if version >= 7 {
-            encode_fetch_response_with_endpoints(
-                &mut resp_buf, version, &[topic_resp], 0, 42, &[]
-            ).expect("encode fetch response in Rust");
+            encode_fetch_response_with_endpoints(&mut resp_buf, version, &[topic_resp], 0, 42, &[])
+                .expect("encode fetch response in Rust");
         } else {
-            encode_fetch_response_with_throttle(
-                &mut resp_buf, version, &[topic_resp], throttle_ms
-            ).expect("encode fetch response in Rust");
+            encode_fetch_response_with_throttle(&mut resp_buf, version, &[topic_resp], throttle_ms)
+                .expect("encode fetch response in Rust");
         }
         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
 
@@ -2538,11 +2648,7 @@ fn apache_metadata_boundary_fixtures_decode_offline() {
 
         let (topics, allow_auto, _, _) =
             decode_metadata_request_topics(&mut &REQ[..], 4).expect("metadata v4 request");
-        assert_eq!(
-            topics,
-            Some(Vec::new()),
-            "v4 empty topics array (not null)"
-        );
+        assert_eq!(topics, Some(Vec::new()), "v4 empty topics array (not null)");
         assert!(!allow_auto, "v4 allow_auto gate (false)");
 
         let resp = decode_metadata_response(&mut &RESP[..], 4).expect("metadata v4 response");
@@ -2581,7 +2687,11 @@ fn apache_metadata_boundary_fixtures_decode_offline() {
 
         let p1 = &resp.topics[0].partitions[1];
         assert_eq!(p1.error_code, NOT_LEADER_OR_FOLLOWER);
-        assert_eq!(p1.leader_id, MetadataResponse::NO_LEADER_ID, "unknown leader");
+        assert_eq!(
+            p1.leader_id,
+            MetadataResponse::NO_LEADER_ID,
+            "unknown leader"
+        );
         assert_eq!(p1.replica_nodes, vec![1, 3]);
         assert_eq!(p1.isr_nodes, vec![1]);
         assert_eq!(p1.offline_replicas, vec![3]);
@@ -2625,13 +2735,19 @@ fn apache_metadata_boundary_fixtures_decode_offline() {
         assert_eq!(topics.unwrap()[0].name.as_deref(), Some("meta-v8-ops"));
         assert!(allow_auto);
         assert!(include_topic_auth, "v8 include_topic_authorized_operations");
-        assert!(include_cluster_auth, "v8-10 include_cluster_authorized_operations");
+        assert!(
+            include_cluster_auth,
+            "v8-10 include_cluster_authorized_operations"
+        );
 
         let resp = decode_metadata_response(&mut &RESP[..], 8).expect("metadata v8 response");
         assert_eq!(resp.throttle_time_ms, 60);
         assert_eq!(resp.cluster_id.as_deref(), Some("cluster-meta-v8"));
         assert_eq!(resp.controller_id, 2);
-        assert_eq!(resp.cluster_authorized_operations, 0xdf, "v8-10 cluster authorized operations");
+        assert_eq!(
+            resp.cluster_authorized_operations, 0xdf,
+            "v8-10 cluster authorized operations"
+        );
         assert_eq!(
             resp.topics[0].topic_authorized_operations, 0x1f,
             "v8 topic authorized operations"
@@ -2672,7 +2788,11 @@ fn apache_metadata_boundary_fixtures_decode_offline() {
 
         let p1 = &resp.topics[0].partitions[1];
         assert_eq!(p1.error_code, LEADER_NOT_AVAILABLE);
-        assert_eq!(p1.leader_id, MetadataResponse::NO_LEADER_ID, "unknown leader");
+        assert_eq!(
+            p1.leader_id,
+            MetadataResponse::NO_LEADER_ID,
+            "unknown leader"
+        );
         assert_eq!(p1.leader_epoch, RecordBatch::NO_PARTITION_LEADER_EPOCH);
         assert_eq!(p1.offline_replicas, vec![1, 2]);
     }
@@ -2685,8 +2805,8 @@ fn apache_metadata_boundary_fixtures_decode_offline() {
             include_bytes!("fixtures/protocol_oracles/metadata_v10_topic_ids_response.bin");
 
         let expected_topic_id = [
-            0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44,
-            0x55, 0x55, 0x66, 0x66, 0x77, 0x77, 0x88, 0x88,
+            0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66, 0x77, 0x77,
+            0x88, 0x88,
         ];
 
         let (topics, allow_auto, include_topic_auth, include_cluster_auth) =
@@ -2696,14 +2816,20 @@ fn apache_metadata_boundary_fixtures_decode_offline() {
         assert!(include_cluster_auth);
         let req_topic = &topics.unwrap()[0];
         assert_eq!(req_topic.name.as_deref(), Some("meta-v10-ids"));
-        assert_eq!(req_topic.topic_id, expected_topic_id, "v10 request topic_id");
+        assert_eq!(
+            req_topic.topic_id, expected_topic_id,
+            "v10 request topic_id"
+        );
 
         let resp = decode_metadata_response(&mut &RESP[..], 10).expect("metadata v10 response");
         assert_eq!(resp.throttle_time_ms, 80);
         assert_eq!(resp.cluster_id.as_deref(), Some("cluster-meta-v10"));
         assert_eq!(resp.controller_id, 1);
         assert_eq!(resp.cluster_authorized_operations, 0xdf);
-        assert_eq!(resp.topics[0].topic_id, expected_topic_id, "v10 response topic_id");
+        assert_eq!(
+            resp.topics[0].topic_id, expected_topic_id,
+            "v10 response topic_id"
+        );
         assert_eq!(resp.topics[0].topic_authorized_operations, 0x1f);
 
         let p0 = &resp.topics[0].partitions[0];
@@ -2712,8 +2838,15 @@ fn apache_metadata_boundary_fixtures_decode_offline() {
 
         let p1 = &resp.topics[0].partitions[1];
         assert_eq!(p1.error_code, NOT_LEADER_OR_FOLLOWER);
-        assert_eq!(p1.leader_id, MetadataResponse::NO_LEADER_ID, "unknown leader");
-        assert_eq!(p1.leader_epoch, 18, "stale leader_epoch on partition without leader");
+        assert_eq!(
+            p1.leader_id,
+            MetadataResponse::NO_LEADER_ID,
+            "unknown leader"
+        );
+        assert_eq!(
+            p1.leader_epoch, 18,
+            "stale leader_epoch on partition without leader"
+        );
         assert_eq!(p1.offline_replicas, vec![3]);
     }
 
@@ -2725,8 +2858,8 @@ fn apache_metadata_boundary_fixtures_decode_offline() {
             include_bytes!("fixtures/protocol_oracles/metadata_v11_no_cluster_auth_response.bin");
 
         let expected_topic_id = [
-            0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55,
-            0x66, 0x66, 0x77, 0x77, 0x88, 0x88, 0x99, 0x99,
+            0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66, 0x77, 0x77, 0x88, 0x88,
+            0x99, 0x99,
         ];
 
         let (topics, allow_auto, include_topic_auth, include_cluster_auth) =
@@ -2758,8 +2891,8 @@ fn apache_metadata_boundary_fixtures_decode_offline() {
             include_bytes!("fixtures/protocol_oracles/metadata_v12_id_only_response.bin");
 
         let expected_topic_id = [
-            0x33, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66,
-            0x77, 0x77, 0x88, 0x88, 0x99, 0x99, 0xaa, 0xaa,
+            0x33, 0x33, 0x44, 0x44, 0x55, 0x55, 0x66, 0x66, 0x77, 0x77, 0x88, 0x88, 0x99, 0x99,
+            0xaa, 0xaa,
         ];
 
         let (topics, allow_auto, include_topic_auth, include_cluster_auth) =
@@ -2768,8 +2901,14 @@ fn apache_metadata_boundary_fixtures_decode_offline() {
         assert!(include_topic_auth);
         assert!(!include_cluster_auth);
         let req_topic = &topics.unwrap()[0];
-        assert_eq!(req_topic.name, None, "v12 null topic name when describing by ID");
-        assert_eq!(req_topic.topic_id, expected_topic_id, "v12 describe by topic_id");
+        assert_eq!(
+            req_topic.name, None,
+            "v12 null topic name when describing by ID"
+        );
+        assert_eq!(
+            req_topic.topic_id, expected_topic_id,
+            "v12 describe by topic_id"
+        );
 
         let resp = decode_metadata_response(&mut &RESP[..], 12).expect("metadata v12 response");
         assert_eq!(resp.throttle_time_ms, 100);
@@ -3117,8 +3256,8 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
             RecordBatch::NO_PARTITION_LEADER_EPOCH
         );
 
-        let (resp_topics, throttle_ms) =
-            decode_list_offsets_topics_response(&mut &RESP[..], 1).expect("list_offsets v1 response");
+        let (resp_topics, throttle_ms) = decode_list_offsets_topics_response(&mut &RESP[..], 1)
+            .expect("list_offsets v1 response");
         assert_eq!(throttle_ms, 0, "v1 throttle omitted, decodes 0");
         assert_eq!(resp_topics.len(), 1);
         assert_eq!(resp_topics[0].name, "offsets-v1");
@@ -3171,8 +3310,8 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
         assert_eq!(topics[0].partitions[0].timestamp, 1_710_000_001_000);
         assert_eq!(topics[0].partitions[1].timestamp, LATEST_TIMESTAMP);
 
-        let (resp_topics, throttle_ms) =
-            decode_list_offsets_topics_response(&mut &RESP[..], 2).expect("list_offsets v2 response");
+        let (resp_topics, throttle_ms) = decode_list_offsets_topics_response(&mut &RESP[..], 2)
+            .expect("list_offsets v2 response");
         assert_eq!(throttle_ms, 25, "v2 throttle present");
         assert_eq!(resp_topics.len(), 1);
         assert_eq!(resp_topics[0].name, "offsets-v2");
@@ -3203,8 +3342,8 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
         assert_eq!(isolation, 0, "v3 isolation level READ_UNCOMMITTED");
         assert_eq!(topics[0].name, "offsets-v3");
 
-        let (resp_topics, throttle_ms) =
-            decode_list_offsets_topics_response(&mut &RESP[..], 3).expect("list_offsets v3 response");
+        let (resp_topics, throttle_ms) = decode_list_offsets_topics_response(&mut &RESP[..], 3)
+            .expect("list_offsets v3 response");
         assert_eq!(throttle_ms, 45, "v3 throttle present");
         assert!(ListOffsetsResponse::should_client_throttle(3));
         assert!(!ListOffsetsResponse::should_client_throttle(2));
@@ -3230,8 +3369,8 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
         );
         assert_eq!(topics[0].partitions[1].timestamp, EARLIEST_TIMESTAMP);
 
-        let (resp_topics, throttle_ms) =
-            decode_list_offsets_topics_response(&mut &RESP[..], 4).expect("list_offsets v4 response");
+        let (resp_topics, throttle_ms) = decode_list_offsets_topics_response(&mut &RESP[..], 4)
+            .expect("list_offsets v4 response");
         assert_eq!(throttle_ms, 60);
         assert_eq!(resp_topics[0].partitions[0].offset, 400);
         assert_eq!(resp_topics[0].partitions[0].leader_epoch, 10);
@@ -3244,10 +3383,12 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
 
     // 5. ListOffsets v5: classic wire format boundary before flexible transition with multiple topics, debugging replicaId, and LEADER_NOT_AVAILABLE
     {
-        const REQ: &[u8] =
-            include_bytes!("fixtures/protocol_oracles/list_offsets_v5_classic_boundary_request.bin");
-        const RESP: &[u8] =
-            include_bytes!("fixtures/protocol_oracles/list_offsets_v5_classic_boundary_response.bin");
+        const REQ: &[u8] = include_bytes!(
+            "fixtures/protocol_oracles/list_offsets_v5_classic_boundary_request.bin"
+        );
+        const RESP: &[u8] = include_bytes!(
+            "fixtures/protocol_oracles/list_offsets_v5_classic_boundary_response.bin"
+        );
 
         let (isolation, topics, _, replica_id) =
             decode_list_offsets_topics_request(&mut &REQ[..], 5).expect("list_offsets v5 request");
@@ -3260,15 +3401,18 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
         assert_eq!(topics[1].partitions[0].current_leader_epoch, 8);
         assert_eq!(topics[1].partitions[1].timestamp, 1_710_000_004_000);
 
-        let (resp_topics, throttle_ms) =
-            decode_list_offsets_topics_response(&mut &RESP[..], 5).expect("list_offsets v5 response");
+        let (resp_topics, throttle_ms) = decode_list_offsets_topics_response(&mut &RESP[..], 5)
+            .expect("list_offsets v5 response");
         assert_eq!(throttle_ms, 75);
         assert_eq!(resp_topics.len(), 2);
         assert_eq!(resp_topics[0].partitions[0].offset, 500);
         assert_eq!(resp_topics[0].partitions[0].leader_epoch, 12);
         assert_eq!(resp_topics[1].partitions[0].offset, 0);
         assert_eq!(resp_topics[1].partitions[0].leader_epoch, 8);
-        assert_eq!(resp_topics[1].partitions[1].error_code, LEADER_NOT_AVAILABLE);
+        assert_eq!(
+            resp_topics[1].partitions[1].error_code,
+            LEADER_NOT_AVAILABLE
+        );
         assert_eq!(resp_topics[1].partitions[1].offset, -1);
     }
 
@@ -3289,8 +3433,8 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
         assert_eq!(topics[0].partitions[0].current_leader_epoch, 15);
         assert_eq!(topics[0].partitions[0].timestamp, 1_710_000_005_000);
 
-        let (resp_topics, throttle_ms) =
-            decode_list_offsets_topics_response(&mut &RESP[..], 6).expect("list_offsets v6 response");
+        let (resp_topics, throttle_ms) = decode_list_offsets_topics_response(&mut &RESP[..], 6)
+            .expect("list_offsets v6 response");
         assert_eq!(throttle_ms, 80);
         assert_eq!(resp_topics.len(), 1);
         assert_eq!(resp_topics[0].name, "offsets-v6-flex");
@@ -3311,8 +3455,8 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
         assert_eq!(topics[0].partitions[0].timestamp, MAX_TIMESTAMP);
         assert_eq!(topics[0].partitions[0].current_leader_epoch, 20);
 
-        let (resp_topics, throttle_ms) =
-            decode_list_offsets_topics_response(&mut &RESP[..], 7).expect("list_offsets v7 response");
+        let (resp_topics, throttle_ms) = decode_list_offsets_topics_response(&mut &RESP[..], 7)
+            .expect("list_offsets v7 response");
         assert_eq!(throttle_ms, 90);
         assert_eq!(resp_topics[0].partitions[0].offset, 700);
         assert_eq!(resp_topics[0].partitions[0].timestamp, 1_710_000_006_000);
@@ -3332,8 +3476,8 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
         assert_eq!(topics[0].partitions[0].timestamp, EARLIEST_LOCAL_TIMESTAMP);
         assert_eq!(topics[0].partitions[0].current_leader_epoch, 22);
 
-        let (resp_topics, throttle_ms) =
-            decode_list_offsets_topics_response(&mut &RESP[..], 8).expect("list_offsets v8 response");
+        let (resp_topics, throttle_ms) = decode_list_offsets_topics_response(&mut &RESP[..], 8)
+            .expect("list_offsets v8 response");
         assert_eq!(throttle_ms, 95);
         assert_eq!(resp_topics[0].partitions[0].offset, 800);
         assert_eq!(resp_topics[0].partitions[0].leader_epoch, 22);
@@ -3352,8 +3496,8 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
         assert_eq!(topics[0].partitions[0].timestamp, LATEST_TIERED_TIMESTAMP);
         assert_eq!(topics[0].partitions[0].current_leader_epoch, 25);
 
-        let (resp_topics, throttle_ms) =
-            decode_list_offsets_topics_response(&mut &RESP[..], 9).expect("list_offsets v9 response");
+        let (resp_topics, throttle_ms) = decode_list_offsets_topics_response(&mut &RESP[..], 9)
+            .expect("list_offsets v9 response");
         assert_eq!(throttle_ms, 100);
         assert_eq!(resp_topics[0].partitions[0].offset, 799);
         assert_eq!(resp_topics[0].partitions[0].leader_epoch, 25);
@@ -3367,7 +3511,8 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
             include_bytes!("fixtures/protocol_oracles/list_offsets_v10_timeout_response.bin");
 
         let (isolation, topics, timeout_ms, replica_id) =
-            decode_list_offsets_topics_request(&mut &REQ[..], 10).expect("list_offsets v10 request");
+            decode_list_offsets_topics_request(&mut &REQ[..], 10)
+                .expect("list_offsets v10 request");
         assert_eq!(replica_id, CONSUMER_REPLICA_ID);
         assert_eq!(isolation, 1);
         assert_eq!(timeout_ms, Some(1500), "v10 non-default timeoutMs 1500 ms");
@@ -3376,8 +3521,8 @@ fn apache_list_offsets_boundary_fixtures_decode_offline() {
         assert_eq!(topics[0].partitions[0].current_leader_epoch, 15);
         assert_eq!(topics[0].partitions[0].timestamp, LATEST_TIMESTAMP);
 
-        let (resp_topics, throttle_ms) =
-            decode_list_offsets_topics_response(&mut &RESP[..], 10).expect("list_offsets v10 response");
+        let (resp_topics, throttle_ms) = decode_list_offsets_topics_response(&mut &RESP[..], 10)
+            .expect("list_offsets v10 response");
         assert_eq!(throttle_ms, 50);
         assert_eq!(resp_topics.len(), 1);
         assert_eq!(resp_topics[0].name, "offsets-v10-timeout");

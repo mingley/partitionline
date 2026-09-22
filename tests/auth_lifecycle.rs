@@ -563,13 +563,19 @@ async fn sasl_oauthbearer_handshake_with_token_provider() {
         .unwrap();
 }
 
-fn make_response_frame(correlation_id: i32, body: &[u8]) -> Vec<u8> {
+fn make_response_frame(
+    correlation_id: i32,
+    body: &[u8],
+) -> Result<Vec<u8>, std::num::TryFromIntError> {
     let frame_len = 4 + body.len();
+    // Test frames carry one small encoded response; fail loudly instead of
+    // truncating if a test ever builds a frame past i32::MAX.
+    let len_prefix = i32::try_from(frame_len)?;
     let mut frame = Vec::with_capacity(4 + frame_len);
-    frame.extend_from_slice(&(frame_len as i32).to_be_bytes());
+    frame.extend_from_slice(&len_prefix.to_be_bytes());
     frame.extend_from_slice(&correlation_id.to_be_bytes());
     frame.extend_from_slice(body);
-    frame
+    Ok(frame)
 }
 
 fn dummy_api_versions_response() -> partitionline::protocol::api::ApiVersionsResponse {
@@ -586,16 +592,20 @@ fn dummy_api_versions_response() -> partitionline::protocol::api::ApiVersionsRes
 
 async fn read_request_frame(
     socket: &mut tokio::net::TcpStream,
-) -> (partitionline::protocol::header::RequestHeader, Vec<u8>) {
+) -> Result<(partitionline::protocol::header::RequestHeader, Vec<u8>), Box<dyn std::error::Error>> {
     let mut size_buf = [0u8; 4];
-    let _ = socket.read_exact(&mut size_buf).await.unwrap();
-    let size = i32::from_be_bytes(size_buf) as usize;
+    // read_exact fills the buffer or errors; the byte count itself is unneeded.
+    let _ = socket.read_exact(&mut size_buf).await?;
+    let size_i32 = i32::from_be_bytes(size_buf);
+    // Loopback test frames are small and non-negative; reject anything else
+    // loudly instead of losing the sign or truncating.
+    let size = usize::try_from(size_i32)?;
     let mut req_buf = vec![0u8; size];
-    let _ = socket.read_exact(&mut req_buf).await.unwrap();
+    let _ = socket.read_exact(&mut req_buf).await?;
     let mut cur = &req_buf[..];
-    let header = partitionline::protocol::header::decode_request_header(&mut cur).unwrap();
+    let header = partitionline::protocol::header::decode_request_header(&mut cur)?;
     let body = cur.to_vec();
-    (header, body)
+    Ok((header, body))
 }
 
 #[tokio::test]
@@ -654,7 +664,7 @@ async fn sasl_reauthenticate_v1_and_v2_wire_exchange() {
         let (mut socket, _) = listener.accept().await.unwrap();
 
         // 1. Initial Handshake request
-        let (h1, b1) = read_request_frame(&mut socket).await;
+        let (h1, b1) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(h1.api_key(), SASL_HANDSHAKE);
         let mech = decode_sasl_handshake_request(&mut &b1[..], h1.api_version()).unwrap();
         assert_eq!(mech, "OAUTHBEARER");
@@ -667,12 +677,12 @@ async fn sasl_reauthenticate_v1_and_v2_wire_exchange() {
         )
         .unwrap();
         socket
-            .write_all(&make_response_frame(h1.correlation_id(), &resp))
+            .write_all(&make_response_frame(h1.correlation_id(), &resp).unwrap())
             .await
             .unwrap();
 
         // 2. Initial Authenticate request
-        let (h2, b2) = read_request_frame(&mut socket).await;
+        let (h2, b2) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(h2.api_key(), SASL_AUTHENTICATE);
         let auth_bytes = decode_sasl_authenticate_request(&mut &b2[..], h2.api_version()).unwrap();
         assert!(!auth_bytes.is_empty());
@@ -680,12 +690,12 @@ async fn sasl_reauthenticate_v1_and_v2_wire_exchange() {
         encode_sasl_authenticate_response(&mut resp2, h2.api_version(), 0, None, &[], 5000)
             .unwrap();
         socket
-            .write_all(&make_response_frame(h2.correlation_id(), &resp2))
+            .write_all(&make_response_frame(h2.correlation_id(), &resp2).unwrap())
             .await
             .unwrap();
 
         // 3. Reauthenticate request (SaslAuthenticate ONLY, NO Handshake!)
-        let (h3, b3) = read_request_frame(&mut socket).await;
+        let (h3, b3) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(
             h3.api_key(),
             SASL_AUTHENTICATE,
@@ -702,12 +712,12 @@ async fn sasl_reauthenticate_v1_and_v2_wire_exchange() {
         encode_sasl_authenticate_response(&mut resp3, h3.api_version(), 0, None, &[], 25000)
             .unwrap();
         socket
-            .write_all(&make_response_frame(h3.correlation_id(), &resp3))
+            .write_all(&make_response_frame(h3.correlation_id(), &resp3).unwrap())
             .await
             .unwrap();
 
         // 4. Reauthenticate PLAIN
-        let (h4, b4) = read_request_frame(&mut socket).await;
+        let (h4, b4) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(h4.api_key(), SASL_AUTHENTICATE);
         assert!(is_reserved_correlation_id(h4.correlation_id()));
         let plain_bytes = decode_sasl_authenticate_request(&mut &b4[..], h4.api_version()).unwrap();
@@ -716,12 +726,12 @@ async fn sasl_reauthenticate_v1_and_v2_wire_exchange() {
         encode_sasl_authenticate_response(&mut resp4, h4.api_version(), 0, None, &[], 35000)
             .unwrap();
         socket
-            .write_all(&make_response_frame(h4.correlation_id(), &resp4))
+            .write_all(&make_response_frame(h4.correlation_id(), &resp4).unwrap())
             .await
             .unwrap();
 
         // 5. Reauthenticate with token provider
-        let (h5, b5) = read_request_frame(&mut socket).await;
+        let (h5, b5) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(h5.api_key(), SASL_AUTHENTICATE);
         assert!(is_reserved_correlation_id(h5.correlation_id()));
         let tok_bytes = decode_sasl_authenticate_request(&mut &b5[..], h5.api_version()).unwrap();
@@ -730,7 +740,7 @@ async fn sasl_reauthenticate_v1_and_v2_wire_exchange() {
         encode_sasl_authenticate_response(&mut resp5, h5.api_version(), 0, None, &[], 45000)
             .unwrap();
         socket
-            .write_all(&make_response_frame(h5.correlation_id(), &resp5))
+            .write_all(&make_response_frame(h5.correlation_id(), &resp5).unwrap())
             .await
             .unwrap();
     });
@@ -857,32 +867,32 @@ async fn quiesce_and_resume_pipelined_traffic_without_mixing_correlation_ids() {
         let (mut socket, _) = listener.accept().await.unwrap();
 
         // 1. Initial Handshake + Authenticate
-        let (h1, _) = read_request_frame(&mut socket).await;
+        let (h1, _) = read_request_frame(&mut socket).await.unwrap();
         let mut resp1 = BytesMut::new();
         encode_sasl_handshake_response(&mut resp1, h1.api_version(), 0, &["OAUTHBEARER"]).unwrap();
         socket
-            .write_all(&make_response_frame(h1.correlation_id(), &resp1))
+            .write_all(&make_response_frame(h1.correlation_id(), &resp1).unwrap())
             .await
             .unwrap();
 
-        let (h2, _) = read_request_frame(&mut socket).await;
+        let (h2, _) = read_request_frame(&mut socket).await.unwrap();
         let mut resp2 = BytesMut::new();
         encode_sasl_authenticate_response(&mut resp2, h2.api_version(), 0, None, &[], 10000)
             .unwrap();
         socket
-            .write_all(&make_response_frame(h2.correlation_id(), &resp2))
+            .write_all(&make_response_frame(h2.correlation_id(), &resp2).unwrap())
             .await
             .unwrap();
 
         // 2. Read 2 pipelined application requests (API_VERSIONS)
-        let (app1, _) = read_request_frame(&mut socket).await;
+        let (app1, _) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(app1.api_key(), API_VERSIONS);
         assert!(
             !is_reserved_correlation_id(app1.correlation_id()),
             "application request must not use reserved SASL correlation ID"
         );
 
-        let (app2, _) = read_request_frame(&mut socket).await;
+        let (app2, _) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(app2.api_key(), API_VERSIONS);
         assert!(!is_reserved_correlation_id(app2.correlation_id()));
 
@@ -893,7 +903,7 @@ async fn quiesce_and_resume_pipelined_traffic_without_mixing_correlation_ids() {
         let mut app_resp1 = BytesMut::new();
         encode_api_versions_response(&mut app_resp1, 0, &dummy_api_versions_response()).unwrap();
         socket
-            .write_all(&make_response_frame(app1.correlation_id(), &app_resp1))
+            .write_all(&make_response_frame(app1.correlation_id(), &app_resp1).unwrap())
             .await
             .unwrap();
 
@@ -901,12 +911,12 @@ async fn quiesce_and_resume_pipelined_traffic_without_mixing_correlation_ids() {
         let mut app_resp2 = BytesMut::new();
         encode_api_versions_response(&mut app_resp2, 0, &dummy_api_versions_response()).unwrap();
         socket
-            .write_all(&make_response_frame(app2.correlation_id(), &app_resp2))
+            .write_all(&make_response_frame(app2.correlation_id(), &app_resp2).unwrap())
             .await
             .unwrap();
 
         // 3. Next request received MUST be SaslAuthenticate with reserved SASL correlation ID!
-        let (sasl_req, _) = read_request_frame(&mut socket).await;
+        let (sasl_req, _) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(sasl_req.api_key(), SASL_AUTHENTICATE);
         assert!(
             is_reserved_correlation_id(sasl_req.correlation_id()),
@@ -924,12 +934,12 @@ async fn quiesce_and_resume_pipelined_traffic_without_mixing_correlation_ids() {
         )
         .unwrap();
         socket
-            .write_all(&make_response_frame(sasl_req.correlation_id(), &sasl_resp))
+            .write_all(&make_response_frame(sasl_req.correlation_id(), &sasl_resp).unwrap())
             .await
             .unwrap();
 
         // 4. After reauth completes, queued request app3 arrives with application correlation ID!
-        let (app3, _) = read_request_frame(&mut socket).await;
+        let (app3, _) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(app3.api_key(), API_VERSIONS);
         assert!(
             !is_reserved_correlation_id(app3.correlation_id()),
@@ -939,7 +949,7 @@ async fn quiesce_and_resume_pipelined_traffic_without_mixing_correlation_ids() {
         let mut app_resp3 = BytesMut::new();
         encode_api_versions_response(&mut app_resp3, 0, &dummy_api_versions_response()).unwrap();
         socket
-            .write_all(&make_response_frame(app3.correlation_id(), &app_resp3))
+            .write_all(&make_response_frame(app3.correlation_id(), &app_resp3).unwrap())
             .await
             .unwrap();
     });
@@ -1011,25 +1021,25 @@ async fn failed_reauthentication_closes_connection_and_fails_accepted_work() {
         let (mut socket, _) = listener.accept().await.unwrap();
 
         // 1. Initial Handshake + Authenticate
-        let (h1, _) = read_request_frame(&mut socket).await;
+        let (h1, _) = read_request_frame(&mut socket).await.unwrap();
         let mut resp1 = BytesMut::new();
         encode_sasl_handshake_response(&mut resp1, h1.api_version(), 0, &["OAUTHBEARER"]).unwrap();
         socket
-            .write_all(&make_response_frame(h1.correlation_id(), &resp1))
+            .write_all(&make_response_frame(h1.correlation_id(), &resp1).unwrap())
             .await
             .unwrap();
 
-        let (h2, _) = read_request_frame(&mut socket).await;
+        let (h2, _) = read_request_frame(&mut socket).await.unwrap();
         let mut resp2 = BytesMut::new();
         encode_sasl_authenticate_response(&mut resp2, h2.api_version(), 0, None, &[], 5000)
             .unwrap();
         socket
-            .write_all(&make_response_frame(h2.correlation_id(), &resp2))
+            .write_all(&make_response_frame(h2.correlation_id(), &resp2).unwrap())
             .await
             .unwrap();
 
         // 2. Reauth arrives -> respond with error 58 (SASL_AUTHENTICATION_FAILED)
-        let (h3, _) = read_request_frame(&mut socket).await;
+        let (h3, _) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(h3.api_key(), SASL_AUTHENTICATE);
         let mut resp3 = BytesMut::new();
         encode_sasl_authenticate_response(
@@ -1042,7 +1052,7 @@ async fn failed_reauthentication_closes_connection_and_fails_accepted_work() {
         )
         .unwrap();
         socket
-            .write_all(&make_response_frame(h3.correlation_id(), &resp3))
+            .write_all(&make_response_frame(h3.correlation_id(), &resp3).unwrap())
             .await
             .unwrap();
     });
@@ -1148,25 +1158,25 @@ async fn reauth_disconnect_closes_connection_and_fails_accepted_work() {
         let (mut socket, _) = listener.accept().await.unwrap();
 
         // 1. Initial Handshake + Authenticate
-        let (h1, _) = read_request_frame(&mut socket).await;
+        let (h1, _) = read_request_frame(&mut socket).await.unwrap();
         let mut resp1 = BytesMut::new();
         encode_sasl_handshake_response(&mut resp1, h1.api_version(), 0, &["OAUTHBEARER"]).unwrap();
         socket
-            .write_all(&make_response_frame(h1.correlation_id(), &resp1))
+            .write_all(&make_response_frame(h1.correlation_id(), &resp1).unwrap())
             .await
             .unwrap();
 
-        let (h2, _) = read_request_frame(&mut socket).await;
+        let (h2, _) = read_request_frame(&mut socket).await.unwrap();
         let mut resp2 = BytesMut::new();
         encode_sasl_authenticate_response(&mut resp2, h2.api_version(), 0, None, &[], 5000)
             .unwrap();
         socket
-            .write_all(&make_response_frame(h2.correlation_id(), &resp2))
+            .write_all(&make_response_frame(h2.correlation_id(), &resp2).unwrap())
             .await
             .unwrap();
 
         // 2. Read reauth frame then abruptly drop socket (EOF / disconnect)
-        let _ = read_request_frame(&mut socket).await;
+        let _ = read_request_frame(&mut socket).await.unwrap();
         drop(socket);
     });
 
@@ -1239,13 +1249,13 @@ async fn direct_broker_conn_quiesce_guard() {
 
     let server_task = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
-        let (h1, _) = read_request_frame(&mut socket).await;
+        let (h1, _) = read_request_frame(&mut socket).await.unwrap();
         // Delay response
         tokio::time::sleep(Duration::from_millis(50)).await;
         let mut resp = BytesMut::new();
         encode_api_versions_response(&mut resp, 0, &dummy_api_versions_response()).unwrap();
         socket
-            .write_all(&make_response_frame(h1.correlation_id(), &resp))
+            .write_all(&make_response_frame(h1.correlation_id(), &resp).unwrap())
             .await
             .unwrap();
     });
@@ -1300,7 +1310,7 @@ async fn credential_redaction_and_response_body_hygiene_on_reauth() {
 
     let server_task = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
-        let (h, _) = read_request_frame(&mut socket).await;
+        let (h, _) = read_request_frame(&mut socket).await.unwrap();
         let mut resp = BytesMut::new();
         // Broker failure JSON echoing sensitive material
         let failure_json = format!("{{\"error\":\"invalid token {secret_token}\"}}");
@@ -1314,12 +1324,12 @@ async fn credential_redaction_and_response_body_hygiene_on_reauth() {
         )
         .unwrap();
         socket
-            .write_all(&make_response_frame(h.correlation_id(), &resp))
+            .write_all(&make_response_frame(h.correlation_id(), &resp).unwrap())
             .await
             .unwrap();
 
         // Read final SOH
-        let (h2, _) = read_request_frame(&mut socket).await;
+        let (h2, _) = read_request_frame(&mut socket).await.unwrap();
         assert_eq!(h2.api_key(), SASL_AUTHENTICATE);
     });
 

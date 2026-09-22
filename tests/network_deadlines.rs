@@ -14,13 +14,34 @@ use partitionline::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
-fn make_response_frame(correlation_id: i32, body: &[u8]) -> Vec<u8> {
+fn make_response_frame(
+    correlation_id: i32,
+    body: &[u8],
+) -> Result<Vec<u8>, std::num::TryFromIntError> {
     let frame_len = 4 + body.len();
+    // Test frames carry one small encoded response; fail loudly instead of
+    // truncating if a test ever builds a frame past i32::MAX.
+    let len_prefix = i32::try_from(frame_len)?;
     let mut frame = Vec::with_capacity(4 + frame_len);
-    frame.extend_from_slice(&(frame_len as i32).to_be_bytes());
+    frame.extend_from_slice(&len_prefix.to_be_bytes());
     frame.extend_from_slice(&correlation_id.to_be_bytes());
     frame.extend_from_slice(body);
-    frame
+    Ok(frame)
+}
+
+async fn read_request_frame(
+    socket: &mut tokio::net::TcpStream,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let mut size_buf = [0u8; 4];
+    // read_exact fills the buffer or errors; the byte count itself is unneeded.
+    let _ = socket.read_exact(&mut size_buf).await?;
+    let size_i32 = i32::from_be_bytes(size_buf);
+    // Loopback test frames are small and non-negative; reject anything else
+    // loudly instead of losing the sign or truncating.
+    let size = usize::try_from(size_i32)?;
+    let mut req_buf = vec![0u8; size];
+    let _ = socket.read_exact(&mut req_buf).await?;
+    Ok(req_buf)
 }
 
 #[tokio::test]
@@ -33,17 +54,15 @@ async fn combined_delay_cannot_consume_2x_budget() {
 
         // Delay 60ms before reading the request.
         tokio::time::sleep(Duration::from_millis(60)).await;
-        let mut size_buf = [0u8; 4];
-        let _ = socket.read_exact(&mut size_buf).await.unwrap();
-        let size = i32::from_be_bytes(size_buf) as usize;
-        let mut req_buf = vec![0u8; size];
-        let _ = socket.read_exact(&mut req_buf).await.unwrap();
+        let req_buf = read_request_frame(&mut socket).await.unwrap();
         let correlation_id = i32::from_be_bytes(req_buf[4..8].try_into().unwrap());
 
         // Delay another 60ms before sending the response.
         tokio::time::sleep(Duration::from_millis(60)).await;
-        let resp = make_response_frame(correlation_id, &[]);
-        let _ = socket.write_all(&resp).await;
+        let resp = make_response_frame(correlation_id, &[]).unwrap();
+        // The client may already have timed out and gone away; a failed
+        // trailing write is expected, not an error.
+        socket.write_all(&resp).await.unwrap_or(());
     });
 
     let budget = Duration::from_millis(100);
@@ -72,7 +91,7 @@ async fn combined_delay_cannot_consume_2x_budget() {
     );
     assert!(conn.is_closed(), "timed out connection must be closed");
 
-    let _ = server_task.await;
+    server_task.await.unwrap();
 }
 
 #[tokio::test]
@@ -82,17 +101,15 @@ async fn timeout_does_not_leave_reusable_desynchronized_connection() {
 
     let server_task = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
-        let mut size_buf = [0u8; 4];
-        let _ = socket.read_exact(&mut size_buf).await.unwrap();
-        let size = i32::from_be_bytes(size_buf) as usize;
-        let mut req_buf = vec![0u8; size];
-        let _ = socket.read_exact(&mut req_buf).await.unwrap();
+        let req_buf = read_request_frame(&mut socket).await.unwrap();
         let correlation_id = i32::from_be_bytes(req_buf[4..8].try_into().unwrap());
 
         // Peer delays sending response past client's timeout.
         tokio::time::sleep(Duration::from_millis(100)).await;
-        let resp = make_response_frame(correlation_id, &[]);
-        let _ = socket.write_all(&resp).await;
+        let resp = make_response_frame(correlation_id, &[]).unwrap();
+        // The client may already have timed out and gone away; a failed
+        // trailing write is expected, not an error.
+        socket.write_all(&resp).await.unwrap_or(());
     });
 
     let budget = Duration::from_millis(40);
@@ -131,7 +148,7 @@ async fn timeout_does_not_leave_reusable_desynchronized_connection() {
         .await;
     assert!(matches!(reuse_write, Err(Error::Closed)));
 
-    let _ = server_task.await;
+    server_task.await.unwrap();
 }
 
 #[tokio::test]
@@ -141,11 +158,7 @@ async fn partial_read_marks_connection_closed_and_not_reusable() {
 
     let server_task = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
-        let mut size_buf = [0u8; 4];
-        let _ = socket.read_exact(&mut size_buf).await.unwrap();
-        let size = i32::from_be_bytes(size_buf) as usize;
-        let mut req_buf = vec![0u8; size];
-        let _ = socket.read_exact(&mut req_buf).await.unwrap();
+        let _req_buf = read_request_frame(&mut socket).await.unwrap();
 
         // Send only 2 bytes of the 4-byte frame length header, then stall.
         socket.write_all(&[0, 0]).await.unwrap();
@@ -169,7 +182,7 @@ async fn partial_read_marks_connection_closed_and_not_reusable() {
         .await;
     assert!(matches!(next, Err(Error::Closed)));
 
-    let _ = server_task.await;
+    server_task.await.unwrap();
 }
 
 #[tokio::test]
@@ -179,11 +192,7 @@ async fn cancellation_mid_flight_marks_connection_closed_and_not_reusable() {
 
     let server_task = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
-        let mut size_buf = [0u8; 4];
-        let _ = socket.read_exact(&mut size_buf).await.unwrap();
-        let size = i32::from_be_bytes(size_buf) as usize;
-        let mut req_buf = vec![0u8; size];
-        let _ = socket.read_exact(&mut req_buf).await.unwrap();
+        let _req_buf = read_request_frame(&mut socket).await.unwrap();
         // Server hangs indefinitely.
         tokio::time::sleep(Duration::from_secs(5)).await;
     });
@@ -219,14 +228,10 @@ async fn correlation_mismatch_marks_connection_closed_and_not_reusable() {
 
     let server_task = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
-        let mut size_buf = [0u8; 4];
-        let _ = socket.read_exact(&mut size_buf).await.unwrap();
-        let size = i32::from_be_bytes(size_buf) as usize;
-        let mut req_buf = vec![0u8; size];
-        let _ = socket.read_exact(&mut req_buf).await.unwrap();
+        let _req_buf = read_request_frame(&mut socket).await.unwrap();
 
         // Send a response with mismatched correlation ID (9999).
-        let resp = make_response_frame(9999, &[]);
+        let resp = make_response_frame(9999, &[]).unwrap();
         socket.write_all(&resp).await.unwrap();
     });
 
@@ -251,7 +256,7 @@ async fn correlation_mismatch_marks_connection_closed_and_not_reusable() {
         .await;
     assert!(matches!(next, Err(Error::Closed)));
 
-    let _ = server_task.await;
+    server_task.await.unwrap();
 }
 
 #[tokio::test]
@@ -262,14 +267,10 @@ async fn healthy_connection_allows_sequential_roundtrips() {
     let server_task = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
         for _ in 0..3 {
-            let mut size_buf = [0u8; 4];
-            let _ = socket.read_exact(&mut size_buf).await.unwrap();
-            let size = i32::from_be_bytes(size_buf) as usize;
-            let mut req_buf = vec![0u8; size];
-            let _ = socket.read_exact(&mut req_buf).await.unwrap();
+            let req_buf = read_request_frame(&mut socket).await.unwrap();
             let correlation_id = i32::from_be_bytes(req_buf[4..8].try_into().unwrap());
 
-            let resp = make_response_frame(correlation_id, &[]);
+            let resp = make_response_frame(correlation_id, &[]).unwrap();
             socket.write_all(&resp).await.unwrap();
         }
     });
@@ -286,7 +287,7 @@ async fn healthy_connection_allows_sequential_roundtrips() {
         assert!(!conn.is_closed());
     }
 
-    let _ = server_task.await;
+    server_task.await.unwrap();
 }
 
 #[tokio::test]
@@ -297,15 +298,11 @@ async fn early_response_during_write_preserves_framing_and_correlation() {
     let server_task = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
         // Read client request.
-        let mut size_buf = [0u8; 4];
-        let _ = socket.read_exact(&mut size_buf).await.unwrap();
-        let size = i32::from_be_bytes(size_buf) as usize;
-        let mut req_buf = vec![0u8; size];
-        let _ = socket.read_exact(&mut req_buf).await.unwrap();
+        let req_buf = read_request_frame(&mut socket).await.unwrap();
         let correlation_id = i32::from_be_bytes(req_buf[4..8].try_into().unwrap());
 
         // Immediately write response.
-        let resp = make_response_frame(correlation_id, &[1, 2, 3, 4]);
+        let resp = make_response_frame(correlation_id, &[1, 2, 3, 4]).unwrap();
         socket.write_all(&resp).await.unwrap();
     });
 
@@ -329,7 +326,7 @@ async fn early_response_during_write_preserves_framing_and_correlation() {
     assert_eq!(&body[..], &[1, 2, 3, 4]);
     assert!(!conn.is_closed());
 
-    let _ = server_task.await;
+    server_task.await.unwrap();
 }
 
 #[tokio::test]
@@ -339,16 +336,14 @@ async fn explicit_deadline_contract_bounds_roundtrip() {
 
     let server_task = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
-        let mut size_buf = [0u8; 4];
-        let _ = socket.read_exact(&mut size_buf).await.unwrap();
-        let size = i32::from_be_bytes(size_buf) as usize;
-        let mut req_buf = vec![0u8; size];
-        let _ = socket.read_exact(&mut req_buf).await.unwrap();
+        let req_buf = read_request_frame(&mut socket).await.unwrap();
         let correlation_id = i32::from_be_bytes(req_buf[4..8].try_into().unwrap());
 
         tokio::time::sleep(Duration::from_millis(100)).await;
-        let resp = make_response_frame(correlation_id, &[]);
-        let _ = socket.write_all(&resp).await;
+        let resp = make_response_frame(correlation_id, &[]).unwrap();
+        // The client may already have timed out and gone away; a failed
+        // trailing write is expected, not an error.
+        socket.write_all(&resp).await.unwrap_or(());
     });
 
     let mut conn = BrokerConn::connect(&addr, "test-client", Duration::from_secs(1))
@@ -365,5 +360,5 @@ async fn explicit_deadline_contract_bounds_roundtrip() {
     assert!(matches!(res, Err(Error::Timeout)));
     assert!(conn.is_closed());
 
-    let _ = server_task.await;
+    server_task.await.unwrap();
 }

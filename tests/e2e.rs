@@ -2,10 +2,6 @@
 //!
 //! Produce one record, fetch it back, and complete one classic group hop
 //! (JoinGroup). Not a live cluster. Not a bench. Not a win.
-#![expect(
-    dead_code,
-    reason = "tests/common mock helpers are shared; this file uses a subset"
-)]
 
 mod common;
 
