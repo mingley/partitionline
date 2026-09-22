@@ -1585,7 +1585,7 @@ impl Consumer {
     }
 
     /// Record bytes (keys, values, and headers) currently buffered in
-    /// [`Self::pending`].
+    /// the pending-record queue.
     ///
     /// Process RSS is not bounded by this value.
     #[must_use]

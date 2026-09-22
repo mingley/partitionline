@@ -1967,13 +1967,29 @@
     {
       "id": "KL07-11",
       "title": "Repair the consumer.rs private intra-doc link",
-      "priority": "P1", "kind": "documentation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "documentation", "status": "done", "owner": "mingley",
       "depends_on": [],
       "files": ["src/consumer.rs"],
       "deliverable": "Strict rustdoc (-D warnings) builds clean on the exact main SHA again.",
       "acceptance": ["Public docs for `buffered_bytes` no longer link private `Self::pending`.", "No allow(rustdoc::...) suppression and no visibility change made solely to silence the warning.", "RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --all-features exits 0 on the merged SHA."],
       "validation": ["RUSTDOCFLAGS='-D warnings' cargo doc --offline --locked --no-deps --all-features", "bash scripts/ci-docs.sh --self-test"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "3951edc0f6f6ccc5e0020fe428c407b6fea0e50e",
+                "commands": [
+                        "RUSTDOCFLAGS='-D warnings' cargo doc --offline --locked --no-deps --all-features (exit 0)",
+                        "bash scripts/ci-docs.sh --self-test (exit 0, doctests passed)"
+                ],
+                "results": "Strict rustdoc builds warning-free again. The buffered_bytes doc comment links no private item; the one-line reword keeps meaning and touches no code, API, or visibility.",
+                "artifacts": [
+                        "src/consumer.rs",
+                        "docs/plan/evidence/KL07-11.json"
+                ],
+                "limits": [
+                        "Doc-comment-only change; no behavior, API, or visibility change."
+                ]
+        }
+      ]
     },
     {
       "id": "KL08-01",
