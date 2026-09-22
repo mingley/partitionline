@@ -781,6 +781,11 @@ struct Pending {
     seq: Option<i32>,
     batch_base_seq: Option<i32>,
     batch_len: usize,
+    /// [`Shared::epoch_gen`] observed when the sequence was assigned. A
+    /// mismatch means a producer-epoch bump (or identity renewal) happened
+    /// while this batch was retained, so the stale sequence must be
+    /// re-assigned before the next Produce (KL03-09).
+    epoch_gen: u64,
     deadline: Instant,
     queued_at: Instant,
     /// Failed Produce attempts so far. The first retry sleeps
@@ -827,6 +832,12 @@ struct Shared {
     partitioner: Arc<dyn Partitioner>,
     producer_id: AtomicI64,
     producer_epoch: AtomicI16,
+    /// Generation of the shared idempotent identity. Incremented on every
+    /// local epoch bump and on every producer-identity renewal, so retained
+    /// batches (pending, in-flight, retry queue, any worker or partition)
+    /// can detect that their assigned sequence belongs to a superseded
+    /// epoch and must be re-assigned (KL03-09).
+    epoch_gen: AtomicU64,
     /// After UNKNOWN_PRODUCER_ID / INVALID_PRODUCER_EPOCH /
     /// INVALID_PRODUCER_ID_MAPPING on a transactional produce, abort
     /// re-inits with the last producer id and epoch (KIP-360).
@@ -930,12 +941,17 @@ impl Shared {
         let old_epoch = self.producer_epoch.load(Ordering::SeqCst);
         if producer_id != old_pid || producer_epoch != old_epoch {
             self.seqs.lock().clear();
+            let _ = self.epoch_gen.fetch_add(1, Ordering::SeqCst);
         }
         self.producer_id.store(producer_id, Ordering::SeqCst);
         self.producer_epoch.store(producer_epoch, Ordering::SeqCst);
     }
 
-    /// Local epoch bump for the idempotent producer (KIP-360).
+    /// Local epoch bump for the idempotent producer (KIP-360). Clears
+    /// per-partition sequences and advances [`Self::epoch_gen`] so every
+    /// retained batch re-takes its sequence under the new epoch instead of
+    /// reusing a stale one. At `i16::MAX` no bump is possible; the caller
+    /// must renew the producer identity instead (KL03-09).
     fn bump_idempotent_epoch(&self) {
         let epoch = self.producer_epoch.load(Ordering::SeqCst);
         if epoch <= RecordBatch::NO_PRODUCER_EPOCH || epoch == i16::MAX {
@@ -944,6 +960,7 @@ impl Shared {
         self.producer_epoch
             .store(epoch.saturating_add(1), Ordering::SeqCst);
         self.seqs.lock().clear();
+        let _ = self.epoch_gen.fetch_add(1, Ordering::SeqCst);
     }
 
     fn note_queued_n(&self, topic: &Arc<str>, n: u64, bytes: u64) {
@@ -1230,6 +1247,7 @@ impl Producer {
             partitioner: cfg.partitioner.arc(),
             producer_id: AtomicI64::new(producer_id),
             producer_epoch: AtomicI16::new(producer_epoch),
+            epoch_gen: AtomicU64::new(0),
             epoch_bump_required: AtomicBool::new(false),
             seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
@@ -1481,6 +1499,7 @@ impl Producer {
                     seq: None,
                     batch_base_seq: None,
                     batch_len: 1,
+                    epoch_gen: self.inner.shared.epoch_gen.load(Ordering::SeqCst),
                     deadline,
                     queued_at: now,
                     retry: 0,
@@ -1606,6 +1625,7 @@ impl Producer {
             seq: None,
             batch_base_seq: None,
             batch_len: 1,
+            epoch_gen: self.inner.shared.epoch_gen.load(Ordering::SeqCst),
             deadline,
             queued_at: now,
             retry: 0,
@@ -1638,6 +1658,28 @@ impl Producer {
     #[must_use]
     pub fn retries_in_flight(&self) -> usize {
         self.inner.shared.retries_out.load(Ordering::SeqCst)
+    }
+
+    /// Test hook: read the current idempotent producer id (KL03-09).
+    #[doc(hidden)]
+    pub fn __test_producer_id(&self) -> i64 {
+        self.inner.shared.producer_id.load(Ordering::SeqCst)
+    }
+
+    /// Test hook: read the current idempotent producer epoch (KL03-09).
+    #[doc(hidden)]
+    pub fn __test_producer_epoch(&self) -> i16 {
+        self.inner.shared.producer_epoch.load(Ordering::SeqCst)
+    }
+
+    /// Test hook: force the idempotent producer epoch, e.g. to `i16::MAX`
+    /// to exercise epoch-exhaustion renewal (KL03-09).
+    #[doc(hidden)]
+    pub fn __test_set_producer_epoch(&self, epoch: i16) {
+        self.inner
+            .shared
+            .producer_epoch
+            .store(epoch, Ordering::SeqCst);
     }
 
     /// Test hook: inspect worker task handles to verify task termination.
@@ -2385,9 +2427,44 @@ async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
     }
     if new_pid != pid || new_epoch != epoch {
         shared.seqs.lock().clear();
+        let _ = shared.epoch_gen.fetch_add(1, Ordering::SeqCst);
     }
     shared.producer_id.store(new_pid, Ordering::SeqCst);
     shared.producer_epoch.store(new_epoch, Ordering::SeqCst);
+    Ok(())
+}
+
+/// Nontransactional epoch-exhaustion recovery (KL03-09): at `i16::MAX` no
+/// local epoch bump is possible, so request a brand-new producer identity
+/// with `InitProducerId(-1, -1)` and restart sequences at zero under it.
+/// This mirrors the pinned Java `TransactionManager` producer-ID reset rule;
+/// the transactional KIP-360 bump above is a separate path and is untouched.
+async fn renew_nontransactional_identity(shared: &Shared) -> Result<()> {
+    let version = shared.init_producer_id_version;
+    let mut txn: Option<BrokerConn> = None;
+    let mut meta = shared.meta.lock().await;
+    let body = init_producer_id_roundtrip(
+        &shared.cfg,
+        &mut txn,
+        &mut meta,
+        version,
+        shared.find_coord_version,
+        (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
+    )
+    .await?;
+    drop(meta);
+    let (err, new_pid, new_epoch, ..) =
+        decode_init_producer_id_response(&mut body.clone(), version)?;
+    if err != 0 {
+        return Err(Error::broker(err, "InitProducerId"));
+    }
+    if new_pid < 0 {
+        return Err(Error::protocol("InitProducerId returned producer_id=-1"));
+    }
+    shared.seqs.lock().clear();
+    shared.producer_id.store(new_pid, Ordering::SeqCst);
+    shared.producer_epoch.store(new_epoch, Ordering::SeqCst);
+    let _ = shared.epoch_gen.fetch_add(1, Ordering::SeqCst);
     Ok(())
 }
 
@@ -3182,7 +3259,8 @@ impl Worker {
         }
         let producer_id = self.shared.producer_id.load(Ordering::SeqCst);
         let producer_epoch = self.shared.producer_epoch.load(Ordering::SeqCst);
-        assign_sequences(&mut groups, producer_id, &self.shared.seqs);
+        let epoch_gen = self.shared.epoch_gen.load(Ordering::SeqCst);
+        assign_sequences(&mut groups, producer_id, &self.shared.seqs, epoch_gen);
 
         let fault = {
             let mut g = self.shared.pre_send_fault.lock();
@@ -3457,12 +3535,36 @@ impl Worker {
                         && self.shared.cfg.transactional_id.is_none()
                         && self.shared.producer_id.load(Ordering::SeqCst) >= 0
                     {
-                        self.shared.bump_idempotent_epoch();
-                        let mut pendings = pendings;
-                        for p in &mut pendings {
-                            p.skip_meta_refresh = true;
+                        // Nontransactional idempotent recovery (KL03-09):
+                        // a local epoch bump while the epoch can advance,
+                        // a brand-new producer identity once it is
+                        // exhausted. The transactional fencing path below
+                        // is untouched: this never serves as fencing
+                        // recovery.
+                        if self.shared.producer_epoch.load(Ordering::SeqCst) == i16::MAX {
+                            match renew_nontransactional_identity(&self.shared).await {
+                                Ok(()) => {
+                                    let mut pendings = pendings;
+                                    for p in &mut pendings {
+                                        p.skip_meta_refresh = true;
+                                    }
+                                    self.requeue_pendings(pendings);
+                                }
+                                Err(renew_err) => {
+                                    fail_pendings(&self.shared, pendings, clone_err(&renew_err));
+                                    if first_err.is_none() {
+                                        first_err = Some(renew_err);
+                                    }
+                                }
+                            }
+                        } else {
+                            self.shared.bump_idempotent_epoch();
+                            let mut pendings = pendings;
+                            for p in &mut pendings {
+                                p.skip_meta_refresh = true;
+                            }
+                            self.requeue_pendings(pendings);
                         }
-                        self.requeue_pendings(pendings);
                     } else if self.shared.cfg.transactional_id.is_some()
                         && matches!(
                             r.error_code,
@@ -3783,11 +3885,27 @@ fn assign_sequences(
     groups: &mut [(Arc<str>, i32, Vec<Pending>)],
     producer_id: i64,
     seqs: &parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
+    epoch_gen: u64,
 ) {
     if producer_id <= RecordBatch::NO_PRODUCER_ID {
         return;
     }
     for (topic, partition, pendings) in groups.iter_mut() {
+        // A retained batch whose sequence was assigned under a superseded
+        // epoch (shared epoch bump or identity renewal while it was
+        // pending, in flight, or queued for retry) must drop the stale
+        // assignment and re-take a sequence under the current epoch.
+        // Sending the old base sequence with the new epoch would fail with
+        // OUT_OF_ORDER_SEQUENCE_NUMBER; reusing seq zero twice on one
+        // partition would silently dedup away a record.
+        for p in pendings.iter_mut() {
+            if p.epoch_gen != epoch_gen {
+                p.seq = None;
+                p.batch_base_seq = None;
+                p.batch_len = 1;
+                p.epoch_gen = epoch_gen;
+            }
+        }
         if pendings.iter().all(|p| p.seq.is_some()) {
             continue;
         }

@@ -406,6 +406,275 @@ async fn idempotent_unknown_producer_id_bumps_epoch_and_retries() {
 }
 
 #[tokio::test]
+async fn idempotent_unknown_producer_id_repeated_errors_bump_each_time() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_error_times(error::UNKNOWN_PRODUCER_ID, 3);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    pcfg.retry_backoff = Duration::from_millis(20);
+    pcfg.retry_backoff_max = Duration::from_millis(20);
+    pcfg.delivery_timeout = Duration::from_secs(10);
+    let producer = Producer::new(pcfg).await.unwrap();
+    let pid = producer.__test_producer_id();
+    let md = producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"unk-pid-x3"[..]),
+        )
+        .await
+        .expect("repeated UNKNOWN_PRODUCER_ID must recover via local epoch bumps");
+    assert_eq!(md.offset, 0);
+    assert_eq!(
+        mock.last_produce_producer_epoch(),
+        Some(3),
+        "three UNKNOWN_PRODUCER_ID errors must advance the epoch three times"
+    );
+    assert_eq!(
+        mock.log_len("t", 0),
+        1,
+        "retried batch must be appended exactly once"
+    );
+    assert_eq!(
+        mock.init_producer_id_nodes().len(),
+        1,
+        "local epoch bumps must not request a new producer identity"
+    );
+    let seqs = mock.produce_sequences();
+    assert_eq!(
+        seqs,
+        vec![(pid, 3, 0, 1)],
+        "only the successful attempt is recorded, with the bumped epoch"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn idempotent_unknown_producer_id_retained_batch_resequenced() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_error_times(error::UNKNOWN_PRODUCER_ID, 1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    pcfg.connections = 1;
+    pcfg.max_in_flight = 5;
+    pcfg.retry_backoff = Duration::from_millis(20);
+    pcfg.retry_backoff_max = Duration::from_millis(20);
+    pcfg.delivery_timeout = Duration::from_secs(10);
+    let producer = Producer::new(pcfg).await.unwrap();
+    let pid = producer.__test_producer_id();
+
+    // First send fires before the second is enqueued, so the second batch is
+    // retained with an assigned sequence while the epoch bump happens.
+    let p1 = producer.clone();
+    let fut1 = tokio::spawn(async move {
+        p1.send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"retained-a"[..]),
+        )
+        .await
+    });
+    while mock.produce_request_nodes().is_empty() {
+        tokio::time::sleep(Duration::from_millis(1)).await;
+    }
+    let p2 = producer.clone();
+    let fut2 = tokio::spawn(async move {
+        p2.send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"retained-b"[..]),
+        )
+        .await
+    });
+    let (res1, res2) = tokio::join!(fut1, fut2);
+    let md1 = res1.unwrap().expect("first retained batch must succeed");
+    let md2 = res2.unwrap().expect("second retained batch must succeed");
+
+    let mut offsets = [md1.offset, md2.offset];
+    offsets.sort_unstable();
+    assert_eq!(
+        offsets,
+        [0, 1],
+        "both retained batches must land exactly once with distinct offsets, got [{md1}, {md2}]"
+    );
+    assert_eq!(
+        mock.log_len("t", 0),
+        2,
+        "epoch recovery must not duplicate or drop the retained batch"
+    );
+    assert_eq!(
+        mock.last_produce_producer_epoch(),
+        Some(1),
+        "recovery must use the bumped epoch"
+    );
+    // The failing batch retries under the new epoch with a re-assigned
+    // sequence, so no attempt may reuse (epoch 1, seq 0) twice.
+    let seqs = mock.produce_sequences();
+    assert_eq!(
+        seqs,
+        vec![(pid, 1, 0, 1), (pid, 1, 1, 1)],
+        "retained batch must be re-sequenced under the bumped epoch, got {seqs:?}"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn idempotent_unknown_producer_id_other_partition_progresses() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    pcfg.retry_backoff = Duration::from_millis(20);
+    pcfg.retry_backoff_max = Duration::from_millis(20);
+    pcfg.delivery_timeout = Duration::from_secs(10);
+    let producer = Producer::new(pcfg).await.unwrap();
+
+    // Baseline on the untouched partition under the initial epoch.
+    let base = producer
+        .send(ProduceRecord::to("t").partition(1).value(&b"p1-base"[..]))
+        .await
+        .unwrap();
+    assert_eq!(base.offset, 0);
+
+    // The next failure bumps the shared epoch; both partitions must then
+    // restart their sequences at zero under the new epoch.
+    mock.set_produce_error_times(error::UNKNOWN_PRODUCER_ID, 1);
+    let p0 = producer.clone();
+    let f0 = tokio::spawn(async move {
+        p0.send(ProduceRecord::to("t").partition(0).value(&b"p0-after"[..]))
+            .await
+    });
+    let p1 = producer.clone();
+    let f1 = tokio::spawn(async move {
+        p1.send(ProduceRecord::to("t").partition(1).value(&b"p1-after"[..]))
+            .await
+    });
+    let (r0, r1) = tokio::join!(f0, f1);
+    let m0 = r0.unwrap().expect("partition 0 must recover");
+    let m1 = r1.unwrap().expect("partition 1 must keep progressing");
+    assert_eq!(m0.offset, 0);
+    assert_eq!(m1.offset, 1);
+    assert_eq!(mock.log_len("t", 0), 1);
+    assert_eq!(mock.log_len("t", 1), 2);
+    assert_eq!(
+        mock.last_produce_producer_epoch(),
+        Some(1),
+        "both partitions must produce under the bumped epoch"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn idempotent_unknown_producer_id_after_lost_ack_still_recovers() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    pcfg.retry_backoff = Duration::from_millis(20);
+    pcfg.retry_backoff_max = Duration::from_millis(20);
+    pcfg.delivery_timeout = Duration::from_secs(10);
+    let producer = Producer::new(pcfg).await.unwrap();
+    let pid = producer.__test_producer_id();
+
+    // Phase 1: response loss. The batch is appended before the response is
+    // dropped, so the same-epoch retry dedups to the original offset.
+    mock.set_produce_drop_response_times(1);
+    let lost = producer
+        .send(ProduceRecord::to("t").partition(0).value(&b"lost-ack"[..]))
+        .await
+        .expect("lost ack must recover via same-epoch retry");
+    assert_eq!(lost.offset, 0);
+    assert_eq!(mock.log_len("t", 0), 1);
+
+    // Phase 2: the broker then forgets the producer id. Recovery bumps the
+    // epoch and restarts sequences at zero; the post-bump batch must append
+    // cleanly after the pre-bump history on the same producer.
+    mock.set_produce_error_times(error::UNKNOWN_PRODUCER_ID, 1);
+    let md = producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"after-unknown"[..]),
+        )
+        .await
+        .expect("UNKNOWN_PRODUCER_ID after a lost ack must still recover");
+    assert_eq!(md.offset, 1);
+    assert_eq!(mock.log_len("t", 0), 2);
+    assert_eq!(mock.last_produce_producer_epoch(), Some(1));
+    let seqs = mock.produce_sequences();
+    assert_eq!(
+        seqs,
+        vec![(pid, 0, 0, 1), (pid, 0, 0, 1), (pid, 1, 0, 1)],
+        "lost-ack retry keeps (epoch 0, seq 0); post-bump batch restarts at seq 0, got {seqs:?}"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn idempotent_epoch_exhaustion_renews_producer_identity() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    pcfg.retry_backoff = Duration::from_millis(20);
+    pcfg.retry_backoff_max = Duration::from_millis(20);
+    pcfg.delivery_timeout = Duration::from_secs(10);
+    let producer = Producer::new(pcfg).await.unwrap();
+    let old_pid = producer.__test_producer_id();
+    assert!(old_pid >= 0);
+
+    // Drive the epoch to exhaustion: no local bump can follow i16::MAX, so
+    // recovery must request a brand-new producer identity instead.
+    producer.__test_set_producer_epoch(i16::MAX);
+    mock.set_produce_error_times(error::UNKNOWN_PRODUCER_ID, 1);
+    let md = producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"epoch-exhausted"[..]),
+        )
+        .await
+        .expect("i16::MAX epoch exhaustion must renew the producer identity");
+    assert_eq!(md.offset, 0);
+    assert_eq!(
+        mock.init_producer_id_nodes().len(),
+        2,
+        "exhaustion must issue a second InitProducerId"
+    );
+    assert_eq!(
+        mock.last_init_producer_id_producer_id(),
+        Some(RecordBatch::NO_PRODUCER_ID),
+        "exhaustion must request a new identity, not an epoch bump of the old one"
+    );
+    let new_pid = producer.__test_producer_id();
+    assert_ne!(new_pid, old_pid, "exhaustion must rotate the producer id");
+    assert_eq!(producer.__test_producer_epoch(), 0);
+    assert_eq!(mock.last_produce_producer_epoch(), Some(0));
+    assert_eq!(mock.log_len("t", 0), 1);
+
+    // Sequences restart under the new identity and keep advancing.
+    let md2 = producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(0)
+                .value(&b"after-renew"[..]),
+        )
+        .await
+        .unwrap();
+    assert_eq!(md2.offset, 1);
+    let seqs = mock.produce_sequences();
+    assert_eq!(
+        seqs,
+        vec![(new_pid, 0, 0, 1), (new_pid, 0, 1, 1)],
+        "sequences must restart at zero under the new identity, got {seqs:?}"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn transactional_abort_reinit_sends_last_pid_epoch() {
     let mock = common::Mock::start().await;
     mock.set_api_max(END_TXN, 4);

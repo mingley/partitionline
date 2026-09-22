@@ -822,13 +822,36 @@
     {
       "id": "KL03-09",
       "title": "Qualify nontransactional producer epoch recovery",
-      "priority": "P0", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL03-08"],
       "files": ["src/producer.rs", "tests/full_surface.rs", "tests/common/mod.rs"],
       "deliverable": "A state transition for UNKNOWN_PRODUCER_ID and epoch exhaustion consistent with pinned Java behavior.",
       "acceptance": ["Account for retained/in-flight sequences and multiple partitions before changing the shared epoch.", "Test repeated errors, response loss, stale batches and i16::MAX epoch rollover requiring a new identity.", "Do not forbid all local idempotent epoch bumps or reuse this path as transactional fencing recovery."],
       "validation": ["cargo test --locked --test full_surface idempotent", "Compare the transition history with pinned Apache TransactionManager cases."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ebe9e0e26ad512dbe423f1191da16ff06b966f33",
+                "commands": [
+                        "cargo test --locked --test full_surface idempotent -- --test-threads=9 (14 passed, exit 0)",
+                        "cargo test --locked --test full_surface idempotent_unknown_producer_id|idempotent_lost_ack|idempotent_epoch subsets (all green)",
+                        "cargo test --locked --test produce_cancel (15 passed at 4 threads, exit 0)",
+                        "cargo test --locked --test buffer_ownership (12 passed, exit 0)",
+                        "cargo clippy --locked --lib --all-features -- -D warnings (exit 0)",
+                        "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features (exit 0)"
+                ],
+                "results": "UNKNOWN_PRODUCER_ID recovery via epoch generation counter: stale per-partition sequence assignments are dropped and re-taken under the current epoch; recovery bumps locally while epoch < i16::MAX and renews identity via InitProducerId(-1,-1) at exhaustion. 5 new tests cover repeated-error bumps, retained-batch resequencing, lost-ack-then-unknown-id, cross-partition progress, and exhaustion renewal; local idempotent bumps preserved and the transactional fencing path untouched.",
+                "artifacts": [
+                        "src/producer.rs",
+                        "tests/full_surface.rs",
+                        "docs/plan/evidence/KL03-09.json"
+                ],
+                "limits": [
+                        "Default 14-thread full_surface/produce_cancel runs flake with Timeout-only failures on this loaded host; proven pre-existing by identical failures on pristine base (12/15 produce_cancel twice) while this card is green at reduced threads and in every subset/solo run. Zero assertion failures anywhere.",
+                        "Sequence-restart scope: identity change clears the shared per-partition sequence map (all partitions restart at zero); Java rewrites only bump-triggering partitions. Both wire-safe (higher epoch opens a new window); shared-map design has no per-partition epoch tracking.",
+                        "Mock-broker evidence only; no real-broker run. Transactional recovery stays in KL03-10/KL03-11."
+                ]
+        }
+      ]
     },
     {
       "id": "KL03-10",

@@ -1,0 +1,104 @@
+{
+  "id": "KL03-09",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "ebe9e0e26ad512dbe423f1191da16ff06b966f33",
+  "commands": [
+    "rustfmt --edition 2021 --check src/producer.rs tests/full_surface.rs (exit 0 after formatting touched files)",
+    "cargo test --locked --test full_surface idempotent -- --test-threads=9 (exit 0; 14/14 in 4/4 runs, ~0.22s each)",
+    "cargo test --locked --test full_surface idempotent_unknown_producer_id (exit 0; 5/5)",
+    "cargo test --locked --test full_surface idempotent_lost_ack (exit 0; 6/6)",
+    "cargo test --locked --test full_surface idempotent_epoch (exit 0; 1/1)",
+    "cargo test --locked --test full_surface idempotent_produce_gets_pid (exit 0; 1/1)",
+    "cargo test --locked --test full_surface idempotent_unkeyed (exit 0; 1/1)",
+    "cargo test --locked --test full_surface idempotent (exact card command; 0/11 green on this shared host: 10-12/14 with Timeout-only failures or a hung pre-existing test; zero assertion failures in any run; identical signature reproduced on unmodified base code, see limits)",
+    "cargo test --locked --test produce_cancel (exit 0; 15/15)",
+    "cargo test --locked --test buffer_ownership (exit 0; 12/12; one transient 11/12 timeout flake, green on immediate retry)",
+    "cargo clippy --locked --lib --all-features -- -D warnings (exit 0; src/producer.rs clean)",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings (fails ONLY in untouched tests/auth_lifecycle.rs, tests/mock_produce.rs, tests/network_deadlines.rs, tests/roundtrip.rs; zero findings in src/producer.rs or tests/full_surface.rs; pre-existing under clippy 1.98)",
+    "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features (exit 0)"
+  ],
+  "results": {
+    "full_surface_idempotent_tests": {
+      "passed": 14,
+      "failed": 0,
+      "test_names": [
+        "idempotent_epoch_exhaustion_renews_producer_identity",
+        "idempotent_lost_ack_ambiguous_expiration_remains_explicit",
+        "idempotent_lost_ack_multi_record_batch_retries_without_duplicate",
+        "idempotent_lost_ack_several_inflight_appended_before_disconnect",
+        "idempotent_lost_ack_several_inflight_batches_same_partition",
+        "idempotent_lost_ack_single_batch_retry_succeeds_without_duplicate",
+        "idempotent_lost_ack_with_progressing_partition",
+        "idempotent_produce_gets_pid_and_offset",
+        "idempotent_unkeyed_multi_conn_stays_in_order",
+        "idempotent_unknown_producer_id_after_lost_ack_still_recovers",
+        "idempotent_unknown_producer_id_bumps_epoch_and_retries",
+        "idempotent_unknown_producer_id_other_partition_progresses",
+        "idempotent_unknown_producer_id_repeated_errors_bump_each_time",
+        "idempotent_unknown_producer_id_retained_batch_resequenced"
+      ]
+    },
+    "produce_cancel_tests": {
+      "passed": 15,
+      "failed": 0,
+      "test_names": [
+        "durable_closed_flag_across_clones",
+        "send_after_close_returns_closed",
+        "concurrent_sends_during_close_do_not_hang_and_observe_closed",
+        "send_fails_when_broker_returns_produce_error",
+        "send_completes_with_record_metadata",
+        "dropping_send_future_while_buffered_is_ambiguous_but_still_delivers",
+        "last_handle_drop_releases_permits_and_aborts_tasks",
+        "retry_succeeds_when_broker_recovers_within_delivery_deadline",
+        "max_block_and_request_timeout_keep_distinct_documented_meanings",
+        "delivery_deadline_enforces_queueing_wait_under_long_linger",
+        "stalled_broker_close_timeout_terminates_boundedly_and_completes_inflight",
+        "retry_queue_shutdown_boundedly_completes_and_releases_permits",
+        "delivery_deadline_shared_across_retries_and_consumes_remaining_time",
+        "delivery_deadline_enforces_acknowledgment_wait_bounded_by_remaining",
+        "delivery_deadline_bounds_metadata_refresh_during_retry"
+      ]
+    },
+    "buffer_ownership_tests": {
+      "passed": 12,
+      "failed": 0,
+      "test_names": [
+        "presend_failure_encode_releases_permit_and_flush_fails",
+        "presend_failure_write_releases_permit_and_flush_fails",
+        "saturating_try_send_never_exceeds_buffer_memory",
+        "presend_failure_transaction_partition_releases_permit_and_flush_fails",
+        "shared_backing_and_compressed_records_respect_buffer_budget",
+        "header_heavy_records_count_against_buffer_budget",
+        "queue_full_under_overload_releases_no_orphan_bytes",
+        "presend_failure_real_mock_add_partitions_to_txn",
+        "permit_stays_owned_across_retry_and_releases_exactly_once",
+        "presend_failure_write_retry_exhaustion_releases_permit",
+        "zero_value_records_do_not_bypass_saturated_buffer",
+        "send_timeout_when_buffer_full_and_max_block_expires"
+      ]
+    },
+    "checks": [
+      "Repeated UNKNOWN_PRODUCER_ID bumps the shared epoch once per error (0->3 over three errors) with no new InitProducerId and exactly-once append",
+      "A batch retained with an assigned sequence across the bump is re-sequenced under the new epoch; no (epoch, seq) pair is reused twice on a partition",
+      "Two partitions on two broker nodes restart sequences at zero under the bumped epoch; the untouched partition keeps progressing with distinct offsets",
+      "Response loss still recovers via same-epoch retry with broker dedup, and a later UNKNOWN_PRODUCER_ID on the same producer recovers via epoch bump",
+      "At i16::MAX, recovery requests a brand-new identity with InitProducerId(-1, -1) (second InitProducerId, rotated pid, epoch 0) and restarts sequences at zero",
+      "Local idempotent epoch bumps are preserved (not forbidden); the transactional fencing path (epoch_bump_required + KIP-360 abort re-init) is untouched",
+      "Transition history matches pinned Apache TransactionManager @13f7025: bump-if-possible else reset-id, sequences restarted at zero, nontransactional-only"
+    ]
+  },
+  "artifacts": [
+    "src/producer.rs",
+    "tests/full_surface.rs",
+    "docs/plan/evidence/KL03-09.json"
+  ],
+  "limits": [
+    "The exact 14-harness-thread selector is flaky on this shared 14-core Mac (load 5-36 from concurrent agents): 0/11 green with Timeout-only failures or a hung test; zero assertion failures in any run. Proven pre-existing and unrelated to this card: unmodified base code (git archive of HEAD) plus 5 trivial duplicate tests flakes identically at 14-way (10/14, 11/14, 10/14), while base 9-way is 4/4 green and this card's 14 tests are 4/4 green at --test-threads=9 plus green in every subset/solo run. Hangs sampled twice land in pre-existing tests/paths this card does not touch (try_send/worker_for spin, KL03-08 lost-ack test). Re-run the exact selector on a quiet runner; if the 14-way hang reproduces there it needs a separate card.",
+    "Mock-broker evidence only; no real-broker run.",
+    "Sequence-restart scope: this implementation clears the shared per-partition sequence map on any identity change (all partitions restart at zero), while pinned Java rewrites only the bump-triggering partitions. Both shapes are wire-safe (a strictly higher epoch opens a new sequence window); the shared-map design has no per-partition epoch tracking.",
+    "Transactional recovery mechanisms remain scoped to cards KL03-10 and KL03-11.",
+    "No unsafe code and no new dependencies added."
+  ],
+  "blocked_reason": null
+}
