@@ -23,7 +23,7 @@ use partitionline::protocol::api_keys::{
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
     OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
     SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
-    SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
+    SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -749,6 +749,886 @@ async fn transactional_commit_after_unknown_pid_still_fails() {
         "commit must still fail flush after a failed Produce; only abort ignores it"
     );
     producer.abort_transaction().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_fenced_produce_is_fatal_classic() {
+    // Classic coordinator (EndTxn v4): PRODUCER_FENCED on Produce fences the
+    // producer for good. Every transactional operation fails with the
+    // remembered fencing error, no EndTxn is sent, and no local replacement
+    // identity is invented.
+    let mock = common::Mock::start().await;
+    mock.set_api_max(END_TXN, 4);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-fence-classic".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    mock.set_produce_error_times(error::PRODUCER_FENCED, 1);
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"fenced"[..]))
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "got {err:?}"
+    );
+    assert_eq!(
+        producer
+            .commit_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "commit on a fenced producer must fail"
+    );
+    assert_eq!(
+        producer
+            .begin_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "begin on a fenced producer must fail"
+    );
+    assert_eq!(
+        producer
+            .send_offsets_to_transaction("g", [(TopicPartition::new("t", 0), 1)])
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "send_offsets on a fenced producer must fail"
+    );
+    assert_eq!(
+        producer
+            .abort_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "even abort must fail once fenced (Java beginAbort)"
+    );
+    assert_eq!(
+        producer
+            .send(ProduceRecord::to("t").value(&b"late"[..]))
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "sends must fail fast once fenced"
+    );
+    assert_eq!(
+        mock.end_txn_calls(),
+        0,
+        "a fenced producer must not send EndTxn"
+    );
+    assert_eq!(
+        producer.__test_producer_epoch(),
+        0,
+        "fencing must not bump the epoch locally"
+    );
+    assert_eq!(
+        mock.init_producer_id_nodes().len(),
+        1,
+        "fencing must not re-init or invent an identity"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_fenced_produce_is_fatal_v2() {
+    // Transaction V2 (EndTxn v5): fencing is still terminal. In particular
+    // no EndTxn v5 runs, so the broker never hands this producer a recovery
+    // identity either.
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-fence-v2".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    mock.set_produce_error_times(error::PRODUCER_FENCED, 1);
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"fenced"[..]))
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "got {err:?}"
+    );
+    assert_eq!(
+        producer
+            .commit_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::PRODUCER_FENCED)
+    );
+    assert_eq!(
+        producer
+            .abort_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::PRODUCER_FENCED)
+    );
+    assert_eq!(
+        producer
+            .begin_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::PRODUCER_FENCED)
+    );
+    assert_eq!(
+        mock.end_txn_calls(),
+        0,
+        "a fenced producer must not send EndTxn, not even v5"
+    );
+    assert_eq!(producer.__test_producer_epoch(), 0);
+    assert_eq!(mock.init_producer_id_nodes().len(), 1);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_replacement_producer_fences_first() {
+    // No forced errors: the mock broker assigns the same pid with a bumped
+    // epoch to the second producer for one transactional.id and auto-fences
+    // the stale identity, like a real broker. The fenced producer is
+    // bricked; the replacement transacts normally.
+    let mock = common::Mock::start().await;
+    let mut acfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    acfg.linger = Duration::ZERO;
+    acfg.transactional_id = Some("tx-fence".into());
+    let a = Producer::new(acfg).await.unwrap();
+    assert_eq!(a.__test_producer_epoch(), 0);
+    let a_pid = a.__test_producer_id();
+    a.begin_transaction().await.unwrap();
+    a.send(ProduceRecord::to("t").value(&b"a1"[..]))
+        .await
+        .unwrap();
+
+    let mut bcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    bcfg.linger = Duration::ZERO;
+    bcfg.transactional_id = Some("tx-fence".into());
+    let b = Producer::new(bcfg).await.unwrap();
+    assert_eq!(
+        b.__test_producer_id(),
+        a_pid,
+        "replacement keeps the producer id"
+    );
+    assert_eq!(b.__test_producer_epoch(), 1, "replacement bumps the epoch");
+
+    let err = a
+        .send(ProduceRecord::to("t").value(&b"a2"[..]))
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "stale identity must be fenced by the broker"
+    );
+    assert_eq!(
+        a.commit_transaction().await.unwrap_err().broker_code(),
+        Some(error::PRODUCER_FENCED)
+    );
+    assert_eq!(
+        a.abort_transaction().await.unwrap_err().broker_code(),
+        Some(error::PRODUCER_FENCED)
+    );
+    assert_eq!(
+        a.__test_producer_epoch(),
+        0,
+        "fenced producer keeps its stale epoch"
+    );
+
+    b.begin_transaction().await.unwrap();
+    b.send(ProduceRecord::to("t").value(&b"b1"[..]))
+        .await
+        .unwrap();
+    b.send_offsets_to_transaction("g-fence", [(TopicPartition::new("t", 0), 7)])
+        .await
+        .unwrap();
+    b.commit_transaction().await.unwrap();
+    assert_eq!(mock.committed_offset("g-fence", "t", 0), Some(7));
+    assert_eq!(
+        mock.log_len("t", 0),
+        2,
+        "a1 and b1 appended; the fenced a2 rejected"
+    );
+    a.close().await.unwrap();
+    b.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_abort_required_blocks_commit_until_abort_classic() {
+    // Classic coordinator (EndTxn v4): UNKNOWN_PRODUCER_ID makes the
+    // transaction abort-required. Commit/begin/send_offsets stay blocked
+    // (stickily, without sending EndTxn) until abort; abort recovers via the
+    // KIP-360 re-init with the last broker-authorized identity.
+    let mock = common::Mock::start().await;
+    mock.set_api_max(END_TXN, 4);
+    mock.set_topic_partitions("t", 2);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-abort-classic".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    mock.set_produce_error_times(error::UNKNOWN_PRODUCER_ID, 1);
+    let err = producer
+        .send(ProduceRecord::to("t").partition(0).value(&b"lost"[..]))
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::UNKNOWN_PRODUCER_ID),
+        "got {err:?}"
+    );
+    assert_eq!(
+        producer.__test_producer_epoch(),
+        0,
+        "no local epoch bump before abort"
+    );
+    assert_eq!(
+        producer
+            .commit_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::UNKNOWN_PRODUCER_ID),
+        "commit must fail without sending EndTxn"
+    );
+    assert_eq!(
+        producer
+            .commit_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::UNKNOWN_PRODUCER_ID),
+        "abort-required is sticky until abort"
+    );
+    assert_eq!(mock.end_txn_calls(), 0);
+    assert_eq!(
+        producer
+            .begin_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::UNKNOWN_PRODUCER_ID),
+        "begin must fail until abort"
+    );
+    assert_eq!(
+        producer
+            .send_offsets_to_transaction("g", [(TopicPartition::new("t", 0), 1)])
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::UNKNOWN_PRODUCER_ID),
+        "send_offsets must fail until abort"
+    );
+    // Sends stay legal in the still-open broker transaction (a fresh
+    // partition has a fresh sequence; partition 0's sequence is consumed by
+    // the failed batch).
+    producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(1)
+                .value(&b"still-open"[..]),
+        )
+        .await
+        .unwrap();
+    producer.abort_transaction().await.unwrap();
+    assert_eq!(mock.end_txn_calls(), 1);
+    assert_eq!(mock.last_end_txn_committed(), Some(false));
+    assert_eq!(
+        mock.last_init_producer_id_producer_id(),
+        Some(1000),
+        "KIP-360 resume must send the last producer id, not -1"
+    );
+    assert_eq!(
+        mock.last_init_producer_id_producer_epoch(),
+        Some(0),
+        "KIP-360 resume must send the last producer epoch"
+    );
+    assert_eq!(
+        producer.__test_producer_epoch(),
+        1,
+        "recovery identity comes from the broker re-init"
+    );
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"after"[..]))
+        .await
+        .unwrap();
+    assert_eq!(
+        mock.last_produce_producer_epoch(),
+        Some(1),
+        "next transaction must produce with the bumped epoch"
+    );
+    producer.commit_transaction().await.unwrap();
+    assert_eq!(mock.end_txn_calls(), 2);
+    assert_eq!(mock.last_end_txn_committed(), Some(true));
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_abort_required_v2_recovers_without_reinit() {
+    // Transaction V2: the abort-required state clears through the EndTxn v5
+    // response identity. No InitProducerId re-init may follow.
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-abort-v2".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    mock.set_produce_error_times(error::UNKNOWN_PRODUCER_ID, 1);
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"lost"[..]))
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::UNKNOWN_PRODUCER_ID),
+        "got {err:?}"
+    );
+    assert_eq!(
+        producer
+            .commit_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::UNKNOWN_PRODUCER_ID)
+    );
+    assert_eq!(mock.end_txn_calls(), 0);
+    producer.abort_transaction().await.unwrap();
+    assert_eq!(mock.end_txn_calls(), 1);
+    assert_eq!(mock.last_end_txn_committed(), Some(false));
+    assert_eq!(
+        mock.init_producer_id_nodes().len(),
+        1,
+        "EndTxn v5 already bumped; no re-init may follow"
+    );
+    assert_eq!(
+        producer.__test_producer_epoch(),
+        1,
+        "recovery identity comes from the EndTxn v5 response"
+    );
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"after"[..]))
+        .await
+        .unwrap();
+    assert_eq!(mock.last_produce_producer_epoch(), Some(1));
+    producer.commit_transaction().await.unwrap();
+    assert_eq!(mock.end_txn_calls(), 2);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_fatal_produce_errors_fence_producer() {
+    // INVALID_PRODUCER_ID_MAPPING and TRANSACTIONAL_ID_AUTHORIZATION_FAILED
+    // on Produce are fatal (pinned Java maybeTransitionToErrorState), not
+    // bump-recoverable: no re-init, no local epoch change, no EndTxn.
+    for (code, tid) in [
+        (error::INVALID_PRODUCER_ID_MAPPING, "tx-fatal-pid-mapping"),
+        (
+            error::TRANSACTIONAL_ID_AUTHORIZATION_FAILED,
+            "tx-fatal-txn-auth",
+        ),
+    ] {
+        let mock = common::Mock::start().await;
+        let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+        pcfg.linger = Duration::ZERO;
+        pcfg.transactional_id = Some(tid.into());
+        let producer = Producer::new(pcfg).await.unwrap();
+        producer.begin_transaction().await.unwrap();
+        mock.set_produce_error_times(code, 1);
+        let err = producer
+            .send(ProduceRecord::to("t").value(&b"fenced"[..]))
+            .await
+            .unwrap_err();
+        assert_eq!(err.broker_code(), Some(code), "tid {tid}: {err:?}");
+        assert_eq!(
+            producer
+                .commit_transaction()
+                .await
+                .unwrap_err()
+                .broker_code(),
+            Some(code),
+            "tid {tid}"
+        );
+        assert_eq!(
+            producer
+                .abort_transaction()
+                .await
+                .unwrap_err()
+                .broker_code(),
+            Some(code),
+            "tid {tid}"
+        );
+        assert_eq!(
+            producer
+                .begin_transaction()
+                .await
+                .unwrap_err()
+                .broker_code(),
+            Some(code),
+            "tid {tid}"
+        );
+        assert_eq!(mock.end_txn_calls(), 0, "tid {tid}");
+        assert_eq!(producer.__test_producer_epoch(), 0, "tid {tid}");
+        assert_eq!(mock.init_producer_id_nodes().len(), 1, "tid {tid}");
+        producer.close().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn transactional_commit_and_abort_require_open_transaction() {
+    // Committing or aborting with no open transaction is a programming error:
+    // fail locally without sending EndTxn (which the broker would reject with
+    // INVALID_TXN_STATE and fence the producer).
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-naked".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    let err = producer.commit_transaction().await.unwrap_err();
+    assert!(
+        matches!(err, Error::Protocol(_)) && err.to_string().contains("no transaction in progress"),
+        "commit without begin must fail locally, got {err:?}"
+    );
+    let err = producer.abort_transaction().await.unwrap_err();
+    assert!(
+        matches!(err, Error::Protocol(_)) && err.to_string().contains("no transaction in progress"),
+        "abort without begin must fail locally, got {err:?}"
+    );
+    assert_eq!(mock.end_txn_calls(), 0);
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.commit_transaction().await.unwrap();
+    assert_eq!(mock.end_txn_calls(), 1);
+    let err = producer.abort_transaction().await.unwrap_err();
+    assert!(
+        err.to_string().contains("no transaction in progress"),
+        "abort after commit must fail locally, got {err:?}"
+    );
+    assert_eq!(mock.end_txn_calls(), 1);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_end_txn_commit_loss_retries_to_single_outcome() {
+    // The broker applies two EndTxn commits but both replies are lost, so the
+    // first commit times out ambiguously. Retrying EndTxn is idempotent:
+    // produced records and consumed offsets land in the single committed
+    // outcome, never in two different outcomes.
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.request_timeout = Duration::from_millis(300);
+    pcfg.transactional_id = Some("tx-loss-commit".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    producer
+        .send_offsets_to_transaction("g-loss", [(TopicPartition::new("t", 0), 9)])
+        .await
+        .unwrap();
+    assert_eq!(mock.txn_pending_offsets_len(), 1);
+    assert_eq!(
+        mock.committed_offset("g-loss", "t", 0),
+        None,
+        "offsets stage until EndTxn commits"
+    );
+    mock.set_end_txn_drop_response_times(2);
+    let err = producer.commit_transaction().await.unwrap_err();
+    assert!(
+        matches!(err, Error::Timeout | Error::Io(_)),
+        "lost commit must surface transport ambiguity, got {err:?}"
+    );
+    producer.commit_transaction().await.unwrap();
+    assert_eq!(
+        mock.end_txn_calls(),
+        3,
+        "two applied-but-lost commits plus the retry"
+    );
+    assert_eq!(mock.last_end_txn_committed(), Some(true));
+    assert_eq!(mock.log_len("t", 0), 1, "output committed once");
+    assert_eq!(
+        mock.committed_offset("g-loss", "t", 0),
+        Some(9),
+        "consumed offset committed in the same outcome"
+    );
+    assert_eq!(mock.txn_pending_offsets_len(), 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_abort_after_ambiguous_commit_leaves_nothing() {
+    // Both EndTxn commits are lost before reaching the broker, so the first
+    // commit times out ambiguously. Aborting then discards the staged
+    // offsets and the produced records together: neither is committed.
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.request_timeout = Duration::from_millis(300);
+    pcfg.transactional_id = Some("tx-loss-abort".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    producer
+        .send_offsets_to_transaction("g-abort", [(TopicPartition::new("t", 0), 5)])
+        .await
+        .unwrap();
+    assert_eq!(mock.txn_pending_offsets_len(), 1);
+    mock.set_end_txn_drop_request_times(2);
+    let err = producer.commit_transaction().await.unwrap_err();
+    assert!(
+        matches!(err, Error::Timeout | Error::Io(_)),
+        "lost commit must surface transport ambiguity, got {err:?}"
+    );
+    producer.abort_transaction().await.unwrap();
+    assert_eq!(mock.end_txn_calls(), 1, "only the abort reached the broker");
+    assert_eq!(mock.last_end_txn_committed(), Some(false));
+    assert_eq!(
+        mock.committed_offset("g-abort", "t", 0),
+        None,
+        "staged offsets discarded with the abort"
+    );
+    assert_eq!(mock.txn_pending_offsets_len(), 0);
+    assert!(
+        mock.txn_aborted_records()
+            .contains(&("t".to_string(), 0, 0)),
+        "produced output aborted with the transaction: {:?}",
+        mock.txn_aborted_records()
+    );
+    // The producer is fully recovered: the next transaction commits both.
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"v2"[..]))
+        .await
+        .unwrap();
+    producer
+        .send_offsets_to_transaction("g-abort", [(TopicPartition::new("t", 0), 6)])
+        .await
+        .unwrap();
+    producer.commit_transaction().await.unwrap();
+    assert_eq!(mock.end_txn_calls(), 2);
+    assert_eq!(mock.committed_offset("g-abort", "t", 0), Some(6));
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_end_txn_errors_classified() {
+    // UNKNOWN_PRODUCER_ID on EndTxn-commit is abortable: the commit fails,
+    // the transaction stays open, and abort recovers (v2 applies the bump,
+    // so no re-init follows). PRODUCER_FENCED is fatal.
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-endtxn-59".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    mock.set_end_txn_error_times(error::UNKNOWN_PRODUCER_ID, 1);
+    let err = producer.commit_transaction().await.unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::UNKNOWN_PRODUCER_ID),
+        "got {err:?}"
+    );
+    assert_eq!(mock.end_txn_calls(), 1);
+    assert_eq!(
+        producer
+            .commit_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::UNKNOWN_PRODUCER_ID),
+        "failed commit leaves the transaction abort-required"
+    );
+    assert_eq!(mock.end_txn_calls(), 1, "blocked commit sends no EndTxn");
+    producer.abort_transaction().await.unwrap();
+    assert_eq!(mock.last_end_txn_committed(), Some(false));
+    assert_eq!(
+        mock.init_producer_id_nodes().len(),
+        1,
+        "EndTxn v5 already bumped; no re-init may follow"
+    );
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"v2"[..]))
+        .await
+        .unwrap();
+    producer.commit_transaction().await.unwrap();
+    assert_eq!(mock.end_txn_calls(), 3);
+    producer.close().await.unwrap();
+
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-endtxn-90".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    mock.set_end_txn_error_times(error::PRODUCER_FENCED, 1);
+    let err = producer.commit_transaction().await.unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "got {err:?}"
+    );
+    assert_eq!(
+        producer
+            .abort_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "EndTxn fencing is fatal: even abort fails"
+    );
+    assert_eq!(
+        producer
+            .begin_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::PRODUCER_FENCED)
+    );
+    assert_eq!(mock.end_txn_calls(), 1);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_send_offsets_outside_transaction_rejected() {
+    // Consumed offsets can only join the single outcome of the open broker
+    // transaction: sending them with no transaction in progress fails
+    // locally without a TxnOffsetCommit RPC.
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-offsets-outside".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    let err = producer
+        .send_offsets_to_transaction("g", [(TopicPartition::new("t", 0), 1)])
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(err, Error::Protocol(_)) && err.to_string().contains("no transaction in progress"),
+        "got {err:?}"
+    );
+    assert_eq!(
+        mock.txn_offset_commit_calls(),
+        0,
+        "no TxnOffsetCommit outside a transaction"
+    );
+    producer.begin_transaction().await.unwrap();
+    producer.commit_transaction().await.unwrap();
+    let err = producer
+        .send_offsets_to_transaction("g", [(TopicPartition::new("t", 0), 2)])
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("no transaction in progress"));
+    assert_eq!(mock.txn_offset_commit_calls(), 0);
+    assert_eq!(
+        mock.committed_offset("g", "t", 0),
+        None,
+        "rejected offsets never reach the broker"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_txn_offset_commit_errors_classified() {
+    // GROUP_AUTHORIZATION_FAILED on TxnOffsetCommit is abortable: offsets
+    // stay unstaged, commit is blocked, and abort recovers. PRODUCER_FENCED
+    // is fatal.
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-toc-30".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    mock.set_txn_offset_commit_error_times(error::GROUP_AUTHORIZATION_FAILED, 1);
+    let err = producer
+        .send_offsets_to_transaction("g-toc", [(TopicPartition::new("t", 0), 3)])
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::GROUP_AUTHORIZATION_FAILED),
+        "got {err:?}"
+    );
+    assert_eq!(
+        producer
+            .commit_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::GROUP_AUTHORIZATION_FAILED),
+        "commit blocked until abort"
+    );
+    assert_eq!(mock.end_txn_calls(), 0);
+    producer.abort_transaction().await.unwrap();
+    assert_eq!(
+        mock.committed_offset("g-toc", "t", 0),
+        None,
+        "failed offsets never staged"
+    );
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"v2"[..]))
+        .await
+        .unwrap();
+    producer
+        .send_offsets_to_transaction("g-toc", [(TopicPartition::new("t", 0), 4)])
+        .await
+        .unwrap();
+    producer.commit_transaction().await.unwrap();
+    assert_eq!(mock.committed_offset("g-toc", "t", 0), Some(4));
+    producer.close().await.unwrap();
+
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-toc-90".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    mock.set_txn_offset_commit_error_times(error::PRODUCER_FENCED, 1);
+    let err = producer
+        .send_offsets_to_transaction("g-toc", [(TopicPartition::new("t", 0), 3)])
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "got {err:?}"
+    );
+    assert_eq!(
+        producer
+            .abort_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::PRODUCER_FENCED),
+        "TxnOffsetCommit fencing is fatal"
+    );
+    assert_eq!(mock.end_txn_calls(), 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_add_offsets_errors_classified_classic() {
+    // Classic offsets path (TxnOffsetCommit v4 runs AddOffsetsToTxn first):
+    // GROUP_AUTHORIZATION_FAILED is abortable and abort recovers through the
+    // KIP-360 re-init; TRANSACTIONAL_ID_AUTHORIZATION_FAILED is fatal.
+    let mock = common::Mock::start().await;
+    mock.set_api_max(END_TXN, 4);
+    mock.set_api_max(TXN_OFFSET_COMMIT, 4);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-addoff-30".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    mock.set_add_offsets_error_times(error::GROUP_AUTHORIZATION_FAILED, 1);
+    let err = producer
+        .send_offsets_to_transaction("g-addoff", [(TopicPartition::new("t", 0), 3)])
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::GROUP_AUTHORIZATION_FAILED),
+        "got {err:?}"
+    );
+    assert!(
+        err.to_string().contains("AddOffsetsToTxn"),
+        "classic path must send AddOffsetsToTxn, got {err:?}"
+    );
+    assert_eq!(
+        producer
+            .commit_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::GROUP_AUTHORIZATION_FAILED),
+        "commit blocked until abort"
+    );
+    assert_eq!(mock.end_txn_calls(), 0);
+    producer.abort_transaction().await.unwrap();
+    assert_eq!(
+        mock.committed_offset("g-addoff", "t", 0),
+        None,
+        "failed offsets never staged"
+    );
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send_offsets_to_transaction("g-addoff", [(TopicPartition::new("t", 0), 4)])
+        .await
+        .unwrap();
+    assert!(
+        mock.last_add_offsets_to_txn_version().is_some(),
+        "classic recovery path must send AddOffsetsToTxn"
+    );
+    producer.commit_transaction().await.unwrap();
+    assert_eq!(mock.committed_offset("g-addoff", "t", 0), Some(4));
+    producer.close().await.unwrap();
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(END_TXN, 4);
+    mock.set_api_max(TXN_OFFSET_COMMIT, 4);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-addoff-53".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    mock.set_add_offsets_error_times(error::TRANSACTIONAL_ID_AUTHORIZATION_FAILED, 1);
+    let err = producer
+        .send_offsets_to_transaction("g-addoff", [(TopicPartition::new("t", 0), 3)])
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::TRANSACTIONAL_ID_AUTHORIZATION_FAILED)
+    );
+    assert_eq!(
+        producer
+            .abort_transaction()
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::TRANSACTIONAL_ID_AUTHORIZATION_FAILED),
+        "AddOffsetsToTxn auth failure is fatal"
+    );
+    assert_eq!(mock.end_txn_calls(), 0);
+    assert_eq!(producer.__test_producer_epoch(), 0);
     producer.close().await.unwrap();
 }
 

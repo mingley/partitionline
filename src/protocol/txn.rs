@@ -2223,6 +2223,237 @@ pub fn decode_write_txn_markers_response<B: Buf>(
     Ok(markers)
 }
 
+/// Disposition of a transactional error code, mirroring the pinned Apache
+/// `TransactionManager` handlers (`@13f7025`).
+///
+/// * [`Self::Retriable`] is Java `reenqueue`: the RPC is safe to send again
+///   (coordinator moves, transient broker codes, `CONCURRENT_TRANSACTIONS`
+///   on `AddPartitionsToTxn`).
+/// * [`Self::Abortable`] is Java `State.ABORTABLE_ERROR`: the open transaction
+///   must be aborted before any other transactional operation, but the
+///   producer itself survives.
+/// * [`Self::Fatal`] is Java `State.FATAL_ERROR`: fencing, authorization, or
+///   identity errors. The producer can never transact again and must be
+///   closed and recreated with the same `transactional.id`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TxnErrorDisposition {
+    /// Safe to retry the same RPC (Java `reenqueue`).
+    Retriable,
+    /// Abort the transaction, then continue with the same producer.
+    Abortable,
+    /// The producer is fenced or otherwise unrecoverable; recreate it.
+    Fatal,
+}
+
+/// Whether `code` is a transient broker code (Java `RetriableException`).
+/// This is the single source of truth ([`crate::error::Error::is_retriable`]);
+/// the allocation only happens on error paths.
+fn broker_retriable(code: i16) -> bool {
+    Error::broker(code, "txn").is_retriable()
+}
+
+/// Java `TransactionManager.maybeTransitionToErrorState` for a failed
+/// transactional Produce batch (non-retriable codes; the caller retries
+/// [`crate::error::Error::is_retriable`] codes first).
+///
+/// Fatal: `CLUSTER_AUTHORIZATION_FAILED`, `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`,
+/// `PRODUCER_FENCED`, `UNSUPPORTED_VERSION`, `INVALID_PRODUCER_ID_MAPPING`.
+/// Everything else (including `UNKNOWN_PRODUCER_ID` and
+/// `INVALID_PRODUCER_EPOCH`) is abortable; the caller additionally records a
+/// KIP-360 epoch bump when [`client_epoch_bump_capable`] holds.
+#[must_use]
+pub fn classify_produce_error(code: i16) -> TxnErrorDisposition {
+    use crate::error::{
+        CLUSTER_AUTHORIZATION_FAILED, INVALID_PRODUCER_ID_MAPPING, PRODUCER_FENCED,
+        TRANSACTIONAL_ID_AUTHORIZATION_FAILED, UNSUPPORTED_VERSION,
+    };
+    match code {
+        CLUSTER_AUTHORIZATION_FAILED
+        | TRANSACTIONAL_ID_AUTHORIZATION_FAILED
+        | PRODUCER_FENCED
+        | UNSUPPORTED_VERSION
+        | INVALID_PRODUCER_ID_MAPPING => TxnErrorDisposition::Fatal,
+        _ => TxnErrorDisposition::Abortable,
+    }
+}
+
+/// Java `TransactionManager.EndTxnHandler`.
+///
+/// Retriable codes are retried (an `EndTxn` commit is idempotent, so a retry
+/// can never split one transaction into two outcomes). `INVALID_PRODUCER_EPOCH`
+/// is treated as `PRODUCER_FENCED` (old coordinators). `UNKNOWN_PRODUCER_ID` is
+/// Java `abortableErrorIfPossible`: abortable when `can_handle_abortable`
+/// ([`can_handle_abortable_error`]), fatal on brokers without any epoch-bump
+/// path. A `TRANSACTION_ABORTABLE` error while aborting is fatal (Java
+/// `KafkaException("Failed to abort transaction")`); any other unlisted code
+/// is fatal.
+#[must_use]
+pub fn classify_end_txn_error(
+    code: i16,
+    is_abort: bool,
+    can_handle_abortable: bool,
+) -> TxnErrorDisposition {
+    use crate::error::{
+        INVALID_PRODUCER_EPOCH, INVALID_PRODUCER_ID_MAPPING, INVALID_TXN_STATE, PRODUCER_FENCED,
+        TRANSACTIONAL_ID_AUTHORIZATION_FAILED, TRANSACTION_ABORTABLE, UNKNOWN_PRODUCER_ID,
+    };
+    if broker_retriable(code) {
+        return TxnErrorDisposition::Retriable;
+    }
+    match code {
+        INVALID_PRODUCER_EPOCH | PRODUCER_FENCED => TxnErrorDisposition::Fatal,
+        TRANSACTIONAL_ID_AUTHORIZATION_FAILED | INVALID_TXN_STATE | INVALID_PRODUCER_ID_MAPPING => {
+            TxnErrorDisposition::Fatal
+        }
+        UNKNOWN_PRODUCER_ID if can_handle_abortable => TxnErrorDisposition::Abortable,
+        UNKNOWN_PRODUCER_ID => TxnErrorDisposition::Fatal,
+        TRANSACTION_ABORTABLE if is_abort => TxnErrorDisposition::Fatal,
+        TRANSACTION_ABORTABLE => TxnErrorDisposition::Abortable,
+        _ => TxnErrorDisposition::Fatal,
+    }
+}
+
+/// Java `TransactionManager.AddPartitionsToTxnHandler`.
+///
+/// `CONCURRENT_TRANSACTIONS` and other retriable codes are retried (the
+/// previous transaction is still completing). Fencing, `transactional.id`
+/// authorization, `INVALID_TXN_STATE`, and `INVALID_PRODUCER_ID_MAPPING` are
+/// fatal. `TOPIC_AUTHORIZATION_FAILED`, `OPERATION_NOT_ATTEMPTED`,
+/// `TRANSACTION_ABORTABLE`, and any other unlisted partition error are
+/// abortable. `UNKNOWN_PRODUCER_ID` is Java `abortableErrorIfPossible` (see
+/// [`classify_end_txn_error`]).
+#[must_use]
+pub fn classify_add_partitions_error(code: i16, can_handle_abortable: bool) -> TxnErrorDisposition {
+    use crate::error::{
+        CONCURRENT_TRANSACTIONS, INVALID_PRODUCER_EPOCH, INVALID_PRODUCER_ID_MAPPING,
+        INVALID_TXN_STATE, OPERATION_NOT_ATTEMPTED, PRODUCER_FENCED, TOPIC_AUTHORIZATION_FAILED,
+        TRANSACTIONAL_ID_AUTHORIZATION_FAILED, TRANSACTION_ABORTABLE, UNKNOWN_PRODUCER_ID,
+    };
+    if code == CONCURRENT_TRANSACTIONS || broker_retriable(code) {
+        return TxnErrorDisposition::Retriable;
+    }
+    match code {
+        INVALID_PRODUCER_EPOCH | PRODUCER_FENCED => TxnErrorDisposition::Fatal,
+        TRANSACTIONAL_ID_AUTHORIZATION_FAILED | INVALID_TXN_STATE | INVALID_PRODUCER_ID_MAPPING => {
+            TxnErrorDisposition::Fatal
+        }
+        UNKNOWN_PRODUCER_ID if can_handle_abortable => TxnErrorDisposition::Abortable,
+        UNKNOWN_PRODUCER_ID => TxnErrorDisposition::Fatal,
+        TOPIC_AUTHORIZATION_FAILED | OPERATION_NOT_ATTEMPTED | TRANSACTION_ABORTABLE => {
+            TxnErrorDisposition::Abortable
+        }
+        _ => TxnErrorDisposition::Abortable,
+    }
+}
+
+/// Java `TransactionManager.AddOffsetsToTxnHandler`.
+///
+/// Retriable codes are retried. Fencing, `transactional.id` authorization,
+/// `INVALID_TXN_STATE`, `INVALID_PRODUCER_ID_MAPPING`, and any other unlisted
+/// code are fatal. `GROUP_AUTHORIZATION_FAILED` and `TRANSACTION_ABORTABLE`
+/// are abortable. `UNKNOWN_PRODUCER_ID` is Java `abortableErrorIfPossible`
+/// (see [`classify_end_txn_error`]).
+#[must_use]
+pub fn classify_add_offsets_error(code: i16, can_handle_abortable: bool) -> TxnErrorDisposition {
+    use crate::error::{
+        GROUP_AUTHORIZATION_FAILED, INVALID_PRODUCER_EPOCH, INVALID_PRODUCER_ID_MAPPING,
+        INVALID_TXN_STATE, PRODUCER_FENCED, TRANSACTIONAL_ID_AUTHORIZATION_FAILED,
+        TRANSACTION_ABORTABLE, UNKNOWN_PRODUCER_ID,
+    };
+    if broker_retriable(code) {
+        return TxnErrorDisposition::Retriable;
+    }
+    match code {
+        UNKNOWN_PRODUCER_ID if can_handle_abortable => TxnErrorDisposition::Abortable,
+        UNKNOWN_PRODUCER_ID => TxnErrorDisposition::Fatal,
+        INVALID_PRODUCER_EPOCH | PRODUCER_FENCED => TxnErrorDisposition::Fatal,
+        TRANSACTIONAL_ID_AUTHORIZATION_FAILED | INVALID_TXN_STATE | INVALID_PRODUCER_ID_MAPPING => {
+            TxnErrorDisposition::Fatal
+        }
+        GROUP_AUTHORIZATION_FAILED | TRANSACTION_ABORTABLE => TxnErrorDisposition::Abortable,
+        _ => TxnErrorDisposition::Fatal,
+    }
+}
+
+/// Java `TransactionManager.TxnOffsetCommitHandler` (first partition error).
+///
+/// Retriable codes are retried. `GROUP_AUTHORIZATION_FAILED`,
+/// `FENCED_INSTANCE_ID`, `TRANSACTION_ABORTABLE`, `UNKNOWN_MEMBER_ID`, and
+/// `ILLEGAL_GENERATION` (Java `CommitFailedException`) are abortable.
+/// Fencing, `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`,
+/// `UNSUPPORTED_FOR_MESSAGE_FORMAT`, and any other unlisted code are fatal.
+#[must_use]
+pub fn classify_txn_offset_commit_error(code: i16) -> TxnErrorDisposition {
+    use crate::error::{
+        FENCED_INSTANCE_ID, GROUP_AUTHORIZATION_FAILED, ILLEGAL_GENERATION, INVALID_PRODUCER_EPOCH,
+        PRODUCER_FENCED, TRANSACTIONAL_ID_AUTHORIZATION_FAILED, TRANSACTION_ABORTABLE,
+        UNKNOWN_MEMBER_ID, UNSUPPORTED_FOR_MESSAGE_FORMAT,
+    };
+    if broker_retriable(code) {
+        return TxnErrorDisposition::Retriable;
+    }
+    match code {
+        GROUP_AUTHORIZATION_FAILED | FENCED_INSTANCE_ID | TRANSACTION_ABORTABLE => {
+            TxnErrorDisposition::Abortable
+        }
+        UNKNOWN_MEMBER_ID | ILLEGAL_GENERATION => TxnErrorDisposition::Abortable,
+        INVALID_PRODUCER_EPOCH | PRODUCER_FENCED => TxnErrorDisposition::Fatal,
+        TRANSACTIONAL_ID_AUTHORIZATION_FAILED | UNSUPPORTED_FOR_MESSAGE_FORMAT => {
+            TxnErrorDisposition::Fatal
+        }
+        _ => TxnErrorDisposition::Fatal,
+    }
+}
+
+/// Java `TransactionManager.InitProducerIdHandler`.
+///
+/// Retriable codes are retried. `TRANSACTIONAL_ID_AUTHORIZATION_FAILED` and
+/// `CLUSTER_AUTHORIZATION_FAILED` are abortable (unlike on the Produce path,
+/// where they are fatal). Fencing and any other unlisted code are fatal.
+#[must_use]
+pub fn classify_init_producer_id_error(code: i16) -> TxnErrorDisposition {
+    use crate::error::{
+        CLUSTER_AUTHORIZATION_FAILED, INVALID_PRODUCER_EPOCH, PRODUCER_FENCED,
+        TRANSACTIONAL_ID_AUTHORIZATION_FAILED, TRANSACTION_ABORTABLE,
+    };
+    if broker_retriable(code) {
+        return TxnErrorDisposition::Retriable;
+    }
+    match code {
+        TRANSACTIONAL_ID_AUTHORIZATION_FAILED | CLUSTER_AUTHORIZATION_FAILED => {
+            TxnErrorDisposition::Abortable
+        }
+        INVALID_PRODUCER_EPOCH | PRODUCER_FENCED => TxnErrorDisposition::Fatal,
+        TRANSACTION_ABORTABLE => TxnErrorDisposition::Abortable,
+        _ => TxnErrorDisposition::Fatal,
+    }
+}
+
+/// Java `TransactionManager.needToTriggerEpochBumpFromClient`: the coordinator
+/// supports the KIP-360 bump (`InitProducerId` v3+) and transaction V2
+/// (`EndTxn` v5+, where the broker bumps the epoch itself) is not negotiated.
+#[must_use]
+pub const fn client_epoch_bump_capable(
+    init_producer_id_version: i16,
+    end_txn_version: i16,
+) -> bool {
+    init_producer_id_version >= 3
+        && end_txn_version <= EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2
+}
+
+/// Java `TransactionManager.canHandleAbortableError`: recovering from an
+/// abortable error needs an epoch bump, supplied either by the client
+/// (KIP-360, [`client_epoch_bump_capable`]) or automatically by the broker
+/// after every transaction (transaction V2).
+#[must_use]
+pub const fn can_handle_abortable_error(
+    init_producer_id_version: i16,
+    end_txn_version: i16,
+) -> bool {
+    init_producer_id_version >= 3
+        || end_txn_version > EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2243,6 +2474,235 @@ mod tests {
         assert!(EndTxnResponse::should_client_throttle(1));
         assert!(!TxnOffsetCommitResponse::should_client_throttle(0));
         assert!(TxnOffsetCommitResponse::should_client_throttle(1));
+    }
+
+    #[test]
+    fn txn_error_matrix_matches_pinned_java_handlers() {
+        use crate::error::{
+            CLUSTER_AUTHORIZATION_FAILED, CONCURRENT_TRANSACTIONS, COORDINATOR_NOT_AVAILABLE,
+            FENCED_INSTANCE_ID, GROUP_AUTHORIZATION_FAILED, ILLEGAL_GENERATION,
+            INVALID_PRODUCER_EPOCH, INVALID_PRODUCER_ID_MAPPING, INVALID_TXN_STATE,
+            MESSAGE_TOO_LARGE, NOT_COORDINATOR, OPERATION_NOT_ATTEMPTED,
+            OUT_OF_ORDER_SEQUENCE_NUMBER, PRODUCER_FENCED, REQUEST_TIMED_OUT,
+            TOPIC_AUTHORIZATION_FAILED, TRANSACTIONAL_ID_AUTHORIZATION_FAILED,
+            TRANSACTION_ABORTABLE, UNKNOWN_MEMBER_ID, UNKNOWN_PRODUCER_ID,
+            UNSUPPORTED_FOR_MESSAGE_FORMAT, UNSUPPORTED_VERSION,
+        };
+        use TxnErrorDisposition::{Abortable, Fatal, Retriable};
+
+        // Produce batch failures (maybeTransitionToErrorState): the fatal five,
+        // everything else abortable.
+        for code in [
+            CLUSTER_AUTHORIZATION_FAILED,
+            TRANSACTIONAL_ID_AUTHORIZATION_FAILED,
+            PRODUCER_FENCED,
+            UNSUPPORTED_VERSION,
+            INVALID_PRODUCER_ID_MAPPING,
+        ] {
+            assert_eq!(classify_produce_error(code), Fatal, "produce {code}");
+        }
+        for code in [
+            UNKNOWN_PRODUCER_ID,
+            INVALID_PRODUCER_EPOCH,
+            INVALID_TXN_STATE,
+            OUT_OF_ORDER_SEQUENCE_NUMBER,
+            MESSAGE_TOO_LARGE,
+            TOPIC_AUTHORIZATION_FAILED,
+        ] {
+            assert_eq!(classify_produce_error(code), Abortable, "produce {code}");
+        }
+
+        // EndTxn: retriable retried; fencing/identity fatal; unknown-pid
+        // abortable-if-possible; abortable-while-aborting fatal.
+        assert_eq!(
+            classify_end_txn_error(REQUEST_TIMED_OUT, false, true),
+            Retriable
+        );
+        assert_eq!(
+            classify_end_txn_error(NOT_COORDINATOR, true, true),
+            Retriable
+        );
+        for code in [
+            INVALID_PRODUCER_EPOCH,
+            PRODUCER_FENCED,
+            TRANSACTIONAL_ID_AUTHORIZATION_FAILED,
+            INVALID_TXN_STATE,
+            INVALID_PRODUCER_ID_MAPPING,
+        ] {
+            assert_eq!(
+                classify_end_txn_error(code, false, true),
+                Fatal,
+                "endtxn {code}"
+            );
+            assert_eq!(
+                classify_end_txn_error(code, true, true),
+                Fatal,
+                "endtxn abort {code}"
+            );
+        }
+        assert_eq!(
+            classify_end_txn_error(UNKNOWN_PRODUCER_ID, false, true),
+            Abortable
+        );
+        assert_eq!(
+            classify_end_txn_error(UNKNOWN_PRODUCER_ID, false, false),
+            Fatal
+        );
+        assert_eq!(
+            classify_end_txn_error(TRANSACTION_ABORTABLE, false, true),
+            Abortable
+        );
+        assert_eq!(
+            classify_end_txn_error(TRANSACTION_ABORTABLE, true, true),
+            Fatal
+        );
+        assert_eq!(
+            classify_end_txn_error(MESSAGE_TOO_LARGE, false, true),
+            Fatal
+        );
+
+        // AddPartitionsToTxn: concurrent retried; fencing/identity fatal;
+        // authorization and partition errors abortable.
+        assert_eq!(
+            classify_add_partitions_error(CONCURRENT_TRANSACTIONS, true),
+            Retriable
+        );
+        assert_eq!(
+            classify_add_partitions_error(COORDINATOR_NOT_AVAILABLE, true),
+            Retriable
+        );
+        for code in [
+            INVALID_PRODUCER_EPOCH,
+            PRODUCER_FENCED,
+            TRANSACTIONAL_ID_AUTHORIZATION_FAILED,
+            INVALID_TXN_STATE,
+            INVALID_PRODUCER_ID_MAPPING,
+        ] {
+            assert_eq!(
+                classify_add_partitions_error(code, true),
+                Fatal,
+                "add-partitions {code}"
+            );
+        }
+        for code in [
+            TOPIC_AUTHORIZATION_FAILED,
+            OPERATION_NOT_ATTEMPTED,
+            TRANSACTION_ABORTABLE,
+            MESSAGE_TOO_LARGE,
+        ] {
+            assert_eq!(
+                classify_add_partitions_error(code, true),
+                Abortable,
+                "add-partitions {code}"
+            );
+        }
+        assert_eq!(
+            classify_add_partitions_error(UNKNOWN_PRODUCER_ID, true),
+            Abortable
+        );
+        assert_eq!(
+            classify_add_partitions_error(UNKNOWN_PRODUCER_ID, false),
+            Fatal
+        );
+
+        // AddOffsetsToTxn: group auth abortable; fencing/identity and unlisted
+        // codes fatal.
+        assert_eq!(
+            classify_add_offsets_error(REQUEST_TIMED_OUT, true),
+            Retriable
+        );
+        for code in [
+            INVALID_PRODUCER_EPOCH,
+            PRODUCER_FENCED,
+            TRANSACTIONAL_ID_AUTHORIZATION_FAILED,
+            INVALID_TXN_STATE,
+            INVALID_PRODUCER_ID_MAPPING,
+            MESSAGE_TOO_LARGE,
+        ] {
+            assert_eq!(
+                classify_add_offsets_error(code, true),
+                Fatal,
+                "add-offsets {code}"
+            );
+        }
+        for code in [GROUP_AUTHORIZATION_FAILED, TRANSACTION_ABORTABLE] {
+            assert_eq!(
+                classify_add_offsets_error(code, true),
+                Abortable,
+                "add-offsets {code}"
+            );
+        }
+        assert_eq!(
+            classify_add_offsets_error(UNKNOWN_PRODUCER_ID, true),
+            Abortable
+        );
+        assert_eq!(
+            classify_add_offsets_error(UNKNOWN_PRODUCER_ID, false),
+            Fatal
+        );
+
+        // TxnOffsetCommit: group/offset errors abortable; fencing fatal.
+        assert_eq!(classify_txn_offset_commit_error(NOT_COORDINATOR), Retriable);
+        for code in [
+            GROUP_AUTHORIZATION_FAILED,
+            FENCED_INSTANCE_ID,
+            TRANSACTION_ABORTABLE,
+            UNKNOWN_MEMBER_ID,
+            ILLEGAL_GENERATION,
+        ] {
+            assert_eq!(
+                classify_txn_offset_commit_error(code),
+                Abortable,
+                "txn-offset-commit {code}"
+            );
+        }
+        for code in [
+            INVALID_PRODUCER_EPOCH,
+            PRODUCER_FENCED,
+            TRANSACTIONAL_ID_AUTHORIZATION_FAILED,
+            UNSUPPORTED_FOR_MESSAGE_FORMAT,
+            MESSAGE_TOO_LARGE,
+        ] {
+            assert_eq!(
+                classify_txn_offset_commit_error(code),
+                Fatal,
+                "txn-offset-commit {code}"
+            );
+        }
+
+        // InitProducerId: auth abortable here (fatal on the Produce path).
+        assert_eq!(
+            classify_init_producer_id_error(COORDINATOR_NOT_AVAILABLE),
+            Retriable
+        );
+        for code in [
+            TRANSACTIONAL_ID_AUTHORIZATION_FAILED,
+            CLUSTER_AUTHORIZATION_FAILED,
+            TRANSACTION_ABORTABLE,
+        ] {
+            assert_eq!(
+                classify_init_producer_id_error(code),
+                Abortable,
+                "init-pid {code}"
+            );
+        }
+        for code in [INVALID_PRODUCER_EPOCH, PRODUCER_FENCED, MESSAGE_TOO_LARGE] {
+            assert_eq!(
+                classify_init_producer_id_error(code),
+                Fatal,
+                "init-pid {code}"
+            );
+        }
+
+        // Epoch-bump capability (KIP-360 vs transaction V2).
+        assert!(client_epoch_bump_capable(3, 4));
+        assert!(client_epoch_bump_capable(4, 0));
+        assert!(!client_epoch_bump_capable(3, 5));
+        assert!(!client_epoch_bump_capable(2, 4));
+        assert!(can_handle_abortable_error(3, 4));
+        assert!(can_handle_abortable_error(3, 5));
+        assert!(can_handle_abortable_error(0, 5));
+        assert!(!can_handle_abortable_error(2, 4));
     }
 
     #[test]

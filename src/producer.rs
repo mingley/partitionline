@@ -30,11 +30,14 @@ use crate::protocol::records::{
     BatchHeader, Compression, EncodeRecord, Header as RecordHeader, RecordBatch, Records,
 };
 use crate::protocol::txn::{
-    decode_add_offsets_to_txn_response, decode_add_partitions_to_txn_response,
-    decode_end_txn_response, decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
+    can_handle_abortable_error, classify_add_offsets_error, classify_add_partitions_error,
+    classify_end_txn_error, classify_produce_error, classify_txn_offset_commit_error,
+    client_epoch_bump_capable, decode_add_offsets_to_txn_response,
+    decode_add_partitions_to_txn_response, decode_end_txn_response,
+    decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
     encode_add_partitions_to_txn_request, encode_end_txn_request, encode_txn_offset_commit_request,
-    EndTxnRequest, TransactionResult, TxnOffsetCommitMember, TxnOffsetCommitRequest,
-    TxnOffsetPartition, TxnOffsetTopic, TxnPartitionsTopic,
+    EndTxnRequest, TransactionResult, TxnErrorDisposition, TxnOffsetCommitMember,
+    TxnOffsetCommitRequest, TxnOffsetPartition, TxnOffsetTopic, TxnPartitionsTopic,
 };
 
 /// Pre-send failure injection point for testing buffer ownership and resource contracts.
@@ -838,10 +841,26 @@ struct Shared {
     /// can detect that their assigned sequence belongs to a superseded
     /// epoch and must be re-assigned (KL03-09).
     epoch_gen: AtomicU64,
-    /// After UNKNOWN_PRODUCER_ID / INVALID_PRODUCER_EPOCH /
-    /// INVALID_PRODUCER_ID_MAPPING on a transactional produce, abort
-    /// re-inits with the last producer id and epoch (KIP-360).
+    /// After an abortable transactional produce failure, abort re-inits with
+    /// the last producer id and epoch (KIP-360). Set only when
+    /// [`client_epoch_bump_capable`] holds; transaction V2 (`EndTxn` v5+)
+    /// carries the bumped identity in the `EndTxn` response instead. Never a
+    /// local invention: the replacement identity always comes from the
+    /// broker (`InitProducerId` response). `INVALID_PRODUCER_ID_MAPPING` on
+    /// Produce is fatal (pinned Java `maybeTransitionToErrorState`) and never
+    /// sets this flag.
     epoch_bump_required: AtomicBool,
+    /// Java `TransactionManager.State.FATAL_ERROR`: fencing, authorization, or
+    /// identity errors (KL03-10). Terminal: close and recreate the producer.
+    txn_fatal: AtomicBool,
+    /// Java `TransactionManager.State.ABORTABLE_ERROR`: the open transaction
+    /// must be aborted before any other transactional operation (KL03-10).
+    /// Cleared by a successful abort.
+    txn_abort_required: AtomicBool,
+    /// First fatal/abortable transactional error (Java `lastError`).
+    /// `begin`/`commit`/`send_offsets` fail with it while set; `abort` fails
+    /// with it only when [`Self::txn_fatal`] is set.
+    txn_error: parking_lot::Mutex<Option<Error>>,
     seqs: parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
     cache_nudge: Notify,
     buffer_nudge: Notify,
@@ -952,6 +971,11 @@ impl Shared {
     /// retained batch re-takes its sequence under the new epoch instead of
     /// reusing a stale one. At `i16::MAX` no bump is possible; the caller
     /// must renew the producer identity instead (KL03-09).
+    ///
+    /// Nontransactional only: the transactional fencing path never bumps
+    /// locally. Transactional recovery identities always come from the broker
+    /// (`InitProducerId` re-init or `EndTxn` v5+ response); retries reuse the
+    /// broker-authorized identity and never invent one.
     fn bump_idempotent_epoch(&self) {
         let epoch = self.producer_epoch.load(Ordering::SeqCst);
         if epoch <= RecordBatch::NO_PRODUCER_EPOCH || epoch == i16::MAX {
@@ -961,6 +985,81 @@ impl Shared {
             .store(epoch.saturating_add(1), Ordering::SeqCst);
         self.seqs.lock().clear();
         let _ = self.epoch_gen.fetch_add(1, Ordering::SeqCst);
+    }
+
+    /// Java `TransactionManager.maybeFailWithError` for `begin`/`commit`/
+    /// `send_offsets`: fail with the remembered error while fatal or
+    /// abort-required (KL03-10).
+    fn fail_on_txn_error(&self) -> Result<()> {
+        if self.txn_fatal.load(Ordering::SeqCst) || self.txn_abort_required.load(Ordering::SeqCst) {
+            if let Some(e) = self.txn_error.lock().clone() {
+                return Err(e);
+            }
+            return Err(Error::protocol("transaction in error state"));
+        }
+        Ok(())
+    }
+
+    /// Java `beginAbort` guard: abort is the recovery path out of
+    /// abort-required, but a fenced producer cannot even abort (KL03-10).
+    fn fail_on_txn_fatal(&self) -> Result<()> {
+        if self.txn_fatal.load(Ordering::SeqCst) {
+            if let Some(e) = self.txn_error.lock().clone() {
+                return Err(e);
+            }
+            return Err(Error::protocol("transactional producer fenced"));
+        }
+        Ok(())
+    }
+
+    /// Record a fatal transactional error (Java `transitionToFatalError`).
+    /// The first error is retained as the root cause; the flag is terminal.
+    fn set_txn_fatal(&self, err: Error) {
+        if !self.txn_fatal.swap(true, Ordering::SeqCst) && self.txn_error.lock().is_none() {
+            *self.txn_error.lock() = Some(err);
+        }
+    }
+
+    /// Record an abortable transactional error (Java
+    /// `transitionToAbortableError`). Ignored once fatal: fatal wins.
+    fn set_txn_abortable(&self, err: Error) {
+        if self.txn_fatal.load(Ordering::SeqCst) {
+            return;
+        }
+        if !self.txn_abort_required.swap(true, Ordering::SeqCst) && self.txn_error.lock().is_none()
+        {
+            *self.txn_error.lock() = Some(err);
+        }
+    }
+
+    /// Java `resetTransactionState` (success path): a completed abort clears
+    /// the abort-required state so the next transaction can begin. Never
+    /// clears fatal.
+    fn clear_txn_abortable(&self) {
+        self.txn_abort_required.store(false, Ordering::SeqCst);
+        if !self.txn_fatal.load(Ordering::SeqCst) {
+            *self.txn_error.lock() = None;
+        }
+    }
+
+    /// Java `TransactionManager.canHandleAbortableError` for the negotiated
+    /// coordinator versions.
+    fn txn_can_handle_abortable(&self) -> bool {
+        can_handle_abortable_error(self.init_producer_id_version, self.end_txn_version)
+    }
+
+    /// Record a terminal [`TxnErrorDisposition`]. A retriable code only
+    /// reaches here with an exhausted retry budget, which degrades to
+    /// abortable (Java turns exhausted retries into `abortable` on the
+    /// Produce path; aborting and retrying the whole transaction is safe
+    /// for every transactional RPC).
+    fn apply_txn_disposition(&self, disposition: TxnErrorDisposition, err: Error) {
+        match disposition {
+            TxnErrorDisposition::Fatal => self.set_txn_fatal(err),
+            TxnErrorDisposition::Abortable | TxnErrorDisposition::Retriable => {
+                self.set_txn_abortable(err);
+            }
+        }
     }
 
     fn note_queued_n(&self, topic: &Arc<str>, n: u64, bytes: u64) {
@@ -1249,6 +1348,9 @@ impl Producer {
             producer_epoch: AtomicI16::new(producer_epoch),
             epoch_gen: AtomicU64::new(0),
             epoch_bump_required: AtomicBool::new(false),
+            txn_fatal: AtomicBool::new(false),
+            txn_abort_required: AtomicBool::new(false),
+            txn_error: parking_lot::Mutex::new(None),
             seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
             buffer_nudge: Notify::new(),
@@ -1466,6 +1568,17 @@ impl Producer {
         if self.inner.shared.closed.load(Ordering::SeqCst) {
             return Err(Error::Closed);
         }
+        // A fenced producer fails sends immediately instead of emitting
+        // records the broker must reject. Abort-required does *not* block
+        // sends: the failed send already reported its error, and later sends
+        // in the still-open broker transaction stay legal (they cannot commit
+        // until the abort-required state clears via `abort_transaction`).
+        // This differs from Java `maybeAddPartition`, which also blocks sends
+        // while abort-required; the pinned buffer-ownership contract requires
+        // a one-time `AddPartitionsToTxn` failure to not poison later sends.
+        if self.inner.shared.cfg.transactional_id.is_some() {
+            self.inner.shared.fail_on_txn_fatal()?;
+        }
         let recs: Vec<ProduceRecord> = recs.into_iter().collect();
         if recs.is_empty() {
             return Ok(Vec::new());
@@ -1598,6 +1711,11 @@ impl Producer {
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {
         if self.inner.shared.closed.load(Ordering::SeqCst) {
             return Err(Error::Closed);
+        }
+        // Same fencing rule as [`Self::send_all`]: fatal blocks, abortable
+        // does not (see the comment there).
+        if self.inner.shared.cfg.transactional_id.is_some() {
+            self.inner.shared.fail_on_txn_fatal()?;
         }
         let mut rec = self.inner.shared.interceptors.on_send(rec);
         let bytes = reject_oversized(&self.inner.shared.cfg, &rec)?;
@@ -1792,11 +1910,29 @@ impl Producer {
     ///
     /// Missing `transactional.id` is the same Java message as
     /// [`Self::init_transactions`].
+    ///
+    /// Fails with the remembered error while the producer is fenced (fatal)
+    /// or the previous transaction still needs an abort (Java
+    /// `maybeFailWithError`): abort first, then begin again. A fenced
+    /// producer never recovers; close it and create a replacement with the
+    /// same `transactional.id`.
+    ///
+    /// Exactly-once scope: one transaction atomically commits its produced
+    /// records together with the consumed input offsets sent via
+    /// [`Self::send_offsets_to_transaction`]. Both land in a single broker
+    /// outcome (commit or abort) and can never be split across outcomes.
+    /// External side effects (database writes, RPCs, files) are *not* part
+    /// of the transaction: this client cannot roll back anything outside the
+    /// broker, so perform side effects only after
+    /// [`Self::commit_transaction`] succeeds, and design them to tolerate
+    /// duplicates when a commit outcome is ambiguous (timeout) and the
+    /// application retries.
     #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub async fn begin_transaction(&self) -> Result<()> {
         if self.inner.shared.cfg.transactional_id.is_none() {
             return Err(reject_java_no_transaction_manager());
         }
+        self.inner.shared.fail_on_txn_error()?;
         self.inner.shared.in_txn.store(true, Ordering::SeqCst);
         self.inner.shared.txn_partitions.lock().clear();
         self.inner.shared.txn_added.lock().clear();
@@ -1805,8 +1941,27 @@ impl Producer {
 
     /// Flush, then commit the current transaction (`EndTxn`
     /// [`TransactionResult::Commit`]).
+    ///
+    /// Fails without sending `EndTxn` when there is no open transaction, when
+    /// the producer is fenced, or when the transaction is abort-required
+    /// (Java `maybeFailWithError`): a failed commit never invents a partial
+    /// outcome, so produced records and consumed offsets stay in one broker
+    /// transaction until [`Self::abort_transaction`] runs.
+    ///
+    /// A transport timeout here is ambiguous: the broker may still have
+    /// committed. The transaction stays open and `EndTxn` is idempotent, so
+    /// retrying the commit is safe and can never commit the same records and
+    /// offsets twice in different outcomes. See [`Self::begin_transaction`]
+    /// for the external-side-effect limits this implies.
     #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub async fn commit_transaction(&self) -> Result<()> {
+        if self.inner.shared.cfg.transactional_id.is_none() {
+            return Err(reject_java_no_transaction_manager());
+        }
+        self.inner.shared.fail_on_txn_error()?;
+        if !self.inner.shared.in_txn.load(Ordering::SeqCst) {
+            return Err(Error::protocol("no transaction in progress"));
+        }
         self.flush().await?;
         self.end_txn(TransactionResult::Commit.id()).await
     }
@@ -1814,19 +1969,44 @@ impl Producer {
     /// Drain in-flight Produce, then abort (`EndTxn`
     /// [`TransactionResult::Abort`]).
     ///
-    /// After UNKNOWN_PRODUCER_ID / INVALID_PRODUCER_EPOCH /
-    /// INVALID_PRODUCER_ID_MAPPING, EndTxn below v5 follows with
-    /// InitProducerId using the last producer id and epoch (KIP-360).
-    /// EndTxn v5 already returns the bumped identity.
+    /// Abort is the recovery path out of every abort-required error, so it is
+    /// allowed while abort-required but still refused once the producer is
+    /// fenced (Java `beginAbort`). Aborting with no open transaction is a
+    /// programming error and fails without sending `EndTxn`.
+    ///
+    /// After an abortable transactional failure, classic coordinators
+    /// (`EndTxn` below v5) re-init with the last producer id and epoch
+    /// (KIP-360); the replacement identity always comes from that broker
+    /// response, never from a local bump. `EndTxn` v5 already returns the
+    /// bumped identity, so no re-init follows. `INVALID_PRODUCER_ID_MAPPING`
+    /// on Produce is fatal (pinned Java `maybeTransitionToErrorState`), not
+    /// bump-recoverable.
     ///
     /// A Produce that already completed [`Self::send`] with a broker error
     /// does not fail abort: Java still EndTxn-aborts, then optionally re-inits.
-    /// [`Self::commit_transaction`] still fails `flush` on that error.
+    /// [`Self::commit_transaction`] still fails on that error without
+    /// sending `EndTxn`.
     #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub async fn abort_transaction(&self) -> Result<()> {
+        if self.inner.shared.cfg.transactional_id.is_none() {
+            return Err(reject_java_no_transaction_manager());
+        }
+        self.inner.shared.fail_on_txn_fatal()?;
+        if !self.inner.shared.in_txn.load(Ordering::SeqCst) {
+            return Err(Error::protocol("no transaction in progress"));
+        }
         self.drain_before_abort().await?;
         self.end_txn(TransactionResult::Abort.id()).await?;
-        self.maybe_bump_epoch_after_abort().await
+        self.inner.shared.clear_txn_abortable();
+        if let Err(e) = self.maybe_bump_epoch_after_abort().await {
+            // The transaction aborted, but the producer identity cannot be
+            // renewed: without a broker-authorized replacement identity the
+            // producer must not transact again (Java effectively fences here:
+            // the bump `InitProducerId` fails out of `INITIALIZING`).
+            self.inner.shared.set_txn_fatal(clone_err(&e));
+            return Err(e);
+        }
+        Ok(())
     }
 
     /// Wait for in-flight Produce the same way [`Self::flush`] does. Delivery
@@ -1930,6 +2110,11 @@ impl Producer {
         let Some(tid) = self.inner.shared.cfg.transactional_id.clone() else {
             return Err(reject_java_no_transaction_manager());
         };
+        // Java `sendOffsetsToTransaction`: fail while fenced or
+        // abort-required, then require an open transaction, so consumed
+        // offsets can only join the single outcome of the current broker
+        // transaction and never leak into another one.
+        self.inner.shared.fail_on_txn_error()?;
         if !self.inner.shared.in_txn.load(Ordering::SeqCst) {
             return Err(Error::protocol("no transaction in progress"));
         }
@@ -1942,30 +2127,55 @@ impl Producer {
         // RPC when the broker advertised v5 (Java `isTransactionV2Enabled`).
         if version <= TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
             let add_offsets_version = self.inner.shared.add_offsets_version;
-            let body = txn_roundtrip(
-                &self.inner.shared,
-                ADD_OFFSETS_TO_TXN,
-                add_offsets_version,
-                |buf| {
-                    encode_add_offsets_to_txn_request(
-                        buf,
-                        add_offsets_version,
-                        &tid,
-                        pid,
-                        epoch,
-                        group_id,
-                    )
-                },
-                timeout,
-                |body| {
-                    Ok(decode_add_offsets_to_txn_response(&mut { body }, add_offsets_version)?.0)
-                },
-            )
-            .await?;
-            let (err, ..) =
-                decode_add_offsets_to_txn_response(&mut body.clone(), add_offsets_version)?;
-            if err != 0 {
-                return Err(Error::broker(err, "AddOffsetsToTxn"));
+            let start = Instant::now();
+            let mut attempt = 0u32;
+            loop {
+                let body = txn_roundtrip(
+                    &self.inner.shared,
+                    ADD_OFFSETS_TO_TXN,
+                    add_offsets_version,
+                    |buf| {
+                        encode_add_offsets_to_txn_request(
+                            buf,
+                            add_offsets_version,
+                            &tid,
+                            pid,
+                            epoch,
+                            group_id,
+                        )
+                    },
+                    timeout,
+                    |body| {
+                        Ok(
+                            decode_add_offsets_to_txn_response(&mut { body }, add_offsets_version)?
+                                .0,
+                        )
+                    },
+                )
+                .await?;
+                let (err, ..) =
+                    decode_add_offsets_to_txn_response(&mut body.clone(), add_offsets_version)?;
+                if err == 0 {
+                    break;
+                }
+                // Java `AddOffsetsToTxnHandler`: retry retriable codes (the
+                // RPC is idempotent), otherwise fence or require an abort.
+                // An exhausted retry budget degrades to abortable: aborting
+                // and retrying the whole transaction is always safe.
+                let can_handle = self.inner.shared.txn_can_handle_abortable();
+                if classify_add_offsets_error(err, can_handle) == TxnErrorDisposition::Retriable
+                    && start.elapsed() < timeout
+                {
+                    attempt += 1;
+                    txn_retry_sleep(&self.inner.shared, attempt).await;
+                    continue;
+                }
+                let e = Error::broker(err, "AddOffsetsToTxn");
+                self.inner.shared.apply_txn_disposition(
+                    classify_add_offsets_error(err, can_handle),
+                    clone_err(&e),
+                );
+                return Err(e);
             }
         }
         let mut topics: Vec<String> = Vec::new();
@@ -1984,24 +2194,43 @@ impl Producer {
             let cluster = self.inner.shared.cluster.lock();
             group_txn_offsets(&offsets, |topic, part| cluster.leader_epoch(topic, part))
         };
-        let body = group_coord_roundtrip(
-            &self.inner.shared.cfg,
-            group_id,
-            TXN_OFFSET_COMMIT,
-            version,
-            self.inner.shared.find_coord_version,
-            |buf| {
-                encode_txn_offset_commit_request(
-                    buf, version, &tid, group_id, pid, epoch, member, &grouped,
-                )
-            },
-            timeout,
-            |body| decode_txn_offset_commit_response(&mut { body }, version),
-        )
-        .await?;
-        let err = decode_txn_offset_commit_response(&mut body.clone(), version)?;
-        if err != 0 {
-            return Err(Error::broker(err, "TxnOffsetCommit"));
+        let start = Instant::now();
+        let mut attempt = 0u32;
+        loop {
+            let body = group_coord_roundtrip(
+                &self.inner.shared.cfg,
+                group_id,
+                TXN_OFFSET_COMMIT,
+                version,
+                self.inner.shared.find_coord_version,
+                |buf| {
+                    encode_txn_offset_commit_request(
+                        buf, version, &tid, group_id, pid, epoch, member, &grouped,
+                    )
+                },
+                timeout,
+                |body| decode_txn_offset_commit_response(&mut { body }, version),
+            )
+            .await?;
+            let err = decode_txn_offset_commit_response(&mut body.clone(), version)?;
+            if err == 0 {
+                break;
+            }
+            // Java `TxnOffsetCommitHandler`: retry retriable codes, otherwise
+            // fence or require an abort (see the `AddOffsetsToTxn` loop above
+            // for the exhausted-budget rule).
+            if classify_txn_offset_commit_error(err) == TxnErrorDisposition::Retriable
+                && start.elapsed() < timeout
+            {
+                attempt += 1;
+                txn_retry_sleep(&self.inner.shared, attempt).await;
+                continue;
+            }
+            let e = Error::broker(err, "TxnOffsetCommit");
+            self.inner
+                .shared
+                .apply_txn_disposition(classify_txn_offset_commit_error(err), clone_err(&e));
+            return Err(e);
         }
         Ok(())
     }
@@ -2014,20 +2243,47 @@ impl Producer {
         let pid = self.inner.shared.producer_id.load(Ordering::SeqCst);
         let epoch = self.inner.shared.producer_epoch.load(Ordering::SeqCst);
         let end_txn_version = self.inner.shared.end_txn_version;
-        let body = txn_roundtrip(
-            &self.inner.shared,
-            END_TXN,
-            end_txn_version,
-            |buf| encode_end_txn_request(buf, end_txn_version, &tid, pid, epoch, committed),
-            timeout,
-            |body| Ok(decode_end_txn_response(&mut { body }, end_txn_version)?.0),
-        )
-        .await?;
-        let (err, new_pid, new_epoch, ..) =
-            decode_end_txn_response(&mut body.clone(), end_txn_version)?;
-        if err != 0 {
-            return Err(Error::broker(err, "EndTxn"));
-        }
+        let is_abort = !committed;
+        let start = Instant::now();
+        let mut attempt = 0u32;
+        let (new_pid, new_epoch) = loop {
+            // A transport error here is ambiguous (the broker may have
+            // applied `EndTxn` anyway). It sets no sticky state: the
+            // transaction stays open and the caller retries the same
+            // idempotent `EndTxn`, which can never split one transaction
+            // into two outcomes.
+            let body = txn_roundtrip(
+                &self.inner.shared,
+                END_TXN,
+                end_txn_version,
+                |buf| encode_end_txn_request(buf, end_txn_version, &tid, pid, epoch, committed),
+                timeout,
+                |body| Ok(decode_end_txn_response(&mut { body }, end_txn_version)?.0),
+            )
+            .await?;
+            let (err, new_pid, new_epoch, ..) =
+                decode_end_txn_response(&mut body.clone(), end_txn_version)?;
+            if err == 0 {
+                break (new_pid, new_epoch);
+            }
+            // Java `EndTxnHandler`: retry retriable codes (an `EndTxn`
+            // commit is idempotent), otherwise fence or require an abort
+            // (see the `AddOffsetsToTxn` loop for the exhausted-budget rule).
+            let can_handle = self.inner.shared.txn_can_handle_abortable();
+            if classify_end_txn_error(err, is_abort, can_handle) == TxnErrorDisposition::Retriable
+                && start.elapsed() < timeout
+            {
+                attempt += 1;
+                txn_retry_sleep(&self.inner.shared, attempt).await;
+                continue;
+            }
+            let e = Error::broker(err, "EndTxn");
+            self.inner.shared.apply_txn_disposition(
+                classify_end_txn_error(err, is_abort, can_handle),
+                clone_err(&e),
+            );
+            return Err(e);
+        };
         self.inner
             .shared
             .apply_end_txn_identity(end_txn_version, new_pid, new_epoch);
@@ -2350,7 +2606,10 @@ async fn init_producer_id_roundtrip(
                 return Ok(body);
             }
         }
-        Err(e) if e.is_retriable() => {}
+        // `Closed` is a dead socket, not a dead producer: rediscover and
+        // retry once like any other transport failure (KL03-10). Without
+        // this, one broker-side close bricks the coordinator channel.
+        Err(e) if e.is_retriable() || matches!(e, Error::Closed) => {}
         Err(e) => return Err(e),
     }
     let new = discover_typed_coord(cfg, &tid, COORDINATOR_TRANSACTION, find_coord_version).await?;
@@ -2468,6 +2727,18 @@ async fn renew_nontransactional_identity(shared: &Shared) -> Result<()> {
     Ok(())
 }
 
+/// Bounded Java `reenqueue` for transactional RPCs: backoff between retries
+/// of a retriable broker code. Retries never invent identities: every
+/// attempt reuses the broker-authorized producer id and epoch.
+async fn txn_retry_sleep(shared: &Shared, attempt: u32) {
+    tokio::time::sleep(crate::config::retry_backoff_delay(
+        shared.cfg.retry_backoff,
+        shared.cfg.retry_backoff_max,
+        attempt,
+    ))
+    .await;
+}
+
 async fn txn_roundtrip(
     shared: &Shared,
     api_key: i16,
@@ -2497,7 +2768,10 @@ async fn txn_roundtrip(
     match first {
         Ok(body) if !error::coordinator_retriable(error_of(&body)?) => return Ok(body),
         Ok(_) => {}
-        Err(e) if e.is_retriable() => {}
+        // `Closed` is a dead socket, not a dead producer: rediscover and
+        // retry once like any other transport failure (KL03-10). Without
+        // this, one broker-side close bricks the coordinator channel.
+        Err(e) if e.is_retriable() || matches!(e, Error::Closed) => {}
         Err(e) => return Err(e),
     }
     let new = discover_typed_coord(
@@ -3565,17 +3839,31 @@ impl Worker {
                             }
                             self.requeue_pendings(pendings);
                         }
-                    } else if self.shared.cfg.transactional_id.is_some()
-                        && matches!(
-                            r.error_code,
-                            error::UNKNOWN_PRODUCER_ID
-                                | error::INVALID_PRODUCER_ID_MAPPING
-                                | error::INVALID_PRODUCER_EPOCH
-                        )
-                    {
-                        self.shared
-                            .epoch_bump_required
-                            .store(true, Ordering::SeqCst);
+                    } else if self.shared.cfg.transactional_id.is_some() {
+                        // Java `maybeTransitionToErrorState` (KL03-10):
+                        // fencing/authorization/identity errors fence the
+                        // producer (fatal); every other failed batch makes
+                        // the open transaction abort-required. Retriable
+                        // codes were requeued above. The epoch-bump flag is
+                        // Java `clientSideEpochBumpRequired`: only when the
+                        // client bump path exists (classic coordinators);
+                        // transaction V2 bumps server-side in `EndTxn`.
+                        match classify_produce_error(r.error_code) {
+                            TxnErrorDisposition::Fatal => {
+                                self.shared.set_txn_fatal(clone_err(&e));
+                            }
+                            TxnErrorDisposition::Abortable | TxnErrorDisposition::Retriable => {
+                                self.shared.set_txn_abortable(clone_err(&e));
+                                if client_epoch_bump_capable(
+                                    self.shared.init_producer_id_version,
+                                    self.shared.end_txn_version,
+                                ) {
+                                    self.shared
+                                        .epoch_bump_required
+                                        .store(true, Ordering::SeqCst);
+                                }
+                            }
+                        }
                         fail_pendings(&self.shared, pendings, clone_err(&e));
                         if first_err.is_none() {
                             first_err = Some(e);
@@ -3659,41 +3947,66 @@ impl Worker {
             return Ok(());
         }
         let topics = group_txn_partitions(&added);
-        let body = match txn_roundtrip(
-            &self.shared,
-            ADD_PARTITIONS_TO_TXN,
-            version,
-            |buf| encode_add_partitions_to_txn_request(buf, version, &tid, pid, epoch, &topics),
-            timeout,
-            |body| decode_add_partitions_to_txn_response(&mut { body }, version),
-        )
-        .await
-        {
-            Ok(b) => b,
-            Err(e) => {
-                let mut set = self.shared.txn_partitions.lock();
-                for k in &added {
-                    let _ = set.remove(k);
+        let start = Instant::now();
+        let mut attempt = 0u32;
+        loop {
+            // A transport error sets no sticky state: adding partitions is
+            // idempotent, so the failed send is simply retried by the caller
+            // (or the transaction is aborted).
+            let body = match txn_roundtrip(
+                &self.shared,
+                ADD_PARTITIONS_TO_TXN,
+                version,
+                |buf| encode_add_partitions_to_txn_request(buf, version, &tid, pid, epoch, &topics),
+                timeout,
+                |body| decode_add_partitions_to_txn_response(&mut { body }, version),
+            )
+            .await
+            {
+                Ok(b) => b,
+                Err(e) => {
+                    let mut set = self.shared.txn_partitions.lock();
+                    for k in &added {
+                        let _ = set.remove(k);
+                    }
+                    return Err(e);
                 }
-                return Err(e);
-            }
-        };
-        let err = match decode_add_partitions_to_txn_response(&mut body.clone(), version) {
-            Ok(e) => e,
-            Err(e) => {
-                let mut set = self.shared.txn_partitions.lock();
-                for k in &added {
-                    let _ = set.remove(k);
+            };
+            let err = match decode_add_partitions_to_txn_response(&mut body.clone(), version) {
+                Ok(e) => e,
+                Err(e) => {
+                    let mut set = self.shared.txn_partitions.lock();
+                    for k in &added {
+                        let _ = set.remove(k);
+                    }
+                    return Err(e);
                 }
-                return Err(e);
+            };
+            if err == 0 {
+                break;
             }
-        };
-        if err != 0 {
+            // Java `AddPartitionsToTxnHandler`: retry `CONCURRENT_TRANSACTIONS`
+            // and other retriable codes, otherwise fence or require an abort
+            // (see the `AddOffsetsToTxn` loop for the exhausted-budget rule).
+            let can_handle = self.shared.txn_can_handle_abortable();
+            if classify_add_partitions_error(err, can_handle) == TxnErrorDisposition::Retriable
+                && start.elapsed() < timeout
+            {
+                attempt += 1;
+                txn_retry_sleep(&self.shared, attempt).await;
+                continue;
+            }
             let mut set = self.shared.txn_partitions.lock();
             for k in &added {
                 let _ = set.remove(k);
             }
-            return Err(Error::broker(err, "AddPartitionsToTxn"));
+            drop(set);
+            let e = Error::broker(err, "AddPartitionsToTxn");
+            self.shared.apply_txn_disposition(
+                classify_add_partitions_error(err, can_handle),
+                clone_err(&e),
+            );
+            return Err(e);
         }
         {
             let mut sent = self.shared.txn_added.lock();

@@ -568,8 +568,31 @@ struct State {
     last_add_partitions_node: Option<i32>,
     last_add_offsets_node: Option<i32>,
     last_add_offsets_to_txn_version: Option<i16>,
+    add_offsets_error: Option<i16>,
+    add_offsets_error_left: Option<u32>,
     last_end_txn_node: Option<i32>,
     last_end_txn_version: Option<i16>,
+    last_end_txn_committed: Option<bool>,
+    /// `EndTxn` RPCs the broker processed (success, forced error, or applied
+    /// but response dropped). Request-loss drops never reach the broker and
+    /// are not counted.
+    end_txn_calls: u32,
+    end_txn_error: Option<i16>,
+    end_txn_error_left: Option<u32>,
+    /// Response-loss drops: apply `EndTxn`, then close without replying.
+    end_txn_drop_response: u32,
+    /// Request-loss drops: never process `EndTxn`, close without replying.
+    end_txn_drop_request: u32,
+    txn_offset_commit_error: Option<i16>,
+    txn_offset_commit_error_left: Option<u32>,
+    /// Current `(producer_id, epoch)` floor per `transactional.id`. A second
+    /// producer for the same id gets the same pid with a bumped epoch and
+    /// fences the first (KL03-10).
+    txn_identities: HashMap<String, (i64, i16)>,
+    /// `TxnOffsetCommit` entries staged in the open transaction, keyed by
+    /// `(group_id, topic, partition)`. Applied to `committed` on `EndTxn`
+    /// commit, discarded on abort (KL03-10).
+    txn_pending_offsets: Vec<((String, String, i32), CommittedOffset)>,
     last_txn_offset_commit_node: Option<i32>,
     hb_by_node: HashMap<i32, u32>,
     kip848_groups: HashMap<String, Kip848Reg>,
@@ -947,8 +970,20 @@ fn new_state(
         last_add_partitions_node: None,
         last_add_offsets_node: None,
         last_add_offsets_to_txn_version: None,
+        add_offsets_error: None,
+        add_offsets_error_left: None,
         last_end_txn_node: None,
         last_end_txn_version: None,
+        last_end_txn_committed: None,
+        end_txn_calls: 0,
+        end_txn_error: None,
+        end_txn_error_left: None,
+        end_txn_drop_response: 0,
+        end_txn_drop_request: 0,
+        txn_offset_commit_error: None,
+        txn_offset_commit_error_left: None,
+        txn_identities: HashMap::new(),
+        txn_pending_offsets: Vec::new(),
         last_txn_offset_commit_node: None,
         hb_by_node: HashMap::new(),
         kip848_groups: HashMap::new(),
@@ -3073,6 +3108,70 @@ impl Mock {
         self.state.lock().last_txn_offset_commit_node
     }
 
+    /// Fail the next `n` `EndTxn` RPCs with `code` (KL03-10). A failed
+    /// `EndTxn` leaves the transaction open with no side effects.
+    pub fn set_end_txn_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.end_txn_error = Some(code);
+        st.end_txn_error_left = Some(n);
+    }
+
+    /// Drop the next `n` `EndTxn` replies after applying them (response
+    /// loss): the broker commits/aborts but the client times out (KL03-10).
+    pub fn set_end_txn_drop_response_times(&self, n: u32) {
+        self.state.lock().end_txn_drop_response = n;
+    }
+
+    /// Drop the next `n` `EndTxn` RPCs before processing them (request
+    /// loss): the broker never sees them and the client times out (KL03-10).
+    pub fn set_end_txn_drop_request_times(&self, n: u32) {
+        self.state.lock().end_txn_drop_request = n;
+    }
+
+    /// Fail the next `n` `TxnOffsetCommit` RPCs with `code` (KL03-10).
+    pub fn set_txn_offset_commit_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.txn_offset_commit_error = Some(code);
+        st.txn_offset_commit_error_left = Some(n);
+    }
+
+    /// Fail the next `n` `AddOffsetsToTxn` RPCs with `code` (KL03-10).
+    pub fn set_add_offsets_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.add_offsets_error = Some(code);
+        st.add_offsets_error_left = Some(n);
+    }
+
+    /// `EndTxn` RPCs the broker processed (KL03-10).
+    pub fn end_txn_calls(&self) -> u32 {
+        self.state.lock().end_txn_calls
+    }
+
+    /// `committed` flag of the last processed `EndTxn` (KL03-10).
+    pub fn last_end_txn_committed(&self) -> Option<bool> {
+        self.state.lock().last_end_txn_committed
+    }
+
+    /// Committed offset for `(group, topic, partition)`, if any.
+    /// Transactional offsets appear only after `EndTxn` commits (KL03-10).
+    pub fn committed_offset(&self, group: &str, topic: &str, partition: i32) -> Option<i64> {
+        self.state
+            .lock()
+            .committed
+            .get(&(group.to_string(), topic.to_string(), partition))
+            .map(|c| c.offset)
+    }
+
+    /// `TxnOffsetCommit` entries still staged in the open transaction.
+    pub fn txn_pending_offsets_len(&self) -> usize {
+        self.state.lock().txn_pending_offsets.len()
+    }
+
+    /// Records the broker marked aborted (`topic, partition, offset`).
+    pub fn txn_aborted_records(&self) -> Vec<(String, i32, i64)> {
+        self.state.lock().txn_aborted.iter().cloned().collect()
+    }
+
     pub fn membership_heartbeats_on(&self, node_id: i32) -> u32 {
         self.state
             .lock()
@@ -4903,6 +5002,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 } else if producer_id >= 0 && producer_epoch >= 0 {
                     st.last_init_producer_id_node = Some(node_id);
                     let next_epoch = producer_epoch.saturating_add(1);
+                    if let Some(t) = tid.as_ref() {
+                        st.txn_identities
+                            .insert(t.clone(), (producer_id, next_epoch));
+                    }
                     encode_init_producer_id_response(
                         &mut body,
                         header.api_version,
@@ -4913,9 +5016,29 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .unwrap();
                 } else {
                     st.last_init_producer_id_node = Some(node_id);
-                    let pid = st.next_pid;
-                    st.next_pid += 1;
-                    encode_init_producer_id_response(&mut body, header.api_version, 0, pid, 0)
+                    // A second producer for the same transactional.id fences
+                    // the first: same pid, bumped epoch (real-broker
+                    // behavior, KL03-10). Fresh ids and non-transactional
+                    // inits rotate the pid as before.
+                    let (pid, epoch) = match tid.as_ref() {
+                        Some(t) => match st.txn_identities.get(t).copied() {
+                            Some((p, e)) => (p, e.saturating_add(1)),
+                            None => {
+                                let p = st.next_pid;
+                                st.next_pid += 1;
+                                (p, 0)
+                            }
+                        },
+                        None => {
+                            let p = st.next_pid;
+                            st.next_pid += 1;
+                            (p, 0)
+                        }
+                    };
+                    if let Some(t) = tid.as_ref() {
+                        st.txn_identities.insert(t.clone(), (pid, epoch));
+                    }
+                    encode_init_producer_id_response(&mut body, header.api_version, 0, pid, epoch)
                         .unwrap();
                 }
             }
@@ -4977,8 +5100,27 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             ADD_OFFSETS_TO_TXN => {
                 let _ = decode_add_offsets_to_txn_request(&mut frame, header.api_version);
                 let mut st = state.lock();
+                let forced = match (st.add_offsets_error, st.add_offsets_error_left) {
+                    (Some(_), Some(0)) => {
+                        st.add_offsets_error = None;
+                        st.add_offsets_error_left = None;
+                        None
+                    }
+                    (Some(c), Some(left)) => {
+                        st.add_offsets_error_left = Some(left.saturating_sub(1));
+                        if left <= 1 {
+                            st.add_offsets_error = None;
+                            st.add_offsets_error_left = None;
+                        }
+                        Some(c)
+                    }
+                    (Some(c), None) => Some(c),
+                    (None, _) => None,
+                };
                 if st.txn_coord_node != node_id {
                     encode_add_offsets_to_txn_response(&mut body, header.api_version, 16).unwrap();
+                } else if let Some(err) = forced {
+                    encode_add_offsets_to_txn_response(&mut body, header.api_version, err).unwrap();
                 } else {
                     st.last_add_offsets_node = Some(node_id);
                     st.last_add_offsets_to_txn_version = Some(header.api_version);
@@ -4986,14 +5128,60 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             END_TXN => {
+                // Request-loss: the broker never sees this RPC (KL03-10).
+                // `break` closes the connection, like produce drops.
+                let drop_request = {
+                    let mut st = state.lock();
+                    if st.end_txn_drop_request > 0 {
+                        st.end_txn_drop_request -= 1;
+                        true
+                    } else {
+                        false
+                    }
+                };
+                if drop_request {
+                    break;
+                }
                 let (_tid, pid, epoch, committed) =
                     decode_end_txn_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
+                let forced = match (st.end_txn_error, st.end_txn_error_left) {
+                    (Some(_), Some(0)) => {
+                        st.end_txn_error = None;
+                        st.end_txn_error_left = None;
+                        None
+                    }
+                    (Some(c), Some(left)) => {
+                        st.end_txn_error_left = Some(left.saturating_sub(1));
+                        if left <= 1 {
+                            st.end_txn_error = None;
+                            st.end_txn_error_left = None;
+                        }
+                        Some(c)
+                    }
+                    (Some(c), None) => Some(c),
+                    (None, _) => None,
+                };
+                st.end_txn_calls = st.end_txn_calls.saturating_add(1);
+                st.last_end_txn_committed = Some(committed);
                 if st.txn_coord_node != node_id {
                     encode_end_txn_response(
                         &mut body,
                         header.api_version,
                         16,
+                        RecordBatch::NO_PRODUCER_ID,
+                        RecordBatch::NO_PRODUCER_EPOCH,
+                    )
+                    .unwrap();
+                } else if let Some(err) = forced {
+                    // A failed EndTxn leaves the transaction open: no
+                    // commit/abort side effects, no identity bump. The error
+                    // response carries the JSON-default identity (Java
+                    // `EndTxnRequest.getErrorResponse`).
+                    encode_end_txn_response(
+                        &mut body,
+                        header.api_version,
+                        err,
                         RecordBatch::NO_PRODUCER_ID,
                         RecordBatch::NO_PRODUCER_EPOCH,
                     )
@@ -5004,8 +5192,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         for rec in pending {
                             st.txn_aborted.insert(rec);
                         }
+                        st.txn_pending_offsets.clear();
                     } else {
                         st.txn_pending.clear();
+                        for (k, v) in std::mem::take(&mut st.txn_pending_offsets) {
+                            st.committed.insert(k, v);
+                        }
                     }
                     st.in_txn = false;
                     st.last_end_txn_node = Some(node_id);
@@ -5017,6 +5209,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     };
                     encode_end_txn_response(&mut body, header.api_version, 0, out_pid, out_epoch)
                         .unwrap();
+                }
+                // Response-loss: EndTxn applied, but the reply never arrives
+                // (KL03-10). `break` closes the connection.
+                let drop_response = if st.end_txn_drop_response > 0 {
+                    st.end_txn_drop_response -= 1;
+                    true
+                } else {
+                    false
+                };
+                drop(st);
+                if drop_response {
+                    break;
                 }
             }
             WRITE_TXN_MARKERS => {
@@ -5059,8 +5263,28 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (_tid, gid, member, topics, ..) =
                     decode_txn_offset_commit_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
+                let forced = match (st.txn_offset_commit_error, st.txn_offset_commit_error_left) {
+                    (Some(_), Some(0)) => {
+                        st.txn_offset_commit_error = None;
+                        st.txn_offset_commit_error_left = None;
+                        None
+                    }
+                    (Some(c), Some(left)) => {
+                        st.txn_offset_commit_error_left = Some(left.saturating_sub(1));
+                        if left <= 1 {
+                            st.txn_offset_commit_error = None;
+                            st.txn_offset_commit_error_left = None;
+                        }
+                        Some(c)
+                    }
+                    (Some(c), None) => Some(c),
+                    (None, _) => None,
+                };
                 if st.coord_node != node_id {
                     encode_txn_offset_commit_response(&mut body, header.api_version, &topics, 16)
+                        .unwrap();
+                } else if let Some(err) = forced {
+                    encode_txn_offset_commit_response(&mut body, header.api_version, &topics, err)
                         .unwrap();
                 } else {
                     st.txn_offset_commit_calls = st.txn_offset_commit_calls.saturating_add(1);
@@ -5070,14 +5294,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         for p in &t.partitions {
                             nparts = nparts.saturating_add(1);
                             epochs.push(p.leader_epoch);
-                            let _ = st.committed.insert(
+                            // Staged, not committed: EndTxn commit applies
+                            // these, EndTxn abort discards them (KL03-10).
+                            st.txn_pending_offsets.push((
                                 (gid.clone(), t.topic.clone(), p.partition),
                                 CommittedOffset {
                                     offset: p.offset,
                                     leader_epoch: p.leader_epoch,
                                     metadata: p.metadata.clone(),
                                 },
-                            );
+                            ));
                         }
                     }
                     st.last_txn_offset_commit_partitions = nparts;
@@ -5200,10 +5426,21 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             .get(&(topic.topic.clone(), p.index))
                             .copied()
                             .unwrap_or(node_id);
+                        // Fencing: this transactional.id moved to a newer
+                        // (pid, epoch), so this stale identity is fenced
+                        // (KL03-10). Broker-authoritative state wins over the
+                        // forced-error knob.
+                        let fenced = txn_id.as_ref().is_some_and(|t| {
+                            st.txn_identities.get(t).is_some_and(|(fpid, fepoch)| {
+                                p.records.producer_id == *fpid && p.records.producer_epoch < *fepoch
+                            })
+                        });
                         let mut error_code = if leader != node_id {
                             6
                         } else if st.in_txn && txn_id.is_none() {
                             error::INVALID_TXN_STATE
+                        } else if fenced {
+                            error::PRODUCER_FENCED
                         } else {
                             forced.unwrap_or(0)
                         };

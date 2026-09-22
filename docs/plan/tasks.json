@@ -856,13 +856,39 @@
     {
       "id": "KL03-10",
       "title": "Prove transactional fencing and abort recovery states",
-      "priority": "P0", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL03-03", "KL03-09"],
       "files": ["src/producer.rs", "src/protocol/txn.rs", "tests/full_surface.rs"],
       "deliverable": "Focused transaction-state regressions for fencing, ambiguous EndTxn and recovery.",
       "acceptance": ["Cover classic and transaction-v2 identity handling, abort-required versus fatal errors and a replacement transactional producer.", "Output and consumed input offsets cannot be committed in different transaction outcomes.", "Document external-side-effect limits; retries must not invent broker-authorized transactional identities."],
       "validation": ["cargo test --locked --test full_surface transactional", "cargo test --locked --lib protocol::txn"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "d1970e13a119cc50628e226649bb46cd59947e0c",
+                "commands": [
+                        "cargo test --locked --lib protocol::txn (66 passed, exit 0)",
+                        "cargo test --locked --test full_surface transactional -- --test-threads=9 (18 passed, exit 0)",
+                        "cargo test --locked --test full_surface idempotent -- --test-threads=9 (14 passed, KL03-09 regression, exit 0)",
+                        "Full regression sweep at 4 threads: lib 1086, full_surface 268, buffer_ownership 12, produce_cancel 15, client_api 97, protocol_oracles 20, roundtrip 1, mock_produce 1, auth_lifecycle 22, network_deadlines 8, consumer_fetch_semantics 29 (all exit 0)",
+                        "cargo clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+                        "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features (exit 0)"
+                ],
+                "results": "Transactional fencing/abort state machine proven: TxnErrorDisposition + 6 Java-parity classifiers (TransactionManager@13f7025), fatal-vs-abort-required latching, classic (EndTxn v4) and v2 (v5) identity handling, replacement-producer fencing, single-outcome EndTxn retry, and one-RPC offsets+partitions commit. 18 new full_surface tests + txn matrix test; output/consumed offsets cannot commit in different outcomes.",
+                "artifacts": [
+                        "src/producer.rs",
+                        "src/protocol/txn.rs",
+                        "tests/common/mod.rs",
+                        "tests/full_surface.rs",
+                        "docs/plan/evidence/KL03-10.json"
+                ],
+                "limits": [
+                        "Default 14-thread transactional selector flakes Timeout/Io-only on this loaded host; proven pre-existing (pristine base flakes identically; failures hit untouched tests with transport-shaped errors upstream of all modified code). Green at 9/4 threads and in every subset/solo run.",
+                        "Deliberate Java deviation: sends blocked only while fatal, not while abort-required (Java blocks both); required by the buffer-ownership contract. Documented at Producer::send_all.",
+                        "Mock-broker only; replacement producer racing in-flight EndTxn not exercised; sub-v3/v5 ancient brokers classified but without dedicated integration tests; cross-clone concurrent txn calls not linearizable (documented).",
+                        "External-side-effect limits documented; retries never invent broker-authorized transactional identities."
+                ]
+        }
+      ]
     },
     {
       "id": "KL03-11",

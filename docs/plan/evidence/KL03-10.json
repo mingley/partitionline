@@ -1,0 +1,97 @@
+{
+  "id": "KL03-10",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "d1970e13a119cc50628e226649bb46cd59947e0c",
+  "commands": [
+    "rustfmt --edition 2021 --check src/producer.rs src/protocol/txn.rs tests/full_surface.rs tests/common/mod.rs (exit 0)",
+    "cargo test --locked --lib protocol::txn (exit 0; 66/66)",
+    "cargo test --locked --test full_surface transactional -- --test-threads=9 (exit 0; 18/18 in 3/3 runs)",
+    "cargo test --locked --test full_surface transactional -- --test-threads=4 (exit 0; 18/18)",
+    "cargo test --locked --test full_surface transactional (exact card command at default 14 threads; flakes 15-17/18 on this host with Timeout/Io-only failures, zero wrong-value failures; proven pre-existing, see limits)",
+    "cargo test --locked --lib (exit 0; 1086/1086)",
+    "cargo test --locked --test full_surface -- --test-threads=4 (exit 0; 268/268)",
+    "cargo test --locked --test buffer_ownership -- --test-threads=4 (exit 0; 12/12)",
+    "cargo test --locked --test produce_cancel -- --test-threads=4 (exit 0; 15/15)",
+    "cargo test --locked --test client_api -- --test-threads=4 (exit 0; 97/97)",
+    "cargo test --locked --test protocol_oracles -- --test-threads=4 (exit 0; 20/20)",
+    "cargo test --locked --test roundtrip -- --test-threads=4 (exit 0; 1/1)",
+    "cargo test --locked --test mock_produce -- --test-threads=4 (exit 0; 1/1)",
+    "cargo test --locked --test auth_lifecycle -- --test-threads=4 (exit 0; 22/22)",
+    "cargo test --locked --test network_deadlines -- --test-threads=4 (exit 0; 8/8)",
+    "cargo test --locked --test consumer_fetch_semantics -- --test-threads=4 (exit 0; 29/29)",
+    "cargo clippy --locked --lib --all-features -- -D warnings (exit 0)",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings (fails ONLY in untouched tests/auth_lifecycle.rs, tests/mock_produce.rs, tests/network_deadlines.rs, tests/roundtrip.rs, tests/e2e; zero findings in src/producer.rs, src/protocol/txn.rs, tests/full_surface.rs, tests/common/mod.rs; pre-existing under clippy 1.98, another worker's files)",
+    "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features (exit 0)"
+  ],
+  "results": {
+    "full_surface_transactional_tests": {
+      "passed": 18,
+      "failed": 0,
+      "test_names": [
+        "transactional_abort_after_ambiguous_commit_leaves_nothing",
+        "transactional_abort_reinit_sends_last_pid_epoch",
+        "transactional_abort_required_blocks_commit_until_abort_classic",
+        "transactional_abort_required_v2_recovers_without_reinit",
+        "transactional_add_offsets_errors_classified_classic",
+        "transactional_commit_after_unknown_pid_still_fails",
+        "transactional_commit_and_abort_require_open_transaction",
+        "transactional_commit_visible_abort_hidden",
+        "transactional_end_txn_commit_loss_retries_to_single_outcome",
+        "transactional_end_txn_errors_classified",
+        "transactional_fatal_produce_errors_fence_producer",
+        "transactional_fenced_produce_is_fatal_classic",
+        "transactional_fenced_produce_is_fatal_v2",
+        "transactional_offsets_and_partitions_one_rpc",
+        "transactional_producer_finds_txn_coordinator",
+        "transactional_replacement_producer_fences_first",
+        "transactional_send_offsets_outside_transaction_rejected",
+        "transactional_txn_offset_commit_errors_classified"
+      ]
+    },
+    "lib_protocol_txn_tests": {
+      "passed": 66,
+      "failed": 0,
+      "test_names": [
+        "protocol::txn::tests::txn_error_matrix_matches_pinned_java_handlers (new; plus 65 pre-existing protocol::txn codec tests, all green)"
+      ]
+    },
+    "regression_suites": {
+      "lib_all": "1086/1086",
+      "full_surface_all_4_threads": "268/268",
+      "buffer_ownership": "12/12",
+      "produce_cancel": "15/15",
+      "client_api": "97/97",
+      "protocol_oracles": "20/20",
+      "roundtrip": "1/1",
+      "mock_produce": "1/1",
+      "auth_lifecycle": "22/22",
+      "network_deadlines": "8/8",
+      "consumer_fetch_semantics": "29/29"
+    },
+    "checks": [
+      "Classic (EndTxn v4) and transaction-V2 (EndTxn v5) identity handling: classic abort re-inits with the last broker-authorized (pid, epoch) via InitProducerId; V2 applies the EndTxn-response identity with no re-init (init count stays 1); fencing never invents an identity (epoch unchanged, init count 1, no EndTxn sent)",
+      "Abort-required vs fatal: UNKNOWN_PRODUCER_ID (produce and EndTxn), GROUP_AUTHORIZATION_FAILED (TxnOffsetCommit/AddOffsets) are abort-required and sticky until abort; PRODUCER_FENCED, INVALID_PRODUCER_ID_MAPPING, TRANSACTIONAL_ID_AUTHORIZATION_FAILED (produce, EndTxn, AddPartitions, AddOffsets, TxnOffsetCommit) are fatal and terminal; unit matrix in protocol::txn pins all six Java handler tables",
+      "Replacement transactional producer: second producer with the same transactional.id gets the same pid with a bumped epoch from the broker; the stale producer is fenced on its next produce (no forced errors) while the replacement commits records plus offsets",
+      "Outputs and consumed offsets share one outcome: TxnOffsetCommit stages in the broker until EndTxn; commit applies both, abort discards both; lost-commit retry stays idempotent (single committed outcome) and abort-after-ambiguous-commit leaves nothing committed; offsets outside an open transaction are rejected with no RPC",
+      "Ambiguous EndTxn sets no sticky state: transport Timeout/Io during EndTxn leaves the transaction open for a safe idempotent retry or abort; a broker-side close no longer bricks the coordinator channel (Closed now rediscovers like other transport failures)",
+      "External-side-effect limits documented on begin/commit/abort: EOS covers broker records plus offsets only; side effects must happen after commit and tolerate duplicates on ambiguous outcomes"
+    ]
+  },
+  "artifacts": [
+    "src/producer.rs",
+    "src/protocol/txn.rs",
+    "tests/common/mod.rs",
+    "tests/full_surface.rs",
+    "docs/plan/evidence/KL03-10.json"
+  ],
+  "limits": [
+    "The exact 18-test default-thread selector flakes on this host (load ~50): 8 runs at 14 threads gave 15-18/18 with Timeout/Io-only failures (Timeout, ConnectionReset, UnexpectedEof 'broker closed connection'), zero wrong-value failures in any run. Proven pre-existing and unrelated to this card: failures move between runs and hit untouched pre-existing tests (transactional_abort_reinit_sends_last_pid_epoch, transactional_commit_after_unknown_pid_still_fails, transactional_commit_visible_abort_hidden, transactional_producer_finds_txn_coordinator); pristine base (git archive of HEAD) flakes identically at default threads (252/255 full_surface with 3 Timeout-only failures in untouched idempotent tests); every failure is transport-shaped upstream of all modified code (a Timeout means no broker response arrived, before any classification runs). This card is 4/4 green at --test-threads=9/4 plus green in every subset/solo run.",
+    "Deliberate Java deviation (pinned by the buffer-ownership contract): sends are blocked only while fatal, not while abort-required. Java maybeAddPartition blocks sends in both states, but presend_failure_real_mock_add_partitions_to_txn requires a one-time AddPartitionsToTxn failure to not poison later sends. Documented at Producer::send_all.",
+    "Mock-broker evidence only; no real-broker run. The mock models transactional fencing per real-broker rules (same pid, bumped epoch, stale-epoch produce rejected with PRODUCER_FENCED) but a replacement producer racing an in-flight EndTxn is not exercised.",
+    "Ancient brokers without any epoch-bump path (InitProducerId below v3 and EndTxn below v5) are classified by can_handle_abortable_error but have no dedicated integration test; abort stays available and failures remain app-visible broker errors.",
+    "Concurrent transactional calls across Producer clones are not linearizable: the fatal/abort-required flags are checked at method entry, so a send racing an abort can still be accepted. Single-task sequences (the tested shape) are exact.",
+    "No unsafe code and no new dependencies added."
+  ],
+  "blocked_reason": null
+}
