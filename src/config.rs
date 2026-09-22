@@ -3,6 +3,10 @@
 //! These are the knobs you set before connecting. Field-by-field mutation on
 //! [`ProducerConfig`](crate::ProducerConfig) still works; the builders here are
 //! the shorter path.
+//!
+//! The normative compatibility contract for public config fields (rejected
+//! combinations, normalizations, and defaults that differ from Java) is the
+//! configuration-contract section in `docs/api-stability.md`.
 
 use std::collections::HashMap;
 use std::fmt;

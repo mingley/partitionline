@@ -1,6 +1,10 @@
 //! Kafka and client error types.
 //!
 //! [`ApiError`] is Java `org.apache.kafka.common.requests.ApiError`.
+//!
+//! The normative caller contract for these types is the error-categories
+//! table in `docs/api-stability.md`: match [`Error::is_retriable`] and the
+//! documented categories, never the [`std::fmt::Display`] text.
 
 use std::fmt;
 use std::io;
@@ -114,7 +118,15 @@ impl Error {
         }
     }
 
-    /// Kafka transient errors (`NOT_LEADER`, coordinator move, timeout) plus I/O.
+    /// The retryable error category: [`Error::Io`], [`Error::Timeout`], and
+    /// the transient broker codes listed in the match below.
+    ///
+    /// This is exactly the retryable row of the error-categories table in
+    /// `docs/api-stability.md`. It covers wire/transport outcomes only:
+    /// metadata-state errors ([`Error::UnknownTopic`], [`Error::NoLeader`])
+    /// are retry-after-refresh by the caller but report `false` here, and
+    /// abort-required transaction outcomes report `false` because the caller
+    /// must [`crate::Producer::abort_transaction`] rather than retry.
     #[must_use]
     pub fn is_retriable(&self) -> bool {
         match self {

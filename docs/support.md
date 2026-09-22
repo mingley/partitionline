@@ -51,6 +51,13 @@ registry status was re-checked at source `ca50ca1` (KL07-07).
 `src/` differ). Mapped configuration defaults are identical in both except
 `ConsumerConfig::buffer_memory` (32 MiB fetch cap, current source only).
 
+**Error and configuration contract:** the normative 0.x caller contract for
+error categories (retryable, abort-required, fatal, unsupported, timeout,
+ambiguous-delivery) and for public config fields (rejected combinations,
+normalizations, Java default differences) is frozen in
+[api-stability.md](api-stability.md) (KL07-10). Match error categories, not
+`Display` text; construct configs via builders or `Default` plus overrides.
+
 ## Security response
 
 Report vulnerabilities privately (GitHub security advisories when enabled). See

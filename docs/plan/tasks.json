@@ -1595,7 +1595,7 @@
     {
       "id": "KL05-23",
       "title": "Implement companion Schema Registry lookups",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL05-01"],
       "files": ["partitionline-schema/Cargo.toml", "new: partitionline-schema/src/registry.rs", "docs/schema-companion.md"],
       "deliverable": "A bounded HTTP lookup client for schema IDs and subject/version references in the companion only.",
@@ -2008,13 +2008,35 @@
     {
       "id": "KL07-10",
       "title": "Freeze the public error and configuration contract",
-      "priority": "P1", "kind": "specification", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "specification", "status": "done", "owner": "mingley",
       "depends_on": ["KL05-01", "KL03-07", "KL06-01"],
       "files": ["docs/api-stability.md", "src/error.rs", "src/config.rs", "docs/support.md"],
       "deliverable": "A concise stable/evolving API contract with error categories and configuration invariants.",
       "acceptance": ["Distinguish retryable, abort-required, fatal, unsupported, timeout and ambiguous-delivery outcomes.", "Record invalid configuration combinations, default differences and compatibility expectations for public mutable config fields.", "Create separate bounded repair cards for discovered violations; do not bundle broad API redesign or Java utility cloning."],
       "validation": ["Trace representative public operations and config constructors against the contract.", "Run the existing client_api tests and identify meaningful missing invariant assertions."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ebe9e0e26ad512dbe423f1191da16ff06b966f33",
+                "commands": [
+                        "cargo test --locked --test client_api (97 passed, exit 0)",
+                        "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --offline (exit 0)",
+                        "rustfmt check on src/error.rs src/config.rs (clean)"
+                ],
+                "results": "docs/api-stability.md freezes the public contract: six-row error-category table (retryable, abort-required, fatal, unsupported, timeout, ambiguous-delivery) grounded in is_retriable/transactional paths/constructors, plus rejected/normalized/passed-through config tables, a 13-row Java default-difference table, and builder/Default compatibility rules. Representative producer/consumer/admin/group/share operations traced against the contract; 8 missing invariant assertions identified; 4 bounded repair cards (KL07-12..15) filed, no redesign implemented.",
+                "artifacts": [
+                        "docs/api-stability.md",
+                        "docs/support.md",
+                        "src/error.rs",
+                        "src/config.rs",
+                        "docs/plan/evidence/KL07-10.json"
+                ],
+                "limits": [
+                        "Specification card: no behavior change; contract asserts current source behavior, not broker-verified outcomes.",
+                        "client_api uses the in-process mock, not a real broker; Unsupported/timeout paths traced in code only.",
+                        "Java default table sourced from in-repo rustdoc claims; no fresh Java client consulted."
+                ]
+        }
+      ]
     },
     {
       "id": "KL07-11",
@@ -2042,6 +2064,50 @@
                 ]
         }
       ]
+    },
+    {
+      "id": "KL07-12",
+      "title": "Reject invalid raw acks at Producer construction",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL07-10"],
+      "files": ["src/producer.rs", "tests/client_api.rs"],
+      "deliverable": "Constructor rejection of invalid raw ProducerConfig.acks values.",
+      "acceptance": ["Producer::new returns Error::protocol before any network I/O when cfg.acks is outside {0, 1, -1}.", "The acks(..) builder, idempotent normalization (acks=-1), and struct-update construction are unchanged.", "client_api gains a no-I/O test asserting the rejection and a positive test that -1/0/1 still construct against the mock."],
+      "validation": ["cargo test --locked --test client_api acks"],
+      "evidence": []
+    },
+    {
+      "id": "KL07-13",
+      "title": "Disambiguate Error::Closed display text",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL07-10"],
+      "files": ["src/error.rs", "tests/client_api.rs"],
+      "deliverable": "A client-neutral Error::Closed display string with regression coverage.",
+      "acceptance": ["Error::Closed Display no longer names a specific client (e.g. 'client closed').", "Closed is still returned on the same paths (send after close, dropped workers, BrokerConn shutdown).", "client_api asserts the Display text and send-after-close behavior for producer and consumer paths."],
+      "validation": ["cargo test --locked --test client_api closed"],
+      "evidence": []
+    },
+    {
+      "id": "KL07-14",
+      "title": "Latch abort-required state on fenced transaction errors",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL07-10"],
+      "files": ["src/producer.rs", "tests/client_api.rs"],
+      "deliverable": "Abort-required latching for fenced/abortable transaction produce errors.",
+      "acceptance": ["Transactional produce receiving PRODUCER_FENCED, TRANSACTION_ABORTABLE, INVALID_TXN_STATE, or CONCURRENT_TRANSACTIONS fails the send and latches the same epoch-bump-required state as UNKNOWN_PRODUCER_ID.", "commit_transaction without a preceding abort_transaction stays invalid from the latched state.", "Non-transactional and idempotent produce paths are unchanged; mock-backed client_api coverage for at least one fenced and one abortable code."],
+      "validation": ["cargo test --locked --test client_api txn_abort"],
+      "evidence": []
+    },
+    {
+      "id": "KL07-15",
+      "title": "Validate consumer fetch bounds at construction",
+      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL07-10"],
+      "files": ["src/consumer.rs", "tests/client_api.rs"],
+      "deliverable": "Constructor rejection of negative consumer fetch bounds.",
+      "acceptance": ["Consumer::new returns Error::protocol before any network I/O when max_wait_ms, min_bytes, max_bytes, or max_partition_fetch_bytes is negative.", "Zero and positive values keep current behavior; fetch builders are unchanged.", "client_api gains a no-I/O rejection test per field."],
+      "validation": ["cargo test --locked --test client_api fetch_bounds"],
+      "evidence": []
     },
     {
       "id": "KL08-01",
@@ -2322,7 +2388,7 @@
     {
       "id": "KL08-19",
       "title": "Land rustls >=0.23.45 security fix (RUSTSEC-2026-0285)",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL08-06"],
       "files": ["Cargo.lock", "Cargo.toml"],
       "deliverable": "rustls >=0.23.45 landed, closing RUSTSEC-2026-0285 on main (supersedes PR #104).",
