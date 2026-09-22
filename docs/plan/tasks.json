@@ -1965,6 +1965,17 @@
       "evidence": []
     },
     {
+      "id": "KL07-11",
+      "title": "Repair the consumer.rs private intra-doc link",
+      "priority": "P1", "kind": "documentation", "status": "pending", "owner": null,
+      "depends_on": [],
+      "files": ["src/consumer.rs"],
+      "deliverable": "Strict rustdoc (-D warnings) builds clean on the exact main SHA again.",
+      "acceptance": ["Public docs for `buffered_bytes` no longer link private `Self::pending`.", "No allow(rustdoc::...) suppression and no visibility change made solely to silence the warning.", "RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --all-features exits 0 on the merged SHA."],
+      "validation": ["RUSTDOCFLAGS='-D warnings' cargo doc --offline --locked --no-deps --all-features", "bash scripts/ci-docs.sh --self-test"],
+      "evidence": []
+    },
+    {
       "id": "KL08-01",
       "title": "Reject non-CI workflows in the release eligibility check",
       "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
