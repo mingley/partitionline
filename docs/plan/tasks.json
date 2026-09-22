@@ -2414,13 +2414,34 @@
     {
       "id": "KL08-19",
       "title": "Land rustls >=0.23.45 security fix (RUSTSEC-2026-0285)",
-      "priority": "P0", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL08-06"],
       "files": ["Cargo.lock", "Cargo.toml"],
       "deliverable": "rustls >=0.23.45 landed, closing RUSTSEC-2026-0285 on main (supersedes PR #104).",
       "acceptance": ["Cargo.lock pins rustls >=0.23.45 (0.23.45 published); Cargo.toml 0.23 range unchanged; PR #104 (0.23.44) is NOT merged as-is.", "cargo audit and cargo deny report RUSTSEC-2026-0285 fixed on the new lockfile.", "MSRV 1.85 cell and TLS/auth test paths pass (rustls 0.23.45 declares rust 1.71; license unchanged)."],
       "validation": ["cargo update -p rustls --precise 0.23.45 then cargo test --locked (stable and 1.85)", "cargo audit: zero vulnerabilities; cargo deny check passes", "auth-smoke or TLS-focused test path on the new lockfile"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ebe9e0e26ad512dbe423f1191da16ff06b966f33",
+                "commands": [
+                        "cargo update -p rustls --precise 0.23.45 (exit 0; Cargo.lock 2+/2-, no other move)",
+                        "cargo audit (exit 0; 0 vulnerabilities, 77 deps; negative control on old lock fails with RUSTSEC-2026-0285)",
+                        "cargo deny check (exit 0; advisories/bans/licenses/sources ok)",
+                        "bash scripts/ci-msrv.sh (exit 0; check --all-targets + 1085 lib tests on 1.85.0)",
+                        "cargo test --locked TLS paths: lib scram/sasl/oauth/tls filter (38 passed), auth_lifecycle (22), credential_redact (15)",
+                        "bash scripts/ci-auth-smoke.sh vs native Kafka 4.1.0 (exit 0; PLAIN/SCRAM/OAUTHBEARER/OIDC/mTLS produce, fail-closed negatives)"
+                ],
+                "results": "rustls 0.23.43 -> 0.23.45 only; Cargo.toml 0.23 range unchanged; PR #104 superseded untouched. RUSTSEC-2026-0285 closed on main: audit green (was red), deny green. MSRV 1.85 cell green. TLS/auth paths green incl. live auth-smoke against native Kafka 4.1.0.",
+                "artifacts": [
+                        "Cargo.lock",
+                        "docs/plan/evidence/KL08-19.json"
+                ],
+                "limits": [
+                        "full_surface has pre-existing load-dependent timing flakes on this machine (varying sets; reproduced 4 failures on pristine HEAD with old rustls, unrelated to this bump); all other stable targets pass.",
+                        "Stale ~/.cargo/advisory-db cache moved aside so cargo-audit could fetch a fresh DB."
+                ]
+        }
+      ]
     },
     {
       "id": "KL08-20",
