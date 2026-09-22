@@ -1,12 +1,17 @@
 # Gaps vs librdkafka
 
-This is the tracker for **full client parity with librdkafka**. It is not a
-promise that every row ships in the next commit. Status is the contract:
+This is the API inventory measured against **behavior a Kafka application
+needs from librdkafka**. It is not a parity claim and not a promise that
+every row ships in the next commit. Status is the contract:
 
-**Audit qualification:** the inventory's **done** label means an API is
-implemented, not that independent conformance or production qualification is
-complete. The [2026-09-21 audit](audits/2026-09-21.md) reproduces five consumer
-defects and separates codec helpers from runtime support. Use
+**Audit qualification:** the inventory's **done** label means the API is
+callable in current source, not that the runtime behavior is complete and
+not that independent conformance or production qualification is complete.
+The [2026-09-21 audit](audits/2026-09-21.md) reproduces five consumer
+defects and separates codec helpers from runtime support. Per-entry runtime
+status — `present`, `partial`, `missing`, `out_of_scope` — lives in the
+KL05-01 [feature registry](../tests/conformance/features.json), which
+qualifies several rows below (see Registry cross-check). Use
 [the small-session queue](plan/README.md) for repairs and major-feature
 completion; do not infer an all-features/all-versions pass from this table.
 
@@ -67,6 +72,36 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | TxnOffsetCommit metadata | yes (`send_offsets_to_transaction` / `send_offsets_with_metadata` / `send_offsets_for_group` take `TopicPartition`; v3+ sends generation / member / instance from `ConsumerGroupMetadata`) | yes | **done** |
 | Share groups | yes (`ShareGroup::join` / `join_topics` / `join_matching` / `subscribe` / `subscribe_matching` / `poll` / `accept` / `release` / `reject` / `leave`; `ShareRecords`; ShareGroupHeartbeat 76 v0–v1, ShareFetch 78 v0–v1, ShareAcknowledge 79 v0–v1; `client.rack`; ACCEPT/RELEASE/REJECT; queue sharing; coordinator sockets close after `connections.max.idle.ms`) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
+
+## Registry cross-check
+
+`done` above means callable in source. The
+[feature registry](../tests/conformance/features.json) (KL05-01, 173 entries)
+narrows the runtime claim for these rows; every entry names its entrypoint:
+
+| Inventory row | Registry entry | Registry status |
+|---|---|---|
+| Produce (batches, `buffer.memory`) | `producer.buffer_memory` | `partial` — headers, metadata, encoded buffers, and socket memory sit outside the cap |
+| Fetch with manual assignment | `manual_consumer.fetch` | `partial` — five reproduced audit defects (A01 seek filtering et al.) |
+| Fetch with manual assignment | `manual_consumer.incremental_fetch_runtime` | `missing` — always sends `FetchMetadata::LEGACY` |
+| Fetch with manual assignment | `manual_consumer.v18_wire`, `manual_consumer.list_offsets_v11`, `producer.v13_wire` | `missing` — newest wire deltas not implemented |
+| Pause / resume, position | `manual_consumer.seek` | `partial` — seeking inside an existing batch redelivers earlier records |
+| `auto.offset.reset`, `committed` | `manual_consumer.auto_offset_reset` | `partial` — `None` unconditionally resets to log start on `OFFSET_OUT_OF_RANGE` |
+| KIP-848 next-gen consumer groups | `group.kip848_heartbeat_scheduling` | `partial` — heartbeat loop uses fixed 150 ms, not the broker response interval |
+| Share groups | `share.heartbeat_scheduling` | `partial` — share heartbeat interval hard-coded to 150 ms |
+| Share groups | `share.v2_wire_delta`, `share.v2_runtime` | `missing` — ShareFetch/ShareAcknowledge v2 not implemented |
+| ListOffsets, seek, `isolation.level` | `transactions.read_committed_consumer` | `partial` — aborted control markers cause subsequent committed batches under the same PID to be discarded |
+| gzip / snappy / lz4 | `codecs.gzip`, `codecs.snappy`, `codecs.lz4` | `partial` — decompression allocates without a decoded-byte budget |
+| zstd | `codecs.zstd.decode`, `codecs.zstd.encode`, `codecs.zstd.wire_helper` | `missing` — explicit gap of the complete-codec profile |
+| SASL GSSAPI / Kerberos | `auth.sasl_gssapi` | `missing` — explicit gap (Cyrus SASL C) |
+| SASL OIDC (token endpoint) | `auth.sasl_oidc_refresh` | `missing` — no proactive refresh before expiry |
+| Produce / Fetch (throttle) | `quotas.producer_throttle`, `quotas.consumer_throttle` | `partial` — `throttle_time_ms` decoded but never slept on |
+| Custom partitioner | `producer.sticky_partitioner` | `missing` — unkeyed records round-robin instead of sticky batching |
+| Admin (full) | `full_admin.elect_leaders`, `full_admin.describe_quorum`, `full_admin.add_raft_voter`, `full_admin.remove_raft_voter`, `full_admin.describe_log_dirs_v5` | `missing` — not exposed on `Admin` |
+| Schema Registry | `schema_ecosystem.registry_client/cache/avro/protobuf/json_schema` | `missing`; `schema_ecosystem.wire_framing` is `partial` (unpublished scaffold) |
+
+Out of scope in both documents: `streams.runtime`, `connect.framework`,
+`c_abi.librdkafka`, and `broker_internal.*` (replication internals).
 
 TLS produce vs C **was measured** on a dedicated `apache/kafka:3.9.1` SSL
 listener (`localhost:9093`). SCRAM-SHA-256 and SCRAM-SHA-512 produce vs C

@@ -29,15 +29,27 @@ and evidence before extending support claims.
 
 ## Explicitly unsupported / not promised
 
-| Item | Status |
-|---|---|
-| Kerberos / GSSAPI | Not in default features; no CI promise |
-| zstd (C) as a default dependency | Denied / out of default features |
-| Schema Registry as part of this crate | Companion design only (`partitionline-schema` not published) |
-| Multi-broker chaos / HA proof | KL-03 still open |
-| Signed Suite HOLD / Lab A | **Unsigned** — Suite HOLD remains |
-| Windows / macOS / non-x86_64 as CI-guaranteed | May build; not a CI matrix promise today |
-| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) |
+Each row names its KL05-01
+[feature-registry](../tests/conformance/features.json) entry where one exists;
+registry status was re-checked at source `ca50ca1` (KL07-07).
+
+| Item | Status | Registry |
+|---|---|---|
+| Kerberos / GSSAPI | Not in default features; no CI promise | `auth.sasl_gssapi` (`missing`) |
+| zstd (C) as a default dependency | Denied / out of default features (`deny.toml` bans `zstd-sys`) | `codecs.zstd.decode/encode/wire_helper` (`missing`) |
+| Schema Registry as part of this crate | Companion design only (`partitionline-schema` not published) | `schema_ecosystem.registry_client/cache/avro/protobuf/json_schema` (`missing`); `wire_framing` (`partial`) |
+| Multi-broker chaos / HA proof | KL-03 still open | `manual_consumer.fetch` (`partial`); heartbeat/throttle scheduling `partial` |
+| Proactive OIDC token refresh | Not implemented | `auth.sasl_oidc_refresh` (`missing`) |
+| Sticky unkeyed partitioner | Not implemented (round-robin instead) | `producer.sticky_partitioner` (`missing`) |
+| Signed Suite HOLD / Lab A | **Unsigned** — Suite HOLD remains | — (qualification gate, not a feature entry) |
+| Windows / macOS / non-x86_64 as CI-guaranteed | May build; not a CI matrix promise today | — (CI dimension, not a feature entry) |
+| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `full_admin.elect_leaders/describe_quorum/add_raft_voter/remove_raft_voter/describe_log_dirs_v5`, `producer.v13_wire`, `manual_consumer.v18_wire/list_offsets_v11` (`missing`) |
+
+**Source versus published crate:** the migration map
+([migrate-from-rdkafka.md](migrate-from-rdkafka.md)) was verified at source
+`ca50ca1`, which postdates the packed crates.io `0.1.0` (14 files under
+`src/` differ). Mapped configuration defaults are identical in both except
+`ConsumerConfig::buffer_memory` (32 MiB fetch cap, current source only).
 
 ## Security response
 

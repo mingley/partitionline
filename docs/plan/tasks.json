@@ -1923,13 +1923,35 @@
     {
       "id": "KL07-07",
       "title": "Make migration defaults and unsupported behavior explicit",
-      "priority": "P1", "kind": "documentation", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "documentation", "status": "done", "owner": "mingley",
       "depends_on": ["KL05-01", "KL03-07"],
       "files": ["docs/migrate-from-rdkafka.md", "docs/gaps.md", "docs/support.md"],
       "deliverable": "A source-pinned migration/configuration map for Java and rust-rdkafka adopters.",
       "acceptance": ["Cover partitioning, acks/idempotence, timeout budgets, offsets/auto-commit, codecs, auth, callbacks and error classification.", "Separate API shape, intentional default differences, unsupported features and verified behavioral equivalence.", "Mark current source versus published crate availability; remove misleading blanket done/parity statements without erasing historical evidence."],
       "validation": ["Compile migration examples against the packed/released dependency selected by the guide.", "Cross-check every default against constructors and every support row against the feature registry."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ca50ca1103e37b5159875b8b5562c7cc1087c335",
+                "commands": [
+                        "cargo build --offline --locked --examples in scratch crates against packed 0.1.0 and worktree source (6 examples, exit 0)",
+                        "python3 link check over migrate/gaps/support docs (23 local links ok, 0 bad, exit 0)",
+                        "RUSTDOCFLAGS='-D warnings' cargo doc --offline --locked --no-deps --all-features (exit 0 on merged main)",
+                        "python3 -m json.tool tests/conformance/features.json + packed-crate src diff (exit 0)"
+                ],
+                "results": "docs/migrate-from-rdkafka.md rewritten as a source-pinned migration/configuration map (partitioning, acks/idempotence, timeouts, offsets/auto-commit, codecs, auth, callbacks, error classification) with API shape vs intentional default differences vs unsupported features vs verified equivalence separated and every default pinned to its constructor. gaps.md reframed off blanket parity language with a Registry cross-check table (35 cited ids verified: 18 missing, 17 partial). support.md unsupported rows carry registry ids plus a source-vs-published note.",
+                "artifacts": [
+                        "docs/migrate-from-rdkafka.md",
+                        "docs/gaps.md",
+                        "docs/support.md",
+                        "docs/plan/evidence/KL07-07.json"
+                ],
+                "limits": [
+                        "Migration examples compile-checked only; not run against a live cluster (no broker available).",
+                        "Java/librdkafka reference defaults are upstream documented values, not re-verified against running peers; partitionline-side values are constructor-verified.",
+                        "Worker-time rustdoc failure (consumer.rs:1588) was pre-existing and is repaired by KL07-11; merged main builds warning-free."
+                ]
+        }
+      ]
     },
     {
       "id": "KL07-08",
