@@ -822,7 +822,7 @@
     {
       "id": "KL03-09",
       "title": "Qualify nontransactional producer epoch recovery",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL03-08"],
       "files": ["src/producer.rs", "tests/full_surface.rs", "tests/common/mod.rs"],
       "deliverable": "A state transition for UNKNOWN_PRODUCER_ID and epoch exhaustion consistent with pinned Java behavior.",
@@ -1414,7 +1414,7 @@
     {
       "id": "KL05-14",
       "title": "Implement share Fetch/Acknowledge v2 wire deltas",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL05-01", "KL01-03"],
       "files": ["src/protocol/share.rs", "tests/fixtures/protocol_oracles/", "tests/protocol_oracles.rs"],
       "deliverable": "Independent fixtures and codecs for the current selected share-protocol versions.",
@@ -1436,7 +1436,7 @@
     {
       "id": "KL05-16",
       "title": "Add ElectLeaders request/response codecs",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL05-01", "KL01-03"],
       "files": ["src/protocol/admin.rs", "src/protocol/api_keys.rs", "tests/fixtures/protocol_oracles/"],
       "deliverable": "One independently verified client-facing admin API family, without high-level routing yet.",
@@ -1920,13 +1920,35 @@
     {
       "id": "KL08-02",
       "title": "Require the complete release profile's CI evidence",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL08-01", "KL01-08", "KL07-02"],
       "files": ["scripts/check-main-ci.sh", ".github/workflows/release.yml", "tests/release/test_ci_gate.py"],
       "deliverable": "A release gate that checks required job/case evidence, not just a workflow's top-level success.",
       "acceptance": ["Missing/skipped matrix cells and absent conformance artifacts cannot satisfy a required profile.", "Bind job results and packed-consumer evidence to the exact release SHA/attempt.", "Do not infer readiness from an unrelated successful workflow, template or stale artifact."],
       "validation": ["Run fixture cases for missing/skipped jobs, stale artifacts and complete positive evidence.", "Rehearse the gate without creating a tag or publishing."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "232c0acaeb9af0a60d71116abe9663ae064b6c5d",
+                "commands": [
+                        "python3 -m unittest discover -s tests/release -p test_ci_gate.py (33 passed, exit 0)",
+                        "bash scripts/check-main-ci.sh --self-test (9 cases, exit 0)",
+                        "bash scripts/rehearse-partial-release.sh --self-test (exit 0)",
+                        "bash -n scripts/check-main-ci.sh (exit 0)"
+                ],
+                "results": "33 unittest cases passed (17 KL08-01 workflow-identity cases preserved plus 16 new profile cases). The gate requires all 16 ci.yml main-push jobs/cells green at the exact release SHA/attempt, the conformance-fixture-artifacts artifact live and bound to the release run, and rejects missing/skipped/neutral cells and stale/unbound/expired evidence with distinct outcome tags; opt-in conformance-live failure does not block. Self-test rehearsed 9 offline fixture cases with no tag created and nothing published.",
+                "artifacts": [
+                        "scripts/check-main-ci.sh",
+                        ".github/workflows/release.yml",
+                        "tests/release/test_ci_gate.py",
+                        "docs/plan/evidence/KL08-02.json"
+                ],
+                "limits": [
+                        "All validation offline via fixtures/self-test; live gh fetch of jobs/artifacts is implemented but not exercised against real Actions runs.",
+                        "check-workflows.sh skipped YAML parsing (PyYAML not installed); release.yml safety covered by rehearse --self-test step-gate validation.",
+                        "Step-level proof inside the package job is implied by ci.yml pinning ci-crate-consumer.sh in that job; the gate binds the package job result to the release run."
+                ]
+        }
+      ]
     },
     {
       "id": "KL08-03",

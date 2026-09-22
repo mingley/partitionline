@@ -597,5 +597,300 @@ class TestReleaseCIGate(unittest.TestCase):
         self.assertEqual(len(tokens), 5)
 
 
+PROFILE_RUN_ID = 424242
+PROFILE_SHA = TARGET_SHA
+
+REQUIRED_JOB_NAMES = [
+    "fmt",
+    "clippy",
+    "docs",
+    "test (1.85)",
+    "test (stable)",
+    "audit",
+    "deny",
+    "package",
+    "features",
+    "fuzz-smoke",
+    "broker-smoke (apache/kafka:3.9.1)",
+    "broker-smoke (apache/kafka:4.1.0)",
+    "latency-gate",
+    "auth-smoke",
+    "integrity-smoke",
+    "conformance-fixtures",
+]
+
+
+def make_profile_run(sha=PROFILE_SHA, run_id=PROFILE_RUN_ID, attempt=1):
+    return [
+        {
+            "databaseId": run_id,
+            "name": "ci",
+            "workflowName": "ci",
+            "status": "completed",
+            "conclusion": "success",
+            "headSha": sha,
+            "createdAt": "2026-09-21T12:00:00Z",
+            "attempt": attempt,
+        }
+    ]
+
+
+def make_profile_jobs(run_id=PROFILE_RUN_ID, sha=PROFILE_SHA, attempt=1, overrides=None):
+    jobs = [
+        {
+            "name": n,
+            "status": "completed",
+            "conclusion": "success",
+            "runId": run_id,
+            "headSha": sha,
+        }
+        for n in REQUIRED_JOB_NAMES
+    ]
+    for name, patch in (overrides or {}).items():
+        for j in jobs:
+            if j["name"] == name:
+                j.update(patch)
+    return {"run_id": run_id, "head_sha": sha, "attempt": attempt, "jobs": jobs}
+
+
+def make_profile_artifacts(
+    run_id=PROFILE_RUN_ID, sha=PROFILE_SHA, name="conformance-fixture-artifacts", expired=False
+):
+    return {
+        "artifacts": [
+            {
+                "name": name,
+                "expired": expired,
+                "workflow_run": {"id": run_id, "head_sha": sha},
+            }
+        ]
+    }
+
+
+def run_profile_gate(
+    runs_data=None,
+    jobs_data=None,
+    artifacts_data=None,
+    sha=PROFILE_SHA,
+    require_main_ci="1",
+    require_profile="0",
+    extra_env=None,
+):
+    env = dict(os.environ)
+    env["CHECK_SHA"] = sha
+    env["REQUIRE_MAIN_CI"] = require_main_ci
+    env["REQUIRE_PROFILE_EVIDENCE"] = require_profile
+    env["MAIN_BRANCH"] = "main"
+    if extra_env:
+        env.update(extra_env)
+    temp_files = []
+    try:
+        def dump(data):
+            tf = tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", suffix=".json", delete=False
+            )
+            temp_files.append(tf.name)
+            json.dump(data, tf)
+            tf.close()
+            return tf.name
+
+        env["GH_RUNS_JSON"] = dump(
+            runs_data if runs_data is not None else make_profile_run()
+        )
+        if jobs_data is not None:
+            env["GH_JOBS_JSON"] = dump(jobs_data)
+        else:
+            env.pop("GH_JOBS_JSON", None)
+        if artifacts_data is not None:
+            env["GH_ARTIFACTS_JSON"] = dump(artifacts_data)
+        else:
+            env.pop("GH_ARTIFACTS_JSON", None)
+        result = subprocess.run(
+            ["bash", str(SCRIPT_PATH)],
+            env=env,
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        return result
+    finally:
+        for p in temp_files:
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+
+
+class TestReleaseProfileGate(unittest.TestCase):
+    """KL08-02: the release gate requires the complete profile's evidence."""
+
+    def test_complete_positive_profile_passes(self):
+        res = run_profile_gate(
+            jobs_data=make_profile_jobs(),
+            artifacts_data=make_profile_artifacts(),
+        )
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("[outcome=success]", res.stdout)
+        self.assertIn("release profile complete", res.stdout)
+        self.assertIn(str(PROFILE_RUN_ID), res.stdout)
+
+    def test_job_phase_skipped_without_evidence_inputs(self):
+        # Backward compatible with KL08-01: workflow green alone passes when
+        # no job/artifact evidence is in scope.
+        res = run_profile_gate()
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("[outcome=success]", res.stdout)
+
+    def test_profile_evidence_required_flag_fails_closed_without_inputs(self):
+        res = run_profile_gate(require_profile="1")
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=missing_jobs]", res.stderr)
+
+    def test_missing_required_job_fails(self):
+        jobs = make_profile_jobs()
+        jobs["jobs"] = [j for j in jobs["jobs"] if j["name"] != "conformance-fixtures"]
+        res = run_profile_gate(
+            jobs_data=jobs, artifacts_data=make_profile_artifacts()
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=missing_jobs]", res.stderr)
+        self.assertIn("conformance-fixtures", res.stderr)
+
+    def test_skipped_matrix_cell_fails(self):
+        jobs = make_profile_jobs(overrides={"test (stable)": {"conclusion": "skipped"}})
+        res = run_profile_gate(
+            jobs_data=jobs, artifacts_data=make_profile_artifacts()
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=skipped]", res.stderr)
+        self.assertIn("test (stable)", res.stderr)
+
+    def test_neutral_matrix_cell_fails(self):
+        jobs = make_profile_jobs(
+            overrides={"broker-smoke (apache/kafka:4.1.0)": {"conclusion": "neutral"}}
+        )
+        res = run_profile_gate(
+            jobs_data=jobs, artifacts_data=make_profile_artifacts()
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=skipped]", res.stderr)
+
+    def test_failed_package_job_fails(self):
+        # The package job carries packed-crate consumer evidence; its failure
+        # must fail the gate even though the workflow conclusion is green.
+        jobs = make_profile_jobs(overrides={"package": {"conclusion": "failure"}})
+        res = run_profile_gate(
+            jobs_data=jobs, artifacts_data=make_profile_artifacts()
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=failed]", res.stderr)
+        self.assertIn("package", res.stderr)
+
+    def test_pending_required_job_fails(self):
+        jobs = make_profile_jobs(
+            overrides={"auth-smoke": {"status": "in_progress", "conclusion": None}}
+        )
+        res = run_profile_gate(
+            jobs_data=jobs,
+            artifacts_data=make_profile_artifacts(),
+            require_main_ci="1",
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=pending]", res.stderr)
+
+    def test_non_required_failing_job_does_not_block(self):
+        # Opt-in conformance-live is not part of the required release profile.
+        jobs = make_profile_jobs()
+        jobs["jobs"].append(
+            {
+                "name": "conformance-live (apache/kafka:3.9.1)",
+                "status": "completed",
+                "conclusion": "failure",
+                "runId": PROFILE_RUN_ID,
+                "headSha": PROFILE_SHA,
+            }
+        )
+        res = run_profile_gate(
+            jobs_data=jobs, artifacts_data=make_profile_artifacts()
+        )
+        self.assertEqual(res.returncode, 0, res.stderr)
+
+    def test_missing_conformance_artifact_fails(self):
+        res = run_profile_gate(
+            jobs_data=make_profile_jobs(),
+            artifacts_data={"artifacts": []},
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=missing_artifacts]", res.stderr)
+
+    def test_stale_artifact_from_other_run_fails(self):
+        res = run_profile_gate(
+            jobs_data=make_profile_jobs(),
+            artifacts_data=make_profile_artifacts(run_id=999999, sha=OTHER_SHA),
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=stale]", res.stderr)
+
+    def test_expired_artifact_fails(self):
+        res = run_profile_gate(
+            jobs_data=make_profile_jobs(),
+            artifacts_data=make_profile_artifacts(expired=True),
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=stale]", res.stderr)
+
+    def test_unbound_jobs_evidence_fails(self):
+        jobs = make_profile_jobs()
+        del jobs["run_id"]
+        del jobs["head_sha"]
+        for j in jobs["jobs"]:
+            j.pop("runId", None)
+            j.pop("headSha", None)
+        res = run_profile_gate(
+            jobs_data=jobs, artifacts_data=make_profile_artifacts()
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=stale]", res.stderr)
+
+    def test_jobs_for_other_run_are_stale(self):
+        jobs = make_profile_jobs(run_id=999999)
+        res = run_profile_gate(
+            jobs_data=jobs, artifacts_data=make_profile_artifacts()
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=stale]", res.stderr)
+
+    def test_jobs_for_other_attempt_are_stale(self):
+        jobs = make_profile_jobs(attempt=2)
+        res = run_profile_gate(
+            runs_data=make_profile_run(attempt=1),
+            jobs_data=jobs,
+            artifacts_data=make_profile_artifacts(),
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("[outcome=stale]", res.stderr)
+
+    def test_unrelated_green_workflow_ignored_when_ci_profile_complete(self):
+        runs = make_profile_run() + [
+            {
+                "databaseId": 90002,
+                "name": "release",
+                "workflowName": "release",
+                "status": "completed",
+                "conclusion": "success",
+                "headSha": PROFILE_SHA,
+                "createdAt": "2026-09-21T12:05:00Z",
+                "attempt": 1,
+            }
+        ]
+        res = run_profile_gate(
+            runs_data=runs,
+            jobs_data=make_profile_jobs(),
+            artifacts_data=make_profile_artifacts(),
+        )
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("[outcome=success]", res.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

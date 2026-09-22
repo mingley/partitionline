@@ -1,0 +1,33 @@
+{
+  "id": "KL08-02",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "232c0acaeb9af0a60d71116abe9663ae064b6c5d",
+  "commands": [
+    "bash -n scripts/check-main-ci.sh (rc=0)",
+    "python3 -m unittest discover -s tests/release -p test_ci_gate.py (rc=0)",
+    "bash scripts/check-main-ci.sh --self-test (rc=0)",
+    "bash scripts/check-workflows.sh (rc=0, SKIP: PyYAML not installed)",
+    "bash scripts/rehearse-partial-release.sh --self-test (rc=0)",
+    "python3 -m unittest discover -s tests/release -p test_publish_serialization.py (rc=0)"
+  ],
+  "results": {
+    "test_count": 33,
+    "passed": 33,
+    "failed": 0,
+    "skipped": 0,
+    "summary": "33 unittest cases in tests/release/test_ci_gate.py passed (17 KL08-01 workflow-identity cases preserved plus 16 new KL08-02 profile cases). Gate now requires all 16 ci.yml main-push jobs/matrix cells green at the exact release SHA/attempt (including test 1.85/stable, both broker-smoke images, package/packed-consumer, conformance-fixtures), the conformance-fixture-artifacts artifact live and bound to the release run/SHA, and rejects missing/skipped/neutral cells, absent artifacts, and stale/unbound/expired/other-run evidence with distinct [outcome=missing_jobs|skipped|missing_artifacts|stale] signatures. Opt-in conformance-live failure does not block. check-main-ci.sh --self-test rehearsed 9 offline fixture cases (positive, missing job, skipped cell, failed package, stale/expired/missing artifact, unrelated-workflow, other-run jobs) with no tag created and nothing published."
+  },
+  "artifacts": [
+    "scripts/check-main-ci.sh",
+    ".github/workflows/release.yml",
+    "tests/release/test_ci_gate.py",
+    "docs/plan/evidence/KL08-02.json"
+  ],
+  "limits": [
+    "All validation offline via fixtures/self-test; no network calls per task boundary, so live gh fetch of jobs/artifacts (gh run view --attempt, artifacts API) is implemented but not exercised against real Actions runs.",
+    "check-workflows.sh skipped YAML parsing (PyYAML not installed); release.yml structural safety covered instead by rehearse-partial-release.sh --self-test step-gate validation (rc=0).",
+    "Step-level (vs job-level) proof inside the package job is implied by ci.yml pinning ci-crate-consumer.sh in that job; the gate binds the package job result to the release run rather than re-verifying step logs."
+  ],
+  "blocked_reason": null
+}

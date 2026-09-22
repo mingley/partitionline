@@ -131,14 +131,17 @@ jobs:
           set -euo pipefail
           sha="$(git rev-parse HEAD)"
           echo "release: probing CI for exact SHA ${sha}"
-          # Prefer the `ci` workflow run for this commit; fail closed if red.
-          # Inconclusive (still running / missing) fails the publish job so
-          # tag cuts cannot race ahead of matrix evidence.
+          # Require the complete release profile, not just a green workflow:
+          # every required CI job/matrix cell green at this SHA/attempt, the
+          # conformance fixture artifacts present, and packed-crate consumer
+          # evidence (package job) bound to this run. Missing/skipped cells
+          # and stale/unbound artifacts fail the publish job so tag cuts
+          # cannot race ahead of matrix evidence or reuse another run's proof.
           if ! command -v gh >/dev/null 2>&1; then
             echo "release: gh CLI missing on runner — unexpected" >&2
             exit 1
           fi
-          REQUIRE_MAIN_CI=1 CHECK_SHA="$sha" bash scripts/check-main-ci.sh
+          REQUIRE_MAIN_CI=1 REQUIRE_PROFILE_EVIDENCE=1 CHECK_SHA="$sha" bash scripts/check-main-ci.sh
 
       - name: Soft-skip if version already on crates.io
         id: already
