@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "share-fetch-v1-error-response",
+  "api": "ShareFetch",
+  "api_key": 78,
+  "api_version": 1,
+  "pin": "4.1.0",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+  "artifact": "apache/kafka ShareFetchResponse.json validVersions 1 (Kafka 4.1)",
+  "generator": "hand-built-offline-v1 (KL05-14; no Java runtime or kafka-clients 4.3.1 artifact in this environment; see docs/plan/evidence/KL05-14.json limits)",
+  "description": "ShareFetch v1 getErrorResponse: empty Responses, top-level SHARE_SESSION_NOT_FOUND, non-zero throttle, AcquisitionLockTimeoutMs stays 0 on the error path (not the 15000 success default).",
+  "request": {
+    "file": "share_fetch_v1_error_response_request.bin",
+    "size_bytes": 44,
+    "sha256": "0908dde1874a6612bbf8ed45ba5e0bcaa025e14fbe475d3dbd907a02c5ca2d04",
+    "hex": "0f73686172652d76312d6572726f72026d000000030000006400000001000004000000000a0000000a010100"
+  },
+  "response": {
+    "file": "share_fetch_v1_error_response_response.bin",
+    "size_bytes": 14,
+    "sha256": "838fdfcb4c5b65ff05f31020f4dd39641cb9e6c3aa29eaa85ca3f3e1d13ca598",
+    "hex": "0000000d007a0000000000010100"
+  }
+}

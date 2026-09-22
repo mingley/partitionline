@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "fixture_id": "share-v2-pin",
+  "api": "ShareFetch/ShareAcknowledge",
+  "pin": "4.3.1",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "not-pinned-offline",
+  "generator": "hand-built-offline-v1 (KL05-14)",
+  "description": "Selected share-protocol versions per the frozen-pin inventory (scripts/check-protocol-coverage.py, KL01-11): ShareFetch v2 exists upstream in Kafka 4.3.1 only and is explicitly rejected by this crate; ShareAcknowledge has no v2 through Kafka 4.3.1 and v2+ is explicitly rejected. The crate speaks v0-v1; the runtime follow-up (KL05-15) owns any version advertisement change.",
+  "pins": {
+    "3.9.1": {
+      "ShareFetch": [
+        0,
+        0
+      ],
+      "ShareAcknowledge": [
+        0,
+        0
+      ]
+    },
+    "4.0": {
+      "ShareFetch": [
+        0,
+        0
+      ],
+      "ShareAcknowledge": [
+        0,
+        0
+      ]
+    },
+    "4.1.0": {
+      "ShareFetch": [
+        0,
+        1
+      ],
+      "ShareAcknowledge": [
+        0,
+        1
+      ]
+    },
+    "4.1.2": {
+      "ShareFetch": [
+        0,
+        1
+      ],
+      "ShareAcknowledge": [
+        0,
+        1
+      ]
+    },
+    "4.2.1": {
+      "ShareFetch": [
+        0,
+        1
+      ],
+      "ShareAcknowledge": [
+        0,
+        1
+      ]
+    },
+    "4.3.1": {
+      "ShareFetch": [
+        0,
+        2
+      ],
+      "ShareAcknowledge": [
+        0,
+        1
+      ]
+    }
+  },
+  "crate_spoken": {
+    "ShareFetch": [
+      0,
+      1
+    ],
+    "ShareAcknowledge": [
+      0,
+      1
+    ]
+  },
+  "rejection": {
+    "ShareFetch": {
+      "version": 2,
+      "reason": "upstream-only in Kafka 4.3.1; v2 field delta not pinned offline; explicitly rejected"
+    },
+    "ShareAcknowledge": {
+      "version": 2,
+      "reason": "no v2 defined upstream through Kafka 4.3.1; explicitly rejected"
+    }
+  }
+}

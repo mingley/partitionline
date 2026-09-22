@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "share-ack-v1-same-fields",
+  "api": "ShareAcknowledge",
+  "api_key": 79,
+  "api_version": 1,
+  "pin": "4.1.0",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+  "artifact": "apache/kafka ShareAcknowledgeRequest.json validVersions 1 (Kafka 4.1)",
+  "generator": "hand-built-offline-v1 (KL05-14; no Java runtime or kafka-clients 4.3.1 artifact in this environment; see docs/plan/evidence/KL05-14.json limits)",
+  "description": "ShareAcknowledge v1: request/response fields match v0; response pins top-level GROUP_AUTHORIZATION_FAILED with message, non-zero throttle, acknowledge-only partition error and a null-rack endpoint.",
+  "request": {
+    "file": "share_ack_v1_same_fields_request.bin",
+    "size_bytes": 70,
+    "sha256": "155eed0ffbad3486ee0d88bdfa6b6673804dd72b6ff3bb7887f3bd01321860e0",
+    "hex": "0d73686172652d61636b2d76310761636b2d6d310000000502404142434445464748494a4b4c4d4e4f020000000302000000000000001e000000000000001f03020200000000"
+  },
+  "response": {
+    "file": "share_ack_v1_same_fields_response.bin",
+    "size_bytes": 106,
+    "sha256": "381db946847433fd13dd8e12861327ae373bae89882305c77f67eebd4ad27efe",
+    "hex": "00000009001e196e6f7420617574686f72697a656420666f722067726f757002404142434445464748494a4b4c4d4e4f0200000003007911626164207265636f7264207374617465000000010000000900000002000000020b61636b2d62726f6b657200002385000000"
+  }
+}

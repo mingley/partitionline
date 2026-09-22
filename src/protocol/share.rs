@@ -3,11 +3,13 @@
 //! (Kafka 4.0 early access v0; Kafka 4.1 stable v1). This crate
 //! speaks 0–1. Same fields. v2+ is not spoken. ShareFetch is flexible
 //! from v0. Kafka 4.0 `validVersions` is `"0"`; Kafka 4.1 `"1"`
-//! (v0 removed). This crate speaks 0–1. v0 and v1 fields differ
-//! (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize /
-//! AcquisitionLockTimeoutMs). v2+ is not spoken. ShareAcknowledge is
-//! flexible from v0. Kafka 4.0 `validVersions` is `"0"`; Kafka 4.1 `"1"`
-//! (v0 removed). This crate speaks 0–1. Same fields. v2+ is not spoken.
+//! (v0 removed); Kafka 4.3.1 adds v2 (upstream-only, KL05-14 pins it
+//! and rejects it explicitly). This crate speaks 0–1. v0 and v1 fields
+//! differ (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize /
+//! AcquisitionLockTimeoutMs). ShareAcknowledge is flexible from v0.
+//! Kafka 4.0 `validVersions` is `"0"`; Kafka 4.1 `"1"` (v0 removed);
+//! no v2 is defined upstream through Kafka 4.3.1. This crate speaks
+//! 0–1. Same fields. v2+ is not spoken.
 
 use std::collections::HashMap;
 
@@ -26,6 +28,60 @@ pub const ACK_ACCEPT: i8 = 1;
 pub const ACK_RELEASE: i8 = 2;
 /// Reject an acquired record.
 pub const ACK_REJECT: i8 = 3;
+
+/// Newest Apache pin defining ShareFetch v2 (`scripts/check-protocol-coverage.py`
+/// frozen pins; KL01-11 evidence). The v2 field delta is not pinned to a
+/// verified schema offline, so v2 is upstream-only and explicitly rejected.
+pub const SHARE_FETCH_UPSTREAM_MAX_VERSION: i16 = 2;
+
+/// Newest Apache pin version for ShareAcknowledge (no v2 is defined upstream
+/// through Kafka 4.3.1). v2+ is explicitly rejected.
+pub const SHARE_ACKNOWLEDGE_UPSTREAM_MAX_VERSION: i16 = 1;
+
+/// Newest ShareFetch version this crate speaks. The high-level runtime
+/// (`crate::share`) negotiates at most this version; KL05-15 owns any change.
+pub const SHARE_FETCH_CRATE_MAX_VERSION: i16 = 1;
+
+/// Newest ShareAcknowledge version this crate speaks. The high-level runtime
+/// (`crate::share`) negotiates at most this version; KL05-15 owns any change.
+pub const SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION: i16 = 1;
+
+/// ShareFetch versions this crate speaks (Kafka 4.0 v0, Kafka 4.1 v1).
+pub const SHARE_FETCH_SUPPORTED_VERSIONS: [i16; 2] = [0, 1];
+
+/// ShareAcknowledge versions this crate speaks (same fields on v0 and v1).
+pub const SHARE_ACKNOWLEDGE_SUPPORTED_VERSIONS: [i16; 2] = [0, 1];
+
+/// Check a ShareFetch version: `Ok(version)` for the spoken v0–v1, otherwise
+/// an explicit rejection. v2 names its upstream-only pin (Kafka 4.3.1);
+/// anything else names the spoken range. This is not
+/// [`check_share_acknowledge_version`] (ShareAcknowledge has no upstream v2).
+pub fn check_share_fetch_version(version: i16) -> Result<i16> {
+    if SHARE_FETCH_SUPPORTED_VERSIONS.contains(&version) {
+        return Ok(version);
+    }
+    if version == SHARE_FETCH_UPSTREAM_MAX_VERSION {
+        return Err(Error::protocol(format!(
+            "ShareFetch version {version} is not implemented (upstream Kafka 4.3.1 only; crate speaks 0-1)"
+        )));
+    }
+    Err(Error::protocol(format!(
+        "ShareFetch version {version} is not implemented (crate speaks 0-1)"
+    )))
+}
+
+/// Check a ShareAcknowledge version: `Ok(version)` for the spoken v0–v1,
+/// otherwise an explicit rejection. No v2 is defined upstream through Kafka
+/// 4.3.1, so v2+ is rejected as never-spoken. This is not
+/// [`check_share_fetch_version`] (ShareFetch v2 exists upstream in 4.3.1).
+pub fn check_share_acknowledge_version(version: i16) -> Result<i16> {
+    if SHARE_ACKNOWLEDGE_SUPPORTED_VERSIONS.contains(&version) {
+        return Ok(version);
+    }
+    Err(Error::protocol(format!(
+        "ShareAcknowledge version {version} is not implemented (no v2 defined upstream through Kafka 4.3.1; crate speaks 0-1)"
+    )))
+}
 
 /// Topic UUID plus partition indexes in a share-group assignment.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -995,12 +1051,7 @@ pub fn decode_share_group_heartbeat_response<B: Buf>(
 }
 
 fn share_fetch_flexible(version: i16) -> Result<bool> {
-    match version {
-        0..=1 => Ok(true),
-        other => Err(Error::protocol(format!(
-            "ShareFetch version {other} is not implemented"
-        ))),
-    }
+    check_share_fetch_version(version).map(|_| true)
 }
 
 fn encode_ack_batches(
@@ -1685,12 +1736,7 @@ pub fn decode_share_fetch_response<B: Buf>(
 }
 
 fn share_acknowledge_flexible(version: i16) -> Result<bool> {
-    match version {
-        0..=1 => Ok(true),
-        other => Err(Error::protocol(format!(
-            "ShareAcknowledge version {other} is not implemented"
-        ))),
-    }
+    check_share_acknowledge_version(version).map(|_| true)
 }
 
 /// Encode ShareAcknowledge for one topic (`version` 0–1).
@@ -6480,5 +6526,105 @@ mod tests {
             _ => "ShareAcknowledge Response.of leftover-empty",
         };
         assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn share_fetch_versions_pin_v0_v1_and_reject_v2_explicitly() {
+        // KL05-14: frozen pins (scripts/check-protocol-coverage.py, KL01-11)
+        // record ShareFetch [0,0] on 3.9.1, [0,1] on 4.1.x/4.2.1 and [0,2]
+        // on 4.3.1. The crate speaks 0–1; v2 is upstream-only and rejected.
+        assert_eq!(SHARE_FETCH_SUPPORTED_VERSIONS, [0, 1]);
+        assert_eq!(SHARE_FETCH_CRATE_MAX_VERSION, 1);
+        assert_eq!(SHARE_FETCH_UPSTREAM_MAX_VERSION, 2);
+        assert_eq!(check_share_fetch_version(0).unwrap(), 0);
+        assert_eq!(check_share_fetch_version(1).unwrap(), 1);
+        let err = check_share_fetch_version(2).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "fetch v2 rejected, got {err}"
+        );
+        assert!(
+            err.to_string().contains("4.3.1"),
+            "fetch v2 names its upstream pin, got {err}"
+        );
+        let err = check_share_fetch_version(3).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "fetch v3 rejected, got {err}"
+        );
+        let err = check_share_fetch_version(-1).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "fetch v-1 rejected, got {err}"
+        );
+        // A broker offering only v2 cannot negotiate a spoken version.
+        assert_eq!(
+            crate::protocol::api_keys::pick_version(2, 2, 0, SHARE_FETCH_CRATE_MAX_VERSION),
+            None
+        );
+        assert_eq!(
+            crate::protocol::api_keys::pick_version(0, 2, 0, SHARE_FETCH_CRATE_MAX_VERSION),
+            Some(1)
+        );
+        // v0/v1 error helpers still round-trip; the v1 error path keeps
+        // AcquisitionLockTimeoutMs at 0, not the 15000 success default.
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            ShareFetchRequest::error_response(&mut buf, version, 122, 13).unwrap();
+            let mut cur = buf.as_ref();
+            let (topics, endpoints, throttle, error_message, acq, error_code) =
+                decode_share_fetch_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty(), "fetch v{version} error leftover-empty");
+            assert!(topics.is_empty());
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle, 13);
+            assert_eq!(error_message, None);
+            assert_eq!(acq, 0);
+            assert_eq!(error_code, 122);
+        }
+    }
+
+    #[test]
+    fn share_acknowledge_versions_pin_v0_v1_and_reject_v2_explicitly() {
+        // KL05-14: frozen pins record ShareAcknowledge [0,0] on 3.9.1 and
+        // [0,1] on 4.1.0 through 4.3.1. No v2 is defined upstream, so v2+
+        // is rejected as never-spoken. v0 and v1 bodies match.
+        assert_eq!(SHARE_ACKNOWLEDGE_SUPPORTED_VERSIONS, [0, 1]);
+        assert_eq!(SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION, 1);
+        assert_eq!(SHARE_ACKNOWLEDGE_UPSTREAM_MAX_VERSION, 1);
+        assert_eq!(check_share_acknowledge_version(0).unwrap(), 0);
+        assert_eq!(check_share_acknowledge_version(1).unwrap(), 1);
+        let err = check_share_acknowledge_version(2).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "ack v2 rejected, got {err}"
+        );
+        assert!(
+            err.to_string().contains("4.3.1"),
+            "ack v2 names the newest pin without a v2, got {err}"
+        );
+        let err = check_share_acknowledge_version(-1).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "ack v-1 rejected, got {err}"
+        );
+        assert_eq!(
+            crate::protocol::api_keys::pick_version(2, 2, 0, SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION),
+            None
+        );
+        // v0/v1 error helpers still round-trip with identical bodies.
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            ShareAcknowledgeRequest::error_response(&mut buf, version, 30, 9).unwrap();
+            let mut cur = buf.as_ref();
+            let (error_code, topics, endpoints, throttle, error_message) =
+                decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty(), "ack v{version} error leftover-empty");
+            assert_eq!(error_code, 30);
+            assert!(topics.is_empty());
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle, 9);
+            assert_eq!(error_message, None);
+        }
     }
 }

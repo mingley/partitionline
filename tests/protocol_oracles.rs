@@ -19,7 +19,8 @@ use std::time::Duration;
 
 use bytes::{Bytes, BytesMut};
 use partitionline::error::{
-    CLUSTER_AUTHORIZATION_FAILED, LEADER_NOT_AVAILABLE, NOT_LEADER_OR_FOLLOWER,
+    CLUSTER_AUTHORIZATION_FAILED, GROUP_AUTHORIZATION_FAILED, INVALID_RECORD_STATE,
+    LEADER_NOT_AVAILABLE, NOT_LEADER_OR_FOLLOWER, SHARE_SESSION_NOT_FOUND,
     UNKNOWN_TOPIC_OR_PARTITION,
 };
 use partitionline::net::BrokerConn;
@@ -56,6 +57,12 @@ use partitionline::protocol::offsets::{
 };
 use partitionline::protocol::records::{
     self, ControlRecordType, EndTransactionMarker, Record, RecordBatch,
+};
+use partitionline::protocol::share::{
+    check_share_acknowledge_version, check_share_fetch_version, decode_share_acknowledge_request,
+    decode_share_acknowledge_topics_response, decode_share_fetch_request,
+    decode_share_fetch_response, SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION,
+    SHARE_FETCH_CRATE_MAX_VERSION,
 };
 
 const MATRIX_REL: &str = "tests/fixtures/protocol_oracles/matrix.json";
@@ -3715,5 +3722,552 @@ fn rust_list_offsets_output_decodes_with_apache_when_java_available() {
     }
 }
 
+/// KL05-14: 16-byte topic id with bytes `start..start+16`.
+fn share_seq16(start: u8) -> [u8; 16] {
+    let mut out = [0u8; 16];
+    for (i, b) in out.iter_mut().enumerate() {
+        *b = start.wrapping_add(u8::try_from(i).expect("seq16 index fits u8"));
+    }
+    out
+}
 
+/// KL05-14: decode a hex descriptor field into bytes.
+fn share_hex_bytes(hex: &str) -> Vec<u8> {
+    assert!(hex.len() % 2 == 0, "hex length");
+    hex.as_bytes()
+        .chunks(2)
+        .map(|c| {
+            u8::from_str_radix(std::str::from_utf8(c).expect("hex ascii"), 16).expect("hex pair")
+        })
+        .collect()
+}
 
+/// KL05-14: pin a fixture descriptor to its committed request/response bytes.
+///
+/// Asserts the descriptor's file names, sizes, and hex payloads match the
+/// `include_bytes!` inputs exactly, so the JSON cannot drift from the bins.
+fn assert_share_fixture_descriptor(json: &str, req: &[u8], resp: &[u8]) {
+    let parsed = parse_json(json);
+    let obj = parsed.as_object();
+    for (key, body) in [("request", req), ("response", resp)] {
+        let section = obj
+            .iter()
+            .find(|(k, _)| k == key)
+            .unwrap_or_else(|| panic!("share fixture missing {key}"))
+            .1
+            .as_object();
+        let hex = section
+            .iter()
+            .find(|(k, _)| k == "hex")
+            .unwrap_or_else(|| panic!("share fixture {key} missing hex"))
+            .1
+            .as_str();
+        let size = section
+            .iter()
+            .find(|(k, _)| k == "size_bytes")
+            .unwrap_or_else(|| panic!("share fixture {key} missing size_bytes"))
+            .1
+            .as_i64();
+        let file = section
+            .iter()
+            .find(|(k, _)| k == "file")
+            .unwrap_or_else(|| panic!("share fixture {key} missing file"))
+            .1
+            .as_str();
+        assert!(file.starts_with("share_"), "share fixture file prefix");
+        assert!(file.ends_with(".bin"), "share fixture file suffix");
+        assert_eq!(share_hex_bytes(hex), body, "share fixture {key} hex");
+        assert_eq!(
+            size,
+            i64::try_from(body.len()).expect("fixture size fits i64"),
+            "share fixture {key} size"
+        );
+    }
+}
+
+/// KL05-14: ShareFetch v0 wire deltas decoded offline.
+///
+/// v0 carries per-partition PartitionMaxBytes (removed in v1) and
+/// ForgottenTopicsData (kept duplicate partition indexes). Response pins
+/// JSON defaults (throttle 0, null messages, empty endpoints, 0/0 leaders)
+/// plus a partition-level `UNKNOWN_TOPIC_OR_PARTITION` error case.
+#[test]
+fn share_fetch_v0_delta_fixture_decodes_offline() {
+    const REQ: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_fetch_v0_partition_max_bytes_request.bin");
+    const RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_fetch_v0_partition_max_bytes_response.bin");
+    const DESC: &str =
+        include_str!("fixtures/protocol_oracles/share_fetch_v0_partition_max_bytes.json");
+    assert_share_fixture_descriptor(DESC, REQ, RESP);
+
+    let (
+        group_id,
+        member_id,
+        epoch,
+        max_records,
+        topics,
+        forgotten,
+        batch_size,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+    ) = decode_share_fetch_request(&mut &REQ[..], 0).expect("share fetch v0 request");
+    assert_eq!(group_id, "share-v0-deltas");
+    assert_eq!(member_id, "member-v0-1");
+    assert_eq!(epoch, 1);
+    assert_eq!(max_records, 0, "v0 omits MaxRecords");
+    assert_eq!(batch_size, 0, "v0 omits BatchSize");
+    assert_eq!(max_wait_ms, 500);
+    assert_eq!(min_bytes, 1);
+    assert_eq!(max_bytes, 0x7fff_ffff, "v0 MaxBytes JSON default");
+    assert_eq!(topics.len(), 1);
+    assert_eq!(topics[0].topic_id, share_seq16(0x00));
+    assert_eq!(topics[0].partitions.len(), 2);
+    assert_eq!(topics[0].partitions[0].partition, 0);
+    assert_eq!(
+        topics[0].partitions[0].partition_max_bytes, 1_048_576,
+        "v0 PartitionMaxBytes on the wire"
+    );
+    assert_eq!(
+        topics[0].partitions[0].acknowledgements.len(),
+        1,
+        "v0 piggybacked ack batch"
+    );
+    let batch = &topics[0].partitions[0].acknowledgements[0];
+    assert_eq!((batch.first_offset, batch.last_offset), (100, 102));
+    assert_eq!(batch.types, vec![1, 1, 1]);
+    assert_eq!(topics[0].partitions[1].partition, 1);
+    assert_eq!(
+        topics[0].partitions[1].partition_max_bytes, 0,
+        "v0 zero PartitionMaxBytes stays zero"
+    );
+    let gap = &topics[0].partitions[1].acknowledgements[0];
+    assert_eq!((gap.first_offset, gap.last_offset), (50, 53));
+    assert_eq!(gap.types, vec![1, 0, 2, 3], "accept, gap, release, reject");
+    assert_eq!(forgotten.len(), 1);
+    assert_eq!(forgotten[0].topic_id, share_seq16(0x00));
+    assert_eq!(
+        forgotten[0].partitions,
+        vec![2, 2, 3],
+        "duplicate forgotten partitions are kept"
+    );
+
+    let (resp_topics, endpoints, throttle, error_message, acq, error_code) =
+        decode_share_fetch_response(&mut &RESP[..], 0).expect("share fetch v0 response");
+    assert_eq!(throttle, 0, "v0 throttle JSON default");
+    assert_eq!(error_code, 0);
+    assert_eq!(error_message, None);
+    assert_eq!(acq, 0, "v0 omits AcquisitionLockTimeoutMs");
+    assert!(endpoints.is_empty());
+    assert_eq!(resp_topics.len(), 1);
+    assert_eq!(resp_topics[0].topic_id, share_seq16(0x00));
+    assert_eq!(resp_topics[0].partitions.len(), 2);
+    let ok = &resp_topics[0].partitions[0];
+    assert_eq!((ok.partition, ok.error_code), (0, 0));
+    assert_eq!(ok.error_message, None);
+    assert_eq!(ok.acknowledge_error_code, 0);
+    assert_eq!(ok.acknowledge_error_message, None);
+    assert_eq!((ok.current_leader_id, ok.current_leader_epoch), (0, 0));
+    assert!(ok.records.is_empty());
+    assert_eq!(ok.acquired.len(), 1);
+    assert_eq!(ok.acquired[0].first_offset, 100);
+    assert_eq!(ok.acquired[0].last_offset, 102);
+    assert_eq!(ok.acquired[0].delivery_count, 1);
+    let missing = &resp_topics[0].partitions[1];
+    assert_eq!(missing.partition, 1);
+    assert_eq!(missing.error_code, UNKNOWN_TOPIC_OR_PARTITION);
+    assert_eq!(missing.error_message.as_deref(), Some("unknown topic"));
+    assert!(missing.acquired.is_empty());
+}
+
+/// KL05-14: ShareFetch v1 wire deltas decoded offline.
+///
+/// v1 replaces PartitionMaxBytes with top-level MaxRecords/BatchSize and
+/// adds AcquisitionLockTimeoutMs to the response. Pins a non-default
+/// acquisition timeout, the acknowledge-only `INVALID_RECORD_STATE` code,
+/// CurrentLeader, and NodeEndpoints.
+#[test]
+fn share_fetch_v1_delta_fixture_decodes_offline() {
+    const REQ: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_fetch_v1_batch_size_request.bin");
+    const RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_fetch_v1_batch_size_response.bin");
+    const DESC: &str = include_str!("fixtures/protocol_oracles/share_fetch_v1_batch_size.json");
+    assert_share_fixture_descriptor(DESC, REQ, RESP);
+
+    let (
+        group_id,
+        member_id,
+        epoch,
+        max_records,
+        topics,
+        forgotten,
+        batch_size,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+    ) = decode_share_fetch_request(&mut &REQ[..], 1).expect("share fetch v1 request");
+    assert_eq!(group_id, "share-v1-deltas");
+    assert_eq!(member_id, "member-v1-1");
+    assert_eq!(epoch, 2);
+    assert_eq!(max_records, 500, "v1 MaxRecords on the wire");
+    assert_eq!(batch_size, 100, "v1 BatchSize distinct from MaxRecords");
+    assert_eq!(max_wait_ms, 1000);
+    assert_eq!(min_bytes, 1024);
+    assert_eq!(max_bytes, 8_388_608);
+    assert_eq!(topics.len(), 1);
+    assert_eq!(topics[0].topic_id, share_seq16(0x10));
+    assert_eq!(topics[0].partitions.len(), 1);
+    assert_eq!(topics[0].partitions[0].partition, 0);
+    assert_eq!(
+        topics[0].partitions[0].partition_max_bytes, 0,
+        "v1 omits PartitionMaxBytes"
+    );
+    assert!(forgotten.is_empty());
+
+    let (resp_topics, endpoints, throttle, error_message, acq, error_code) =
+        decode_share_fetch_response(&mut &RESP[..], 1).expect("share fetch v1 response");
+    assert_eq!(throttle, 42, "v1 throttle round-trips");
+    assert_eq!(error_code, 0);
+    assert_eq!(error_message, None);
+    assert_eq!(acq, 30_000, "v1 non-default AcquisitionLockTimeoutMs");
+    assert_eq!(endpoints.len(), 1);
+    assert_eq!(endpoints[0].node_id, 1);
+    assert_eq!(endpoints[0].host, "broker-v1");
+    assert_eq!(endpoints[0].port, 9092);
+    assert_eq!(endpoints[0].rack.as_deref(), Some("rack-v1"));
+    assert_eq!(resp_topics.len(), 1);
+    let part = &resp_topics[0].partitions[0];
+    assert_eq!((part.partition, part.error_code), (0, 0));
+    assert_eq!(part.acknowledge_error_code, INVALID_RECORD_STATE);
+    assert_eq!(
+        part.acknowledge_error_message.as_deref(),
+        Some("record state changed")
+    );
+    assert_eq!((part.current_leader_id, part.current_leader_epoch), (1, 5));
+    assert!(part.records.is_empty());
+    assert_eq!(part.acquired.len(), 1);
+    assert_eq!(part.acquired[0].delivery_count, 2);
+}
+
+/// KL05-14: ShareFetch Records nullability split and error-response path.
+///
+/// Kafka 4.0 `nullableVersions` is `0+` (v0 compact null decodes empty);
+/// Kafka 4.1 `nullableVersions` is `0` only (v1 compact null is a protocol
+/// error). The v1 getErrorResponse path carries empty Responses, a top-level
+/// error, non-zero throttle, and AcquisitionLockTimeoutMs 0.
+#[test]
+fn share_fetch_null_records_and_error_paths_decode_offline() {
+    const V0_REQ: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_fetch_v0_null_records_request.bin");
+    const V0_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_fetch_v0_null_records_response.bin");
+    const V0_DESC: &str =
+        include_str!("fixtures/protocol_oracles/share_fetch_v0_null_records.json");
+    assert_share_fixture_descriptor(V0_DESC, V0_REQ, V0_RESP);
+
+    let (group_id, member_id, epoch, _, topics, forgotten, _, _, _, _) =
+        decode_share_fetch_request(&mut &V0_REQ[..], 0).expect("v0 null-records request");
+    assert_eq!(group_id, "share-v0-null");
+    assert_eq!(member_id, "");
+    assert_eq!(epoch, -1, "final share session epoch");
+    assert!(topics.is_empty(), "empty is empty Topics");
+    assert!(forgotten.is_empty());
+    let (resp_topics, _, throttle, _, acq, error_code) =
+        decode_share_fetch_response(&mut &V0_RESP[..], 0).expect("v0 null-records response");
+    assert_eq!((throttle, error_code, acq), (0, 0, 0));
+    assert_eq!(resp_topics.len(), 1);
+    assert_eq!(resp_topics[0].topic_id, share_seq16(0x20));
+    assert!(
+        resp_topics[0].partitions[0].records.is_empty(),
+        "v0 compact null Records decodes empty"
+    );
+
+    const V1_REQ: &[u8] = include_bytes!(
+        "fixtures/protocol_oracles/share_fetch_v1_null_records_rejected_request.bin"
+    );
+    const V1_RESP: &[u8] = include_bytes!(
+        "fixtures/protocol_oracles/share_fetch_v1_null_records_rejected_response.bin"
+    );
+    const V1_DESC: &str =
+        include_str!("fixtures/protocol_oracles/share_fetch_v1_null_records_rejected.json");
+    assert_share_fixture_descriptor(V1_DESC, V1_REQ, V1_RESP);
+    let mut cur = V1_REQ;
+    let (group_id, _, _, _, topics, _, _, _, _, _) =
+        decode_share_fetch_request(&mut cur, 1).expect("v1 request decodes");
+    assert_eq!(group_id, "share-v1-null");
+    assert!(topics.is_empty());
+    leftover_empty(cur, "ShareFetch v1 null-records request");
+    let mut cur = V1_RESP;
+    let err = decode_share_fetch_response(&mut cur, 1).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("non-nullable field records was serialized as null"),
+        "v1 compact null Records is a protocol error, got {err}"
+    );
+
+    const ERR_REQ: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_fetch_v1_error_response_request.bin");
+    const ERR_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_fetch_v1_error_response_response.bin");
+    const ERR_DESC: &str =
+        include_str!("fixtures/protocol_oracles/share_fetch_v1_error_response.json");
+    assert_share_fixture_descriptor(ERR_DESC, ERR_REQ, ERR_RESP);
+    let mut cur = ERR_REQ;
+    let _ = decode_share_fetch_request(&mut cur, 1).expect("v1 error-path request decodes");
+    leftover_empty(cur, "ShareFetch v1 error-path request");
+    let mut cur = ERR_RESP;
+    let (err_topics, err_endpoints, err_throttle, err_message, err_acq, err_code) =
+        decode_share_fetch_response(&mut cur, 1).expect("v1 error-path response decodes");
+    leftover_empty(cur, "ShareFetch v1 error-path response");
+    assert!(err_topics.is_empty(), "error path has empty Responses");
+    assert!(err_endpoints.is_empty());
+    assert_eq!(err_code, SHARE_SESSION_NOT_FOUND);
+    assert_eq!(err_throttle, 13, "error path round-trips throttle");
+    assert_eq!(err_message, None);
+    assert_eq!(err_acq, 0, "error path keeps AcquisitionLockTimeoutMs at 0");
+}
+
+/// KL05-14: ShareAcknowledge v0/v1 same-fields fixtures decoded offline.
+///
+/// Request/response fields are identical across v0 and v1, so each request
+/// fixture decodes under both versions. Pins throttle defaults and
+/// overrides, the top-level error case, acknowledge-only partition errors,
+/// and null-rack endpoints.
+#[test]
+fn share_acknowledge_v0_v1_fixtures_decode_offline() {
+    const V0_REQ: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_ack_v0_same_fields_request.bin");
+    const V0_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_ack_v0_same_fields_response.bin");
+    const V0_DESC: &str = include_str!("fixtures/protocol_oracles/share_ack_v0_same_fields.json");
+    assert_share_fixture_descriptor(V0_DESC, V0_REQ, V0_RESP);
+
+    for version in [0_i16, 1] {
+        let mut cur = V0_REQ;
+        let (group_id, member_id, epoch, flat) =
+            decode_share_acknowledge_request(&mut cur, version)
+                .expect("ack v0 request decodes under v0 and v1");
+        leftover_empty(cur, &format!("ShareAcknowledge v0 request as v{version}"));
+        assert_eq!(group_id, "share-ack-v0");
+        assert_eq!(member_id, "ack-m0");
+        assert_eq!(epoch, 4);
+        assert_eq!(flat.len(), 3);
+        assert_eq!(flat[0].0, share_seq16(0x30));
+        assert_eq!(flat[0].1, 0);
+        assert_eq!(flat[0].2.len(), 1);
+        assert_eq!(flat[0].2[0].first_offset, 10);
+        assert_eq!(flat[0].2[0].last_offset, 12);
+        assert_eq!(flat[0].2[0].types, vec![1, 1, 1]);
+        assert_eq!(flat[1].1, 1);
+        assert!(flat[1].2.is_empty(), "empty ack batch list");
+        assert_eq!(flat[2].1, 2);
+        assert_eq!(flat[2].2[0].types, vec![1, 0, 2, 3]);
+
+        let mut cur = V0_RESP;
+        let (error_code, resp_topics, endpoints, throttle, error_message) =
+            decode_share_acknowledge_topics_response(&mut cur, version)
+                .expect("ack v0 response decodes under v0 and v1");
+        leftover_empty(cur, &format!("ShareAcknowledge v0 response as v{version}"));
+        assert_eq!(error_code, 0);
+        assert_eq!(throttle, 0, "throttle JSON default");
+        assert_eq!(error_message, None);
+        assert!(endpoints.is_empty());
+        assert_eq!(resp_topics.len(), 1);
+        assert_eq!(resp_topics[0].topic_id, share_seq16(0x30));
+        assert_eq!(resp_topics[0].partitions.len(), 2);
+        assert_eq!(resp_topics[0].partitions[0].partition, 0);
+        assert_eq!(resp_topics[0].partitions[0].error_code, 0);
+        assert_eq!(resp_topics[0].partitions[0].error_message, None);
+        assert_eq!(resp_topics[0].partitions[1].partition, 1);
+        assert_eq!(
+            resp_topics[0].partitions[1].error_code,
+            NOT_LEADER_OR_FOLLOWER
+        );
+        assert_eq!(
+            resp_topics[0].partitions[1].error_message.as_deref(),
+            Some("not leader")
+        );
+        assert_eq!(
+            (
+                resp_topics[0].partitions[1].current_leader_id,
+                resp_topics[0].partitions[1].current_leader_epoch
+            ),
+            (2, 7)
+        );
+    }
+
+    const V1_REQ: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_ack_v1_same_fields_request.bin");
+    const V1_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_ack_v1_same_fields_response.bin");
+    const V1_DESC: &str = include_str!("fixtures/protocol_oracles/share_ack_v1_same_fields.json");
+    assert_share_fixture_descriptor(V1_DESC, V1_REQ, V1_RESP);
+
+    for version in [0_i16, 1] {
+        let mut cur = V1_REQ;
+        let (group_id, member_id, epoch, flat) =
+            decode_share_acknowledge_request(&mut cur, version)
+                .expect("ack v1 request decodes under v0 and v1");
+        leftover_empty(cur, &format!("ShareAcknowledge v1 request as v{version}"));
+        assert_eq!(
+            (group_id.as_str(), member_id.as_str(), epoch),
+            ("share-ack-v1", "ack-m1", 5)
+        );
+        assert_eq!(flat.len(), 1);
+        assert_eq!((flat[0].0, flat[0].1), (share_seq16(0x40), 3));
+        assert_eq!(flat[0].2.len(), 1);
+        assert_eq!(
+            (flat[0].2[0].first_offset, flat[0].2[0].last_offset),
+            (30, 31)
+        );
+        assert_eq!(flat[0].2[0].types, vec![2, 2]);
+
+        let mut cur = V1_RESP;
+        let (error_code, resp_topics, endpoints, throttle, error_message) =
+            decode_share_acknowledge_topics_response(&mut cur, version)
+                .expect("ack v1 response decodes under v0 and v1");
+        leftover_empty(cur, &format!("ShareAcknowledge v1 response as v{version}"));
+        assert_eq!(error_code, GROUP_AUTHORIZATION_FAILED);
+        assert_eq!(error_message.as_deref(), Some("not authorized for group"));
+        assert_eq!(throttle, 9);
+        assert_eq!(resp_topics.len(), 1);
+        assert_eq!(resp_topics[0].partitions.len(), 1);
+        assert_eq!(resp_topics[0].partitions[0].partition, 3);
+        assert_eq!(
+            resp_topics[0].partitions[0].error_code,
+            INVALID_RECORD_STATE
+        );
+        assert_eq!(
+            resp_topics[0].partitions[0].error_message.as_deref(),
+            Some("bad record state")
+        );
+        assert_eq!(endpoints.len(), 1);
+        assert_eq!(endpoints[0].node_id, 2);
+        assert_eq!(endpoints[0].host, "ack-broker");
+        assert_eq!(endpoints[0].port, 9093);
+        assert_eq!(endpoints[0].rack, None, "null rack");
+    }
+}
+
+/// KL05-14: share version pin plus explicit v2 rejection, offline.
+///
+/// The `share_v2_pin.json` record pins the per-release ShareFetch and
+/// ShareAcknowledge ranges, the crate-spoken versions, and the rejection
+/// expectations. The committed fixture bytes decode under v0/v1 and fail
+/// explicitly under v2, so no high-level v2 operation is advertised.
+#[test]
+fn share_v2_pin_and_explicit_rejection_oracle() {
+    const PIN: &str = include_str!("fixtures/protocol_oracles/share_v2_pin.json");
+    let parsed = parse_json(PIN);
+    let obj = parsed.as_object();
+    assert_eq!(field_str(obj, "fixture_id"), "share-v2-pin");
+    assert_eq!(field_str(obj, "pin"), "4.3.1");
+
+    let pins = obj
+        .iter()
+        .find(|(k, _)| k == "pins")
+        .unwrap_or_else(|| panic!("share pin missing pins"))
+        .1
+        .as_object();
+    let range_43 = pins
+        .iter()
+        .find(|(k, _)| k == "4.3.1")
+        .unwrap_or_else(|| panic!("share pin missing 4.3.1"))
+        .1
+        .as_object();
+    assert_eq!(field_i16s(range_43, "ShareFetch"), vec![0, 2]);
+    assert_eq!(field_i16s(range_43, "ShareAcknowledge"), vec![0, 1]);
+    let range_41 = pins
+        .iter()
+        .find(|(k, _)| k == "4.1.0")
+        .unwrap_or_else(|| panic!("share pin missing 4.1.0"))
+        .1
+        .as_object();
+    assert_eq!(field_i16s(range_41, "ShareFetch"), vec![0, 1]);
+    assert_eq!(field_i16s(range_41, "ShareAcknowledge"), vec![0, 1]);
+
+    let spoken = obj
+        .iter()
+        .find(|(k, _)| k == "crate_spoken")
+        .unwrap_or_else(|| panic!("share pin missing crate_spoken"))
+        .1
+        .as_object();
+    assert_eq!(field_i16s(spoken, "ShareFetch"), vec![0, 1]);
+    assert_eq!(field_i16s(spoken, "ShareAcknowledge"), vec![0, 1]);
+    assert_eq!(SHARE_FETCH_CRATE_MAX_VERSION, 1);
+    assert_eq!(SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION, 1);
+
+    let rejection = obj
+        .iter()
+        .find(|(k, _)| k == "rejection")
+        .unwrap_or_else(|| panic!("share pin missing rejection"))
+        .1
+        .as_object();
+    for api in ["ShareFetch", "ShareAcknowledge"] {
+        let entry = rejection
+            .iter()
+            .find(|(k, _)| k == api)
+            .unwrap_or_else(|| panic!("share pin missing rejection for {api}"))
+            .1
+            .as_object();
+        assert_eq!(
+            field_i64(entry, "version"),
+            2,
+            "{api} rejection pins version 2"
+        );
+    }
+
+    // Crate checkers agree with the pin: v0/v1 pass, v2 fails explicitly.
+    assert_eq!(check_share_fetch_version(0).unwrap(), 0);
+    assert_eq!(check_share_fetch_version(1).unwrap(), 1);
+    let err = check_share_fetch_version(2).unwrap_err();
+    assert!(err.to_string().contains("not implemented"));
+    assert_eq!(check_share_acknowledge_version(0).unwrap(), 0);
+    assert_eq!(check_share_acknowledge_version(1).unwrap(), 1);
+    let err = check_share_acknowledge_version(2).unwrap_err();
+    assert!(err.to_string().contains("not implemented"));
+
+    // Committed v0/v1 bytes are rejected explicitly under v2, both directions.
+    const FETCH_V1_REQ: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_fetch_v1_batch_size_request.bin");
+    const FETCH_V1_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_fetch_v1_batch_size_response.bin");
+    const ACK_V1_REQ: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_ack_v1_same_fields_request.bin");
+    const ACK_V1_RESP: &[u8] =
+        include_bytes!("fixtures/protocol_oracles/share_ack_v1_same_fields_response.bin");
+    let mut cur = FETCH_V1_REQ;
+    let err = decode_share_fetch_request(&mut cur, 2)
+        .map(|_| ())
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("not implemented"),
+        "share fetch request v2 rejected, got {err}"
+    );
+    let mut cur = FETCH_V1_RESP;
+    let err = decode_share_fetch_response(&mut cur, 2)
+        .map(|_| ())
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("not implemented"),
+        "share fetch response v2 rejected, got {err}"
+    );
+    let mut cur = ACK_V1_REQ;
+    let err = decode_share_acknowledge_request(&mut cur, 2)
+        .map(|_| ())
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("not implemented"),
+        "share ack request v2 rejected, got {err}"
+    );
+    let mut cur = ACK_V1_RESP;
+    let err = decode_share_acknowledge_topics_response(&mut cur, 2)
+        .map(|_| ())
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("not implemented"),
+        "share ack response v2 rejected, got {err}"
+    );
+}

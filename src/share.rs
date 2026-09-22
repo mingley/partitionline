@@ -31,7 +31,7 @@ use crate::protocol::share::{
     encode_share_acknowledge_topics, encode_share_fetch_request,
     encode_share_group_heartbeat_request, AcknowledgementBatch, ShareAckTopic, ShareFetchPartition,
     ShareFetchTopic, ShareGroupHeartbeatRequest, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT,
-    ACK_RELEASE,
+    ACK_RELEASE, SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION, SHARE_FETCH_CRATE_MAX_VERSION,
 };
 use crate::Uuid;
 
@@ -522,7 +522,7 @@ pub struct ShareGroup {
 }
 
 fn spoken_share_acknowledge(version: i16) -> Result<i16> {
-    if (0..=1).contains(&version) {
+    if (0..=SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION).contains(&version) {
         Ok(version)
     } else {
         Err(Error::Unsupported(
@@ -532,7 +532,7 @@ fn spoken_share_acknowledge(version: i16) -> Result<i16> {
 }
 
 fn spoken_share_fetch(version: i16) -> Result<i16> {
-    if (0..=1).contains(&version) {
+    if (0..=SHARE_FETCH_CRATE_MAX_VERSION).contains(&version) {
         Ok(version)
     } else {
         Err(Error::Unsupported(
@@ -603,12 +603,26 @@ impl ShareGroup {
         let share_fetch_version = consumer
             .versions()
             .get(&SHARE_FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+            .and_then(|v| {
+                pick_version(
+                    v.min_version,
+                    v.max_version,
+                    0,
+                    SHARE_FETCH_CRATE_MAX_VERSION,
+                )
+            })
             .ok_or_else(|| Error::Unsupported("broker does not support ShareFetch v0-1".into()))?;
         let share_acknowledge_version = consumer
             .versions()
             .get(&SHARE_ACKNOWLEDGE)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+            .and_then(|v| {
+                pick_version(
+                    v.min_version,
+                    v.max_version,
+                    0,
+                    SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION,
+                )
+            })
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support ShareAcknowledge v0-1".into())
             })?;

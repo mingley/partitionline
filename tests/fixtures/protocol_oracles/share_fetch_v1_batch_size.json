@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "share-fetch-v1-batch-size",
+  "api": "ShareFetch",
+  "api_key": 78,
+  "api_version": 1,
+  "pin": "4.1.0",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+  "artifact": "apache/kafka ShareFetchRequest.json validVersions 1 (Kafka 4.1)",
+  "generator": "hand-built-offline-v1 (KL05-14; no Java runtime or kafka-clients 4.3.1 artifact in this environment; see docs/plan/evidence/KL05-14.json limits)",
+  "description": "ShareFetch v1: MaxRecords and BatchSize as distinct fields, no PartitionMaxBytes; response pins non-default AcquisitionLockTimeoutMs, acknowledge-only error code/message, CurrentLeader and NodeEndpoints.",
+  "request": {
+    "file": "share_fetch_v1_batch_size_request.bin",
+    "size_bytes": 99,
+    "sha256": "2920c480c97373a1713fb8035a6b42f73deb77fb87b48c53b4dafc9719732799",
+    "hex": "1073686172652d76312d64656c7461730c6d656d6265722d76312d3100000002000003e80000040000800000000001f40000006402101112131415161718191a1b1c1d1e1f02000000000200000000000000c800000000000000c90301010000000100"
+  },
+  "response": {
+    "file": "share_fetch_v1_batch_size_response.bin",
+    "size_bytes": 120,
+    "sha256": "24cb92fc9e3a17a1b036016824d3cf89d3cda017c751286bab0fc92bce2d3888",
+    "hex": "0000002a0000000000753002101112131415161718191a1b1c1d1e1f02000000000000000079157265636f7264207374617465206368616e676564000000010000000500010200000000000000c800000000000000c9000200000002000000010a62726f6b65722d763100002384087261636b2d76310000"
+  }
+}
