@@ -8,7 +8,8 @@
 //! DescribeTopicPartitions, ListConfigResources,
 //! GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
 //! AlterReplicaLogDirs, DescribeLogDirs, CreateDelegationToken,
-//! RenewDelegationToken, ExpireDelegationToken, DescribeDelegationToken.
+//! RenewDelegationToken, ExpireDelegationToken, DescribeDelegationToken,
+//! ElectLeaders.
 //!
 //! ACL codecs live in [`crate::protocol::acl`].
 
@@ -17280,6 +17281,384 @@ pub fn decode_describe_delegation_token_response<B: Buf>(
         error_code,
         tokens,
         throttle_time_ms,
+    })
+}
+
+/// ElectLeaders election type: elect the preferred replica (KIP-460
+/// `ElectionType.PREFERRED`).
+pub const ELECTION_PREFERRED: i8 = 0;
+/// ElectLeaders election type: elect the first live replica when no
+/// in-sync replica remains (KIP-460 `ElectionType/UNCLEAN`).
+pub const ELECTION_UNCLEAN: i8 = 1;
+/// ElectLeaders `TimeoutMs` JSON default (`60000`, the Java field default).
+pub const ELECT_LEADERS_DEFAULT_TIMEOUT_MS: i32 = 60_000;
+
+/// One topic's partitions in an ElectLeaders request.
+///
+/// Java `ElectLeadersRequestData.TopicPartitions` (`Topic` then
+/// `Partitions`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ElectLeadersTopic {
+    /// Topic name.
+    pub topic: String,
+    /// Partitions of this topic whose leader should be elected.
+    pub partitions: Vec<i32>,
+}
+
+impl ElectLeadersTopic {
+    /// Topic plus partitions.
+    #[must_use]
+    pub fn new(topic: impl Into<String>, partitions: Vec<i32>) -> Self {
+        Self {
+            topic: topic.into(),
+            partitions,
+        }
+    }
+}
+
+/// ElectLeaders request body (api 43, KIP-460).
+///
+/// Java `ElectLeadersRequestData` (`ElectionType`, nullable
+/// `TopicPartitions`, `TimeoutMs`). [`Self::topics`] is `None` when the
+/// wire array is null, which elects leaders for all partitions (Java
+/// `topicPartitions() == null`); `Some(vec![])` is an explicitly empty
+/// election set (Java default, not null).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ElectLeadersRequest {
+    /// Election type ([`ELECTION_PREFERRED`] / [`ELECTION_UNCLEAN`]).
+    /// v1+ on the wire; v0 omits it.
+    pub election_type: i8,
+    /// Topics to elect leaders for, or `None` for all partitions.
+    pub topics: Option<Vec<ElectLeadersTopic>>,
+    /// Broker-side operation timeout in milliseconds.
+    pub timeout_ms: i32,
+}
+
+impl ElectLeadersRequest {
+    /// Java `ElectLeadersRequest.getErrorResponse`.
+    ///
+    /// Copies each request topic name and partition id into the results;
+    /// every partition entry (and the top-level code on v1+) carries
+    /// `error_code` with `error_message` (Java `ApiError.message`, which
+    /// is null when the throwable has no message). A null (`None`)
+    /// TopicPartitions yields empty results (Java skips the loop).
+    /// ThrottleTimeMs is written on all versions from
+    /// `throttle_time_ms`. Below v1 the top-level ErrorCode is omitted
+    /// even when `error_code` is non-zero (Java only writes it when
+    /// `version() >= 1`). Decode fills `0`.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        topics: Option<&[ElectLeadersTopic]>,
+        error_code: i16,
+        error_message: Option<&str>,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        let results: Vec<ElectLeadersResult> = topics
+            .unwrap_or(&[])
+            .iter()
+            .map(|topic| ElectLeadersResult {
+                topic: topic.topic.clone(),
+                partitions: topic
+                    .partitions
+                    .iter()
+                    .map(|partition_id| ElectLeadersPartitionResult {
+                        partition_id: *partition_id,
+                        error_code,
+                        error_message: error_message.map(str::to_owned),
+                    })
+                    .collect(),
+            })
+            .collect();
+        encode_elect_leaders_response_with_throttle(
+            buf,
+            version,
+            &ElectLeadersResponse {
+                throttle_time_ms,
+                error_code,
+                results,
+            },
+        )
+    }
+}
+
+/// One partition's leader-election result.
+///
+/// Java `ElectLeadersResponseData.PartitionResult` (`PartitionId`,
+/// `ErrorCode`, nullable `ErrorMessage`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ElectLeadersPartitionResult {
+    /// Partition id.
+    pub partition_id: i32,
+    /// Per-partition error code (`0` is success).
+    pub error_code: i16,
+    /// Broker error message, when present.
+    pub error_message: Option<String>,
+}
+
+/// One topic's leader-election results.
+///
+/// Java `ElectLeadersResponseData.ReplicaElectionResult` (`Topic` then
+/// `PartitionResult`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ElectLeadersResult {
+    /// Topic name.
+    pub topic: String,
+    /// Results for each partition.
+    pub partitions: Vec<ElectLeadersPartitionResult>,
+}
+
+/// ElectLeaders response body (api 43, KIP-460).
+///
+/// Java `ElectLeadersResponseData` (`ThrottleTimeMs`, `ErrorCode` on
+/// v1+, `ReplicaElectionResults`). v0 has no top-level ErrorCode:
+/// decode fills `0`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ElectLeadersResponse {
+    /// Throttle time in milliseconds.
+    pub throttle_time_ms: i32,
+    /// Top-level error code (`0` is success). v1+ on the wire.
+    pub error_code: i16,
+    /// Election results per topic.
+    pub results: Vec<ElectLeadersResult>,
+}
+
+impl ElectLeadersResponse {
+    /// Construct [`Self`].
+    #[must_use]
+    pub fn new(throttle_time_ms: i32, error_code: i16, results: Vec<ElectLeadersResult>) -> Self {
+        Self {
+            throttle_time_ms,
+            error_code,
+            results,
+        }
+    }
+
+    /// Throttle time in milliseconds.
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
+    }
+
+    /// Top-level error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Java `ElectLeadersResponse.shouldClientThrottle` (constant `true`).
+    #[must_use]
+    pub const fn should_client_throttle(_version: i16) -> bool {
+        true
+    }
+
+    /// Java `ElectLeadersResponse.errorCounts`.
+    ///
+    /// Counts the top-level error code plus every per-partition error
+    /// code, skipping `NONE` (Java `updateErrorCounts` ignores `0`).
+    /// Success is an empty map.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        if self.error_code != 0 {
+            let count = counts.entry(self.error_code).or_insert(0);
+            *count += 1;
+        }
+        for result in &self.results {
+            for partition in &result.partitions {
+                if partition.error_code != 0 {
+                    let count = counts.entry(partition.error_code).or_insert(0);
+                    *count += 1;
+                }
+            }
+        }
+        counts
+    }
+}
+
+/// `true` when ElectLeaders `version` is flexible.
+///
+/// v0–v1 are classic. v2 is the first flexible version (Apache JSON
+/// `validVersions: "0-2"`, `flexibleVersions: "2+"`; identical in Kafka
+/// 3.9.1 and 4.1.0). v1 adds `ElectionType` (KIP-460) and the top-level
+/// response `ErrorCode`. v3+ is not spoken.
+fn elect_leaders_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=1 => Ok(false),
+        2 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "ElectLeaders version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode an ElectLeaders request (v0–2).
+///
+/// v0 omits `ElectionType` even when [`ElectLeadersRequest::election_type`]
+/// is set (Java only writes it when `version() >= 1`). A `None` topics
+/// set writes a null array (elect all partitions); `Some(vec![])` writes
+/// an empty array.
+pub fn encode_elect_leaders_request(
+    buf: &mut BytesMut,
+    version: i16,
+    req: &ElectLeadersRequest,
+) -> crate::error::Result<()> {
+    let flexible = elect_leaders_flexible(version)?;
+    if version >= 1 {
+        buf.put_i8(req.election_type);
+    }
+    buf::put_array_len(buf, flexible, req.topics.as_ref().map(Vec::len))?;
+    for topic in req.topics.as_deref().unwrap_or(&[]) {
+        buf::put_string(buf, flexible, Some(&topic.topic))?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(*partition);
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    buf.put_i32(req.timeout_ms);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+/// Decode an ElectLeaders request (v0–2).
+///
+/// v0 omits `ElectionType`; decode fills [`ELECTION_PREFERRED`] (the
+/// Java field default). A null `TopicPartitions` array decodes to
+/// `None` (elect all partitions).
+pub fn decode_elect_leaders_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<ElectLeadersRequest> {
+    let flexible = elect_leaders_flexible(version)?;
+    let election_type = if version >= 1 {
+        buf::get_i8(buf)?
+    } else {
+        ELECTION_PREFERRED
+    };
+    let topics = match buf::get_array_len(buf, flexible)? {
+        None => None,
+        Some(n) => {
+            let mut out = Vec::with_capacity(n);
+            for _ in 0..n {
+                let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+                let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+                let mut partitions = Vec::with_capacity(pn);
+                for _ in 0..pn {
+                    partitions.push(buf::get_i32(buf)?);
+                }
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
+                out.push(ElectLeadersTopic { topic, partitions });
+            }
+            Some(out)
+        }
+    };
+    let timeout_ms = buf::get_i32(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(ElectLeadersRequest {
+        election_type,
+        topics,
+        timeout_ms,
+    })
+}
+
+/// Encode an ElectLeaders response.
+///
+/// Throttle is the JSON default (`0`).
+pub fn encode_elect_leaders_response(
+    buf: &mut BytesMut,
+    version: i16,
+    resp: &ElectLeadersResponse,
+) -> crate::error::Result<()> {
+    encode_elect_leaders_response_with_throttle(buf, version, resp)
+}
+
+/// Encode an ElectLeaders response (v0–2).
+///
+/// Below v1 the top-level ErrorCode is omitted even when
+/// [`ElectLeadersResponse::error_code`] is non-zero. Decode fills `0`.
+/// `ReplicaElectionResults` is never null on the wire.
+fn encode_elect_leaders_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    resp: &ElectLeadersResponse,
+) -> crate::error::Result<()> {
+    let flexible = elect_leaders_flexible(version)?;
+    buf.put_i32(resp.throttle_time_ms);
+    if version >= 1 {
+        buf.put_i16(resp.error_code);
+    }
+    buf::put_array_len(buf, flexible, Some(resp.results.len()))?;
+    for result in &resp.results {
+        buf::put_string(buf, flexible, Some(&result.topic))?;
+        buf::put_array_len(buf, flexible, Some(result.partitions.len()))?;
+        for partition in &result.partitions {
+            buf.put_i32(partition.partition_id);
+            buf.put_i16(partition.error_code);
+            buf::put_string(buf, flexible, partition.error_message.as_deref())?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+/// Decode an ElectLeaders response (v0–2).
+///
+/// Below v1 the top-level ErrorCode is omitted; decode fills `0`.
+pub fn decode_elect_leaders_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<ElectLeadersResponse> {
+    let flexible = elect_leaders_flexible(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let error_code = if version >= 1 { buf::get_i16(buf)? } else { 0 };
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut results = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition_id = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
+            let error_message = buf::get_string(buf, flexible)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            partitions.push(ElectLeadersPartitionResult {
+                partition_id,
+                error_code,
+                error_message,
+            });
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        results.push(ElectLeadersResult { topic, partitions });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(ElectLeadersResponse {
+        throttle_time_ms,
+        error_code,
+        results,
     })
 }
 
@@ -35875,5 +36254,372 @@ mod tests {
             !cur.has_remaining(),
             "v3 request must be leftover-empty; a later-version field would leave leftover"
         );
+    }
+
+    fn elect_leaders_partition(
+        partition_id: i32,
+        error_code: i16,
+        error_message: Option<&str>,
+    ) -> ElectLeadersPartitionResult {
+        ElectLeadersPartitionResult {
+            partition_id,
+            error_code,
+            error_message: error_message.map(str::to_owned),
+        }
+    }
+
+    #[test]
+    fn elect_leaders_v0_matches_apache_fixtures() {
+        // Independent encode from pinned Apache kafka-clients 4.1.0
+        // message classes (byte-identical under 3.9.1). Official JSON
+        // api 43 validVersions 0-2, flexibleVersions 2+. v0 has no
+        // ElectionType and no top-level ErrorCode. Null TopicPartitions
+        // elects leaders for all partitions.
+        const REQ: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/elect_leaders_v0_classic_request.bin"
+        );
+        const RESP: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/elect_leaders_v0_classic_response.bin"
+        );
+        let mut cur = REQ;
+        let req = decode_elect_leaders_request(&mut cur, 0).unwrap();
+        assert_eq!(
+            req,
+            ElectLeadersRequest {
+                election_type: ELECTION_PREFERRED,
+                topics: None,
+                timeout_ms: 60_000,
+            }
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ElectLeaders v0 request must be leftover-empty"
+        );
+        let mut buf = BytesMut::new();
+        encode_elect_leaders_request(&mut buf, 0, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+
+        let mut cur = RESP;
+        let resp = decode_elect_leaders_response(&mut cur, 0).unwrap();
+        assert_eq!(resp.throttle_time_ms(), 10);
+        assert_eq!(resp.error_code(), 0);
+        assert_eq!(
+            resp.results,
+            vec![ElectLeadersResult {
+                topic: "elect-topic-0".into(),
+                partitions: vec![
+                    elect_leaders_partition(0, 0, None),
+                    elect_leaders_partition(1, 3, Some("unknown topic")),
+                ],
+            }]
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ElectLeaders v0 response must be leftover-empty"
+        );
+        buf.clear();
+        encode_elect_leaders_response(&mut buf, 0, &resp).unwrap();
+        assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn elect_leaders_v1_matches_apache_fixtures() {
+        // Independent encode from pinned Apache kafka-clients 4.1.0
+        // message classes (byte-identical under 3.9.1). v1 adds
+        // ElectionType (KIP-460) and the top-level ErrorCode. UNCLEAN
+        // elects the first live replica when no ISR remains.
+        const REQ: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/elect_leaders_v1_election_type_request.bin"
+        );
+        const RESP: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/elect_leaders_v1_election_type_response.bin"
+        );
+        let mut cur = REQ;
+        let req = decode_elect_leaders_request(&mut cur, 1).unwrap();
+        assert_eq!(
+            req,
+            ElectLeadersRequest {
+                election_type: ELECTION_UNCLEAN,
+                topics: Some(vec![ElectLeadersTopic::new("elect-topic-1", vec![0, 2])]),
+                timeout_ms: 5_000,
+            }
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ElectLeaders v1 request must be leftover-empty"
+        );
+        let mut buf = BytesMut::new();
+        encode_elect_leaders_request(&mut buf, 1, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+
+        let mut cur = RESP;
+        let resp = decode_elect_leaders_response(&mut cur, 1).unwrap();
+        assert_eq!(resp.throttle_time_ms(), 42);
+        assert_eq!(resp.error_code(), 0);
+        assert_eq!(
+            resp.results,
+            vec![ElectLeadersResult {
+                topic: "elect-topic-1".into(),
+                partitions: vec![
+                    elect_leaders_partition(0, 0, None),
+                    elect_leaders_partition(2, 84, Some("election not needed")),
+                ],
+            }]
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ElectLeaders v1 response must be leftover-empty"
+        );
+        buf.clear();
+        encode_elect_leaders_response(&mut buf, 1, &resp).unwrap();
+        assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn elect_leaders_v2_matches_apache_fixtures() {
+        // Independent encode from pinned Apache kafka-clients 4.1.0
+        // message classes (byte-identical under 3.9.1). v2 is the first
+        // flexible version: compact strings/arrays plus tagged fields.
+        // A compact null TopicPartitions (single 0x00) is `None`.
+        const REQ: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/elect_leaders_v2_flexible_request.bin"
+        );
+        const RESP: &[u8] = include_bytes!(
+            "../../tests/fixtures/protocol_oracles/elect_leaders_v2_flexible_response.bin"
+        );
+        let mut cur = REQ;
+        let req = decode_elect_leaders_request(&mut cur, 2).unwrap();
+        assert_eq!(
+            req,
+            ElectLeadersRequest {
+                election_type: ELECTION_PREFERRED,
+                topics: None,
+                timeout_ms: 30_000,
+            }
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ElectLeaders v2 request must be leftover-empty"
+        );
+        let mut buf = BytesMut::new();
+        encode_elect_leaders_request(&mut buf, 2, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+
+        let mut cur = RESP;
+        let resp = decode_elect_leaders_response(&mut cur, 2).unwrap();
+        assert_eq!(resp.throttle_time_ms(), 42);
+        assert_eq!(resp.error_code(), 0);
+        assert_eq!(
+            resp.results,
+            vec![ElectLeadersResult {
+                topic: "elect-topic-2".into(),
+                partitions: vec![
+                    elect_leaders_partition(0, 0, None),
+                    elect_leaders_partition(1, 3, Some("unknown topic")),
+                ],
+            }]
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ElectLeaders v2 response must be leftover-empty"
+        );
+        buf.clear();
+        encode_elect_leaders_response(&mut buf, 2, &resp).unwrap();
+        assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn elect_leaders_empty_topics_roundtrip_is_leftover_empty() {
+        // `Some(vec![])` is an explicitly empty election set (Java
+        // default, not null) and must survive the round trip as
+        // `Some`, distinct from the null (elect-all) form.
+        for version in 0..=2 {
+            let req = ElectLeadersRequest {
+                election_type: ELECTION_PREFERRED,
+                topics: Some(Vec::new()),
+                timeout_ms: ELECT_LEADERS_DEFAULT_TIMEOUT_MS,
+            };
+            let mut buf = BytesMut::new();
+            encode_elect_leaders_request(&mut buf, version, &req).unwrap();
+            let mut cur = &buf[..];
+            assert_eq!(
+                decode_elect_leaders_request(&mut cur, version).unwrap(),
+                req
+            );
+            assert!(
+                !cur.has_remaining(),
+                "ElectLeaders v{version} empty-topics request must be leftover-empty"
+            );
+        }
+    }
+
+    #[test]
+    fn elect_leaders_error_response_matches_java() {
+        // Java `ElectLeadersRequest.getErrorResponse`: every requested
+        // partition carries the error (code plus `ApiError.message`);
+        // the top-level code matches on v1+. Null TopicPartitions
+        // yields empty results. Below v1 the top-level ErrorCode is
+        // omitted from the wire even when non-zero.
+        let topics = [ElectLeadersTopic::new("elect-topic-1", vec![0, 2])];
+        for version in 1..=2 {
+            let mut buf = BytesMut::new();
+            ElectLeadersRequest::error_response(
+                &mut buf,
+                version,
+                Some(&topics),
+                crate::error::NOT_CONTROLLER,
+                Some("Not controller"),
+                7,
+            )
+            .unwrap();
+            let mut cur = &buf[..];
+            let resp = decode_elect_leaders_response(&mut cur, version).unwrap();
+            assert_eq!(resp.throttle_time_ms(), 7);
+            assert_eq!(resp.error_code(), crate::error::NOT_CONTROLLER);
+            assert_eq!(
+                resp.results,
+                vec![ElectLeadersResult {
+                    topic: "elect-topic-1".into(),
+                    partitions: vec![
+                        elect_leaders_partition(
+                            0,
+                            crate::error::NOT_CONTROLLER,
+                            Some("Not controller")
+                        ),
+                        elect_leaders_partition(
+                            2,
+                            crate::error::NOT_CONTROLLER,
+                            Some("Not controller")
+                        ),
+                    ],
+                }]
+            );
+            assert!(
+                !cur.has_remaining(),
+                "ElectLeaders v{version} error response must be leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        ElectLeadersRequest::error_response(
+            &mut buf,
+            2,
+            None,
+            crate::error::NOT_CONTROLLER,
+            None,
+            0,
+        )
+        .unwrap();
+        let mut cur = &buf[..];
+        let resp = decode_elect_leaders_response(&mut cur, 2).unwrap();
+        assert_eq!(
+            resp,
+            ElectLeadersResponse::new(0, crate::error::NOT_CONTROLLER, Vec::new()),
+            "null TopicPartitions yields empty results with the top-level code"
+        );
+
+        let mut buf = BytesMut::new();
+        ElectLeadersRequest::error_response(
+            &mut buf,
+            0,
+            Some(&topics),
+            crate::error::NOT_CONTROLLER,
+            None,
+            0,
+        )
+        .unwrap();
+        let mut cur = &buf[..];
+        let resp = decode_elect_leaders_response(&mut cur, 0).unwrap();
+        assert_eq!(
+            resp.error_code(),
+            0,
+            "v0 has no top-level ErrorCode on the wire"
+        );
+        assert_eq!(
+            resp.results[0].partitions[0].error_code,
+            crate::error::NOT_CONTROLLER
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ElectLeaders v0 error response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn elect_leaders_error_counts_matches_java() {
+        // Java `ElectLeadersResponse.errorCounts`: top-level plus every
+        // per-partition code, skipping `NONE`. Success is an empty map.
+        let resp = ElectLeadersResponse::new(0, 0, Vec::new());
+        assert!(resp.error_counts().is_empty());
+        let resp = ElectLeadersResponse::new(
+            42,
+            0,
+            vec![ElectLeadersResult {
+                topic: "t".into(),
+                partitions: vec![
+                    elect_leaders_partition(0, 0, None),
+                    elect_leaders_partition(1, 84, Some("election not needed")),
+                    elect_leaders_partition(2, 84, Some("election not needed")),
+                ],
+            }],
+        );
+        assert_eq!(resp.error_counts(), HashMap::from([(84, 2)]));
+        let resp = ElectLeadersResponse::new(
+            42,
+            crate::error::NOT_CONTROLLER,
+            vec![ElectLeadersResult {
+                topic: "t".into(),
+                partitions: vec![elect_leaders_partition(0, 3, Some("unknown topic"))],
+            }],
+        );
+        assert_eq!(
+            resp.error_counts(),
+            HashMap::from([(crate::error::NOT_CONTROLLER, 1), (3, 1)])
+        );
+    }
+
+    #[test]
+    fn elect_leaders_should_client_throttle_matches_java() {
+        // Java `ElectLeadersResponse.shouldClientThrottle` is constant
+        // `true` (verified by decompiling the pinned 4.1.0 class).
+        for version in 0..=2 {
+            assert!(ElectLeadersResponse::should_client_throttle(version));
+        }
+    }
+
+    #[test]
+    fn elect_leaders_unspoken_versions_are_not_spoken() {
+        let req = ElectLeadersRequest {
+            election_type: ELECTION_PREFERRED,
+            topics: None,
+            timeout_ms: ELECT_LEADERS_DEFAULT_TIMEOUT_MS,
+        };
+        for version in [-1, 3, 4] {
+            let mut buf = BytesMut::new();
+            let err = encode_elect_leaders_request(&mut buf, version, &req).unwrap_err();
+            assert!(
+                err.to_string().contains("not implemented"),
+                "v{version} is not spoken, got {err}"
+            );
+            let mut cur = buf.as_ref();
+            let err = decode_elect_leaders_request(&mut cur, version).unwrap_err();
+            assert!(
+                err.to_string().contains("not implemented"),
+                "v{version} is not spoken, got {err}"
+            );
+            buf.clear();
+            let resp = ElectLeadersResponse::new(0, 0, Vec::new());
+            let err = encode_elect_leaders_response(&mut buf, version, &resp).unwrap_err();
+            assert!(
+                err.to_string().contains("not implemented"),
+                "v{version} is not spoken, got {err}"
+            );
+            let mut cur = buf.as_ref();
+            let err = decode_elect_leaders_response(&mut cur, version).unwrap_err();
+            assert!(
+                err.to_string().contains("not implemented"),
+                "v{version} is not spoken, got {err}"
+            );
+        }
     }
 }

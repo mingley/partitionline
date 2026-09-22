@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "fixture_id": "elect-leaders-v0-classic",
+  "api": "ElectLeaders",
+  "api_key": 43,
+  "api_version": 0,
+  "pin": "4.1.0",
+  "upstream_repo": "https://github.com/apache/kafka.git",
+  "upstream_sha": "080a42c343d919971985102a38c82dc6da0623d5",
+  "artifact": "org.apache.kafka:kafka-clients:4.1.0",
+  "generator": "KL05-16 standalone ElectLeaders fixture encode versus pinned kafka-client message classes; see docs/plan/evidence/KL05-16.json",
+  "description": "ElectLeaders v0 classic with null TopicPartitions (elect leaders for all partitions), timeout 60000; response without top-level ErrorCode, throttle 10, one success and one UNKNOWN_TOPIC_OR_PARTITION partition result",
+  "request": {
+    "file": "elect_leaders_v0_classic_request.bin",
+    "size_bytes": 8,
+    "sha256": "7ff0997d76c0215eb08b1f7b03cfe2b82ba0de7a9a2a8024c0657b14d635535c",
+    "hex": "ffffffff0000ea60"
+  },
+  "response": {
+    "file": "elect_leaders_v0_classic_response.bin",
+    "size_bytes": 56,
+    "sha256": "26c3f7677e95eb66e30be9e7c091a476fe77ee7985339ab30030fb9e752bf4d3",
+    "hex": "0000000a00000001000d656c6563742d746f7069632d3000000002000000000000ffff000000010003000d756e6b6e6f776e20746f706963"
+  }
+}

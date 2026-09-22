@@ -80,6 +80,8 @@ pub const EXPIRE_DELEGATION_TOKEN: i16 = 40;
 pub const DESCRIBE_DELEGATION_TOKEN: i16 = 41;
 /// DeleteGroups (42).
 pub const DELETE_GROUPS: i16 = 42;
+/// ElectLeaders (43). Kafka 4.0 `validVersions` is `0-2`.
+pub const ELECT_LEADERS: i16 = 43;
 /// IncrementalAlterConfigs (44).
 pub const INCREMENTAL_ALTER_CONFIGS: i16 = 44;
 /// AlterPartitionReassignments (45).
@@ -194,7 +196,7 @@ pub const fn name(id: i16) -> Option<&'static str> {
         EXPIRE_DELEGATION_TOKEN => Some("EXPIRE_DELEGATION_TOKEN"),
         DESCRIBE_DELEGATION_TOKEN => Some("DESCRIBE_DELEGATION_TOKEN"),
         DELETE_GROUPS => Some("DELETE_GROUPS"),
-        43 => Some("ELECT_LEADERS"),
+        ELECT_LEADERS => Some("ELECT_LEADERS"),
         INCREMENTAL_ALTER_CONFIGS => Some("INCREMENTAL_ALTER_CONFIGS"),
         ALTER_PARTITION_REASSIGNMENTS => Some("ALTER_PARTITION_REASSIGNMENTS"),
         LIST_PARTITION_REASSIGNMENTS => Some("LIST_PARTITION_REASSIGNMENTS"),
@@ -305,7 +307,7 @@ pub const fn forwardable(id: i16) -> bool {
             | CREATE_DELEGATION_TOKEN
             | RENEW_DELEGATION_TOKEN
             | EXPIRE_DELEGATION_TOKEN
-            | 43
+            | ELECT_LEADERS
             | INCREMENTAL_ALTER_CONFIGS
             | ALTER_PARTITION_REASSIGNMENTS
             | LIST_PARTITION_REASSIGNMENTS

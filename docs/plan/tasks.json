@@ -1436,13 +1436,40 @@
     {
       "id": "KL05-16",
       "title": "Add ElectLeaders request/response codecs",
-      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P2", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL05-01", "KL01-03"],
       "files": ["src/protocol/admin.rs", "src/protocol/api_keys.rs", "tests/fixtures/protocol_oracles/"],
       "deliverable": "One independently verified client-facing admin API family, without high-level routing yet.",
       "acceptance": ["Pin versions, election types, nullable topic collections, throttle and partial partition errors.", "Reuse existing framing/version helpers and add independent fixtures.", "Keep unrelated broker-internal control APIs out of this change."],
       "validation": ["cargo test --locked --lib protocol::admin", "Run the independent ElectLeaders fixture comparison."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "232c0acaeb9af0a60d71116abe9663ae064b6c5d",
+                "commands": [
+                        "cargo test --offline --locked --lib protocol::admin (322 passed, exit 0)",
+                        "cargo test --offline --locked --lib elect_leaders (8 passed, exit 0)",
+                        "cargo test --offline --locked --lib protocol::api_keys (3 passed, exit 0)",
+                        "python3 -m unittest tests.conformance.test_check_protocol_coverage (3 passed, exit 0)",
+                        "rustfmt --edition 2021 --check src/protocol/admin.rs src/protocol/api_keys.rs (exit 0)",
+                        "cargo clippy --offline --locked --lib --all-features -- -D warnings (exit 0)"
+                ],
+                "results": "ElectLeaders v0/v1/v2 request/response codecs pinned to Apache-generated fixtures (kafka-clients 4.1.0 and 3.9.1 bytes byte-identical): PREFERRED=0/UNCLEAN=1 election types, nullable topic collections, throttle time, and partial partition errors. Existing framing/version helpers reused; ELECT_LEADERS key const added to name()/forwardable(). 8 new fixture tests plus 322 protocol::admin tests pass; coverage guards confirm no uncovered API is claimed implemented.",
+                "artifacts": [
+                        "src/protocol/admin.rs",
+                        "src/protocol/api_keys.rs",
+                        "tests/fixtures/protocol_oracles/elect_leaders_v0_classic.json",
+                        "tests/fixtures/protocol_oracles/elect_leaders_v1_election_type.json",
+                        "tests/fixtures/protocol_oracles/elect_leaders_v2_flexible.json",
+                        "docs/plan/evidence/KL05-16.json"
+                ],
+                "limits": [
+                        "clippy --all-targets fails on pre-existing lints in untouched integration tests under clippy 1.98; the lib target covering this change is warning-free.",
+                        "Full --lib run has 7 pre-existing protocol::oidc failures (sandbox denies TCP bind); oidc.rs untouched.",
+                        "Fixtures encoded by a scratch program in /tmp (not committed) with the same pinned kafka-clients artifacts as FixtureGenerator.java; commands in evidence file.",
+                        "No high-level Admin routing, header version-table entries, or features.json change; key 43 runtime wiring belongs to KL05-17. matrix.json untouched."
+                ]
+        }
+      ]
     },
     {
       "id": "KL05-17",
