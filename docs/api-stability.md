@@ -84,9 +84,9 @@ Known classification gaps (bounded repair cards proposed in
 [KL07-10 evidence](plan/evidence/KL07-10.json), not fixed here):
 `PRODUCER_FENCED`, `TRANSACTION_ABORTABLE`, `INVALID_TXN_STATE` and
 `CONCURRENT_TRANSACTIONS` currently fail the send like any other
-non-retriable broker error instead of latching abort-required state;
-`Error::Closed` displays as `producer closed` even on consumer/admin/net
-paths.
+non-retriable broker error instead of latching abort-required state.
+(`Error::Closed` now displays the client-neutral `client closed` on all
+paths, including consumer/admin/net.)
 
 ## Configuration contract (KL07-10)
 

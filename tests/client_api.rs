@@ -11,8 +11,9 @@
 mod common;
 
 use partitionline::error;
+use partitionline::net::BrokerConn;
 use partitionline::protocol::api_keys::{
-    ALLOCATE_PRODUCER_IDS, ALTER_SHARE_GROUP_OFFSETS, ASSIGN_REPLICAS_TO_DIRS,
+    ALLOCATE_PRODUCER_IDS, ALTER_SHARE_GROUP_OFFSETS, API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS,
     CONSUMER_GROUP_DESCRIBE, DELETE_SHARE_GROUP_OFFSETS, DESCRIBE_SHARE_GROUP_OFFSETS,
     GET_TELEMETRY_SUBSCRIPTIONS, LIST_CONFIG_RESOURCES, PUSH_TELEMETRY, SHARE_GROUP_DESCRIBE,
 };
@@ -362,6 +363,52 @@ fn broker_error_display_and_code() {
         empty.to_string(),
         "broker error 3 (UNKNOWN_TOPIC_OR_PARTITION)"
     );
+}
+
+#[test]
+fn closed_display_is_client_neutral() {
+    let s = Error::Closed.to_string();
+    assert_eq!(s, "client closed");
+    for named in ["producer", "consumer", "admin"] {
+        assert!(!s.contains(named), "{s}");
+    }
+}
+
+#[tokio::test]
+async fn closed_producer_send_after_close() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let survivor = producer.clone();
+    producer.close().await.unwrap();
+    let err = survivor
+        .send(ProduceRecord::to("t").value(&b"late"[..]))
+        .await
+        .unwrap_err();
+    assert!(matches!(err, Error::Closed), "got {err:?}");
+    assert_eq!(err.to_string(), "client closed");
+}
+
+#[tokio::test]
+async fn closed_fetch_conn_shutdown_reports_closed() {
+    // Consumer handles are not cloneable and `close` consumes them, so the
+    // consumer-observable `Closed` comes from fetch-transport shutdown: pin
+    // that the same `BrokerConn` consumer fetch uses still reports `Closed`
+    // (with neutral text) once shut down.
+    let mock = common::Mock::start().await;
+    let mut conn = BrokerConn::connect(&mock.addr, "closed-test", Duration::from_secs(5))
+        .await
+        .unwrap();
+    conn.close();
+    assert!(conn.is_closed());
+    let err = conn
+        .roundtrip(API_VERSIONS, 0, |_| Ok(()), Duration::from_secs(5))
+        .await
+        .unwrap_err();
+    assert!(matches!(err, Error::Closed), "got {err:?}");
+    assert_eq!(err.to_string(), "client closed");
 }
 
 async fn create_two_topics(addr: &str, a: &str, b: &str) -> partitionline::Result<()> {

@@ -2128,13 +2128,37 @@
     {
       "id": "KL07-13",
       "title": "Disambiguate Error::Closed display text",
-      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL07-10"],
       "files": ["src/error.rs", "tests/client_api.rs"],
       "deliverable": "A client-neutral Error::Closed display string with regression coverage.",
       "acceptance": ["Error::Closed Display no longer names a specific client (e.g. 'client closed').", "Closed is still returned on the same paths (send after close, dropped workers, BrokerConn shutdown).", "client_api asserts the Display text and send-after-close behavior for producer and consumer paths."],
       "validation": ["cargo test --locked --test client_api closed"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "d1970e13a119cc50628e226649bb46cd59947e0c",
+                "commands": [
+                        "cargo test --locked --test client_api closed (3 passed, exit 0)",
+                        "cargo test --locked --test client_api (100 passed, exit 0)",
+                        "cargo test --locked --test network_deadlines (8 passed, exit 0)",
+                        "cargo test --locked --test produce_cancel -- --test-threads=4 (15 passed, exit 0)",
+                        "cargo clippy --locked --lib (exit 0)",
+                        "rustfmt --edition 2021 --check src/error.rs tests/client_api.rs (exit 0)"
+                ],
+                "results": "Error::Closed Display is now client-neutral ('client closed', was 'producer closed') with a neutral variant doc comment; no Closed-returning code path touched. 3 new client_api tests pin the Display text, producer send-after-close, and BrokerConn-shutdown Closed; CHANGELOG Unreleased/Changed notes the intentional user-visible change.",
+                "artifacts": [
+                        "src/error.rs",
+                        "tests/client_api.rs",
+                        "CHANGELOG.md",
+                        "docs/api-stability.md",
+                        "docs/plan/evidence/KL07-13.json"
+                ],
+                "limits": [
+                        "Consumer-path Closed pinned at BrokerConn transport level (Consumer is not Clone and close() consumes the handle, so no public fetch-after-close exists).",
+                        "produce_cancel delivery-deadline tests flake Timeout-only under full parallelism on a loaded host; green at 4 threads."
+                ]
+        }
+      ]
     },
     {
       "id": "KL07-14",

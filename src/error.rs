@@ -34,7 +34,7 @@ pub enum Error {
     },
     /// Broker does not support a required API version.
     Unsupported(String),
-    /// The producer (or connection) is shut down.
+    /// The client (or connection) is shut down.
     Closed,
     /// A request exceeded [`crate::ProducerConfig::request_timeout`] or similar.
     Timeout,
@@ -169,7 +169,7 @@ impl fmt::Display for Error {
                 write!(f, "no leader for {topic}-{partition}")
             }
             Self::Unsupported(m) => write!(f, "unsupported: {m}"),
-            Self::Closed => write!(f, "producer closed"),
+            Self::Closed => write!(f, "client closed"),
             Self::Timeout => write!(f, "timeout"),
             Self::QueueFull => write!(f, "producer queue full"),
             Self::RecordTooLarge {

@@ -72,6 +72,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - Docs: same-day native Verifiable recheck (broker kip848+share, auth matrix,
   integrity COUNT=2000, latency gate p99≈71–86µs) recorded in STATUS /
   ADOPTION / CIVILIZATION — unsigned; not a Suite HOLD lift.
+- Changed: `Error::Closed` now displays as `client closed` (was `producer closed`) on all paths, including consumer/admin/net; match on the variant, never the text.
 
 ### Fixed
 
