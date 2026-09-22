@@ -1,5 +1,14 @@
 # How it works
 
+**What this is:** architecture reference — producer/consumer pipelines,
+wire-format notes, compression and TLS. The [documentation map](index.md)
+lists the one authoritative location for each kind of information.
+
+**Conventions:** Rust behavior and ownership explanations are
+authoritative. Java client/method names below are porting
+cross-references (reference material); they never substitute for the
+Rust semantics.
+
 The library talks Kafka's network protocol itself. There is no C Kafka library in the process.
 
 ## Producer
@@ -27,6 +36,9 @@ config-resource and user-SCRAM calls.
 The hot path copies each payload once into the Kafka record batch and checksums it with CRC32-C.
 
 ## Consumer
+
+Rust behavior below is authoritative; paragraphs that name a Java call
+are reference cross-links for porting, not behavior specifications.
 
 `Consumer` is manual: you say topic, partition, offset, then `fetch`.
 `fetch` / group `poll` return [`ConsumerRecords`](../src/consumer.rs)

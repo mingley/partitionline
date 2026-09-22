@@ -1,5 +1,13 @@
 # Operator guide
 
+**What this is:** tutorial (Produce through Admin, in order) plus task
+recipes and troubleshooting. The [documentation map](index.md) lists the
+one authoritative location for each kind of information.
+
+**Conventions:** Rust behavior and ownership explanations below are
+authoritative. Java client/method names appear only as porting
+cross-references; they never substitute for the Rust semantics.
+
 Runnable paths assume a broker on `KAFKA_BOOTSTRAP` (default
 `127.0.0.1:9092`). Docker `apache/kafka:3.9.1` is enough for local smoke.
 
@@ -133,8 +141,9 @@ Examples: `tls`, `sasl`. OIDC is `OidcConfig` on the SASL OAUTHBEARER path.
 `Admin::metrics` return counter snapshots plus latency min/mean/max and
 p50/p99 over the last 1024 samples. Scrape on your process interval (for
 example every 10–60s); these are process-local snapshots, not a push
-protocol. See `examples/metrics.rs`. Optional `tracing` hooks are tracked
-in `docs/CIVILIZATION.md` WP-4.2.
+protocol. See `examples/metrics.rs`. Optional `tracing` spans are covered
+in [Tracing](#tracing-optional-feature) below; [CIVILIZATION.md](CIVILIZATION.md)
+is **history** (the historical foundation plan), not a feature tracker.
 
 ## Recipes
 
@@ -269,6 +278,28 @@ Spans cover `Producer::send` (topic field), `Consumer::fetch`,
 `ConsumerGroup::poll`, cooperative rejoin, and transaction
 init/begin/commit/abort. Pair with `tracing-subscriber` in the application.
 
+## Troubleshooting
+
+Authoritative first stop for failures. Pair symptoms with
+[metrics](#metrics) snapshots and the optional
+[tracing](#tracing-optional-feature) spans; never log payloads or secrets
+(see [security.md](security.md)).
+
+| Symptom | Likely cause | Action |
+|---|---|---|
+| `try_send` returns `QueueFull` | `buffer_memory` budget held by unacked records | `flush` or wait, then retry; see [Backpressure](#backpressure) |
+| `send` returns `Timeout` | metadata or buffer wait exceeded `max_block` | raise `max_block`, check broker reachability |
+| `Error::Closed` on send | producer closed via `close` / `close_timeout` | recreate the client; see [cancellation](#produce-cancellation-and-shutdown) |
+| `Error::RecordTooLarge` | record exceeds `max_request_size` | shrink the record or raise the limit |
+| Stalled fetch / no records | paused partitions, wrong offset, fenced leader | check `pause` / `seek` state; fencing recovers via OffsetForLeaderEpoch |
+| Share group gets nothing | share protocol prerequisites unmet | Kafka 4.1+ with finalized `share.version=1`; see [Consumer groups](#consumer-groups) |
+| KIP-848 join rejected `INVALID_REQUEST` | non-empty `TopicPartitions` on (re-)join | join sends an empty array; see [Consumer groups](#consumer-groups) |
+| Auth failures / rotation | expired credentials, broker-requested reauth | see [security.md](security.md) and [auth-refresh.md](auth-refresh.md) (reference) |
+| Broker down / reconnect loop | network or broker outage | client retries with `reconnect.backoff`; supported brokers in [support.md](support.md) |
+
+If the symptom persists, record the metric snapshot, broker version and
+client version, then check [support.md](support.md) for what is covered.
+
 ## Integrity / benchmarks
 
 Unsigned Lab A integrity (produce → broker high-watermark == acked → fetch →
@@ -288,9 +319,6 @@ These refuse fake wins; they are **not** Suite HOLD lifts. See
 
 ## More
 
-- Capability vs librdkafka: [`gaps.md`](gaps.md)
-- Wire notes: [`design.md`](design.md)
-- Migrate from rust-rdkafka: [`migrate-from-rdkafka.md`](migrate-from-rdkafka.md)
-- Adoption / pilot checklist: [`ADOPTION.md`](ADOPTION.md)
-- Security: [`security.md`](security.md)
-- Pure-Rust zstd spike: [`zstd-spike.md`](zstd-spike.md)
+Full navigation: the [documentation map](index.md) is the one
+authoritative index of tutorial, recipe, reference and architecture
+material.

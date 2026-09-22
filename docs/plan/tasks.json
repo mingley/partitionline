@@ -1510,7 +1510,7 @@
     {
       "id": "KL05-18",
       "title": "Add DescribeQuorum request/response codecs",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL05-01", "KL01-03"],
       "files": ["src/protocol/admin.rs", "src/protocol/api_keys.rs", "tests/fixtures/protocol_oracles/"],
       "deliverable": "Source-pinned quorum-description codecs and independent fixtures.",
@@ -1857,13 +1857,35 @@
     {
       "id": "KL07-03",
       "title": "Separate tutorial, recipe, reference and architecture navigation",
-      "priority": "P1", "kind": "documentation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "documentation", "status": "done", "owner": "mingley",
       "depends_on": ["KL05-01"],
       "files": ["README.md", "docs/guide.md", "docs/design.md", "new: docs/index.md"],
       "deliverable": "A concise documentation map with one authoritative location for each kind of information.",
       "acceptance": ["A newcomer can find install/quickstart, guarantees, configuration, troubleshooting, protocol support and reproducible benchmarks without reading chronology.", "Keep Java correspondence in reference material, not as a substitute for Rust behavior/ownership explanations.", "Historical STATUS/CIVILIZATION entries are labeled history; do not duplicate or reset task statuses."],
       "validation": ["Manually traverse the primary user journeys and verify all local links.", "Check that each capability/support/default claim links to its authoritative reference."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ca50ca1103e37b5159875b8b5562c7cc1087c335",
+                "commands": [
+                        "python3 /tmp/kl07-03-linkcheck.py . (88/88 local links resolved, 13 anchors, 0 failures, exit 0)",
+                        "RUSTDOCFLAGS='-D warnings' cargo doc --offline --locked --no-deps --all-features (exit 101, pre-existing src/consumer.rs:1588 error, 0 warnings from touched files)",
+                        "journey traversal greps over README/guide/gaps/benchmark/features.json (exit 0)"
+                ],
+                "results": "docs/index.md documentation map added (6 newcomer goal rows, Tutorial/Recipes/Reference/Architecture lanes, claim-linking rule). README, guide.md and design.md point to one authoritative location per kind; defaults/capability tables link to their references; CIVILIZATION/STATUS labeled history with tasks.json the sole status owner. 6 newcomer journeys traversed end to end.",
+                "artifacts": [
+                        "docs/index.md",
+                        "README.md",
+                        "docs/guide.md",
+                        "docs/design.md",
+                        "docs/plan/evidence/KL07-03.json"
+                ],
+                "limits": [
+                        "Strict rustdoc fails on a pre-existing private intra-doc link at src/consumer.rs:1588 (buffered_bytes links private Self::pending); untouched by this change, spun off as KL07-11.",
+                        "docs/migrate-from-rdkafka.md, docs/gaps.md, docs/support.md untouched (concurrent KL07-07 worker); linked by existing path only.",
+                        "External URLs (badges, crates.io) counted and skipped, not fetched."
+                ]
+        }
+      ]
     },
     {
       "id": "KL07-04",
@@ -1901,7 +1923,7 @@
     {
       "id": "KL07-07",
       "title": "Make migration defaults and unsupported behavior explicit",
-      "priority": "P1", "kind": "documentation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "documentation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL05-01", "KL03-07"],
       "files": ["docs/migrate-from-rdkafka.md", "docs/gaps.md", "docs/support.md"],
       "deliverable": "A source-pinned migration/configuration map for Java and rust-rdkafka adopters.",
@@ -2057,7 +2079,7 @@
     {
       "id": "KL08-06",
       "title": "Triage the existing dependency and release PR backlog",
-      "priority": "P1", "kind": "analysis", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "analysis", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL08-01"],
       "files": ["Cargo.toml", "Cargo.lock", "docs/plan/tasks.json", "docs/RELEASE.md"],
       "deliverable": "A dated disposition for existing update PRs and release PR #98, not a combined upgrade.",

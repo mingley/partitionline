@@ -1,0 +1,42 @@
+{
+  "acceptance_met": true,
+  "artifacts": [
+    "docs/index.md",
+    "README.md",
+    "docs/guide.md",
+    "docs/design.md",
+    "docs/plan/evidence/KL07-03.json"
+  ],
+  "blocked_reason": null,
+  "commands": [
+    "python3 /tmp/kl07-03-linkcheck.py /tmp/pl-wt/kl07-03 (exit 0)",
+    "RUSTDOCFLAGS='-D warnings' cargo doc --offline --locked --no-deps --all-features (exit 101, pre-existing src/consumer.rs:1588 private intra-doc link; no warning/error from touched markdown)",
+    "journey traversal greps over README.md, docs/guide.md, docs/gaps.md, docs/benchmark.md, tests/conformance/features.json (exit 0)"
+  ],
+  "id": "KL07-03",
+  "limits": [
+    "RUSTDOC gate fails at base commit ca50ca1 with a pre-existing error in src/consumer.rs:1588 (public docs for `buffered_bytes` link private `Self::pending`); zero warnings and no error mentions any touched markdown file. Fixing it needs a src-owning session (docs-only scope; concurrent-edit ban on src/consumer.rs).",
+    "docs/migrate-from-rdkafka.md, docs/gaps.md, docs/support.md untouched (concurrent workers); linked by existing path only.",
+    "docs/plan/tasks.json untouched (card claimed centrally; this worktree copy still shows KL07-03 pending/null).",
+    "Offline run; external URLs (badges, crates.io) counted and skipped, not fetched."
+  ],
+  "results": {
+    "anchors_verified": 13,
+    "external_skipped": 7,
+    "files_with_local_links": 4,
+    "journeys_traversed": [
+      "install/quickstart: docs/index.md -> README.md dependency snippet + Produce/Fetch/Groups/Transactions/Admin, then guide.md",
+      "guarantees: docs/index.md -> resource-contract.md + api-stability.md + support.md",
+      "configuration: docs/index.md -> guide.md#tls-and-sasl + guide.md#defaults-that-differ-from-java (+ crate rustdoc builders)",
+      "troubleshooting: docs/index.md -> guide.md#troubleshooting (new authoritative section, 9-row symptom table)",
+      "protocol support: docs/index.md -> gaps.md + tests/conformance/features.json (173 KL05-01 entries)",
+      "reproducible benchmarks: docs/index.md -> benchmark.md Reproduce sections (lines 40, 429, 561) under benchmark-contract.md rules"
+    ],
+    "local_links_resolved": 88,
+    "local_links_total": 88,
+    "new_map": "docs/index.md: goal table (6 newcomer rows), Tutorial/Recipes/Reference/Architecture lanes, Plan-and-history section (STATUS/CIVILIZATION labeled historical; tasks.json sole status owner), claim-linking rule",
+    "rustdoc": "exit 101 pre-existing; 0 warnings; error confined to src/consumer.rs:1588, untouched by this change"
+  },
+  "source_sha": "ca50ca1103e37b5159875b8b5562c7cc1087c335",
+  "status": "done"
+}

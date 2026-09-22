@@ -160,18 +160,22 @@ Defaults that differ from Java:
 `buffer.memory` (32 MiB) and `max.request.size` (1 MiB) match Java.
 `retry.backoff.ms` / `reconnect.backoff.ms` / `connections.max.idle.ms` /
 `metadata.max.age.ms` / `transaction.timeout.ms` match Java.
+Authoritative defaults reference: [operator guide](docs/guide.md#defaults-that-differ-from-java).
 
 The crate rustdoc is the full Java-shaped API catalog (protocol helpers,
-version ranges, and option names). Operator guide: [docs/guide.md](docs/guide.md).
+version ranges, and option names). Newcomer entry points — install,
+guarantees, configuration, troubleshooting, protocol support and
+reproducible benchmarks — are mapped in the [documentation map](docs/index.md),
+with one authoritative location per kind: tutorial in this README and the
+[operator guide](docs/guide.md), recipes in the guide, reference in the
+stability/support/gaps/security matrices, and architecture in
+[docs/design.md](docs/design.md).
 Migrate from rust-rdkafka: [docs/migrate-from-rdkafka.md](docs/migrate-from-rdkafka.md).
 Adoption / pilot checklist: [docs/ADOPTION.md](docs/ADOPTION.md).
-Capability list vs librdkafka: [docs/gaps.md](docs/gaps.md).
-Security: [docs/security.md](docs/security.md).
-Release policy: [docs/RELEASE.md](docs/RELEASE.md).
-Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 Pick one implementation task: [session guide](docs/plan/README.md) /
-[TODO.md](TODO.md). [CIVILIZATION.md](docs/CIVILIZATION.md) preserves the
-historical foundation plan.
+[TODO.md](TODO.md) — only [docs/plan/tasks.json](docs/plan/tasks.json) owns
+task status. [CIVILIZATION.md](docs/CIVILIZATION.md) is the **historical**
+foundation plan (history, not a task queue).
 
 **Not a drop-in for `rd_kafka_*`.** zstd and Kerberos/GSSAPI remain gaps;
 Schema Registry is a separate [companion design](docs/schema-companion.md),
@@ -188,6 +192,8 @@ not a core-client production requirement.
 | zstd | no (see [docs/zstd-spike.md](docs/zstd-spike.md)) | yes (`libzstd`) |
 | Kerberos / GSSAPI | no | yes (Cyrus) |
 | Optional `tracing` spans | feature `tracing` | n/a |
+
+Authoritative capability reference: [docs/gaps.md](docs/gaps.md).
 
 ## Examples
 
@@ -256,15 +262,10 @@ COUNT=10000 WARMUP=1000 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=0 \
   cargo run --release --example bench_latency
 ```
 
-## Documentation & Roadmap
+## Documentation
 
-- [API & User Guide](docs/guide.md) — Producer, consumer, transactions, and admin guide.
-- [Feature Gaps vs librdkafka](docs/gaps.md) — Comprehensive client compatibility matrix.
-- [Kafka Leadership Roadmap](docs/ROADMAP.md) — Source-backed recovery steps, correctness gates, reproducible benchmarks and scoped production qualification.
-- [TODO & Task Tracker](TODO.md) — Prioritized engineering packet execution checklist (KL-01 through KL-08).
-- [Architecture & Design](docs/design.md) — Protocol engine and memory architecture.
-- [Benchmarks](docs/benchmark.md) — Performance measurements and test methodology.
-- [Release Policy](docs/RELEASE.md) — Release criteria and publishing procedures.
+Start at the [documentation map](docs/index.md): tutorial, recipes,
+reference and architecture each have one authoritative location.
 
 ## License
 
