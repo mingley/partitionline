@@ -1,6 +1,6 @@
 # Next-session queue
 
-**Default next task: `KL03-10` -- prove transactional fencing and abort recovery states.**
+**Default next task: `KL03-14` -- prove cooperative revocation and offset ownership.**
 
 Use [one task per session](docs/plan/README.md). The canonical
 [task registry](docs/plan/tasks.json) contains dependencies, starting files,
