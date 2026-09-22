@@ -2079,13 +2079,34 @@
     {
       "id": "KL08-06",
       "title": "Triage the existing dependency and release PR backlog",
-      "priority": "P1", "kind": "analysis", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "analysis", "status": "done", "owner": "mingley",
       "depends_on": ["KL08-01"],
       "files": ["Cargo.toml", "Cargo.lock", "docs/plan/tasks.json", "docs/RELEASE.md"],
       "deliverable": "A dated disposition for existing update PRs and release PR #98, not a combined upgrade.",
       "acceptance": ["Re-read current PR states; the audit saw #99/#100/#102/#103/#104/#105 plus #98, but those may have changed.", "Record MSRV/API/license/advisory impact and create one bounded implementation/review card per accepted update.", "Do not merge or publish from this triage; a pending release is not qualification evidence."],
       "validation": ["Inspect current PR metadata and dependency diffs read-only.", "Verify each follow-up card has a specific dependency/version and targeted validation."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ca50ca1103e37b5159875b8b5562c7cc1087c335",
+                "commands": [
+                        "GH_TOKEN=... gh pr list --state open + gh pr view/diff/checks {98,99,100,102,103,104,105} read-only (exit 0)",
+                        "GH_TOKEN=... gh run view --log-failed on 3 PR runs (exit 0)",
+                        "crates.io API reads for rustls/base64/getrandom/tokio-rustls/snap versions+rust_version+license (exit 0)",
+                        "Cargo.lock version greps + getrandom call-site search (exit 0)"
+                ],
+                "results": "#98 HOLD (release-plz 0.2.0 semver break; a pending release is not qualification; no card, release decision stays on the KL08-07/owner path). #99 ACCEPT base64 0.23.1 (KL08-15). #100 ACCEPT WITH MIGRATION getrandom 0.4.3, E0425 at 4 call sites (KL08-16). #101 no action (closed, superseded by #105). #102 ACCEPT tokio-rustls 0.26.5 (KL08-17). #103 ACCEPT snap 1.1.2 (KL08-18). #104 SUPERSEDE: 0.23.44 does not fix RUSTSEC-2026-0285 and main audit/deny are red on lockfile 0.23.43 (KL08-19 P0 to >=0.23.45). #105 ACCEPT WITH REBASE setup-java v6 (KL08-20). Six follow-up cards inserted pending/unassigned.",
+                "artifacts": [
+                        "docs/audits/2026-09-22-dependency-pr-triage.md",
+                        "docs/plan/evidence/KL08-06.json"
+                ],
+                "limits": [
+                        "PR states as of 2026-09-22; each follow-up card must re-verify at execution.",
+                        "Read-only triage: no merges, closes, comments, pushes, or publishes.",
+                        "MSRV/license/deny impact is re-proven by each card's own audit+deny+MSRV run, not by this triage.",
+                        "Disposition filed as a dated audit note; docs/RELEASE.md (release policy) untouched."
+                ]
+        }
+      ]
     },
     {
       "id": "KL08-07",
@@ -2173,6 +2194,72 @@
       "deliverable": "One Windows build/runtime support cell with platform-specific prerequisites made explicit.",
       "acceptance": ["Exercise public produce/consume and TLS mock paths, not compilation alone.", "Resolve filesystem/process/certificate-tool assumptions in narrowly scoped test helpers without weakening assertions on other hosts.", "If required tooling or runtime behavior is unavailable, retain Windows as unsupported with a blocker instead of a green skipped cell."],
       "validation": ["Inspect the completed Windows CI cell and packaged-consumer artifact.", "Re-run affected mock tests on an existing Linux/macOS cell to preserve their behavior."],
+      "evidence": []
+    },
+    {
+      "id": "KL08-15",
+      "title": "Land base64 0.23.1 dependency update",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL08-06"],
+      "files": ["Cargo.toml", "Cargo.lock"],
+      "deliverable": "base64 0.23.1 landed on current main (PR #99 rebased or re-created).",
+      "acceptance": ["Cargo.toml requires base64 0.23 and Cargo.lock pins 0.23.1; no other dependency moves.", "MSRV 1.85 cell passes (base64 0.23 needs rust 1.71); audit and deny pass.", "No source changes needed; Engine API usage is unchanged."],
+      "validation": ["cargo update -p base64 --precise 0.23.1 (or rebase PR #99) then cargo test --locked", "cargo clippy --all-targets --all-features -- -D warnings on stable and 1.85", "cargo audit and cargo deny check on the new lockfile"],
+      "evidence": []
+    },
+    {
+      "id": "KL08-16",
+      "title": "Migrate to getrandom 0.4.3",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL08-06"],
+      "files": ["Cargo.toml", "Cargo.lock", "src/group.rs", "src/admin.rs", "src/protocol/scram.rs", "src/protocol/oidc.rs"],
+      "deliverable": "getrandom 0.4.3 with the 4 call-site migration (PR #100 red as-is: E0425).",
+      "acceptance": ["Cargo.toml requires getrandom 0.4, Cargo.lock pins 0.4.3; ring keeps its own 0.2.17 copy (no forced unification).", "All 4 call sites migrated to the 0.4 API with identical fallback behavior (group.rs, admin.rs, protocol/scram.rs, protocol/oidc.rs).", "MSRV 1.85 cell passes (getrandom 0.4.3 declares rust 1.85); audit and deny pass including new transitive r-efi."],
+      "validation": ["cargo test --locked (stable and 1.85) covering scram/oauth/group member-id paths", "cargo clippy --all-targets --all-features -- -D warnings", "cargo audit and cargo deny check on the new lockfile"],
+      "evidence": []
+    },
+    {
+      "id": "KL08-17",
+      "title": "Land tokio-rustls 0.26.5 patch update",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL08-06"],
+      "files": ["Cargo.lock"],
+      "deliverable": "tokio-rustls 0.26.5 lock bump landed (PR #102 rebased or re-created).",
+      "acceptance": ["Cargo.lock pins tokio-rustls 0.26.5; Cargo.toml range unchanged; no other dependency moves.", "MSRV 1.85 cell passes; audit and deny pass."],
+      "validation": ["cargo update -p tokio-rustls --precise 0.26.5 then cargo test --locked (stable and 1.85)", "cargo audit and cargo deny check on the new lockfile"],
+      "evidence": []
+    },
+    {
+      "id": "KL08-18",
+      "title": "Land snap 1.1.2 patch update",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL08-06"],
+      "files": ["Cargo.lock"],
+      "deliverable": "snap 1.1.2 lock bump landed (PR #103 rebased or re-created).",
+      "acceptance": ["Cargo.lock pins snap 1.1.2; Cargo.toml range unchanged; no other dependency moves.", "MSRV 1.85 cell passes; audit and deny pass; compression round-trip tests pass."],
+      "validation": ["cargo update -p snap --precise 1.1.2 then cargo test --locked (stable and 1.85)", "cargo audit and cargo deny check on the new lockfile"],
+      "evidence": []
+    },
+    {
+      "id": "KL08-19",
+      "title": "Land rustls >=0.23.45 security fix (RUSTSEC-2026-0285)",
+      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL08-06"],
+      "files": ["Cargo.lock", "Cargo.toml"],
+      "deliverable": "rustls >=0.23.45 landed, closing RUSTSEC-2026-0285 on main (supersedes PR #104).",
+      "acceptance": ["Cargo.lock pins rustls >=0.23.45 (0.23.45 published); Cargo.toml 0.23 range unchanged; PR #104 (0.23.44) is NOT merged as-is.", "cargo audit and cargo deny report RUSTSEC-2026-0285 fixed on the new lockfile.", "MSRV 1.85 cell and TLS/auth test paths pass (rustls 0.23.45 declares rust 1.71; license unchanged)."],
+      "validation": ["cargo update -p rustls --precise 0.23.45 then cargo test --locked (stable and 1.85)", "cargo audit: zero vulnerabilities; cargo deny check passes", "auth-smoke or TLS-focused test path on the new lockfile"],
+      "evidence": []
+    },
+    {
+      "id": "KL08-20",
+      "title": "Land actions/setup-java v6 workflow update",
+      "priority": "P1", "kind": "ci", "status": "pending", "owner": null,
+      "depends_on": ["KL08-06"],
+      "files": [".github/workflows/ci.yml"],
+      "deliverable": "setup-java v6 workflow bump landed after rebase (PR #105 rebased or re-created).",
+      "acceptance": ["ci.yml uses actions/setup-java@v6 in both jobs on current main; no Java version/distribution change.", "broker-smoke (both images) and conformance-fixtures pass on the rebased branch.", "No Rust source/lockfile changes in this card."],
+      "validation": ["CI broker-smoke (apache/kafka:3.9.1 and 4.1.0) green on the rebased branch", "CI conformance-fixtures green; audit/deny green once KL08-19 has landed"],
       "evidence": []
     }
   ]
