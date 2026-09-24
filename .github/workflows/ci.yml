@@ -251,7 +251,7 @@ jobs:
           mkdir -p target/conformance
           bash scripts/ci-protocol-oracles.sh --report target/conformance/fixture-report.json
       - name: Upload conformance fixture artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: conformance-fixture-artifacts
@@ -279,7 +279,7 @@ jobs:
           slug="$(echo "${{ matrix.kafka_image }}" | tr '/:' '-')"
           bash scripts/ci-protocol-oracles.sh --live --report "target/conformance/live-report-${slug}.json"
       - name: Upload conformance live artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: conformance-live-artifacts
