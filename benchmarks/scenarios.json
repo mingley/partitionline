@@ -8,7 +8,7 @@
       {"id": "partitionline", "client": "this repository", "standing": "subject under test"},
       {"id": "librdkafka", "client": "C client", "pin": "current pinned release plus the 2.15.0 historical bar", "driver_card": "KL04-04", "standing": "driver pending"},
       {"id": "kafka-clients", "client": "Apache Java", "pin": "pinned release", "driver_card": "KL04-03", "standing": "driver pending"},
-      {"id": "franz-go", "client": "Go client", "pin": "pinned release", "driver_card": "KL09-65", "standing": "driver pending"},
+      {"id": "franz-go", "client": "Go client", "pin": "franz-go v1.22.0, kadm v1.19.0, go1.26.0 (go.mod/go.sum)", "driver_card": "KL09-65", "standing": "driver checked in (benchmarks/peers/franz-go)"},
       {"id": "rust-rdkafka", "client": "Rust bindings over librdkafka", "note": "reported separately from the C-only bar", "driver_card": "KL04-05", "standing": "adapter pending"},
       {"id": "pure-rust-peer", "client": "one semantically comparable pure-Rust client", "note": "selected in KL04-05", "driver_card": "KL04-05", "standing": "selection pending"}
     ],
@@ -1009,6 +1009,23 @@
             "linger.ms": 5,
             "batch.size": 1048576,
             "compression.type": "none"
+          }
+        },
+        "go_franzgo": {
+          "client_name": "franz-go",
+          "version": "v1.22.0",
+          "driver": "benchmarks/peers/franz-go/cmd/peer (kadm v1.19.0, go1.26.0)",
+          "invocation": "COUNT=8000000 WARMUP=10000 PAYLOAD_BYTES=100 ACKS=-1 LINGER_MS=5 BATCH_BYTES=1048576 BATCH_RECORDS=32768 IDEMPOTENT=1 MAX_IN_FLIGHT=5 KAFKA_TOPIC=plbench-matched go run ./benchmarks/peers/franz-go/cmd/peer roundtrip",
+          "config_properties": {
+            "acks": -1,
+            "idempotence": true,
+            "max_in_flight": 5,
+            "linger_ms": 5,
+            "batch_size_bytes": 1048576,
+            "batch_num_messages": 32768,
+            "compression": "none",
+            "partitioner": "round_robin",
+            "record_seed": "0x5EED0001"
           }
         }
       }

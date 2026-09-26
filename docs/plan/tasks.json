@@ -3450,13 +3450,13 @@
     {
       "id": "KL09-65",
       "title": "Check in a pinned franz-go benchmark peer",
-      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "mingley",
       "depends_on": ["KL04-01", "KL04-02", "KL09-01"],
       "files": ["new: benchmarks/peers/franz-go/", "benchmarks/scenarios.json"],
       "deliverable": "A reproducibly built franz-go producer/consumer peer for the shared contract.",
       "acceptance": ["The Go toolchain and module versions are pinned (go.mod/go.sum); the resolved effective configuration is emitted.", "It uses the same deterministic record IDs and delivery/latency definitions as partitionline; unsupported scenarios are reported explicitly.", "No Go code or artifact enters the partitionline crate or package."],
       "validation": ["Build and run the peer's offline config tests from its checked-in manifest.", "One isolated acknowledged round trip validated with scripts/benchmark-report.py."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-65.json"]
     },
     {
       "id": "KL09-66",
