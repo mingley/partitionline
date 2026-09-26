@@ -2725,14 +2725,14 @@
     {
       "id": "KL09-01",
       "title": "Freeze the fastest-client claim gate and leadership targets",
-      "priority": "P0", "kind": "specification", "status": "in_progress", "owner": "mingley",
+      "priority": "P0", "kind": "specification", "status": "done", "owner": "mingley",
       "write_set": ["docs/benchmark-contract.md", "benchmarks/scenarios.json", "docs/plan/performance-leadership.md", "docs/plan/tasks.json", "docs/plan/evidence/KL09-01.json", "TODO.md"],
       "depends_on": ["KL04-01", "KL04-02"],
       "files": ["docs/benchmark-contract.md", "benchmarks/scenarios.json", "docs/plan/performance-leadership.md"],
       "deliverable": "A versioned claim gate in the benchmark contract: peer set, per-cell best-peer rule, claim types (global, profile, X%-faster, efficiency), statistical thresholds, guardrails and the KL09 local-evidence rules.",
       "acceptance": ["Peer set: librdkafka C (current pinned + 2.15.0 historical), Apache Java kafka-clients, franz-go, rust-rdkafka, and one semantically comparable pure-Rust peer; unsupported cells follow the existing non-win rule and are listed, never counted.", "Claim types frozen as in performance-leadership.md section 0: a global 'fastest Kafka client' claim requires statistical superiority over the best peer in every required cell of all six contract profiles plus the required compressed cells (including zstd) on x86_64 and arm64, with no exceptions; 'X% faster' requires the paired 95% CI lower bound of the ratio >= 1+X; CPU-only wins are named efficiency claims, never 'fastest'.", "Primary metrics, guardrails and the ROADMAP scorecard thresholds (CI lower bound >= 1.20 throughput or CI upper bound <= 0.80 CPU per record, p99 ratio CI upper bound <= 1.05 at matched load) are frozen before any campaign; an exploratory client-ceiling tier is added that can never feed a claim; the contract version is bumped; Suite HOLD rules are unchanged."],
       "validation": ["python3 -m json.tool benchmarks/scenarios.json >/dev/null", "python3 -m unittest discover -s benchmarks/tests -p 'test_*.py'", "Trace one required bulk cell, one unsupported-peer cell and one client-ceiling cell through the gate; show the last cannot produce a claim."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-01.json"]
     },
     {
       "id": "KL09-02",

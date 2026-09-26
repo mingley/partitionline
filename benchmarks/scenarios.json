@@ -1,6 +1,39 @@
 {
   "schema_version": "1.0.0",
-  "contract_version": "1.0.0",
+  "contract_version": "1.1.0",
+  "claim_gate": {
+    "frozen_by": "KL09-01",
+    "contract_section": "docs/benchmark-contract.md section 10",
+    "peer_set": [
+      {"id": "partitionline", "client": "this repository", "standing": "subject under test"},
+      {"id": "librdkafka", "client": "C client", "pin": "current pinned release plus the 2.15.0 historical bar", "driver_card": "KL04-04", "standing": "driver pending"},
+      {"id": "kafka-clients", "client": "Apache Java", "pin": "pinned release", "driver_card": "KL04-03", "standing": "driver pending"},
+      {"id": "franz-go", "client": "Go client", "pin": "pinned release", "driver_card": "KL09-65", "standing": "driver pending"},
+      {"id": "rust-rdkafka", "client": "Rust bindings over librdkafka", "note": "reported separately from the C-only bar", "driver_card": "KL04-05", "standing": "adapter pending"},
+      {"id": "pure-rust-peer", "client": "one semantically comparable pure-Rust client", "note": "selected in KL04-05", "driver_card": "KL04-05", "standing": "selection pending"}
+    ],
+    "best_peer_rule": "Superior is always relative to the best peer for that cell among peers that support the cell's capability and have a runnable driver. Peers without a driver, and peers lacking the capability, are listed as excluded, never counted.",
+    "superior_rule": "Throughput: paired 95% CI lower bound of the partitionline/peer ratio above 1.0. Latency: CI upper bound of each percentile ratio below 1.0 at every declared load.",
+    "claim_types": [
+      {"wording": "Fastest Kafka client (global)", "requirement": "superior in every required cell of all six contract profiles plus the required compressed cells (lz4, zstd), on both x86_64 and arm64, independently reproduced (KL04-14); no exceptions"},
+      {"wording": "Fastest for <profile> on <arch>", "requirement": "superior in every required cell of that profile on that architecture, independently reproduced"},
+      {"wording": "X% faster (cell or profile)", "requirement": "paired 95% CI lower bound of the throughput ratio at least 1+X in every covered cell; latency percentile ratio CI upper bound at most 1-X"},
+      {"wording": "Most CPU-efficient", "requirement": "CPU-per-record ratio CI upper bound at most 0.80 against the best peer; never worded as fastest"},
+      {"wording": "ROADMAP performance-leadership scorecard", "requirement": "throughput ratio CI lower bound at least 1.20, or CPU-per-record CI upper bound at most 0.80, with p99 ratio CI upper bound at most 1.05 at matched load"}
+    ],
+    "scorecard_thresholds": {
+      "throughput_ratio_ci_lower_bound": 1.20,
+      "cpu_per_record_ratio_ci_upper_bound": 0.80,
+      "p99_ratio_ci_upper_bound_at_matched_load": 1.05
+    },
+    "tier_rules": {
+      "required": "gates profile and global wordings",
+      "exploratory": "diagnostic only, never gates",
+      "client_ceiling": "null-broker exploratory tier measuring client-side CPU headroom only; never feeds any claim wording; evidence lives in KL09 evidence JSONs, not result-schema filings"
+    },
+    "local_evidence_rules": "L0/L1 internal notes only; L2 local unsigned direction only; L3 dated per-cell comparison with all losses listed; L4 strongest met claim type. KL09 cards never publish claims; only KL04-12, KL04-14 and KL09-70 can.",
+    "result_filing_note": "franz-go, rust-rdkafka and pure-rust-peer results file under result-schema peer peer-adapter with the concrete peer in provenance."
+  },
   "suite_hold": {
     "status": "active",
     "policy": "Preserve Suite HOLD. Unsigned Verifiable samples do not lift Suite HOLD. Historical signoff rules stay: do not silently move thresholds; the 2026-09-05 nested 1344us vs 750us miss is historical; GHA 5000us and local 750us relative gates are not redefined here.",
@@ -319,6 +352,98 @@
             },
             "security": {
               "protocol": "PLAINTEXT"
+            }
+          }
+        },
+        {
+          "id": "bulk-req-idempotent-acks-all-lz4",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Idempotent 8,000,000 record bulk produce at 100 bytes, acks=all, linger=5ms, 6 partitions, lz4 compression. Same uniform_random payload generator as the uncompressed cell, so every peer compresses identically distributed bytes (ratio near 1.0; the cell measures codec CPU overhead fairly, not ratio; campaigns pin the seed in the matched scenario).",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            },
+            "compression": {
+              "codec": "lz4"
+            }
+          }
+        },
+        {
+          "id": "bulk-req-idempotent-acks-all-zstd",
+          "tier": "required",
+          "status": "not_run",
+          "disposition": "not_run",
+          "description": "Idempotent 8,000,000 record bulk produce at 100 bytes, acks=all, linger=5ms, 6 partitions, zstd compression. Same uniform_random payload generator as the uncompressed cell, so every peer compresses identically distributed bytes (ratio near 1.0; the cell measures codec CPU overhead fairly, not ratio; campaigns pin the seed in the matched scenario). A peer built without zstd follows the non-win rule: listed as excluded, never counted.",
+          "equal_semantics_knobs": {
+            "durability_isr": {
+              "replication_factor": 1,
+              "min_insync_replicas": 1
+            },
+            "acks": -1,
+            "idempotence": true,
+            "isolation_level": "read_committed",
+            "payload": {
+              "size_bytes": 100,
+              "entropy": "uniform_random"
+            },
+            "headers_keys_skew": {
+              "key_type": "null",
+              "has_headers": false,
+              "partition_skew": "uniform"
+            },
+            "partitions": 6,
+            "batching": {
+              "linger_ms": 5,
+              "batch_size_bytes": 1000000,
+              "batch_num_messages": 32768
+            },
+            "connection_in_flight": {
+              "max_in_flight_requests_per_connection": 5,
+              "connections_per_broker": 1,
+              "tcp_nodelay": true
+            },
+            "network_topology": {
+              "environment": "loopback",
+              "rtt_ms": 0.1
+            },
+            "security": {
+              "protocol": "PLAINTEXT"
+            },
+            "compression": {
+              "codec": "zstd"
             }
           }
         },
@@ -903,5 +1028,29 @@
       "rule": "Must not be scored as a win. A benchmark comparison where a peer client lacks the required protocol capability is invalid as a performance victory. It must be explicitly reported as unsupported_peer.",
       "note": "librdkafka 2.15.0 implements traditional consumer group rebalances (KIP-345/KIP-429) but does not implement KIP-932 Share Groups. Comparing partitionline's share group consumer against librdkafka cannot produce a comparative score."
     }
-  ]
+  ],
+  "client_ceiling": {
+    "description": "Exploratory null-broker tier measuring client-side CPU headroom versus a peer on one host. Never feeds any claim wording; quoting a ceiling number as Kafka throughput is prohibited. Evidence lives in KL09 evidence JSONs, not result-schema filings.",
+    "tier": "exploratory",
+    "feeds_claims": false,
+    "broker": "null (in-process loopback harness, KL09-06..10, KL09-66/67)",
+    "cells": [
+      {
+        "id": "ceiling-exp-null-produce",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Client produce ceiling: records/s per client core against the null broker at fixed batching; diagnostic headroom only."
+      },
+      {
+        "id": "ceiling-exp-null-fetch",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Client fetch ceiling: records/s per client core against the null broker at fixed batch sizes; diagnostic headroom only."
+      }
+    ]
+  }
 }

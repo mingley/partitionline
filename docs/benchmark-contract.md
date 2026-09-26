@@ -2,7 +2,7 @@
 
 - **Card ID:** KL04-01
 - **Schema Version:** 1.0.0
-- **Contract Version:** 1.0.0
+- **Contract Version:** 1.1.0 (claim gate frozen by KL09-01; see §10 and the version history there)
 - **Priority:** P1
 - **Kind:** Specification
 - **Deliverable:** Versioned equal-semantics contract for microbenchmarks, live-client benchmarks, and end-to-end comparisons.
@@ -134,6 +134,7 @@ The benchmark contract establishes six named profiles, partitioned into **requir
 ### Definitions of Tiers
 - **Required Tier:** Cells that represent fundamental operational workloads. A client cannot claim parity or leadership in a profile without passing all required cells under equal semantics.
 - **Exploratory Tier:** Cells designed to stress extreme boundaries (e.g. 64 KB records, 64-partition fanout, high abort ratios, share group concurrency). These cells provide diagnostic and architectural insight but do not gate baseline release qualification.
+- **Client-Ceiling Tier (KL09-01):** An exploratory tier run against the null broker (no Kafka server). It measures client-side CPU headroom only. Its cells never feed any claim wording (see §10.4); quoting a ceiling number as Kafka throughput is prohibited.
 
 ### Profile Descriptions
 
@@ -311,3 +312,101 @@ This specification card (`KL04-01`) completes the equal-semantics contract. Subs
 - **KL04-12:** Publish reproducible comparison report from raw artifacts.
 - **KL04-13:** Profile measured bottlenecks and generate surgical optimization cards.
 - **KL04-14:** Obtain independent benchmark reproduction and Kernel Integrity signoff.
+
+---
+
+## 10. Claim Gate (KL09-01; Contract 1.1.0)
+
+This section freezes the only wordings that may summarize comparison
+results, the peers they are measured against, and the statistical bar.
+It permits nothing by itself: every claim additionally requires equal
+semantics (§3), the measurement protocol (§4), the Suite HOLD process
+(§2), and independent reproduction where the table requires it. Until
+those exist, every cell stays `not_run` and no summary claim exists.
+
+### 10.1 Frozen peer set
+
+| Peer ID | Client | Pin / driver card | Standing |
+|---|---|---|---|
+| `partitionline` | This repository | — | Subject under test |
+| `librdkafka` | C client | Current pinned release (KL04-04) plus the 2.15.0 historical bar | Driver pending |
+| `kafka-clients` | Apache Java | Pinned release (KL04-03) | Driver pending |
+| `franz-go` | Go client | Pinned release (KL09-65) | Driver pending |
+| `rust-rdkafka` | Rust bindings over librdkafka | Reported separately from the C-only bar (KL04-05) | Adapter pending |
+| `pure-rust-peer` | One semantically comparable pure-Rust client, selected in KL04-05 | TBD in KL04-05 | Selection pending |
+
+Per-cell best-peer rule: "superior" is always relative to the best peer
+**for that cell** among peers that support the cell's capability and have
+a runnable driver. Peers without a driver, and peers lacking the
+capability (§8 non-win rule), are listed as excluded — never counted.
+
+Results for `franz-go`, `rust-rdkafka` and the pure-Rust peer file under
+result-schema `peer: "peer-adapter"` with the concrete peer recorded in
+provenance, until their driver cards promote them to named schema peers,
+if ever.
+
+### 10.2 Claim types
+
+"Superior" means statistically superior to the best peer for that cell
+(§10.1). For throughput, the paired 95% CI lower bound of the
+partitionline/peer ratio must be above 1.0. For latency, the CI upper
+bound of each percentile ratio must be below 1.0 at every declared load.
+
+| Claim wording | Requirement |
+|---|---|
+| **"Fastest Kafka client"** (global) | Superior in **every** required cell of **all six** contract profiles (low-latency, bulk, fetch, transactional, group/share, secure), plus the required compressed cells (lz4, zstd), on **both** x86_64 and arm64, independently reproduced (KL04-14). **No exceptions.** Any losing, tied or not-run required cell blocks this wording. |
+| **"Fastest for \<profile\> on \<arch\>"** | Superior in every required cell of that profile on that architecture, independently reproduced |
+| **"X% faster"** (cell or profile) | The paired 95% CI lower bound of the throughput ratio is at least 1+X in every covered cell. For latency, the percentile ratio's CI upper bound is at most 1−X. |
+| **"Most CPU-efficient"** | The CPU-per-record ratio's CI upper bound is at most 0.80 against the best peer. This is **never** worded as "fastest". |
+| ROADMAP **performance-leadership scorecard** | The throughput ratio's CI lower bound is at least 1.20, **or** the CPU-per-record CI upper bound is at most 0.80, with the p99 ratio's CI upper bound at most 1.05 at matched load |
+| Anything weaker | Dated per-cell verdicts with every loss listed; no summary claim |
+
+### 10.3 Primary metrics and guardrails
+
+| Profile | Primary metric | Guardrails |
+|---|---|---|
+| bulk (acks=1; idempotent acks=all; none/lz4/zstd) | HW-verified acknowledged rec/s and MB/s | CPU per record; p99 ack latency at matched load; RSS within the declared budget |
+| fetch (6 and 64 partitions; read_uncommitted and read_committed) | ID/hash-verified consumed rec/s and MB/s | CPU per record; RSS |
+| low-latency (open-loop; acks=1 and acks=all) | p50/p99/p99.9 at 10%, 50% and 80% of the weakest peer's saturation, plus the maximum load under the p99 budget | Schedule lag; timeouts and rejections |
+| transactional; group/share | Contract cells (commit cycles/s; KIP-848 steady consumption) | Correctness histories (KL03) |
+| secure (TLS 1.3; SCRAM-SHA-256) | As for bulk | Handshake and reauthentication counted separately |
+| client ceiling (null broker; exploratory) | Records/s per client core | Zero server-side validation failures; never quoted as Kafka throughput |
+
+These internal engineering targets are **not claims**:
+
+- amortized steady-state produce allocations of at most 0.01 per record
+- zero per-record allocations on the additive fetch batch-view path
+- idle producer RSS proportional to active partitions, not to configured
+  connection slots
+
+### 10.4 Tiers and the client ceiling
+
+- **Required** cells gate profile and global wordings: every required
+  cell must be superior (or the wording is blocked).
+- **Exploratory** cells are diagnostic only and never gate.
+- **Client-ceiling** cells (null broker, exploratory) measure client-side
+  CPU headroom versus a peer on one host. They never feed any claim
+  wording, their evidence lives in KL09 evidence JSONs rather than
+  result-schema filings, and quoting a ceiling number as Kafka
+  throughput is prohibited.
+
+### 10.5 Local-evidence rules (KL09)
+
+- L0 (microbenchmarks, allocations, instruction counts) and L1 (client
+  ceilings): internal engineering notes only.
+- L2 (local real-broker cells, paired and repeated): local and unsigned;
+  engineering direction only.
+- L3 (controlled x86_64 **and** arm64 campaigns): dated per-cell
+  comparison with all losses listed.
+- L4 (independent reproduction plus Suite HOLD process): the strongest
+  claim type in §10.2 whose requirement is met.
+
+KL09 cards never publish a claim; only KL04-12, KL04-14 and KL09-70 can.
+
+### Version history
+
+- **1.1.0** (KL09-01): claim gate frozen (peer set, per-cell best-peer
+  rule, claim types, primary metrics, guardrails, ROADMAP scorecard
+  thresholds, client-ceiling tier, local-evidence rules); required lz4
+  and zstd bulk cells specified; Suite HOLD unchanged.
+- **1.0.0** (KL04-01): initial equal-semantics contract.

@@ -8,7 +8,9 @@ every other lane. Work proceeds one card per session under the
 [session guide](README.md).
 
 Nothing here is a performance claim. The numbers in section 2 are dated
-historical evidence. Targets are **proposed** until KL09-01 freezes them.
+historical evidence. The claim gate below was **frozen by KL09-01** into
+the binding [benchmark contract](../benchmark-contract.md#10-claim-gate-kl09-01-contract-110)
+(version 1.1.0); on any conflict the contract wins.
 **Suite HOLD remains** until the existing signoff process lifts it.
 
 ## 0. Scope and claim definitions
@@ -33,7 +35,7 @@ broker-internal APIs from the client profiles.
   idempotent and transactional work; groups and share groups; 1 to 64 or
   more partitions; x86_64 and arm64
 
-### Claim types (KL09-01 freezes these)
+### Claim types (frozen by KL09-01 in contract §10.2, v1.1.0)
 
 "Superior" means statistically superior to the **best peer for that
 cell**. For throughput, the paired 95% CI lower bound of the
@@ -63,7 +65,7 @@ as excluded. It is never counted as a win.
 | L3 | Controlled x86_64 **and** arm64 campaigns | KL04-08/10/11/12, KL09-68 | Dated per-cell comparison with all losses listed |
 | L4 | Independent reproduction plus Suite HOLD process | KL04-14, KL09-70 | The strongest claim type in the table above whose requirement is met |
 
-### Peer set
+### Peer set (frozen by KL09-01 in contract §10.1, v1.1.0)
 
 | Peer | Why | Card |
 |---|---|---|
@@ -73,7 +75,7 @@ as excluded. It is never counted as a win.
 | rust-rdkafka | The Rust status quo, reported separately from the C-only bar | KL04-05 |
 | One semantically comparable pure-Rust peer (selected in KL04-05) | Same-language baseline | KL04-05 |
 
-### Proposed primary metrics and guardrails
+### Primary metrics and guardrails (frozen by KL09-01 in contract §10.3, v1.1.0)
 
 | Profile | Primary metric | Guardrails |
 |---|---|---|
