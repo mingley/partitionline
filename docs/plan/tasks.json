@@ -2836,13 +2836,13 @@
     {
       "id": "KL09-11",
       "title": "Add a reproducible profile-capture script for named cells",
-      "priority": "P1", "kind": "tooling", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "tooling", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-01"],
       "files": ["new: scripts/perf-profile.sh", "docs/benchmark.md"],
       "deliverable": "One script capturing CPU samples/flamegraph, a syscall summary, context switches and a heap profile for a named cell or command, with provenance.",
       "acceptance": ["Uses only locally installed, approved tools detected at runtime (for example perf or samply, strace -c or dtruss) and fails closed with 'tool missing' instead of reporting partial success.", "Records SHA, toolchain, cargo profile, command line, CPU model and OS; adds debug symbols (CARGO_PROFILE_RELEASE_DEBUG=true) without otherwise changing benchmarked codegen.", "Writes artifacts with checksums under one run directory; docs/benchmark.md gains a short profiling section linking the script."],
       "validation": ["bash scripts/perf-profile.sh --self-test", "Capture one bench_produce run against an isolated local broker and attach the summary artifact."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-11.json"]
     },
     {
       "id": "KL09-12",

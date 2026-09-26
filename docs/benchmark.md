@@ -59,6 +59,34 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a 1 -q \
 Build the C tool from the v2.15.0 tag (`examples/rdkafka_performance.c`) linked
 to a 2.15.0 `librdkafka`. Do not use rust-rdkafka as the C bar.
 
+## Profiling a run (KL09-11)
+
+[scripts/perf-profile.sh](../scripts/perf-profile.sh) captures CPU samples, a
+syscall summary, rusage (context switches, peak RSS, faults) and a heap
+profile for a named cell or command, using only locally installed tools
+detected at runtime (`samply`/`perf`/`sample`, `strace`/`dtruss`,
+`python3`, `valgrind`/`heap`). Each capture re-runs the command once; one
+run directory holds provenance, artifacts, checksums and `summary.json`.
+A requested capture without a usable tool fails closed with `tool missing`
+instead of reporting partial success. The script exports
+`CARGO_PROFILE_RELEASE_DEBUG=true` so release builds carry symbols without
+changing benchmarked codegen.
+
+```bash
+# Profile the example binary directly (not `cargo run`, which would profile cargo).
+CARGO_PROFILE_RELEASE_DEBUG=true cargo build --locked --release --example bench_produce
+KAFKA_BOOTSTRAP=127.0.0.1:19092 KAFKA_TOPIC=prof COUNT=2000000 WARMUP_SECS=0 \
+  bash scripts/perf-profile.sh --cell bench_produce -- ./target/release/examples/bench_produce
+```
+
+On unprivileged macOS there is no syscall tracer (`dtruss` needs dtrace
+privileges), so constrain the run to the available captures; the summary
+manifest lists exactly what ran:
+
+```bash
+bash scripts/perf-profile.sh --cell bench_produce --only cpu,rusage,heap -- ./target/release/examples/bench_produce
+```
+
 ## Results
 
 ### 2026-08-25, three locked runs, no warmup (HW=8e6 both)
