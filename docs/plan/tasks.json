@@ -2781,13 +2781,13 @@
     {
       "id": "KL09-06",
       "title": "Build a validating null-broker Produce server",
-      "priority": "P1", "kind": "test-infrastructure", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "test-infrastructure", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-01"],
       "files": ["new: benchmarks/nullbroker/", "tests/common/mod.rs"],
       "deliverable": "A standalone, workspace-excluded Kafka-protocol server answering ApiVersions, Metadata, InitProducerId and Produce immediately after validating every batch, so partitionline's client CPU, not broker I/O, bounds throughput.",
       "acceptance": ["Every batch is checked for framing, CRC32C, record count and per-producer/partition base-sequence continuity; offsets are monotonic; violations return an error response and are counted.", "Single node, N partitions, plaintext, versions negotiated by partitionline; peer compatibility is KL09-66, multi-node and fault modes are KL09-08.", "Server-side accepted records/bytes and validation failures go to a result artifact labeled client-ceiling; the crate is never a dependency of partitionline."],
       "validation": ["cargo test --locked --manifest-path benchmarks/nullbroker/Cargo.toml", "bench_produce against it reconciles client acked == server accepted with zero validation failures; a corrupted-CRC fixture is rejected."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-06.json"]
     },
     {
       "id": "KL09-07",

@@ -1,0 +1,33 @@
+[package]
+name = "nullbroker"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "Validating null-broker Produce server for client-ceiling measurements (KL09-06). Standalone: zero dependencies, never a dependency of partitionline."
+
+[[bin]]
+name = "nullbroker"
+path = "src/main.rs"
+
+[lib]
+name = "nullbroker"
+path = "src/lib.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"
+unreachable_pub = "warn"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+# Sync-only std harness: no async runtime exists here, so the workspace's
+# async-oriented disallowed lists (picked up from the root clippy.toml)
+# do not apply. Explicit allow beats the config-implied enable.
+disallowed_methods = "allow"
+disallowed_types = "allow"
