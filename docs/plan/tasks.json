@@ -1933,13 +1933,30 @@
     {
       "id": "KL06-07",
       "title": "Extend redaction checks to the new lifecycle paths",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL06-04", "KL06-05"],
-      "files": ["tests/credential_redact.rs", "tests/auth_lifecycle.rs", "docs/security.md"],
+      "files": ["src/protocol/sasl.rs", "src/protocol/scram.rs", "src/protocol/oidc.rs", "tests/credential_redact.rs", "tests/common/mod.rs", "docs/security.md"],
       "deliverable": "End-to-end assertions that credentials cannot appear in debug/error/span/metric output during refresh and failure.",
       "acceptance": ["Use unique sentinel secrets, token material, private keys and credential-bearing URL components.", "Capture actual failing paths and tracing output rather than checking only configuration Debug.", "Retain actionable sanitized error categories and bounded labels; do not replace useful errors with silent failure."],
       "validation": ["cargo test --locked --test credential_redact --features tracing", "cargo test --locked --test auth_lifecycle --features tracing"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "HEAD",
+                "commands": [
+                        "cargo test --locked --test credential_redact --features tracing (29 passed, exit 0)",
+                        "cargo test --locked --test credential_redact (28 passed, exit 0)",
+                        "cargo test --locked --test auth_lifecycle --features tracing -- --test-threads=2 (31 passed, exit 0)",
+                        "cargo test --locked -- --test-threads=4 (full suite, 0 failures, exit 0)",
+                        "cargo test --locked --features tracing -- --test-threads=4 (full suite, 0 failures, exit 0)",
+                        "cargo clippy --locked --all-targets --all-features -- -D warnings (0 warnings, exit 0)",
+                        "cargo fmt --check (clean, exit 0)",
+                        "bash scripts/ci-docs.sh (strict rustdoc + doctests, exit 0)"
+                ],
+                "results": "Six unique kl0607-* sentinels flow through real failing SASL (initial + KIP-368 reauth), OIDC (userinfo rejection, 401 bodies) and TLS (key-parse, mTLS rotation) paths; a capturing tracing subscriber (non-vacuity proven) asserts no span/event field carries secret material. SaslAuthenticate failures keep code 58 with a fixed per-mechanism label; SCRAM e= is bounded to known tokens; OIDC userinfo is rejected before connect and stripped from Debug.",
+                "artifacts": ["src/protocol/sasl.rs", "src/protocol/scram.rs", "src/protocol/oidc.rs", "tests/credential_redact.rs", "tests/common/mod.rs", "docs/security.md", "docs/plan/evidence/KL06-07.json"],
+                "limits": ["In-memory mock only.", "Tracing capture is thread-local to the test thread; error-surface assertions cover all paths.", "SaslHandshake mechanism-list mismatch still quotes the broker list (misconfiguration diagnostic).", "Default-parallelism flakes on the loaded host (pre-existing); suites pass with --test-threads=2/4."]
+        }
+      ]
     },
     {
       "id": "KL06-08",

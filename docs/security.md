@@ -33,6 +33,28 @@ OIDC token-endpoint and OAUTHBEARER authenticate `Error` strings omit IdP/broker
 response bodies (status-only / fixed message) so `Display`/`Debug` cannot echo
 `client_secret` or token material from failure payloads.
 
+KL06-07 extends this to every auth lifecycle path (initial authenticate,
+KIP-368 reauthentication, OIDC refresh, TLS rotation):
+
+- SaslAuthenticate failures keep the broker code but drop the
+  broker-controlled `error_message`, replacing it with a fixed
+  `sasl {mechanism} authentication failed` label — a hostile broker cannot
+  get echoed passwords/tokens into `Error::Broker`.
+- SCRAM `e=` values are bounded to known RFC 5802/RFC 7677 tokens
+  (anything else → `scram server error: unrecognized`); malformed
+  attributes fail as `scram bad attr` without echoing the offending bytes.
+- `OidcConfig::token_url` with `user:pass@` userinfo is rejected before any
+  connect (`oidc token_url must not contain userinfo`) so the password
+  cannot leak into DNS, the `Host` header, or `Debug`; `Debug` strips
+  userinfo while keeping scheme/host/path visible.
+- Failing SASL/OIDC/TLS flows are asserted under a capturing `tracing`
+  subscriber: no span/event field may carry password, token, secret, or key
+  material, and rotated `TlsConfig`s stay redacted.
+
+Sanitized errors stay actionable: broker codes, OIDC HTTP statuses, and
+known SCRAM tokens are preserved; only unbounded third-party bytes are
+masked.
+
 Metrics snapshots (`ProducerMetrics` / `ConsumerMetrics` / `ShareMetrics` /
 `AdminMetrics`) expose counters, latency, and topic names only — not credentials.
 Optional `tracing` instruments `skip(self)` (and `skip(self, rec)` on produce) so

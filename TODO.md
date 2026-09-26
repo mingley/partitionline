@@ -1,6 +1,6 @@
 # Next-session queue
 
-**Default next task: `KL06-07` -- extend redaction checks to the new lifecycle paths.**
+**Default next task: `KL01-09` -- adapt Apache verifiable producer and consumer event contract.**
 
 Use [one task per session](docs/plan/README.md). The canonical
 [task registry](docs/plan/tasks.json) contains dependencies, starting files,

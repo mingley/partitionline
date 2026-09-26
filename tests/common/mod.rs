@@ -245,6 +245,8 @@ struct State {
     sasl_user: Option<(String, String)>,
     scram_user: Option<(scram::ScramAlg, String, String)>,
     oauth_principal: Option<String>,
+    /// Override SaslAuthenticate failure messages (broker-echo tests, KL06-07).
+    sasl_authenticate_error_message: Option<String>,
     next_pid: i64,
     last_producer_id: Option<i64>,
     last_produce_producer_epoch: Option<i16>,
@@ -667,6 +669,7 @@ fn new_state(
         sasl_user,
         scram_user,
         oauth_principal,
+        sasl_authenticate_error_message: None,
         next_pid: 1000,
         last_producer_id: None,
         last_produce_producer_epoch: None,
@@ -2709,6 +2712,12 @@ impl Mock {
 
     pub fn last_sasl_authenticate_version(&self) -> Option<i16> {
         self.state.lock().last_sasl_authenticate_version
+    }
+
+    /// Replace SaslAuthenticate failure messages with `msg`, simulating a
+    /// broker that echoes request material back (KL06-07).
+    pub fn set_sasl_authenticate_error_message(&self, msg: &str) {
+        self.state.lock().sasl_authenticate_error_message = Some(msg.to_string());
     }
 
     pub fn last_sasl_authenticate_correlation(&self) -> Option<i32> {
@@ -6328,7 +6337,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             SASL_AUTHENTICATE => {
                 let version = header.api_version;
-                let (scram_user, oauth_principal, sasl_user) = {
+                let (scram_user, oauth_principal, sasl_user, msg_override) = {
                     let mut st = state.lock();
                     st.last_sasl_authenticate_version = Some(version);
                     st.last_sasl_authenticate_correlation = Some(header.correlation_id);
@@ -6336,6 +6345,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         st.scram_user.clone(),
                         st.oauth_principal.clone(),
                         st.sasl_user.clone(),
+                        st.sasl_authenticate_error_message.clone(),
                     )
                 };
                 let bytes = decode_sasl_authenticate_request(&mut frame, version).unwrap();
@@ -6366,7 +6376,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         &mut body,
                                         version,
                                         58,
-                                        Some("bad scram first"),
+                                        msg_override
+                                            .clone()
+                                            .or(Some("bad scram first".into()))
+                                            .as_deref(),
                                         &[],
                                         0,
                                     )
@@ -6394,7 +6407,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         &mut body,
                                         version,
                                         58,
-                                        Some("bad scram proof"),
+                                        msg_override
+                                            .clone()
+                                            .or(Some("bad scram proof".into()))
+                                            .as_deref(),
                                         &[],
                                         0,
                                     )
@@ -6409,11 +6425,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .map(|p| p == expected)
                         .unwrap_or(false);
                     authed = ok;
+                    let oauth_err: Option<String> =
+                        msg_override.clone().or(Some("bad oauth token".into()));
                     encode_sasl_authenticate_response(
                         &mut body,
                         version,
                         if ok { 0 } else { 58 },
-                        if ok { None } else { Some("bad oauth token") },
+                        if ok { None } else { oauth_err.as_deref() },
                         &[],
                         0,
                     )
@@ -6425,11 +6443,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         _ => false,
                     };
                     authed = ok;
+                    let plain_err: Option<String> =
+                        msg_override.clone().or(Some("bad credentials".into()));
                     encode_sasl_authenticate_response(
                         &mut body,
                         version,
                         if ok { 0 } else { 58 },
-                        if ok { None } else { Some("bad credentials") },
+                        if ok { None } else { plain_err.as_deref() },
                         &[],
                         0,
                     )

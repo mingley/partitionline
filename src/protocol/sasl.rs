@@ -288,6 +288,17 @@ pub fn parse_plain_auth_bytes(bytes: &[u8]) -> Option<(String, String)> {
     Some((user.to_string(), pass.to_string()))
 }
 
+/// Fixed SaslAuthenticate failure detail (KL06-07).
+///
+/// The broker's `error_message` is untrusted input: a hostile broker can
+/// echo credential material (passwords, tokens) in it, and `Error::Broker`
+/// is rendered into logs, tracing fields and user-visible errors. The
+/// message is therefore dropped; the code is kept and the detail is a
+/// fixed per-mechanism label so failures stay actionable.
+fn sasl_authenticate_error(code: i16, mechanism: &str, _broker_message: Option<String>) -> Error {
+    Error::broker(code, format!("sasl {mechanism} authentication failed"))
+}
+
 /// SaslHandshake + SaslAuthenticate for PLAIN.
 pub async fn authenticate_plain(
     conn: &mut BrokerConn,
@@ -325,13 +336,14 @@ pub async fn authenticate_plain(
     let (code, msg, _, session_lifetime_ms) =
         decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
-        return Err(Error::broker(
+        return Err(sasl_authenticate_error(
             if code == 0 {
                 error::SASL_AUTHENTICATION_FAILED
             } else {
                 code
             },
-            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
+            "PLAIN",
+            msg,
         ));
     }
     conn.record_sasl_session_lifetime(session_lifetime_ms);
@@ -377,10 +389,7 @@ pub async fn authenticate_scram(
         .await?;
     let (code, msg, bytes, _) = decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
-        return Err(Error::broker(
-            code,
-            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
-        ));
+        return Err(sasl_authenticate_error(code, name, msg));
     }
     let server_first =
         String::from_utf8(bytes).map_err(|_| Error::protocol("scram server-first not utf8"))?;
@@ -396,10 +405,7 @@ pub async fn authenticate_scram(
     let (code, msg, bytes, session_lifetime_ms) =
         decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
-        return Err(Error::broker(
-            code,
-            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
-        ));
+        return Err(sasl_authenticate_error(code, name, msg));
     }
     let server_final =
         String::from_utf8(bytes).map_err(|_| Error::protocol("scram server-final not utf8"))?;
@@ -471,10 +477,7 @@ pub async fn authenticate_oauthbearer_token(
     let (code, msg, bytes, session_lifetime_ms) =
         decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
-        return Err(Error::broker(
-            code,
-            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
-        ));
+        return Err(sasl_authenticate_error(code, "OAUTHBEARER", msg));
     }
     // RFC 7628 / librdkafka: empty server-first = success. Non-empty is an
     // error JSON; send a final SOH then fail.
@@ -579,13 +582,14 @@ pub async fn reauthenticate_plain(
         decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
         conn.close();
-        return Err(Error::broker(
+        return Err(sasl_authenticate_error(
             if code == 0 {
                 error::SASL_AUTHENTICATION_FAILED
             } else {
                 code
             },
-            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
+            "PLAIN",
+            msg,
         ));
     }
     conn.record_sasl_session_lifetime(session_lifetime_ms);
@@ -614,10 +618,7 @@ pub async fn reauthenticate_scram(
     let (code, msg, bytes, _) = decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
         conn.close();
-        return Err(Error::broker(
-            code,
-            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
-        ));
+        return Err(sasl_authenticate_error(code, alg.name(), msg));
     }
     let server_first =
         String::from_utf8(bytes).map_err(|_| Error::protocol("scram server-first not utf8"))?;
@@ -634,10 +635,7 @@ pub async fn reauthenticate_scram(
         decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
         conn.close();
-        return Err(Error::broker(
-            code,
-            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
-        ));
+        return Err(sasl_authenticate_error(code, alg.name(), msg));
     }
     let server_final =
         String::from_utf8(bytes).map_err(|_| Error::protocol("scram server-final not utf8"))?;
@@ -693,10 +691,7 @@ pub async fn reauthenticate_oauthbearer_token(
         decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
         conn.close();
-        return Err(Error::broker(
-            code,
-            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
-        ));
+        return Err(sasl_authenticate_error(code, "OAUTHBEARER", msg));
     }
     if !bytes.is_empty() {
         drop(

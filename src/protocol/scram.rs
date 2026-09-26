@@ -321,7 +321,9 @@ fn attr_map(msg: &str) -> Result<std::collections::HashMap<char, String>> {
             .next()
             .ok_or_else(|| Error::protocol("scram empty attr"))?;
         if c.next() != Some('=') {
-            return Err(Error::protocol(format!("scram bad attr {part}")));
+            // KL06-07: do not echo the offending bytes; server messages
+            // are untrusted and may carry reflected secret material.
+            return Err(Error::protocol("scram bad attr"));
         }
         drop(m.insert(k, c.as_str().to_string()));
     }
@@ -390,7 +392,25 @@ pub fn verify_server_final(
 ) -> Result<()> {
     let attrs = attr_map(server_final)?;
     if let Some(e) = attrs.get(&'e') {
-        return Err(Error::protocol(format!("scram server error: {e}")));
+        // KL06-07: `e=` is broker-controlled; only known RFC 5802 /
+        // RFC 7677 server-error tokens pass through, anything else is
+        // masked so a hostile value cannot smuggle secret bytes into
+        // Error Display/Debug.
+        let label = match e.as_str() {
+            "invalid-encoding"
+            | "extensions-not-supported"
+            | "invalid-proof"
+            | "channel-bindings-dont-match"
+            | "server-does-support-channel-binding"
+            | "channel-binding-not-supported"
+            | "unsupported-channel-binding-type"
+            | "unknown-user"
+            | "invalid-username-encoding"
+            | "no-resources"
+            | "other-error" => e.as_str(),
+            _ => "unrecognized",
+        };
+        return Err(Error::protocol(format!("scram server error: {label}")));
     }
     let v = attrs
         .get(&'v')

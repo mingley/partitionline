@@ -19,7 +19,8 @@ const FORM_BODY: &str = "grant_type=client_credentials";
 
 /// OIDC-style client credentials used to POST for an access token.
 ///
-/// [`Debug`] redacts [`Self::client_secret`] (KL-06).
+/// [`Debug`] redacts [`Self::client_secret`] (KL-06) and strips any
+/// `user:pass@` userinfo from [`Self::token_url`] (KL06-07).
 #[derive(Clone)]
 pub struct OidcConfig {
     /// Token endpoint, `http://` or `https://host:port/path`.
@@ -35,12 +36,37 @@ pub struct OidcConfig {
 impl fmt::Debug for OidcConfig {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("OidcConfig")
-            .field("token_url", &self.token_url)
+            .field("token_url", &redact_token_url(&self.token_url))
             .field("client_id", &self.client_id)
             .field("client_secret", &"<redacted>")
             .field("tls", &self.tls)
             .finish()
     }
+}
+
+/// Render `token_url` with any `user:pass@` userinfo stripped (KL06-07).
+/// Scheme, host, port and path stay visible for actionability.
+fn redact_token_url(url: &str) -> String {
+    let (scheme, rest) = match url.split_once("://") {
+        Some((s, r)) => (Some(s), r),
+        None => (None, url),
+    };
+    let (authority, path) = match rest.split_once('/') {
+        Some((a, p)) => (a, Some(p)),
+        None => (rest, None),
+    };
+    let host = authority.rsplit_once('@').map_or(authority, |(_, h)| h);
+    let mut out = String::with_capacity(url.len());
+    if let Some(s) = scheme {
+        out.push_str(s);
+        out.push_str("://");
+    }
+    out.push_str(host);
+    if let Some(p) = path {
+        out.push('/');
+        out.push_str(p);
+    }
+    out
 }
 
 impl OidcConfig {
@@ -279,6 +305,12 @@ fn parse_http_url(url: &str) -> Result<HttpUrl> {
         Some((a, p)) => (a, format!("/{p}")),
         None => (rest, "/".to_string()),
     };
+    if authority.contains('@') {
+        // KL06-07: reject before any connect. Userinfo would leak the
+        // password into DNS, the Host header and Debug output; client
+        // credentials travel in the Authorization header instead.
+        return Err(Error::protocol("oidc token_url must not contain userinfo"));
+    }
     if authority.is_empty() {
         return Err(Error::protocol("oidc token_url missing host"));
     }
