@@ -3384,13 +3384,13 @@
     {
       "id": "KL09-59",
       "title": "Reuse one OIDC token manager across connection opens",
-      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P2", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL06-04", "KL09-11"],
       "files": ["src/net.rs", "src/protocol/sasl.rs", "src/protocol/oidc.rs"],
       "deliverable": "Client connection setup uses one shared single-flight OIDC token manager instead of fetching a fresh token for every connection open.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "N concurrent opens trigger one IdP fetch; fail-closed expiry, no token disclosure and reserved SASL correlation IDs are preserved. Coordinate with the KL06 owner."],
       "validation": ["cargo test --locked --test auth_lifecycle", "cargo test --locked --test credential_redact", "bash scripts/ci-auth-smoke.sh (isolated secure broker)", "A/B cell lb-oidc-connect (IdP fetches per 8 opens, connect ms): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-59.json"]
     },
     {
       "id": "KL09-60",

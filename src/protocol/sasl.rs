@@ -536,7 +536,7 @@ pub async fn authenticate(
         return authenticate_scram(conn, super::scram::ScramAlg::Sha512, u, p, timeout).await;
     }
     if let Some(oidc) = sasl_oidc {
-        let token = super::oidc::fetch_client_credentials_token(oidc, timeout).await?;
+        let token = super::oidc::shared_client_credentials_token(oidc, timeout).await?;
         return authenticate_oauthbearer_token(conn, &token, timeout).await;
     }
     if let Some(principal) = sasl_oauthbearer {

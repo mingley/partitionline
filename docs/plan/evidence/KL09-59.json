@@ -1,0 +1,61 @@
+{
+ "source_sha": "HEAD",
+ "baseline_sha": "766a7f8",
+ "disposition": "accepted",
+ "hypothesis": "sasl::authenticate fetches a fresh OIDC token per connection open; routing the connect path through one shared single-flight OidcTokenManager per credential set cuts IdP fetches per 8 concurrent opens from 8 to 1 and shortens connect ms.",
+ "cells": [
+  "lb-oidc-connect"
+ ],
+ "host": "Apple M4 Pro, Darwin 25.6.0 arm64, rustc 1.98.1, release profile; broker Kafka 4.1.0 KRaft loopback SASL_SSL (ci-auth-smoke.sh certs); counting OIDC stub fork (same unsecured-JWT minting + /count//reset)",
+ "commands": [
+  "cargo test --locked --test auth_lifecycle (32 passed incl. new oidc_connect_path_coalesces_concurrent_fetches, exit 0; fails pre-fix with 8 hits vs 1)",
+  "cargo test --locked --test credential_redact (28 passed, exit 0)",
+  "cargo clippy --locked --all-targets --all-features -- -D warnings (clean); cargo fmt clean on touched files (tests/mock_produce.rs drift is pre-existing on main)",
+  "bash scripts/ci-auth-smoke.sh incl. OIDC client_credentials leg (exit 0)",
+  "A/B lb-oidc-connect: 13 interleaved pairs (7 parent-first + 6 alternating order), 8 concurrent opens per rep, stub reset per rep"
+ ],
+ "results": {
+  "primary": {
+   "metric": "IdP fetches per 8 opens",
+   "baseline": 8,
+   "candidate": 1,
+   "repetitions": 13,
+   "note": "deterministic 8/8 parent, 1/8 candidate across all 13 pairs; -87.5%"
+  },
+  "connect_ms": {
+   "parent_median": 48.203,
+   "candidate_median": 19.955,
+   "median_delta_pct": -58.6,
+   "paired_mean_diff": 30.319,
+   "paired_95ci": [
+    20.194,
+    40.444
+   ],
+   "repetitions": 13,
+   "note": "paired t CI excludes zero; effect order-independent (alternating run confirms)"
+  },
+  "allocations": {
+   "unit": "not measured (KL09-04 allocation tooling pending)",
+   "baseline": null,
+   "candidate": null
+  },
+  "instructions": {
+   "bench": "not measured (KL09-05 gate pending)",
+   "baseline": null,
+   "candidate": null
+  },
+  "guardrails": "auth_lifecycle 32/32, credential_redact 28/28, ci-auth-smoke.sh exit 0; connect ms improves (no regression); reauthenticate() untouched (keeps documented fresh-fetch); public API additive-only (one pub(crate) fn; no signature changes)",
+  "net_production_lines": 69,
+  "correctness": "no new skips; new test fails pre-fix (8 hits) and passes post-fix (1 hit)"
+ },
+ "artifacts": [
+  "docs/plan/evidence/KL09-59.json"
+ ],
+ "limits": [
+  "Shared managers are retained per process (one entry per distinct endpoint/client/secret/TLS fingerprint); tokens refresh in place. No eviction: entries are ~KB and real deployments use ~1 credential set.",
+  "Secrets enter the share key only as SHA-256; the key is never logged. Debug/redaction impls unchanged (credential_redact green).",
+  "A revoked-but-unexpired token is now reused until the manager refreshes (previously every open refetched); failure semantics otherwise unchanged, and the manager path already had these semantics via authenticate_with_token_provider.",
+  "Cell driver was a scratch example (raw BrokerConn opens, deleted after); committed coverage is the in-process coalescing test. Absolute ms is host/broker-specific; the fetch-count outcome is structural.",
+  "local/unsigned; not a Kafka comparison claim"
+ ]
+}

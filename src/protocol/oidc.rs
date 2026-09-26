@@ -2,12 +2,14 @@
 //!
 //! HTTP/1.1 POST over `tokio::net::TcpStream`. `https://` uses rustls.
 
+use std::collections::HashMap;
 use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{Arc, Weak};
+use std::sync::{Arc, LazyLock, Weak};
 use std::time::{Duration, Instant};
 
+use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::timeout;
@@ -160,6 +162,74 @@ pub async fn fetch_client_credentials_token(
     fetch_client_credentials_token_response(cfg, request_timeout)
         .await
         .map(|resp| resp.access_token)
+}
+
+/// Fingerprint identifying one OIDC credential set for manager sharing.
+/// Secrets enter only as SHA-256 digests; the key is never logged.
+#[derive(Clone, Hash, PartialEq, Eq)]
+struct SharedManagerKey {
+    token_url: String,
+    client_id: String,
+    secret_sha256: [u8; 32],
+    tls_sha256: Option<[u8; 32]>,
+}
+
+impl SharedManagerKey {
+    fn for_config(cfg: &OidcConfig) -> Self {
+        let secret_sha256: [u8; 32] = Sha256::digest(cfg.client_secret.as_bytes()).into();
+        let tls_sha256 = cfg.tls.as_ref().map(|tls| {
+            let mut hasher = Sha256::new();
+            for bytes in [
+                tls.ca_pem.as_deref(),
+                tls.client_cert_pem.as_deref(),
+                tls.client_key_pem.as_deref(),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                hasher.update((bytes.len() as u64).to_be_bytes());
+                hasher.update(bytes);
+            }
+            if let Some(name) = tls.server_name.as_deref() {
+                hasher.update((name.len() as u64).to_be_bytes());
+                hasher.update(name.as_bytes());
+            }
+            hasher.finalize().into()
+        });
+        Self {
+            token_url: cfg.token_url.clone(),
+            client_id: cfg.client_id.clone(),
+            secret_sha256,
+            tls_sha256,
+        }
+    }
+}
+
+/// One [`OidcTokenManager`] per distinct OIDC credential set, shared by
+/// every connection open in the process (KL09-59). Entries are retained
+/// for process lifetime — one per distinct endpoint/client pair, tokens
+/// refreshing in place — so sequential opens reuse the cached token and
+/// concurrent opens single-flight onto one IdP fetch.
+static SHARED_MANAGERS: LazyLock<
+    parking_lot::Mutex<HashMap<SharedManagerKey, Arc<OidcTokenManager>>>,
+> = LazyLock::new(|| parking_lot::Mutex::new(HashMap::new()));
+
+/// Valid token from the manager shared by `cfg`'s credential set.
+///
+/// Concurrent opens coalesce onto one IdP fetch; sequential opens reuse
+/// the cached token until the manager refreshes. Expiry, fail-closed
+/// errors and redaction are the manager's (KL06), unchanged.
+pub(crate) async fn shared_client_credentials_token(
+    cfg: &OidcConfig,
+    request_timeout: Duration,
+) -> Result<String> {
+    let key = SharedManagerKey::for_config(cfg);
+    let manager = SHARED_MANAGERS
+        .lock()
+        .entry(key)
+        .or_insert_with(|| Arc::new(OidcTokenManager::new(cfg.clone())))
+        .clone();
+    manager.token(request_timeout).await
 }
 
 /// POST `grant_type=client_credentials` and return parsed [`OidcTokenResponse`].

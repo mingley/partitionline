@@ -514,6 +514,77 @@ async fn real_http_token_endpoint_lifecycle() {
     );
 }
 
+/// KL09-59: concurrent connection opens through the connect path share
+/// one IdP fetch instead of fetching a fresh token per open.
+#[tokio::test]
+async fn oidc_connect_path_coalesces_concurrent_fetches() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let request_count = Arc::new(AtomicUsize::new(0));
+    let rc = request_count.clone();
+    drop(tokio::spawn(async move {
+        loop {
+            let Ok((mut sock, _)) = listener.accept().await else {
+                break;
+            };
+            let mut buf = vec![0u8; 2048];
+            let _ = sock.read(&mut buf).await.unwrap();
+            let _ = rc.fetch_add(1, Ordering::SeqCst);
+            let body = format!(
+                "{{\"access_token\":\"{}\",\"token_type\":\"Bearer\",\"expires_in\":3600}}",
+                unsecured_jwt_now("alice")
+            );
+            let resp = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            sock.write_all(resp.as_bytes()).await.unwrap();
+        }
+    }));
+
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let oidc = OidcConfig::new(format!("http://{addr}/token"), "cid", "secret");
+
+    let mut tasks = Vec::new();
+    for _ in 0..8 {
+        let mock_addr = mock.addr.clone();
+        let cfg = oidc.clone();
+        tasks.push(tokio::spawn(async move {
+            let mut conn = BrokerConn::connect_tls(
+                &mock_addr,
+                "lb-oidc-connect",
+                Duration::from_secs(5),
+                None,
+            )
+            .await
+            .unwrap();
+            let vers = negotiate_api_versions(&mut conn, Duration::from_secs(5))
+                .await
+                .unwrap();
+            apply_api_keys(&mut conn, &vers.api_keys);
+            partitionline::protocol::sasl::authenticate(
+                &mut conn,
+                None,
+                None,
+                None,
+                None,
+                Some(&cfg),
+                Duration::from_secs(5),
+            )
+            .await
+            .unwrap();
+        }));
+    }
+    for task in tasks {
+        task.await.unwrap();
+    }
+    assert_eq!(
+        request_count.load(Ordering::SeqCst),
+        1,
+        "8 concurrent opens must share 1 IdP fetch"
+    );
+}
+
 #[tokio::test]
 async fn sasl_oauthbearer_handshake_with_token_provider() {
     let principal = "alice";
