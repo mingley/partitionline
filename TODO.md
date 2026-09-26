@@ -1,6 +1,6 @@
 # Next-session queue
 
-**Default next task: `KL09-14` (P0) -- pack produce batches by exact encoded size including headers.**
+**Default next task: `KL09-01` (P0) -- freeze the fastest-client claim gate and leadership targets.**
 
 Use [one task per session](docs/plan/README.md). The canonical
 [task registry](docs/plan/tasks.json) contains dependencies, starting files,

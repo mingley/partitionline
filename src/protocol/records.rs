@@ -1985,7 +1985,7 @@ fn size_of_key_value_headers(
 }
 
 /// Java `DefaultRecord.recordSizeUpperBound`.
-fn record_size_upper_bound(
+pub(crate) fn record_size_upper_bound(
     key: Option<&[u8]>,
     value: Option<&[u8]>,
     headers: &[Header],

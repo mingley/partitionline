@@ -26,8 +26,9 @@ use crate::protocol::group::{
 use crate::protocol::header::encode_request_header_fields;
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::records::{
-    write_java_optional, write_java_optional_bytes, write_java_record_headers, write_record_batch,
-    BatchHeader, Compression, EncodeRecord, Header as RecordHeader, RecordBatch, Records,
+    record_size_upper_bound, write_java_optional, write_java_optional_bytes,
+    write_java_record_headers, write_record_batch, BatchHeader, Compression, EncodeRecord,
+    Header as RecordHeader, RecordBatch, Records,
 };
 use crate::protocol::txn::{
     can_handle_abortable_error, classify_add_offsets_error, classify_add_partitions_error,
@@ -4153,9 +4154,12 @@ fn batch_ready(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> bool
     if pending.len() >= rec_limit {
         return true;
     }
+    // Readiness only: per-record upper bounds without group overhead (see
+    // `estimate`). Firing early is harmless — `take_count` enforces the
+    // strict bound including one batch overhead per partition group.
     let mut bytes = 0usize;
     for p in pending {
-        bytes += estimate(p);
+        bytes = bytes.saturating_add(estimate(p));
         if bytes >= byte_limit {
             return true;
         }
@@ -4166,20 +4170,31 @@ fn batch_ready(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> bool
 fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize {
     let mut n = 0;
     let mut bytes = 0usize;
+    let group_overhead = usize::try_from(RecordBatch::RECORD_BATCH_OVERHEAD).unwrap_or(0);
     let mut batch_bases: HashMap<(Arc<str>, i32), Option<i32>> = HashMap::new();
     for p in pending.iter().take(rec_limit) {
         let key = (p.rec.topic.clone(), p.rec.partition.unwrap_or(0));
-        match batch_bases.get(&key) {
+        let new_group = match batch_bases.get(&key) {
             Some(&expected_base) => {
                 if p.batch_base_seq != expected_base {
                     break;
                 }
+                false
             }
-            None => {
-                let _ = batch_bases.insert(key, p.batch_base_seq);
-            }
+            None => true,
+        };
+        // KL09-14: strict bound — stop before the record that would cross
+        // it, counting one batch overhead per partition group. The take
+        // still advances by at least one record: an unsplittable single
+        // keeps Java parity by exceeding `batch_bytes` alone.
+        let add = estimate(p).saturating_add(if new_group { group_overhead } else { 0 });
+        if n > 0 && bytes.saturating_add(add) > byte_limit {
+            break;
         }
-        bytes += estimate(p);
+        if new_group {
+            let _ = batch_bases.insert(key, p.batch_base_seq);
+        }
+        bytes = bytes.saturating_add(add);
         n += 1;
         if bytes >= byte_limit {
             break;
@@ -4188,10 +4203,22 @@ fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize
     n.max(1).min(pending.len())
 }
 
+/// Upper-bound wire size of one queued record for batch packing (KL09-14).
+///
+/// Uses the same [`record_size_upper_bound`] (key, value, headers,
+/// `MAX_RECORD_OVERHEAD`) as the queue-time oversize check, so packing
+/// sees what the encoder will write. `take_count` adds one
+/// [`RecordBatch::RECORD_BATCH_OVERHEAD`] per partition group using its
+/// existing group map; `batch_ready` omits group overhead (readiness only —
+/// the take enforces the bound). Overflow fails closed to `usize::MAX`
+/// (record travels alone); queue-time rejection makes it unreachable.
 fn estimate(p: &Pending) -> usize {
-    p.rec.key.as_ref().map(|b| b.len()).unwrap_or(0)
-        + p.rec.value.as_ref().map(|b| b.len()).unwrap_or(0)
-        + 64
+    let key = p.rec.key.as_deref();
+    let value = p.rec.value.as_deref();
+    record_size_upper_bound(key, value, &p.rec.headers)
+        .ok()
+        .and_then(|n| usize::try_from(n).ok())
+        .unwrap_or(usize::MAX)
 }
 
 fn assign_sequences(

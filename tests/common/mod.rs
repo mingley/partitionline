@@ -499,6 +499,8 @@ struct State {
     last_describe_delegation_token: Option<DescribeDelegationTokenRequest>,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
+    /// Per-partition batches observed on Produce: (topic, partition, records, encoded bytes).
+    produce_batches: Vec<(String, i32, i32, i32)>,
     accepted_fetch: Vec<i32>,
     groups: HashMap<String, GroupReg>,
     assign_notify: Arc<Notify>,
@@ -907,6 +909,7 @@ fn new_state(
         last_describe_delegation_token: None,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
+        produce_batches: Vec::new(),
         accepted_fetch: Vec::new(),
         groups: HashMap::new(),
         assign_notify: Arc::new(Notify::new()),
@@ -1972,6 +1975,11 @@ impl Mock {
 
     pub fn produce_request_nodes(&self) -> Vec<i32> {
         self.state.lock().produce_requests.clone()
+    }
+
+    /// Per-partition Produce batches: (topic, partition, record count, encoded bytes).
+    pub fn produce_batches(&self) -> Vec<(String, i32, i32, i32)> {
+        self.state.lock().produce_batches.clone()
     }
 
     pub fn set_partition_leader(&self, topic: &str, partition: i32, node_id: i32) {
@@ -5844,6 +5852,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         st.last_produce_producer_epoch = Some(p.records.producer_epoch);
                         let key = (topic.topic.clone(), p.index);
                         let nrec = p.records.records.len() as i32;
+                        // KL09-14: observe encoded batch sizes for bound tests.
+                        let batch_bytes = p.records.size_in_bytes().unwrap();
+                        st.produce_batches
+                            .push((topic.topic.clone(), p.index, nrec, batch_bytes));
                         let leader = st
                             .partition_leaders
                             .get(&(topic.topic.clone(), p.index))

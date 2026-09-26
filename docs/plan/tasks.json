@@ -2868,14 +2868,32 @@
     {
       "id": "KL09-14",
       "title": "Pack produce batches by exact encoded size including headers",
-      "priority": "P0", "kind": "implementation", "status": "in_progress", "owner": "mingley",
-      "write_set": ["src/producer.rs", "tests/mock_produce.rs", "docs/plan/tasks.json", "docs/plan/evidence/KL09-14.json", "TODO.md"],
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
+      "write_set": ["src/producer.rs", "src/protocol/records.rs", "tests/mock_produce.rs", "tests/common/mod.rs", "docs/plan/tasks.json", "docs/plan/evidence/KL09-14.json", "TODO.md"],
       "depends_on": [],
-      "files": ["src/producer.rs", "tests/mock_produce.rs"],
+      "files": ["src/producer.rs", "src/protocol/records.rs", "tests/mock_produce.rs", "tests/common/mod.rs"],
       "deliverable": "Batch packing in batch_ready/take_count uses each record's real wire size (headers, varints, attributes) instead of estimate() = key + value + 64, so batch_bytes and max_request_size act as real bounds.",
       "acceptance": ["Start with a failing-first mock test: header-heavy records packed into one batch whose encoded size exceeds batch_bytes or max_request_size. If the bound provably cannot be violated, record that proof, downgrade the card to P1 and stop.", "Packing respects both limits for header-heavy, keyed and empty-value records; oversized single-record errors, FIFO and buffer reservation accounting are unchanged.", "Performance is informational, not a gate: record bench_produce numbers before and after on an isolated local broker, labeled as the pre-KL09-02 driver; the KL09-12 baseline re-measures lb-bulk and nb-produce-headers afterwards."],
       "validation": ["cargo test --locked --test mock_produce", "cargo test --locked --test buffer_ownership", "cargo test --locked --test produce_cancel", "cargo clippy --locked --all-targets --all-features -- -D warnings"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "HEAD",
+                "disposition": "accepted",
+                "commands": [
+                        "cargo test --locked --test mock_produce (5 passed, exit 0; 3 failed pre-fix with 18411B batch)",
+                        "cargo test --locked --test buffer_ownership (12 passed, exit 0)",
+                        "cargo test --locked --test produce_cancel -- --test-threads=2 (15 passed, exit 0)",
+                        "cargo test --locked -- --test-threads=4 (full suite, 0 failures, exit 0)",
+                        "cargo clippy --locked --all-targets --all-features -- -D warnings (0 warnings, exit 0)",
+                        "cargo fmt --check (clean, exit 0)",
+                        "bash scripts/ci-docs.sh (strict rustdoc + doctests, exit 0)",
+                        "python3 -m unittest discover -s tests/conformance (44 passed, exit 0)"
+                ],
+                "results": "Failing-first proof: 25 header-heavy records packed into one 18411B batch vs a 2048 bound (9x over). Fix: estimate() uses header-aware record_size_upper_bound; take_count adds one batch overhead per partition group with a strict stop-before-crossing rule. All suites green; informational bench (pre-KL09-02 driver, n=2 interleaved, isolated 3.9.1): before 824893/766806 rec/s, after 991932/943257 rec/s, broker-verified, no claim.",
+                "artifacts": ["src/producer.rs", "src/protocol/records.rs", "tests/mock_produce.rs", "tests/common/mod.rs", "docs/plan/evidence/KL09-14.json"],
+                "limits": ["Unsplittable singles still exceed batch_bytes alone (Java parity, pinned).", "Request overhead above per-partition batches unbounded (unchanged).", "Informational bench n=2, not gated; KL09-12 re-measures."]
+        }
+      ]
     },
     {
       "id": "KL09-15",
