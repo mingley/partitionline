@@ -1,6 +1,6 @@
 # Next-session queue
 
-**Default next task: `KL01-09` -- adapt Apache verifiable producer and consumer event contract.**
+**Default next task: `KL09-14` (P0) -- pack produce batches by exact encoded size including headers.**
 
 Use [one task per session](docs/plan/README.md). The canonical
 [task registry](docs/plan/tasks.json) contains dependencies, starting files,

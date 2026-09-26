@@ -178,6 +178,12 @@ name = "pause"
 [[example]]
 name = "wakeup"
 
+[[example]]
+name = "verifiable_producer"
+
+[[example]]
+name = "verifiable_consumer"
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

@@ -665,7 +665,7 @@ class TestConformanceReportCLI(ConformanceReportTestBase):
 
     def test_cli_synthetic_full_green_report_exits_0(self):
         """
-        Synthetic complete report satisfying all 99 cases in tests/conformance/cases.json
+        Synthetic complete report satisfying all 100 cases in tests/conformance/cases.json
         exits 0 and writes expected summary.
         """
         art = self.create_artifact()
@@ -705,8 +705,8 @@ class TestConformanceReportCLI(ConformanceReportTestBase):
         with open(summary_out_file, "r", encoding="utf-8") as f:
             summary_data = json.load(f)
 
-        self.assertEqual(summary_data["total_cases"], 99)
-        self.assertEqual(summary_data["denominator_cases"], 79)
+        self.assertEqual(summary_data["total_cases"], 100)
+        self.assertEqual(summary_data["denominator_cases"], 80)
         self.assertEqual(summary_data["excluded_cases"], 20)
         self.assertEqual(summary_data["exit_code"], 0)
         self.assertTrue(summary_data["success"])

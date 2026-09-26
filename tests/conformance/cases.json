@@ -27,6 +27,7 @@
     "audit-probe",
     "live-broker",
     "apache-java",
+    "verifiable-scenario",
     "none"
   ],
   "api_families": {
@@ -1594,6 +1595,20 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Produce and Fetch responses decode ThrottleTimeMs but runtime discards it without applying quota backoff (audit A07); pending KL05."
+    },
+    {
+      "id": "verifiable-produce-consume-3-9-1",
+      "api_family": null,
+      "api_version": null,
+      "profile": "ecosystem",
+      "adapter": "verifiable-scenario",
+      "source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "3.9.1",
+      "peer_pin": "3.9.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "KL01-09: examples/verifiable_producer.rs + verifiable_consumer.rs implement the pinned Apache 3.9.1 CLI/JSON event contract; tests/verifiable_contract.rs runs one produce-consume scenario (25 records, verbose manual-commit consumer) against the mock broker and validates every event (IDs, values, partitions, offsets, maxOffset+1 commits). Local contract-shape proof only: mock broker, not the ducktape suite or a live Apache broker (see KL01-15/KL01-16/KL01-17)."
     }
   ]
 }

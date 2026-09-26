@@ -247,13 +247,29 @@
     {
       "id": "KL01-09",
       "title": "Adapt Apache verifiable producer and consumer event contracts",
-      "priority": "P1", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "test-infrastructure", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-01", "KL03-18"],
-      "files": ["new: examples/verifiable_producer.rs", "new: examples/verifiable_consumer.rs", "tests/conformance/cases.json"],
+      "files": ["examples/verifiable_producer.rs", "examples/verifiable_consumer.rs", "examples/common/verifiable.rs", "tests/verifiable_contract.rs", "tests/conformance/cases.json", "tests/conformance/test_report.py", "Cargo.toml"],
       "deliverable": "Small adapters that let selected Apache client system scenarios drive partitionline.",
       "acceptance": ["Pin the upstream event/CLI contract and preserve IDs, acknowledgments, consumed positions, errors and lifecycle events.", "Prove one produce-consume compatibility case end to end; do not claim the full ducktape suite passes.", "Document unsupported Java-specific switches and create bounded follow-up cards for remaining required cases."],
       "validation": ["cargo test --locked --examples", "Run one pinned Apache compatibility scenario and validate its case report."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "HEAD",
+                "commands": [
+                        "cargo test --locked --test verifiable_contract (5 passed, exit 0)",
+                        "cargo test --locked --examples (0 failures, exit 0)",
+                        "cargo test --locked -- --test-threads=4 (full suite, 0 failures, exit 0)",
+                        "cargo clippy --locked --all-targets --all-features -- -D warnings (0 warnings, exit 0)",
+                        "cargo fmt --check (clean, exit 0)",
+                        "bash scripts/ci-docs.sh (strict rustdoc + doctests, exit 0)",
+                        "python3 -m unittest discover -s tests/conformance (44 passed, exit 0)"
+                ],
+                "results": "Both example binaries implement the pinned Apache 3.9.1 CLI/JSON contract; 5 subprocess tests prove CLI validation, a 25-record produce-consume roundtrip with every event validated (IDs, values, partitions, dense offsets, maxOffset+1 commits), deterministic send-error events, and the producer.config file-wins quirk. New cases.json case verifiable-produce-consume-3-9-1 (local_consistency) plus follow-up cards KL01-15/16/17.",
+                "artifacts": ["examples/verifiable_producer.rs", "examples/verifiable_consumer.rs", "examples/common/verifiable.rs", "tests/verifiable_contract.rs", "tests/conformance/cases.json", "tests/conformance/test_report.py", "docs/plan/evidence/KL01-09.json"],
+                "limits": ["Mock broker only; not ducktape or live broker (KL01-17).", "Sequential sends; no retries=0 knob (delivery.timeout.ms bounds attempts).", "Adapter-defined edges: throughput 0 unthrottled, 0ms avg 0.0, empty polls silent."]
+        }
+      ]
     },
     {
       "id": "KL01-10",
@@ -342,6 +358,39 @@
       "deliverable": "An exhaustive disposition/backlog reconciliation for the pinned applicable upstream corpus, not a cherry-picked pass list.",
       "acceptance": ["Every claimed API/version and applicable Java/system/librdkafka case is either independently evidenced or linked to an open implementation/conformance card.", "Create one API or small behavioral family per new card, including remaining group, transaction, auth, telemetry and common-admin fixtures; never create an implement-all-oracles task.", "Core/full-feature qualification remains blocked while required cases are failed, not_run, unsupported or externally blocked; exclude only genuinely inapplicable cases with reasons."],
       "validation": ["Run the schema coverage and conformance report checkers against the complete inventories.", "Verify no uncovered required case lacks a task and no new dependency cycle was introduced."],
+      "evidence": []
+    },
+    {
+      "id": "KL01-15",
+      "title": "Cover verifiable rebalance and commit-failure event scenarios",
+      "priority": "P2", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "depends_on": ["KL01-09"],
+      "files": ["examples/verifiable_consumer.rs", "tests/verifiable_contract.rs", "tests/conformance/cases.json"],
+      "deliverable": "Validated partitions_revoked/partitions_assigned and offsets_committed failure events from the verifiable consumer adapter.",
+      "acceptance": ["Drive a two-member group so join/leave emits revoked+assigned events with exact partition sets.", "Force an offset-commit failure and validate success:false with the attempted offsets preserved.", "Register the new scenario cases without claiming live-broker or ducktape-suite coverage."],
+      "validation": ["cargo test --locked --test verifiable_contract", "Validate the new scenario event streams against the pinned 3.9.1 contract."],
+      "evidence": []
+    },
+    {
+      "id": "KL01-16",
+      "title": "Cover verifiable producer option matrix and consumer reset policies",
+      "priority": "P2", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "depends_on": ["KL01-09"],
+      "files": ["examples/verifiable_producer.rs", "examples/verifiable_consumer.rs", "tests/verifiable_contract.rs", "tests/conformance/cases.json"],
+      "deliverable": "Validated throughput/create-time/repeating-keys/value-prefix producer runs and earliest/latest/none + autocommit consumer runs.",
+      "acceptance": ["Prove throttled produce timing, create-time sequencing, repeating keys and prefixed values end to end.", "Prove latest/none reset policies and autocommit mode (no offsets_committed events) end to end.", "Register the new scenario cases without claiming live-broker or ducktape-suite coverage."],
+      "validation": ["cargo test --locked --test verifiable_contract", "Validate the new scenario event streams against the pinned 3.9.1 contract."],
+      "evidence": []
+    },
+    {
+      "id": "KL01-17",
+      "title": "Run the verifiable scenario against a live Apache broker cell",
+      "priority": "P2", "kind": "conformance", "status": "pending", "owner": null,
+      "depends_on": ["KL01-09", "KL01-10"],
+      "files": ["tests/conformance/cases.json", "scripts/ci-verifiable-scenario.sh"],
+      "deliverable": "The KL01-09 produce-consume scenario executed against a pinned live Apache broker with a validated case report.",
+      "acceptance": ["Run both example binaries against the KL01-10 broker cell and validate the full event streams.", "Promote or supersede the mock-only case with the live result, preserving the failed-attempt history.", "Do not claim ducktape-suite passage; one scenario only."],
+      "validation": ["REQUIRE_BROKER=1 bash scripts/ci-verifiable-scenario.sh", "Validate the live scenario case report."],
       "evidence": []
     },
     {
