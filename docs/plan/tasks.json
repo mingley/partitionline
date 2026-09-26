@@ -3351,7 +3351,7 @@
     {
       "id": "KL09-56",
       "title": "Share one TLS client configuration per client",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL06-05", "KL09-11"],
       "files": ["src/net.rs"],
       "deliverable": "The root store and rustls ClientConfig are built once per client TLS configuration and shared as an Arc, with SNI derived per broker.",
