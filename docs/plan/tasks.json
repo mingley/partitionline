@@ -2792,7 +2792,7 @@
     {
       "id": "KL09-07",
       "title": "Serve seeded synthetic Fetch responses from the null broker",
-      "priority": "P1", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "test-infrastructure", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL09-06"],
       "files": ["benchmarks/nullbroker/"],
       "deliverable": "Fetch and ListOffsets support serving pre-encoded, seeded record batches (uncompressed and each supported codec) at increasing offsets from memory.",
