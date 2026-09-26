@@ -2836,7 +2836,7 @@
     {
       "id": "KL09-11",
       "title": "Add a reproducible profile-capture script for named cells",
-      "priority": "P1", "kind": "tooling", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "tooling", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL09-01"],
       "files": ["new: scripts/perf-profile.sh", "docs/benchmark.md"],
       "deliverable": "One script capturing CPU samples/flamegraph, a syscall summary, context switches and a heap profile for a named cell or command, with provenance.",
