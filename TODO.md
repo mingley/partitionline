@@ -1,6 +1,6 @@
 # Next-session queue
 
-**Default next task: `KL03-22` -- negotiate Fetch versions per partition leader.**
+**Default next task: `KL06-05` -- qualify TLS verification and credential rotation.**
 
 Use [one task per session](docs/plan/README.md). The canonical
 [task registry](docs/plan/tasks.json) contains dependencies, starting files,
