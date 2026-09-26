@@ -285,7 +285,9 @@ impl Rpc<'_> {
 fn handshake_produce_and_rejections() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
-    let broker = Arc::new(NullBroker::with_listener(&listener, 2).unwrap());
+    let broker = Arc::new(
+        NullBroker::with_listener(&listener, 2, nullbroker::synth::SynthConfig::default()).unwrap(),
+    );
     let server = Arc::clone(&broker);
     let handle = std::thread::spawn(move || {
         server.serve(&listener, Duration::from_secs(30)).unwrap();
@@ -349,7 +351,7 @@ fn handshake_produce_and_rejections() {
     assert_eq!(cur.uvarint(), 2); // 1 topic
     assert_eq!(cur.i16(), 0); // topic error
     assert_eq!(cur.compact_string().as_deref(), Some("t"));
-    cur.take(16); // topic_id
+    assert_eq!(cur.take(16), nullbroker::synth::topic_id("t")); // topic_id
     assert_eq!(cur.take(1)[0], 0); // is_internal
     assert_eq!(cur.uvarint(), 3); // 2 partitions
     for index in 0..2 {
@@ -470,6 +472,231 @@ fn handshake_produce_and_rejections() {
     );
 }
 
+fn fetch_body(topic_id: &[u8; 16], parts: &[(i32, i64, i32)], max_bytes: i32) -> Vec<u8> {
+    let mut body = Vec::new();
+    body.extend_from_slice(&100i32.to_be_bytes()); // max_wait
+    body.extend_from_slice(&1i32.to_be_bytes()); // min_bytes
+    body.extend_from_slice(&max_bytes.to_be_bytes());
+    body.push(0); // isolation
+    body.extend_from_slice(&0i32.to_be_bytes()); // session
+    body.extend_from_slice(&(-1i32).to_be_bytes()); // epoch
+    put_uvarint(&mut body, 2); // 1 topic
+    body.extend_from_slice(topic_id);
+    put_uvarint(&mut body, parts.len() as u32 + 1);
+    for (partition, fetch_offset, partition_max) in parts {
+        body.extend_from_slice(&partition.to_be_bytes());
+        body.extend_from_slice(&(-1i32).to_be_bytes()); // leader epoch
+        body.extend_from_slice(&fetch_offset.to_be_bytes());
+        body.extend_from_slice(&(-1i32).to_be_bytes()); // last fetched epoch
+        body.extend_from_slice(&0i64.to_be_bytes()); // log start
+        body.extend_from_slice(&partition_max.to_be_bytes());
+        put_uvarint(&mut body, 0);
+    }
+    put_uvarint(&mut body, 0);
+    put_uvarint(&mut body, 1); // forgotten: empty
+    put_compact_string(&mut body, Some(""));
+    put_uvarint(&mut body, 0);
+    body
+}
+
+/// Parsed fetch partition: `(index, error, hw, lso, aborted, records)`.
+#[allow(clippy::type_complexity)]
+fn parse_fetch_response(frame: &[u8]) -> Vec<(i32, i16, i64, i64, Vec<(i64, i64)>, Vec<u8>)> {
+    let mut cur = Cur::new(frame);
+    let _correlation = cur.i32();
+    cur.skip_tags();
+    let _throttle = cur.i32();
+    assert_eq!(cur.i16(), 0);
+    assert_eq!(cur.i32(), 0); // session_id: full response
+    assert_eq!(cur.uvarint(), 2); // 1 topic
+    cur.take(16); // topic_id
+    let parts = cur.uvarint() - 1;
+    let mut out = Vec::new();
+    for _ in 0..parts {
+        let index = cur.i32();
+        let error = cur.i16();
+        let hw = cur.i64();
+        let lso = cur.i64();
+        let _log_start = cur.i64();
+        let aborted_n = cur.uvarint() - 1;
+        let mut aborted = Vec::new();
+        for _ in 0..aborted_n {
+            let pid = cur.i64();
+            let first = cur.i64();
+            cur.skip_tags();
+            aborted.push((pid, first));
+        }
+        let _preferred = cur.i32();
+        let n = cur.uvarint();
+        let records = if n == 0 {
+            Vec::new()
+        } else {
+            cur.take((n - 1) as usize).to_vec()
+        };
+        cur.skip_tags();
+        out.push((index, error, hw, lso, aborted, records));
+    }
+    out
+}
+
+/// Split concatenated batches and count records via the public validator.
+fn count_fetched_records(records: &[u8]) -> (u32, usize) {
+    let mut pos = 0;
+    let mut count = 0;
+    let mut batches = 0;
+    while pos < records.len() {
+        let len = i32::from_be_bytes([
+            records[pos + 8],
+            records[pos + 9],
+            records[pos + 10],
+            records[pos + 11],
+        ]) as usize;
+        let total = 12 + len;
+        let parsed = nullbroker::parse_batch(&records[pos..pos + total]).unwrap();
+        count += parsed.records;
+        batches += 1;
+        pos += total;
+    }
+    (count, batches)
+}
+
+fn list_offsets_body(topic: &str, partition: i32, timestamp: i64) -> Vec<u8> {
+    let mut body = Vec::new();
+    body.extend_from_slice(&(-1i32).to_be_bytes());
+    body.push(0);
+    put_uvarint(&mut body, 2);
+    put_compact_string(&mut body, Some(topic));
+    put_uvarint(&mut body, 2);
+    body.extend_from_slice(&partition.to_be_bytes());
+    body.extend_from_slice(&(-1i32).to_be_bytes());
+    body.extend_from_slice(&timestamp.to_be_bytes());
+    put_uvarint(&mut body, 0);
+    put_uvarint(&mut body, 0);
+    body.extend_from_slice(&5000i32.to_be_bytes());
+    put_uvarint(&mut body, 0);
+    body
+}
+
+fn parse_list_offsets_response(frame: &[u8]) -> (i16, i64, i64) {
+    let mut cur = Cur::new(frame);
+    let _correlation = cur.i32();
+    cur.skip_tags();
+    let _throttle = cur.i32();
+    assert_eq!(cur.uvarint(), 2);
+    let _name = cur.compact_string();
+    assert_eq!(cur.uvarint(), 2);
+    let _index = cur.i32();
+    let error = cur.i16();
+    let timestamp = cur.i64();
+    let offset = cur.i64();
+    (error, timestamp, offset)
+}
+
+#[test]
+fn fetch_and_list_offsets_roundtrip() {
+    let synth = nullbroker::synth::SynthConfig {
+        seed: 99,
+        records_per_partition: 2500,
+        records_per_batch: 500,
+        payload_bytes: 100,
+        header_count: 2,
+        codec: 0,
+        abort_every: 5,
+    };
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let broker = Arc::new(NullBroker::with_listener(&listener, 1, synth).unwrap());
+    let server = Arc::clone(&broker);
+    let handle = std::thread::spawn(move || {
+        server.serve(&listener, Duration::from_secs(30)).unwrap();
+    });
+    let mut stream = TcpStream::connect(("127.0.0.1", port)).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let mut corr = 0;
+    let mut rpc = Rpc {
+        stream: &mut stream,
+        corr: &mut corr,
+    };
+
+    // Metadata first so the server learns the topic id.
+    let mut body = Vec::new();
+    put_uvarint(&mut body, 2);
+    body.extend_from_slice(&[0u8; 16]);
+    put_compact_string(&mut body, Some("ft"));
+    put_uvarint(&mut body, 0);
+    body.push(1);
+    body.push(0);
+    put_uvarint(&mut body, 0);
+    rpc.call(3, 13, &body);
+    let topic_id = nullbroker::synth::topic_id("ft");
+
+    // ListOffsets: earliest, latest, explicit timestamp.
+    let (error, _, offset) =
+        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("ft", 0, -2)));
+    assert_eq!((error, offset), (0, 0));
+    let (error, _, offset) =
+        parse_list_offsets_response(&rpc.call(2, 10, &list_offsets_body("ft", 0, -1)));
+    assert_eq!((error, offset), (0, 2500));
+    let (error, _, offset) = parse_list_offsets_response(&rpc.call(
+        2,
+        10,
+        &list_offsets_body("ft", 0, 1_700_000_000_042),
+    ));
+    assert_eq!((error, offset), (0, 42));
+
+    // Fetch from 0 with a generous budget: 5 batches, the last aborted.
+    let body = fetch_body(&topic_id, &[(0, 0, 1_000_000)], 16_777_216);
+    let out = parse_fetch_response(&rpc.call(1, 17, &body));
+    assert_eq!(out.len(), 1);
+    let (index, error, hw, lso, aborted, records) = &out[0];
+    assert_eq!((*index, *error, *hw, *lso), (0, 0, 2500, 2500));
+    assert_eq!(count_fetched_records(records), (2500, 5));
+    assert_eq!(*aborted, vec![(1_000_004, 2000)]);
+
+    // Partition budget smaller than one batch still makes progress.
+    let body = fetch_body(&topic_id, &[(0, 0, 10)], 16_777_216);
+    let out = parse_fetch_response(&rpc.call(1, 17, &body));
+    assert_eq!(count_fetched_records(&out[0].5).1, 1);
+
+    // Fetch at log end is empty; past it is empty too.
+    for offset in [2500, 999_999] {
+        let body = fetch_body(&topic_id, &[(0, offset, 1_000_000)], 16_777_216);
+        let out = parse_fetch_response(&rpc.call(1, 17, &body));
+        assert_eq!(out[0].1, 0);
+        assert!(out[0].5.is_empty());
+    }
+
+    // Unknown topic id and negative offset are protocol errors.
+    let body = fetch_body(&[0xabu8; 16], &[(0, 0, 1_000_000)], 16_777_216);
+    let out = parse_fetch_response(&rpc.call(1, 17, &body));
+    assert_eq!(out[0].1, 100);
+    let body = fetch_body(&topic_id, &[(0, -5, 1_000_000)], 16_777_216);
+    let out = parse_fetch_response(&rpc.call(1, 17, &body));
+    assert_eq!(out[0].1, 1);
+
+    // Malformed frame closes only that connection; the server survives.
+    let mut bad = TcpStream::connect(("127.0.0.1", port)).unwrap();
+    bad.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+    bad.write_all(&1000i32.to_be_bytes()).unwrap();
+    bad.write_all(&[0u8; 4]).unwrap();
+    drop(bad);
+    let body = fetch_body(&topic_id, &[(0, 0, 1_000_000)], 16_777_216);
+    let out = parse_fetch_response(&rpc.call(1, 17, &body));
+    assert_eq!(out[0].1, 0);
+
+    broker.shutdown();
+    handle.join().unwrap();
+    let report = broker.report();
+    assert!(report.fetch_requests >= 7, "{}", report.fetch_requests);
+    assert!(
+        report.fetched_records >= 2500 + 500,
+        "{}",
+        report.fetched_records
+    );
+}
+
 #[test]
 fn artifact_is_labeled_client_ceiling() {
     let dir = std::env::temp_dir().join(format!("nullbroker-test-{}", std::process::id()));
@@ -487,6 +714,9 @@ fn artifact_is_labeled_client_ceiling() {
             transactional: 0,
         },
         end_offsets: vec![("t".to_owned(), 0, 42)],
+        fetch_requests: 3,
+        fetched_records: 100,
+        fetched_wire_bytes: 9000,
     };
     nullbroker::write_artifact(&path, &report).unwrap();
     let text = std::fs::read_to_string(&path).unwrap();

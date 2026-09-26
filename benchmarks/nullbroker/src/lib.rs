@@ -12,7 +12,10 @@
 //! Spoken versions (negotiated by the client within the advertised range):
 //! `ApiVersions` v0–v4, `Metadata` v13, `Produce` v12, `InitProducerId` v5,
 //! `FindCoordinator` v6 (required by `Producer::new`; the plain and
-//! idempotent produce paths never send it).
+//! idempotent produce paths never send it), `Fetch` v17 and `ListOffsets`
+//! v10 (KL09-07 seeded synthetic log).
+
+pub mod synth;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -25,6 +28,10 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 /// API key: Produce.
 pub const API_KEY_PRODUCE: i16 = 0;
+/// API key: Fetch.
+pub const API_KEY_FETCH: i16 = 1;
+/// API key: ListOffsets.
+pub const API_KEY_LIST_OFFSETS: i16 = 2;
 /// API key: Metadata.
 pub const API_KEY_METADATA: i16 = 3;
 /// API key: FindCoordinator.
@@ -36,8 +43,12 @@ pub const API_KEY_API_VERSIONS: i16 = 18;
 
 /// Error code: none.
 pub const ERR_NONE: i16 = 0;
+/// Error code: `OFFSET_OUT_OF_RANGE`.
+pub const ERR_OFFSET_OUT_OF_RANGE: i16 = 1;
 /// Error code: `UNKNOWN_TOPIC_OR_PARTITION`.
 pub const ERR_UNKNOWN_TOPIC_OR_PARTITION: i16 = 3;
+/// Error code: `UNKNOWN_TOPIC_ID`.
+pub const ERR_UNKNOWN_TOPIC_ID: i16 = 100;
 /// Error code: `UNSUPPORTED_VERSION`.
 pub const ERR_UNSUPPORTED_VERSION: i16 = 35;
 /// Error code: `OUT_OF_ORDER_SEQUENCE_NUMBER`.
@@ -243,8 +254,6 @@ trait PutExt {
     /// Append a compact nullable string (`uvarint n+1`, `0` is null).
     fn put_compact_string(&mut self, s: Option<&str>);
     /// Append compact nullable bytes (`uvarint n+1`, `0` is null).
-    /// Only tests write bytes; responses carry none.
-    #[cfg(test)]
     fn put_compact_bytes(&mut self, bytes: Option<&[u8]>);
     /// Append a compact array length (`uvarint n+1`).
     fn put_compact_array_len(&mut self, len: usize);
@@ -277,7 +286,6 @@ impl PutExt for Vec<u8> {
         }
     }
 
-    #[cfg(test)]
     fn put_compact_bytes(&mut self, bytes: Option<&[u8]>) {
         match bytes {
             None => self.put_uvarint(0),
@@ -344,6 +352,8 @@ fn decode_request_header(frame: &[u8]) -> Result<(i16, i16, i32, usize), DecodeE
         API_KEY_METADATA => api_version >= 9,
         API_KEY_INIT_PRODUCER_ID => api_version >= 2,
         API_KEY_FIND_COORDINATOR => api_version >= 3,
+        API_KEY_FETCH => api_version >= 12,
+        API_KEY_LIST_OFFSETS => api_version >= 6,
         _ => return Err(DecodeError::Invalid("unknown api key")),
     };
     let len = cur.get_i16()?;
@@ -371,6 +381,8 @@ fn encode_response_header(out: &mut Vec<u8>, api_key: i16, api_version: i16, cor
         API_KEY_METADATA => api_version >= 9,
         API_KEY_INIT_PRODUCER_ID => api_version >= 2,
         API_KEY_FIND_COORDINATOR => api_version >= 3,
+        API_KEY_FETCH => api_version >= 12,
+        API_KEY_LIST_OFFSETS => api_version >= 6,
         _ => false,
     };
     if flexible {
@@ -380,13 +392,15 @@ fn encode_response_header(out: &mut Vec<u8>, api_key: i16, api_version: i16, cor
 
 /// API versions this server advertises: `(api_key, min, max)`.
 #[must_use]
-pub const fn advertised_apis() -> [(i16, i16, i16); 5] {
+pub const fn advertised_apis() -> [(i16, i16, i16); 7] {
     [
         (API_KEY_PRODUCE, 3, 12),
         (API_KEY_METADATA, 1, 13),
         (API_KEY_INIT_PRODUCER_ID, 0, 5),
         (API_KEY_API_VERSIONS, 0, 4),
         (API_KEY_FIND_COORDINATOR, 1, 6),
+        (API_KEY_FETCH, 4, 17),
+        (API_KEY_LIST_OFFSETS, 1, 10),
     ]
 }
 
@@ -488,7 +502,8 @@ fn encode_metadata_response(
             Some(name) if !name.is_empty() => {
                 out.extend_from_slice(&ERR_NONE.to_be_bytes());
                 out.put_compact_string(Some(name));
-                out.extend_from_slice(&[0u8; 16]); // topic_id: zero UUID
+                // Deterministic per-name id so Fetch-by-ID stays unambiguous.
+                out.extend_from_slice(&synth::topic_id(name));
                 out.push(0); // is_internal
                 let n = usize::try_from(partitions.max(0)).unwrap_or(0);
                 out.put_compact_array_len(n);
@@ -556,6 +571,194 @@ fn encode_find_coordinator_response(out: &mut Vec<u8>, keys: &[String], host: &s
         out.extend_from_slice(&port.to_be_bytes());
         out.extend_from_slice(&ERR_NONE.to_be_bytes());
         out.put_compact_string(None); // error_message
+        out.put_empty_tagged_fields();
+    }
+    out.put_empty_tagged_fields();
+}
+
+/// One partition in a `Fetch` v17 request.
+#[derive(Debug, Clone)]
+struct FetchPartitionData {
+    partition: i32,
+    fetch_offset: i64,
+    partition_max_bytes: i32,
+}
+
+/// One topic in a `Fetch` v17 request (identity is the topic id).
+#[derive(Debug, Clone)]
+struct FetchTopicData {
+    topic_id: [u8; 16],
+    partitions: Vec<FetchPartitionData>,
+}
+
+/// Decode a `Fetch` v17 request: `(max_bytes, topics)`.
+///
+/// Session, forgotten topics, rack and tagged fields are parsed and
+/// ignored: every response is full (`session_id` 0). `min_bytes`/`max_wait`
+/// are parsed and ignored: the null broker answers immediately.
+fn decode_fetch_request(body: &[u8]) -> Result<(i32, Vec<FetchTopicData>), DecodeError> {
+    let mut cur = Cursor::new(body);
+    // v15+: no untagged ReplicaId.
+    let _max_wait_ms = cur.get_i32()?;
+    let _min_bytes = cur.get_i32()?;
+    let max_bytes = cur.get_i32()?;
+    let _isolation = cur.get_u8()?;
+    let _session_id = cur.get_i32()?;
+    let _session_epoch = cur.get_i32()?;
+    let topic_count = cur.get_array_len(true)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(topic_count);
+    for _ in 0..topic_count {
+        let topic_id = cur.get_uuid()?;
+        let part_count = cur.get_array_len(true)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(part_count);
+        for _ in 0..part_count {
+            let partition = cur.get_i32()?;
+            let _current_leader_epoch = cur.get_i32()?;
+            let fetch_offset = cur.get_i64()?;
+            let _last_fetched_epoch = cur.get_i32()?;
+            let _log_start_offset = cur.get_i64()?;
+            let partition_max_bytes = cur.get_i32()?;
+            cur.skip_tagged_fields()?;
+            partitions.push(FetchPartitionData {
+                partition,
+                fetch_offset,
+                partition_max_bytes,
+            });
+        }
+        cur.skip_tagged_fields()?;
+        topics.push(FetchTopicData {
+            topic_id,
+            partitions,
+        });
+    }
+    // Forgotten topics (parsed, ignored).
+    let forgotten = cur.get_array_len(true)?.unwrap_or(0);
+    for _ in 0..forgotten {
+        let _topic_id = cur.get_uuid()?;
+        let n = cur.get_array_len(true)?.unwrap_or(0);
+        for _ in 0..n {
+            let _partition = cur.get_i32()?;
+        }
+        cur.skip_tagged_fields()?;
+    }
+    let _rack_id = cur.get_compact_string()?;
+    cur.skip_tagged_fields()?;
+    Ok((max_bytes, topics))
+}
+
+/// One partition's data in a `Fetch` v17 response.
+#[derive(Debug, Clone)]
+struct FetchPartitionResult {
+    partition: i32,
+    error_code: i16,
+    high_watermark: i64,
+    records: Vec<u8>,
+    aborted: Vec<(i64, i64)>,
+}
+
+/// Encode a `Fetch` v17 response: full data, `session_id` 0.
+/// Log start is always 0 and last-stable-offset always equals the high
+/// watermark (everything served is stable; aborts are listed explicitly).
+fn encode_fetch_response(out: &mut Vec<u8>, topics: &[([u8; 16], Vec<FetchPartitionResult>)]) {
+    out.extend_from_slice(&0i32.to_be_bytes()); // throttle_ms
+    out.extend_from_slice(&ERR_NONE.to_be_bytes()); // top-level error
+    out.extend_from_slice(&0i32.to_be_bytes()); // session_id: none, full data
+    out.put_compact_array_len(topics.len());
+    for (topic_id, partitions) in topics {
+        out.extend_from_slice(topic_id);
+        out.put_compact_array_len(partitions.len());
+        for p in partitions {
+            out.extend_from_slice(&p.partition.to_be_bytes());
+            out.extend_from_slice(&p.error_code.to_be_bytes());
+            out.extend_from_slice(&p.high_watermark.to_be_bytes());
+            out.extend_from_slice(&p.high_watermark.to_be_bytes()); // LSO = HW
+            out.extend_from_slice(&0i64.to_be_bytes()); // log_start_offset
+            out.put_compact_array_len(p.aborted.len());
+            for (pid, first) in &p.aborted {
+                out.extend_from_slice(&pid.to_be_bytes());
+                out.extend_from_slice(&first.to_be_bytes());
+                out.put_empty_tagged_fields();
+            }
+            out.extend_from_slice(&(-1i32).to_be_bytes()); // preferred replica
+            if p.records.is_empty() {
+                out.put_uvarint(1); // empty, non-null
+            } else {
+                out.put_compact_bytes(Some(&p.records));
+            }
+            out.put_empty_tagged_fields();
+        }
+        out.put_empty_tagged_fields();
+    }
+    out.put_empty_tagged_fields();
+}
+
+/// One partition in a `ListOffsets` v10 request.
+#[derive(Debug, Clone)]
+struct ListOffsetsPartitionData {
+    partition: i32,
+    timestamp: i64,
+}
+
+/// One topic in a `ListOffsets` v10 request.
+#[derive(Debug, Clone)]
+struct ListOffsetsTopicData {
+    name: String,
+    partitions: Vec<ListOffsetsPartitionData>,
+}
+
+/// Decode a `ListOffsets` v10 request.
+fn decode_list_offsets_request(body: &[u8]) -> Result<Vec<ListOffsetsTopicData>, DecodeError> {
+    let mut cur = Cursor::new(body);
+    let _replica_id = cur.get_i32()?;
+    let _isolation = cur.get_u8()?;
+    let topic_count = cur.get_array_len(true)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(topic_count);
+    for _ in 0..topic_count {
+        let name = cur.get_compact_string()?.unwrap_or_default();
+        let part_count = cur.get_array_len(true)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(part_count);
+        for _ in 0..part_count {
+            let partition = cur.get_i32()?;
+            let _leader_epoch = cur.get_i32()?;
+            let timestamp = cur.get_i64()?;
+            cur.skip_tagged_fields()?;
+            partitions.push(ListOffsetsPartitionData {
+                partition,
+                timestamp,
+            });
+        }
+        cur.skip_tagged_fields()?;
+        topics.push(ListOffsetsTopicData { name, partitions });
+    }
+    let _timeout_ms = cur.get_i32()?;
+    cur.skip_tagged_fields()?;
+    Ok(topics)
+}
+
+/// Encode a `ListOffsets` v10 response from `(topic, partition, error,
+/// timestamp, offset)` rows.
+fn encode_list_offsets_response(out: &mut Vec<u8>, rows: &[(String, i32, i16, i64, i64)]) {
+    out.extend_from_slice(&0i32.to_be_bytes()); // throttle_ms
+    let mut order: Vec<&str> = Vec::new();
+    for (topic, _, _, _, _) in rows {
+        if !order.contains(&topic.as_str()) {
+            order.push(topic.as_str());
+        }
+    }
+    out.put_compact_array_len(order.len());
+    for topic in &order {
+        out.put_compact_string(Some(topic));
+        let grouped: Vec<&(String, i32, i16, i64, i64)> =
+            rows.iter().filter(|r| &r.0 == topic).collect();
+        out.put_compact_array_len(grouped.len());
+        for (_, partition, error, timestamp, offset) in grouped {
+            out.extend_from_slice(&partition.to_be_bytes());
+            out.extend_from_slice(&error.to_be_bytes());
+            out.extend_from_slice(&timestamp.to_be_bytes());
+            out.extend_from_slice(&offset.to_be_bytes());
+            out.extend_from_slice(&0i32.to_be_bytes()); // leader_epoch
+            out.put_empty_tagged_fields();
+        }
         out.put_empty_tagged_fields();
     }
     out.put_empty_tagged_fields();
@@ -879,6 +1082,14 @@ struct State {
     failures: FailureCounts,
     /// Next producer id handed out by `InitProducerId`.
     next_producer_id: i64,
+    /// Topic id to name, learned from `Metadata` responses (Fetch is by id).
+    topic_ids: HashMap<[u8; 16], String>,
+    /// Fetch requests handled.
+    fetch_requests: u64,
+    /// Synthetic records served.
+    fetched_records: u64,
+    /// Synthetic batch wire bytes served.
+    fetched_wire_bytes: u64,
 }
 
 /// Server configuration.
@@ -892,6 +1103,8 @@ pub struct Config {
     pub serve_for: Duration,
     /// Where to write the `client-ceiling` result artifact.
     pub artifact: PathBuf,
+    /// Synthetic Fetch log configuration.
+    pub synth: synth::SynthConfig,
 }
 
 impl Default for Config {
@@ -901,6 +1114,7 @@ impl Default for Config {
             partitions: 6,
             serve_for: Duration::from_secs(30),
             artifact: PathBuf::from("nullbroker-ceiling.json"),
+            synth: synth::SynthConfig::default(),
         }
     }
 }
@@ -918,6 +1132,12 @@ pub struct RunReport {
     pub failures: FailureCounts,
     /// Log end offset per `(topic, partition)`.
     pub end_offsets: Vec<(String, i32, i64)>,
+    /// Fetch requests handled.
+    pub fetch_requests: u64,
+    /// Synthetic records served.
+    pub fetched_records: u64,
+    /// Synthetic batch wire bytes served.
+    pub fetched_wire_bytes: u64,
 }
 
 /// A validating null-broker Produce server.
@@ -932,6 +1152,7 @@ pub struct NullBroker {
     partitions: i32,
     advertised_host: String,
     advertised_port: i32,
+    synth: synth::SynthConfig,
 }
 
 impl NullBroker {
@@ -939,7 +1160,7 @@ impl NullBroker {
     /// the `client-ceiling` artifact and return the run report.
     pub fn run(config: &Config) -> io::Result<RunReport> {
         let listener = TcpListener::bind(config.bind.as_str())?;
-        let broker = Self::with_listener(&listener, config.partitions)?;
+        let broker = Self::with_listener(&listener, config.partitions, config.synth.clone())?;
         broker.serve(&listener, config.serve_for)?;
         let report = broker.report();
         write_artifact(&config.artifact, &report)?;
@@ -947,7 +1168,11 @@ impl NullBroker {
     }
 
     /// Build a broker around an already-bound listener (tests).
-    pub fn with_listener(listener: &TcpListener, partitions: i32) -> io::Result<Self> {
+    pub fn with_listener(
+        listener: &TcpListener,
+        partitions: i32,
+        synth: synth::SynthConfig,
+    ) -> io::Result<Self> {
         let addr = listener.local_addr()?;
         Ok(Self {
             state: Arc::new(Mutex::new(State::default())),
@@ -956,6 +1181,7 @@ impl NullBroker {
             partitions,
             advertised_host: addr.ip().to_string(),
             advertised_port: i32::from(addr.port()),
+            synth,
         })
     }
 
@@ -993,6 +1219,7 @@ impl NullBroker {
                         partitions: self.partitions,
                         advertised_host: self.advertised_host.clone(),
                         advertised_port: self.advertised_port,
+                        synth: self.synth.clone(),
                     };
                     workers.push(std::thread::spawn(move || worker.serve_conn(stream)));
                 }
@@ -1028,6 +1255,9 @@ impl NullBroker {
             produce_requests: state.produce_requests,
             failures: state.failures,
             end_offsets,
+            fetch_requests: state.fetch_requests,
+            fetched_records: state.fetched_records,
+            fetched_wire_bytes: state.fetched_wire_bytes,
         }
     }
 }
@@ -1039,6 +1269,7 @@ struct Worker {
     partitions: i32,
     advertised_host: String,
     advertised_port: i32,
+    synth: synth::SynthConfig,
 }
 
 impl Worker {
@@ -1090,9 +1321,22 @@ impl Worker {
             API_KEY_METADATA if api_version == 13 => {
                 let (topics, _allow_auto) = decode_metadata_request(body).map_err(|_| ())?;
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
+                let topics = topics.as_deref().unwrap_or(&[]);
+                // Remember id -> name so Fetch-by-ID resolves.
+                if let Ok(mut state) = self.state.lock() {
+                    for topic in topics {
+                        if let Some(name) = topic.name.as_deref() {
+                            if !name.is_empty() {
+                                state
+                                    .topic_ids
+                                    .insert(synth::topic_id(name), name.to_owned());
+                            }
+                        }
+                    }
+                }
                 encode_metadata_response(
                     &mut out,
-                    topics.as_deref().unwrap_or(&[]),
+                    topics,
                     self.partitions,
                     &self.advertised_host,
                     self.advertised_port,
@@ -1141,6 +1385,24 @@ impl Worker {
                 let parts = self.append(topics.iter(), transactional_id.is_some());
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
                 encode_produce_response(&mut out, &parts);
+                Ok(Some(out))
+            }
+            API_KEY_FETCH if api_version == 17 => {
+                let (max_bytes, topics) = decode_fetch_request(body).map_err(|_| ())?;
+                {
+                    let mut state = self.lock_state().map_err(|_| ())?;
+                    state.fetch_requests += 1;
+                }
+                let served = self.serve_fetch(max_bytes, &topics);
+                encode_response_header(&mut out, api_key, api_version, correlation_id);
+                encode_fetch_response(&mut out, &served);
+                Ok(Some(out))
+            }
+            API_KEY_LIST_OFFSETS if api_version == 10 => {
+                let topics = decode_list_offsets_request(body).map_err(|_| ())?;
+                let rows = self.serve_list_offsets(&topics);
+                encode_response_header(&mut out, api_key, api_version, correlation_id);
+                encode_list_offsets_response(&mut out, &rows);
                 Ok(Some(out))
             }
             _ => Err(()),
@@ -1274,6 +1536,138 @@ impl Worker {
         parts
     }
 
+    /// Serve one `Fetch` v17 request from the synthetic log.
+    ///
+    /// Whole batches while both budgets allow, with a one-batch progress
+    /// guarantee per partition below log end (mirroring Kafka, which can
+    /// exceed `max_bytes` by one batch). Unknown topic ids and negative
+    /// offsets get protocol errors, not panics.
+    fn serve_fetch(
+        &self,
+        max_bytes: i32,
+        topics: &[FetchTopicData],
+    ) -> Vec<([u8; 16], Vec<FetchPartitionResult>)> {
+        let known: Vec<bool> = {
+            let state = match self.state.lock() {
+                Ok(guard) => guard,
+                Err(_) => return Vec::new(),
+            };
+            topics
+                .iter()
+                .map(|t| state.topic_ids.contains_key(&t.topic_id))
+                .collect()
+        };
+        let end = self.synth.records_per_partition as i64;
+        let total_budget = usize::try_from(max_bytes.max(0)).unwrap_or(0);
+        let mut total_used = 0usize;
+        let mut served_records = 0u64;
+        let mut served_bytes = 0u64;
+        let mut out = Vec::with_capacity(topics.len());
+        for (topic, is_known) in topics.iter().zip(known.iter()) {
+            let mut partitions = Vec::with_capacity(topic.partitions.len());
+            for part in &topic.partitions {
+                if !is_known {
+                    partitions.push(FetchPartitionResult {
+                        partition: part.partition,
+                        error_code: ERR_UNKNOWN_TOPIC_ID,
+                        high_watermark: -1,
+                        records: Vec::new(),
+                        aborted: Vec::new(),
+                    });
+                    continue;
+                }
+                if part.fetch_offset < 0 {
+                    partitions.push(FetchPartitionResult {
+                        partition: part.partition,
+                        error_code: ERR_OFFSET_OUT_OF_RANGE,
+                        high_watermark: end,
+                        records: Vec::new(),
+                        aborted: Vec::new(),
+                    });
+                    continue;
+                }
+                let part_budget = usize::try_from(part.partition_max_bytes.max(0)).unwrap_or(0);
+                let mut records = Vec::new();
+                let mut aborted = Vec::new();
+                let mut part_records = 0u64;
+                if self.synth.records_per_batch > 0 {
+                    let mut batch_index =
+                        (part.fetch_offset as u64) / u64::from(self.synth.records_per_batch);
+                    while let Some(batch) =
+                        synth::encode_batch(&self.synth, part.partition, batch_index)
+                    {
+                        let fits_part = records.len() + batch.bytes.len() <= part_budget;
+                        let fits_total = total_used + batch.bytes.len() <= total_budget;
+                        if !records.is_empty() && (!fits_part || !fits_total) {
+                            break;
+                        }
+                        if batch.aborted {
+                            aborted.push((batch.producer_id, batch.base_offset as i64));
+                        }
+                        part_records += u64::from(batch.count);
+                        total_used += batch.bytes.len();
+                        records.extend_from_slice(&batch.bytes);
+                        batch_index += 1;
+                    }
+                }
+                served_records += part_records;
+                served_bytes += records.len() as u64;
+                partitions.push(FetchPartitionResult {
+                    partition: part.partition,
+                    error_code: ERR_NONE,
+                    high_watermark: end,
+                    records,
+                    aborted,
+                });
+            }
+            out.push((topic.topic_id, partitions));
+        }
+        if let Ok(mut state) = self.state.lock() {
+            state.fetched_records += served_records;
+            state.fetched_wire_bytes += served_bytes;
+        }
+        out
+    }
+
+    /// Serve one `ListOffsets` v10 request against the synthetic log.
+    ///
+    /// Timestamp `-2` is earliest (`0`), `-1` is latest (log end); explicit
+    /// millis map through the deterministic batch timestamps.
+    fn serve_list_offsets(
+        &self,
+        topics: &[ListOffsetsTopicData],
+    ) -> Vec<(String, i32, i16, i64, i64)> {
+        let end = self.synth.records_per_partition as i64;
+        let mut rows = Vec::new();
+        for topic in topics {
+            for part in &topic.partitions {
+                if topic.name.is_empty() {
+                    rows.push((
+                        topic.name.clone(),
+                        part.partition,
+                        ERR_UNKNOWN_TOPIC_OR_PARTITION,
+                        -1,
+                        -1,
+                    ));
+                    continue;
+                }
+                let offset = match part.timestamp {
+                    -2 => 0,
+                    -1 => end,
+                    ts => (ts - 1_700_000_000_000).clamp(0, end),
+                };
+                // Timestamp of the returned offset; -1 at log end (no batch).
+                let ts = if offset >= end {
+                    -1
+                } else {
+                    1_700_000_000_000 + offset
+                };
+                rows.push((topic.name.clone(), part.partition, ERR_NONE, ts, offset));
+            }
+        }
+        rows
+    }
+
     fn lock_state(&self) -> Result<std::sync::MutexGuard<'_, State>, ()> {
         self.state.lock().map_err(|_| ())
     }
@@ -1321,6 +1715,18 @@ pub fn write_artifact(path: &Path, report: &RunReport) -> io::Result<()> {
     body.push_str(&format!(
         "  \"produce_requests\": {},\n",
         report.produce_requests
+    ));
+    body.push_str(&format!(
+        "  \"fetch_requests\": {},\n",
+        report.fetch_requests
+    ));
+    body.push_str(&format!(
+        "  \"fetched_records\": {},\n",
+        report.fetched_records
+    ));
+    body.push_str(&format!(
+        "  \"fetched_wire_bytes\": {},\n",
+        report.fetched_wire_bytes
     ));
     body.push_str("  \"validation_failures\": {\n");
     body.push_str(&format!("    \"framing\": {},\n", report.failures.framing));

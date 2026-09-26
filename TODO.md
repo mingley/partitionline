@@ -1,6 +1,6 @@
 # Next-session queue
 
-**Default next task: `KL09-07` (P1) -- serve seeded synthetic Fetch responses from the null broker.** (`KL09-06` Produce server landed; `KL09-02`/`KL09-03` await `KL04-07`.)
+**Default next task: `KL09-08` (P1) -- add multi-node, slow-node and fault modes to the null broker.** (`KL09-07` Fetch server landed; `KL09-02`/`KL09-03` await `KL04-07`.)
 
 Use [one task per session](docs/plan/README.md). The canonical
 [task registry](docs/plan/tasks.json) contains dependencies, starting files,

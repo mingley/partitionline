@@ -2792,13 +2792,13 @@
     {
       "id": "KL09-07",
       "title": "Serve seeded synthetic Fetch responses from the null broker",
-      "priority": "P1", "kind": "test-infrastructure", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "test-infrastructure", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-06"],
       "files": ["benchmarks/nullbroker/"],
       "deliverable": "Fetch and ListOffsets support serving pre-encoded, seeded record batches (uncompressed and each supported codec) at increasing offsets from memory.",
       "acceptance": ["Content derives from a seed so consumers verify every ID/hash; records per batch, payload size, header count, partitions, compression and a read_committed abort ratio are configurable.", "max_bytes, partition_max_bytes, min_bytes and max_wait are honored well enough for partitionline's consumer.", "Malformed requests get protocol errors, not panics; results are labeled client-ceiling."],
       "validation": ["cargo test --locked --manifest-path benchmarks/nullbroker/Cargo.toml", "bench_fetch against the null broker verifies every ID/hash for 1 and 6 partitions."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-07.json"]
     },
     {
       "id": "KL09-08",
