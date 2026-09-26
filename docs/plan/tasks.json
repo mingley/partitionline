@@ -983,13 +983,30 @@
     {
       "id": "KL03-14",
       "title": "Prove cooperative revocation and offset ownership",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL03-07"],
       "files": ["src/group.rs", "tests/full_surface.rs", "tests/common/mod.rs"],
       "deliverable": "A two-member cooperative rebalance history with precise revoke/assign/commit ordering.",
       "acceptance": ["No partition is actively delivered to both owners during cooperative transfer.", "Revoked and retained positions/pending records are handled separately; callbacks see the documented state.", "Member loss, static membership and max-poll expiry cannot commit undelivered work."],
       "validation": ["cargo test --locked --test full_surface cooperative", "cargo test --locked --test consumer_close_commit"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "3e97b75fc7a3f7f87721b9304c6a30ed58e89130",
+                "commands": [
+                        "cargo test --locked --test full_surface cooperative -- --test-threads=2 (1 passed, exit 0)",
+                        "cargo test --locked --test consumer_close_commit -- --test-threads=2 (15 passed, exit 0)",
+                        "cargo test --locked --test client_api -- --test-threads=2 (100 passed, exit 0)",
+                        "cargo test --locked --lib -- --test-threads=4 (1086 passed, exit 0)",
+                        "cargo test --locked --test full_surface -- --test-threads=4 (269 passed, exit 0)",
+                        "cargo test --locked --test consumer_fetch_semantics -- --test-threads=4 (29 passed, exit 0)",
+                        "cargo clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+                        "bash scripts/ci-docs.sh (strict rustdoc + doctests, exit 0)"
+                ],
+                "results": "assign_committed commits revoked partitions' delivered positions when auto-commit is on, before the new assignment drops their state; the next owner resumes after delivered work. Two-member cooperative history proves revoke/assign/commit ordering with no double delivery; loss/static/max-poll paths cannot commit undelivered work.",
+                "artifacts": ["src/group.rs", "src/consumer.rs", "tests/full_surface.rs", "tests/consumer_close_commit.rs", "docs/plan/evidence/KL03-14.json"],
+                "limits": ["Default-parallelism runs flake on the loaded host (Timeout at producer seeding, also on pristine tree); suites pass with --test-threads=2/4.", "kip848_live ignored (needs live Kafka 4.x broker).", "Auto-commit off still does not commit revoked partitions at revoke time (documented); revoke-commit failure propagates out of poll/rejoin."]
+        }
+      ]
     },
     {
       "id": "KL03-15",
@@ -1681,7 +1698,7 @@
     {
       "id": "KL05-24",
       "title": "Bound companion schema caching and request coalescing",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL05-23"],
       "files": ["partitionline-schema/src/registry.rs", "new: partitionline-schema/tests/cache.rs"],
       "deliverable": "A size-bounded cache with explicit freshness and concurrent-lookup behavior.",
@@ -2143,7 +2160,7 @@
     {
       "id": "KL07-12",
       "title": "Reject invalid raw acks at Producer construction",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL07-10"],
       "files": ["src/producer.rs", "tests/client_api.rs"],
       "deliverable": "Constructor rejection of invalid raw ProducerConfig.acks values.",
@@ -2487,7 +2504,7 @@
     {
       "id": "KL08-17",
       "title": "Land tokio-rustls 0.26.5 patch update",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL08-06"],
       "files": ["Cargo.lock"],
       "deliverable": "tokio-rustls 0.26.5 lock bump landed (PR #102 rebased or re-created).",

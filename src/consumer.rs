@@ -407,6 +407,13 @@ impl ConsumerConfig {
     }
 
     /// Called as `(revoked, assigned)` after a group assignment change.
+    ///
+    /// When [`Self::auto_commit`] is on, the revoked partitions' delivered
+    /// positions are committed before this callback runs, and their buffered
+    /// records are dropped. Retained partitions keep their positions and
+    /// buffered records. With auto-commit off, nothing is committed for the
+    /// revoked partitions; commit explicitly before the transfer if the next
+    /// owner must not replay delivered work.
     #[must_use]
     pub fn on_rebalance(
         mut self,
@@ -417,6 +424,11 @@ impl ConsumerConfig {
     }
 
     /// Kafka `enable.auto.commit`. Off by default.
+    ///
+    /// On covers the poll-interval commit of delivered positions and the
+    /// rebalance commit of revoked partitions' delivered positions (see
+    /// [`Self::on_rebalance`]). `leave`, `close` and `unsubscribe` never
+    /// auto-commit.
     #[must_use]
     pub fn auto_commit(mut self, on: bool) -> Self {
         self.enable_auto_commit = on;

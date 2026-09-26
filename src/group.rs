@@ -2188,6 +2188,29 @@ impl ConsumerGroup {
             .iter()
             .map(|(t, p, o)| ((t.clone(), *p), *o))
             .collect();
+        let prev: HashSet<(String, i32)> = current.keys().cloned().collect();
+        let next: HashSet<(String, i32)> = wanted.iter().cloned().collect();
+        let revoked: Vec<(String, i32)> = prev.difference(&next).cloned().collect();
+        // KL03-14: with auto-commit on, commit the revoked partitions'
+        // delivered positions before the new assignment drops their pending
+        // records, so the next owner resumes after delivered work instead of
+        // replaying it. Retained partitions keep their positions and pending
+        // records untouched; the poll-interval commit covers them. A commit
+        // failure propagates: the rebalance reports the error rather than
+        // silently handing over uncommitted work.
+        if !revoked.is_empty() && self.cfg.enable_auto_commit {
+            let revoked_set: HashSet<(String, i32)> = revoked.iter().cloned().collect();
+            let to_commit: Vec<(TopicPartition, i64)> = self
+                .consumer
+                .positions()
+                .into_iter()
+                .filter(|(tp, _)| revoked_set.contains(&(tp.topic.clone(), tp.partition)))
+                .collect();
+            if !to_commit.is_empty() {
+                let timeout = self.cfg.request_timeout;
+                self.commit_offsets_timeout(to_commit, timeout).await?;
+            }
+        }
         let kept_epochs: HashMap<(String, i32), i32> = wanted
             .iter()
             .filter(|(t, p)| current.contains_key(&(t.clone(), *p)))
@@ -2248,9 +2271,6 @@ impl ConsumerGroup {
                     .set_last_fetched_epoch(topic, *part, md.wire_epoch());
             }
         }
-        let prev: HashSet<(String, i32)> = current.keys().cloned().collect();
-        let next: HashSet<(String, i32)> = wanted.iter().cloned().collect();
-        let revoked: Vec<(String, i32)> = prev.difference(&next).cloned().collect();
         let added_tps: Vec<(String, i32)> = next.difference(&prev).cloned().collect();
         if !revoked.is_empty() || !added_tps.is_empty() {
             self.cfg.rebalance.call(

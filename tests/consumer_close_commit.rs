@@ -6,8 +6,8 @@
 mod common;
 
 use partitionline::{
-    ConsumerConfig, ConsumerGroup, OffsetAndMetadata, ProduceRecord, Producer, ProducerConfig,
-    TopicPartition,
+    ConsumerConfig, ConsumerGroup, Error, OffsetAndMetadata, ProduceRecord, Producer,
+    ProducerConfig, TopicPartition, LEAVE_GROUP_REASON_POLL_TIMEOUT,
 };
 use std::time::Duration;
 
@@ -626,4 +626,109 @@ async fn rebalance_preserves_buffered_records_for_retained_partitions() {
     let remaining = replacement.poll().await.unwrap();
     replacement.leave().await.unwrap();
     assert!(remaining.is_empty());
+}
+
+/// KL03-14: after `max.poll.interval.ms` expires, the member has lost the
+/// group, but an explicit `commit()` still commits only the delivered
+/// position — never the ahead-of-delivery buffered cursor.
+#[tokio::test]
+async fn max_poll_expiry_commits_only_delivered_position() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"0"[..]),
+            ProduceRecord::to("t").value(&b"1"[..]),
+            ProduceRecord::to("t").value(&b"2"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()])
+        .max_wait_ms(10)
+        .auto_commit(false)
+        .heartbeat_interval(Duration::from_millis(20))
+        .max_poll_interval(Duration::from_millis(30));
+    cfg.max_poll_records = Some(1);
+    let mut group = ConsumerGroup::join(cfg, "mpi-delivered-only", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![0]);
+    assert_eq!(group.position("t", 0).unwrap(), 1);
+    assert_eq!(group.fetch_cursor("t", 0).unwrap(), 3);
+
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    let err = group.poll().await.unwrap_err();
+    assert!(
+        matches!(err, Error::MaxPollInterval),
+        "expected MaxPollInterval, got {err}"
+    );
+    assert_eq!(
+        mock.last_leave_group_members()
+            .expect("max poll LeaveGroup")[0]
+            .reason
+            .as_deref(),
+        Some(LEAVE_GROUP_REASON_POLL_TIMEOUT),
+        "expired member must have lost the group via the heartbeat leave"
+    );
+
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.committed_offset("mpi-delivered-only", "t", 0),
+        Some(1),
+        "post-expiry commit must carry the delivered position, not the buffered cursor"
+    );
+}
+
+/// KL03-14: a static member that leaves the group cannot commit buffered,
+/// undelivered records afterwards — `commit()` sends no `OffsetCommit` once
+/// the assignment is gone.
+#[tokio::test]
+async fn static_member_unsubscribe_then_commit_sends_no_offset_commit() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"0"[..]),
+            ProduceRecord::to("t").value(&b"1"[..]),
+            ProduceRecord::to("t").value(&b"2"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()])
+        .max_wait_ms(10)
+        .auto_commit(false);
+    cfg.max_poll_records = Some(1);
+    cfg.group_instance_id = Some("static-1".into());
+    let mut group = ConsumerGroup::join(cfg, "static-loss", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![0]);
+    assert_eq!(group.position("t", 0).unwrap(), 1);
+    assert_eq!(group.fetch_cursor("t", 0).unwrap(), 3);
+
+    let before = mock.offset_commit_calls();
+    group.unsubscribe().await.unwrap();
+    assert_eq!(
+        mock.last_leave_group_members().expect("static LeaveGroup")[0]
+            .group_instance_id
+            .as_deref(),
+        Some("static-1")
+    );
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.offset_commit_calls(),
+        before,
+        "commit after static-member loss must not send OffsetCommit"
+    );
+    assert_eq!(mock.committed_offset("static-loss", "t", 0), None);
 }

@@ -13247,3 +13247,211 @@ async fn produce_v12_skip_does_not_suppress_add_partitions_after_move_to_v7() {
     producer.abort_transaction().await.unwrap();
     producer.close().await.unwrap();
 }
+
+/// KL03-14: two-member cooperative-sticky transfer history.
+///
+/// Member A owns both partitions and delivers every record. When member B
+/// joins, A's rejoin must revoke exactly one partition, commit that
+/// partition's delivered position (auto-commit on), and keep the retained
+/// partition's position. B must resume at the committed offset, so no
+/// `(partition, offset)` is ever delivered by both owners.
+#[tokio::test]
+async fn cooperative_transfer_commits_revoked_without_double_delivery() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    for p in [0, 1] {
+        for i in 0..3 {
+            producer
+                .send(
+                    ProduceRecord::to("t")
+                        .partition(p)
+                        .value(format!("p{p}-{i}").into_bytes()),
+                )
+                .await
+                .unwrap();
+        }
+    }
+    producer.close().await.unwrap();
+
+    type RebalanceEvents =
+        std::sync::Arc<parking_lot::Mutex<Vec<(Vec<TopicPartition>, Vec<TopicPartition>)>>>;
+    let events: RebalanceEvents = std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
+    let mut a = ConsumerGroup::join_cooperative_sticky(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .auto_commit(true)
+            .auto_commit_interval(Duration::from_secs(3600))
+            .heartbeat_interval(Duration::from_millis(25))
+            .on_rebalance({
+                let events = std::sync::Arc::clone(&events);
+                move |revoked, assigned| {
+                    events.lock().push((revoked.to_vec(), assigned.to_vec()));
+                }
+            }),
+        "coop-xfer",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        a.assignment().len(),
+        2,
+        "sole member must own both partitions"
+    );
+
+    let mut delivered_a: Vec<(i32, i64)> = Vec::new();
+    for _ in 0..10 {
+        let recs = a.poll().await.unwrap();
+        if recs.is_empty() {
+            break;
+        }
+        for r in recs.iter() {
+            delivered_a.push((r.partition, r.offset));
+        }
+    }
+    assert_eq!(delivered_a.len(), 6, "A must deliver every seeded record");
+    assert_eq!(
+        mock.offset_commit_calls(),
+        0,
+        "long-interval auto-commit must not fire before the rebalance"
+    );
+    assert_eq!(mock.committed_offset("coop-xfer", "t", 0), None);
+    assert_eq!(mock.committed_offset("coop-xfer", "t", 1), None);
+
+    let mut b = ConsumerGroup::join_cooperative_sticky(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .heartbeat_interval(Duration::from_millis(25)),
+        "coop-xfer",
+        "t",
+    )
+    .await
+    .unwrap();
+
+    // Force A's rebalance deterministically instead of waiting on the
+    // background heartbeat to observe the new generation.
+    a.enforce_rebalance();
+    let _ = a.poll().await.unwrap();
+    let kept = a.assignment();
+    assert_eq!(
+        kept.len(),
+        1,
+        "cooperative round must revoke exactly one partition, kept {kept:?}"
+    );
+    let revoked_partition = if kept[0].partition == 0 { 1 } else { 0 };
+
+    assert_eq!(
+        mock.committed_offset("coop-xfer", "t", revoked_partition),
+        Some(3),
+        "revoke must commit the revoked partition's delivered position"
+    );
+    assert_eq!(
+        mock.committed_offset("coop-xfer", "t", kept[0].partition),
+        None,
+        "the retained partition must not commit at revoke time"
+    );
+
+    {
+        let events = events.lock();
+        assert_eq!(
+            events.len(),
+            2,
+            "listener must see join then one revoke round, got {events:?}"
+        );
+        assert!(events[0].0.is_empty(), "first join revokes nothing");
+        assert_eq!(events[0].1.len(), 2, "first join assigns both");
+        assert_eq!(
+            events[1].0,
+            vec![TopicPartition::new("t", revoked_partition)],
+            "revoke round must report the revoked partition"
+        );
+        assert!(events[1].1.is_empty(), "revoke round assigns nothing new");
+    }
+
+    // B must pick up the revoked partition and resume at the committed
+    // offset. New records appended after the transfer pin the resume point:
+    // anything below offset 3 would be a redelivery of A's history.
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    for i in 3..5 {
+        producer
+            .send(
+                ProduceRecord::to("t")
+                    .partition(revoked_partition)
+                    .value(format!("new-{i}").into_bytes()),
+            )
+            .await
+            .unwrap();
+    }
+    producer.close().await.unwrap();
+
+    // Force B's rejoin deterministically: an empty-assignment poll loop can
+    // spin faster than the background heartbeat observes the new generation.
+    b.enforce_rebalance();
+    let mut delivered_b: Vec<(i32, i64)> = Vec::new();
+    for _ in 0..60 {
+        let recs = b.poll().await.unwrap();
+        for r in recs.iter() {
+            delivered_b.push((r.partition, r.offset));
+        }
+        if delivered_b.len() >= 2 {
+            break;
+        }
+    }
+    assert_eq!(
+        b.assignment(),
+        vec![TopicPartition::new("t", revoked_partition)],
+        "B must own exactly the revoked partition"
+    );
+    assert_eq!(
+        delivered_b,
+        vec![(revoked_partition, 3), (revoked_partition, 4)],
+        "B must resume at the committed offset without redelivering A's history"
+    );
+    for dup in &delivered_b {
+        assert!(
+            !delivered_a.contains(dup),
+            "no (partition, offset) may be delivered by both owners, dup {dup:?}"
+        );
+    }
+
+    // The retained partition keeps its position: A still owns it and serves
+    // newly appended records from offset 3.
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(kept[0].partition)
+                .value(&b"kept-new"[..]),
+        )
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut kept_new: Vec<(i32, i64)> = Vec::new();
+    for _ in 0..20 {
+        let recs = a.poll().await.unwrap();
+        for r in recs.iter() {
+            kept_new.push((r.partition, r.offset));
+        }
+        if !kept_new.is_empty() {
+            break;
+        }
+    }
+    assert_eq!(
+        kept_new,
+        vec![(kept[0].partition, 3)],
+        "retained partition must resume at its kept position"
+    );
+
+    b.leave().await.unwrap();
+    a.leave().await.unwrap();
+}
