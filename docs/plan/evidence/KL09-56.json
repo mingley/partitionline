@@ -1,0 +1,47 @@
+{
+ "source_sha": "21d5463764e172290c577c9c2f444f76d1efe6be",
+ "baseline_sha": "20c542fff90e998d988c1e45897bb9fb923073b5",
+ "disposition": "rejected-no-gain",
+ "hypothesis": "wrap_tls rebuilds RootCertStore + rustls ClientConfig per connection (PEM parse, Mozilla/single-CA store, optional mTLS identity); sharing one Arc<ClientConfig> per client should cut lb-tls-connect wall ms.",
+ "cells": [
+  "lb-tls-connect"
+ ],
+ "host": "Apple M4 Pro, Darwin 25.6.0 arm64, rustc 1.98.1, release profile; broker Kafka 4.1.0 KRaft loopback (ci-auth-smoke.sh certs, mTLS listener 9195, RSA-2048)",
+ "commands": [
+  "scratch release probe of root_store+ClientConfig build (200 iters, removed after): mozilla-roots 1.202us, single-ca 2.02us, single-ca-mtls 18.793us per build (exit 0)",
+  "lb-tls-connect scratch driver (8 sequential BrokerConn::connect_tls, removed after): 20 reps avg 16.287ms/cell wall; /usr/bin/time -l over 20 cells: 0.07 user + 0.02-0.03 sys => ~4.5-5.0ms client CPU per cell (exit 0)",
+  "cargo test --locked --test auth_lifecycle (31 passed, exit 0)",
+  "cargo test --locked --test credential_redact (28 passed, exit 0)",
+  "bash scripts/ci-auth-smoke.sh (full SASL_SSL PLAIN+SCRAM+OAUTHBEARER+OIDC + mTLS + fail-closed checks, exit 0)"
+ ],
+ "results": {
+  "primary": {
+   "metric": "lb-tls-connect wall ms for 8 sockets (mTLS/RSA-2048)",
+   "baseline_avg": 16.287,
+   "repetitions": 20,
+   "bound": "max saving 8x18.793us = 150us = 0.9% of 16.3ms; wall-clock bar needs >=3% (>=490us); deterministic bar needs >=5% of instructions (mechanism ~3% of client CPU) or allocations (unmeasurable: KL09-04 pending; ~10KB transient vs ~200KB+ cell buffers). No acceptance route passable; no A/B run, no code committed."
+  },
+  "allocations": {
+   "unit": "not measured (KL09-04 allocation tooling pending)",
+   "baseline": null,
+   "candidate": null
+  },
+  "instructions": {
+   "bench": "not measured (KL09-05 gate pending)",
+   "baseline": null,
+   "candidate": null
+  },
+  "guardrails": "no code changed: auth_lifecycle 31/31, credential_redact 28/28, ci-auth-smoke.sh green; zero functional delta by construction",
+  "net_production_lines": 0,
+  "correctness": "auth_lifecycle 31 passed 0 failed; credential_redact 28 passed 0 failed; ci-auth-smoke.sh exit 0; no new skips"
+ },
+ "artifacts": [
+  "docs/plan/evidence/KL09-56.json"
+ ],
+ "limits": [
+  "Rejected without implementation: direct mechanism + cell measurements bound the gain below every acceptance bar, so an A/B could not change the outcome.",
+  "Minimal fix (cache field in TlsConfig) breaks the Stable API surface: callers use exhaustive struct literals (e.g. tests/auth_lifecycle.rs), and any added field breaks them; the compatible variant (plumbed Arc + additive connect fns) is disproportionate complexity for a <=0.9% connect-cell gain.",
+  "Cell wall measured warmed (first rep 72.8ms cold, then 28.9/22.8ms; 20-rep avg 16.3ms); broker is loopback Java, so absolute ms is host-specific \u2014 the bound ratio is the finding.",
+  "local/unsigned; not a Kafka comparison claim"
+ ]
+}
