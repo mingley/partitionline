@@ -2725,7 +2725,8 @@
     {
       "id": "KL09-01",
       "title": "Freeze the fastest-client claim gate and leadership targets",
-      "priority": "P0", "kind": "specification", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "specification", "status": "in_progress", "owner": "mingley",
+      "write_set": ["docs/benchmark-contract.md", "benchmarks/scenarios.json", "docs/plan/performance-leadership.md", "docs/plan/tasks.json", "docs/plan/evidence/KL09-01.json", "TODO.md"],
       "depends_on": ["KL04-01", "KL04-02"],
       "files": ["docs/benchmark-contract.md", "benchmarks/scenarios.json", "docs/plan/performance-leadership.md"],
       "deliverable": "A versioned claim gate in the benchmark contract: peer set, per-cell best-peer rule, claim types (global, profile, X%-faster, efficiency), statistical thresholds, guardrails and the KL09 local-evidence rules.",
