@@ -1784,7 +1784,7 @@
     {
       "id": "KL05-24",
       "title": "Bound companion schema caching and request coalescing",
-      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
       "depends_on": ["KL05-23"],
       "files": ["partitionline-schema/src/registry.rs", "new: partitionline-schema/tests/cache.rs"],
       "deliverable": "A size-bounded cache with explicit freshness and concurrent-lookup behavior.",
@@ -2281,7 +2281,7 @@
     {
       "id": "KL07-12",
       "title": "Reject invalid raw acks at Producer construction",
-      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
       "depends_on": ["KL07-10"],
       "files": ["src/producer.rs", "tests/client_api.rs"],
       "deliverable": "Constructor rejection of invalid raw ProducerConfig.acks values.",
@@ -2625,7 +2625,7 @@
     {
       "id": "KL08-17",
       "title": "Land tokio-rustls 0.26.5 patch update",
-      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
       "depends_on": ["KL08-06"],
       "files": ["Cargo.lock"],
       "deliverable": "tokio-rustls 0.26.5 lock bump landed (PR #102 rebased or re-created).",
