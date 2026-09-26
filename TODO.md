@@ -1,6 +1,6 @@
 # Next-session queue
 
-**Default next task: `KL03-14` -- prove cooperative revocation and offset ownership.**
+**Default next task: `KL03-15` -- prove KIP-848 epoch and assignment reconciliation.**
 
 Use [one task per session](docs/plan/README.md). The canonical
 [task registry](docs/plan/tasks.json) contains dependencies, starting files,
