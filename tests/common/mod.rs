@@ -194,6 +194,16 @@ pub struct LastPushTelemetry {
     pub metrics: Vec<u8>,
 }
 
+/// Client-side mTLS fixture: the server CA to trust plus one valid and one
+/// rogue client identity (KL06-05).
+pub struct TlsClientFixture {
+    pub server_ca: Vec<u8>,
+    pub client_cert: Vec<u8>,
+    pub client_key: Vec<u8>,
+    pub rogue_cert: Vec<u8>,
+    pub rogue_key: Vec<u8>,
+}
+
 #[derive(Clone)]
 pub struct Mock {
     pub addr: String,
@@ -221,6 +231,12 @@ type AppendedBatchKey = (i64, i16, String, i32, i32);
 type AppendedBatchVal = (i64, i32);
 
 struct State {
+    /// Current TLS acceptor for TLS mocks; swapped by rotation (KL06-05).
+    tls_acceptor: Option<Arc<Mutex<tokio_rustls::TlsAcceptor>>>,
+    /// Server (cert_pem, key_pem) for rebuilding mTLS configs on rotation.
+    tls_server_identity_pem: Option<(Vec<u8>, Vec<u8>)>,
+    /// Required client CA PEM when the mock enforces mTLS.
+    tls_client_ca_pem: Option<Vec<u8>>,
     log: HashMap<(String, i32), Vec<Record>>,
     next_offset: HashMap<(String, i32), i64>,
     /// Keyed by `(group_id, topic, partition)`.
@@ -1006,6 +1022,9 @@ fn new_state(
         last_txn_offset_commit_node: None,
         hb_by_node: HashMap::new(),
         kip848_groups: HashMap::new(),
+        tls_acceptor: None,
+        tls_server_identity_pem: None,
+        tls_client_ca_pem: None,
     }
 }
 
@@ -1635,10 +1654,14 @@ impl Mock {
         }
     }
 
-    pub async fn start_tls() -> (Self, partitionline::TlsConfig) {
-        partitionline::net::install_crypto_provider();
-        let (server, ca_pem) = tls_server_identity();
-        let acceptor = tokio_rustls::TlsAcceptor::from(std::sync::Arc::new(server));
+    /// Serve Kafka-over-TLS with `server`, sharing the acceptor so rotation
+    /// swaps the identity new connections see (KL06-05). `server_pem` keeps
+    /// the (cert,key) PEMs for rebuilding mTLS configs on rotation.
+    async fn serve_tls_state(
+        server: rustls::ServerConfig,
+        server_pem: Option<(Vec<u8>, Vec<u8>)>,
+        client_ca_pem: Option<Vec<u8>>,
+    ) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
         let port = addr.port() as i32;
@@ -1649,6 +1672,12 @@ impl Mock {
             port,
             rack: None,
         }];
+        let acceptor = Arc::new(Mutex::new(tokio_rustls::TlsAcceptor::from(Arc::new(
+            server,
+        ))));
+        st.tls_acceptor = Some(acceptor.clone());
+        st.tls_server_identity_pem = server_pem;
+        st.tls_client_ca_pem = client_ca_pem;
         let state = Arc::new(Mutex::new(st));
         let st = state.clone();
         tokio::spawn(async move {
@@ -1662,7 +1691,7 @@ impl Mock {
                 note_accept(&st);
                 tcp.set_nodelay(true).ok();
                 let st = st.clone();
-                let acceptor = acceptor.clone();
+                let acceptor = acceptor.lock().clone();
                 tokio::spawn(async move {
                     let Ok(stream) = acceptor.accept(tcp).await else {
                         return;
@@ -1671,19 +1700,114 @@ impl Mock {
                 });
             }
         });
+        Self {
+            addr: format!("127.0.0.1:{}", addr.port()),
+            state,
+        }
+    }
+
+    pub async fn start_tls() -> (Self, partitionline::TlsConfig) {
+        partitionline::net::install_crypto_provider();
+        let (cert_pem, key_pem) = tls_self_signed_server_pem();
+        let server = tls_server_config_no_client_auth(&cert_pem, &key_pem);
+        let mock = Self::serve_tls_state(server, Some((cert_pem.clone(), key_pem)), None).await;
         let tls = partitionline::TlsConfig {
-            ca_pem: Some(ca_pem),
+            ca_pem: Some(cert_pem),
             client_cert_pem: None,
             client_key_pem: None,
             server_name: Some("localhost".into()),
         };
-        (
-            Self {
-                addr: format!("127.0.0.1:{}", addr.port()),
-                state,
-            },
-            tls,
+        (mock, tls)
+    }
+
+    /// TLS mock serving an expired leaf; clients must trust the returned CA
+    /// (which is still valid, so only the leaf's dates fail) (KL06-05).
+    pub async fn start_tls_expired() -> (Self, Vec<u8>) {
+        partitionline::net::install_crypto_provider();
+        let (server, ca_pem) = tls_expired_server_identity();
+        let mock = Self::serve_tls_state(server, None, None).await;
+        (mock, ca_pem)
+    }
+
+    /// mTLS mock requiring client certificates chained to a fresh client CA
+    /// (KL06-05).
+    pub async fn start_tls_mtls() -> (Self, TlsClientFixture) {
+        partitionline::net::install_crypto_provider();
+        let (cert_pem, key_pem) = tls_self_signed_server_pem();
+        let (client_ca_cert, client_ca_key) = tls_ca_identity("client-ca");
+        let (client_cert, client_key) = tls_leaf_via_ca(
+            &client_ca_cert,
+            &client_ca_key,
+            "client",
+            None,
+            "clientAuth",
+        );
+        let (rogue_ca_cert, rogue_ca_key) = tls_ca_identity("rogue-ca");
+        let (rogue_cert, rogue_key) =
+            tls_leaf_via_ca(&rogue_ca_cert, &rogue_ca_key, "rogue", None, "clientAuth");
+        let server = tls_server_config_mtls(&cert_pem, &key_pem, &client_ca_cert);
+        let mock = Self::serve_tls_state(
+            server,
+            Some((cert_pem.clone(), key_pem)),
+            Some(client_ca_cert),
         )
+        .await;
+        (
+            mock,
+            TlsClientFixture {
+                server_ca: cert_pem,
+                client_cert,
+                client_key,
+                rogue_cert,
+                rogue_key,
+            },
+        )
+    }
+
+    /// Replace the server identity with a fresh self-signed cert, preserving
+    /// the mTLS client-CA requirement when one is configured. Returns the new
+    /// CA PEM clients must trust. Established connections are unaffected;
+    /// only new handshakes see the replacement (KL06-05).
+    pub fn rotate_tls_server(&self) -> Vec<u8> {
+        let (cert_pem, key_pem) = tls_self_signed_server_pem();
+        let st = self.state.lock();
+        let server = match &st.tls_client_ca_pem {
+            Some(client_ca) => tls_server_config_mtls(&cert_pem, &key_pem, client_ca),
+            None => tls_server_config_no_client_auth(&cert_pem, &key_pem),
+        };
+        let slot = st.tls_acceptor.clone().expect("tls mock");
+        *slot.lock() = tokio_rustls::TlsAcceptor::from(Arc::new(server));
+        drop(st);
+        let mut st = self.state.lock();
+        st.tls_server_identity_pem = Some((cert_pem.clone(), key_pem));
+        cert_pem
+    }
+
+    /// Replace the required client CA, keeping the server identity. Returns
+    /// a fresh client identity chained to the new CA; previously issued
+    /// identities are rejected on new handshakes while established
+    /// connections are unaffected (KL06-05).
+    pub fn rotate_tls_client_ca(&self) -> (Vec<u8>, Vec<u8>) {
+        let (client_ca_cert, client_ca_key) = tls_ca_identity("client-ca-rotated");
+        let (client_cert, client_key) = tls_leaf_via_ca(
+            &client_ca_cert,
+            &client_ca_key,
+            "client",
+            None,
+            "clientAuth",
+        );
+        let st = self.state.lock();
+        let (cert_pem, key_pem) = st
+            .tls_server_identity_pem
+            .clone()
+            .expect("tls server identity");
+        let server = tls_server_config_mtls(&cert_pem, &key_pem, &client_ca_cert);
+        let slot = st.tls_acceptor.clone().expect("tls mock");
+        *slot.lock() = tokio_rustls::TlsAcceptor::from(Arc::new(server));
+        drop(st);
+        let mut st = self.state.lock();
+        st.tls_client_ca_pem = Some(client_ca_cert);
+        (client_cert, client_key)
     }
 
     pub fn last_producer_id(&self) -> Option<i64> {
@@ -3272,21 +3396,13 @@ pub async fn wait_pred(what: &str, mut pred: impl FnMut() -> bool) {
     }
 }
 
-fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
-    // Ephemeral self-signed cert via openssl CLI — avoids the rcgen→time
-    // RUSTSEC-2026-0009 advisory that cannot be patched under MSRV 1.85.
-    use rustls::pki_types::pem::PemObject;
-    use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+/// Self-signed server (cert,key) PEMs for localhost/127.0.0.1.
+///
+/// Ephemeral cert via openssl CLI — avoids the rcgen→time
+/// RUSTSEC-2026-0009 advisory that cannot be patched under MSRV 1.85.
+fn tls_self_signed_server_pem() -> (Vec<u8>, Vec<u8>) {
     use std::process::Command;
-    use std::sync::atomic::{AtomicU64, Ordering};
-
-    static NEXT: AtomicU64 = AtomicU64::new(1);
-    let dir = std::env::temp_dir().join(format!(
-        "partitionline-tls-{}-{}",
-        std::process::id(),
-        NEXT.fetch_add(1, Ordering::Relaxed)
-    ));
-    std::fs::create_dir_all(&dir).expect("tls temp dir");
+    let dir = tls_temp_dir();
     let key_path = dir.join("key.pem");
     let cert_path = dir.join("cert.pem");
     let output = Command::new("openssl")
@@ -3324,28 +3440,256 @@ fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
             String::from_utf8_lossy(&output.stderr)
         );
     }
-    // Sync openssl CLI path — use File+Read (not std::fs::read) so clippy's
-    // async-runtime disallowed_methods stay clean.
-    use std::io::Read;
-    let mut ca_pem = Vec::new();
-    std::fs::File::open(&cert_path)
-        .expect("open cert pem")
-        .read_to_end(&mut ca_pem)
-        .expect("read cert pem");
-    let mut key_pem = Vec::new();
-    std::fs::File::open(&key_path)
-        .expect("open key pem")
-        .read_to_end(&mut key_pem)
-        .expect("read key pem");
+    // Sync openssl CLI path — read_pem_file uses File+Read (not
+    // std::fs::read) so clippy's async-runtime disallowed_methods stay clean.
+    let out = (read_pem_file(&cert_path), read_pem_file(&key_path));
     let _ = std::fs::remove_dir_all(&dir);
+    out
+}
 
-    let cert_der = CertificateDer::from_pem_slice(&ca_pem).expect("parse cert pem");
+fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
+    let (cert_pem, key_pem) = tls_self_signed_server_pem();
+    let server = tls_server_config_no_client_auth(&cert_pem, &key_pem);
+    (server, cert_pem)
+}
+
+/// Fresh temp dir for openssl fixture material (KL06-05).
+fn tls_temp_dir() -> std::path::PathBuf {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(1);
+    let dir = std::env::temp_dir().join(format!(
+        "partitionline-tls-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(&dir).expect("tls temp dir");
+    dir
+}
+
+/// Panic with stderr unless the openssl invocation succeeded.
+fn check_openssl(output: std::process::Output, what: &str) {
+    if !output.status.success() {
+        panic!(
+            "openssl {what} failed: {}\nstderr:\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+}
+
+/// Read a PEM file with File+Read (not `std::fs::read`, which clippy's
+/// async-runtime rules forbid).
+fn read_pem_file(path: &std::path::Path) -> Vec<u8> {
+    use std::io::Read;
+    let mut v = Vec::new();
+    std::fs::File::open(path)
+        .expect("open pem")
+        .read_to_end(&mut v)
+        .expect("read pem");
+    v
+}
+
+/// Write bytes with File+Write (not `std::fs::write`, which clippy's
+/// async-runtime rules forbid).
+fn write_pem_file(path: &std::path::Path, bytes: &[u8]) {
+    use std::io::Write;
+    std::fs::File::create(path)
+        .expect("create pem")
+        .write_all(bytes)
+        .expect("write pem");
+}
+
+/// Self-signed CA (CA:TRUE) for minting leaves. Returns
+/// `(ca_cert_pem, ca_key_pem)`.
+fn tls_ca_identity(cn: &str) -> (Vec<u8>, Vec<u8>) {
+    use std::process::Command;
+    let dir = tls_temp_dir();
+    let key_path = dir.join("ca.key");
+    let cert_path = dir.join("ca.crt");
+    let output = Command::new("openssl")
+        .args([
+            "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "3650", "-keyout",
+        ])
+        .arg(&key_path)
+        .arg("-out")
+        .arg(&cert_path)
+        .args([
+            "-subj",
+            &format!("/CN={cn}"),
+            "-addext",
+            "basicConstraints=critical,CA:TRUE",
+        ])
+        .output()
+        .unwrap_or_else(|e| panic!("spawn openssl failed: {e}"));
+    check_openssl(output, "ca");
+    let out = (read_pem_file(&cert_path), read_pem_file(&key_path));
+    let _ = std::fs::remove_dir_all(&dir);
+    out
+}
+
+/// Leaf signed by `ca` via `openssl x509 -req -CA`. `eku` is
+/// `serverAuth` or `clientAuth`; `sans` adds a subjectAltName ext when set.
+/// Returns `(leaf_cert_pem, leaf_key_pem)`.
+fn tls_leaf_via_ca(
+    ca_cert: &[u8],
+    ca_key: &[u8],
+    cn: &str,
+    sans: Option<&str>,
+    eku: &str,
+) -> (Vec<u8>, Vec<u8>) {
+    use std::process::Command;
+    let dir = tls_temp_dir();
+    let ca_cert_path = dir.join("ca.crt");
+    let ca_key_path = dir.join("ca.key");
+    write_pem_file(&ca_cert_path, ca_cert);
+    write_pem_file(&ca_key_path, ca_key);
+    let key_path = dir.join("leaf.key");
+    let csr_path = dir.join("leaf.csr");
+    let cert_path = dir.join("leaf.crt");
+    let mut req = Command::new("openssl");
+    req.args(["req", "-newkey", "rsa:2048", "-nodes", "-keyout"])
+        .arg(&key_path)
+        .arg("-out")
+        .arg(&csr_path)
+        .args(["-subj", &format!("/CN={cn}")]);
+    if let Some(sans) = sans {
+        req.args(["-addext", &format!("subjectAltName={sans}")]);
+    }
+    check_openssl(
+        req.output()
+            .unwrap_or_else(|e| panic!("spawn openssl failed: {e}")),
+        "req",
+    );
+    let mut ext =
+        String::from("basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature");
+    if eku == "serverAuth" {
+        ext.push_str(",keyEncipherment");
+    }
+    ext.push_str(&format!("\nextendedKeyUsage={eku}\n"));
+    if let Some(sans) = sans {
+        ext.push_str(&format!("subjectAltName={sans}\n"));
+    }
+    let ext_path = dir.join("ext.cnf");
+    write_pem_file(&ext_path, ext.as_bytes());
+    let output = Command::new("openssl")
+        .args(["x509", "-req", "-in"])
+        .arg(&csr_path)
+        .arg("-CA")
+        .arg(&ca_cert_path)
+        .arg("-CAkey")
+        .arg(&ca_key_path)
+        .args(["-CAcreateserial", "-days", "30", "-out"])
+        .arg(&cert_path)
+        .arg("-extfile")
+        .arg(&ext_path)
+        .output()
+        .unwrap_or_else(|e| panic!("spawn openssl failed: {e}"));
+    check_openssl(output, "x509 -req");
+    let out = (read_pem_file(&cert_path), read_pem_file(&key_path));
+    let _ = std::fs::remove_dir_all(&dir);
+    out
+}
+
+/// Server identity whose leaf expired 2021-01-01, with the still-valid CA
+/// PEM the client must trust. `openssl ca` is the only CLI path that signs
+/// explicit validity dates (`req -x509` rejects non-positive `-days`).
+fn tls_expired_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
+    use rustls::pki_types::pem::PemObject;
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+    use std::process::Command;
+    let dir = tls_temp_dir();
+    let (ca_cert, ca_key) = tls_ca_identity("expired-ca");
+    write_pem_file(&dir.join("ca.crt"), &ca_cert);
+    write_pem_file(&dir.join("ca.key"), &ca_key);
+    let key_path = dir.join("leaf.key");
+    let csr_path = dir.join("leaf.csr");
+    let cert_path = dir.join("leaf.crt");
+    check_openssl(
+        Command::new("openssl")
+            .args(["req", "-newkey", "rsa:2048", "-nodes", "-keyout"])
+            .arg(&key_path)
+            .arg("-out")
+            .arg(&csr_path)
+            .args(["-subj", "/CN=localhost"])
+            .output()
+            .unwrap_or_else(|e| panic!("spawn openssl failed: {e}")),
+        "req",
+    );
+    let cnf = "[ ca ]\ndefault_ca = test\n[ test ]\ndatabase = ./index.txt\nnew_certs_dir = .\ncertificate = ./ca.crt\nprivate_key = ./ca.key\nserial = ./serial\ndefault_md = sha256\ndefault_days = 1\npolicy = policy_any\nx509_extensions = leaf_ext\n[ policy_any ]\ncommonName = supplied\n[ req ]\ndistinguished_name = dn\n[ dn ]\n[ leaf_ext ]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost,IP:127.0.0.1\n";
+    write_pem_file(&dir.join("cnf"), cnf.as_bytes());
+    write_pem_file(&dir.join("serial"), "01".as_bytes());
+    write_pem_file(&dir.join("index.txt"), "".as_bytes());
+    check_openssl(
+        Command::new("openssl")
+            .current_dir(&dir)
+            .args([
+                "ca",
+                "-batch",
+                "-config",
+                "cnf",
+                "-startdate",
+                "20200101000000Z",
+                "-enddate",
+                "20210101000000Z",
+                "-in",
+                "leaf.csr",
+                "-out",
+                "leaf.crt",
+            ])
+            .output()
+            .unwrap_or_else(|e| panic!("spawn openssl failed: {e}")),
+        "ca",
+    );
+    let leaf_pem = read_pem_file(&cert_path);
+    let key_pem = read_pem_file(&key_path);
+    let _ = std::fs::remove_dir_all(&dir);
+    let cert_der = CertificateDer::from_pem_slice(&leaf_pem).expect("parse leaf pem");
     let key_der = PrivateKeyDer::from_pem_slice(&key_pem).expect("parse key pem");
     let server = rustls::ServerConfig::builder()
         .with_no_client_auth()
         .with_single_cert(vec![cert_der], key_der)
         .expect("tls server config");
-    (server, ca_pem)
+    (server, ca_cert)
+}
+
+/// Server config serving `cert_pem`/`key_pem` without client auth.
+fn tls_server_config_no_client_auth(cert_pem: &[u8], key_pem: &[u8]) -> rustls::ServerConfig {
+    use rustls::pki_types::pem::PemObject;
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+    let cert_der = CertificateDer::from_pem_slice(cert_pem).expect("parse cert pem");
+    let key_der = PrivateKeyDer::from_pem_slice(key_pem).expect("parse key pem");
+    rustls::ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(vec![cert_der], key_der)
+        .expect("tls server config")
+}
+
+/// Server config serving `cert_pem`/`key_pem` while requiring a client
+/// certificate chained to `client_ca_pem`.
+fn tls_server_config_mtls(
+    cert_pem: &[u8],
+    key_pem: &[u8],
+    client_ca_pem: &[u8],
+) -> rustls::ServerConfig {
+    use rustls::pki_types::pem::PemObject;
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+    use std::sync::Arc;
+    let cert_der = CertificateDer::from_pem_slice(cert_pem).expect("parse cert pem");
+    let key_der = PrivateKeyDer::from_pem_slice(key_pem).expect("parse key pem");
+    let mut roots = rustls::RootCertStore::empty();
+    for cert in CertificateDer::pem_slice_iter(client_ca_pem)
+        .collect::<Result<Vec<_>, _>>()
+        .expect("parse client ca")
+    {
+        roots.add(cert).expect("add client ca");
+    }
+    let verifier = rustls::server::WebPkiClientVerifier::builder(Arc::new(roots))
+        .build()
+        .expect("client verifier");
+    rustls::ServerConfig::builder()
+        .with_client_cert_verifier(verifier)
+        .with_single_cert(vec![cert_der], key_der)
+        .expect("tls server config")
 }
 
 async fn read_frame<S: AsyncRead + Unpin>(

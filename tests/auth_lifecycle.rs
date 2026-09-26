@@ -26,6 +26,7 @@ use partitionline::protocol::sasl::{
     reauthenticate_oauthbearer_token, reauthenticate_plain, reauthenticate_scram,
     reauthenticate_with_token_provider, should_reconnect_after_reauth,
 };
+use partitionline::{ProduceRecord, Producer, ProducerConfig, TlsConfig};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
@@ -1403,4 +1404,303 @@ async fn should_reconnect_after_reauth_checks_idle_and_reauth() {
     .await
     .unwrap();
     assert!(rec, "failed reauth must indicate reconnect is needed");
+}
+
+/// KL06-05: a server name outside the certificate must fail the handshake.
+#[tokio::test]
+async fn tls_rejects_wrong_hostname() {
+    let (mock, mut tls) = common::Mock::start_tls().await;
+    tls.server_name = Some("wrong.invalid".into());
+    let err = match Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).tls(tls)).await {
+        Ok(_) => panic!("connect with wrong hostname must fail"),
+        Err(e) => e,
+    };
+    assert!(
+        matches!(err, Error::Io(_)),
+        "wrong hostname must fail TLS, got {err:?}"
+    );
+}
+
+/// KL06-05: an expired leaf must fail verification even though the issuing
+/// CA is trusted.
+#[tokio::test]
+async fn tls_rejects_expired_chain() {
+    let (mock, ca_pem) = common::Mock::start_tls_expired().await;
+    let tls = TlsConfig {
+        ca_pem: Some(ca_pem),
+        client_cert_pem: None,
+        client_key_pem: None,
+        server_name: Some("localhost".into()),
+    };
+    let err = match Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).tls(tls)).await {
+        Ok(_) => panic!("connect with expired chain must fail"),
+        Err(e) => e,
+    };
+    assert!(
+        matches!(err, Error::Io(_)),
+        "expired chain must fail TLS, got {err:?}"
+    );
+}
+
+/// KL06-05: a self-signed chain must fail against the default Mozilla roots.
+#[tokio::test]
+async fn tls_rejects_untrusted_chain() {
+    let (mock, _) = common::Mock::start_tls().await;
+    let tls = TlsConfig {
+        ca_pem: None,
+        client_cert_pem: None,
+        client_key_pem: None,
+        server_name: Some("localhost".into()),
+    };
+    let err = match Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).tls(tls)).await {
+        Ok(_) => panic!("connect with untrusted chain must fail"),
+        Err(e) => e,
+    };
+    assert!(
+        matches!(err, Error::Io(_)),
+        "untrusted chain must fail TLS, got {err:?}"
+    );
+}
+
+/// KL06-05: positive control — a valid client identity connects to the mTLS
+/// mock and produces.
+#[tokio::test]
+async fn tls_mtls_allows_valid_client_identity() {
+    let (mock, fix) = common::Mock::start_tls_mtls().await;
+    let tls = TlsConfig {
+        ca_pem: Some(fix.server_ca),
+        client_cert_pem: Some(fix.client_cert),
+        client_key_pem: Some(fix.client_key),
+        server_name: Some("localhost".into()),
+    };
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .tls(tls)
+            .linger(Duration::ZERO),
+    )
+    .await
+    .expect("valid mTLS identity must connect");
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .expect("produce over mTLS must succeed");
+    producer.close().await.expect("close");
+}
+
+/// KL06-05: an mTLS broker must reject a client that offers no certificate.
+#[tokio::test]
+async fn tls_rejects_missing_client_certificate() {
+    let (mock, fix) = common::Mock::start_tls_mtls().await;
+    let tls = TlsConfig {
+        ca_pem: Some(fix.server_ca),
+        client_cert_pem: None,
+        client_key_pem: None,
+        server_name: Some("localhost".into()),
+    };
+    let err = match Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).tls(tls)).await {
+        Ok(_) => panic!("connect without client certificate must fail against mTLS"),
+        Err(e) => e,
+    };
+    assert!(
+        matches!(err, Error::Io(_) | Error::Timeout),
+        "missing client certificate must fail the handshake, got {err:?}"
+    );
+}
+
+/// KL06-05: garbage identity material fails locally; a well-formed identity
+/// from an untrusted CA fails at the mTLS broker.
+#[tokio::test]
+async fn tls_rejects_invalid_client_certificate() {
+    let (mock, fix) = common::Mock::start_tls_mtls().await;
+
+    let garbage = TlsConfig {
+        ca_pem: Some(fix.server_ca.clone()),
+        client_cert_pem: Some(fix.client_cert.clone()),
+        client_key_pem: Some(b"not a private key".to_vec()),
+        server_name: Some("localhost".into()),
+    };
+    let err = match Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).tls(garbage)).await
+    {
+        Ok(_) => panic!("garbage client key must fail locally"),
+        Err(e) => e,
+    };
+    assert!(
+        matches!(err, Error::Protocol(_)),
+        "garbage client key must fail client-side, got {err:?}"
+    );
+
+    let rogue = TlsConfig {
+        ca_pem: Some(fix.server_ca),
+        client_cert_pem: Some(fix.rogue_cert),
+        client_key_pem: Some(fix.rogue_key),
+        server_name: Some("localhost".into()),
+    };
+    let err = match Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).tls(rogue)).await {
+        Ok(_) => panic!("rogue client identity must fail against mTLS"),
+        Err(e) => e,
+    };
+    assert!(
+        matches!(err, Error::Io(_) | Error::Timeout),
+        "rogue client identity must fail the handshake, got {err:?}"
+    );
+}
+
+/// KL06-05: a TLS client against a plaintext broker must surface Timeout
+/// within the connect deadline and must never send Kafka bytes (no
+/// plaintext fallback). The outer timeout proves the client deadline: if
+/// the handshake hung, this test fails instead of hanging.
+#[tokio::test]
+async fn tls_no_plaintext_fallback_and_handshake_deadline() {
+    let mock = common::Mock::start().await;
+    let tls = TlsConfig {
+        ca_pem: None,
+        client_cert_pem: None,
+        client_key_pem: None,
+        server_name: Some("localhost".into()),
+    };
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]).tls(tls);
+    cfg.connect_timeout = Duration::from_millis(500);
+    let started = Instant::now();
+    let res = tokio::time::timeout(Duration::from_secs(15), Producer::new(cfg))
+        .await
+        .expect("TLS handshake against plaintext must not hang the client");
+    let err = match res {
+        Ok(_) => panic!("TLS against plaintext must fail"),
+        Err(e) => e,
+    };
+    assert!(
+        matches!(err, Error::Timeout),
+        "hanging handshake must surface Timeout, got {err:?}"
+    );
+    assert!(
+        started.elapsed() < Duration::from_secs(10),
+        "connect deadline must bound the handshake"
+    );
+    assert!(
+        mock.api_versions_versions().is_empty(),
+        "no Kafka request may be sent without a handshake: {:?}",
+        mock.api_versions_versions()
+    );
+}
+
+/// KL06-05: rotating the server identity only affects new handshakes.
+/// Established connections keep working; new clients need the new roots.
+#[tokio::test]
+async fn tls_server_rotation_new_clients_use_new_roots_existing_unaffected() {
+    let (mock, tls) = common::Mock::start_tls().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .tls(tls.clone())
+            .linger(Duration::ZERO),
+    )
+    .await
+    .expect("initial connect must succeed");
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"before"[..]))
+        .await
+        .expect("produce before rotation must succeed");
+
+    let new_ca = mock.rotate_tls_server();
+
+    // Established connection: unaffected by the rotation.
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"after"[..]))
+        .await
+        .expect("established connection must survive server rotation");
+    producer.close().await.expect("close");
+
+    // New connection with stale roots: rejected.
+    let err = match Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).tls(tls.clone()))
+        .await
+    {
+        Ok(_) => panic!("stale roots must fail after server rotation"),
+        Err(e) => e,
+    };
+    assert!(
+        matches!(err, Error::Io(_)),
+        "stale roots must fail TLS, got {err:?}"
+    );
+
+    // New connection with rotated roots: works.
+    let rotated = TlsConfig {
+        ca_pem: Some(new_ca),
+        ..tls
+    };
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .tls(rotated)
+            .linger(Duration::ZERO),
+    )
+    .await
+    .expect("rotated roots must connect");
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"rotated"[..]))
+        .await
+        .expect("produce with rotated roots must succeed");
+    producer.close().await.expect("close");
+}
+
+/// KL06-05: rotating the required client CA only affects new handshakes.
+/// The pre-rotation connection keeps working; old identities are rejected
+/// and the fresh identity connects.
+#[tokio::test]
+async fn tls_client_identity_rotation() {
+    let (mock, fix) = common::Mock::start_tls_mtls().await;
+    let tls = TlsConfig {
+        ca_pem: Some(fix.server_ca.clone()),
+        client_cert_pem: Some(fix.client_cert.clone()),
+        client_key_pem: Some(fix.client_key.clone()),
+        server_name: Some("localhost".into()),
+    };
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .tls(tls.clone())
+            .linger(Duration::ZERO),
+    )
+    .await
+    .expect("initial mTLS connect must succeed");
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"before"[..]))
+        .await
+        .expect("produce before rotation must succeed");
+
+    let (new_cert, new_key) = mock.rotate_tls_client_ca();
+
+    // Established connection: unaffected by the rotation.
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"after"[..]))
+        .await
+        .expect("established connection must survive client-CA rotation");
+    producer.close().await.expect("close");
+
+    // New connection with the superseded identity: rejected.
+    let err = match Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).tls(tls.clone()))
+        .await
+    {
+        Ok(_) => panic!("superseded identity must fail after client-CA rotation"),
+        Err(e) => e,
+    };
+    assert!(
+        matches!(err, Error::Io(_) | Error::Timeout),
+        "superseded identity must fail the handshake, got {err:?}"
+    );
+
+    // New connection with the fresh identity: works.
+    let rotated = TlsConfig {
+        client_cert_pem: Some(new_cert),
+        client_key_pem: Some(new_key),
+        ..tls
+    };
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .tls(rotated)
+            .linger(Duration::ZERO),
+    )
+    .await
+    .expect("fresh identity must connect");
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"rotated"[..]))
+        .await
+        .expect("produce with fresh identity must succeed");
+    producer.close().await.expect("close");
 }

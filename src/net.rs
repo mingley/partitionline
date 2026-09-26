@@ -229,6 +229,14 @@ pub(crate) fn reserve_frame(buf: &mut BytesMut, total: usize) {
 ///
 /// [`Debug`] never prints PEM bytes; the private key is always `<redacted>`
 /// (KL-06).
+///
+/// Trust and identity are fixed per client: every connection a client opens
+/// uses this config as built. Rotate roots or client certificates by
+/// constructing a client with the replacement [`TlsConfig`]; connections
+/// established before the rotation are unaffected because TLS
+/// authenticates once at handshake (KL06-05). The handshake itself is
+/// bounded by the configured connect timeout; a failed handshake never
+/// falls back to plaintext.
 #[derive(Clone, Default)]
 pub struct TlsConfig {
     /// PEM CA bundle. If `None`, Mozilla webpki-roots are used.
@@ -697,7 +705,13 @@ impl BrokerConn {
             .map_err(|_| Error::Timeout)??;
         tcp.set_nodelay(true)?;
         let stream = if let Some(tls) = tls {
-            ConnIo::Tls(Box::new(wrap_tls(tcp, addr, tls).await?))
+            // Bound the handshake like the TCP connect: a peer that accepts
+            // TCP but never handshakes must surface Timeout, never hang the
+            // caller or fall back to plaintext (KL06-05).
+            let hs = timeout(connect_timeout, wrap_tls(tcp, addr, tls))
+                .await
+                .map_err(|_| Error::Timeout)??;
+            ConnIo::Tls(Box::new(hs))
         } else {
             ConnIo::Tcp(tcp)
         };

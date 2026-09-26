@@ -1890,13 +1890,31 @@
     {
       "id": "KL06-05",
       "title": "Qualify TLS verification and credential rotation",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL06-01", "KL02-07"],
       "files": ["src/net.rs", "tests/auth_lifecycle.rs", "tests/common/mod.rs"],
       "deliverable": "Deterministic trust/certificate/key rotation cases and the smallest required lifecycle repair.",
       "acceptance": ["Reject wrong hostname, expired/untrusted chains and missing/invalid client certificates with no plaintext fallback.", "Exercise root/client-certificate replacement on reconnect and define existing-connection behavior.", "Preserve configurable roots/SNI and deadline semantics; do not disable verification to make fixtures pass."],
       "validation": ["cargo test --locked --test auth_lifecycle", "cargo test --locked --test full_surface tls"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "ccadfbc3b34918d16a1b99aa40ff057d6ebd0928",
+                "commands": [
+                        "cargo test --locked --test auth_lifecycle tls_ (9 passed, exit 0)",
+                        "cargo test --locked --test auth_lifecycle -- --test-threads=2 (31 passed, exit 0)",
+                        "cargo test --locked --test full_surface tls -- --test-threads=2 (4 passed, exit 0)",
+                        "cargo test --locked --test client_api -- --test-threads=2 (100 passed, exit 0)",
+                        "cargo test --locked --lib -- --test-threads=4 (1086 passed, exit 0)",
+                        "cargo test --locked --test full_surface -- --test-threads=4 (274 passed, exit 0)",
+                        "cargo test --locked --test consumer_fetch_semantics -- --test-threads=2 (33 passed, exit 0)",
+                        "cargo clippy --locked --all-targets --all-features -- -D warnings (0 warnings, exit 0)",
+                        "bash scripts/ci-docs.sh (strict rustdoc + doctests, exit 0)"
+                ],
+                "results": "Nine TLS tests pin hostname/expiry/trust/mTLS verification, no-plaintext-fallback with a bounded handshake (Timeout), and server/client-CA rotation affecting only new handshakes. connect_tls bounds the handshake with connect_timeout; rotation boundary documented on TlsConfig.",
+                "artifacts": ["src/net.rs", "tests/auth_lifecycle.rs", "tests/common/mod.rs", "docs/plan/evidence/KL06-05.json"],
+                "limits": ["In-memory mock only.", "TCP connect and handshake each get a full connect_timeout budget.", "Rotation boundary is client construction; mid-connection reauth stays later.", "Default-parallelism flakes on the loaded host (pre-existing)."]
+        }
+      ]
     },
     {
       "id": "KL06-06",
