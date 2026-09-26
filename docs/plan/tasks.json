@@ -3450,7 +3450,7 @@
     {
       "id": "KL09-65",
       "title": "Check in a pinned franz-go benchmark peer",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL04-01", "KL04-02", "KL09-01"],
       "files": ["new: benchmarks/peers/franz-go/", "benchmarks/scenarios.json"],
       "deliverable": "A reproducibly built franz-go producer/consumer peer for the shared contract.",
