@@ -2803,7 +2803,7 @@
     {
       "id": "KL09-08",
       "title": "Add multi-node, slow-node and fault modes to the null broker",
-      "priority": "P1", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "test-infrastructure", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL09-07"],
       "files": ["benchmarks/nullbroker/"],
       "deliverable": "Deterministic multi-node listeners with distinct node IDs, per-node response delay, and seeded injection of retriable Produce/Fetch errors and unreachable bootstrap addresses.",
