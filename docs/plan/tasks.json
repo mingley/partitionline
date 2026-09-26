@@ -2868,7 +2868,8 @@
     {
       "id": "KL09-14",
       "title": "Pack produce batches by exact encoded size including headers",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "write_set": ["src/producer.rs", "tests/mock_produce.rs", "docs/plan/tasks.json", "docs/plan/evidence/KL09-14.json", "TODO.md"],
       "depends_on": [],
       "files": ["src/producer.rs", "tests/mock_produce.rs"],
       "deliverable": "Batch packing in batch_ready/take_count uses each record's real wire size (headers, varints, attributes) instead of estimate() = key + value + 64, so batch_bytes and max_request_size act as real bounds.",
