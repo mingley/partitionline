@@ -61,6 +61,7 @@ Follow the dependency graph, not a new open-ended audit:
 | `KL06-*` | OIDC expiry/refresh, SASL reauth, TLS rotation, redaction and explicitly approved opt-in GSSAPI |
 | `KL07-*` | Strict docs, actual snippet checks, tutorial/recipes, migration, bounded diagnostics and newcomer exercises |
 | `KL08-*` | Exact required-CI gates, one publisher, package/platform checks, separate adopter runs and operator-controlled rollback |
+| `KL09-*` | [Performance leadership](docs/plan/performance-leadership.md): claim gate, null-broker/allocation/instruction evidence loop, measured producer/codec/consumer/transport optimizations, franz-go peer and a per-cell fastest-client audit. First pickups: `KL09-01`, `KL09-14` |
 
 All new cards begin **pending/unassigned**. Future validation commands are
 acceptance criteria, not completed evidence. A harness, example result,

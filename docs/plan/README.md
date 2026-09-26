@@ -34,6 +34,7 @@ The prefixes retain the existing roadmap packages:
 | KL06 | Authentication and transport lifecycle |
 | KL07 | Documentation, diagnostics and adoption ergonomics |
 | KL08 | Releases, support and production qualification |
+| KL09 | Performance leadership: fast local evidence loop, measured optimization and the fastest-client claim gate |
 
 **Size rule:** one observable behavior, one fixture family, one adapter, one
 documentation outcome, or one evidence job per task. Aim for one or two
@@ -77,6 +78,16 @@ The initial recommended pickups are **KL03-01** (reusable consumer fixture),
 **KL01-01** (conformance registry), and **KL04-01** (benchmark contract).
 These have disjoint primary code surfaces. Consumer repairs then proceed in
 the launch order in TODO; do not run concurrent edits to `src/consumer.rs`.
+
+**Performance work (KL09)** follows the
+[performance leadership program](performance-leadership.md). That page
+defines the claim gate, the hot-path map and the measure-first worker
+protocol, in which a measured rejection completes an optimization card.
+It also has a ready query that respects **hot-file locks**: at most one
+in-progress card per hot file, such as `src/producer.rs` or
+`src/consumer.rs`, across all lanes. It also defines an atomic claim
+procedure: push the claim to `origin/main` with a declared `write_set`.
+Use both whenever parallel sessions are active.
 
 ## Execute and hand off
 

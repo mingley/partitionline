@@ -383,6 +383,44 @@ no blocker remains for that profile, and upgrade/rollback is demonstrated.
 A separate 1.0 decision includes API and maintenance commitments; no date or
 version bump is implied by finishing a feature checklist.
 
+### KL-09: Engineer and prove the fastest Kafka client
+
+**Priority:** P0 claim-gate and evidence integrity; P1 measured optimization.
+**Depends on:** KL-04 contract and result format; KL-03 for consumer
+optimizations; KL-04 campaigns before any claim.
+
+The [performance leadership program](plan/performance-leadership.md) holds
+the strategy, hot-path map and worker protocol. Cards are KL09-01 through
+KL09-70 in [tasks.json](plan/tasks.json).
+
+1. Freeze the claim gate: peer set (librdkafka C, Java, franz-go,
+   rust-rdkafka, pure-Rust peer), per-profile metrics and claim types. A
+   global "fastest Kafka client" claim requires superiority in every
+   required cell of all six profiles on both architectures, with no
+   exceptions. Profile-scoped, X%-faster (CI lower bound) and efficiency
+   claims are separate types. Add an exploratory null-broker
+   client-ceiling tier that can never support a Kafka claim.
+2. Build a fast local evidence loop: honest bench drivers, ratcheted
+   allocation and instruction-count CI gates, a validating null broker, a
+   profiler script and a pinned local baseline. Optimization no longer
+   waits for the multi-host campaign critical path.
+3. Land one measured hotspot per card across the producer, codecs,
+   consumer (after KL03-22), transport and runtime. Measure first; a
+   measured rejection with reverted code is a valid outcome. Only additive
+   APIs; no unsafe code; no new runtime dependencies.
+4. Join KL-04: add franz-go, measure every peer's client ceiling, re-profile
+   and re-rank, then audit the claim per cell on x86_64 and arm64 with
+   independent reproduction.
+
+**Work surfaces:** [producer](../src/producer.rs), [consumer](../src/consumer.rs),
+[record codec](../src/protocol/records.rs), [network](../src/net.rs),
+[benchmarks](../benchmarks).
+**Done when:** every KL09 card is accepted, has a measured rejection or
+is explicitly blocked; the allocation and instruction gates run in CI;
+and KL09-70 records a per-cell verdict from raw artifacts. Public wording
+uses only claim types whose thresholds are met, and follows the Suite
+HOLD signoff.
+
 ## 5. First PRs and proof discipline
 
 | Order | Small first delivery | Then |

@@ -41,6 +41,9 @@ the goal table; each row names where that kind of information lives.
   [session guide](plan/README.md), [ROADMAP](ROADMAP.md) and
   [TODO](../TODO.md) are navigation and context. Never duplicate or reset
   task statuses in prose.
+- [Performance leadership program](plan/performance-leadership.md) (KL09):
+  the fastest-client claim gate, the hot-path map and the measure-first
+  optimization protocol. It is a plan, not a performance claim.
 - [STATUS.md](STATUS.md) is the **historical** Suite HOLD log: dated
   entries are historical evidence, not a current signoff.
 - [CIVILIZATION.md](CIVILIZATION.md) is the **historical** foundation plan,
