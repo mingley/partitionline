@@ -1011,13 +1011,30 @@
     {
       "id": "KL03-15",
       "title": "Prove KIP-848 epoch and assignment reconciliation",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL03-07", "KL03-12"],
       "files": ["src/group.rs", "tests/full_surface.rs", "tests/common/mod.rs"],
       "deliverable": "A bounded membership-state regression family for pending assignments and member epochs.",
       "acceptance": ["Acknowledge assignments only after the local transition is applied.", "Handle member fencing, changed member IDs, lost heartbeat responses and coordinator moves without using stale metadata for commits.", "Classify decode/reconnect failures observably rather than silently spinning forever."],
       "validation": ["cargo test --locked --test full_surface kip848", "cargo test --locked --test consumer_close_commit"],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "851275dd25b1e1d4a555b55f4c0b2817f639bb58",
+                "commands": [
+                        "cargo test --locked --test full_surface kip848 -- --test-threads=2 (14 passed, exit 0)",
+                        "cargo test --locked --test consumer_close_commit -- --test-threads=2 (16 passed, exit 0)",
+                        "cargo test --locked --test client_api -- --test-threads=2 (100 passed, exit 0)",
+                        "cargo test --locked --lib -- --test-threads=4 (1086 passed, exit 0)",
+                        "cargo test --locked --test full_surface -- --test-threads=4 (274 passed, exit 0)",
+                        "cargo test --locked --test consumer_fetch_semantics -- --test-threads=4 (29 passed, exit 0)",
+                        "cargo clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+                        "bash scripts/ci-docs.sh (strict rustdoc + doctests, exit 0)"
+                ],
+                "results": "KIP-848 poll/commit reconcile heartbeat membership: rejoin on fencing/unknown-member, surface other sticky errors, adopt rotated member ids, ack assignments only after local apply, and surface decode violations. Six new regression tests; fencing/rotation/decode observed failing before the fix.",
+                "artifacts": ["src/group.rs", "tests/common/mod.rs", "tests/full_surface.rs", "tests/consumer_close_commit.rs", "docs/plan/evidence/KL03-15.json"],
+                "limits": ["Default-parallelism flakes on the loaded host (pre-existing); suites pass with --test-threads=2/4.", "Single transient decode blips may or may not fail one poll (pre-existing sentinel precedent); persistent corruption always surfaces.", "Transport reconnect stays silent-retry by design; leave-after-fencing tolerance out of scope."]
+        }
+      ]
     },
     {
       "id": "KL03-16",

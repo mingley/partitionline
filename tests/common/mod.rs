@@ -526,6 +526,8 @@ struct State {
     last_offset_fetch_group_count: usize,
     last_offset_commit_node: Option<i32>,
     last_offset_commit_version: Option<i16>,
+    last_offset_commit_member: Option<String>,
+    last_offset_commit_generation: Option<i32>,
     last_heartbeat_version: Option<i16>,
     last_sync_group_version: Option<i16>,
     last_join_group_version: Option<i16>,
@@ -533,6 +535,12 @@ struct State {
     last_join_protocols_n: Option<usize>,
     last_consumer_group_heartbeat_version: Option<i16>,
     last_consumer_group_heartbeat_join_member_id: Option<String>,
+    cg_heartbeat_error_code: i16,
+    cg_heartbeat_error_left: u32,
+    cg_heartbeat_rotate_member_id: Option<String>,
+    cg_heartbeat_drop_left: u32,
+    cg_heartbeat_corrupt_left: u32,
+    cg_heartbeat_acks: Vec<(String, i32, Option<Vec<i32>>)>,
     last_share_group_heartbeat_version: Option<i16>,
     offset_commit_not_coordinator: u32,
     offset_commit_load_left: u32,
@@ -928,6 +936,8 @@ fn new_state(
         last_offset_fetch_group_count: 0,
         last_offset_commit_node: None,
         last_offset_commit_version: None,
+        last_offset_commit_member: None,
+        last_offset_commit_generation: None,
         last_heartbeat_version: None,
         last_sync_group_version: None,
         last_join_group_version: None,
@@ -935,6 +945,12 @@ fn new_state(
         last_join_protocols_n: None,
         last_consumer_group_heartbeat_version: None,
         last_consumer_group_heartbeat_join_member_id: None,
+        cg_heartbeat_error_code: 0,
+        cg_heartbeat_error_left: 0,
+        cg_heartbeat_rotate_member_id: None,
+        cg_heartbeat_drop_left: 0,
+        cg_heartbeat_corrupt_left: 0,
+        cg_heartbeat_acks: Vec::new(),
         last_share_group_heartbeat_version: None,
         offset_commit_not_coordinator: 0,
         offset_commit_load_left: 0,
@@ -2789,6 +2805,48 @@ impl Mock {
 
     pub fn cg_heartbeat_interval_ms(&self) -> i32 {
         self.state.lock().cg_heartbeat_interval_ms
+    }
+
+    /// Fail the next `n` ConsumerGroupHeartbeat responses with `code` (KL03-15).
+    pub fn set_cg_heartbeat_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.cg_heartbeat_error_code = code;
+        st.cg_heartbeat_error_left = n;
+    }
+
+    /// Return `new_id` as the member id on the next steady-state heartbeat,
+    /// renaming the registry entry so later heartbeats use it (KL03-15).
+    pub fn rotate_cg_heartbeat_member_id(&self, new_id: &str) {
+        self.state.lock().cg_heartbeat_rotate_member_id = Some(new_id.to_string());
+    }
+
+    /// Drop the next `n` ConsumerGroupHeartbeat responses without replying,
+    /// closing the connection like a lost response (KL03-15).
+    pub fn set_cg_heartbeat_drop_times(&self, n: u32) {
+        self.state.lock().cg_heartbeat_drop_left = n;
+    }
+
+    /// Answer the next `n` ConsumerGroupHeartbeat requests with a
+    /// framing-valid but undecodable payload (KL03-15).
+    pub fn set_cg_heartbeat_corrupt_times(&self, n: u32) {
+        self.state.lock().cg_heartbeat_corrupt_left = n;
+    }
+
+    /// `(member_id, member_epoch, acked partitions)` per heartbeat request.
+    /// `None` partitions means the request carried no `TopicPartitions`
+    /// (no assignment echo). Partition lists are sorted (KL03-15).
+    pub fn cg_heartbeat_acks(&self) -> Vec<(String, i32, Option<Vec<i32>>)> {
+        self.state.lock().cg_heartbeat_acks.clone()
+    }
+
+    /// Member id carried by the last OffsetCommit request (KL03-15).
+    pub fn last_offset_commit_member(&self) -> Option<String> {
+        self.state.lock().last_offset_commit_member.clone()
+    }
+
+    /// Generation/epoch carried by the last OffsetCommit request (KL03-15).
+    pub fn last_offset_commit_generation(&self) -> Option<i32> {
+        self.state.lock().last_offset_commit_generation
     }
 
     pub fn sync_group_calls(&self) -> u32 {
@@ -6246,13 +6304,44 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             CONSUMER_GROUP_HEARTBEAT => {
                 let req = decode_consumer_group_heartbeat_request(&mut frame, header.api_version)
                     .unwrap();
+                let corrupted = {
+                    let mut st = state.lock();
+                    st.cg_heartbeat_calls = st.cg_heartbeat_calls.saturating_add(1);
+                    st.last_consumer_group_heartbeat_version = Some(header.api_version);
+                    st.last_group_instance_id = req.instance_id.clone();
+                    st.last_group_rack = req.rack_id.clone();
+                    let n = st.hb_by_node.entry(node_id).or_insert(0);
+                    *n = n.saturating_add(1);
+                    let acked = req.topic_partitions.as_ref().map(|tps| {
+                        let mut v: Vec<i32> = tps
+                            .iter()
+                            .flat_map(|tp| tp.partitions.iter().copied())
+                            .collect();
+                        v.sort();
+                        v
+                    });
+                    st.cg_heartbeat_acks
+                        .push((req.member_id.clone(), req.member_epoch, acked));
+                    if st.cg_heartbeat_drop_left > 0 {
+                        st.cg_heartbeat_drop_left = st.cg_heartbeat_drop_left.saturating_sub(1);
+                        break;
+                    }
+                    if st.cg_heartbeat_corrupt_left > 0 {
+                        st.cg_heartbeat_corrupt_left =
+                            st.cg_heartbeat_corrupt_left.saturating_sub(1);
+                        true
+                    } else {
+                        false
+                    }
+                };
+                if corrupted {
+                    body.extend_from_slice(&[0xFF, 0xFF, 0xFF]);
+                    if write_frame(&mut stream, &body).await.is_err() {
+                        break;
+                    }
+                    continue;
+                }
                 let mut st = state.lock();
-                st.cg_heartbeat_calls = st.cg_heartbeat_calls.saturating_add(1);
-                st.last_consumer_group_heartbeat_version = Some(header.api_version);
-                st.last_group_instance_id = req.instance_id.clone();
-                st.last_group_rack = req.rack_id.clone();
-                let n = st.hb_by_node.entry(node_id).or_insert(0);
-                *n = n.saturating_add(1);
                 let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
                     std::cmp::Ordering::Less => {
                         let empty = if let Some(g) = st.kip848_groups.get_mut(&req.group_id) {
@@ -6305,36 +6394,57 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         (id, epoch, Some(kip848_topic_partitions(&partitions)))
                     }
                     std::cmp::Ordering::Greater => {
-                        let found = st
-                            .kip848_groups
-                            .get_mut(&req.group_id)
-                            .and_then(|g| g.members.get_mut(&req.member_id));
-                        match found {
-                            Some(m) if m.pending || req.member_epoch < m.epoch => {
-                                m.pending = false;
-                                (
-                                    req.member_id,
-                                    m.epoch,
-                                    Some(kip848_topic_partitions(&m.partitions)),
-                                )
+                        if let Some(new_id) = st.cg_heartbeat_rotate_member_id.take() {
+                            if let Some(g) = st.kip848_groups.get_mut(&req.group_id) {
+                                if let Some(m) = g.members.remove(&req.member_id) {
+                                    g.members.insert(new_id.clone(), m);
+                                }
                             }
-                            Some(m) => (req.member_id, m.epoch, None),
-                            None => (req.member_id, req.member_epoch, None),
+                            let epoch = st
+                                .kip848_groups
+                                .get(&req.group_id)
+                                .and_then(|g| g.members.get(&new_id))
+                                .map(|m| m.epoch)
+                                .unwrap_or(req.member_epoch);
+                            (new_id, epoch, None)
+                        } else {
+                            let found = st
+                                .kip848_groups
+                                .get_mut(&req.group_id)
+                                .and_then(|g| g.members.get_mut(&req.member_id));
+                            match found {
+                                Some(m) if m.pending || req.member_epoch < m.epoch => {
+                                    m.pending = false;
+                                    (
+                                        req.member_id,
+                                        m.epoch,
+                                        Some(kip848_topic_partitions(&m.partitions)),
+                                    )
+                                }
+                                Some(m) => (req.member_id, m.epoch, None),
+                                None => (req.member_id, req.member_epoch, None),
+                            }
                         }
                     }
                 };
                 let hb_interval = st.cg_heartbeat_interval_ms;
+                let err = if st.cg_heartbeat_error_left > 0 {
+                    st.cg_heartbeat_error_left = st.cg_heartbeat_error_left.saturating_sub(1);
+                    st.cg_heartbeat_error_code
+                } else {
+                    0
+                };
                 encode_consumer_group_heartbeat_response(
                     &mut body,
                     header.api_version,
                     &ConsumerGroupHeartbeatResponse {
                         throttle_time_ms: 0,
-                        error_code: 0,
+                        error_code: err,
                         error_message: None,
                         member_id: Some(member_id),
                         member_epoch: epoch,
                         heartbeat_interval_ms: hb_interval,
-                        assignment,
+                        assignment: if err == 0 { assignment } else { None },
                     },
                 )
                 .unwrap();
@@ -6522,11 +6632,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_leave_group_response_version(&mut body, version, 0, &results).unwrap();
             }
             OFFSET_COMMIT => {
-                let (gid, _m, topics, _retention, ..) =
+                let (gid, member, topics, _retention, _inst, generation) =
                     decode_offset_commit_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.offset_commit_calls = st.offset_commit_calls.saturating_add(1);
                 st.last_offset_commit_version = Some(header.api_version);
+                st.last_offset_commit_member = Some(member);
+                st.last_offset_commit_generation = Some(generation);
                 if st.offset_commit_load_left > 0 {
                     st.offset_commit_load_left = st.offset_commit_load_left.saturating_sub(1);
                     st.offset_commit_load_in_progress =

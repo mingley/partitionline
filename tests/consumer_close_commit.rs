@@ -6,7 +6,7 @@
 mod common;
 
 use partitionline::{
-    ConsumerConfig, ConsumerGroup, Error, OffsetAndMetadata, ProduceRecord, Producer,
+    error, ConsumerConfig, ConsumerGroup, Error, OffsetAndMetadata, ProduceRecord, Producer,
     ProducerConfig, TopicPartition, LEAVE_GROUP_REASON_POLL_TIMEOUT,
 };
 use std::time::Duration;
@@ -731,4 +731,76 @@ async fn static_member_unsubscribe_then_commit_sends_no_offset_commit() {
         "commit after static-member loss must not send OffsetCommit"
     );
     assert_eq!(mock.committed_offset("static-loss", "t", 0), None);
+}
+
+/// KL03-15: a fencing-triggered KIP-848 rejoin must preserve buffered
+/// records: the rejoining poll still delivers the next buffered record, and
+/// the following commit carries the delivered position, not the ahead
+/// cursor. The sparse heartbeat interval keeps the fencing/error window
+/// deterministic.
+#[tokio::test]
+async fn kip848_fencing_rejoin_preserves_delivered_position() {
+    let mock = common::Mock::start().await;
+    mock.set_cg_heartbeat_interval_ms(1000);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"0"[..]),
+            ProduceRecord::to("t").value(&b"1"[..]),
+            ProduceRecord::to("t").value(&b"2"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()])
+        .max_wait_ms(10)
+        .auto_commit(false);
+    cfg.max_poll_records = Some(1);
+    let mut group = ConsumerGroup::join_consumer(cfg, "fence-delivered", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.iter().map(|r| r.offset).collect::<Vec<_>>(), vec![0]);
+    assert_eq!(group.position("t", 0).unwrap(), 1);
+    assert_eq!(group.fetch_cursor("t", 0).unwrap(), 3);
+
+    let calls_before = mock.cg_heartbeat_calls();
+    mock.set_cg_heartbeat_error_times(error::FENCED_MEMBER_EPOCH, 1);
+    common::wait_pred("fencing heartbeat consumed", || {
+        mock.cg_heartbeat_calls() > calls_before
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let second = group.poll().await.unwrap();
+    assert_eq!(
+        second.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![1],
+        "rejoining poll must still deliver the next buffered record"
+    );
+    let joins = mock
+        .cg_heartbeat_acks()
+        .iter()
+        .filter(|(_, e, _)| *e == 0)
+        .count();
+    assert_eq!(joins, 2, "fenced member must have rejoined exactly once");
+    assert_eq!(group.position("t", 0).unwrap(), 2);
+
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.committed_offset("fence-delivered", "t", 0),
+        Some(2),
+        "post-rejoin commit must carry the delivered position, not the buffered cursor"
+    );
+    let rest = group.poll().await.unwrap();
+    assert_eq!(
+        rest.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![2],
+        "buffered records must still deliver in order after the rejoin"
+    );
+    group.leave().await.unwrap();
 }

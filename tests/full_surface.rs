@@ -13455,3 +13455,267 @@ async fn cooperative_transfer_commits_revoked_without_double_delivery() {
     b.leave().await.unwrap();
     a.leave().await.unwrap();
 }
+
+/// KL03-15: a fenced KIP-848 member must rejoin on the next poll instead of
+/// fetching and committing with a fenced epoch.
+#[tokio::test]
+async fn kip848_rejoins_after_fencing_without_stale_commit() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join_consumer(ccfg, "fence-848", "t")
+        .await
+        .unwrap();
+    let recs = g.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    g.commit().await.unwrap();
+    let member = mock.last_offset_commit_member().expect("commit member");
+    let epoch = mock.last_offset_commit_generation().expect("commit epoch");
+    assert_eq!(mock.committed_offset("fence-848", "t", 0), Some(1));
+
+    let joins_before = mock
+        .cg_heartbeat_acks()
+        .iter()
+        .filter(|(_, e, _)| *e == 0)
+        .count();
+    assert_eq!(joins_before, 1, "exactly the initial join so far");
+
+    mock.set_cg_heartbeat_error_times(error::FENCED_MEMBER_EPOCH, 1);
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        let _ = g.poll().await;
+        let joins = mock
+            .cg_heartbeat_acks()
+            .iter()
+            .filter(|(_, e, _)| *e == 0)
+            .count();
+        if joins > joins_before {
+            break;
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "fenced KIP-848 member never rejoined"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+
+    let recs = g.poll().await.unwrap();
+    assert!(recs.is_empty());
+    g.commit().await.unwrap();
+    assert_eq!(
+        mock.last_offset_commit_member().as_deref(),
+        Some(member.as_str()),
+        "post-rejoin commits must carry the current member id"
+    );
+    assert_eq!(
+        mock.last_offset_commit_generation(),
+        Some(epoch),
+        "post-rejoin commits must carry the fresh epoch, never the fenced one"
+    );
+    assert_eq!(mock.committed_offset("fence-848", "t", 0), Some(1));
+    g.leave().await.unwrap();
+}
+
+/// KL03-15: the client must adopt a broker-rotated member id for heartbeats,
+/// commits and leave.
+#[tokio::test]
+async fn kip848_adopts_changed_member_id() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join_consumer(ccfg, "rot-848", "t")
+        .await
+        .unwrap();
+    let _ = g.poll().await.unwrap();
+    g.commit().await.unwrap();
+    let old = mock.last_offset_commit_member().expect("commit member");
+
+    mock.rotate_cg_heartbeat_member_id("k-rotated");
+    common::wait_pred("heartbeat with rotated id", || {
+        mock.cg_heartbeat_acks()
+            .iter()
+            .any(|(m, _, _)| m == "k-rotated")
+    })
+    .await;
+
+    let _ = g.poll().await.unwrap();
+    g.commit().await.unwrap();
+    assert_ne!(old, "k-rotated");
+    assert_eq!(
+        mock.last_offset_commit_member().as_deref(),
+        Some("k-rotated"),
+        "commits must adopt the rotated member id"
+    );
+    g.leave().await.unwrap();
+}
+
+/// KL03-15: lost heartbeat responses must not disturb the membership: the
+/// loop reconnects and resumes, and commits keep the current epoch.
+#[tokio::test]
+async fn kip848_recovers_after_lost_heartbeat_responses() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join_consumer(ccfg, "lost-848", "t")
+        .await
+        .unwrap();
+    let recs = g.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    g.commit().await.unwrap();
+    let epoch = mock.last_offset_commit_generation().expect("commit epoch");
+
+    let before = mock.cg_heartbeat_calls();
+    mock.set_cg_heartbeat_drop_times(3);
+    common::wait_pred("heartbeats resume after drops", || {
+        mock.cg_heartbeat_calls() >= before + 4
+    })
+    .await;
+
+    let recs = g.poll().await.unwrap();
+    assert!(recs.is_empty());
+    g.commit().await.unwrap();
+    assert_eq!(
+        mock.last_offset_commit_generation(),
+        Some(epoch),
+        "commits after lost responses must keep the current epoch"
+    );
+    assert_eq!(mock.committed_offset("lost-848", "t", 0), Some(1));
+    g.leave().await.unwrap();
+}
+
+/// KL03-15: a new KIP-848 assignment must be echoed back only after the poll
+/// path applies it locally.
+#[tokio::test]
+async fn kip848_acks_assignment_only_after_apply() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut a = ConsumerGroup::join_consumer(ccfg.clone(), "ack-848", "t")
+        .await
+        .unwrap();
+    assert_eq!(a.assignment().len(), 2);
+    let _ = a.poll().await.unwrap();
+
+    let b = ConsumerGroup::join_consumer(ccfg, "ack-848", "t")
+        .await
+        .unwrap();
+    assert_eq!(
+        b.assignment().len(),
+        1,
+        "second member takes one partition at join"
+    );
+
+    // B's join shrinks A to one partition at epoch 2. A's heartbeats must
+    // carry no assignment echo until a poll applies the shrink.
+    common::wait_pred("A heartbeats at new epoch without ack", || {
+        mock.cg_heartbeat_acks()
+            .iter()
+            .any(|(_, e, ack)| *e == 2 && ack.is_none())
+    })
+    .await;
+    let before_poll = mock.cg_heartbeat_acks();
+    assert!(
+        before_poll
+            .iter()
+            .filter(|(_, e, _)| *e == 2)
+            .all(|(_, _, ack)| ack.is_none()),
+        "no epoch-2 heartbeat may echo the assignment before poll applies it: {before_poll:?}"
+    );
+
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+    loop {
+        let _ = a.poll().await.unwrap();
+        if a.assignment().len() == 1 {
+            break;
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "A never applied the shrink"
+        );
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    let kept = a.assignment()[0].partition;
+    common::wait_pred("A heartbeats the applied assignment", || {
+        mock.cg_heartbeat_acks()
+            .iter()
+            .any(|(_, e, ack)| *e == 2 && ack.as_deref() == Some(&[kept][..]))
+    })
+    .await;
+
+    let a_parts: std::collections::HashSet<i32> =
+        a.assignment().iter().map(|tp| tp.partition).collect();
+    let b_parts: std::collections::HashSet<i32> =
+        b.assignment().iter().map(|tp| tp.partition).collect();
+    assert!(
+        a_parts.is_disjoint(&b_parts) && a_parts.len() + b_parts.len() == 2,
+        "members must split without overlap, got a={a_parts:?} b={b_parts:?}"
+    );
+    a.leave().await.unwrap();
+    b.leave().await.unwrap();
+}
+
+/// KL03-15: malformed heartbeat responses must surface from poll as an
+/// INVALID_REQUEST broker error instead of spinning silently in the loop.
+/// A short burst keeps the test deterministic: no healthy heartbeat can
+/// clear the sticky error before the asserting poll runs.
+#[tokio::test]
+async fn kip848_decode_failure_surfaces_in_poll() {
+    let mock = common::Mock::start().await;
+    mock.set_cg_heartbeat_interval_ms(300);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join_consumer(ccfg, "dec-848", "t")
+        .await
+        .unwrap();
+    let _ = g.poll().await.unwrap();
+
+    mock.set_cg_heartbeat_corrupt_times(3);
+    let calls_before = mock.cg_heartbeat_calls();
+    common::wait_pred("corrupt heartbeat consumed", || {
+        mock.cg_heartbeat_calls() > calls_before
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    let err = g.poll().await.unwrap_err();
+    assert_eq!(
+        err.broker_code(),
+        Some(error::INVALID_REQUEST),
+        "decode failure must surface, got {err}"
+    );
+
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        match g.poll().await {
+            Ok(_) => break,
+            Err(e) => {
+                assert!(
+                    tokio::time::Instant::now() < deadline,
+                    "polls never recovered after decode failure: {e}"
+                );
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+        }
+    }
+    g.leave().await.unwrap();
+}

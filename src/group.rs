@@ -501,6 +501,11 @@ pub struct ConsumerGroup {
     hb_assignment: Arc<parking_lot::Mutex<Option<Vec<TopicPartitions>>>>,
     /// Last applied assignment, sent once on the next heartbeat (KIP-848 ack).
     hb_ack: Arc<parking_lot::Mutex<Option<Vec<TopicPartitions>>>>,
+    /// Member id shared with the KIP-848 heartbeat task, which adopts
+    /// broker-rotated ids into it; the classic loop keeps its spawn-time
+    /// clone. The poll path copies this into `member_id` before committing
+    /// or leaving (KL03-15).
+    hb_member_id: Arc<parking_lot::Mutex<String>>,
     hb_interval_ms: Arc<AtomicI32>,
     hb_deadline: Arc<parking_lot::Mutex<Option<Instant>>>,
     hb_stop: watch::Sender<bool>,
@@ -642,6 +647,7 @@ impl ConsumerGroup {
         let hb_generation = Arc::new(AtomicI32::new(0));
         let hb_assignment = Arc::new(parking_lot::Mutex::new(None));
         let hb_ack = Arc::new(parking_lot::Mutex::new(None));
+        let hb_member_id = Arc::new(parking_lot::Mutex::new(String::new()));
         let hb_interval_ms = Arc::new(AtomicI32::new(duration_millis_i32(cfg.heartbeat_interval)));
         let hb_deadline = Arc::new(parking_lot::Mutex::new(None));
         let (hb_stop, hb_rx) = watch::channel(false);
@@ -663,6 +669,7 @@ impl ConsumerGroup {
             hb_generation,
             hb_assignment,
             hb_ack,
+            hb_member_id,
             hb_interval_ms,
             hb_deadline,
             hb_stop,
@@ -787,6 +794,7 @@ impl ConsumerGroup {
         ));
         let hb_assignment = Arc::new(parking_lot::Mutex::new(None));
         let hb_ack = Arc::new(parking_lot::Mutex::new(None));
+        let hb_member_id = Arc::new(parking_lot::Mutex::new(String::new()));
         let hb_interval_ms = Arc::new(AtomicI32::new(0));
         let hb_deadline = Arc::new(parking_lot::Mutex::new(None));
         let (hb_stop, hb_rx) = watch::channel(false);
@@ -808,6 +816,7 @@ impl ConsumerGroup {
             hb_generation,
             hb_assignment,
             hb_ack,
+            hb_member_id,
             hb_interval_ms,
             hb_deadline,
             hb_stop,
@@ -1205,6 +1214,7 @@ impl ConsumerGroup {
         self.maybe_refresh_matching().await?;
         let force = std::mem::replace(&mut self.rebalance_needed, false);
         if self.kip848 {
+            self.check_kip848_membership().await?;
             self.apply_pending_assignment().await?;
             if force {
                 self.rebalance_reason = None;
@@ -1461,6 +1471,7 @@ impl ConsumerGroup {
     /// [`Self::commit`] with a one-shot timeout (Java `commitSync(Duration)`).
     pub async fn commit_timeout(&mut self, timeout: Duration) -> Result<()> {
         if self.kip848 {
+            self.check_kip848_membership().await?;
             self.apply_pending_assignment().await?;
         }
         let positions = self.consumer.positions();
@@ -1859,6 +1870,7 @@ impl ConsumerGroup {
     async fn leave_coordinator(&mut self, reason: &str) -> Result<()> {
         let timeout = self.cfg.request_timeout;
         if self.kip848 {
+            self.adopt_kip848_member_id();
             let version =
                 spoken_consumer_group_heartbeat(self.coord.consumer_group_heartbeat_version)?;
             let req = ConsumerGroupHeartbeatRequest {
@@ -2157,6 +2169,11 @@ impl ConsumerGroup {
         if let Some(id) = resp.member_id {
             self.member_id = id;
         }
+        // The join response is authoritative: publish the member id for the
+        // heartbeat task and drop any pre-join pending assignment so it can
+        // never clobber the fresh join below (KL03-15).
+        *self.hb_member_id.lock() = self.member_id.clone();
+        let _ = self.hb_assignment.lock().take();
         self.generation_id = resp.member_epoch;
         let assignment = resp.assignment.unwrap_or_default();
         let wanted = wanted_from_kip848(&self.topics, &self.consumer.topic_id_names(), &assignment);
@@ -2168,7 +2185,34 @@ impl ConsumerGroup {
         Ok(())
     }
 
+    /// Reconcile the poll path with the KIP-848 heartbeat loop (KL03-15).
+    ///
+    /// A fenced epoch or unknown member id means this membership is dead:
+    /// rejoin before fetching or committing anything so no RPC uses stale
+    /// membership metadata. Any other sticky heartbeat error (auth, the
+    /// malformed-response sentinel, ...) surfaces instead of spinning on a
+    /// dead membership. Transport blips never land in `hb_err`: the loop
+    /// retries those silently.
+    async fn check_kip848_membership(&mut self) -> Result<()> {
+        match self.hb_err.load(Ordering::SeqCst) {
+            0 => Ok(()),
+            error::FENCED_MEMBER_EPOCH | error::UNKNOWN_MEMBER_ID => {
+                self.rebalance_reason = None;
+                self.heartbeat_join().await
+            }
+            code => Err(Error::broker(code, "ConsumerGroupHeartbeat")),
+        }
+    }
+
+    /// Copy a broker-rotated member id from the heartbeat task (KL03-15).
+    fn adopt_kip848_member_id(&mut self) {
+        if self.kip848 {
+            self.member_id = self.hb_member_id.lock().clone();
+        }
+    }
+
     async fn apply_pending_assignment(&mut self) -> Result<()> {
+        self.adopt_kip848_member_id();
         let pending = self.hb_assignment.lock().take();
         let Some(assignment) = pending else {
             return Ok(());
@@ -2283,7 +2327,7 @@ impl ConsumerGroup {
 
     fn spawn_heartbeat_consumer(&self, mut stop: watch::Receiver<bool>) {
         let group_id = self.group_id.clone();
-        let member_id = self.member_id.clone();
+        let hb_member_id = self.hb_member_id.clone();
         let hb_err = self.hb_err.clone();
         let hb_generation = self.hb_generation.clone();
         let hb_assignment = self.hb_assignment.clone();
@@ -2346,6 +2390,9 @@ impl ConsumerGroup {
                         }
                     }
                     _ = tokio::time::sleep(sleep_duration) => {
+                        // Re-read the shared id every tick: the broker may
+                        // rotate it mid-session (KL03-15).
+                        let member_id = hb_member_id.lock().clone();
                         if leave_if_max_poll(
                             &cfg,
                             &group_id,
@@ -2425,6 +2472,14 @@ impl ConsumerGroup {
                                         if resp.member_epoch > 0 {
                                             hb_generation.store(resp.member_epoch, Ordering::SeqCst);
                                         }
+                                        // The broker owns member ids; adopt a
+                                        // rotated id for later heartbeats and
+                                        // the poll path (KL03-15).
+                                        if let Some(id) = resp.member_id.as_deref() {
+                                            if id != member_id {
+                                                *hb_member_id.lock() = id.to_string();
+                                            }
+                                        }
                                         if resp.error_code == 0 {
                                             if let Some(assignment) = resp.assignment {
                                                 *hb_assignment.lock() = Some(assignment);
@@ -2451,6 +2506,12 @@ impl ConsumerGroup {
                                         }
                                     }
                                 } else {
+                                    // Undecodable bytes are a broker protocol
+                                    // violation, not a blip: mark it so poll
+                                    // surfaces it instead of spinning
+                                    // silently. Transport failures below stay
+                                    // silent-retry by design (KL03-15).
+                                    hb_err.store(error::INVALID_REQUEST, Ordering::SeqCst);
                                     conn = None;
                                     let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                                     next_hb_deadline = Instant::now() + retry_delay;
