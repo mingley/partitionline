@@ -271,6 +271,8 @@ struct State {
     node_api_max: HashMap<(i32, i16), i16>,
     /// Last Produce version received per node.
     last_produce_version_by_node: HashMap<i32, i16>,
+    /// Last Fetch version received per node (KL03-22).
+    last_fetch_version_by_node: HashMap<i32, i16>,
     /// Api keys omitted from ApiVersions (cannot be advertised via
     /// [`Mock::set_api_max`], which clamps to the key's min version).
     hidden_apis: HashSet<i16>,
@@ -683,6 +685,7 @@ fn new_state(
         api_max: HashMap::new(),
         node_api_max: HashMap::new(),
         last_produce_version_by_node: HashMap::new(),
+        last_fetch_version_by_node: HashMap::new(),
         hidden_apis: HashSet::new(),
         partition_leaders: HashMap::new(),
         partition_epochs: HashMap::new(),
@@ -1917,6 +1920,15 @@ impl Mock {
 
     pub fn last_fetch_version(&self) -> Option<i16> {
         self.state.lock().last_fetch_version
+    }
+
+    /// Last Fetch version received on `node_id`, if any (KL03-22).
+    pub fn last_fetch_version_for_node(&self, node_id: i32) -> Option<i16> {
+        self.state
+            .lock()
+            .last_fetch_version_by_node
+            .get(&node_id)
+            .copied()
     }
 
     pub fn last_fetched_epoch(&self) -> Option<i32> {
@@ -5675,6 +5687,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_fetch_rack = rack.clone();
                 st.last_fetch_max_bytes = max_bytes;
                 st.last_fetch_version = Some(header.api_version);
+                st.last_fetch_version_by_node
+                    .insert(node_id, header.api_version);
                 st.last_fetched_epoch = req
                     .first()
                     .and_then(|t| t.partitions.first())

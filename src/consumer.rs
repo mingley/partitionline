@@ -1290,7 +1290,6 @@ pub struct Consumer {
     cfg: ConsumerConfig,
     conn: BrokerConn,
     versions: HashMap<i16, ApiVersion>,
-    fetch_version: i16,
     metadata_version: i16,
     metadata: Option<MetadataResponse>,
     cluster: Cluster,
@@ -1369,10 +1368,15 @@ impl Consumer {
             cfg.request_timeout,
         )
         .await?;
-        let fetch_version = versions
+        // Best-effort: each leader connection negotiates its own Fetch
+        // version in `open_node_conn`; the fetch path fails per-peer when a
+        // leader cannot speak Fetch v4-17 (KL03-22, mirrors KL03-11).
+        if let Some(fv) = versions
             .get(&FETCH)
             .and_then(|v| pick_version(v.min_version, v.max_version, 4, 17))
-            .ok_or_else(|| Error::Unsupported("broker does not support Fetch v4-17".into()))?;
+        {
+            conn.set_fetch_version(fv);
+        }
         let metadata_version = versions
             .get(&METADATA)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 13))
@@ -1384,7 +1388,6 @@ impl Consumer {
             cfg,
             conn,
             versions,
-            fetch_version,
             metadata_version,
             metadata: None,
             cluster: Cluster::default(),
@@ -1981,6 +1984,12 @@ impl Consumer {
         let versions_resp =
             crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
                 .await?;
+        if let Some(fv) = versions_resp
+            .api_version(FETCH)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 17))
+        {
+            conn.set_fetch_version(fv);
+        }
         sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
         sasl::authenticate(
             &mut conn,
@@ -2524,7 +2533,7 @@ impl Consumer {
             let mut fenced = Vec::new();
             let mut need_offsets = Vec::new();
             let mut budget_reached = false;
-            for (node, body) in bodies {
+            for (node, fetch_version, body) in bodies {
                 let mut body = match body {
                     Ok(b) => b,
                     Err(e) if e.is_retriable() => {
@@ -2536,6 +2545,7 @@ impl Consumer {
                 };
                 retry = retry.merge(self.apply_fetch_body(
                     node,
+                    fetch_version,
                     &mut body,
                     &mut out,
                     &mut out_bytes,
@@ -2606,7 +2616,7 @@ impl Consumer {
     async fn fetch_from_leaders(
         &mut self,
         by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
-    ) -> Result<Vec<(i32, Result<Bytes>)>> {
+    ) -> Result<Vec<(i32, i16, Result<Bytes>)>> {
         if self.woken() {
             self.conns.clear();
             return Err(Error::Wakeup);
@@ -2628,7 +2638,7 @@ impl Consumer {
     async fn fetch_from_leaders_io(
         &mut self,
         mut by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
-    ) -> Result<Vec<(i32, Result<Bytes>)>> {
+    ) -> Result<Vec<(i32, i16, Result<Bytes>)>> {
         let mut nodes: Vec<i32> = by_leader.keys().copied().collect();
         nodes.sort_unstable();
         for node in &nodes {
@@ -2651,7 +2661,6 @@ impl Consumer {
         };
         let isolation_level = self.cfg.isolation_level.as_i8();
         let timeout = self.cfg.request_timeout;
-        let fetch_version = self.fetch_version;
         let rack = self.cfg.rack.clone();
         let name_ids = self.topic_name_ids();
         if nodes.len() <= 1 {
@@ -2661,31 +2670,43 @@ impl Consumer {
                     continue;
                 };
                 let topics = fetch_topics(by_topic, &name_ids);
-                let body = {
+                let (fetch_version, body) = {
                     let conn = self
                         .conns
                         .get_mut(&node)
                         .ok_or_else(|| Error::protocol("missing fetch conn"))?;
-                    conn.roundtrip(
-                        FETCH,
-                        fetch_version,
-                        |buf| {
-                            encode_fetch_request(
-                                buf,
-                                fetch_version,
-                                max_wait,
-                                min_bytes,
-                                max_bytes,
-                                isolation_level,
-                                &topics,
-                                rack.as_deref(),
-                            )
-                        },
-                        timeout,
-                    )
-                    .await
+                    // Each leader speaks its own negotiated Fetch version; a
+                    // newer bootstrap never forces its schema on an older
+                    // leader (KL03-22, mirrors KL03-11).
+                    let fetch_version = conn.fetch_version();
+                    if fetch_version < 0 {
+                        return Err(Error::Unsupported(format!(
+                            "broker at {} does not support Fetch v4-17",
+                            conn.addr()
+                        )));
+                    }
+                    let body = conn
+                        .roundtrip(
+                            FETCH,
+                            fetch_version,
+                            |buf| {
+                                encode_fetch_request(
+                                    buf,
+                                    fetch_version,
+                                    max_wait,
+                                    min_bytes,
+                                    max_bytes,
+                                    isolation_level,
+                                    &topics,
+                                    rack.as_deref(),
+                                )
+                            },
+                            timeout,
+                        )
+                        .await;
+                    (fetch_version, body)
                 };
-                out.push((node, body));
+                out.push((node, fetch_version, body));
             }
             return Ok(out);
         }
@@ -2695,6 +2716,19 @@ impl Consumer {
                 continue;
             };
             let topics = fetch_topics(by_topic, &name_ids);
+            let fetch_version = {
+                let conn = self
+                    .conns
+                    .get(&node)
+                    .ok_or_else(|| Error::protocol("missing fetch conn"))?;
+                if conn.fetch_version() < 0 {
+                    return Err(Error::Unsupported(format!(
+                        "broker at {} does not support Fetch v4-17",
+                        conn.addr()
+                    )));
+                }
+                conn.fetch_version()
+            };
             let mut conn = self
                 .conns
                 .remove(&node)
@@ -2720,17 +2754,17 @@ impl Consumer {
                         timeout,
                     )
                     .await;
-                (node, conn, result)
+                (node, fetch_version, conn, result)
             });
         }
         let mut out = Vec::new();
         while let Some(joined) = set.join_next().await {
-            let (node, conn, result) =
+            let (node, fetch_version, conn, result) =
                 joined.map_err(|e| Error::protocol(format!("fetch task: {e}")))?;
             let _ = self.conns.insert(node, conn);
-            out.push((node, result));
+            out.push((node, fetch_version, result));
         }
-        out.sort_by_key(|(n, _)| *n);
+        out.sort_by_key(|(n, _, _)| *n);
         Ok(out)
     }
 
@@ -2741,6 +2775,7 @@ impl Consumer {
     fn apply_fetch_body(
         &mut self,
         node: i32,
+        fetch_version: i16,
         body: &mut Bytes,
         out: &mut Vec<FetchedRecord>,
         out_bytes: &mut usize,
@@ -2749,7 +2784,7 @@ impl Consumer {
         completed: &mut HashSet<(String, i32)>,
         budget_reached: &mut bool,
     ) -> Result<FetchRetry> {
-        let (fetched, endpoints, ..) = decode_fetch_response(body, self.fetch_version)?;
+        let (fetched, endpoints, ..) = decode_fetch_response(body, fetch_version)?;
         self.cluster.apply_node_endpoints(&endpoints);
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;

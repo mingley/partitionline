@@ -25,6 +25,8 @@
 #[path = "common/fetch_fixture.rs"]
 mod fetch_fixture;
 
+mod common;
+
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -48,7 +50,8 @@ use partitionline::protocol::records::{
     ControlRecordType, EndTransactionMarker, Record, RecordBatch,
 };
 use partitionline::{
-    AutoOffsetReset, Consumer, ConsumerConfig, IsolationLevel, OffsetAndMetadata, TopicPartition,
+    AutoOffsetReset, Consumer, ConsumerConfig, IsolationLevel, OffsetAndMetadata, ProduceRecord,
+    Producer, ProducerConfig, TopicPartition,
 };
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -2204,4 +2207,220 @@ async fn control_only_batch_advances_delivered_position_and_fetch_cursor() {
 
     consumer.close().await.expect("consumer closes cleanly");
     broker.shutdown().await;
+}
+
+/// KL03-22: each leader connection negotiates its own Fetch version. A newer
+/// bootstrap must not force v17 on an older leader, and an older bootstrap
+/// must not cap a newer leader below v17.
+#[tokio::test]
+async fn fetch_mixed_version_both_bootstrap_leader_orders() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_node_api_max(1, FETCH, 17);
+    mock.set_node_api_max(2, FETCH, 11);
+    mock.set_topic_partitions("t", 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"a"[..]))
+        .await
+        .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"b"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    // Order 1: newer bootstrap (node 1), older leader (node 2).
+    mock.set_partition_leader("t", 0, 2);
+    let mut c1 = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+        .await
+        .unwrap();
+    c1.assign("t", 0, 0).await.unwrap();
+    let recs = c1.fetch().await.unwrap();
+    assert_eq!(
+        recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![0, 1],
+        "fetch from older leader must decode both records"
+    );
+    assert_eq!(
+        mock.last_fetch_version_for_node(2),
+        Some(11),
+        "newer bootstrap must not force an unsupported Fetch schema on older leader 2"
+    );
+    c1.close().await.unwrap();
+
+    // Order 2: older bootstrap (node 2), newer leader (node 1).
+    mock.set_partition_leader("t", 0, 1);
+    let node2_addr = mock.broker_addr(2).expect("node 2 address");
+    let mut c2 = Consumer::new(ConsumerConfig::bootstrap([node2_addr]).max_wait_ms(10))
+        .await
+        .unwrap();
+    c2.assign("t", 0, 0).await.unwrap();
+    let recs = c2.fetch().await.unwrap();
+    assert_eq!(
+        recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![0, 1],
+        "fetch from newer leader must decode both records"
+    );
+    assert_eq!(
+        mock.last_fetch_version_for_node(1),
+        Some(17),
+        "older bootstrap must not cap newer leader 1 below its supported Fetch version"
+    );
+    c2.close().await.unwrap();
+}
+
+/// KL03-22: leader movement and reconnection refresh the peer's Fetch
+/// version; topic, epoch and offset fields survive the version change.
+#[tokio::test]
+async fn fetch_mixed_version_leader_movement_and_reconnect() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_node_api_max(1, FETCH, 17);
+    mock.set_node_api_max(2, FETCH, 11);
+    mock.set_topic_partitions("t", 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    for v in [&b"a"[..], &b"b"[..], &b"c"[..]] {
+        let _ = producer
+            .send(ProduceRecord::to("t").value(v))
+            .await
+            .unwrap();
+    }
+    producer.close().await.unwrap();
+
+    mock.set_partition_leader("t", 0, 1);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 3);
+    assert_eq!(mock.last_fetch_version_for_node(1), Some(17));
+
+    // Leader movement to the older node: the next fetch renegotiates down.
+    mock.set_partition_leader("t", 0, 2);
+    consumer.seek("t", 0, 0).unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(
+        recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![0, 1, 2],
+        "records must survive the move to the older leader"
+    );
+    assert_eq!(
+        mock.last_fetch_version_for_node(2),
+        Some(11),
+        "movement to the older leader must renegotiate Fetch down to v11"
+    );
+
+    // Reconnection refreshes capabilities: node 2 upgrades to Fetch v12.
+    mock.drop_node_connections(2);
+    mock.set_node_api_max(2, FETCH, 12);
+    consumer.seek("t", 0, 0).unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 3);
+    assert_eq!(
+        mock.last_fetch_version_for_node(2),
+        Some(12),
+        "reconnect must refresh the peer Fetch version to v12"
+    );
+    consumer.close().await.unwrap();
+}
+
+/// KL03-22: one fetch across two leaders speaks each leader's version on the
+/// multi-node path and decodes both responses.
+#[tokio::test]
+async fn fetch_mixed_version_multi_partition_distinct_leaders() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_node_api_max(1, FETCH, 17);
+    mock.set_node_api_max(2, FETCH, 11);
+    mock.set_topic_partitions("t", 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").partition(0).value(&b"p0"[..]))
+        .await
+        .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").partition(1).value(&b"p1"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.assign("t", 1, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    let mut got: Vec<(i32, i64)> = recs.iter().map(|r| (r.partition, r.offset)).collect();
+    got.sort();
+    assert_eq!(got, vec![(0, 0), (1, 0)]);
+    assert_eq!(
+        mock.last_fetch_version_for_node(1),
+        Some(17),
+        "newer leader must be fetched at v17"
+    );
+    assert_eq!(
+        mock.last_fetch_version_for_node(2),
+        Some(11),
+        "older leader must be fetched at v11 in the same call"
+    );
+    consumer.close().await.unwrap();
+}
+
+/// KL03-22: a preferred (follower) replica negotiates its own Fetch version
+/// too: the redirect fetch must not reuse the leader's newer schema.
+#[tokio::test]
+async fn fetch_mixed_version_preferred_replica_uses_replica_version() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_node_api_max(1, FETCH, 17);
+    mock.set_node_api_max(2, FETCH, 11);
+    mock.set_topic_partitions("t", 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    // Node 1 (rack r1) leads; the r2 consumer is redirected to node 2.
+    mock.set_partition_leader("t", 0, 1);
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .rack("r2"),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(
+        recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![0],
+        "redirected fetch must return the record"
+    );
+    assert_eq!(
+        mock.last_fetch_version_for_node(1),
+        Some(17),
+        "leader leg must speak v17"
+    );
+    assert_eq!(
+        mock.last_fetch_version_for_node(2),
+        Some(11),
+        "preferred-replica leg must negotiate the replica's v11, not the leader's v17"
+    );
+    consumer.close().await.unwrap();
 }

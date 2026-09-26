@@ -1139,13 +1139,30 @@
     {
       "id": "KL03-22",
       "title": "Negotiate Fetch versions per partition leader",
-      "priority": "P0", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P0", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL01-05", "KL03-11"],
       "files": ["src/consumer.rs", "src/net.rs", "tests/common/mod.rs", "tests/consumer_fetch_semantics.rs"],
       "deliverable": "Per-leader Fetch negotiation and matching response decoding during mixed-version upgrades.",
       "acceptance": ["A newer bootstrap cannot force an unsupported Fetch schema on an older leader or preferred replica.", "Preserve topic-name/ID, epoch and session fields for each negotiated version after movement/reconnect.", "Reuse the transport capability helper from KL03-11 if present; do not rework the producer in this card."],
       "validation": ["cargo test --locked --test consumer_fetch_semantics", "Run the explicit mixed-version fixture with both bootstrap/leader orders."],
-      "evidence": []
+      "evidence": [
+        {
+                "source_sha": "23da6da48b8242f552514256fa61c93a77fa677f",
+                "commands": [
+                        "cargo test --locked --test consumer_fetch_semantics fetch_mixed_version (4 passed, all failed pre-fix, exit 0)",
+                        "cargo test --locked --test consumer_fetch_semantics -- --test-threads=2 (33 passed, exit 0)",
+                        "cargo test --locked --test client_api -- --test-threads=2 (100 passed, exit 0)",
+                        "cargo test --locked --lib -- --test-threads=4 (1086 passed, exit 0)",
+                        "cargo test --locked --test full_surface -- --test-threads=4 (274 passed, exit 0)",
+                        "cargo test --locked --test consumer_close_commit -- --test-threads=2 (16 passed, exit 0)",
+                        "cargo clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+                        "bash scripts/ci-docs.sh (strict rustdoc + doctests, exit 0)"
+                ],
+                "results": "Each leader connection negotiates Fetch v4-17 from its own ApiVersions; per-node versions drive request encode and response decode on single- and multi-node paths. Four mixed-version tests cover both bootstrap/leader orders, movement, reconnect upgrades, distinct leaders in one call, and preferred-replica redirects.",
+                "artifacts": ["src/consumer.rs", "src/net.rs", "tests/common/mod.rs", "tests/consumer_fetch_semantics.rs", "docs/plan/evidence/KL03-22.json"],
+                "limits": ["In-memory mock only; no live mixed-version cluster.", "Consumer::new no longer fails fast on bootstrap Fetch support; failure surfaces per-leader at first fetch.", "Only Fetch moved per-leader; ListOffsets etc. still use bootstrap versions."]
+        }
+      ]
     },
     {
       "id": "KL04-01",

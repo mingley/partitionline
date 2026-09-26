@@ -607,6 +607,9 @@ pub struct BrokerConn {
     /// Produce version negotiated on data sockets (`-1` unset).
     /// This crate picks 3–12 from ApiVersions.
     pub(crate) produce_version: i16,
+    /// Fetch version negotiated on data sockets (`-1` unset).
+    /// This crate picks 4–17 from ApiVersions (KL03-22).
+    pub(crate) fetch_version: i16,
     /// OffsetCommit version negotiated on coordinator sockets (`0` unset).
     /// Classic consumer groups pick 2–9 from ApiVersions. Kafka 4.0
     /// removed v0–v1, so `0` is not a spoken version.
@@ -710,6 +713,7 @@ impl BrokerConn {
             closed: Arc::new(AtomicBool::new(false)),
             stats: None,
             produce_version: -1,
+            fetch_version: -1,
             offset_commit_version: 0,
             offset_fetch_version: 0,
             heartbeat_version: -1,
@@ -743,6 +747,17 @@ impl BrokerConn {
     /// Set negotiated Produce version on this broker connection.
     pub fn set_produce_version(&mut self, version: i16) {
         self.produce_version = version;
+    }
+
+    /// Negotiated Fetch version on this broker connection (`-1` unset).
+    #[must_use]
+    pub fn fetch_version(&self) -> i16 {
+        self.fetch_version
+    }
+
+    /// Set negotiated Fetch version on this broker connection.
+    pub fn set_fetch_version(&mut self, version: i16) {
+        self.fetch_version = version;
     }
 
     /// Next request correlation id.
