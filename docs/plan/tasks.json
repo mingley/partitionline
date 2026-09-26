@@ -2803,13 +2803,13 @@
     {
       "id": "KL09-08",
       "title": "Add multi-node, slow-node and fault modes to the null broker",
-      "priority": "P1", "kind": "test-infrastructure", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "test-infrastructure", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-07"],
       "files": ["benchmarks/nullbroker/"],
       "deliverable": "Deterministic multi-node listeners with distinct node IDs, per-node response delay, and seeded injection of retriable Produce/Fetch errors and unreachable bootstrap addresses.",
       "acceptance": ["Metadata advertises N nodes with configurable partition leadership; one node can delay responses by a fixed duration.", "Injected errors follow a seed and rate (for example 1% NOT_LEADER_OR_FOLLOWER) and are counted server-side.", "Modes are off by default and recorded in every result artifact."],
       "validation": ["cargo test --locked --manifest-path benchmarks/nullbroker/Cargo.toml", "A 3-node run with one slow node and 1% injected errors completes with zero validation failures and matching counts."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-08.json"]
     },
     {
       "id": "KL09-09",

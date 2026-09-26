@@ -47,6 +47,8 @@ pub const ERR_NONE: i16 = 0;
 pub const ERR_OFFSET_OUT_OF_RANGE: i16 = 1;
 /// Error code: `UNKNOWN_TOPIC_OR_PARTITION`.
 pub const ERR_UNKNOWN_TOPIC_OR_PARTITION: i16 = 3;
+/// Error code: `NOT_LEADER_OR_FOLLOWER`.
+pub const ERR_NOT_LEADER_OR_FOLLOWER: i16 = 6;
 /// Error code: `UNKNOWN_TOPIC_ID`.
 pub const ERR_UNKNOWN_TOPIC_ID: i16 = 100;
 /// Error code: `UNSUPPORTED_VERSION`.
@@ -479,21 +481,23 @@ fn decode_metadata_request(
     Ok((topics, allow_auto))
 }
 
-/// Encode a `Metadata` v13 response: one node, `partitions` per topic.
+/// Encode a `Metadata` v13 response: every node, `partitions` per topic.
 fn encode_metadata_response(
     out: &mut Vec<u8>,
     topics: &[MetadataRequestTopic],
     partitions: i32,
-    host: &str,
-    port: i32,
+    leaders: &[i32],
+    nodes: &[NodeInfo],
 ) {
     out.extend_from_slice(&0i32.to_be_bytes()); // throttle_ms
-    out.put_compact_array_len(1); // brokers
-    out.extend_from_slice(&0i32.to_be_bytes()); // node 0
-    out.put_compact_string(Some(host));
-    out.extend_from_slice(&port.to_be_bytes());
-    out.put_compact_string(None); // rack
-    out.put_empty_tagged_fields();
+    out.put_compact_array_len(nodes.len());
+    for node in nodes {
+        out.extend_from_slice(&node.id.to_be_bytes());
+        out.put_compact_string(Some(&node.host));
+        out.extend_from_slice(&node.port.to_be_bytes());
+        out.put_compact_string(None); // rack
+        out.put_empty_tagged_fields();
+    }
     out.put_compact_string(Some("nullbroker")); // cluster_id
     out.extend_from_slice(&0i32.to_be_bytes()); // controller_id
     out.put_compact_array_len(topics.len());
@@ -508,14 +512,15 @@ fn encode_metadata_response(
                 let n = usize::try_from(partitions.max(0)).unwrap_or(0);
                 out.put_compact_array_len(n);
                 for index in 0..n {
+                    let leader = leaders.get(index).copied().unwrap_or(0);
                     out.extend_from_slice(&ERR_NONE.to_be_bytes());
                     out.extend_from_slice(&(index as i32).to_be_bytes());
-                    out.extend_from_slice(&0i32.to_be_bytes()); // leader_id
+                    out.extend_from_slice(&leader.to_be_bytes());
                     out.extend_from_slice(&0i32.to_be_bytes()); // leader_epoch
                     out.put_compact_array_len(1); // replica_nodes
-                    out.extend_from_slice(&0i32.to_be_bytes());
+                    out.extend_from_slice(&leader.to_be_bytes());
                     out.put_compact_array_len(1); // isr_nodes
-                    out.extend_from_slice(&0i32.to_be_bytes());
+                    out.extend_from_slice(&leader.to_be_bytes());
                     out.put_compact_array_len(0); // offline_replicas
                     out.put_empty_tagged_fields();
                 }
@@ -560,13 +565,19 @@ fn decode_find_coordinator_request(body: &[u8]) -> Result<(i8, Vec<String>), Dec
     Ok((key_type, keys))
 }
 
-/// Encode a `FindCoordinator` v6 response: every key maps to node 0.
-fn encode_find_coordinator_response(out: &mut Vec<u8>, keys: &[String], host: &str, port: i32) {
+/// Encode a `FindCoordinator` v6 response: every key maps to one node.
+fn encode_find_coordinator_response(
+    out: &mut Vec<u8>,
+    keys: &[String],
+    node_id: i32,
+    host: &str,
+    port: i32,
+) {
     out.extend_from_slice(&0i32.to_be_bytes()); // throttle_ms
     out.put_compact_array_len(keys.len());
     for key in keys {
         out.put_compact_string(Some(key));
-        out.extend_from_slice(&0i32.to_be_bytes()); // node_id
+        out.extend_from_slice(&node_id.to_be_bytes());
         out.put_compact_string(Some(host));
         out.extend_from_slice(&port.to_be_bytes());
         out.extend_from_slice(&ERR_NONE.to_be_bytes());
@@ -1090,6 +1101,51 @@ struct State {
     fetched_records: u64,
     /// Synthetic batch wire bytes served.
     fetched_wire_bytes: u64,
+    /// Injected fault responses (fail-fast, never appended).
+    injected_errors: u64,
+    /// Requests that hit a non-leader node.
+    leader_mismatches: u64,
+}
+
+/// One advertised broker: live (has a listener) or dead (refused).
+#[derive(Debug, Clone)]
+pub struct NodeInfo {
+    /// Node id.
+    pub id: i32,
+    /// Advertised host.
+    pub host: String,
+    /// Advertised port.
+    pub port: i32,
+    /// Whether a listener serves this node.
+    pub live: bool,
+}
+
+/// Seeded per-request fault decisions.
+#[derive(Debug)]
+pub struct FaultState {
+    seed: u64,
+    rate_per_million: u32,
+    counter: std::sync::atomic::AtomicU64,
+}
+
+impl FaultState {
+    fn new(seed: u64, rate_per_million: u32) -> Self {
+        Self {
+            seed,
+            rate_per_million,
+            counter: std::sync::atomic::AtomicU64::new(0),
+        }
+    }
+
+    /// Whether request `counter` (claimed atomically) is a fault.
+    fn inject(&self) -> bool {
+        if self.rate_per_million == 0 {
+            return false;
+        }
+        let n = self.counter.fetch_add(1, Ordering::Relaxed);
+        let roll = (synth::splitmix64(self.seed.wrapping_add(n)) % 1_000_000) as u32;
+        roll < self.rate_per_million.min(1_000_000)
+    }
 }
 
 /// Server configuration.
@@ -1105,6 +1161,21 @@ pub struct Config {
     pub artifact: PathBuf,
     /// Synthetic Fetch log configuration.
     pub synth: synth::SynthConfig,
+    /// Live node listeners: node `i` binds `bind` port + `i`. One by default.
+    pub nodes: u16,
+    /// Extra advertised node ids with no listener (connection refused).
+    pub dead_nodes: u16,
+    /// Per-partition leader node ids (`partitions` long); empty means
+    /// round-robin over live nodes.
+    pub leaders: Vec<i32>,
+    /// Node id whose responses are delayed (slow-node mode).
+    pub slow_node: Option<i32>,
+    /// Fixed response delay for the slow node.
+    pub slow_delay: Duration,
+    /// Fault-injection seed (seeded per-request decisions).
+    pub fault_seed: u64,
+    /// Injected `NOT_LEADER_OR_FOLLOWER` rate, per million requests.
+    pub fault_rate_per_million: u32,
 }
 
 impl Default for Config {
@@ -1115,6 +1186,13 @@ impl Default for Config {
             serve_for: Duration::from_secs(30),
             artifact: PathBuf::from("nullbroker-ceiling.json"),
             synth: synth::SynthConfig::default(),
+            nodes: 1,
+            dead_nodes: 0,
+            leaders: Vec::new(),
+            slow_node: None,
+            slow_delay: Duration::ZERO,
+            fault_seed: 0x5EED_0001,
+            fault_rate_per_million: 0,
         }
     }
 }
@@ -1138,6 +1216,42 @@ pub struct RunReport {
     pub fetched_records: u64,
     /// Synthetic batch wire bytes served.
     pub fetched_wire_bytes: u64,
+    /// Injected fault responses served.
+    pub injected_errors: u64,
+    /// Requests that hit a non-leader node.
+    pub leader_mismatches: u64,
+    /// Active modes, recorded for the artifact.
+    pub modes: Modes,
+}
+
+/// Active null-broker modes (KL09-08). All are off by default.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Modes {
+    /// Live node listeners.
+    pub nodes: u16,
+    /// Advertised-but-dead node ids.
+    pub dead_nodes: u16,
+    /// Slow node id, if any.
+    pub slow_node: Option<i32>,
+    /// Slow-node fixed response delay.
+    pub slow_delay: Duration,
+    /// Fault-injection seed.
+    pub fault_seed: u64,
+    /// Injected-error rate, per million requests.
+    pub fault_rate_per_million: u32,
+}
+
+impl Default for Modes {
+    fn default() -> Self {
+        Self {
+            nodes: 1,
+            dead_nodes: 0,
+            slow_node: None,
+            slow_delay: Duration::ZERO,
+            fault_seed: 0x5EED_0001,
+            fault_rate_per_million: 0,
+        }
+    }
 }
 
 /// A validating null-broker Produce server.
@@ -1150,39 +1264,145 @@ pub struct NullBroker {
     /// a mid-frame timeout.
     sockets: Arc<Mutex<Vec<TcpStream>>>,
     partitions: i32,
-    advertised_host: String,
-    advertised_port: i32,
     synth: synth::SynthConfig,
+    /// Advertised brokers: live first, then dead.
+    nodes: Vec<NodeInfo>,
+    /// Leader node id per partition.
+    leadership: Vec<i32>,
+    faults: Arc<FaultState>,
+    modes: Modes,
+}
+
+/// Leader map: explicit config when its length matches `partitions`,
+/// else round-robin over `live` nodes.
+fn resolve_leadership(config_leaders: &[i32], partitions: i32, live: u16) -> Vec<i32> {
+    let n = usize::try_from(partitions.max(0)).unwrap_or(0);
+    if config_leaders.len() == n && n > 0 {
+        return config_leaders.to_vec();
+    }
+    let live = live.max(1) as i32;
+    (0..n).map(|p| (p as i32) % live).collect()
 }
 
 impl NullBroker {
-    /// Serve on `config.bind` until `config.serve_for` elapses, then write
-    /// the `client-ceiling` artifact and return the run report.
+    /// Serve until `config.serve_for` elapses, then write the
+    /// `client-ceiling` artifact and return the run report.
+    ///
+    /// Node `i` binds `config.bind` port + `i` (port `0` anchors node 0 to
+    /// an ephemeral port and continues from there).
     pub fn run(config: &Config) -> io::Result<RunReport> {
-        let listener = TcpListener::bind(config.bind.as_str())?;
-        let broker = Self::with_listener(&listener, config.partitions, config.synth.clone())?;
-        broker.serve(&listener, config.serve_for)?;
+        let bound = Self::bind_all(config)?;
+        let broker = Self::with_bound(&bound, config)?;
+        let broker = Arc::new(broker);
+        let mut handles = Vec::new();
+        for (node_id, listener) in &bound {
+            let broker = Arc::clone(&broker);
+            // `TcpListener` is shared by reference: the accept loop needs
+            // only `&self`, so each node serves on its own thread.
+            let listener = listener.try_clone()?;
+            let serve_for = config.serve_for;
+            let node_id = *node_id;
+            handles.push(std::thread::spawn(move || {
+                broker.serve(node_id, &listener, serve_for)
+            }));
+        }
+        let mut result = Ok(());
+        for handle in handles {
+            result = result.and(handle.join().unwrap_or(Ok(())));
+        }
+        result?;
         let report = broker.report();
         write_artifact(&config.artifact, &report)?;
         Ok(report)
     }
 
-    /// Build a broker around an already-bound listener (tests).
+    /// Bind one listener per live node.
+    pub fn bind_all(config: &Config) -> io::Result<Vec<(i32, TcpListener)>> {
+        let count = config.nodes.max(1);
+        let base: std::net::SocketAddr = config
+            .bind
+            .parse()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
+        let mut bound = Vec::with_capacity(count as usize);
+        let mut port = base.port();
+        for id in 0..count {
+            let addr = std::net::SocketAddr::new(base.ip(), port);
+            let listener = TcpListener::bind(addr)?;
+            if id == 0 {
+                port = listener.local_addr()?.port();
+            }
+            bound.push((i32::from(id), listener));
+            port = port.wrapping_add(1);
+        }
+        Ok(bound)
+    }
+
+    /// Build a broker around already-bound listeners (tests serve these).
+    pub fn with_bound(bound: &[(i32, TcpListener)], config: &Config) -> io::Result<Self> {
+        let mut nodes = Vec::new();
+        for (id, listener) in bound {
+            let addr = listener.local_addr()?;
+            nodes.push(NodeInfo {
+                id: *id,
+                host: addr.ip().to_string(),
+                port: i32::from(addr.port()),
+                live: true,
+            });
+        }
+        let live = bound.len() as u16;
+        if let Some(first) = nodes.first().cloned() {
+            let live_ports: Vec<i32> = nodes.iter().map(|n| n.port).collect();
+            for d in 0..config.dead_nodes {
+                // Dead ids need ports no live listener holds; ephemeral
+                // allocation is near-sequential, so skip collisions.
+                let mut port = first.port + i32::from(live) + i32::from(d);
+                while live_ports.contains(&port) {
+                    port += 1;
+                }
+                nodes.push(NodeInfo {
+                    id: i32::from(live) + i32::from(d),
+                    host: first.host.clone(),
+                    port,
+                    live: false,
+                });
+            }
+        }
+        let leadership = resolve_leadership(&config.leaders, config.partitions, live.max(1));
+        Ok(Self {
+            state: Arc::new(Mutex::new(State::default())),
+            shutdown: Arc::new(AtomicBool::new(false)),
+            sockets: Arc::new(Mutex::new(Vec::new())),
+            partitions: config.partitions,
+            synth: config.synth.clone(),
+            nodes,
+            leadership,
+            faults: Arc::new(FaultState::new(
+                config.fault_seed,
+                config.fault_rate_per_million,
+            )),
+            modes: Modes {
+                nodes: live,
+                dead_nodes: config.dead_nodes,
+                slow_node: config.slow_node,
+                slow_delay: config.slow_delay,
+                fault_seed: config.fault_seed,
+                fault_rate_per_million: config.fault_rate_per_million,
+            },
+        })
+    }
+
+    /// Build a single-node broker around an already-bound listener (tests).
     pub fn with_listener(
         listener: &TcpListener,
         partitions: i32,
         synth: synth::SynthConfig,
     ) -> io::Result<Self> {
-        let addr = listener.local_addr()?;
-        Ok(Self {
-            state: Arc::new(Mutex::new(State::default())),
-            shutdown: Arc::new(AtomicBool::new(false)),
-            sockets: Arc::new(Mutex::new(Vec::new())),
+        let config = Config {
             partitions,
-            advertised_host: addr.ip().to_string(),
-            advertised_port: i32::from(addr.port()),
             synth,
-        })
+            ..Config::default()
+        };
+        Self::with_bound(&[(0, listener.try_clone()?)], &config)
     }
 
     /// Ask the server to stop: the flag stops the accept loop and every
@@ -1196,8 +1416,14 @@ impl NullBroker {
         }
     }
 
-    /// Serve `listener` until `serve_for` elapses or [`Self::shutdown`].
-    pub fn serve(&self, listener: &TcpListener, serve_for: Duration) -> io::Result<()> {
+    /// Serve `listener` as `node_id` until `serve_for` elapses or
+    /// [`Self::shutdown`].
+    pub fn serve(
+        &self,
+        node_id: i32,
+        listener: &TcpListener,
+        serve_for: Duration,
+    ) -> io::Result<()> {
         listener.set_nonblocking(true)?;
         let deadline = Instant::now() + serve_for;
         let mut workers = Vec::new();
@@ -1216,9 +1442,13 @@ impl NullBroker {
                     }
                     let worker = Worker {
                         state: Arc::clone(&self.state),
+                        node_id,
+                        nodes: self.nodes.clone(),
+                        leadership: self.leadership.clone(),
+                        faults: Arc::clone(&self.faults),
+                        slow: self.modes.slow_node,
+                        slow_delay: self.modes.slow_delay,
                         partitions: self.partitions,
-                        advertised_host: self.advertised_host.clone(),
-                        advertised_port: self.advertised_port,
                         synth: self.synth.clone(),
                     };
                     workers.push(std::thread::spawn(move || worker.serve_conn(stream)));
@@ -1258,6 +1488,9 @@ impl NullBroker {
             fetch_requests: state.fetch_requests,
             fetched_records: state.fetched_records,
             fetched_wire_bytes: state.fetched_wire_bytes,
+            injected_errors: state.injected_errors,
+            leader_mismatches: state.leader_mismatches,
+            modes: self.modes.clone(),
         }
     }
 }
@@ -1266,10 +1499,24 @@ impl NullBroker {
 #[derive(Debug)]
 struct Worker {
     state: Arc<Mutex<State>>,
+    node_id: i32,
+    nodes: Vec<NodeInfo>,
+    leadership: Vec<i32>,
+    faults: Arc<FaultState>,
+    slow: Option<i32>,
+    slow_delay: Duration,
     partitions: i32,
-    advertised_host: String,
-    advertised_port: i32,
     synth: synth::SynthConfig,
+}
+
+impl Worker {
+    /// Leader of `partition` (0 when the map has no entry).
+    fn leader_of(&self, partition: i32) -> i32 {
+        usize::try_from(partition)
+            .ok()
+            .and_then(|p| self.leadership.get(p).copied())
+            .unwrap_or(0)
+    }
 }
 
 impl Worker {
@@ -1290,6 +1537,9 @@ impl Worker {
             }
             match self.handle_frame(&frame) {
                 Ok(Some(response)) => {
+                    if self.slow == Some(self.node_id) && !self.slow_delay.is_zero() {
+                        std::thread::sleep(self.slow_delay);
+                    }
                     let out_len = u32::try_from(response.len()).unwrap_or(u32::MAX);
                     if stream.write_all(&out_len.to_be_bytes()).is_err() {
                         return;
@@ -1338,8 +1588,8 @@ impl Worker {
                     &mut out,
                     topics,
                     self.partitions,
-                    &self.advertised_host,
-                    self.advertised_port,
+                    &self.leadership,
+                    &self.nodes,
                 );
                 Ok(Some(out))
             }
@@ -1362,12 +1612,13 @@ impl Worker {
             API_KEY_FIND_COORDINATOR if api_version == 6 => {
                 let (_key_type, keys) = decode_find_coordinator_request(body).map_err(|_| ())?;
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
-                encode_find_coordinator_response(
-                    &mut out,
-                    &keys,
-                    &self.advertised_host,
-                    self.advertised_port,
-                );
+                let (node_id, host, port) = self
+                    .nodes
+                    .iter()
+                    .find(|n| n.live)
+                    .map(|n| (n.id, n.host.as_str(), n.port))
+                    .unwrap_or((0, "127.0.0.1", 19092));
+                encode_find_coordinator_response(&mut out, &keys, node_id, host, port);
                 Ok(Some(out))
             }
             API_KEY_PRODUCE if api_version == 12 => {
@@ -1376,6 +1627,28 @@ impl Worker {
                 {
                     let mut state = self.lock_state().map_err(|_| ())?;
                     state.produce_requests += 1;
+                }
+                // Injected faults fail fast (nothing appended, so a retry
+                // preserves acked == accepted). Never on acks=0: a dropped
+                // fire-and-forget batch is invisible loss.
+                if acks != 0 && self.faults.inject() {
+                    let parts = topics
+                        .iter()
+                        .flat_map(|t| {
+                            t.partitions.iter().map(|p| ProducePartitionResult {
+                                topic: t.topic.clone(),
+                                partition: p.index,
+                                error_code: ERR_NOT_LEADER_OR_FOLLOWER,
+                                base_offset: -1,
+                            })
+                        })
+                        .collect::<Vec<_>>();
+                    if let Ok(mut state) = self.state.lock() {
+                        state.injected_errors += parts.len() as u64;
+                    }
+                    encode_response_header(&mut out, api_key, api_version, correlation_id);
+                    encode_produce_response(&mut out, &parts);
+                    return Ok(Some(out));
                 }
                 if acks == 0 {
                     // No response, but still validate and count.
@@ -1392,6 +1665,32 @@ impl Worker {
                 {
                     let mut state = self.lock_state().map_err(|_| ())?;
                     state.fetch_requests += 1;
+                }
+                if self.faults.inject() {
+                    let served = topics
+                        .iter()
+                        .map(|t| {
+                            let parts = t
+                                .partitions
+                                .iter()
+                                .map(|p| FetchPartitionResult {
+                                    partition: p.partition,
+                                    error_code: ERR_NOT_LEADER_OR_FOLLOWER,
+                                    high_watermark: self.synth.records_per_partition as i64,
+                                    records: Vec::new(),
+                                    aborted: Vec::new(),
+                                })
+                                .collect::<Vec<_>>();
+                            (t.topic_id, parts)
+                        })
+                        .collect::<Vec<_>>();
+                    let n: usize = served.iter().map(|(_, p)| p.len()).sum();
+                    if let Ok(mut state) = self.state.lock() {
+                        state.injected_errors += n as u64;
+                    }
+                    encode_response_header(&mut out, api_key, api_version, correlation_id);
+                    encode_fetch_response(&mut out, &served);
+                    return Ok(Some(out));
                 }
                 let served = self.serve_fetch(max_bytes, &topics);
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
@@ -1446,6 +1745,16 @@ impl Worker {
             Err(()) => return parts,
         };
         for item in pending {
+            if self.leader_of(item.partition) != self.node_id {
+                state.leader_mismatches += 1;
+                parts.push(ProducePartitionResult {
+                    topic: item.topic,
+                    partition: item.partition,
+                    error_code: ERR_NOT_LEADER_OR_FOLLOWER,
+                    base_offset: -1,
+                });
+                continue;
+            }
             if item.parsed == Err(ValidationFailure::Transactional) {
                 state.failures.record(ValidationFailure::Transactional);
                 parts.push(ProducePartitionResult {
@@ -1580,6 +1889,19 @@ impl Worker {
                     partitions.push(FetchPartitionResult {
                         partition: part.partition,
                         error_code: ERR_OFFSET_OUT_OF_RANGE,
+                        high_watermark: end,
+                        records: Vec::new(),
+                        aborted: Vec::new(),
+                    });
+                    continue;
+                }
+                if self.leader_of(part.partition) != self.node_id {
+                    if let Ok(mut state) = self.state.lock() {
+                        state.leader_mismatches += 1;
+                    }
+                    partitions.push(FetchPartitionResult {
+                        partition: part.partition,
+                        error_code: ERR_NOT_LEADER_OR_FOLLOWER,
                         high_watermark: end,
                         records: Vec::new(),
                         aborted: Vec::new(),
@@ -1728,6 +2050,37 @@ pub fn write_artifact(path: &Path, report: &RunReport) -> io::Result<()> {
         "  \"fetched_wire_bytes\": {},\n",
         report.fetched_wire_bytes
     ));
+    body.push_str(&format!(
+        "  \"injected_errors\": {},\n",
+        report.injected_errors
+    ));
+    body.push_str(&format!(
+        "  \"leader_mismatches\": {},\n",
+        report.leader_mismatches
+    ));
+    body.push_str("  \"modes\": {\n");
+    body.push_str(&format!("    \"nodes\": {},\n", report.modes.nodes));
+    body.push_str(&format!(
+        "    \"dead_nodes\": {},\n",
+        report.modes.dead_nodes
+    ));
+    match report.modes.slow_node {
+        Some(id) => body.push_str(&format!("    \"slow_node\": {id},\n")),
+        None => body.push_str("    \"slow_node\": null,\n"),
+    }
+    body.push_str(&format!(
+        "    \"slow_delay_ms\": {},\n",
+        report.modes.slow_delay.as_millis()
+    ));
+    body.push_str(&format!(
+        "    \"fault_seed\": {},\n",
+        report.modes.fault_seed
+    ));
+    body.push_str(&format!(
+        "    \"fault_rate_per_million\": {}\n",
+        report.modes.fault_rate_per_million
+    ));
+    body.push_str("  },\n");
     body.push_str("  \"validation_failures\": {\n");
     body.push_str(&format!("    \"framing\": {},\n", report.failures.framing));
     body.push_str(&format!("    \"crc\": {},\n", report.failures.crc));

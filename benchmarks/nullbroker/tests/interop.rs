@@ -5,7 +5,7 @@
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use nullbroker::{crc32c, NullBroker};
 
@@ -290,7 +290,7 @@ fn handshake_produce_and_rejections() {
     );
     let server = Arc::clone(&broker);
     let handle = std::thread::spawn(move || {
-        server.serve(&listener, Duration::from_secs(30)).unwrap();
+        server.serve(0, &listener, Duration::from_secs(30)).unwrap();
     });
 
     let mut stream = TcpStream::connect(("127.0.0.1", port)).unwrap();
@@ -608,7 +608,7 @@ fn fetch_and_list_offsets_roundtrip() {
     let broker = Arc::new(NullBroker::with_listener(&listener, 1, synth).unwrap());
     let server = Arc::clone(&broker);
     let handle = std::thread::spawn(move || {
-        server.serve(&listener, Duration::from_secs(30)).unwrap();
+        server.serve(0, &listener, Duration::from_secs(30)).unwrap();
     });
     let mut stream = TcpStream::connect(("127.0.0.1", port)).unwrap();
     stream
@@ -717,6 +717,9 @@ fn artifact_is_labeled_client_ceiling() {
         fetch_requests: 3,
         fetched_records: 100,
         fetched_wire_bytes: 9000,
+        injected_errors: 0,
+        leader_mismatches: 0,
+        modes: nullbroker::Modes::default(),
     };
     nullbroker::write_artifact(&path, &report).unwrap();
     let text = std::fs::read_to_string(&path).unwrap();
@@ -728,4 +731,300 @@ fn artifact_is_labeled_client_ceiling() {
     assert!(text.trim_start().starts_with('{') && text.trim_end().ends_with('}'));
     std::fs::remove_file(&path).unwrap();
     std::fs::remove_dir(&dir).unwrap();
+}
+
+/// Spin up `live` node listeners; returns the broker, per-node ports,
+/// and server handles. Dead ids come from `config.dead_nodes`.
+fn serve_nodes(
+    live: u16,
+    config: &nullbroker::Config,
+) -> (Arc<NullBroker>, Vec<u16>, Vec<std::thread::JoinHandle<()>>) {
+    let listeners: Vec<TcpListener> = (0..live)
+        .map(|_| TcpListener::bind("127.0.0.1:0").unwrap())
+        .collect();
+    let ports: Vec<u16> = listeners
+        .iter()
+        .map(|l| l.local_addr().unwrap().port())
+        .collect();
+    let bound: Vec<(i32, TcpListener)> = listeners
+        .iter()
+        .enumerate()
+        .map(|(i, l)| (i as i32, l.try_clone().unwrap()))
+        .collect();
+    let broker = Arc::new(NullBroker::with_bound(&bound, config).unwrap());
+    let mut handles = Vec::new();
+    for (id, listener) in &bound {
+        let server = Arc::clone(&broker);
+        let listener = listener.try_clone().unwrap();
+        let id = *id;
+        handles.push(std::thread::spawn(move || {
+            server
+                .serve(id, &listener, Duration::from_secs(30))
+                .unwrap()
+        }));
+    }
+    (broker, ports, handles)
+}
+
+fn connect(port: u16) -> TcpStream {
+    let stream = TcpStream::connect(("127.0.0.1", port)).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    stream
+}
+
+fn metadata_body(topic: &str) -> Vec<u8> {
+    let mut body = Vec::new();
+    put_uvarint(&mut body, 2); // 1 topic
+    body.extend_from_slice(&[0u8; 16]); // topic_id
+    put_compact_string(&mut body, Some(topic));
+    put_uvarint(&mut body, 0);
+    body.push(1); // allow_auto
+    body.push(0); // include_topic_authorized
+    put_uvarint(&mut body, 0);
+    body
+}
+
+/// Advertised broker: `(node_id, host, port)`.
+type BrokerAddr = (i32, String, i32);
+/// Partition leadership: `(partition, leader_node_id)`.
+type PartitionLeader = (i32, i32);
+
+/// Parse Metadata v13 brokers and per-partition leaders.
+fn parse_metadata_topology(frame: &[u8]) -> (Vec<BrokerAddr>, Vec<PartitionLeader>) {
+    let mut cur = Cur::new(frame);
+    let _correlation = cur.i32();
+    cur.skip_tags();
+    let _throttle = cur.i32();
+    let brokers = cur.uvarint() - 1;
+    let mut nodes = Vec::new();
+    for _ in 0..brokers {
+        let id = cur.i32();
+        let host = cur.compact_string().unwrap();
+        let port = cur.i32();
+        assert_eq!(cur.compact_string(), None); // rack
+        cur.skip_tags();
+        nodes.push((id, host, port));
+    }
+    assert_eq!(cur.compact_string().as_deref(), Some("nullbroker"));
+    let _controller = cur.i32();
+    assert_eq!(cur.uvarint(), 2); // 1 topic
+    assert_eq!(cur.i16(), 0);
+    let _name = cur.compact_string();
+    let _topic_id = cur.take(16);
+    let _internal = cur.take(1);
+    let partitions = cur.uvarint() - 1;
+    let mut leaders = Vec::new();
+    for _ in 0..partitions {
+        assert_eq!(cur.i16(), 0);
+        let index = cur.i32();
+        let leader = cur.i32();
+        let _epoch = cur.i32();
+        assert_eq!(cur.uvarint(), 2); // 1 replica
+        let _replica = cur.i32();
+        assert_eq!(cur.uvarint(), 2); // 1 isr
+        let _isr = cur.i32();
+        assert_eq!(cur.uvarint(), 1); // 0 offline
+        cur.skip_tags();
+        leaders.push((index, leader));
+    }
+    (nodes, leaders)
+}
+
+#[test]
+fn multinode_metadata_advertises_topology() {
+    let config = nullbroker::Config {
+        partitions: 6,
+        nodes: 3,
+        dead_nodes: 1,
+        ..nullbroker::Config::default()
+    };
+    let (broker, ports, handles) = serve_nodes(3, &config);
+
+    let mut stream = connect(ports[0]);
+    let mut corr = 0;
+    let mut rpc = Rpc {
+        stream: &mut stream,
+        corr: &mut corr,
+    };
+    let (nodes, leaders) = parse_metadata_topology(&rpc.call(3, 13, &metadata_body("t")));
+    let ids: Vec<i32> = nodes.iter().map(|n| n.0).collect();
+    assert_eq!(ids, vec![0, 1, 2, 3], "advertised nodes: {nodes:?}");
+    // Live nodes carry their listener ports; the dead id advertises a
+    // distinct port with no listener behind it. (No connect assertion: with
+    // ephemeral ports a parallel test may hold any given port.)
+    assert_eq!(nodes[0].2, i32::from(ports[0]));
+    assert_eq!(nodes[1].2, i32::from(ports[1]));
+    assert_eq!(nodes[2].2, i32::from(ports[2]));
+    assert!(
+        !ports.contains(&(nodes[3].2 as u16)),
+        "dead port must differ from live ports: {nodes:?}"
+    );
+    // Default leadership is round-robin over live nodes.
+    let leaders: Vec<i32> = leaders.iter().map(|(_, l)| *l).collect();
+    assert_eq!(leaders, vec![0, 1, 2, 0, 1, 2]);
+
+    broker.shutdown();
+    for handle in handles {
+        handle.join().unwrap();
+    }
+}
+
+#[test]
+fn requests_to_wrong_node_return_not_leader() {
+    let config = nullbroker::Config {
+        partitions: 6,
+        nodes: 3,
+        ..nullbroker::Config::default()
+    };
+    let (broker, ports, handles) = serve_nodes(3, &config);
+
+    // Node 0 leads partitions 0 and 3; partition 1 belongs to node 1.
+    let mut stream = connect(ports[0]);
+    let mut corr = 0;
+    let mut rpc = Rpc {
+        stream: &mut stream,
+        corr: &mut corr,
+    };
+    rpc.call(3, 13, &metadata_body("t")); // register the topic id
+
+    let wrong = build_batch(-1, -1, 0, 2, b'x');
+    let body = produce_body(1, &[("t", &[(1, &wrong[..])])]);
+    let out = parse_produce_response(&rpc.call(0, 12, &body));
+    assert_eq!(out, vec![("t".to_owned(), 1, 6, -1)]);
+
+    let right = build_batch(-1, -1, 0, 2, b'y');
+    let body = produce_body(1, &[("t", &[(0, &right[..])])]);
+    let out = parse_produce_response(&rpc.call(0, 12, &body));
+    assert_eq!(out, vec![("t".to_owned(), 0, 0, 0)]);
+
+    let topic_id = nullbroker::synth::topic_id("t");
+    let body = fetch_body(&topic_id, &[(2, 0, 1_000_000)], 16_777_216);
+    let out = parse_fetch_response(&rpc.call(1, 17, &body));
+    assert_eq!(out[0].1, 6); // partition 2 lives on node 2
+    assert!(out[0].5.is_empty());
+
+    let body = fetch_body(&topic_id, &[(0, 0, 1_000_000)], 16_777_216);
+    let out = parse_fetch_response(&rpc.call(1, 17, &body));
+    assert_eq!(out[0].1, 0);
+
+    broker.shutdown();
+    for handle in handles {
+        handle.join().unwrap();
+    }
+    let report = broker.report();
+    assert_eq!(report.leader_mismatches, 2, "{report:?}");
+    assert_eq!(report.injected_errors, 0);
+    assert_eq!(report.accepted_records, 2);
+}
+
+#[test]
+fn slow_node_delays_responses() {
+    let config = nullbroker::Config {
+        partitions: 1,
+        nodes: 2,
+        slow_node: Some(1),
+        slow_delay: Duration::from_millis(100),
+        ..nullbroker::Config::default()
+    };
+    let (broker, ports, handles) = serve_nodes(2, &config);
+
+    let mut probe = Vec::new();
+    put_compact_string(&mut probe, Some("interop"));
+    put_compact_string(&mut probe, Some("0.1.0"));
+    put_uvarint(&mut probe, 0);
+
+    let mut slow = connect(ports[1]);
+    let mut corr = 0;
+    let start = Instant::now();
+    let mut rpc = Rpc {
+        stream: &mut slow,
+        corr: &mut corr,
+    };
+    let resp = rpc.call(18, 4, &probe);
+    let elapsed = start.elapsed();
+    let mut cur = Cur::new(&resp);
+    assert_eq!(cur.i32(), 1);
+    assert_eq!(cur.i16(), 0);
+    assert!(
+        elapsed >= Duration::from_millis(95),
+        "slow node answered in {elapsed:?}"
+    );
+
+    // The fast node still answers (no upper bound: loaded hosts stall).
+    let mut fast = connect(ports[0]);
+    let mut corr = 0;
+    let mut rpc = Rpc {
+        stream: &mut fast,
+        corr: &mut corr,
+    };
+    let resp = rpc.call(18, 4, &probe);
+    let mut cur = Cur::new(&resp);
+    assert_eq!(cur.i32(), 1);
+    assert_eq!(cur.i16(), 0);
+
+    broker.shutdown();
+    for handle in handles {
+        handle.join().unwrap();
+    }
+}
+
+/// One seeded fault run: the per-request error sequence plus the injected
+/// counter. Identical seeds must replay identical sequences.
+fn fault_run(seed: u64, ppm: u32, requests: usize) -> (Vec<i16>, u64) {
+    let config = nullbroker::Config {
+        partitions: 1,
+        nodes: 1,
+        fault_seed: seed,
+        fault_rate_per_million: ppm,
+        ..nullbroker::Config::default()
+    };
+    let (broker, ports, handles) = serve_nodes(1, &config);
+
+    let mut stream = connect(ports[0]);
+    let mut corr = 0;
+    let mut rpc = Rpc {
+        stream: &mut stream,
+        corr: &mut corr,
+    };
+    rpc.call(3, 13, &metadata_body("t"));
+    let mut errors = Vec::with_capacity(requests);
+    for _ in 0..requests {
+        let batch = build_batch(-1, -1, 0, 1, b'f');
+        let body = produce_body(1, &[("t", &[(0, &batch[..])])]);
+        let out = parse_produce_response(&rpc.call(0, 12, &body));
+        assert_eq!(out.len(), 1);
+        errors.push(out[0].2);
+        if out[0].2 == 6 {
+            assert_eq!(out[0].3, -1, "injected fault base: {out:?}");
+        }
+    }
+
+    broker.shutdown();
+    for handle in handles {
+        handle.join().unwrap();
+    }
+    let report = broker.report();
+    assert_eq!(report.leader_mismatches, 0);
+    (errors, report.injected_errors)
+}
+
+#[test]
+fn seeded_faults_are_deterministic() {
+    let (first, first_count) = fault_run(0x5EED_F001, 100_000, 50);
+    let (second, second_count) = fault_run(0x5EED_F001, 100_000, 50);
+    assert_eq!(first, second, "same seed must replay the same faults");
+    assert_eq!(first_count, second_count);
+    let injected = first.iter().filter(|e| **e == 6).count() as u64;
+    assert_eq!(first_count, injected, "counter matches responses");
+    assert!(
+        (1..50).contains(&injected),
+        "10% of 50 requests should fault partially, got {injected}"
+    );
+
+    // A zero rate never faults.
+    let (clean, clean_count) = fault_run(0x5EED_F001, 0, 10);
+    assert!(clean.iter().all(|e| *e == 0), "{clean:?}");
+    assert_eq!(clean_count, 0);
 }
