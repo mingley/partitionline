@@ -3384,7 +3384,7 @@
     {
       "id": "KL09-59",
       "title": "Reuse one OIDC token manager across connection opens",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL06-04", "KL09-11"],
       "files": ["src/net.rs", "src/protocol/sasl.rs", "src/protocol/oidc.rs"],
       "deliverable": "Client connection setup uses one shared single-flight OIDC token manager instead of fetching a fresh token for every connection open.",
