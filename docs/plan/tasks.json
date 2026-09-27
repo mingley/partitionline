@@ -2976,13 +2976,13 @@
     {
       "id": "KL09-22",
       "title": "Cache multi-topic routes with versioned invalidation",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-09", "KL09-11"],
       "files": ["src/producer.rs", "src/cluster.rs"],
       "deliverable": "A bounded, metadata-versioned route cache for several topics replaces the single-topic fast route; Cluster::leader stops cloning the address String on the hot path.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Alternating-topic try_send takes no lock and allocates nothing per record in steady state; the cache is bounded.", "Leader movement invalidates routes (existing leader-move tests plus a new alternating-topic leader-move test); partition-to-socket affinity for idempotent sequences is preserved."],
       "validation": ["cargo test --locked --test mock_produce", "cargo test --locked --test full_surface", "A/B cell nb-produce-mixed-topics (allocations/record, CPU-ns/record): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)", "cargo clippy --locked --all-targets --all-features -- -D warnings"],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-22.json"]
     },
     {
       "id": "KL09-23",
