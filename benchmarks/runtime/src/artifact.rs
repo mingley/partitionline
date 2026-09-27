@@ -282,10 +282,12 @@ pub fn build_result(
 ) -> Result<Value, String> {
     let offered = ctx.cell.total_records() as u64;
     let acked = outcome.acked;
+    let broker_accepted = ctx.broker.accepted_records;
     let failed = ctx.broker.validation_failures > 0
         || outcome.timed_out
         || acked != offered
-        || outcome.offsets_valid != acked;
+        || broker_accepted != acked
+        || (outcome.offsets_observed && outcome.offsets_valid != acked);
     let disposition = if failed { "failed" } else { "executed" };
 
     let stats = summarize_latency(outcome.latencies_us.clone());
@@ -331,7 +333,7 @@ pub fn build_result(
         "idempotence": ctx.cell.idempotent,
         "compression": "none",
         "drive_mode": format!("{:?}", ctx.cell.mode).to_lowercase(),
-        "max_in_flight_sends": ctx.cell.max_in_flight_sends,
+        "linger_override_ms": ctx.cell.linger_override_ms,
         "flush_every": ctx.cell.flush_every,
         "idle_seconds": ctx.cell.idle_seconds,
         "value_bytes": ctx.cell.value_bytes,
@@ -356,7 +358,14 @@ pub fn build_result(
         .map(|(t, p, o)| json!({"topic": t, "partition": p, "start_offset": 0, "end_offset": o}))
         .collect();
 
-    let checksummed: u64 = outcome.offsets_valid;
+    // Send-based modes verify per-record offsets; `try_send` modes
+    // verify server-side acceptance (every batch CRC-validated by
+    // the null broker) reconciled against the offered count.
+    let checksummed: u64 = if outcome.offsets_observed {
+        outcome.offsets_valid
+    } else {
+        broker_accepted.min(acked)
+    };
     let errors: Vec<Value> = outcome
         .errors
         .iter()
@@ -471,8 +480,10 @@ pub fn build_result(
             "records_offered": offered,
             "timed_out": outcome.timed_out,
             "flush_us_total": outcome.flush_us_total,
+            "queue_full_retries": outcome.queue_full_retries,
+            "offsets_observed": outcome.offsets_observed,
             "validation_failures": ctx.broker.validation_failures,
-            "latency_note": "per-record send-call latency (send to metadata); flush time reported separately in flush_us_total",
+            "latency_note": "sequential: per-record send-call latency (send to metadata). try_send modes (pipelined/flush-heavy): offer-to-flush-complete bound per record (enqueue stamp to delivering flush end); flush time also in flush_us_total",
         },
         "outcomes": {
             "offered": offered,

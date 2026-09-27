@@ -12,12 +12,16 @@ use codec::payload;
 /// How the measured phase drives the producer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DriveMode {
-    /// Pipelined sends bounded by [`CellDef::max_in_flight_sends`].
+    /// `try_send` every record (flushing only on `QueueFull`), then one
+    /// final `flush`. Per-record latency is the offer-to-flush-complete
+    /// bound (enqueue stamp to flush end); no per-record offsets are
+    /// observed.
     Pipelined,
     /// Sequential send-and-await, one record at a time.
     Sequential,
-    /// Groups of [`CellDef::flush_every`] pipelined sends, each followed
-    /// by an awaited flush.
+    /// Groups of [`CellDef::flush_every`] `try_send` enqueues, each
+    /// followed by an awaited flush. Per-record latency is the
+    /// enqueue stamp to the group's flush end.
     FlushHeavy,
     /// No sends; RSS is sampled while the client idles.
     Idle,
@@ -59,8 +63,8 @@ pub struct CellDef {
     pub acks: i16,
     /// How the measured phase drives sends.
     pub mode: DriveMode,
-    /// Pipelined-send bound ([`DriveMode::Pipelined`] and flush groups).
-    pub max_in_flight_sends: usize,
+    /// Linger override in milliseconds (`None` = crate default).
+    pub linger_override_ms: Option<u64>,
     /// Records between flushes ([`DriveMode::FlushHeavy`]).
     pub flush_every: usize,
     /// Idle seconds ([`DriveMode::Idle`]).
@@ -95,12 +99,14 @@ const fn topic(name: &'static str, partitions: i32, records: usize) -> CellTopic
     }
 }
 
-/// The eight section-4 producer cells.
+/// The eight section-4 producer cells, exactly as the table defines
+/// them.
 ///
-/// Documented defaults for knobs section 4 leaves open: acks 1 (all for
-/// the idempotent cell), crate-default linger/batching, 100-byte values
-/// (1 KiB for mixed-topics), 16-byte keys, 6 partitions (128 for 128p),
-/// explicit round-robin partition assignment, 256 pipelined sends.
+/// Documented defaults for knobs section 4 leaves open: acks 1 (all
+/// for the idempotent cell), crate-default batching, 16-byte keys,
+/// 20k records per bulk-family cell (8 x 2500 for mixed-topics),
+/// explicit round-robin partition assignment. "10 headers x 16 B" is
+/// read as 16-byte keys and 16-byte values.
 #[must_use]
 pub fn producer_cells() -> Vec<CellDef> {
     vec![
@@ -110,12 +116,12 @@ pub fn producer_cells() -> Vec<CellDef> {
             value_bytes: 100,
             key_bytes: 16,
             headers_each: 0,
-            header_kv_bytes: 8,
+            header_kv_bytes: 16,
             entropy: "random",
             idempotent: false,
             acks: 1,
             mode: DriveMode::Pipelined,
-            max_in_flight_sends: 256,
+            linger_override_ms: None,
             flush_every: 0,
             idle_seconds: 0,
             timeout: Duration::from_secs(60),
@@ -127,12 +133,12 @@ pub fn producer_cells() -> Vec<CellDef> {
             value_bytes: 100,
             key_bytes: 16,
             headers_each: 0,
-            header_kv_bytes: 8,
+            header_kv_bytes: 16,
             entropy: "random",
             idempotent: true,
             acks: -1,
             mode: DriveMode::Pipelined,
-            max_in_flight_sends: 256,
+            linger_override_ms: None,
             flush_every: 0,
             idle_seconds: 0,
             timeout: Duration::from_secs(120),
@@ -141,19 +147,24 @@ pub fn producer_cells() -> Vec<CellDef> {
         CellDef {
             id: "nb-produce-mixed-topics",
             topics: vec![
-                topic("nb-mix-0", 6, 4_000),
-                topic("nb-mix-1", 6, 4_000),
-                topic("nb-mix-2", 6, 4_000),
+                topic("nb-mix-0", 6, 2_500),
+                topic("nb-mix-1", 6, 2_500),
+                topic("nb-mix-2", 6, 2_500),
+                topic("nb-mix-3", 6, 2_500),
+                topic("nb-mix-4", 6, 2_500),
+                topic("nb-mix-5", 6, 2_500),
+                topic("nb-mix-6", 6, 2_500),
+                topic("nb-mix-7", 6, 2_500),
             ],
-            value_bytes: 1024,
+            value_bytes: 100,
             key_bytes: 16,
             headers_each: 0,
-            header_kv_bytes: 8,
+            header_kv_bytes: 16,
             entropy: "random",
             idempotent: false,
             acks: 1,
             mode: DriveMode::Pipelined,
-            max_in_flight_sends: 256,
+            linger_override_ms: None,
             flush_every: 0,
             idle_seconds: 0,
             timeout: Duration::from_secs(300),
@@ -164,13 +175,13 @@ pub fn producer_cells() -> Vec<CellDef> {
             topics: vec![topic("nb-headers", 6, 5_000)],
             value_bytes: 100,
             key_bytes: 16,
-            headers_each: 3,
-            header_kv_bytes: 8,
+            headers_each: 10,
+            header_kv_bytes: 16,
             entropy: "random",
             idempotent: false,
             acks: 1,
             mode: DriveMode::Pipelined,
-            max_in_flight_sends: 256,
+            linger_override_ms: None,
             flush_every: 0,
             idle_seconds: 0,
             timeout: Duration::from_secs(60),
@@ -182,15 +193,15 @@ pub fn producer_cells() -> Vec<CellDef> {
             value_bytes: 100,
             key_bytes: 16,
             headers_each: 0,
-            header_kv_bytes: 8,
+            header_kv_bytes: 16,
             entropy: "random",
             idempotent: false,
             acks: 1,
             mode: DriveMode::Pipelined,
-            max_in_flight_sends: 256,
+            linger_override_ms: None,
             flush_every: 0,
             idle_seconds: 0,
-            timeout: Duration::from_secs(30),
+            timeout: Duration::from_secs(120),
             seed: 0x5EED_0005,
         },
         CellDef {
@@ -199,13 +210,13 @@ pub fn producer_cells() -> Vec<CellDef> {
             value_bytes: 100,
             key_bytes: 16,
             headers_each: 0,
-            header_kv_bytes: 8,
+            header_kv_bytes: 16,
             entropy: "random",
             idempotent: false,
             acks: 1,
             mode: DriveMode::FlushHeavy,
-            max_in_flight_sends: 256,
-            flush_every: 10,
+            linger_override_ms: None,
+            flush_every: 100,
             idle_seconds: 0,
             timeout: Duration::from_secs(60),
             seed: 0x5EED_0006,
@@ -216,29 +227,29 @@ pub fn producer_cells() -> Vec<CellDef> {
             value_bytes: 100,
             key_bytes: 16,
             headers_each: 0,
-            header_kv_bytes: 8,
+            header_kv_bytes: 16,
             entropy: "random",
             idempotent: false,
             acks: 1,
             mode: DriveMode::Sequential,
-            max_in_flight_sends: 1,
+            linger_override_ms: Some(0),
             flush_every: 0,
             idle_seconds: 0,
-            timeout: Duration::from_secs(30),
+            timeout: Duration::from_secs(60),
             seed: 0x5EED_0007,
         },
         CellDef {
             id: "nb-produce-idle-rss",
-            topics: vec![topic("nb-idle", 6, 0)],
+            topics: vec![topic("nb-idle", 1, 0)],
             value_bytes: 100,
             key_bytes: 16,
             headers_each: 0,
-            header_kv_bytes: 8,
+            header_kv_bytes: 16,
             entropy: "random",
             idempotent: false,
             acks: 1,
             mode: DriveMode::Idle,
-            max_in_flight_sends: 1,
+            linger_override_ms: None,
             flush_every: 0,
             idle_seconds: 10,
             timeout: Duration::from_secs(60),
@@ -253,6 +264,8 @@ pub struct GenRecord {
     pub id: u64,
     /// Topic index into [`CellDef::topics`].
     pub topic_idx: usize,
+    /// Zero-based index within the topic (for regeneration).
+    pub index: usize,
     /// Explicit partition (round-robin).
     pub partition: i32,
     /// Record key bytes.
@@ -263,6 +276,53 @@ pub struct GenRecord {
     pub headers: Vec<Header>,
     /// Key + value + header bytes (throughput accounting).
     pub bytes: usize,
+}
+
+/// Deterministically generate one record: the `index`-th of
+/// `topic_idx` with global 1-based `id`. Pure, so a `QueueFull`
+/// retry regenerates exactly the record the failed attempt dropped.
+#[must_use]
+pub fn gen_one(cell: &CellDef, topic_idx: usize, index: usize, id: u64) -> GenRecord {
+    let topic = &cell.topics[topic_idx];
+    let dom = (topic_idx as u64) << 56;
+    let key = Bytes::from(payload(cell.seed ^ dom ^ id, cell.entropy, cell.key_bytes));
+    let mut value = id.to_be_bytes().to_vec();
+    value.extend_from_slice(&payload(
+        cell.seed ^ dom ^ id ^ 0x9E37_79B9_7F4A_7C15,
+        cell.entropy,
+        cell.value_bytes.saturating_sub(8),
+    ));
+    let mut headers = Vec::with_capacity(cell.headers_each);
+    for h in 0..cell.headers_each {
+        // Fixed-width 16-byte key (`h` + zero-padded index) to
+        // match `header_kv_bytes`.
+        let key = format!("h{h:015}");
+        debug_assert_eq!(key.len(), cell.header_kv_bytes);
+        headers.push(Header::new(
+            key,
+            Bytes::from(payload(
+                cell.seed ^ dom ^ id ^ ((h as u64) << 32),
+                "text",
+                cell.header_kv_bytes,
+            )),
+        ));
+    }
+    let bytes = key.len()
+        + value.len()
+        + headers
+            .iter()
+            .map(|h| h.key.len() + h.value.as_ref().map_or(0, Bytes::len))
+            .sum::<usize>();
+    GenRecord {
+        id,
+        topic_idx,
+        index,
+        partition: (index % topic.partitions.max(1) as usize) as i32,
+        key,
+        value: Bytes::from(value),
+        headers,
+        bytes,
+    }
 }
 
 /// Deterministically generate every record a cell addresses.
@@ -276,40 +336,7 @@ pub fn generate(cell: &CellDef) -> Vec<GenRecord> {
     for (topic_idx, topic) in cell.topics.iter().enumerate() {
         for i in 0..topic.records {
             id += 1;
-            let dom = (topic_idx as u64) << 56;
-            let key = Bytes::from(payload(cell.seed ^ dom ^ id, cell.entropy, cell.key_bytes));
-            let mut value = id.to_be_bytes().to_vec();
-            value.extend_from_slice(&payload(
-                cell.seed ^ dom ^ id ^ 0x9E37_79B9_7F4A_7C15,
-                cell.entropy,
-                cell.value_bytes.saturating_sub(8),
-            ));
-            let mut headers = Vec::with_capacity(cell.headers_each);
-            for h in 0..cell.headers_each {
-                headers.push(Header::new(
-                    format!("h{h}"),
-                    Bytes::from(payload(
-                        cell.seed ^ dom ^ id ^ ((h as u64) << 32),
-                        "text",
-                        cell.header_kv_bytes,
-                    )),
-                ));
-            }
-            let bytes = key.len()
-                + value.len()
-                + headers
-                    .iter()
-                    .map(|h| h.key.len() + h.value.as_ref().map_or(0, Bytes::len))
-                    .sum::<usize>();
-            out.push(GenRecord {
-                id,
-                topic_idx,
-                partition: (i % topic.partitions.max(1) as usize) as i32,
-                key,
-                value: Bytes::from(value),
-                headers,
-                bytes,
-            });
+            out.push(gen_one(cell, topic_idx, i, id));
         }
     }
     out

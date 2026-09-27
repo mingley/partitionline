@@ -219,11 +219,15 @@ fn producer_config(cell: &CellDef, endpoint: &str, max_in_flight: usize) -> Prod
         0 => Acks::None,
         _ => Acks::Leader,
     };
-    ProducerConfig::bootstrap([endpoint])
+    let cfg = ProducerConfig::bootstrap([endpoint])
         .client_id(format!("runtime-{}", cell.id))
         .acks(acks)
         .max_in_flight(max_in_flight)
-        .idempotent(cell.idempotent)
+        .idempotent(cell.idempotent);
+    match cell.linger_override_ms {
+        Some(ms) => cfg.linger(Duration::from_millis(ms)),
+        None => cfg,
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -251,18 +255,29 @@ fn run_one(
         )))
         .map_err(|e| format!("producer connect: {e}"))?,
     );
-    let records = generate(cell);
+    let mut records = generate(cell);
     // Touch the sampler + RSS paths before measuring so setup
     // allocations stay outside the census.
     let _ = rss_now();
     let _ = peak_rss_bytes();
+    // Pre-reserve drive bookkeeping outside the census.
+    let mut outcome = runtime::drive::DriveOutcome::default();
+    outcome.latencies_us.reserve(records.len());
+    let mut stamps = Vec::with_capacity(records.len());
     let sampler = RssSampler::start(Duration::from_millis(10), 60_000);
     let baseline_rss = rss_now();
     let cpu_before = cpu_now();
     let wall_start = Instant::now();
     let wall_start_iso = utc_now_iso();
-    let (outcome, allocs, alloc_bytes) =
-        census(|| rt.block_on(drive_cell(&producer, cell, &records)));
+    let ((), allocs, alloc_bytes) = census(|| {
+        rt.block_on(drive_cell(
+            &producer,
+            cell,
+            &mut records,
+            &mut outcome,
+            &mut stamps,
+        ));
+    });
     let wall = wall_start.elapsed();
     let wall_end_iso = utc_now_iso();
     let cpu_after = cpu_now();
@@ -307,7 +322,9 @@ fn run_one(
         timestamps: (wall_start_iso, wall_end_iso),
         latency_path,
         max_in_flight,
-        linger_ms: defaults.linger.as_millis() as u64,
+        linger_ms: cell
+            .linger_override_ms
+            .unwrap_or(defaults.linger.as_millis() as u64),
         batch_size_bytes: defaults.batch_bytes as u64,
     };
     let result_path = out_dir.join(format!("{tag}.result.json"));

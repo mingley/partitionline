@@ -25,7 +25,7 @@ fn eight_cells_exact_ids_and_counts() {
     let totals: Vec<usize> = cells.iter().map(|c| c.total_records()).collect();
     assert_eq!(
         totals,
-        vec![20_000, 20_000, 12_000, 5_000, 256_000, 2_000, 1_000, 0]
+        vec![20_000, 20_000, 20_000, 5_000, 256_000, 2_000, 1_000, 0]
     );
 }
 
@@ -40,9 +40,14 @@ fn cell_modes_and_idempotence() {
     assert!(by_id("nb-produce-idem").idempotent);
     assert_eq!(by_id("nb-produce-idem").acks, -1);
     assert!(!by_id("nb-produce-bulk").idempotent);
-    assert_eq!(by_id("nb-produce-headers").headers_each, 3);
+    assert_eq!(by_id("nb-produce-headers").headers_each, 10);
+    assert_eq!(by_id("nb-produce-headers").header_kv_bytes, 16);
+    assert_eq!(by_id("nb-produce-flush-heavy").flush_every, 100);
+    assert_eq!(by_id("nb-send-seq").linger_override_ms, Some(0));
+    assert_eq!(by_id("nb-produce-bulk").linger_override_ms, None);
     assert_eq!(by_id("nb-produce-128p").broker_partitions(), 128);
     assert_eq!(by_id("nb-produce-bulk").broker_partitions(), 6);
+    assert_eq!(by_id("nb-produce-idle-rss").broker_partitions(), 1);
 }
 
 #[test]
@@ -83,16 +88,60 @@ fn mixed_topics_split_evenly() {
         .iter()
         .find(|c| c.id == "nb-produce-mixed-topics")
         .unwrap();
+    assert_eq!(mixed.topics.len(), 8);
     let records = generate(mixed);
-    assert_eq!(records.len(), 12_000);
-    let mut per_topic = [0usize; 3];
+    assert_eq!(records.len(), 20_000);
+    let mut per_topic = [0usize; 8];
     for rec in &records {
         per_topic[rec.topic_idx] += 1;
-        assert_eq!(rec.value.len(), 1024);
+        assert_eq!(rec.value.len(), 100);
     }
-    assert_eq!(per_topic, [4_000, 4_000, 4_000]);
+    assert_eq!(per_topic, [2_500; 8]);
     // Contiguous ID runs per topic in send order.
     assert_eq!(records[0].id, 1);
-    assert_eq!(records[4_000].id, 4_001);
-    assert_eq!(records[8_000].id, 8_001);
+    assert_eq!(records[2_500].id, 2_501);
+    assert_eq!(records[17_500].id, 17_501);
+}
+
+#[test]
+fn headers_are_ten_by_sixteen() {
+    let cells = producer_cells();
+    let headers = cells.iter().find(|c| c.id == "nb-produce-headers").unwrap();
+    let records = generate(headers);
+    assert_eq!(records.len(), 5_000);
+    for rec in records.iter().step_by(499) {
+        assert_eq!(rec.headers.len(), 10);
+        for h in &rec.headers {
+            assert_eq!(h.key.len(), 16);
+            assert_eq!(h.value.as_ref().map(bytes::Bytes::len), Some(16));
+        }
+    }
+}
+
+#[test]
+fn gen_one_regenerates_exactly() {
+    use runtime::cells::gen_one;
+    let cells = producer_cells();
+    let bulk = cells.iter().find(|c| c.id == "nb-produce-bulk").unwrap();
+    let records = generate(bulk);
+    for rec in records.iter().step_by(1009) {
+        let regen = gen_one(bulk, rec.topic_idx, rec.index, rec.id);
+        assert_eq!(regen.id, rec.id);
+        assert_eq!(regen.key, rec.key);
+        assert_eq!(regen.value, rec.value);
+        assert_eq!(regen.partition, rec.partition);
+    }
+    let headers = cells.iter().find(|c| c.id == "nb-produce-headers").unwrap();
+    let hrecs = generate(headers);
+    let regen = gen_one(
+        headers,
+        hrecs[123].topic_idx,
+        hrecs[123].index,
+        hrecs[123].id,
+    );
+    assert_eq!(regen.headers.len(), 10);
+    for (a, b) in regen.headers.iter().zip(hrecs[123].headers.iter()) {
+        assert_eq!(a.key, b.key);
+        assert_eq!(a.value, b.value);
+    }
 }

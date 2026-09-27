@@ -1090,7 +1090,7 @@
         "feeds_claims": false,
         "status": "specified",
         "disposition": "not_run",
-        "description": "Pipelined produce across 3 topics, 12k x 1KiB records total, acks=1 (KL09-09)."
+        "description": "Pipelined produce across 8 topics, 20k x 100B records total, acks=1 (KL09-09)."
       },
       {
         "id": "nb-produce-headers",
@@ -1098,7 +1098,7 @@
         "feeds_claims": false,
         "status": "specified",
         "disposition": "not_run",
-        "description": "Pipelined produce, 5k records with 3 headers each, acks=1; header-path ceiling (KL09-09)."
+        "description": "Pipelined produce, 5k records with 10 headers x 16B each, acks=1; header-path ceiling (KL09-09)."
       },
       {
         "id": "nb-produce-128p",
@@ -1114,7 +1114,7 @@
         "feeds_claims": false,
         "status": "specified",
         "disposition": "not_run",
-        "description": "2k records in flush-every-10 groups, acks=1; flush-path ceiling (KL09-09)."
+        "description": "2k records in flush-every-100 groups, acks=1; flush-path ceiling (KL09-09)."
       },
       {
         "id": "nb-send-seq",
@@ -1122,7 +1122,7 @@
         "feeds_claims": false,
         "status": "specified",
         "disposition": "not_run",
-        "description": "Sequential send-and-await, 1k x 100B records, acks=1; per-send latency floor (KL09-09)."
+        "description": "Sequential send-and-await, 1k x 100B records, acks=1, linger 0; per-send latency floor (KL09-09)."
       },
       {
         "id": "nb-produce-idle-rss",
