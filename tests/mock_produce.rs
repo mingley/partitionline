@@ -80,12 +80,16 @@ async fn header_heavy_bound_case(
 
 #[tokio::test]
 async fn header_heavy_batches_respect_batch_bytes() {
-    header_heavy_bound_case(2048, 1_000_000, 2048).await.unwrap();
+    header_heavy_bound_case(2048, 1_000_000, 2048)
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
 async fn header_heavy_batches_respect_max_request_size() {
-    header_heavy_bound_case(1_000_000, 2048, 2048).await.unwrap();
+    header_heavy_bound_case(1_000_000, 2048, 2048)
+        .await
+        .unwrap();
 }
 
 /// KL09-14: keyed records with empty values and headers respect the bound.
