@@ -2943,13 +2943,13 @@
     {
       "id": "KL09-19",
       "title": "Keep producer worker readiness and expiry state incremental",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-09", "KL09-11"],
       "files": ["src/producer.rs"],
       "deliverable": "The worker keeps running byte/record/deadline state so batch_ready, take_count and purge_expired_pending stop rescanning the pending vector, hashing per record and shifting with Vec::remove.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "No full pending scan per loop iteration in steady state; take_count does no HashMap insert or Arc clone per record; expiry removal is linear.", "Retry-batch boundaries (batch_base_seq), delivery deadlines, FIFO and buffer reservations are unchanged; a 32,768-record backlog and a mass-expiry test stay green."],
       "validation": ["cargo test --locked --test produce_cancel", "cargo test --locked --test mock_produce", "cargo test --locked --test network_deadlines", "cargo test --locked --test buffer_ownership", "A/B cell nb-produce-bulk (CPU-ns/record): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)", "cargo clippy --locked --all-targets --all-features -- -D warnings"],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-19.json"]
     },
     {
       "id": "KL09-20",
