@@ -39,9 +39,9 @@ const SEED: u64 = 0xC0DEC;
 const BUDGETS: &[(&str, u64, u64)] = &[
     ("micro-encode/1", 6, 504),
     ("micro-encode/1000", 15, 262_136),
-    ("micro-compress/gzip", 29, 540_993),
-    ("micro-compress/snappy", 21, 282_249),
-    ("micro-compress/lz4", 25, 395_765),
+    ("micro-compress/gzip", 21, 529_468),
+    ("micro-compress/snappy", 14, 261_187),
+    ("micro-compress/lz4", 16, 344_593),
     ("micro-request/v9", 17, 70_766),
     ("micro-decode/1", 2, 128),
     ("micro-decode/1000", 2, 104_024),

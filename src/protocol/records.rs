@@ -309,12 +309,14 @@ impl Compression {
     /// Compress a payload the way record batches / PushTelemetry do.
     #[cfg(test)]
     pub(crate) fn codec_compress(self, src: &[u8]) -> Result<Vec<u8>> {
+        let mut out = Vec::new();
         match self {
-            Self::None => Ok(src.to_vec()),
-            Self::Gzip => gzip_compress(src),
-            Self::Snappy => snappy_compress(src),
-            Self::Lz4 => lz4_compress(src),
+            Self::None => out.extend_from_slice(src),
+            Self::Gzip => gzip_compress_into(src, &mut out)?,
+            Self::Snappy => snappy_compress_into(src, &mut out)?,
+            Self::Lz4 => lz4_compress_into(src, &mut out)?,
         }
+        Ok(out)
     }
 
     /// Decompress a payload the way record batches / PushTelemetry do,
@@ -1632,12 +1634,24 @@ impl fmt::Display for RecordBatch {
     }
 }
 
-fn gzip_compress(src: &[u8]) -> Result<Vec<u8>> {
-    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+fn gzip_compress_into(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
+    // KL09-33: pre-size the output with Java's size/2 estimate so the common
+    // case allocates once instead of growing through a doubling chain.
+    // `reserve` reuses already-held capacity; the encoder takes ownership
+    // of the buffer and `finish` hands it back.
+    out.clear();
+    let est =
+        estimate_compressed_size_in_bytes(compress_estimate_input(src.len()), Compression::Gzip);
+    out.reserve(buf::usize_from_i32(est).unwrap_or(0));
+    let owned = std::mem::take(out);
+    let mut encoder = flate2::write::GzEncoder::new(owned, flate2::Compression::default());
     encoder
         .write_all(src)
         .map_err(|e| Error::protocol(e.to_string()))?;
-    encoder.finish().map_err(|e| Error::protocol(e.to_string()))
+    *out = encoder
+        .finish()
+        .map_err(|e| Error::protocol(e.to_string()))?;
+    Ok(())
 }
 
 fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize) -> Result<Vec<u8>> {
@@ -1677,18 +1691,37 @@ fn gzip_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
 /// 8 magic + 4 version + 4 compatible, then chunks of [be32 clen][snappy].
 const SNAPPY_JAVA_MAGIC: &[u8] = &[0x82, b'S', b'N', b'A', b'P', b'P', b'Y', 0];
 
-fn snappy_compress(src: &[u8]) -> Result<Vec<u8>> {
+fn snappy_compress_into(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
+    // KL09-33: compress directly behind the 20-byte xerial framing in one
+    // allocation instead of `compress_vec` plus a framing copy. snap's
+    // `compress_vec` allocates `max_compress_len` without shrinking, so the
+    // single buffer is no larger than the old first allocation; the emitted
+    // chunk bytes are identical (`Encoder::compress` is the same routine).
     let mut encoder = snap::raw::Encoder::new();
-    let compressed = encoder
-        .compress_vec(src)
+    let max = snap::raw::max_compress_len(src.len());
+    out.clear();
+    out.resize(20usize.saturating_add(max), 0);
+    out.get_mut(..8)
+        .ok_or_else(|| Error::protocol("snappy framing short"))?
+        .copy_from_slice(SNAPPY_JAVA_MAGIC);
+    out.get_mut(8..12)
+        .ok_or_else(|| Error::protocol("snappy framing short"))?
+        .copy_from_slice(&1u32.to_be_bytes());
+    out.get_mut(12..16)
+        .ok_or_else(|| Error::protocol("snappy framing short"))?
+        .copy_from_slice(&1u32.to_be_bytes());
+    let dst = out
+        .get_mut(20..)
+        .ok_or_else(|| Error::protocol("snappy framing short"))?;
+    let n = encoder
+        .compress(src, dst)
         .map_err(|e| Error::protocol(e.to_string()))?;
-    let mut out = Vec::with_capacity(16 + 4 + compressed.len());
-    out.extend_from_slice(SNAPPY_JAVA_MAGIC);
-    out.extend_from_slice(&1u32.to_be_bytes());
-    out.extend_from_slice(&1u32.to_be_bytes());
-    out.extend_from_slice(&buf::u32_from_usize(compressed.len())?.to_be_bytes());
-    out.extend_from_slice(&compressed);
-    Ok(out)
+    out.truncate(20 + n);
+    let clen = buf::u32_from_usize(n)?;
+    out.get_mut(16..20)
+        .ok_or_else(|| Error::protocol("snappy framing short"))?
+        .copy_from_slice(&clen.to_be_bytes());
+    Ok(())
 }
 
 fn snappy_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
@@ -1756,7 +1789,7 @@ fn snappy_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
 
 /// Kafka RecordBatch (magic ≥ 1) uses LZ4 **frame** with independent blocks.
 /// Magic 0 used a broken header checksum; we only emit/accept proper HC.
-fn lz4_compress(src: &[u8]) -> Result<Vec<u8>> {
+fn lz4_compress_into(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
     use lz4_flex::frame::{BlockMode, BlockSize, FrameEncoder, FrameInfo};
     let info = FrameInfo::new()
         .block_mode(BlockMode::Independent)
@@ -1764,11 +1797,20 @@ fn lz4_compress(src: &[u8]) -> Result<Vec<u8>> {
         .block_checksums(false)
         .content_checksum(false)
         .content_size(Some(src.len() as u64));
-    let mut encoder = FrameEncoder::with_frame_info(info, Vec::new());
+    // KL09-33: pre-size the output with Java's size/2 estimate (see gzip).
+    out.clear();
+    let est =
+        estimate_compressed_size_in_bytes(compress_estimate_input(src.len()), Compression::Lz4);
+    out.reserve(buf::usize_from_i32(est).unwrap_or(0));
+    let owned = std::mem::take(out);
+    let mut encoder = FrameEncoder::with_frame_info(info, owned);
     encoder
         .write_all(src)
         .map_err(|e| Error::protocol(e.to_string()))?;
-    encoder.finish().map_err(|e| Error::protocol(e.to_string()))
+    *out = encoder
+        .finish()
+        .map_err(|e| Error::protocol(e.to_string()))?;
+    Ok(())
 }
 
 fn lz4_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
@@ -1878,8 +1920,73 @@ pub fn encode_record_batch(buf: &mut BytesMut, batch: &RecordBatch) -> Result<()
     )
 }
 
+/// KL09-33: bounded reusable scratch for compressed batch encoding.
+///
+/// A produce worker owns one and threads it through every batch; the
+/// uncompressed section and the compressor output buffers keep their
+/// capacity across batches instead of allocating per batch. Uncompressed
+/// batches never touch it. Caps come from the effective produce batch
+/// byte cap (see `ProducerConfig::produce_batch_bytes`); after each
+/// compressed batch, a buffer holding more than twice its cap is
+/// replaced with a cap-sized one (documented in
+/// `docs/resource-contract.md`).
+pub struct CompressScratch {
+    section: BytesMut,
+    packed: Vec<u8>,
+    section_cap: usize,
+    packed_cap: usize,
+}
+
+impl CompressScratch {
+    /// Scratch with 1 MiB caps (the Java default batch size).
+    pub fn new() -> Self {
+        Self::with_caps(1024 * 1024, 1024 * 1024)
+    }
+
+    /// Scratch with explicit caps. Caps below 1 KiB are raised to 1 KiB so
+    /// the section floor below always applies.
+    pub fn with_caps(section_cap: usize, packed_cap: usize) -> Self {
+        Self {
+            section: BytesMut::new(),
+            packed: Vec::new(),
+            section_cap: section_cap.max(1024),
+            packed_cap: packed_cap.max(1024),
+        }
+    }
+
+    fn shrink_to_caps(&mut self) {
+        if self.section.capacity() > self.section_cap.saturating_mul(2) {
+            self.section = BytesMut::with_capacity(self.section_cap);
+        }
+        if self.packed.capacity() > self.packed_cap.saturating_mul(2) {
+            self.packed = Vec::with_capacity(self.packed_cap);
+        }
+    }
+}
+
+impl Default for CompressScratch {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Encode a magic-v2 batch from a header plus borrowed records (produce hot path).
 pub fn write_record_batch<'a, I>(buf: &mut BytesMut, header: &BatchHeader, records: I) -> Result<()>
+where
+    I: Iterator<Item = EncodeRecord<'a>>,
+{
+    let mut scratch = CompressScratch::new();
+    write_record_batch_scratch(buf, header, records, &mut scratch)
+}
+
+/// Like [`write_record_batch`], reusing `scratch` for the uncompressed
+/// section and compressor output on compressed batches.
+pub fn write_record_batch_scratch<'a, I>(
+    buf: &mut BytesMut,
+    header: &BatchHeader,
+    records: I,
+    scratch: &mut CompressScratch,
+) -> Result<()>
 where
     I: Iterator<Item = EncodeRecord<'a>>,
 {
@@ -1918,24 +2025,31 @@ where
             }
         }
         Compression::Gzip | Compression::Snappy | Compression::Lz4 => {
-            let mut section = BytesMut::new();
+            // KL09-33: 1 KiB floor kills the early doubling steps for real
+            // batches; exact one-pass sizing belongs to KL09-32. `reserve`
+            // is a no-op once reused capacity covers it.
+            let section = &mut scratch.section;
+            section.clear();
+            section.reserve(1024);
             for (i, rec) in records.enumerate() {
                 encode_record(
-                    &mut section,
+                    section,
                     &rec,
                     buf::i32_from_usize(i)?,
                     rec.timestamp - header.base_timestamp,
                 )?;
             }
-            let packed = match compression {
-                Compression::Gzip => gzip_compress(&section)?,
-                Compression::Snappy => snappy_compress(&section)?,
-                Compression::Lz4 => lz4_compress(&section)?,
+            let packed = &mut scratch.packed;
+            match compression {
+                Compression::Gzip => gzip_compress_into(section, packed)?,
+                Compression::Snappy => snappy_compress_into(section, packed)?,
+                Compression::Lz4 => lz4_compress_into(section, packed)?,
                 Compression::None => {
                     return Err(Error::protocol("internal: none after compressed branch"));
                 }
-            };
-            buf.extend_from_slice(&packed);
+            }
+            buf.extend_from_slice(packed);
+            scratch.shrink_to_caps();
         }
     }
     let end = buf.len();
@@ -1958,6 +2072,13 @@ fn nullable_bytes_len(bytes: Option<&[u8]>) -> usize {
         None => buf::varint_size(-1),
         Some(b) => buf::varint_size(i32::try_from(b.len()).unwrap_or(i32::MAX)) + b.len(),
     }
+}
+
+/// KL09-33: saturating input for [`estimate_compressed_size_in_bytes`];
+/// the estimate clamps to 64 KiB anyway, so saturation only affects
+/// absurd (>2 GiB) sections, which keep working with a 64 KiB hint.
+fn compress_estimate_input(len: usize) -> i32 {
+    i32::try_from(len).unwrap_or(i32::MAX)
 }
 
 /// Java `AbstractRecords.estimateCompressedSizeInBytes`.
@@ -2866,7 +2987,7 @@ mod tests {
             snappy_decompress(&raw, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES).unwrap(),
             payload
         );
-        let framed = snappy_compress(payload).unwrap();
+        let framed = Compression::Snappy.codec_compress(payload).unwrap();
         assert!(framed.starts_with(SNAPPY_JAVA_MAGIC));
         assert_eq!(
             snappy_decompress(&framed, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES).unwrap(),
@@ -2902,7 +3023,7 @@ mod tests {
     #[test]
     fn lz4_frame_roundtrip_shipped_codec() {
         let payload = vec![b'x'; 4096];
-        let framed = lz4_compress(&payload).unwrap();
+        let framed = Compression::Lz4.codec_compress(&payload).unwrap();
         assert_eq!(&framed[..4], &[0x04, 0x22, 0x4d, 0x18]);
         assert_eq!(
             lz4_decompress(&framed, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES).unwrap(),
@@ -3645,6 +3766,76 @@ mod tests {
     }
 
     #[test]
+    fn compress_scratch_reuse_is_byte_identical_and_bounded() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 5,
+            key: Some(Bytes::from_static(b"key-key!")),
+            value: Some(Bytes::from_static(
+                b"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            )),
+            headers: vec![],
+        };
+        let records = vec![rec; 200];
+        let header = BatchHeader {
+            attributes: Compression::Snappy as i16,
+            base_timestamp: 0,
+            max_timestamp: 5,
+            count: 200,
+            ..BatchHeader::default()
+        };
+        let mut reference = BytesMut::new();
+        write_record_batch(
+            &mut reference,
+            &header,
+            records.iter().map(EncodeRecord::from_record),
+        )
+        .unwrap();
+        // 1 KiB caps with a ~15 KiB section: reuse must stay byte-identical
+        // while the shrink policy keeps retained capacity bounded.
+        let mut scratch = CompressScratch::with_caps(1024, 1024);
+        for _ in 0..2 {
+            let mut buf = BytesMut::new();
+            write_record_batch_scratch(
+                &mut buf,
+                &header,
+                records.iter().map(EncodeRecord::from_record),
+                &mut scratch,
+            )
+            .unwrap();
+            assert_eq!(buf, reference);
+        }
+        assert!(
+            scratch.section.capacity() <= 2048,
+            "section capacity {} exceeds 2x cap",
+            scratch.section.capacity()
+        );
+        assert!(
+            scratch.packed.capacity() <= 2048,
+            "packed capacity {} exceeds 2x cap",
+            scratch.packed.capacity()
+        );
+        // Uncompressed batches never touch the scratch buffers.
+        let mut plain_scratch = CompressScratch::new();
+        let plain_header = BatchHeader {
+            count: 200,
+            base_timestamp: 0,
+            max_timestamp: 5,
+            ..BatchHeader::default()
+        };
+        let mut plain_buf = BytesMut::new();
+        write_record_batch_scratch(
+            &mut plain_buf,
+            &plain_header,
+            records.iter().map(EncodeRecord::from_record),
+            &mut plain_scratch,
+        )
+        .unwrap();
+        assert_eq!(plain_scratch.section.capacity(), 0);
+        assert_eq!(plain_scratch.packed.capacity(), 0);
+    }
+
+    #[test]
     fn record_and_batch_size_in_bytes_match_java() {
         let rec = Record {
             offset: 0,
@@ -4037,7 +4228,7 @@ mod tests {
     #[test]
     fn gzip_bounded_decompression_and_bomb() {
         let payload = vec![0x42u8; 2048];
-        let compressed = gzip_compress(&payload).unwrap();
+        let compressed = Compression::Gzip.codec_compress(&payload).unwrap();
 
         // Exactly at limit succeeds
         let decomp = gzip_decompress(&compressed, 2048).unwrap();
@@ -4052,7 +4243,7 @@ mod tests {
 
         // Gzip bomb (500 KB zeroes compressed) with a 10 KB limit
         let bomb_payload = vec![0u8; 500 * 1024];
-        let bomb_compressed = gzip_compress(&bomb_payload).unwrap();
+        let bomb_compressed = Compression::Gzip.codec_compress(&bomb_payload).unwrap();
         let bomb_err = gzip_decompress(&bomb_compressed, 10 * 1024)
             .unwrap_err()
             .to_string();
@@ -4102,7 +4293,7 @@ mod tests {
         );
 
         // 2. Framed snappy (snappy-java format)
-        let framed = snappy_compress(&payload).unwrap();
+        let framed = Compression::Snappy.codec_compress(&payload).unwrap();
 
         // Framed: exactly at limit succeeds
         let framed_decomp = snappy_decompress(&framed, 2048).unwrap();
@@ -4146,7 +4337,7 @@ mod tests {
     #[test]
     fn lz4_bounded_decompression_and_bomb() {
         let payload = vec![0x5au8; 2048];
-        let compressed = lz4_compress(&payload).unwrap();
+        let compressed = Compression::Lz4.codec_compress(&payload).unwrap();
 
         // Exactly at limit succeeds
         let decomp = lz4_decompress(&compressed, 2048).unwrap();

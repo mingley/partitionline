@@ -27,8 +27,8 @@ use crate::protocol::header::encode_request_header_fields;
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::records::{
     record_size_upper_bound, write_java_optional, write_java_optional_bytes,
-    write_java_record_headers, write_record_batch, BatchHeader, Compression, EncodeRecord,
-    Header as RecordHeader, RecordBatch, Records,
+    write_java_record_headers, write_record_batch_scratch, BatchHeader, CompressScratch,
+    Compression, EncodeRecord, Header as RecordHeader, RecordBatch, Records,
 };
 use crate::protocol::txn::{
     can_handle_abortable_error, classify_add_offsets_error, classify_add_partitions_error,
@@ -3054,6 +3054,14 @@ async fn spawn_slot_worker(
     }
     let (data_tx, data_rx) = mpsc::channel(cap);
     let (ctrl_tx, ctrl_rx) = mpsc::channel(16);
+    // KL09-33: compress scratch caps track the effective batch byte cap so
+    // retained buffers stay proportional to the batches being encoded.
+    let batch_cap = shared.cfg.produce_batch_bytes();
+    let batch_cap = if batch_cap == 0 {
+        1024 * 1024
+    } else {
+        batch_cap
+    };
     let worker = Worker {
         node_id: node,
         conn,
@@ -3064,6 +3072,7 @@ async fn spawn_slot_worker(
         pending: Vec::with_capacity(shared.cfg.batch_records.min(8192)),
         in_flight: VecDeque::new(),
         fail: None,
+        compress_scratch: CompressScratch::with_caps(batch_cap, batch_cap),
     };
     let handle = tokio::spawn(worker.run());
     Ok(WorkerHandle {
@@ -3242,6 +3251,7 @@ struct Worker {
     pending: Vec<Pending>,
     in_flight: VecDeque<InFlight>,
     fail: Option<Error>,
+    compress_scratch: CompressScratch,
 }
 
 struct InFlight {
@@ -3633,6 +3643,7 @@ impl Worker {
             producer_id,
             producer_epoch,
             transactional_id,
+            &mut self.compress_scratch,
         ) {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
             fail_groups(&self.shared, groups, clone_err(&e));
@@ -4394,6 +4405,7 @@ fn encode_produce_body(
     producer_id: i64,
     producer_epoch: i16,
     transactional_id: Option<&str>,
+    scratch: &mut CompressScratch,
 ) -> Result<()> {
     // v9–v12 share this compact request layout (v10+ CurrentLeader is
     // response-only; v12 transaction V2 is Produce-does-AddPartitionsToTxn).
@@ -4444,6 +4456,7 @@ fn encode_produce_body(
                     producer_epoch,
                     base_sequence,
                     transactional,
+                    scratch,
                 )?;
                 crate::protocol::buf::put_bytes(buf, true, Some(&recs))?;
                 crate::protocol::buf::put_empty_tagged_fields(buf);
@@ -4459,6 +4472,7 @@ fn encode_produce_body(
                     producer_epoch,
                     base_sequence,
                     transactional,
+                    scratch,
                 )?;
                 let rec_len =
                     crate::protocol::buf::i32_from_usize(buf.len().saturating_sub(len_pos + 4))?;
@@ -4505,6 +4519,7 @@ fn encode_pendings(
     producer_epoch: i16,
     base_sequence: i32,
     transactional: bool,
+    scratch: &mut CompressScratch,
 ) -> Result<()> {
     let base_ts = pendings
         .first()
@@ -4515,7 +4530,7 @@ fn encode_pendings(
         .map(|p| p.rec.timestamp.unwrap_or(now))
         .max()
         .unwrap_or(base_ts);
-    write_record_batch(
+    write_record_batch_scratch(
         buf,
         &BatchHeader {
             attributes: (compression as i16)
@@ -4538,6 +4553,7 @@ fn encode_pendings(
             value: p.rec.value.as_deref(),
             headers: &p.rec.headers,
         }),
+        scratch,
     )
 }
 
