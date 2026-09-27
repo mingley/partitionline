@@ -866,16 +866,16 @@ struct Shared {
     cache_nudge: Notify,
     buffer_nudge: Notify,
     meta_tx: mpsc::Sender<Arc<str>>,
-    connect_tx: mpsc::Sender<i32>,
+    connect_tx: mpsc::Sender<(i32, usize)>,
     retry_tx: mpsc::Sender<Pending>,
     meta_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
     connect_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
     retry_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
     last_meta_err: parking_lot::Mutex<Option<Error>>,
-    nodes: parking_lot::Mutex<HashMap<i32, Vec<WorkerHandle>>>,
+    nodes: parking_lot::Mutex<HashMap<i32, Vec<Option<WorkerHandle>>>>,
     reconnect_fails: parking_lot::Mutex<HashMap<i32, u32>>,
-    /// Brokers with a connect or reconnect-backoff in flight.
-    reconnect_busy: parking_lot::Mutex<HashSet<i32>>,
+    /// (Broker, slot) pairs with a connect or reconnect-backoff in flight.
+    reconnect_busy: parking_lot::Mutex<HashSet<(i32, usize)>>,
     retries_out: AtomicUsize,
     in_txn: AtomicBool,
     txn_partitions: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
@@ -916,6 +916,7 @@ impl Drop for Inner {
             .nodes
             .lock()
             .values()
+            .flatten()
             .flatten()
             .cloned()
             .collect();
@@ -1461,14 +1462,12 @@ impl Producer {
         let cluster = self.inner.shared.cluster.lock();
         let (node, _) = cluster.leader(rec.topic.as_ref(), p).ok()?;
         drop(cluster);
-        try_nudge_node(&self.inner.shared.connect_tx, node);
+        let n_conn = self.inner.shared.cfg.connections.max(1);
+        let slot = usize::try_from(p).unwrap_or(0) % n_conn;
+        try_nudge_slot(&self.inner.shared.connect_tx, node, slot);
         let nodes = self.inner.shared.nodes.lock();
-        let workers = nodes.get(&node)?;
-        if workers.is_empty() {
-            return None;
-        }
-        let i = usize::try_from(p).unwrap_or(0) % workers.len();
-        workers.get(i).cloned()
+        let slots = nodes.get(&node)?;
+        slots.get(slot).cloned().flatten()
     }
 
     fn nudge_topic(&self, rec: &ProduceRecord) {
@@ -1481,7 +1480,9 @@ impl Producer {
                 .lock()
                 .leader(rec.topic.as_ref(), p)
             {
-                try_nudge_node(&self.inner.shared.connect_tx, node);
+                let n_conn = self.inner.shared.cfg.connections.max(1);
+                let slot = usize::try_from(p).unwrap_or(0) % n_conn;
+                try_nudge_slot(&self.inner.shared.connect_tx, node, slot);
             }
         }
     }
@@ -1821,6 +1822,7 @@ impl Producer {
             .lock()
             .values()
             .flatten()
+            .flatten()
             .map(|w| Arc::clone(&w.task))
             .collect()
     }
@@ -1881,6 +1883,7 @@ impl Producer {
             .nodes
             .lock()
             .values()
+            .flatten()
             .flatten()
             .cloned()
             .collect();
@@ -2400,6 +2403,7 @@ impl Producer {
             .lock()
             .values()
             .flatten()
+            .flatten()
             .cloned()
             .collect();
         let mut rxs = Vec::with_capacity(workers.len());
@@ -2854,9 +2858,9 @@ async fn partitions_for_timeout(
     topic: &Arc<str>,
     timeout: Duration,
 ) -> Result<i32> {
-    // Drop the parking_lot guard before `nudge_leaders`. An `if let` on
-    // `cluster.lock().partition_count(...)` keeps the guard alive through the
-    // body (edition 2021 temporary scope) and deadlocks the non-reentrant mutex.
+    // Scope the guard: the freshness check must release the non-reentrant
+    // cluster mutex before any downstream work (edition 2021 temporary
+    // scope would otherwise hold it through the body).
     let cached = {
         let cluster = shared.cluster.lock();
         match cluster.partition_count(topic) {
@@ -2865,7 +2869,6 @@ async fn partitions_for_timeout(
         }
     };
     if let Some(n) = cached {
-        nudge_leaders(shared, topic);
         return Ok(n);
     }
     if timeout.is_zero() {
@@ -2907,7 +2910,6 @@ async fn partitions_for_timeout(
         cluster.apply(&resp, version);
     }
     drop_fast_topic(shared, topic);
-    nudge_leaders(shared, topic);
     Ok(n)
 }
 
@@ -2923,34 +2925,52 @@ fn invalidate_cached_topic(shared: &Shared, topic: &str) {
     drop_fast_topic(shared, topic);
 }
 
-fn try_nudge_node(tx: &mpsc::Sender<i32>, node: i32) {
-    tx.try_send(node).unwrap_or(());
+fn try_nudge_slot(tx: &mpsc::Sender<(i32, usize)>, node: i32, slot: usize) {
+    tx.try_send((node, slot)).unwrap_or(());
 }
 
-fn nudge_leaders(shared: &Shared, topic: &str) {
-    let cluster = shared.cluster.lock();
-    if let Some(leaders) = cluster.leaders.get(topic) {
-        for node in leaders {
-            if *node >= 0 {
-                try_nudge_node(&shared.connect_tx, *node);
-            }
-        }
+/// KL09-25: drop a dead node's slots and re-nudge exactly the slots that
+/// were live, so a reconnect restores the previously demanded set and no more.
+fn remove_node_nudge_live(shared: &Shared, node: i32) {
+    let live: Vec<usize> = shared
+        .nodes
+        .lock()
+        .remove(&node)
+        .map(|slots| {
+            slots
+                .iter()
+                .enumerate()
+                .filter_map(|(i, s)| s.as_ref().map(|_| i))
+                .collect()
+        })
+        .unwrap_or_default();
+    for slot in live {
+        try_nudge_slot(&shared.connect_tx, node, slot);
     }
 }
 
-async fn connect_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<i32>, cap: usize) {
-    while let Some(node) = rx.recv().await {
+async fn connect_loop(
+    weak: std::sync::Weak<Shared>,
+    mut rx: mpsc::Receiver<(i32, usize)>,
+    cap: usize,
+) {
+    while let Some((node, slot)) = rx.recv().await {
         let Some(shared) = weak.upgrade() else {
             break;
         };
         if shared.closed.load(Ordering::SeqCst) {
             break;
         }
+        let n_conn = shared.cfg.connections.max(1);
+        if slot >= n_conn {
+            continue;
+        }
         if shared
             .nodes
             .lock()
             .get(&node)
-            .is_some_and(|w| !w.is_empty())
+            .and_then(|s| s.get(slot))
+            .is_some_and(|s| s.is_some())
         {
             shared.cache_nudge.notify_waiters();
             continue;
@@ -2961,24 +2981,29 @@ async fn connect_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<i32>
         };
         {
             let mut busy = shared.reconnect_busy.lock();
-            if !busy.insert(node) {
+            if !busy.insert((node, slot)) {
                 continue;
             }
         }
         {
             let mut nodes = shared.nodes.lock();
-            let _ = nodes.entry(node).or_insert_with(Vec::new);
+            let _ = nodes.entry(node).or_insert_with(|| vec![None; n_conn]);
         }
-        match spawn_node_workers(&shared, node, &addr, cap).await {
-            Ok(workers) => {
-                let _ = shared.reconnect_busy.lock().remove(&node);
+        match spawn_slot_worker(&shared, node, &addr, cap).await {
+            Ok(handle) => {
+                let _ = shared.reconnect_busy.lock().remove(&(node, slot));
                 let _ = shared.reconnect_fails.lock().remove(&node);
-                let _prev = shared.nodes.lock().insert(node, workers);
+                if let Some(slots) = shared.nodes.lock().get_mut(&node) {
+                    if let Some(s) = slots.get_mut(slot) {
+                        *s = Some(handle);
+                    }
+                }
                 *shared.last_meta_err.lock() = None;
                 shared.cache_nudge.notify_waiters();
             }
             Err(e) => {
-                let _ = shared.nodes.lock().remove(&node);
+                // KL09-25: the entry stays (other slots may be live); only
+                // this slot remains vacant until the backoff re-nudge.
                 let fails =
                     crate::config::bump_reconnect_fails(&mut shared.reconnect_fails.lock(), node);
                 if e.is_retriable() {
@@ -2993,12 +3018,12 @@ async fn connect_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<i32>
                             tokio::time::sleep(delay).await;
                         }
                         if let Some(shared) = weak.upgrade() {
-                            let _ = shared.reconnect_busy.lock().remove(&node);
-                            try_nudge_node(&shared.connect_tx, node);
+                            let _ = shared.reconnect_busy.lock().remove(&(node, slot));
+                            try_nudge_slot(&shared.connect_tx, node, slot);
                         }
                     }));
                 } else {
-                    let _ = shared.reconnect_busy.lock().remove(&node);
+                    let _ = shared.reconnect_busy.lock().remove(&(node, slot));
                     *shared.last_meta_err.lock() = Some(clone_err(&e));
                     shared.cache_nudge.notify_waiters();
                 }
@@ -3007,60 +3032,45 @@ async fn connect_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<i32>
     }
 }
 
-async fn spawn_node_workers(
+/// KL09-25: open one connection slot on demand instead of all `n_conn`
+/// workers up front, so a 1-partition producer holds 1 worker socket.
+async fn spawn_slot_worker(
     shared: &Arc<Shared>,
     node: i32,
     addr: &str,
     cap: usize,
-) -> Result<Vec<WorkerHandle>> {
+) -> Result<WorkerHandle> {
     if shared.closed.load(Ordering::SeqCst) {
         return Err(Error::Closed);
     }
-    let n_conn = shared.cfg.connections.max(1);
-    let mut workers: Vec<WorkerHandle> = Vec::with_capacity(n_conn);
-    for _ in 0..n_conn {
-        if shared.closed.load(Ordering::SeqCst) {
-            for w in &workers {
-                w.task.abort();
-            }
-            return Err(Error::Closed);
-        }
-        let conn = open_conn(addr, &shared.cfg).await?;
-        if conn.produce_version() < 0 {
-            for w in &workers {
-                w.task.abort();
-            }
-            return Err(Error::Unsupported(format!(
-                "broker at {addr} does not support Produce v3-12"
-            )));
-        }
-        if shared.closed.load(Ordering::SeqCst) {
-            for w in &workers {
-                w.task.abort();
-            }
-            return Err(Error::Closed);
-        }
-        let (data_tx, data_rx) = mpsc::channel(cap);
-        let (ctrl_tx, ctrl_rx) = mpsc::channel(16);
-        let worker = Worker {
-            node_id: node,
-            conn,
-            data: data_rx,
-            ctrl: ctrl_rx,
-            shared: shared.clone(),
-            write_buf: BytesMut::with_capacity(2 * 1024 * 1024),
-            pending: Vec::with_capacity(shared.cfg.batch_records.min(8192)),
-            in_flight: VecDeque::new(),
-            fail: None,
-        };
-        let handle = tokio::spawn(worker.run());
-        workers.push(WorkerHandle {
-            data: data_tx,
-            ctrl: ctrl_tx,
-            task: Arc::new(handle),
-        });
+    let conn = open_conn(addr, &shared.cfg).await?;
+    if conn.produce_version() < 0 {
+        return Err(Error::Unsupported(format!(
+            "broker at {addr} does not support Produce v3-12"
+        )));
     }
-    Ok(workers)
+    if shared.closed.load(Ordering::SeqCst) {
+        return Err(Error::Closed);
+    }
+    let (data_tx, data_rx) = mpsc::channel(cap);
+    let (ctrl_tx, ctrl_rx) = mpsc::channel(16);
+    let worker = Worker {
+        node_id: node,
+        conn,
+        data: data_rx,
+        ctrl: ctrl_rx,
+        shared: shared.clone(),
+        write_buf: BytesMut::with_capacity(2 * 1024 * 1024),
+        pending: Vec::with_capacity(shared.cfg.batch_records.min(8192)),
+        in_flight: VecDeque::new(),
+        fail: None,
+    };
+    let handle = tokio::spawn(worker.run());
+    Ok(WorkerHandle {
+        data: data_tx,
+        ctrl: ctrl_tx,
+        task: Arc::new(handle),
+    })
 }
 
 async fn retry_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<Pending>) {
@@ -3171,7 +3181,9 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
     let Ok((node, _)) = leader else {
         return;
     };
-    try_nudge_node(&shared.connect_tx, node);
+    let n_conn = shared.cfg.connections.max(1);
+    let slot = usize::try_from(part).unwrap_or(0) % n_conn;
+    try_nudge_slot(&shared.connect_tx, node, slot);
     let deadline = p.deadline;
     loop {
         if shared.closed.load(Ordering::SeqCst) || Instant::now() >= deadline {
@@ -3179,14 +3191,9 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
         }
         let handle = {
             let nodes = shared.nodes.lock();
-            nodes.get(&node).and_then(|ws| {
-                if ws.is_empty() {
-                    None
-                } else {
-                    let i = usize::try_from(part).unwrap_or(0) % ws.len();
-                    ws.get(i).cloned()
-                }
-            })
+            nodes
+                .get(&node)
+                .and_then(|s| s.get(slot).cloned().flatten())
         };
         if let Some(w) = handle {
             let rest = deadline.saturating_duration_since(Instant::now());
@@ -3485,8 +3492,7 @@ impl Worker {
             return Ok(());
         }
         if self.conn.is_closed() {
-            let _ = self.shared.nodes.lock().remove(&self.node_id);
-            try_nudge_node(&self.shared.connect_tx, self.node_id);
+            remove_node_nudge_live(&self.shared, self.node_id);
             let pending = std::mem::take(&mut self.pending);
             self.requeue_pendings(pending);
             while let Some(remaining) = self.in_flight.pop_front() {
@@ -3682,8 +3688,7 @@ impl Worker {
             .await
         {
             if e.is_retriable() {
-                let _ = self.shared.nodes.lock().remove(&self.node_id);
-                try_nudge_node(&self.shared.connect_tx, self.node_id);
+                remove_node_nudge_live(&self.shared, self.node_id);
                 self.requeue(groups);
                 while let Some(remaining) = self.in_flight.pop_front() {
                     self.requeue(remaining.groups);
@@ -3753,8 +3758,7 @@ impl Worker {
             Err(e) => {
                 if let Some(inf) = guard.inf.take() {
                     if e.is_retriable() {
-                        let _ = self.shared.nodes.lock().remove(&self.node_id);
-                        try_nudge_node(&self.shared.connect_tx, self.node_id);
+                        remove_node_nudge_live(&self.shared, self.node_id);
                         self.requeue(inf.groups);
                         while let Some(remaining) = self.in_flight.pop_front() {
                             self.requeue(remaining.groups);
@@ -3808,7 +3812,9 @@ impl Worker {
                         let mut pendings = pendings;
                         if applied {
                             drop_fast_topic(&self.shared, topic.as_ref());
-                            try_nudge_node(&self.shared.connect_tx, r.current_leader_id);
+                            let n_conn = self.shared.cfg.connections.max(1);
+                            let slot = usize::try_from(part).unwrap_or(0) % n_conn;
+                            try_nudge_slot(&self.shared.connect_tx, r.current_leader_id, slot);
                             for p in &mut pendings {
                                 p.skip_meta_refresh = true;
                             }

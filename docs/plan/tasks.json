@@ -3009,13 +3009,13 @@
     {
       "id": "KL09-25",
       "title": "Open producer connection slots on demand",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-10", "KL09-11"],
       "files": ["src/producer.rs"],
       "deliverable": "Producer connection slots for a broker open when a partition routed to that slot first needs them, instead of eagerly and sequentially at node setup.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Per-broker version negotiation, SASL, retry policy and idempotent partition pinning are preserved.", "Time to first ack at 1 and 6 partitions falls, and the socket count matches the partitions actually used."],
       "validation": ["cargo test --locked --test mock_produce", "cargo test --locked --test network_deadlines", "cargo test --locked --test auth_lifecycle", "A/B cell nb-connect (ms to first ack, open sockets): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-25.json"]
     },
     {
       "id": "KL09-26",
