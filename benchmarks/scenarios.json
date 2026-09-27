@@ -1067,6 +1067,70 @@
         "status": "specified",
         "disposition": "not_run",
         "description": "Client fetch ceiling: records/s per client core against the null broker at fixed batch sizes; diagnostic headroom only."
+      },
+      {
+        "id": "nb-produce-bulk",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Pipelined produce, 20k x 100B records, 6 partitions, acks=1; bulk client ceiling (KL09-09)."
+      },
+      {
+        "id": "nb-produce-idem",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Pipelined idempotent produce, 20k x 100B records, acks=all, max.in.flight=5 (KL09-09)."
+      },
+      {
+        "id": "nb-produce-mixed-topics",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Pipelined produce across 3 topics, 12k x 1KiB records total, acks=1 (KL09-09)."
+      },
+      {
+        "id": "nb-produce-headers",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Pipelined produce, 5k records with 3 headers each, acks=1; header-path ceiling (KL09-09)."
+      },
+      {
+        "id": "nb-produce-128p",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Pipelined produce, 256k x 100B records over 128 partitions, acks=1; partition-scale ceiling (KL09-09)."
+      },
+      {
+        "id": "nb-produce-flush-heavy",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "2k records in flush-every-10 groups, acks=1; flush-path ceiling (KL09-09)."
+      },
+      {
+        "id": "nb-send-seq",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Sequential send-and-await, 1k x 100B records, acks=1; per-send latency floor (KL09-09)."
+      },
+      {
+        "id": "nb-produce-idle-rss",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "No sends; 10s idle RSS sample; client steady-state footprint (KL09-09)."
       }
     ]
   }

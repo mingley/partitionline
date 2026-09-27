@@ -43,7 +43,7 @@ include = [
 ]
 
 [workspace]
-exclude = ["benchmarks/nullbroker", "benchmarks/codec", "fuzz", "partitionline-schema"]
+exclude = ["benchmarks/nullbroker", "benchmarks/codec", "benchmarks/runtime", "fuzz", "partitionline-schema"]
 
 [workspace.lints.rust]
 missing_docs = "deny"

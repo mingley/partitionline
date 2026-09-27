@@ -3,6 +3,7 @@
 *.rs.bk
 benchmarks/nullbroker/target/
 benchmarks/codec/target/
+benchmarks/runtime/target/
 partitionline-schema/target/
 
 # Schema companion local build

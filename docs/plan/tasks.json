@@ -2814,13 +2814,13 @@
     {
       "id": "KL09-09",
       "title": "Add null-broker producer cells to a runtime measurement harness",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-04", "KL09-06"],
       "files": ["new: benchmarks/runtime/", "benchmarks/scenarios.json"],
       "deliverable": "A workspace-excluded harness that drives Producer against the null broker and reports records/s, CPU-ns/record, allocations/record and peak RSS for the producer cells in performance-leadership.md section 4.",
       "acceptance": ["Implements nb-produce-bulk, nb-produce-idem, nb-produce-mixed-topics, nb-produce-headers, nb-produce-128p, nb-produce-flush-heavy, nb-send-seq and nb-produce-idle-rss exactly as defined.", "Allocation counting reuses the KL09-04 tool; CPU time comes from reviewed, manifest-declared tooling inside the harness crate; the core crate is untouched.", "Each run emits a result artifact with provenance, cell ID and repetition index; a cell with any server-side validation failure is marked failed."],
       "validation": ["cargo test --locked --manifest-path benchmarks/runtime/Cargo.toml", "Run every producer cell once and validate the artifacts with scripts/benchmark-report.py."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-09.json"]
     },
     {
       "id": "KL09-10",
