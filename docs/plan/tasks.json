@@ -2770,13 +2770,13 @@
     {
       "id": "KL09-05",
       "title": "Add a deterministic instruction-count regression gate",
-      "priority": "P1", "kind": "ci", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "ci", "status": "done", "owner": "mingley",
       "depends_on": ["KL04-09"],
       "files": ["benchmarks/codec/Cargo.toml", "new: scripts/ci-perf-gate.sh", ".github/workflows/ci.yml"],
       "deliverable": "A Linux CI job measuring instruction counts for the codec microbenches against a stored, ratcheted baseline.",
       "acceptance": ["The tool choice (a callgrind-class, manifest-declared harness) and its review are recorded; wall-clock microbench numbers from shared runners are informational only.", "An increase above 1% on any tracked bench fails; the baseline file records toolchain and SHA and may be raised only by a separate maintainer-approved baseline-change card.", "The job runs on pull requests touching src/protocol/, src/producer.rs, src/consumer.rs, src/net.rs or benchmarks/codec/."],
       "validation": ["bash scripts/ci-perf-gate.sh --self-test (detects an injected slowdown)", "Run the job on a PR and link its artifact."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-05.json"]
     },
     {
       "id": "KL09-06",
