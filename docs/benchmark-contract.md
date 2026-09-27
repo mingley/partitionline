@@ -145,6 +145,43 @@ The benchmark contract establishes six named profiles, partitioned into **requir
 5. **`group/share`:** Measures consumer group coordination, heartbeat efficiency, partition assignment under classic and KIP-848 protocols, and concurrent record consumption under KIP-932 Share Groups.
 6. **`secure`:** Measures encryption and authentication overhead. Evaluates TLS 1.3 record throughput, symmetric crypto throughput (AES-GCM / ChaCha20-Poly1305), and SASL handshake costs (SCRAM-SHA-256, SCRAM-SHA-512, OAUTHBEARER).
 
+### L0 Wire-Codec Microbenchmarks (KL04-09)
+
+L0 isolates client-side CPU headroom of the encode/decode paths. Like the
+client-ceiling tier, L0 cells never feed any claim wording: L0 timings,
+profiles, and census numbers may appear in reports only as diagnostic
+context, never as client-rank evidence.
+
+- **Crate:** `benchmarks/codec` (workspace-excluded; builds offline from the shared cargo cache).
+- **Benches (26, criterion):** `encode`, `decode`, `crc32c` x shapes
+  `f01`–`f04`; `compress`, `decompress` x gzip/snappy/lz4 x
+  random/text at 500x100 B; `transform` fast/slow on `f03`.
+- **Shapes (seed `0xC0DEC`):** f01: 8 records, 16 B key, 100 B random
+  value; f02: 8 records, text value, 3 headers; f03: 500 records,
+  100 B random value; f04: 32 records, 1 KiB text value, 2 headers.
+- **Independent fixtures:** `fixtures/gen.py` emits `f01`–`f04.bin` plus
+  `manifest.json` (sha256 pins, first/last key/value shas, timestamps);
+  both generator and output are checked in, and loading fails closed
+  on any sha256 mismatch.
+- **Preflight:** decode every fixture, verify manifest facts (record
+  count, first/last key/value shas), require byte-identical re-encode,
+  and round-trip gzip/snappy/lz4 x random/text at 500 records with
+  identical records back.
+- **Census:** global counting allocator, single-threaded, counts
+  allocations (not frees) plus requested bytes per op: encode/decode
+  x f01–f04 plus compress/decompress x 3 codecs (text).
+- **Slowcheck:** fast vs slow transform on f03 must produce identical
+  records; interleaved 10x20 timing must clear a 1.5x ratio bar.
+- **Artifact:** `benchmarks/codec/baseline.json` (assembled by
+  `benchmarks/codec/baseline.py` from `codec-preflight baseline`,
+  criterion `new/estimates.json` per bench, and manifest shas) with a
+  `baseline.sha256` sidecar: toolchain, git sha, fixture pins, bench
+  table (ns/op mean/median/stddev), census rows, slowcheck ratio.
+- **Gates:** `codec-preflight` PASS (preflight + census + slowcheck),
+  sha256 fixture check, no statistically significant criterion
+  regression vs the checked-in baseline, full offline
+  workspace-excluded rebuild, no uncommitted files at report time.
+
 ---
 
 ## 6. Frozen Knobs and Parameter Matrix

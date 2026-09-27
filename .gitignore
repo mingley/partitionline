@@ -2,6 +2,7 @@
 .DS_Store
 *.rs.bk
 benchmarks/nullbroker/target/
+benchmarks/codec/target/
 partitionline-schema/target/
 
 # Schema companion local build

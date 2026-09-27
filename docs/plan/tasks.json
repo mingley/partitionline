@@ -1341,13 +1341,13 @@
     {
       "id": "KL04-09",
       "title": "Add wire-codec and allocation microbenchmarks",
-      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "mingley",
       "depends_on": ["KL04-01", "KL01-04", "KL01-05"],
       "files": ["Cargo.toml", "new: benchmarks/codec/", "docs/benchmark-contract.md"],
       "deliverable": "Deterministic microbenchmarks for encode/decode, CRC, compression and batch allocation.",
       "acceptance": ["Use realistic sizes/entropy/header counts and validated independent fixture bytes.", "Report ns/record, bytes/s and allocation counts separately from network/client throughput.", "Prevent dead-code elimination and benchmark harness overhead from dominating; use only approved manifest-declared tooling."],
       "validation": ["Run the microbench correctness preflight and one reproducible baseline.", "Confirm an intentionally slower fixture transformation is observable without changing semantic output."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL04-09.json"]
     },
     {
       "id": "KL04-10",
