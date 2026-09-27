@@ -3803,7 +3803,10 @@ impl Worker {
                             }
                         } else {
                             invalidate_cached_topic(&self.shared, topic.as_ref());
-                            drop(self.shared.meta_tx.try_send(topic.clone()));
+                            // No meta_tx nudge: the requeued batch's
+                            // first pending owns the refresh (KL09-28),
+                            // so a nudge here would be a duplicate RPC
+                            // per faulted batch.
                         }
                         self.requeue_pendings(pendings);
                     } else if r.error_code == error::UNKNOWN_PRODUCER_ID
@@ -4020,16 +4023,59 @@ impl Worker {
 
     fn requeue_pendings(&mut self, pendings: Vec<Pending>) {
         let now = Instant::now();
-        for mut p in pendings {
+        // KL09-28: coalesce per topic — one backoff deadline and one
+        // metadata refresh per retained topic-batch, not per record.
+        // The retry loop drains sequentially, so the first pending's
+        // refresh lands before the followers check the cached leader;
+        // a follower that still finds no leader refreshes as a
+        // fallback (e.g. the first's refresh failed).
+        let mut group_of = Vec::with_capacity(pendings.len());
+        let mut groups: Vec<(Arc<str>, u32)> = Vec::new();
+        for p in &pendings {
+            let incremented = p.retry.saturating_add(1);
+            match groups
+                .iter()
+                .position(|(topic, _)| topic.as_ref() == p.rec.topic.as_ref())
+            {
+                Some(gi) => {
+                    if let Some(slot) = groups.get_mut(gi) {
+                        slot.1 = slot.1.max(incremented);
+                    }
+                    group_of.push(gi);
+                }
+                None => {
+                    group_of.push(groups.len());
+                    groups.push((p.rec.topic.clone(), incremented));
+                }
+            }
+        }
+        let mut firsts = vec![usize::MAX; groups.len()];
+        for (i, &gi) in group_of.iter().enumerate() {
+            if let Some(first) = firsts.get_mut(gi) {
+                *first = (*first).min(i);
+            }
+        }
+        for (i, (mut p, gi)) in pendings.into_iter().zip(group_of).enumerate() {
             p.retry = p.retry.saturating_add(1);
             if now >= p.deadline {
                 fail_pendings(&self.shared, vec![p], Error::Timeout);
                 continue;
             }
+            // Group slots exist by construction; the fallback treats a
+            // missing slot as its own group (refresh, own backoff).
+            let (max_retry, first) = match (groups.get(gi), firsts.get(gi)) {
+                (Some((_, max_retry)), Some(first)) => (*max_retry, *first),
+                _ => (p.retry, i),
+            };
+            if i != first {
+                p.skip_meta_refresh = true;
+            }
+            // Shared deadline from the group's max retry count: at
+            // least as patient as any member's own backoff.
             let delay = crate::config::retry_backoff_delay(
                 self.shared.cfg.retry_backoff,
                 self.shared.cfg.retry_backoff_max,
-                p.retry.saturating_sub(1),
+                max_retry.saturating_sub(1),
             );
             p.retry_after = now + delay;
             let _ = self.shared.retries_out.fetch_add(1, Ordering::SeqCst);

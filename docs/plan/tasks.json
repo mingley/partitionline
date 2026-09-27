@@ -3042,13 +3042,13 @@
     {
       "id": "KL09-28",
       "title": "Coalesce retry backoff and metadata refresh per batch",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P2", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-10"],
       "files": ["src/producer.rs"],
       "deliverable": "requeue_pendings and retry_one refresh metadata and schedule backoff once per retained batch or topic, not once per record.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Metadata RPCs per retried batch are deterministic and asserted in a mock test.", "Idempotent sequence/batch identity, ordering, the shared retry_after deadline and KL03-08 no-duplicate lost-ack behavior are unchanged."],
       "validation": ["cargo test --locked --test mock_produce", "cargo test --locked --test produce_cancel", "cargo test --locked --test network_deadlines", "A/B cell nb-produce-retry (metadata RPCs per retried batch, CPU-ns/record): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-28.json"]
     },
     {
       "id": "KL09-29",

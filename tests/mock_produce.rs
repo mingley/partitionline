@@ -158,3 +158,52 @@ async fn oversized_single_record_still_sends() {
         "singleton documents the unsplittable exception: {batches:?}"
     );
 }
+
+/// KL09-28: a retried batch refreshes metadata once, not once per record.
+///
+/// One 10-record batch fails with retriable NOT_LEADER and retries to
+/// success. Metadata RPCs after the warmup baseline must be exactly 1
+/// (the batch's shared refresh), and all 10 records must be delivered
+/// exactly once (offsets 1..=10 after the warmup).
+#[tokio::test]
+async fn retry_refreshes_metadata_once_per_batch() {
+    use partitionline::error::NOT_LEADER_OR_FOLLOWER;
+
+    let mock = common::Mock::start().await;
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.batch_records = 100_000;
+    cfg.linger = Duration::from_millis(100);
+    cfg.retry_backoff = Duration::from_millis(1);
+    cfg.retry_backoff_max = Duration::from_millis(1);
+    cfg.client_id = "kl09-28".into();
+    let producer = Producer::new(cfg).await.unwrap();
+    // One awaited send warms metadata and the node worker.
+    let warmup = producer
+        .send(ProduceRecord::to("t").value(&b"warmup"[..]))
+        .await
+        .unwrap();
+    assert_eq!(warmup.offset, 0);
+    let base_meta = mock.metadata_calls();
+
+    // The next produce fails once; the 10-record batch must retry.
+    mock.set_produce_error_times(NOT_LEADER_OR_FOLLOWER, 1);
+    for i in 0..10u8 {
+        producer
+            .try_send(ProduceRecord::to("t").value(vec![i; 16]))
+            .unwrap();
+    }
+    producer.flush().await.unwrap();
+
+    let batches = mock.produce_batches();
+    let total: i32 = batches.iter().map(|b| b.2).sum();
+    // Warmup + failed burst + retried burst observed on the wire.
+    assert_eq!(total, 21, "failed batch must be retried, not dropped");
+    // ...but appended exactly once (no duplicates from the retry).
+    assert_eq!(mock.log_len("t", 0), 11);
+    assert_eq!(
+        mock.metadata_calls() - base_meta,
+        1,
+        "one metadata refresh per retried batch, not per record"
+    );
+    producer.close().await.unwrap();
+}
