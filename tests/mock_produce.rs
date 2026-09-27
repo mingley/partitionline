@@ -2,7 +2,7 @@
 
 mod common;
 
-use partitionline::{ProduceRecord, Producer, ProducerConfig};
+use partitionline::{Admin, AdminConfig, NewTopic, ProduceRecord, Producer, ProducerConfig};
 use std::time::Duration;
 
 #[tokio::test]
@@ -205,5 +205,93 @@ async fn retry_refreshes_metadata_once_per_batch() {
         1,
         "one metadata refresh per retried batch, not per record"
     );
+    producer.close().await.unwrap();
+}
+
+/// KL09-17: the route-cached tracker must produce metrics snapshots
+/// identical to the old per-record-lookup path: exact global counters,
+/// one sorted per-topic row per active topic with exact counts/bytes,
+/// and per-topic ack-latency counts matching acked records. Exercises
+/// both the fast path (`try_send`) and the slow path (`send_all`).
+#[tokio::test]
+async fn tracker_cache_mixed_topic_metrics_snapshot() {
+    let mock = common::Mock::start().await;
+    // The mock only knows "t"; create the three mixed-topic names first.
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let results = admin
+        .create_topics(
+            &[
+                NewTopic::new("mta", 1, 1),
+                NewTopic::new("mtb", 1, 1),
+                NewTopic::new("mtc", 1, 1),
+            ],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert!(
+        results.iter().all(|r| r.error_code == 0),
+        "create_topics: {results:?}"
+    );
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.client_id = "kl09-17".into();
+    let producer = Producer::new(cfg).await.unwrap();
+    // Warmup spawns the node worker so the try_send burst below never
+    // races worker startup (QueueFull).
+    let warmup = producer
+        .send(ProduceRecord::to("mta").value(&b"warmup"[..]))
+        .await
+        .unwrap();
+    assert_eq!(warmup.offset, 0);
+    // Fast path (try_send) across three topics, round-robin: 60 records.
+    let topics = ["mta", "mtb", "mtc"];
+    for i in 0..60u8 {
+        let topic = topics[usize::from(i % 3)];
+        let rec = ProduceRecord::to(topic).key(vec![i; 8]).value(vec![i; 32]);
+        producer.try_send(rec).unwrap();
+    }
+    // Slow path (send_all) across the same topics: 9 records.
+    let mut batch = Vec::new();
+    for i in 0..9u8 {
+        let topic = topics[usize::from(i % 3)];
+        batch.push(ProduceRecord::to(topic).key(vec![i; 4]).value(vec![i; 16]));
+    }
+    let acks = producer.send_all(batch).await.unwrap();
+    assert_eq!(acks.len(), 9);
+    producer.flush().await.unwrap();
+    let m = producer.metrics();
+    // Global counters: 1 warmup + 60 fast + 9 slow.
+    assert_eq!(m.records_queued, 70);
+    assert_eq!(m.records_acked, 70);
+    assert_eq!(m.produce_errors, 0);
+    // Bytes are key + value only: warmup 6, fast 60 * 40, slow 9 * 20.
+    assert_eq!(m.bytes_queued, 6 + 2400 + 180);
+    assert_eq!(m.bytes_buffered, 0);
+    assert_eq!(m.ack_latency.count, 70);
+    // Per-topic rows: sorted, exactly one row per active topic.
+    // mta: warmup + 20 fast + 3 slow = 24; mtb/mtc: 20 fast + 3 slow = 23.
+    assert_eq!(m.topics.len(), 3);
+    let names: Vec<&str> = m.topics.iter().map(|t| t.topic.as_str()).collect();
+    assert_eq!(names, ["mta", "mtb", "mtc"]);
+    let expected = [
+        ("mta", 24u64, 6 + 800 + 60),
+        ("mtb", 23u64, 860),
+        ("mtc", 23u64, 860),
+    ];
+    let mut sum_queued = 0u64;
+    for (row, (topic, n, bytes)) in m.topics.iter().zip(expected.iter()) {
+        assert_eq!(row.topic, *topic);
+        assert_eq!(row.records_queued, *n, "queued for {topic}");
+        assert_eq!(row.records_acked, *n, "acked for {topic}");
+        assert_eq!(row.produce_errors, 0, "errors for {topic}");
+        assert_eq!(row.bytes_queued, *bytes, "bytes for {topic}");
+        assert_eq!(row.ack_latency.count, *n, "latency count for {topic}");
+        sum_queued += row.records_queued;
+    }
+    assert_eq!(sum_queued, m.records_queued);
     producer.close().await.unwrap();
 }

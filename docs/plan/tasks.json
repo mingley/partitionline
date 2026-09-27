@@ -2921,13 +2921,13 @@
     {
       "id": "KL09-17",
       "title": "Cache per-topic metric trackers on routes",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-09", "KL09-11"],
       "files": ["src/producer.rs", "src/metrics.rs"],
       "deliverable": "Enqueue and ack paths reuse a route-held Arc tracker instead of locking the Mutex<HashMap> in Shared::topic_tracker for every record.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "No parking_lot lock and no HashMap lookup per queued or acked record in steady state.", "Metrics snapshots are identical for a mixed-topic workload, including per-topic rows and tracker lifetime."],
       "validation": ["cargo test --locked --test mock_produce", "cargo test --locked --test full_surface", "cargo test --locked --lib metrics", "A/B cell nb-produce-mixed-topics (CPU-ns/record): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)", "A/B cell nb-produce-bulk (CPU-ns/record): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)", "cargo clippy --locked --all-targets --all-features -- -D warnings"],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-17.json"]
     },
     {
       "id": "KL09-18",
