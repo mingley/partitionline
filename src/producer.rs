@@ -3885,6 +3885,11 @@ impl Worker {
                     self.shared.note_acked(&topic, n);
                     for (i, p) in pendings.into_iter().enumerate() {
                         self.shared.note_ack_latency(&topic, p.queued_at);
+                        // KL09-16: build ack metadata only when a
+                        // caller oneshot or an interceptor consumes it.
+                        if p.tx.is_none() && self.shared.interceptors.is_empty() {
+                            continue;
+                        }
                         let batch_index = i32::try_from(i).unwrap_or(i32::MAX);
                         let md = record_metadata(
                             &topic,
@@ -4501,6 +4506,11 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
         shared.note_acked(&topic, n);
         for p in pendings {
             shared.note_ack_latency(&topic, p.queued_at);
+            // KL09-16: build ack metadata only when a caller oneshot
+            // or an interceptor consumes it.
+            if p.tx.is_none() && shared.interceptors.is_empty() {
+                continue;
+            }
             let md = record_metadata(
                 &topic,
                 part,

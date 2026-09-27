@@ -53,6 +53,12 @@ impl ProducerInterceptors {
         self.inner.push(Arc::new(i));
     }
 
+    /// Whether any interceptor is installed (KL09-16: skip ack
+    /// metadata construction when nobody consumes it).
+    pub(crate) fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
     pub(crate) fn on_send(&self, rec: ProduceRecord) -> ProduceRecord {
         let mut rec = rec;
         for i in &self.inner {

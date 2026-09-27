@@ -1779,6 +1779,62 @@ async fn interceptors_rewrite_produce_and_count_fetch() {
     assert_eq!(fetched.load(std::sync::atomic::Ordering::SeqCst), 1);
 }
 
+struct RecordAck {
+    seen: std::sync::Arc<parking_lot::Mutex<Vec<(String, i32, i64)>>>,
+}
+
+impl ProducerInterceptor for RecordAck {
+    fn on_ack(&self, md: &RecordMetadata) {
+        self.seen
+            .lock()
+            .push((md.topic().to_owned(), md.partition(), md.offset()));
+    }
+}
+
+/// KL09-16: interceptor and oneshot paths still observe identical,
+/// complete ack metadata even though try_send without consumers
+/// skips construction.
+#[tokio::test]
+async fn ack_metadata_identical_for_interceptor_and_oneshot() {
+    let mock = common::Mock::start().await;
+    let seen = std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::from_millis(100);
+    cfg.interceptors.push(RecordAck {
+        seen: std::sync::Arc::clone(&seen),
+    });
+    cfg.client_id = "kl09-16".into();
+    let producer = Producer::new(cfg).await.unwrap();
+    // One awaited send warms metadata and the node worker.
+    producer
+        .send(ProduceRecord::to("t").value(&b"warmup"[..]))
+        .await
+        .unwrap();
+    // try_send burst: interceptor must still see every ack.
+    for i in 0..5u8 {
+        producer
+            .try_send(ProduceRecord::to("t").value(vec![i; 8]))
+            .unwrap();
+    }
+    producer.flush().await.unwrap();
+    // send() path returns metadata identical to what interceptors saw.
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"seventh"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let seen = seen.lock().clone();
+    assert_eq!(seen.len(), 7, "every ack observed: {seen:?}");
+    for (i, (topic, part, offset)) in seen.iter().enumerate() {
+        assert_eq!(topic, "t");
+        assert_eq!(*part, 0);
+        assert_eq!(*offset, i64::try_from(i).unwrap_or(i64::MAX));
+    }
+    assert_eq!(md.topic(), "t");
+    assert_eq!(md.partition(), 0);
+    assert_eq!(md.offset(), 6);
+}
+
 #[tokio::test]
 async fn offsets_for_times_finds_record_and_misses() {
     let mock = common::Mock::start().await;

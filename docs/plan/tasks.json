@@ -2910,13 +2910,13 @@
     {
       "id": "KL09-16",
       "title": "Skip ack metadata construction when nobody consumes it",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-09", "KL09-11"],
       "files": ["src/producer.rs"],
       "deliverable": "wait_one builds RecordMetadata (and its topic String) only when a caller oneshot or a producer interceptor receives it; today it runs per record even for try_send.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "try_send with no interceptors does no per-record metadata or topic String allocation on the ack path.", "send/send_all/interceptor paths produce identical metadata; metrics counters and acks=0 local completion are unchanged."],
       "validation": ["cargo test --locked --test mock_produce", "cargo test --locked --test client_api", "cargo test --locked --test produce_cancel", "A/B cell nb-produce-bulk (allocations/record, CPU-ns/record): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)", "cargo clippy --locked --all-targets --all-features -- -D warnings"],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-16.json"]
     },
     {
       "id": "KL09-17",
