@@ -14,8 +14,12 @@ const LATENCY_WINDOW: usize = 1024;
 /// Produce-ack or fetch-round latency since connect (nanoseconds).
 ///
 /// `min_nanos` / `max_nanos` / `p50_nanos` / `p99_nanos` are `0` when
-/// [`Self::count`] is `0`. Percentiles are the last 1024 samples (not a
-/// lifetime HDR histogram). Global snapshots are not split by topic;
+/// [`Self::count`] is `0`. Percentiles are the last 1024 window samples
+/// (not a lifetime HDR histogram). For produce-ack latency the window
+/// holds one genuine per-record sample per acknowledged batch (the
+/// batch's first record), so percentiles approximate over recent batches;
+/// `count` / `sum_nanos` / `min_nanos` / `max_nanos` still cover every
+/// record exactly. Global snapshots are not split by topic;
 /// [`ProducerMetrics::topics`] / [`ConsumerMetrics::topics`] /
 /// [`ShareMetrics`] field `topics` are. [`AdminMetrics`] has no per-topic rows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -195,6 +199,25 @@ pub(crate) struct LatencyTracker {
     samples: Box<[AtomicU64]>,
 }
 
+/// Exact per-batch latency totals plus one percentile-window sample.
+///
+/// Built by the produce ack path from a single ack timestamp (one clock
+/// read per acknowledged batch); see [`LatencyTracker::record_batch`].
+/// All durations are nanoseconds; `sum_nanos` is saturating.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct BatchLatency {
+    /// Records in the batch.
+    pub(crate) n: u64,
+    /// Sum of per-record latencies (`ack - queued_at` each).
+    pub(crate) sum_nanos: u64,
+    /// Smallest per-record latency.
+    pub(crate) min_nanos: u64,
+    /// Largest per-record latency.
+    pub(crate) max_nanos: u64,
+    /// First record's latency: the batch's single window sample.
+    pub(crate) sample_ns: u64,
+}
+
 impl LatencyTracker {
     pub(crate) fn new() -> Self {
         let samples = (0..LATENCY_WINDOW)
@@ -211,16 +234,7 @@ impl LatencyTracker {
         }
     }
 
-    pub(crate) fn record(&self, d: Duration) {
-        let ns = u64::try_from(d.as_nanos()).unwrap_or(u64::MAX);
-        let _ = self.count.fetch_add(1, Ordering::Relaxed);
-        let _ = self.sum_nanos.fetch_add(ns, Ordering::Relaxed);
-        let slot =
-            usize::try_from(self.idx.fetch_add(1, Ordering::Relaxed) % LATENCY_WINDOW as u64)
-                .unwrap_or(0);
-        if let Some(slot) = self.samples.get(slot) {
-            slot.store(ns, Ordering::Relaxed);
-        }
+    fn fold_min(&self, ns: u64) {
         let mut cur = self.min_nanos.load(Ordering::Relaxed);
         while ns < cur {
             match self.min_nanos.compare_exchange_weak(
@@ -233,7 +247,10 @@ impl LatencyTracker {
                 Err(actual) => cur = actual,
             }
         }
-        cur = self.max_nanos.load(Ordering::Relaxed);
+    }
+
+    fn fold_max(&self, ns: u64) {
+        let mut cur = self.max_nanos.load(Ordering::Relaxed);
         while ns > cur {
             match self.max_nanos.compare_exchange_weak(
                 cur,
@@ -247,14 +264,52 @@ impl LatencyTracker {
         }
     }
 
+    fn push_sample(&self, ns: u64) {
+        let slot =
+            usize::try_from(self.idx.fetch_add(1, Ordering::Relaxed) % LATENCY_WINDOW as u64)
+                .unwrap_or(0);
+        if let Some(slot) = self.samples.get(slot) {
+            slot.store(ns, Ordering::Relaxed);
+        }
+    }
+
+    pub(crate) fn record(&self, d: Duration) {
+        let ns = u64::try_from(d.as_nanos()).unwrap_or(u64::MAX);
+        let _ = self.count.fetch_add(1, Ordering::Relaxed);
+        let _ = self.sum_nanos.fetch_add(ns, Ordering::Relaxed);
+        self.push_sample(ns);
+        self.fold_min(ns);
+        self.fold_max(ns);
+    }
+
+    /// Record one acknowledged batch: exact totals, one window sample.
+    ///
+    /// Adds `n` to the count and `sum_nanos` to the total, folds the
+    /// batch min/max, and writes exactly one sample (the batch's first
+    /// record, a genuine per-record latency) into the 1,024-slot window.
+    /// Percentiles therefore approximate over recent batches while
+    /// count, sum, min and max stay exact. No-op when `n == 0`.
+    pub(crate) fn record_batch(&self, b: BatchLatency) {
+        if b.n == 0 {
+            return;
+        }
+        let _ = self.count.fetch_add(b.n, Ordering::Relaxed);
+        let _ = self.sum_nanos.fetch_add(b.sum_nanos, Ordering::Relaxed);
+        self.push_sample(b.sample_ns);
+        self.fold_min(b.min_nanos);
+        self.fold_max(b.max_nanos);
+    }
+
     fn window(&self) -> Vec<u64> {
-        let count = self.count.load(Ordering::Relaxed);
-        let n = usize::try_from(count.min(LATENCY_WINDOW as u64)).unwrap_or(LATENCY_WINDOW);
+        // Valid slots are samples pushed (`idx`), not records counted:
+        // `record_batch` counts every record but pushes one sample.
+        let pushed = self.idx.load(Ordering::Relaxed);
+        let n = usize::try_from(pushed.min(LATENCY_WINDOW as u64)).unwrap_or(LATENCY_WINDOW);
         if n == 0 {
             return Vec::new();
         }
         let mut v = Vec::with_capacity(n);
-        if count <= LATENCY_WINDOW as u64 {
+        if pushed <= LATENCY_WINDOW as u64 {
             for sample in self.samples.iter().take(n) {
                 v.push(sample.load(Ordering::Relaxed));
             }
@@ -459,8 +514,11 @@ impl ProduceTopicTracker {
         let _ = self.records_acked.fetch_add(n, Ordering::Relaxed);
     }
 
-    pub(crate) fn note_ack_latency(&self, d: Duration) {
-        self.ack_latency.record(d);
+    /// Batch form of ack-latency accounting: exact totals for the
+    /// batch, one percentile-window sample; see
+    /// [`LatencyTracker::record_batch`].
+    pub(crate) fn note_ack_latency_batch(&self, b: BatchLatency) {
+        self.ack_latency.record_batch(b);
     }
 
     pub(crate) fn note_errors(&self, n: u64) {
@@ -678,5 +736,58 @@ mod tests {
         );
         assert_eq!(Quota::upper_bound(f64::NAN).to_string(), "upper=NaN");
         assert!(!Quota::upper_bound(1.0).acceptable(f64::NAN));
+    }
+
+    /// KL09-18: `record_batch` keeps count/sum/min/max exact over every
+    /// record while writing exactly one window sample per batch (the
+    /// batch's first record). Two batches of [10,20,30] and [40,50] must
+    /// total 5 records over sum 150 with min 10 / max 50, and the window
+    /// must hold exactly [10,40]: p50 10 / p99 40. (Per-record sampling
+    /// would put all five latencies in the window: p50 30 / p99 50.)
+    #[test]
+    fn record_batch_exact_totals_one_sample_per_batch() {
+        let t = LatencyTracker::new();
+        t.record_batch(BatchLatency {
+            n: 3,
+            sum_nanos: 60,
+            min_nanos: 10,
+            max_nanos: 30,
+            sample_ns: 10,
+        });
+        t.record_batch(BatchLatency {
+            n: 2,
+            sum_nanos: 90,
+            min_nanos: 40,
+            max_nanos: 50,
+            sample_ns: 40,
+        });
+        let s = t.snapshot();
+        assert_eq!(s.count, 5);
+        assert_eq!(s.sum_nanos, 150);
+        assert_eq!(s.min_nanos, 10);
+        assert_eq!(s.max_nanos, 50);
+        assert_eq!(s.p50_nanos, 10);
+        assert_eq!(s.p99_nanos, 40);
+    }
+
+    /// KL09-18: an empty batch is a no-op (no count, no window slot).
+    #[test]
+    fn record_batch_empty_is_noop() {
+        let t = LatencyTracker::new();
+        t.record_batch(BatchLatency {
+            n: 0,
+            sum_nanos: 0,
+            min_nanos: u64::MAX,
+            max_nanos: 0,
+            sample_ns: 0,
+        });
+        let s = t.snapshot();
+        assert_eq!(s.count, 0);
+        assert_eq!(s.sum_nanos, 0);
+        // Untouched min/max read back as zero through the count==0 rule.
+        assert_eq!(s.min_nanos, 0);
+        assert_eq!(s.max_nanos, 0);
+        assert_eq!(s.p50_nanos, 0);
+        assert_eq!(s.p99_nanos, 0);
     }
 }

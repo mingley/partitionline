@@ -939,6 +939,12 @@ impl Drop for Inner {
     }
 }
 
+/// Per-record queue-to-ack latency against one batch ack timestamp
+/// (no clock read; definition preserved: ack time minus queued_at).
+fn ack_latency_ns(ack: Instant, queued_at: Instant) -> u64 {
+    u64::try_from(ack.saturating_duration_since(queued_at).as_nanos()).unwrap_or(u64::MAX)
+}
+
 impl Shared {
     fn topic_tracker(&self, topic: &Arc<str>) -> Arc<crate::metrics::ProduceTopicTracker> {
         let mut map = self.topics.lock();
@@ -1074,10 +1080,15 @@ impl Shared {
         self.topic_tracker(topic).note_acked(n);
     }
 
-    fn note_ack_latency(&self, topic: &Arc<str>, queued_at: Instant) {
-        let d = queued_at.elapsed();
-        self.ack_latency.record(d);
-        self.topic_tracker(topic).note_ack_latency(d);
+    /// Batch ack-latency accounting: one locked tracker lookup per
+    /// batch (not per record); see [`crate::metrics::BatchLatency`].
+    /// No-op for empty batches.
+    fn note_ack_latency_batch(&self, topic: &Arc<str>, b: crate::metrics::BatchLatency) {
+        if b.n == 0 {
+            return;
+        }
+        self.ack_latency.record_batch(b);
+        self.topic_tracker(topic).note_ack_latency_batch(b);
     }
 
     fn note_errors(&self, topic: &Arc<str>, n: u64) {
@@ -3883,8 +3894,23 @@ impl Worker {
                     let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
                     self.shared.release_buffer(pendings_bytes(&pendings));
                     self.shared.note_acked(&topic, n);
+                    // KL09-18: one clock read per batch; per-record
+                    // latencies fold locally (no atomics, no lookups).
+                    let ack = Instant::now();
+                    let sample_ns = pendings
+                        .first()
+                        .map(|p| ack_latency_ns(ack, p.queued_at))
+                        .unwrap_or(0);
+                    let mut lat_n = 0u64;
+                    let mut lat_sum = 0u64;
+                    let mut lat_min = u64::MAX;
+                    let mut lat_max = 0u64;
                     for (i, p) in pendings.into_iter().enumerate() {
-                        self.shared.note_ack_latency(&topic, p.queued_at);
+                        let ns = ack_latency_ns(ack, p.queued_at);
+                        lat_n += 1;
+                        lat_sum = lat_sum.saturating_add(ns);
+                        lat_min = lat_min.min(ns);
+                        lat_max = lat_max.max(ns);
                         // KL09-16: build ack metadata only when a
                         // caller oneshot or an interceptor consumes it.
                         if p.tx.is_none() && self.shared.interceptors.is_empty() {
@@ -3904,6 +3930,16 @@ impl Worker {
                             drop(tx.send(Ok(md)));
                         }
                     }
+                    self.shared.note_ack_latency_batch(
+                        &topic,
+                        crate::metrics::BatchLatency {
+                            n: lat_n,
+                            sum_nanos: lat_sum,
+                            min_nanos: lat_min,
+                            max_nanos: lat_max,
+                            sample_ns,
+                        },
+                    );
                 }
             }
         }
@@ -4504,8 +4540,23 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
         shared.release_buffer(pendings_bytes(&pendings));
         let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
         shared.note_acked(&topic, n);
+        // KL09-18: one clock read per batch; per-record latencies
+        // fold locally (no atomics, no lookups).
+        let ack = Instant::now();
+        let sample_ns = pendings
+            .first()
+            .map(|p| ack_latency_ns(ack, p.queued_at))
+            .unwrap_or(0);
+        let mut lat_n = 0u64;
+        let mut lat_sum = 0u64;
+        let mut lat_min = u64::MAX;
+        let mut lat_max = 0u64;
         for p in pendings {
-            shared.note_ack_latency(&topic, p.queued_at);
+            let ns = ack_latency_ns(ack, p.queued_at);
+            lat_n += 1;
+            lat_sum = lat_sum.saturating_add(ns);
+            lat_min = lat_min.min(ns);
+            lat_max = lat_max.max(ns);
             // KL09-16: build ack metadata only when a caller oneshot
             // or an interceptor consumes it.
             if p.tx.is_none() && shared.interceptors.is_empty() {
@@ -4524,6 +4575,16 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
                 drop(tx.send(Ok(md)));
             }
         }
+        shared.note_ack_latency_batch(
+            &topic,
+            crate::metrics::BatchLatency {
+                n: lat_n,
+                sum_nanos: lat_sum,
+                min_nanos: lat_min,
+                max_nanos: lat_max,
+                sample_ns,
+            },
+        );
     }
 }
 

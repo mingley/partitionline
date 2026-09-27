@@ -2932,13 +2932,13 @@
     {
       "id": "KL09-18",
       "title": "Amortize ack-latency sampling to one clock read per batch",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-17"],
       "files": ["src/producer.rs", "src/metrics.rs"],
       "deliverable": "note_ack_latency uses one ack timestamp per acknowledged batch and a documented, bounded sample-window update rule instead of a clock read and two atomic tracker writes per record.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "At most one clock read per acknowledged batch; the per-record latency definition (ack time minus queued_at) is preserved.", "The 1,024-sample window and percentile semantics are documented in metrics rustdoc and covered by a test; no counter total changes."],
       "validation": ["cargo test --locked --lib metrics", "cargo test --locked --test mock_produce", "A/B cell nb-produce-bulk (CPU-ns/record): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)", "cargo clippy --locked --all-targets --all-features -- -D warnings"],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-18.json"]
     },
     {
       "id": "KL09-19",
