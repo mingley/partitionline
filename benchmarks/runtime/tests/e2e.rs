@@ -1,24 +1,22 @@
-//! End-to-end harness test (KL09-09): run the smallest producer
-//! cell (`nb-send-seq`, 1000 records) through the real `runtime`
-//! binary against a real `nb-serve` subprocess and check the result
-//! artifact's fail-closed skeleton.
+//! End-to-end harness tests (KL09-09/10): run representative cells
+//! through the real `runtime` binary against real `nb-serve`
+//! subprocesses and check each result artifact's fail-closed skeleton.
 //!
-//! This exercises producer connect, the sequential drive, broker
-//! reconciliation, and artifact emission. It does not replace
+//! This exercises client connect, the drives, broker reconciliation,
+//! and artifact emission. It does not replace
 //! `scripts/benchmark-report.py`, which validates full runs.
 
 use std::path::PathBuf;
 use std::process::Command;
 
-#[test]
-fn smallest_cell_runs_and_emits_artifact() {
+fn run_cell(cell: &str) -> (serde_json::Value, PathBuf) {
     let runtime_bin = PathBuf::from(env!("CARGO_BIN_EXE_runtime"));
     let nb_serve_bin = PathBuf::from(env!("CARGO_BIN_EXE_nb-serve"));
     assert!(runtime_bin.is_file());
     assert!(nb_serve_bin.is_file());
 
     let out_dir = std::env::temp_dir().join(format!(
-        "runtime-e2e-{}-{}",
+        "runtime-e2e-{cell}-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -30,7 +28,7 @@ fn smallest_cell_runs_and_emits_artifact() {
     let status = Command::new(&runtime_bin)
         .args([
             "--cell",
-            "nb-send-seq",
+            cell,
             "--out",
             out_dir.to_str().unwrap(),
             "--repetitions",
@@ -41,10 +39,10 @@ fn smallest_cell_runs_and_emits_artifact() {
         .expect("spawn runtime");
     assert!(
         status.success(),
-        "runtime binary failed for nb-send-seq: {status}"
+        "runtime binary failed for {cell}: {status}"
     );
 
-    let result_path = out_dir.join("nb-send-seq-rep0.result.json");
+    let result_path = out_dir.join(format!("{cell}-rep0.result.json"));
     assert!(result_path.is_file(), "missing result artifact");
     let text = std::fs::read_to_string(&result_path).unwrap();
     let doc: serde_json::Value = serde_json::from_str(&text).unwrap();
@@ -62,7 +60,7 @@ fn smallest_cell_runs_and_emits_artifact() {
     ] {
         assert!(doc.get(section).is_some(), "missing section '{section}'");
     }
-    assert_eq!(doc["scenario"]["scenario_id"].as_str(), Some("nb-send-seq"));
+    assert_eq!(doc["scenario"]["scenario_id"].as_str(), Some(cell));
     assert_eq!(doc["execution"]["repetition_index"], 0);
     assert_eq!(
         doc["scenario"]["cell_disposition"].as_str(),
@@ -70,6 +68,20 @@ fn smallest_cell_runs_and_emits_artifact() {
         "cell must execute cleanly: {}",
         serde_json::to_string_pretty(&doc["execution"]).unwrap()
     );
+    // Every sidecar exists and is hashed into provenance.
+    let artifacts = doc["provenance"]["artifacts"].as_array().unwrap();
+    assert!(!artifacts.is_empty());
+    for art in artifacts {
+        let path = art["path"].as_str().unwrap();
+        assert!(PathBuf::from(path).is_file(), "missing sidecar {path}");
+        assert_eq!(art["sha256"].as_str().unwrap().len(), 64);
+    }
+    (doc, out_dir)
+}
+
+#[test]
+fn smallest_cell_runs_and_emits_artifact() {
+    let (doc, out_dir) = run_cell("nb-send-seq");
     assert_eq!(doc["outcomes"]["offered"], 1000);
     assert_eq!(doc["outcomes"]["acknowledged"], 1000);
     assert_eq!(
@@ -80,14 +92,36 @@ fn smallest_cell_runs_and_emits_artifact() {
         doc["integrity"]["high_watermark_audit"]["matches_acknowledged"],
         true
     );
-    // Broker + latency sidecars exist and are hashed into provenance.
-    let artifacts = doc["provenance"]["artifacts"].as_array().unwrap();
-    assert_eq!(artifacts.len(), 2);
-    for art in artifacts {
-        let path = art["path"].as_str().unwrap();
-        assert!(PathBuf::from(path).is_file(), "missing sidecar {path}");
-        assert_eq!(art["sha256"].as_str().unwrap().len(), 64);
-    }
+    let _ = std::fs::remove_dir_all(&out_dir);
+}
 
+#[test]
+fn fetch_bulk_verifies_every_record() {
+    let (doc, out_dir) = run_cell("nb-fetch-bulk");
+    assert_eq!(doc["scenario"]["profile"], "fetch");
+    assert_eq!(doc["outcomes"]["offered"], 20_000);
+    assert_eq!(doc["outcomes"]["consumed"], 20_000);
+    assert_eq!(doc["outcomes"]["acknowledged"], 0);
+    assert_eq!(doc["integrity"]["record_ids"]["expected_count"], 20_000);
+    assert_eq!(doc["integrity"]["record_ids"]["verified_count"], 20_000);
+    assert_eq!(doc["integrity"]["record_ids"]["missing_ids_count"], 0);
+    assert!(doc["execution"]["fetch_rounds"].as_u64().unwrap() >= 1);
+    let _ = std::fs::remove_dir_all(&out_dir);
+}
+
+#[test]
+fn connect_matrix_reports_six_cases() {
+    let (doc, out_dir) = run_cell("nb-connect");
+    assert_eq!(doc["outcomes"]["offered"], 6);
+    assert_eq!(doc["outcomes"]["acknowledged"], 6);
+    let cases = doc["execution"]["connect_cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 6);
+    for case in cases {
+        assert_eq!(case["ok"], true);
+        assert!(case["first_ack_us"].as_u64().unwrap() > 0);
+        assert!(case["open_sockets"].as_u64().unwrap() > 0);
+    }
+    // Six broker artifacts plus the latency sidecar.
+    assert_eq!(doc["provenance"]["artifacts"].as_array().unwrap().len(), 7);
     let _ = std::fs::remove_dir_all(&out_dir);
 }

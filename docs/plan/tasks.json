@@ -2825,13 +2825,13 @@
     {
       "id": "KL09-10",
       "title": "Add consumer, fault and multi-node cells to the runtime harness",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-07", "KL09-08", "KL09-09"],
       "files": ["benchmarks/runtime/", "benchmarks/scenarios.json"],
       "deliverable": "Harness cells for the consumer, fault and multi-node workloads in performance-leadership.md section 4.",
       "acceptance": ["Implements nb-fetch-bulk, nb-fetch-1000p, nb-fetch-committed-aborts, nb-fetch-seek-in-batch, nb-fetch-capped-paused, nb-fetch-appdelay, nb-fetch-multinode, nb-produce-retry and nb-connect exactly as defined.", "Fetch cells verify every delivered ID/hash; retry cells report metadata RPCs per retried batch; nb-connect reports time to first ack at 1, 6 and 64 partitions, with and without an unreachable bootstrap host.", "Artifacts follow the KL09-09 format."],
       "validation": ["cargo test --locked --manifest-path benchmarks/runtime/Cargo.toml", "Run every new cell once and validate the artifacts with scripts/benchmark-report.py."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-10.json"]
     },
     {
       "id": "KL09-11",

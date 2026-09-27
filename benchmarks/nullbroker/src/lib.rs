@@ -1103,6 +1103,11 @@ struct State {
     fetched_wire_bytes: u64,
     /// Injected fault responses (fail-fast, never appended).
     injected_errors: u64,
+    /// Faulted requests (one per `inject()` hit; `injected_errors`
+    /// counts faulted partitions).
+    injected_requests: u64,
+    /// Metadata requests handled.
+    metadata_requests: u64,
     /// Requests that hit a non-leader node.
     leader_mismatches: u64,
 }
@@ -1218,6 +1223,10 @@ pub struct RunReport {
     pub fetched_wire_bytes: u64,
     /// Injected fault responses served.
     pub injected_errors: u64,
+    /// Faulted requests (KL09-10 retry accounting).
+    pub injected_requests: u64,
+    /// Metadata requests handled (KL09-10 retry accounting).
+    pub metadata_requests: u64,
     /// Requests that hit a non-leader node.
     pub leader_mismatches: u64,
     /// Active modes, recorded for the artifact.
@@ -1489,6 +1498,8 @@ impl NullBroker {
             fetched_records: state.fetched_records,
             fetched_wire_bytes: state.fetched_wire_bytes,
             injected_errors: state.injected_errors,
+            injected_requests: state.injected_requests,
+            metadata_requests: state.metadata_requests,
             leader_mismatches: state.leader_mismatches,
             modes: self.modes.clone(),
         }
@@ -1570,6 +1581,9 @@ impl Worker {
             }
             API_KEY_METADATA if api_version == 13 => {
                 let (topics, _allow_auto) = decode_metadata_request(body).map_err(|_| ())?;
+                if let Ok(mut state) = self.state.lock() {
+                    state.metadata_requests += 1;
+                }
                 encode_response_header(&mut out, api_key, api_version, correlation_id);
                 let topics = topics.as_deref().unwrap_or(&[]);
                 // Remember id -> name so Fetch-by-ID resolves.
@@ -1645,6 +1659,7 @@ impl Worker {
                         .collect::<Vec<_>>();
                     if let Ok(mut state) = self.state.lock() {
                         state.injected_errors += parts.len() as u64;
+                        state.injected_requests += 1;
                     }
                     encode_response_header(&mut out, api_key, api_version, correlation_id);
                     encode_produce_response(&mut out, &parts);
@@ -1687,6 +1702,7 @@ impl Worker {
                     let n: usize = served.iter().map(|(_, p)| p.len()).sum();
                     if let Ok(mut state) = self.state.lock() {
                         state.injected_errors += n as u64;
+                        state.injected_requests += 1;
                     }
                     encode_response_header(&mut out, api_key, api_version, correlation_id);
                     encode_fetch_response(&mut out, &served);
@@ -2053,6 +2069,14 @@ pub fn write_artifact(path: &Path, report: &RunReport) -> io::Result<()> {
     body.push_str(&format!(
         "  \"injected_errors\": {},\n",
         report.injected_errors
+    ));
+    body.push_str(&format!(
+        "  \"injected_requests\": {},\n",
+        report.injected_requests
+    ));
+    body.push_str(&format!(
+        "  \"metadata_requests\": {},\n",
+        report.metadata_requests
     ));
     body.push_str(&format!(
         "  \"leader_mismatches\": {},\n",

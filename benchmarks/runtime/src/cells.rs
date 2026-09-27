@@ -278,6 +278,32 @@ pub struct GenRecord {
     pub bytes: usize,
 }
 
+/// The KL09-10 retry cell: bulk-shaped produce (20k x 100B, 6
+/// partitions, acks=1, `try_send`+`flush`) run against a broker
+/// injecting 1% seeded retriable errors. The harness shrinks
+/// `batch_records` to 20 so the run issues ~1000 Produce requests
+/// (~10 faulted at 1%) and faults reliably fire.
+#[must_use]
+pub fn retry_cell() -> CellDef {
+    CellDef {
+        id: "nb-produce-retry",
+        topics: vec![topic("nb-retry", 6, 20_000)],
+        value_bytes: 100,
+        key_bytes: 16,
+        headers_each: 0,
+        header_kv_bytes: 16,
+        entropy: "random",
+        idempotent: false,
+        acks: 1,
+        mode: DriveMode::Pipelined,
+        linger_override_ms: None,
+        flush_every: 0,
+        idle_seconds: 0,
+        timeout: Duration::from_secs(300),
+        seed: 0x5EED_0009,
+    }
+}
+
 /// Deterministically generate one record: the `index`-th of
 /// `topic_idx` with global 1-based `id`. Pure, so a `QueueFull`
 /// retry regenerates exactly the record the failed attempt dropped.

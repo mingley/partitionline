@@ -718,6 +718,8 @@ fn artifact_is_labeled_client_ceiling() {
         fetched_records: 100,
         fetched_wire_bytes: 9000,
         injected_errors: 0,
+        injected_requests: 0,
+        metadata_requests: 0,
         leader_mismatches: 0,
         modes: nullbroker::Modes::default(),
     };

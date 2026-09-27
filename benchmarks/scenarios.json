@@ -1131,6 +1131,78 @@
         "status": "specified",
         "disposition": "not_run",
         "description": "No sends; 10s idle RSS sample; client steady-state footprint (KL09-09)."
+      },
+      {
+        "id": "nb-fetch-bulk",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Fetch 20k x 100B records over 6 partitions; every ID/hash verified (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-1000p",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Fetch 10k records over 1,000 sparse partitions (10 each); CPU/allocs per round (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-committed-aborts",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "read_committed fetch of 20k records with 20% aborted batches; every ID/hash verified (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-seek-in-batch",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Seek to offset 500 in 1000-record batches, fetch 10k; allocs per delivered record (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-capped-paused",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "max_poll_records=1 with 100k-record paused backlog (5 x 20k); CPU per poll (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-appdelay",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Fetch 20k with 1ms application sleep per batch; rec/s and peak RSS (KL09-10)."
+      },
+      {
+        "id": "nb-fetch-multinode",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Fetch 20k over 3 nodes with one 50ms-delayed node; fast-node rec/s, p99 delivery bound (KL09-10)."
+      },
+      {
+        "id": "nb-produce-retry",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Bulk-shaped produce under 1% seeded retriable errors (batch_records=20); metadata RPCs per retried batch (KL09-10)."
+      },
+      {
+        "id": "nb-connect",
+        "tier": "exploratory",
+        "feeds_claims": false,
+        "status": "specified",
+        "disposition": "not_run",
+        "description": "Construction-to-first-ack at 1/6/64 partitions with and without an unreachable bootstrap host; open sockets (KL09-10)."
       }
     ]
   }

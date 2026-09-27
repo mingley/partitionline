@@ -57,6 +57,11 @@ fn broker_artifact_parses_and_rejects_gaps() {
   "accepted_records": 1000,
   "accepted_wire_bytes": 128000,
   "produce_requests": 10,
+  "metadata_requests": 4,
+  "injected_requests": 2,
+  "injected_errors": 12,
+  "fetch_requests": 7,
+  "fetched_records": 700,
   "validation_failures": {"framing": 0, "crc": 1, "count": 0, "sequence": 0, "transactional": 0},
   "end_offsets": {"nb-seq/0": 500, "nb-seq/1": 500}
 }"#,
@@ -76,4 +81,37 @@ fn broker_artifact_parses_and_rejects_gaps() {
     std::fs::write(&bad, r#"{"accepted_records": 5}"#).unwrap();
     assert!(parse_broker_artifact(&bad).is_err());
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn broker_counts_merge_for_multi_broker_cells() {
+    use runtime::artifact::BrokerCounts;
+    let mut a = BrokerCounts {
+        accepted_records: 3,
+        produce_requests: 3,
+        metadata_requests: 10,
+        injected_requests: 1,
+        injected_errors: 6,
+        end_offsets: vec![("t".to_owned(), 0, 3)],
+        ..BrokerCounts::default()
+    };
+    let b = BrokerCounts {
+        accepted_records: 3,
+        produce_requests: 3,
+        metadata_requests: 10,
+        injected_requests: 0,
+        injected_errors: 0,
+        end_offsets: vec![("t".to_owned(), 0, 3), ("t".to_owned(), 1, 1)],
+        ..BrokerCounts::default()
+    };
+    a.merge(&b);
+    assert_eq!(a.accepted_records, 6);
+    assert_eq!(a.produce_requests, 6);
+    assert_eq!(a.metadata_requests, 20);
+    assert_eq!(a.injected_requests, 1);
+    assert_eq!(a.injected_errors, 6);
+    assert_eq!(
+        a.end_offsets,
+        vec![("t".to_owned(), 0, 6), ("t".to_owned(), 1, 1)]
+    );
 }

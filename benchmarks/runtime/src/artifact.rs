@@ -14,7 +14,6 @@ use std::process::Command;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
-use crate::cells::CellDef;
 use crate::drive::DriveOutcome;
 use crate::host::HostInfo;
 
@@ -27,12 +26,51 @@ pub struct BrokerCounts {
     pub accepted_wire_bytes: u64,
     /// Produce requests handled.
     pub produce_requests: u64,
+    /// Metadata requests handled.
+    pub metadata_requests: u64,
+    /// Faulted requests (KL09-10 retry accounting).
+    pub injected_requests: u64,
+    /// Faulted partitions (one retried batch each).
+    pub injected_errors: u64,
+    /// Fetch requests handled.
+    pub fetch_requests: u64,
+    /// Synthetic records served.
+    pub fetched_records: u64,
     /// Server-side validation failures by cause.
     pub validation_failures: u64,
     /// Log end offset per topic/partition.
     pub end_offsets: Vec<(String, i32, i64)>,
     /// Path of the broker artifact file.
     pub artifact_path: PathBuf,
+}
+
+impl BrokerCounts {
+    /// Merge another broker's counts (multi-broker cells such as
+    /// `nb-connect`): counters sum, end offsets sum per
+    /// topic/partition.
+    pub fn merge(&mut self, other: &BrokerCounts) {
+        self.accepted_records += other.accepted_records;
+        self.accepted_wire_bytes += other.accepted_wire_bytes;
+        self.produce_requests += other.produce_requests;
+        self.metadata_requests += other.metadata_requests;
+        self.injected_requests += other.injected_requests;
+        self.injected_errors += other.injected_errors;
+        self.fetch_requests += other.fetch_requests;
+        self.fetched_records += other.fetched_records;
+        self.validation_failures += other.validation_failures;
+        for (topic, partition, offset) in &other.end_offsets {
+            if let Some(slot) = self
+                .end_offsets
+                .iter_mut()
+                .find(|(t, p, _)| t == topic && p == partition)
+            {
+                slot.2 += offset;
+            } else {
+                self.end_offsets.push((topic.clone(), *partition, *offset));
+            }
+        }
+        self.end_offsets.sort();
+    }
 }
 
 /// Parse the JSON artifact `nb-serve` wrote. Fails closed: any
@@ -81,6 +119,11 @@ pub fn parse_broker_artifact(path: &Path) -> Result<BrokerCounts, String> {
         accepted_records: num("accepted_records")?,
         accepted_wire_bytes: num("accepted_wire_bytes")?,
         produce_requests: num("produce_requests")?,
+        metadata_requests: num("metadata_requests")?,
+        injected_requests: num("injected_requests")?,
+        injected_errors: num("injected_errors")?,
+        fetch_requests: num("fetch_requests")?,
+        fetched_records: num("fetched_records")?,
         validation_failures,
         end_offsets,
         artifact_path: path.to_path_buf(),
@@ -89,8 +132,29 @@ pub fn parse_broker_artifact(path: &Path) -> Result<BrokerCounts, String> {
 
 /// Everything the artifact builder needs beyond the drive outcome.
 pub struct RunContext {
-    /// Cell under test.
-    pub cell: CellDef,
+    /// Cell ID.
+    pub cell_id: &'static str,
+    /// Records offered (produce) or targeted (fetch/connect cases).
+    pub offered: u64,
+    /// Base seed; repetition seeds derive from it.
+    pub seed: u64,
+    /// Scenario profile (`bulk` for produce, `fetch` for consume).
+    pub profile: &'static str,
+    /// Records consumed and verified (fetch drives; 0 for produce).
+    pub consumed: u64,
+    /// Family-specific failure (verification mismatch, paused
+    /// delivery, no faults fired, ...) beyond the generic checks.
+    pub extra_failed: bool,
+    /// Effective client settings (must carry the five required keys).
+    pub effective_settings: Value,
+    /// Scenario equal-semantics block.
+    pub equal_semantics: Value,
+    /// Drive-mode label for `execution`.
+    pub drive_mode: String,
+    /// Extra `execution` fields (cell-specific metrics).
+    pub extra_execution: serde_json::Map<String, Value>,
+    /// Latency-meaning note for `execution.latency_note`.
+    pub latency_note: String,
     /// Zero-based repetition index.
     pub repetition: u32,
     /// Broker counts from the `nb-serve` artifact.
@@ -119,18 +183,16 @@ pub struct RunContext {
     pub broker_peak_rss: u64,
     /// Loopback TCP-connect RTT over 20 samples, milliseconds.
     pub rtt_ms: f64,
-    /// Broker endpoint, e.g. `127.0.0.1:54321`.
-    pub endpoint: String,
+    /// Broker endpoints, e.g. `127.0.0.1:54321` (one per node).
+    pub endpoints: Vec<String>,
     /// UTC ISO-8601 start/end of the measured phase.
     pub timestamps: (String, String),
     /// Path of the raw-latency sidecar (written before this builds).
     pub latency_path: PathBuf,
-    /// Client `max_in_flight` setting (idempotent cells pin 5).
-    pub max_in_flight: usize,
-    /// Crate-default linger/batching, echoed for provenance.
-    pub linger_ms: u64,
-    /// Crate-default batch size, bytes.
-    pub batch_size_bytes: u64,
+    /// Extra broker artifacts (multi-broker cells; the primary is
+    /// `broker.artifact_path`). Hashed into provenance; their bytes
+    /// add to the broker disk-write count.
+    pub extra_broker_artifacts: Vec<PathBuf>,
 }
 
 fn sha256_file(path: &Path) -> Result<(String, u64), String> {
@@ -280,29 +342,32 @@ pub fn build_result(
     harness_exe: &Path,
     result_path: &Path,
 ) -> Result<Value, String> {
-    let offered = ctx.cell.total_records() as u64;
+    let offered = ctx.offered;
     let acked = outcome.acked;
+    let consumed = ctx.consumed;
+    let delivered = acked.max(consumed);
     let broker_accepted = ctx.broker.accepted_records;
     let failed = ctx.broker.validation_failures > 0
         || outcome.timed_out
-        || acked != offered
-        || broker_accepted != acked
+        || ctx.extra_failed
+        || delivered != offered
+        || (acked > 0 && broker_accepted != acked)
         || (outcome.offsets_observed && outcome.offsets_valid != acked);
     let disposition = if failed { "failed" } else { "executed" };
 
     let stats = summarize_latency(outcome.latencies_us.clone());
     let wall = ctx.wall_seconds.max(f64::MIN_POSITIVE);
-    let rps = acked as f64 / wall;
+    let rps = delivered as f64 / wall;
     let mbps = outcome.bytes_offered as f64 / wall / (1024.0 * 1024.0);
     let cpu_total_us = ctx.cpu_us.0.saturating_add(ctx.cpu_us.1);
     let cpu_pct = cpu_total_us as f64 / 1e6 / wall * 100.0;
-    let cpu_ns_per_record = if acked > 0 {
-        cpu_total_us as f64 * 1000.0 / acked as f64
+    let cpu_ns_per_record = if delivered > 0 {
+        cpu_total_us as f64 * 1000.0 / delivered as f64
     } else {
         0.0
     };
-    let allocs_per_record = if acked > 0 {
-        ctx.allocs.0 as f64 / acked as f64
+    let allocs_per_record = if delivered > 0 {
+        ctx.allocs.0 as f64 / delivered as f64
     } else {
         0.0
     };
@@ -325,29 +390,29 @@ pub fn build_result(
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_else(|| "runtime".to_owned());
 
-    let effective = json!({
-        "acks": ctx.cell.acks,
-        "linger_ms": ctx.linger_ms,
-        "batch_size_bytes": ctx.batch_size_bytes,
-        "max_in_flight": ctx.max_in_flight,
-        "idempotence": ctx.cell.idempotent,
-        "compression": "none",
-        "drive_mode": format!("{:?}", ctx.cell.mode).to_lowercase(),
-        "linger_override_ms": ctx.cell.linger_override_ms,
-        "flush_every": ctx.cell.flush_every,
-        "idle_seconds": ctx.cell.idle_seconds,
-        "value_bytes": ctx.cell.value_bytes,
-        "key_bytes": ctx.cell.key_bytes,
-        "headers_each": ctx.cell.headers_each,
-        "entropy": ctx.cell.entropy,
-        "seed": ctx.cell.seed,
-        "timeout_secs": ctx.cell.timeout.as_secs(),
-    });
+    let effective = ctx.effective_settings.clone();
     let mut cfg_hasher = Sha256::new();
     cfg_hasher.update(serde_json::to_string(&effective).unwrap_or_default());
     let cfg_sha = hex::encode(cfg_hasher.finalize());
 
     let (broker_sha, broker_size) = sha256_file(&ctx.broker.artifact_path)?;
+    let mut broker_artifacts = vec![json!({
+        "path": ctx.broker.artifact_path.display().to_string(),
+        "type": "broker-counts",
+        "sha256": broker_sha,
+        "size_bytes": broker_size,
+    })];
+    let mut disk_write_bytes = broker_size;
+    for extra in &ctx.extra_broker_artifacts {
+        let (sha, size) = sha256_file(extra)?;
+        disk_write_bytes += size;
+        broker_artifacts.push(json!({
+            "path": extra.display().to_string(),
+            "type": "broker-counts",
+            "sha256": sha,
+            "size_bytes": size,
+        }));
+    }
     let (lat_sha, lat_size) = sha256_file(&ctx.latency_path)?;
 
     let hw_delta: i64 = ctx.broker.end_offsets.iter().map(|(_, _, o)| o).sum();
@@ -360,9 +425,12 @@ pub fn build_result(
 
     // Send-based modes verify per-record offsets; `try_send` modes
     // verify server-side acceptance (every batch CRC-validated by
-    // the null broker) reconciled against the offered count.
+    // the null broker) reconciled against the offered count; fetch
+    // drives verify every delivered ID/hash client-side.
     let checksummed: u64 = if outcome.offsets_observed {
         outcome.offsets_valid
+    } else if consumed > 0 {
+        consumed
     } else {
         broker_accepted.min(acked)
     };
@@ -372,23 +440,20 @@ pub fn build_result(
         .map(|e| json!({"phase": "measured", "message": e}))
         .collect();
 
-    let seed = ctx.cell.seed;
-    Ok(json!({
+    let seed = ctx.seed;
+    let equal_semantics = ctx.equal_semantics.clone();
+    let mut doc = json!({
         "schema_version": "1.0.0",
         "contract_version": "1.1.0",
         "suite_hold": {"status": "active"},
         "scenario": {
-            "scenario_id": ctx.cell.id,
-            "cell_id": ctx.cell.id,
+            "scenario_id": ctx.cell_id,
+            "cell_id": ctx.cell_id,
             "peer": "partitionline",
-            "profile": "bulk",
+            "profile": ctx.profile,
             "tier": "exploratory",
             "cell_disposition": disposition,
-            "equal_semantics": {
-                "acks": ctx.cell.acks,
-                "idempotence": ctx.cell.idempotent,
-                "max_in_flight": ctx.max_in_flight,
-            },
+            "equal_semantics": equal_semantics,
         },
         "provenance": {
             "source": {
@@ -416,9 +481,9 @@ pub fn build_result(
                 "image": "nullbroker (KL09-06, workspace-excluded harness broker)",
                 "version": env!("CARGO_PKG_VERSION"),
                 "mode": "null-broker loopback",
-                "cluster_id": "nb-serve-single",
-                "node_count": 1,
-                "endpoints": [ctx.endpoint.clone()],
+                "cluster_id": if ctx.endpoints.len() > 1 { "nb-serve-multi" } else { "nb-serve-single" },
+                "node_count": ctx.endpoints.len().max(1),
+                "endpoints": ctx.endpoints.clone(),
             },
             "host": {
                 "hostname": ctx.host.hostname,
@@ -457,42 +522,30 @@ pub fn build_result(
                 "partition_seed": seed ^ 0xC2B2_AE35_1750_4D07,
                 "repetition_seed": seed ^ u64::from(ctx.repetition),
             },
-            "artifacts": [
-                {
-                    "path": ctx.broker.artifact_path.display().to_string(),
-                    "type": "broker-counts",
-                    "sha256": broker_sha,
-                    "size_bytes": broker_size,
-                },
-                {
-                    "path": ctx.latency_path.display().to_string(),
-                    "type": "raw-latency-us",
-                    "sha256": lat_sha,
-                    "size_bytes": lat_size,
-                },
-            ],
+            "artifacts": broker_artifacts_plus_latency(broker_artifacts, &ctx.latency_path, &lat_sha, lat_size),
         },
         "execution": {
-            "cell_id": ctx.cell.id,
+            "cell_id": ctx.cell_id,
             "repetition_index": ctx.repetition,
             "result_path": result_path.display().to_string(),
-            "drive_mode": format!("{:?}", ctx.cell.mode).to_lowercase(),
+            "drive_mode": ctx.drive_mode.clone(),
             "records_offered": offered,
+            "records_consumed": consumed,
             "timed_out": outcome.timed_out,
             "flush_us_total": outcome.flush_us_total,
             "queue_full_retries": outcome.queue_full_retries,
             "offsets_observed": outcome.offsets_observed,
             "validation_failures": ctx.broker.validation_failures,
-            "latency_note": "sequential: per-record send-call latency (send to metadata). try_send modes (pipelined/flush-heavy): offer-to-flush-complete bound per record (enqueue stamp to delivering flush end); flush time also in flush_us_total",
+            "latency_note": ctx.latency_note.clone(),
         },
         "outcomes": {
             "offered": offered,
-            "accepted": acked,
+            "accepted": delivered,
             "acknowledged": acked,
-            "consumed": 0,
+            "consumed": consumed,
             "rejected": 0,
-            "timed_out": if outcome.timed_out { offered.saturating_sub(acked) } else { 0 },
-            "unknown": offered.saturating_sub(acked),
+            "timed_out": if outcome.timed_out { offered.saturating_sub(delivered) } else { 0 },
+            "unknown": offered.saturating_sub(delivered),
         },
         "measurements": {
             "throughput": {
@@ -556,9 +609,9 @@ pub fn build_result(
                 "cpu_seconds_unit": "seconds",
                 "peak_rss_bytes": ctx.broker_peak_rss,
                 "rss_unit": "bytes",
-                "disk_write_bytes": broker_size,
+                "disk_write_bytes": disk_write_bytes,
                 "disk_write_unit": "bytes",
-                "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifact only",
+                "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
             },
             "errors": errors,
         },
@@ -573,9 +626,9 @@ pub fn build_result(
             "record_ids": {
                 "start_id": if offered > 0 { 1 } else { 0 },
                 "end_id": offered,
-                "expected_count": acked,
+                "expected_count": delivered,
                 "verified_count": checksummed,
-                "missing_ids_count": acked.saturating_sub(checksummed),
+                "missing_ids_count": delivered.saturating_sub(checksummed),
                 "duplicate_ids_count": 0,
                 "checksum_algorithm": "broker batch-CRC validation (KL09-06) + client offset accounting",
                 "payload_checksum_matches": !failed,
@@ -592,5 +645,25 @@ pub fn build_result(
                 },
             ],
         },
-    }))
+    });
+    if let Some(exec) = doc.get_mut("execution").and_then(Value::as_object_mut) {
+        exec.extend(ctx.extra_execution.clone());
+    }
+    Ok(doc)
+}
+
+/// Append the latency sidecar entry to the broker-artifact list.
+fn broker_artifacts_plus_latency(
+    mut broker: Vec<Value>,
+    latency_path: &Path,
+    lat_sha: &str,
+    lat_size: u64,
+) -> Vec<Value> {
+    broker.push(json!({
+        "path": latency_path.display().to_string(),
+        "type": "raw-latency-us",
+        "sha256": lat_sha,
+        "size_bytes": lat_size,
+    }));
+    broker
 }
