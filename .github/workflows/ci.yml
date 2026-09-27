@@ -92,6 +92,16 @@ jobs:
         with:
           command: check advisories licenses bans sources
 
+  # KL09-04 ratcheted allocation-budget gate for the codecs. Stable only:
+  # the bench crate's criterion dev-dependency requires rustc 1.86+.
+  alloc-budget:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --locked --manifest-path benchmarks/codec/Cargo.toml --test alloc_budget
+
   # crates.io packaging + publish dry-run (does not publish).
   package:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'

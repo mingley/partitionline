@@ -2759,13 +2759,13 @@
     {
       "id": "KL09-04",
       "title": "Add ratcheted allocation-budget gates for the codecs",
-      "priority": "P1", "kind": "test-infrastructure", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "test-infrastructure", "status": "done", "owner": "mingley",
       "depends_on": ["KL04-09"],
       "files": ["new: benchmarks/codec/tests/alloc_budget.rs", "benchmarks/codec/Cargo.toml", ".github/workflows/ci.yml"],
       "deliverable": "Deterministic allocation-count assertions for batch encode, Produce request build and fetch decode, run in CI from the workspace-excluded bench crate; this card also records the reviewed allocation-counting tool reused by KL09-09/10.",
       "acceptance": ["The counting tool is manifest-declared and reviewed, lives only in the workspace-excluded bench crate, and adds no unsafe code or dev-dependency to the core crate.", "Budgets equal today's measured counts for cells micro-encode (1 and 1,000 records), micro-compress:{lz4,gzip,snappy}, micro-request (v9+ Produce build) and micro-decode (1 and 1,000 records); a budget may be lowered by any card but raised only by a separate maintainer-approved baseline-change card.", "A deliberately injected per-record allocation fails the gate."],
       "validation": ["cargo test --locked --manifest-path benchmarks/codec/Cargo.toml --test alloc_budget", "Show the injected-allocation failure, then revert it."],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-04.json"]
     },
     {
       "id": "KL09-05",
