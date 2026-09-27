@@ -3186,13 +3186,13 @@
     {
       "id": "KL09-41",
       "title": "Materialize only deliverable fetched records",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL09-10", "KL09-11", "KL03-22"],
       "files": ["src/consumer.rs", "src/protocol/fetch.rs", "src/protocol/records.rs"],
       "deliverable": "Records before the requested offset, past the LSO, inside aborted transactions or in control batches are skipped without per-record materialization.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "CRC is still verified for every complete batch; malformed and partial trailing batch behavior and cursor progress are identical (KL03-03/04 tests)."],
       "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test protocol_oracles", "cargo test --locked --test fuzz_decode_smoke", "bash scripts/ci-protocol-oracles.sh", "A/B cell nb-fetch-seek-in-batch (allocations per delivered record): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)", "A/B cell nb-fetch-committed-aborts (CPU-ns/record): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL09-41.json"]
     },
     {
       "id": "KL09-42",
