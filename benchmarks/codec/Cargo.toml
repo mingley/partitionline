@@ -14,9 +14,14 @@ crc32c = "0.6"
 
 [dev-dependencies]
 criterion = "0.8"
+iai-callgrind = "0.14"
 
 [[bench]]
 name = "codec"
+harness = false
+
+[[bench]]
+name = "iai"
 harness = false
 
 [[bin]]

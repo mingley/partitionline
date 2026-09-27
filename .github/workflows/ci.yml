@@ -102,6 +102,35 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --locked --manifest-path benchmarks/codec/Cargo.toml --test alloc_budget
 
+  # KL09-05 deterministic instruction-count gate. Linux-only (valgrind);
+  # on PRs it runs only when codec-adjacent paths changed, on main and
+  # manual dispatches it always runs.
+  perf-gate:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - id: filter
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            git fetch --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+            if git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD \
+              | grep -qE '^(src/protocol/|src/producer\.rs|src/consumer\.rs|src/net\.rs|benchmarks/codec/)'; then
+              echo "run=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "run=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+      - if: steps.filter.outputs.run == 'true'
+        run: sudo apt-get update && sudo apt-get install -y valgrind
+      - if: steps.filter.outputs.run == 'true'
+        run: cargo install iai-callgrind-runner --version 0.14.2 --locked
+      - if: steps.filter.outputs.run == 'true'
+        run: bash scripts/ci-perf-gate.sh
+
   # crates.io packaging + publish dry-run (does not publish).
   package:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
