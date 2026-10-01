@@ -818,6 +818,48 @@ struct FastRoute {
     handles: Vec<WorkerHandle>,
 }
 
+/// One broker's client quota, shared by all its connection slots. The atomic
+/// fast path avoids a clock read and mutex when the broker has never throttled
+/// or its interval has expired. Keep an outstanding interval across reconnects.
+#[derive(Default)]
+struct BrokerThrottle {
+    active: AtomicBool,
+    until: parking_lot::Mutex<Option<Instant>>,
+}
+
+impl BrokerThrottle {
+    fn remaining(&self) -> Option<Duration> {
+        if !self.active.load(Ordering::Acquire) {
+            return None;
+        }
+        let mut until = self.until.lock();
+        let rest = until.map(|end| end.saturating_duration_since(Instant::now()));
+        if rest.is_some_and(|rest| !rest.is_zero()) {
+            rest
+        } else {
+            *until = None;
+            self.active.store(false, Ordering::Release);
+            None
+        }
+    }
+
+    fn observe(&self, millis: i32) {
+        // Zero and negative values never cancel another connection's quota.
+        let Ok(millis) = u64::try_from(millis) else {
+            return;
+        };
+        if millis == 0 {
+            return;
+        }
+        let Some(end) = Instant::now().checked_add(Duration::from_millis(millis)) else {
+            return;
+        };
+        let mut until = self.until.lock();
+        *until = Some(until.map_or(end, |old| old.max(end)));
+        self.active.store(true, Ordering::Release);
+    }
+}
+
 struct Shared {
     cfg: ProducerConfig,
     cluster: parking_lot::Mutex<Cluster>,
@@ -873,6 +915,8 @@ struct Shared {
     retry_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
     last_meta_err: parking_lot::Mutex<Option<Error>>,
     nodes: parking_lot::Mutex<HashMap<i32, Vec<Option<WorkerHandle>>>>,
+    broker_throttles: parking_lot::Mutex<HashMap<i32, Arc<BrokerThrottle>>>,
+    throttle_metrics: crate::metrics::ThrottleTracker,
     reconnect_fails: parking_lot::Mutex<HashMap<i32, u32>>,
     /// (Broker, slot) pairs with a connect or reconnect-backoff in flight.
     reconnect_busy: parking_lot::Mutex<HashSet<(i32, usize)>>,
@@ -947,6 +991,14 @@ fn ack_latency_ns(ack: Instant, queued_at: Instant) -> u64 {
 }
 
 impl Shared {
+    fn broker_throttle(&self, node: i32) -> Arc<BrokerThrottle> {
+        let mut map = self.broker_throttles.lock();
+        // Retain only live workers and unexpired intervals, including those
+        // whose last socket disconnected. No history per record or response.
+        map.retain(|_, throttle| Arc::strong_count(throttle) > 1 || throttle.remaining().is_some());
+        Arc::clone(map.entry(node).or_default())
+    }
+
     fn topic_tracker(&self, topic: &Arc<str>) -> Arc<crate::metrics::ProduceTopicTracker> {
         let mut map = self.topics.lock();
         map.entry(Arc::clone(topic))
@@ -1378,6 +1430,8 @@ impl Producer {
             retry_task: parking_lot::Mutex::new(None),
             last_meta_err: parking_lot::Mutex::new(None),
             nodes: parking_lot::Mutex::new(HashMap::new()),
+            broker_throttles: parking_lot::Mutex::new(HashMap::new()),
+            throttle_metrics: crate::metrics::ThrottleTracker::default(),
             reconnect_fails: parking_lot::Mutex::new(HashMap::new()),
             reconnect_busy: parking_lot::Mutex::new(HashSet::new()),
             retries_out: AtomicUsize::new(0),
@@ -1843,6 +1897,7 @@ impl Producer {
             bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
             bytes_buffered: self.inner.shared.buffered_bytes.load(Ordering::Relaxed),
             ack_latency: self.inner.shared.ack_latency.snapshot(),
+            throttle: self.inner.shared.throttle_metrics.snapshot(),
             topics: crate::metrics::snapshot_produce_topics(&self.inner.shared.topics.lock()),
         }
     }
@@ -3067,6 +3122,7 @@ async fn spawn_slot_worker(
     };
     let worker = Worker {
         node_id: node,
+        throttle: shared.broker_throttle(node),
         conn,
         data: data_rx,
         ctrl: ctrl_rx,
@@ -3246,6 +3302,7 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
 
 struct Worker {
     node_id: i32,
+    throttle: Arc<BrokerThrottle>,
     conn: BrokerConn,
     data: mpsc::Receiver<Pending>,
     ctrl: mpsc::Receiver<Ctrl>,
@@ -3374,7 +3431,9 @@ impl Worker {
         if self.pending.is_empty() {
             return false;
         }
-        if self.in_flight.len() >= self.shared.cfg.max_in_flight {
+        if self.in_flight.len() >= self.shared.cfg.max_in_flight
+            || self.throttle.remaining().is_some()
+        {
             return false;
         }
         if let Some(first) = self.pending.first() {
@@ -3427,7 +3486,8 @@ impl Worker {
             }
 
             if self.in_flight.len() >= self.shared.cfg.max_in_flight
-                || (self.pending.is_empty() && !self.in_flight.is_empty())
+                || (!self.in_flight.is_empty()
+                    && (self.pending.is_empty() || self.throttle.remaining().is_some()))
             {
                 if let Err(e) = self.wait_one().await {
                     fail_inflight(&self.shared, &mut self.in_flight, clone_err(&e));
@@ -3443,15 +3503,22 @@ impl Worker {
                 linger_start.filter(|_| !linger.is_zero() && !self.pending.is_empty());
 
             let now = Instant::now();
-            let next_wake = match (wait_linger, self.earliest_pending_deadline()) {
-                (Some(s), Some(dl)) => {
-                    let linger_rest = linger.saturating_sub(s.elapsed());
-                    let dl_rest = dl.saturating_duration_since(now);
-                    Some(linger_rest.min(dl_rest))
+            // A completed linger must not spin while a broker is muted. The
+            // original delivery deadline still wakes us to expire queued work.
+            let next_wake = if let Some(rest) = self.throttle.remaining() {
+                self.earliest_pending_deadline()
+                    .map(|dl| rest.min(dl.saturating_duration_since(now)))
+            } else {
+                match (wait_linger, self.earliest_pending_deadline()) {
+                    (Some(s), Some(dl)) => Some(
+                        linger
+                            .saturating_sub(s.elapsed())
+                            .min(dl.saturating_duration_since(now)),
+                    ),
+                    (Some(s), None) => Some(linger.saturating_sub(s.elapsed())),
+                    (None, Some(dl)) => Some(dl.saturating_duration_since(now)),
+                    (None, None) => None,
                 }
-                (Some(s), None) => Some(linger.saturating_sub(s.elapsed())),
-                (None, Some(dl)) => Some(dl.saturating_duration_since(now)),
-                (None, None) => None,
             };
 
             tokio::select! {
@@ -3500,6 +3567,29 @@ impl Worker {
     }
 
     async fn fire(&mut self) -> Result<()> {
+        // Flush/close call fire directly, so they must also respect the quota.
+        // Existing responses remain readable while new sends are muted. Sleep
+        // is cancellation-safe: shutdown aborts workers at its original budget.
+        loop {
+            self.purge_expired_pending();
+            if self.pending.is_empty() {
+                return Ok(());
+            }
+            let Some(rest) = self.throttle.remaining() else {
+                break;
+            };
+            if !self.in_flight.is_empty() {
+                if let Err(e) = self.wait_one().await {
+                    fail_inflight(&self.shared, &mut self.in_flight, clone_err(&e));
+                    return Err(e);
+                }
+                continue;
+            }
+            let rest = self.earliest_pending_deadline().map_or(rest, |dl| {
+                rest.min(dl.saturating_duration_since(Instant::now()))
+            });
+            tokio::time::sleep(rest).await;
+        }
         self.purge_expired_pending();
         if self.pending.is_empty() {
             return Ok(());
@@ -3787,7 +3877,8 @@ impl Worker {
             }
         };
         let mut body = body;
-        let (responses, endpoints, ..) = match decode_produce_response(&mut body, version) {
+        let (responses, endpoints, throttle_ms) = match decode_produce_response(&mut body, version)
+        {
             Ok(r) => r,
             Err(e) => {
                 if let Some(inf) = guard.inf.take() {
@@ -3796,6 +3887,12 @@ impl Worker {
                 return Err(e);
             }
         };
+        // Apache ProduceResponse.shouldClientThrottle: older versions already
+        // wait at the server. Publish the quota before any delivery completes.
+        if version >= 6 {
+            self.shared.throttle_metrics.observe(throttle_ms);
+            self.throttle.observe(throttle_ms);
+        }
         let Some(inf) = guard.inf.take() else {
             return Ok(());
         };
@@ -4698,6 +4795,24 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn broker_throttle_extends_without_zero_or_negative_unmute() {
+        let throttle = BrokerThrottle::default();
+        assert_eq!(throttle.remaining(), None);
+        throttle.observe(10_000);
+        let first = *throttle.until.lock();
+        for millis in [0, -1, i32::MIN, 1] {
+            throttle.observe(millis);
+        }
+        assert_eq!(*throttle.until.lock(), first);
+        throttle.observe(i32::MAX);
+        assert!(throttle.remaining().unwrap() > Duration::from_secs(24 * 86400));
+        *throttle.until.lock() = Some(Instant::now());
+        assert_eq!(throttle.remaining(), None);
+        assert!(!throttle.active.load(Ordering::Acquire));
+        assert_eq!(*throttle.until.lock(), None);
+    }
 
     #[test]
     fn record_metadata_getters_match_java() {

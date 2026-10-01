@@ -344,6 +344,62 @@ impl LatencyTracker {
     }
 }
 
+/// Client-enforced broker quota observations since connect.
+///
+/// These fixed-size counters contain no broker or topic labels. Positive
+/// response durations are requested mute time, not elapsed waiting: overlapping
+/// intervals and idle clients can make actual waiting shorter. Counters saturate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ThrottleStats {
+    /// Applicable responses with a positive throttle duration.
+    pub responses: u64,
+    /// Sum of positive broker-requested durations in milliseconds.
+    pub requested_millis: u64,
+    /// Largest positive broker-requested duration in milliseconds.
+    pub max_millis: u64,
+    /// Applicable responses with an invalid negative duration (ignored).
+    pub invalid_responses: u64,
+}
+
+#[derive(Default)]
+pub(crate) struct ThrottleTracker {
+    responses: AtomicU64,
+    requested_millis: AtomicU64,
+    max_millis: AtomicU64,
+    invalid_responses: AtomicU64,
+}
+
+impl ThrottleTracker {
+    pub(crate) fn observe(&self, millis: i32) {
+        let counter = if millis < 0 {
+            &self.invalid_responses
+        } else if millis > 0 {
+            let millis = u64::try_from(millis).unwrap_or(0);
+            let _ =
+                self.requested_millis
+                    .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
+                        Some(old.saturating_add(millis))
+                    });
+            let _ = self.max_millis.fetch_max(millis, Ordering::Relaxed);
+            &self.responses
+        } else {
+            return;
+        };
+        let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
+            Some(old.saturating_add(1))
+        });
+    }
+
+    pub(crate) fn snapshot(&self) -> ThrottleStats {
+        ThrottleStats {
+            responses: self.responses.load(Ordering::Relaxed),
+            requested_millis: self.requested_millis.load(Ordering::Relaxed),
+            max_millis: self.max_millis.load(Ordering::Relaxed),
+            invalid_responses: self.invalid_responses.load(Ordering::Relaxed),
+        }
+    }
+}
+
 /// Produce counters since this [`crate::Producer`] connected.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ProducerMetrics {
@@ -359,6 +415,8 @@ pub struct ProducerMetrics {
     pub bytes_buffered: u64,
     /// Queue-to-ack latency per acknowledged record (including `acks=0`).
     pub ack_latency: LatencyStats,
+    /// Produce v6+ client quota observations, aggregated across brokers.
+    pub throttle: ThrottleStats,
     /// Per-topic counters. Topics with no activity are omitted. Sorted by name.
     pub topics: Vec<TopicProduceMetrics>,
 }
@@ -613,6 +671,37 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
     use std::time::Duration;
+
+    #[test]
+    fn throttle_stats_ignore_zero_and_saturate_without_labels() {
+        let tracker = ThrottleTracker::default();
+        tracker.observe(0);
+        assert_eq!(tracker.snapshot(), ThrottleStats::default());
+        for millis in [350, 120, -1, i32::MIN] {
+            tracker.observe(millis);
+        }
+        assert_eq!(
+            tracker.snapshot(),
+            ThrottleStats {
+                responses: 2,
+                requested_millis: 470,
+                max_millis: 350,
+                invalid_responses: 2,
+            }
+        );
+        tracker.responses.store(u64::MAX, Ordering::Relaxed);
+        tracker
+            .requested_millis
+            .store(u64::MAX - 1, Ordering::Relaxed);
+        tracker.invalid_responses.store(u64::MAX, Ordering::Relaxed);
+        tracker.observe(i32::MAX);
+        tracker.observe(-1);
+        let stats = tracker.snapshot();
+        assert_eq!(stats.responses, u64::MAX);
+        assert_eq!(stats.requested_millis, u64::MAX);
+        assert_eq!(stats.invalid_responses, u64::MAX);
+        assert_eq!(stats.max_millis, u64::try_from(i32::MAX).unwrap());
+    }
 
     #[test]
     fn metrics_default_zero() {

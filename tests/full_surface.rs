@@ -13105,6 +13105,262 @@ async fn produce_mixed_version_two_brokers_both_leader_orders() {
 }
 
 #[tokio::test]
+async fn produce_throttle_applies_to_second_connection_for_same_broker() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_produce_throttles(1, [350]);
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .connections(2)
+            .linger(Duration::ZERO)
+            .batch_records(1),
+    )
+    .await
+    .unwrap();
+    let first = producer
+        .send(ProduceRecord::to("t").partition(0).value("first"))
+        .await
+        .unwrap();
+    assert_eq!((first.partition, first.offset), (0, 0));
+    let start = std::time::Instant::now();
+    let second = producer
+        .send(ProduceRecord::to("t").partition(1).value("second"))
+        .await
+        .unwrap();
+    assert_eq!((second.partition, second.offset), (1, 0));
+    assert!(
+        start.elapsed() >= Duration::from_millis(300),
+        "broker throttle did not delay its other connection"
+    );
+    assert_eq!(mock.produce_request_nodes(), [1, 1]);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn produce_throttle_does_not_delay_other_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .batch_records(1),
+    )
+    .await
+    .unwrap();
+    producer
+        .send(ProduceRecord::to("t").partition(1).value("warm"))
+        .await
+        .unwrap();
+    mock.set_produce_throttles(1, [1000]);
+    producer
+        .send(ProduceRecord::to("t").partition(0).value("quota"))
+        .await
+        .unwrap();
+    let start = std::time::Instant::now();
+    let clone = producer.clone();
+    let slow = tokio::spawn(async move {
+        clone
+            .send(ProduceRecord::to("t").partition(0).value("slow"))
+            .await
+    });
+    tokio::time::timeout(Duration::from_millis(400), async {
+        while producer.metrics().records_queued < 3 {
+            tokio::task::yield_now().await;
+        }
+        let fast = producer
+            .send(ProduceRecord::to("t").partition(1).value("fast"))
+            .await
+            .unwrap();
+        assert_eq!((fast.partition, fast.offset), (1, 1));
+    })
+    .await
+    .expect("an unrelated broker must make progress during the quota");
+    assert!(!slow.is_finished());
+    assert_eq!(slow.await.unwrap().unwrap().offset, 1);
+    assert!(start.elapsed() >= Duration::from_millis(900));
+    assert_eq!(mock.produce_request_nodes(), [2, 1, 2, 1]);
+    assert_eq!(producer.metrics().throttle.responses, 1);
+    assert_eq!(producer.metrics().throttle.requested_millis, 1000);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn produce_throttle_version_boundary_and_invalid_values() {
+    for version in [3, 5, 6, 8, 9, 12] {
+        let mock = common::Mock::start().await;
+        mock.set_node_api_max(1, PRODUCE, version);
+        let millis = if version < 6 { 60_000 } else { 200 };
+        mock.set_produce_throttles(1, [millis, 0, -1, i32::MIN]);
+        let producer = Producer::new(
+            ProducerConfig::bootstrap([mock.addr.clone()])
+                .linger(Duration::ZERO)
+                .batch_records(1),
+        )
+        .await
+        .unwrap();
+        let mut throttle_elapsed = Duration::ZERO;
+        for index in 0..4 {
+            let start = std::time::Instant::now();
+            let md = tokio::time::timeout(
+                Duration::from_secs(2),
+                producer.send(ProduceRecord::to("t").value("x")),
+            )
+            .await
+            .expect("legacy/zero/negative quotas must not block")
+            .unwrap();
+            assert_eq!(md.offset, index);
+            if index == 1 {
+                throttle_elapsed = start.elapsed();
+            }
+        }
+        assert_eq!(mock.last_produce_version_for_node(1), Some(version));
+        let stats = producer.metrics().throttle;
+        if version >= 6 {
+            assert!(throttle_elapsed >= Duration::from_millis(150));
+            assert_eq!(
+                (
+                    stats.responses,
+                    stats.requested_millis,
+                    stats.max_millis,
+                    stats.invalid_responses
+                ),
+                (1, 200, 200, 2)
+            );
+        } else {
+            assert_eq!(stats, partitionline::metrics::ThrottleStats::default());
+        }
+        assert_eq!(producer.metrics().records_acked, 4);
+        assert_eq!(producer.metrics().bytes_buffered, 0);
+        producer.close().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn produce_throttle_expiry_consumes_original_delivery_budget() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_throttles(1, [1000]);
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .batch_records(1)
+            .request_timeout(Duration::from_millis(200))
+            .delivery_timeout(Duration::from_millis(200)),
+    )
+    .await
+    .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value("quota"))
+        .await
+        .unwrap();
+    let start = std::time::Instant::now();
+    let expired = tokio::time::timeout(
+        Duration::from_millis(700),
+        producer.send(ProduceRecord::to("t").value("expired")),
+    )
+    .await
+    .unwrap();
+    assert!(matches!(expired, Err(Error::Timeout)), "{expired:?}");
+    assert!(start.elapsed() >= Duration::from_millis(150));
+    assert_eq!(mock.produce_request_nodes(), [1]);
+    let metrics = producer.metrics();
+    assert_eq!(
+        (
+            metrics.records_queued,
+            metrics.records_acked,
+            metrics.produce_errors,
+            metrics.bytes_buffered
+        ),
+        (2, 1, 1, 0)
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn produce_throttle_flush_cannot_bypass_quota() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_throttles(1, [350]);
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .batch_records(1),
+    )
+    .await
+    .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value("quota"))
+        .await
+        .unwrap();
+    producer
+        .try_send(ProduceRecord::to("t").value("flush"))
+        .unwrap();
+    let start = std::time::Instant::now();
+    producer.flush().await.unwrap();
+    assert!(start.elapsed() >= Duration::from_millis(300));
+    assert_eq!(mock.produce_request_nodes(), [1, 1]);
+    assert_eq!(producer.metrics().records_acked, 2);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn produce_throttle_close_timeout_interrupts_long_wait() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_throttles(1, [i32::MAX]);
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .batch_records(1),
+    )
+    .await
+    .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value("quota"))
+        .await
+        .unwrap();
+    let clone = producer.clone();
+    let survivor = producer.clone();
+    let pending =
+        tokio::spawn(async move { clone.send(ProduceRecord::to("t").value("pending")).await });
+    tokio::time::timeout(Duration::from_millis(500), async {
+        while producer.metrics().records_queued < 2 {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    let tasks = producer.test_worker_tasks();
+    let close = tokio::time::timeout(
+        Duration::from_millis(500),
+        producer.close_timeout(Duration::from_millis(50)),
+    )
+    .await
+    .unwrap();
+    assert!(matches!(close, Err(Error::Timeout)), "{close:?}");
+    let pending = tokio::time::timeout(Duration::from_millis(500), pending)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        matches!(pending, Err(Error::Closed | Error::Timeout)),
+        "{pending:?}"
+    );
+    tokio::time::timeout(Duration::from_millis(500), async {
+        while tasks.iter().any(|task| !task.is_finished()) {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(survivor.metrics().bytes_buffered, 0);
+    assert_eq!(mock.produce_request_nodes(), [1]);
+    assert!(matches!(
+        survivor.send(ProduceRecord::to("t").value("closed")).await,
+        Err(Error::Closed)
+    ));
+}
+
+#[tokio::test]
 async fn produce_mixed_version_leader_movement_and_reconnection() {
     let mock = common::Mock::start_two_node().await;
     mock.set_node_api_max(1, PRODUCE, 12);

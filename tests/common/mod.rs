@@ -121,9 +121,10 @@ use partitionline::protocol::admin::{
 };
 use partitionline::protocol::api::{
     decode_metadata_request_topics, decode_produce_request, encode_api_versions_response,
-    encode_metadata_response, encode_produce_response_with_endpoints, ApiVersion,
-    ApiVersionsResponse, Broker, FinalizedFeatureKey, MetadataRequestTopic, MetadataResponse,
-    NodeEndpoint, PartitionMetadata, ProducePartitionResponse, SupportedFeatureKey, TopicMetadata,
+    encode_metadata_response, encode_produce_response_with_endpoints,
+    encode_produce_response_with_throttle, ApiVersion, ApiVersionsResponse, Broker,
+    FinalizedFeatureKey, MetadataRequestTopic, MetadataResponse, NodeEndpoint, PartitionMetadata,
+    ProducePartitionResponse, SupportedFeatureKey, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
@@ -543,6 +544,7 @@ struct State {
     last_describe_delegation_token: Option<DescribeDelegationTokenRequest>,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
+    produce_throttles: HashMap<i32, VecDeque<i32>>,
     /// Per-partition batches observed on Produce: (topic, partition, records, encoded bytes).
     produce_batches: Vec<(String, i32, i32, i32)>,
     accepted_fetch: Vec<i32>,
@@ -977,6 +979,7 @@ fn new_state(
         last_describe_delegation_token: None,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
+        produce_throttles: HashMap::new(),
         produce_batches: Vec::new(),
         accepted_fetch: Vec::new(),
         groups: HashMap::new(),
@@ -2048,6 +2051,13 @@ impl Mock {
 
     pub fn produce_request_nodes(&self) -> Vec<i32> {
         self.state.lock().produce_requests.clone()
+    }
+
+    pub fn set_produce_throttles(&self, node: i32, values: impl IntoIterator<Item = i32>) {
+        self.state
+            .lock()
+            .produce_throttles
+            .insert(node, values.into_iter().collect());
     }
 
     /// Per-partition Produce batches: (topic, partition, record count, encoded bytes).
@@ -6380,13 +6390,30 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                 }
                 let endpoints = node_endpoints_for(&st, parts.iter().map(|p| p.current_leader_id));
-                encode_produce_response_with_endpoints(
-                    &mut body,
-                    header.api_version,
-                    &parts,
-                    &endpoints,
-                )
-                .unwrap();
+                let throttle = st
+                    .produce_throttles
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                if let Some(throttle) = throttle {
+                    // Quota fixtures use healthy leaders. Keep the original
+                    // endpoint encoder for the leader-movement fault fixtures.
+                    assert!(endpoints.is_empty());
+                    encode_produce_response_with_throttle(
+                        &mut body,
+                        header.api_version,
+                        &parts,
+                        throttle,
+                    )
+                    .unwrap();
+                } else {
+                    encode_produce_response_with_endpoints(
+                        &mut body,
+                        header.api_version,
+                        &parts,
+                        &endpoints,
+                    )
+                    .unwrap();
+                }
                 let should_drop_resp = {
                     let node_match = match st.produce_drop_response_node {
                         Some(target) => target == node_id,
