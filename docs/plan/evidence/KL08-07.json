@@ -1,0 +1,466 @@
+{
+  "schema_version": 1,
+  "task": "KL08-07",
+  "status": "rehearsal_completed",
+  "qualifying_source_sha": "3109514bc9aa30def679d43fdd823d2c71138ab1",
+  "complete_report": "docs/evidence/releases/3109514bc9aa30def679d43fdd823d2c71138ab1-no-publish-rehearsal.json",
+  "complete_report_sha256": "7463db53bfc4afffb873a03f7031fad3def5adcc4064653e3ff85e3e68c02491",
+  "scope": "Exact-source offline execution of 15 checked-in release recovery scenarios plus structural self-test. This is not publication, real registry/GitHub mutation or completed candidate release qualification.",
+  "outcome": {
+    "recovery_scenarios": 15,
+    "passed": 15,
+    "actual_release_complete": false,
+    "actual_tag_refs_unchanged": true,
+    "owner_stages_not_run": 6
+  },
+  "found_and_fixed": "The workflow formerly converted every failed registry GET to skip=0; the local publisher treated unknown as an absent version. Both now use the shared API/sparse-index distinction and stop unknown/unavailable status before publication. API-only index lag also stops both paths.",
+  "failed_attempts": {
+    "dirty_exact_run_rejection": "Release rehearsal rejected: clean committed source required\n",
+    "pre_guard_fixture_report": {
+      "schema_version": 1,
+      "scope": "No-publish release recovery rehearsal; substituted services are not release or hosted CI evidence.",
+      "candidate_source_sha": "2f1f888dfdebc0b9f55fe4f3569e96d92386bd70",
+      "source_file_sha256": {
+        "Cargo.toml": "1f72679b1deb2881bc03bf13bd2c8dfb2bd39f8bc79f0760846145bdc99c4a6e",
+        ".github/workflows/release.yml": "9184cde09d57cf347dcf24a794b0b1d1d1a00b3e5c638caa1f2650f5c3a91f19",
+        ".github/workflows/release-plz.yml": "7c1c20b0194d8e7593ec1d66dc99ecfbe0b363921e696caeabd82410122822e0",
+        "scripts/owner-publish.sh": "93e376b4ab7cf0a9dfed329df2cff356a0f7667fe9033db87b1095de1b8a0dcb",
+        "scripts/lib/crates-io.sh": "afb7ca0ab8483b27138200005dd4b38cc32050db93eef02fa1603d87e124fe6b",
+        "scripts/lib/cargo-registry-token.sh": "10b9afbcabf9c87461e26eb9602b90efe0c63218e1a1503d88ccc14ddd326125",
+        "scripts/check-main-ci.sh": "4c05a3d620a3d2867493fc3b9cd20811d9c7175d77e3cd2b0adfb6f7b64325e8"
+      },
+      "scenarios": [
+        {
+          "name": "final-tag",
+          "status": "passed",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "tag=0.1.0 cargo=0.1.0\n",
+          "stderr": "",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/final-tag",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "wrong-tag",
+          "status": "passed",
+          "exit_code": 1,
+          "expected_exit_code": 1,
+          "stdout": "tag=0.1.1 cargo=0.1.0\n",
+          "stderr": "",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/wrong-tag",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "prerelease-tag",
+          "status": "passed",
+          "exit_code": 1,
+          "expected_exit_code": 1,
+          "stdout": "",
+          "stderr": "Refusing prerelease/build tag '0.1.0-rc.1' \u2014 crates.io publish is for final vX.Y.Z only.\nUse a git tag like v0.1.0-rc.1 for install pins; tag v0.1.0 to publish.\n",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/prerelease-tag",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "workflow-existing-version",
+          "status": "passed",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "release: partitionline 0.1.0 already on crates.io \u2014 skipping publish (idempotent)\n",
+          "stderr": "",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/workflow-existing-version",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "workflow-absent-version",
+          "status": "passed",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "",
+          "stderr": "",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/workflow-absent-version",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "workflow-registry-unavailable",
+          "status": "failed",
+          "exit_code": 0,
+          "expected_exit_code": 1,
+          "stdout": "",
+          "stderr": "",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/workflow-registry-unavailable",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "local-existing-version",
+          "status": "passed",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "owner-publish: partitionline 0.1.0 already on crates.io \u2014 skipping cargo publish (idempotent; not a re-cut)\nowner-publish: next \u2014 tag v0.1.0, push tag (or rely on release.yml),\n  bash scripts/day1-after-publish.sh, commit README + ADOPTION + guide + migrate\n",
+          "stderr": "",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/local-existing-version",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "local-registry-unavailable",
+          "status": "failed",
+          "exit_code": 1,
+          "expected_exit_code": 1,
+          "stdout": "owner-publish: publishing partitionline 0.1.0\ncheck-main-ci: sha=2f1f888 (branch=main check_sha=2f1f888)\n",
+          "stderr": "check-main-ci: WARN \u2014 [outcome=missing] could not parse gh JSON from [] ([Errno 2] No such file or directory: '[]')\nowner-publish: main CI red for this SHA \u2014 refusing publish\n",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/local-registry-unavailable",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "missing-exact-ci",
+          "status": "passed",
+          "exit_code": 1,
+          "expected_exit_code": 1,
+          "stdout": "release: probing CI for exact SHA 2f1f888dfdebc0b9f55fe4f3569e96d92386bd70\ncheck-main-ci: sha=2f1f888 (branch=main check_sha=2f1f888)\n",
+          "stderr": "check-main-ci: WARN \u2014 [outcome=missing] could not parse gh JSON from [] ([Errno 2] No such file or directory: '[]')\n",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/missing-exact-ci",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "confirmation-interrupted",
+          "status": "passed",
+          "exit_code": 130,
+          "expected_exit_code": 130,
+          "stdout": "waiting for crates.io index (1/30)...\n",
+          "stderr": "",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/confirmation-interrupted",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "confirmation-resumed",
+          "status": "passed",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "crates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+          "stderr": "",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/confirmation-interrupted",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "release-notes-first",
+          "status": "passed",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "created GitHub release v0.1.0\n",
+          "stderr": "",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/release-notes-first",
+          "scope": "executed checked-in code with offline substituted services"
+        },
+        {
+          "name": "release-notes-repeated",
+          "status": "passed",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "GitHub release v0.1.0 already exists\n",
+          "stderr": "",
+          "artifact_directory": "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/release-notes-first",
+          "scope": "executed checked-in code with offline substituted services"
+        }
+      ],
+      "commands": [
+        {
+          "command": "curl",
+          "args": [
+            "-fsSA",
+            "partitionline-ci/1",
+            "https://crates.io/api/v1/crates/partitionline/0.1.0"
+          ]
+        },
+        {
+          "command": "sleep",
+          "args": [
+            "10"
+          ]
+        },
+        {
+          "command": "curl",
+          "args": [
+            "-fsSA",
+            "partitionline-ci/1",
+            "https://crates.io/api/v1/crates/partitionline/0.1.0"
+          ]
+        },
+        {
+          "command": "git",
+          "args": [
+            "rev-parse",
+            "--abbrev-ref",
+            "HEAD"
+          ]
+        },
+        {
+          "command": "git",
+          "args": [
+            "status",
+            "--porcelain"
+          ]
+        },
+        {
+          "command": "curl",
+          "args": [
+            "-sS",
+            "-A",
+            "partitionline-owner-publish/1",
+            "-o",
+            "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/local-existing-version/tmp/tmp.mqFsBRrsvI",
+            "-w",
+            "%{http_code}",
+            "https://crates.io/api/v1/crates/partitionline/0.1.0"
+          ]
+        },
+        {
+          "command": "curl",
+          "args": [
+            "-sS",
+            "-A",
+            "partitionline-owner-publish/1",
+            "-o",
+            "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/local-existing-version/tmp/tmp.drxZMu2HZG",
+            "-w",
+            "%{http_code}",
+            "https://index.crates.io/pa/rt/partitionline"
+          ]
+        },
+        {
+          "command": "git",
+          "args": [
+            "rev-parse",
+            "--abbrev-ref",
+            "HEAD"
+          ]
+        },
+        {
+          "command": "git",
+          "args": [
+            "status",
+            "--porcelain"
+          ]
+        },
+        {
+          "command": "curl",
+          "args": [
+            "-sS",
+            "-A",
+            "partitionline-owner-publish/1",
+            "-o",
+            "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/local-registry-unavailable/tmp/tmp.pp30HoE8WY",
+            "-w",
+            "%{http_code}",
+            "https://crates.io/api/v1/crates/partitionline/0.1.0"
+          ]
+        },
+        {
+          "command": "curl",
+          "args": [
+            "-sS",
+            "-A",
+            "partitionline-owner-publish/1",
+            "-o",
+            "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/local-registry-unavailable/tmp/tmp.lm4F7tD4Se",
+            "-w",
+            "%{http_code}",
+            "https://index.crates.io/pa/rt/partitionline"
+          ]
+        },
+        {
+          "command": "curl",
+          "args": [
+            "-sS",
+            "-A",
+            "partitionline-owner-publish/1",
+            "-o",
+            "/workspace/.cloud-setup/kl08-07-before-registry-fix/cases/local-registry-unavailable/tmp/tmp.2b3pAH4jrZ",
+            "-w",
+            "%{http_code}",
+            "https://index.crates.io/pa/rt/partitionline"
+          ]
+        },
+        {
+          "command": "git",
+          "args": [
+            "rev-parse",
+            "HEAD"
+          ]
+        },
+        {
+          "command": "git",
+          "args": [
+            "rev-parse",
+            "-q",
+            "--verify",
+            "2f1f888dfdebc0b9f55fe4f3569e96d92386bd70^{commit}"
+          ]
+        },
+        {
+          "command": "git",
+          "args": [
+            "rev-parse",
+            "HEAD"
+          ]
+        },
+        {
+          "command": "git",
+          "args": [
+            "rev-parse",
+            "-q",
+            "--verify",
+            "2f1f888dfdebc0b9f55fe4f3569e96d92386bd70^{commit}"
+          ]
+        },
+        {
+          "command": "git",
+          "args": [
+            "tag",
+            "-l",
+            "--format=%(contents)",
+            "v0.1.0"
+          ]
+        },
+        {
+          "command": "gh",
+          "args": [
+            "release",
+            "view",
+            "v0.1.0"
+          ]
+        },
+        {
+          "command": "gh",
+          "args": [
+            "release",
+            "create",
+            "v0.1.0",
+            "--title",
+            "partitionline 0.1.0",
+            "--notes",
+            "fixture release note body"
+          ]
+        },
+        {
+          "command": "git",
+          "args": [
+            "tag",
+            "-l",
+            "--format=%(contents)",
+            "v0.1.0"
+          ]
+        },
+        {
+          "command": "gh",
+          "args": [
+            "release",
+            "view",
+            "v0.1.0"
+          ]
+        },
+        {
+          "command": "curl",
+          "args": [
+            "-fsSA",
+            "partitionline-ci/1",
+            "https://crates.io/api/v1/crates/partitionline/0.1.0"
+          ]
+        },
+        {
+          "command": "curl",
+          "args": [
+            "-fsSA",
+            "partitionline-ci/1",
+            "https://crates.io/api/v1/crates/partitionline/0.1.0"
+          ]
+        },
+        {
+          "command": "curl",
+          "args": [
+            "-fsSA",
+            "partitionline-ci/1",
+            "https://crates.io/api/v1/crates/partitionline/0.1.0"
+          ]
+        }
+      ],
+      "release_complete": false,
+      "owner_actions": [
+        {
+          "stage": "candidate-CI-and-package",
+          "status": "not_run",
+          "reason": "Exact candidate hosted profile and full packed-crate checks remain required on an actual release."
+        },
+        {
+          "stage": "release-authorization",
+          "status": "not_run",
+          "reason": "Owner must select the next version and authorize the release."
+        },
+        {
+          "stage": "authenticate-and-publish",
+          "status": "not_run",
+          "reason": "No credential lookup, OIDC request or package upload occurs in rehearsal."
+        },
+        {
+          "stage": "tag-and-push",
+          "status": "not_run",
+          "reason": "No actual tag is created, moved or pushed."
+        },
+        {
+          "stage": "registry-confirmation",
+          "status": "not_run",
+          "reason": "Only local service responses were exercised; real registry confirmation follows actual publication."
+        },
+        {
+          "stage": "GitHub-release-notes",
+          "status": "not_run",
+          "reason": "Only a local marker was created; real note creation remains an owner release action."
+        }
+      ],
+      "validation_success": false
+    }
+  },
+  "validation": {
+    "kl08-07-release-tests.log": "......................................................\n----------------------------------------------------------------------\nRan 54 tests in 8.350s\n\nOK\n",
+    "kl08-07-shell-self-test.log": "rehearse-partial-release: simulate publish-succeeded, day1 pending\n  would: DRY_RUN=1 bash scripts/day1-after-publish.sh\n  would: DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh\n  would not: cargo publish / version bump / re-cut 0.1.0\nrehearse-partial-release: --self-test OK \u2014 0.1.0 stays; release-plz PR-only; canonical release.yml + owner-cut-release; actions: read; skip-gated Authenticate/Publish; owner-publish skips existing version; day1/handoff DRY_RUN not another publish\nRelease rehearsal: all 15 executed recovery scenarios passed; release remains an owner action\n",
+    "kl08-07-doc-tests.log": "..................\n----------------------------------------------------------------------\nRan 18 tests in 0.183s\n\nOK\n",
+    "kl08-07-workflow-check-final.log": "check-workflows: ok .github/workflows/ci.yml\ncheck-workflows: ok .github/workflows/first-publish.yml\ncheck-workflows: ok .github/workflows/release-plz.yml\ncheck-workflows: ok .github/workflows/release.yml\n",
+    "kl08-07-exact-run.log": "Exact-source artifact: /workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685\nRelease rehearsal: all 15 executed recovery scenarios passed; release remains an owner action\n"
+  },
+  "hosted_ci": {
+    "run_id": 36889684046,
+    "url": "https://github.com/mingley/partitionline/actions/runs/36889684046",
+    "source_sha": "3109514bc9aa30def679d43fdd823d2c71138ab1",
+    "observed_status": "pending; no hosted pass claimed"
+  },
+  "next_release_owner_actions": [
+    {
+      "stage": "candidate-CI-and-package",
+      "status": "not_run",
+      "reason": "Exact candidate hosted profile and full packed-crate checks remain required on an actual release."
+    },
+    {
+      "stage": "release-authorization",
+      "status": "not_run",
+      "reason": "Owner must select the next version and authorize the release."
+    },
+    {
+      "stage": "authenticate-and-publish",
+      "status": "not_run",
+      "reason": "No credential lookup, OIDC request or package upload occurs in rehearsal."
+    },
+    {
+      "stage": "tag-and-push",
+      "status": "not_run",
+      "reason": "No actual tag is created, moved or pushed."
+    },
+    {
+      "stage": "registry-confirmation",
+      "status": "not_run",
+      "reason": "Only local service responses were exercised; real registry confirmation follows actual publication."
+    },
+    {
+      "stage": "GitHub-release-notes",
+      "status": "not_run",
+      "reason": "Only a local marker was created; real note creation remains an owner release action."
+    }
+  ]
+}

@@ -1,0 +1,549 @@
+{
+  "schema_version": 1,
+  "scope": "No-publish release recovery rehearsal; substituted services are not release or hosted CI evidence.",
+  "candidate_source_sha": "3109514bc9aa30def679d43fdd823d2c71138ab1",
+  "source_file_sha256": {
+    "Cargo.toml": "1f72679b1deb2881bc03bf13bd2c8dfb2bd39f8bc79f0760846145bdc99c4a6e",
+    ".github/workflows/release.yml": "672d1ac2eb88ad4e2ce15f56189c35798657357b69c9264ecb66d8c1f7f92e04",
+    ".github/workflows/release-plz.yml": "7c1c20b0194d8e7593ec1d66dc99ecfbe0b363921e696caeabd82410122822e0",
+    "scripts/owner-publish.sh": "c5d4617f5f161f35ccd7f6ab8231bc904a3abb3bdf753c77def7cc2abe519ce8",
+    "scripts/lib/crates-io.sh": "afb7ca0ab8483b27138200005dd4b38cc32050db93eef02fa1603d87e124fe6b",
+    "scripts/lib/cargo-registry-token.sh": "10b9afbcabf9c87461e26eb9602b90efe0c63218e1a1503d88ccc14ddd326125",
+    "scripts/check-main-ci.sh": "4c05a3d620a3d2867493fc3b9cd20811d9c7175d77e3cd2b0adfb6f7b64325e8",
+    "scripts/report-release-rehearsal.py": "79a5ba7a139e4f277251f9d40f7f0f5990f513ce76d61e60d32124f4fa989513",
+    "scripts/rehearse-partial-release.sh": "76254ca0564251f8ec394c05f8b9432896234bfae4a14bcd109430b2e8669cfd"
+  },
+  "scenarios": [
+    {
+      "name": "final-tag",
+      "status": "passed",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "tag=0.1.0 cargo=0.1.0\n",
+      "stderr": "",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/final-tag",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "wrong-tag",
+      "status": "passed",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "tag=0.1.1 cargo=0.1.0\n",
+      "stderr": "",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/wrong-tag",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "prerelease-tag",
+      "status": "passed",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "",
+      "stderr": "Refusing prerelease/build tag '0.1.0-rc.1' \u2014 crates.io publish is for final vX.Y.Z only.\nUse a git tag like v0.1.0-rc.1 for install pins; tag v0.1.0 to publish.\n",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/prerelease-tag",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "workflow-existing-version",
+      "status": "passed",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "release: partitionline 0.1.0 already on crates.io \u2014 skipping publish (idempotent)\n",
+      "stderr": "",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-existing-version",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "workflow-absent-version",
+      "status": "passed",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-absent-version",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "workflow-registry-unavailable",
+      "status": "passed",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "",
+      "stderr": "release: registry unavailable or version status unknown (api_http=503,index_http=503) \u2014 refusing publish\n",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-registry-unavailable",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "workflow-index-pending",
+      "status": "passed",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "",
+      "stderr": "release: registry unavailable or version status unknown (api_http=200,index=absent) \u2014 refusing publish\n",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-index-pending",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "local-existing-version",
+      "status": "passed",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "owner-publish: partitionline 0.1.0 already on crates.io \u2014 skipping cargo publish (idempotent; not a re-cut)\nowner-publish: next \u2014 tag v0.1.0, push tag (or rely on release.yml),\n  bash scripts/day1-after-publish.sh, commit README + ADOPTION + guide + migrate\n",
+      "stderr": "",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/local-existing-version",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "local-registry-unavailable",
+      "status": "passed",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "",
+      "stderr": "owner-publish: registry unavailable or version status unknown (api_http=503,index_http=503) \u2014 refusing publish\n",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/local-registry-unavailable",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "local-index-pending",
+      "status": "passed",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "",
+      "stderr": "owner-publish: registry unavailable or version status unknown (api_http=200,index=absent) \u2014 refusing publish\n",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/local-index-pending",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "missing-exact-ci",
+      "status": "passed",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "release: probing CI for exact SHA 3109514bc9aa30def679d43fdd823d2c71138ab1\ncheck-main-ci: sha=3109514 (branch=main check_sha=3109514)\n",
+      "stderr": "check-main-ci: WARN \u2014 [outcome=missing] missing: no Actions runs found\n",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/missing-exact-ci",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "confirmation-interrupted",
+      "status": "passed",
+      "exit_code": 130,
+      "expected_exit_code": 130,
+      "stdout": "waiting for crates.io index (1/30)...\n",
+      "stderr": "",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/confirmation-interrupted",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "confirmation-resumed",
+      "status": "passed",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "crates.io has partitionline 0.1.0\nOwner follow-up: bash scripts/day1-after-publish.sh && commit README on main.\nThen configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret.\n",
+      "stderr": "",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/confirmation-interrupted",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "release-notes-first",
+      "status": "passed",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "created GitHub release v0.1.0\n",
+      "stderr": "",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/release-notes-first",
+      "scope": "executed checked-in code with offline substituted services"
+    },
+    {
+      "name": "release-notes-repeated",
+      "status": "passed",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "GitHub release v0.1.0 already exists\n",
+      "stderr": "",
+      "artifact_directory": "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/release-notes-first",
+      "scope": "executed checked-in code with offline substituted services"
+    }
+  ],
+  "commands": [
+    {
+      "command": "curl",
+      "args": [
+        "-fsSA",
+        "partitionline-ci/1",
+        "https://crates.io/api/v1/crates/partitionline/0.1.0"
+      ]
+    },
+    {
+      "command": "sleep",
+      "args": [
+        "10"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-fsSA",
+        "partitionline-ci/1",
+        "https://crates.io/api/v1/crates/partitionline/0.1.0"
+      ]
+    },
+    {
+      "command": "git",
+      "args": [
+        "rev-parse",
+        "--abbrev-ref",
+        "HEAD"
+      ]
+    },
+    {
+      "command": "git",
+      "args": [
+        "status",
+        "--porcelain"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-owner-publish/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/local-existing-version/tmp/tmp.opFGIrMEmi",
+        "-w",
+        "%{http_code}",
+        "https://crates.io/api/v1/crates/partitionline/0.1.0"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-owner-publish/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/local-existing-version/tmp/tmp.9CQSl81CIi",
+        "-w",
+        "%{http_code}",
+        "https://index.crates.io/pa/rt/partitionline"
+      ]
+    },
+    {
+      "command": "git",
+      "args": [
+        "rev-parse",
+        "--abbrev-ref",
+        "HEAD"
+      ]
+    },
+    {
+      "command": "git",
+      "args": [
+        "status",
+        "--porcelain"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-owner-publish/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/local-index-pending/tmp/tmp.5ickkwYQ6k",
+        "-w",
+        "%{http_code}",
+        "https://crates.io/api/v1/crates/partitionline/0.1.0"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-owner-publish/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/local-index-pending/tmp/tmp.oJUJchRLa2",
+        "-w",
+        "%{http_code}",
+        "https://index.crates.io/pa/rt/partitionline"
+      ]
+    },
+    {
+      "command": "git",
+      "args": [
+        "rev-parse",
+        "--abbrev-ref",
+        "HEAD"
+      ]
+    },
+    {
+      "command": "git",
+      "args": [
+        "status",
+        "--porcelain"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-owner-publish/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/local-registry-unavailable/tmp/tmp.o2IqgXdz5b",
+        "-w",
+        "%{http_code}",
+        "https://crates.io/api/v1/crates/partitionline/0.1.0"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-owner-publish/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/local-registry-unavailable/tmp/tmp.BfVTiaa9Fm",
+        "-w",
+        "%{http_code}",
+        "https://index.crates.io/pa/rt/partitionline"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-owner-publish/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/local-registry-unavailable/tmp/tmp.Bj8ZWGIi4Y",
+        "-w",
+        "%{http_code}",
+        "https://index.crates.io/pa/rt/partitionline"
+      ]
+    },
+    {
+      "command": "git",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ]
+    },
+    {
+      "command": "git",
+      "args": [
+        "rev-parse",
+        "-q",
+        "--verify",
+        "3109514bc9aa30def679d43fdd823d2c71138ab1^{commit}"
+      ]
+    },
+    {
+      "command": "git",
+      "args": [
+        "tag",
+        "-l",
+        "--format=%(contents)",
+        "v0.1.0"
+      ]
+    },
+    {
+      "command": "gh",
+      "args": [
+        "release",
+        "view",
+        "v0.1.0"
+      ]
+    },
+    {
+      "command": "gh",
+      "args": [
+        "release",
+        "create",
+        "v0.1.0",
+        "--title",
+        "partitionline 0.1.0",
+        "--notes",
+        "fixture release note body"
+      ]
+    },
+    {
+      "command": "git",
+      "args": [
+        "tag",
+        "-l",
+        "--format=%(contents)",
+        "v0.1.0"
+      ]
+    },
+    {
+      "command": "gh",
+      "args": [
+        "release",
+        "view",
+        "v0.1.0"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-ci/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-absent-version/tmp/tmp.odv5wzA7A6",
+        "-w",
+        "%{http_code}",
+        "https://crates.io/api/v1/crates/partitionline/0.1.0"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-ci/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-absent-version/tmp/tmp.0fbJGJ1xh7",
+        "-w",
+        "%{http_code}",
+        "https://index.crates.io/pa/rt/partitionline"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-ci/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-existing-version/tmp/tmp.qfwCrUOzzw",
+        "-w",
+        "%{http_code}",
+        "https://crates.io/api/v1/crates/partitionline/0.1.0"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-ci/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-existing-version/tmp/tmp.GvzfgxpRdg",
+        "-w",
+        "%{http_code}",
+        "https://index.crates.io/pa/rt/partitionline"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-ci/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-index-pending/tmp/tmp.TcBWl3AKWA",
+        "-w",
+        "%{http_code}",
+        "https://crates.io/api/v1/crates/partitionline/0.1.0"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-ci/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-index-pending/tmp/tmp.lSjhsXfu41",
+        "-w",
+        "%{http_code}",
+        "https://index.crates.io/pa/rt/partitionline"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-ci/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-registry-unavailable/tmp/tmp.THirSMUHaT",
+        "-w",
+        "%{http_code}",
+        "https://crates.io/api/v1/crates/partitionline/0.1.0"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-ci/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-registry-unavailable/tmp/tmp.Mq92MsrnvP",
+        "-w",
+        "%{http_code}",
+        "https://index.crates.io/pa/rt/partitionline"
+      ]
+    },
+    {
+      "command": "curl",
+      "args": [
+        "-sS",
+        "-A",
+        "partitionline-ci/1",
+        "-o",
+        "/workspace/.cloud-setup/kl08-07-exact/3109514bc9aa30def679d43fdd823d2c71138ab1-9432b6f47e2741dd8e7719188aca1685/cases/workflow-registry-unavailable/tmp/tmp.NeqqC4lrtZ",
+        "-w",
+        "%{http_code}",
+        "https://index.crates.io/pa/rt/partitionline"
+      ]
+    }
+  ],
+  "release_complete": false,
+  "owner_actions": [
+    {
+      "stage": "candidate-CI-and-package",
+      "status": "not_run",
+      "reason": "Exact candidate hosted profile and full packed-crate checks remain required on an actual release."
+    },
+    {
+      "stage": "release-authorization",
+      "status": "not_run",
+      "reason": "Owner must select the next version and authorize the release."
+    },
+    {
+      "stage": "authenticate-and-publish",
+      "status": "not_run",
+      "reason": "No credential lookup, OIDC request or package upload occurs in rehearsal."
+    },
+    {
+      "stage": "tag-and-push",
+      "status": "not_run",
+      "reason": "No actual tag is created, moved or pushed."
+    },
+    {
+      "stage": "registry-confirmation",
+      "status": "not_run",
+      "reason": "Only local service responses were exercised; real registry confirmation follows actual publication."
+    },
+    {
+      "stage": "GitHub-release-notes",
+      "status": "not_run",
+      "reason": "Only a local marker was created; real note creation remains an owner release action."
+    }
+  ],
+  "validation_success": true,
+  "structural_self_test": {
+    "exit_code": 0,
+    "stdout": "rehearse-partial-release: simulate publish-succeeded, day1 pending\n  would: DRY_RUN=1 bash scripts/day1-after-publish.sh\n  would: DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh\n  would not: cargo publish / version bump / re-cut 0.1.0\nrehearse-partial-release: --self-test OK \u2014 0.1.0 stays; release-plz PR-only; canonical release.yml + owner-cut-release; actions: read; skip-gated Authenticate/Publish; owner-publish skips existing version; day1/handoff DRY_RUN not another publish\nRelease rehearsal: all 15 executed recovery scenarios passed; release remains an owner action\n",
+    "stderr": ""
+  },
+  "completed_utc": "2026-10-01T16:08:21Z",
+  "actual_tag_refs_unchanged": true,
+  "python_version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]"
+}
