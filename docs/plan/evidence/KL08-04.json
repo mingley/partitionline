@@ -1,0 +1,998 @@
+{
+  "id": "KL08-04",
+  "status": "done",
+  "source_sha": "e0be45b2db5e0960c1c7136634c8c454c41c6f5c",
+  "acceptance_met": [
+    "Fresh downstream consumers outside checkout depend solely on the extracted .crate. Shared operator-surface program and actual 19 registered public Markdown fences compile with default and tracing on stable 1.98.1 and MSRV 1.85.0. All-features is the same approved tracing feature set; new optional features require an explicit matrix update.",
+    "Archive navigation checked across README and all 20 top-level docs: 178 local links resolve in the actual package, plus 94 distinct excluded/source-line targets pinned to immutable repository commit 917d877d7b049f3da5af90bd2a5804b85080ed2b. No reliance on checkout-only files.",
+    "Anchored package include patterns exclude benchmark peers, companion crate, nested plan/audit/raw evidence and private namespaces. Required MIT/Apache licenses and NOTICE inspected and SHA-256 inventoried. Source commit, clean VCS status, package SHA/version, compiler versions, selected features and fresh consumer-lock hashes retained."
+  ],
+  "commands": [
+    "cargo package --locked --list",
+    "PL_PACKAGE_TOOLCHAINS=\"stable 1.85.0\" bash scripts/ci-crate-consumer.sh (clean exact source commit)",
+    "python3 -B -m unittest discover -s tests/docs -p \"test_*.py\"",
+    "cargo fmt --check",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings",
+    "bash scripts/ci-docs.sh --offline",
+    "bash -n scripts/ci-crate-consumer.sh",
+    "bash scripts/check-workflows.sh"
+  ],
+  "results": {
+    "feature_toolchain_cells": 4,
+    "snippets_per_cell": 19,
+    "snippet_compilations": 76,
+    "operator_checks": 4,
+    "ignored": 0,
+    "failed": 0,
+    "documentation_unit_tests": {
+      "passed": 18,
+      "failed": 0
+    },
+    "strict_rustdoc": "passed",
+    "core_doctests": {
+      "passed": 4,
+      "failed": 0
+    },
+    "clippy": "passed",
+    "fmt": "passed",
+    "workflow_yaml": {
+      "passed": 4,
+      "failed": 0
+    },
+    "shell_syntax": "passed",
+    "failing_first": [
+      "Original clean package README link to docs/audits/2026-09-21.md failed when checked inside extracted archive.",
+      "Inventory rejected a benchmark peer README included by unanchored filename patterns; anchoring all patterns fixes exclusion."
+    ]
+  },
+  "package_summary": {
+    "package_sha256": "b7f01e144f42b29a7086b199bf740f9a4e9d83fe524b1096ca450ab8b42d2ffa",
+    "source_vcs_info": {
+      "git": {
+        "sha1": "e0be45b2db5e0960c1c7136634c8c454c41c6f5c"
+      },
+      "path_in_vcs": ""
+    },
+    "feature_matrix": [
+      {
+        "documents": [
+          "README.md",
+          "docs/guide.md",
+          "docs/migrate-from-rdkafka.md"
+        ],
+        "compiled_snippets": 19,
+        "local_links": 38,
+        "ignored_snippets": [],
+        "snippets": [
+          {
+            "document": "README.md",
+            "line": 23,
+            "sha256": "737e8da3b740b661e51f87ee4a98f187b14387bf570a23adbece43a2feb7e73d"
+          },
+          {
+            "document": "README.md",
+            "line": 42,
+            "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+          },
+          {
+            "document": "README.md",
+            "line": 62,
+            "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+          },
+          {
+            "document": "README.md",
+            "line": 86,
+            "sha256": "a990118bd77a2265b6ec3ef1355c1c965ee3232ae75798cca94f2823fad6f39c"
+          },
+          {
+            "document": "README.md",
+            "line": 111,
+            "sha256": "8b3313cd26930fe1023416b6029d56ce67f133460125f7b19a090a0819c03642"
+          },
+          {
+            "document": "README.md",
+            "line": 135,
+            "sha256": "d174cd31ee728c80ba03a9c4167cfe2a93e05a8a0ea753b87c4ed7bf69d64fd8"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 68,
+            "sha256": "c4c51043849dada85a70ec82aa279bdb056965bf21ec16ec249be11adb9ac0b2"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 221,
+            "sha256": "813a2ce2c94810da31565021b06811fcce2c413b189c40d38824042aa8aa65cc"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 245,
+            "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 262,
+            "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 303,
+            "sha256": "7318a827710d2914e781b0983e0f0c8e8558e3a1922b4ebdbbff329b4595f516"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 318,
+            "sha256": "94616599031102ea2ac914c926133a2d4c840711c8d79225385364fa8bd0f892"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 393,
+            "sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 91,
+            "sha256": "e225ec7ca4f62c204205edde832851484e166908e8e40f92763e356d4fd93b61"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 125,
+            "sha256": "57dec7d81e474f1ef1e7dc627500e28223a20a8137abfce4f1396009311a7825"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 187,
+            "sha256": "6da9b0b031891bb37671bd99124620f8162c67561f01b2716a71a512e1736e64"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 230,
+            "sha256": "380e427c7cfb1420e2f142fadd87d7a85f0185dce9567c2be5fcacdbf095d86a"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 258,
+            "sha256": "08e8db4b324f80d0e4ef3dd06bc8751433264d587852196e69b4d990fd7c3723"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 285,
+            "sha256": "2397317b8f720ad1a34a19e46b7618683bd5e03f38372c7f29c44970f3027723"
+          }
+        ],
+        "package_sha256": "b7f01e144f42b29a7086b199bf740f9a4e9d83fe524b1096ca450ab8b42d2ffa",
+        "package_name": "partitionline",
+        "package_version": "0.1.0",
+        "package_vcs_info": {
+          "git": {
+            "sha1": "e0be45b2db5e0960c1c7136634c8c454c41c6f5c"
+          },
+          "path_in_vcs": ""
+        },
+        "feature_mode": "default",
+        "dependency_features": [],
+        "toolchain": "stable",
+        "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+        "consumer_lock_sha256": "874ea18efc7d615ca92f2442ce05cf813541ff65660597febb8554b27c4ad5b9"
+      },
+      {
+        "documents": [
+          "README.md",
+          "docs/guide.md",
+          "docs/migrate-from-rdkafka.md"
+        ],
+        "compiled_snippets": 19,
+        "local_links": 38,
+        "ignored_snippets": [],
+        "snippets": [
+          {
+            "document": "README.md",
+            "line": 23,
+            "sha256": "737e8da3b740b661e51f87ee4a98f187b14387bf570a23adbece43a2feb7e73d"
+          },
+          {
+            "document": "README.md",
+            "line": 42,
+            "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+          },
+          {
+            "document": "README.md",
+            "line": 62,
+            "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+          },
+          {
+            "document": "README.md",
+            "line": 86,
+            "sha256": "a990118bd77a2265b6ec3ef1355c1c965ee3232ae75798cca94f2823fad6f39c"
+          },
+          {
+            "document": "README.md",
+            "line": 111,
+            "sha256": "8b3313cd26930fe1023416b6029d56ce67f133460125f7b19a090a0819c03642"
+          },
+          {
+            "document": "README.md",
+            "line": 135,
+            "sha256": "d174cd31ee728c80ba03a9c4167cfe2a93e05a8a0ea753b87c4ed7bf69d64fd8"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 68,
+            "sha256": "c4c51043849dada85a70ec82aa279bdb056965bf21ec16ec249be11adb9ac0b2"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 221,
+            "sha256": "813a2ce2c94810da31565021b06811fcce2c413b189c40d38824042aa8aa65cc"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 245,
+            "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 262,
+            "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 303,
+            "sha256": "7318a827710d2914e781b0983e0f0c8e8558e3a1922b4ebdbbff329b4595f516"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 318,
+            "sha256": "94616599031102ea2ac914c926133a2d4c840711c8d79225385364fa8bd0f892"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 393,
+            "sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 91,
+            "sha256": "e225ec7ca4f62c204205edde832851484e166908e8e40f92763e356d4fd93b61"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 125,
+            "sha256": "57dec7d81e474f1ef1e7dc627500e28223a20a8137abfce4f1396009311a7825"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 187,
+            "sha256": "6da9b0b031891bb37671bd99124620f8162c67561f01b2716a71a512e1736e64"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 230,
+            "sha256": "380e427c7cfb1420e2f142fadd87d7a85f0185dce9567c2be5fcacdbf095d86a"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 258,
+            "sha256": "08e8db4b324f80d0e4ef3dd06bc8751433264d587852196e69b4d990fd7c3723"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 285,
+            "sha256": "2397317b8f720ad1a34a19e46b7618683bd5e03f38372c7f29c44970f3027723"
+          }
+        ],
+        "package_sha256": "b7f01e144f42b29a7086b199bf740f9a4e9d83fe524b1096ca450ab8b42d2ffa",
+        "package_name": "partitionline",
+        "package_version": "0.1.0",
+        "package_vcs_info": {
+          "git": {
+            "sha1": "e0be45b2db5e0960c1c7136634c8c454c41c6f5c"
+          },
+          "path_in_vcs": ""
+        },
+        "feature_mode": "tracing",
+        "dependency_features": [
+          "tracing"
+        ],
+        "toolchain": "stable",
+        "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+        "consumer_lock_sha256": "9a1ca02e17fe2f8defc252c7f20528397a5165456bd4912233bf7052f01a7da8"
+      },
+      {
+        "documents": [
+          "README.md",
+          "docs/guide.md",
+          "docs/migrate-from-rdkafka.md"
+        ],
+        "compiled_snippets": 19,
+        "local_links": 38,
+        "ignored_snippets": [],
+        "snippets": [
+          {
+            "document": "README.md",
+            "line": 23,
+            "sha256": "737e8da3b740b661e51f87ee4a98f187b14387bf570a23adbece43a2feb7e73d"
+          },
+          {
+            "document": "README.md",
+            "line": 42,
+            "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+          },
+          {
+            "document": "README.md",
+            "line": 62,
+            "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+          },
+          {
+            "document": "README.md",
+            "line": 86,
+            "sha256": "a990118bd77a2265b6ec3ef1355c1c965ee3232ae75798cca94f2823fad6f39c"
+          },
+          {
+            "document": "README.md",
+            "line": 111,
+            "sha256": "8b3313cd26930fe1023416b6029d56ce67f133460125f7b19a090a0819c03642"
+          },
+          {
+            "document": "README.md",
+            "line": 135,
+            "sha256": "d174cd31ee728c80ba03a9c4167cfe2a93e05a8a0ea753b87c4ed7bf69d64fd8"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 68,
+            "sha256": "c4c51043849dada85a70ec82aa279bdb056965bf21ec16ec249be11adb9ac0b2"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 221,
+            "sha256": "813a2ce2c94810da31565021b06811fcce2c413b189c40d38824042aa8aa65cc"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 245,
+            "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 262,
+            "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 303,
+            "sha256": "7318a827710d2914e781b0983e0f0c8e8558e3a1922b4ebdbbff329b4595f516"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 318,
+            "sha256": "94616599031102ea2ac914c926133a2d4c840711c8d79225385364fa8bd0f892"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 393,
+            "sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 91,
+            "sha256": "e225ec7ca4f62c204205edde832851484e166908e8e40f92763e356d4fd93b61"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 125,
+            "sha256": "57dec7d81e474f1ef1e7dc627500e28223a20a8137abfce4f1396009311a7825"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 187,
+            "sha256": "6da9b0b031891bb37671bd99124620f8162c67561f01b2716a71a512e1736e64"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 230,
+            "sha256": "380e427c7cfb1420e2f142fadd87d7a85f0185dce9567c2be5fcacdbf095d86a"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 258,
+            "sha256": "08e8db4b324f80d0e4ef3dd06bc8751433264d587852196e69b4d990fd7c3723"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 285,
+            "sha256": "2397317b8f720ad1a34a19e46b7618683bd5e03f38372c7f29c44970f3027723"
+          }
+        ],
+        "package_sha256": "b7f01e144f42b29a7086b199bf740f9a4e9d83fe524b1096ca450ab8b42d2ffa",
+        "package_name": "partitionline",
+        "package_version": "0.1.0",
+        "package_vcs_info": {
+          "git": {
+            "sha1": "e0be45b2db5e0960c1c7136634c8c454c41c6f5c"
+          },
+          "path_in_vcs": ""
+        },
+        "feature_mode": "default",
+        "dependency_features": [],
+        "toolchain": "1.85.0",
+        "rustc": "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+        "consumer_lock_sha256": "874ea18efc7d615ca92f2442ce05cf813541ff65660597febb8554b27c4ad5b9"
+      },
+      {
+        "documents": [
+          "README.md",
+          "docs/guide.md",
+          "docs/migrate-from-rdkafka.md"
+        ],
+        "compiled_snippets": 19,
+        "local_links": 38,
+        "ignored_snippets": [],
+        "snippets": [
+          {
+            "document": "README.md",
+            "line": 23,
+            "sha256": "737e8da3b740b661e51f87ee4a98f187b14387bf570a23adbece43a2feb7e73d"
+          },
+          {
+            "document": "README.md",
+            "line": 42,
+            "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+          },
+          {
+            "document": "README.md",
+            "line": 62,
+            "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+          },
+          {
+            "document": "README.md",
+            "line": 86,
+            "sha256": "a990118bd77a2265b6ec3ef1355c1c965ee3232ae75798cca94f2823fad6f39c"
+          },
+          {
+            "document": "README.md",
+            "line": 111,
+            "sha256": "8b3313cd26930fe1023416b6029d56ce67f133460125f7b19a090a0819c03642"
+          },
+          {
+            "document": "README.md",
+            "line": 135,
+            "sha256": "d174cd31ee728c80ba03a9c4167cfe2a93e05a8a0ea753b87c4ed7bf69d64fd8"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 68,
+            "sha256": "c4c51043849dada85a70ec82aa279bdb056965bf21ec16ec249be11adb9ac0b2"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 221,
+            "sha256": "813a2ce2c94810da31565021b06811fcce2c413b189c40d38824042aa8aa65cc"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 245,
+            "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 262,
+            "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 303,
+            "sha256": "7318a827710d2914e781b0983e0f0c8e8558e3a1922b4ebdbbff329b4595f516"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 318,
+            "sha256": "94616599031102ea2ac914c926133a2d4c840711c8d79225385364fa8bd0f892"
+          },
+          {
+            "document": "docs/guide.md",
+            "line": 393,
+            "sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 91,
+            "sha256": "e225ec7ca4f62c204205edde832851484e166908e8e40f92763e356d4fd93b61"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 125,
+            "sha256": "57dec7d81e474f1ef1e7dc627500e28223a20a8137abfce4f1396009311a7825"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 187,
+            "sha256": "6da9b0b031891bb37671bd99124620f8162c67561f01b2716a71a512e1736e64"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 230,
+            "sha256": "380e427c7cfb1420e2f142fadd87d7a85f0185dce9567c2be5fcacdbf095d86a"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 258,
+            "sha256": "08e8db4b324f80d0e4ef3dd06bc8751433264d587852196e69b4d990fd7c3723"
+          },
+          {
+            "document": "docs/migrate-from-rdkafka.md",
+            "line": 285,
+            "sha256": "2397317b8f720ad1a34a19e46b7618683bd5e03f38372c7f29c44970f3027723"
+          }
+        ],
+        "package_sha256": "b7f01e144f42b29a7086b199bf740f9a4e9d83fe524b1096ca450ab8b42d2ffa",
+        "package_name": "partitionline",
+        "package_version": "0.1.0",
+        "package_vcs_info": {
+          "git": {
+            "sha1": "e0be45b2db5e0960c1c7136634c8c454c41c6f5c"
+          },
+          "path_in_vcs": ""
+        },
+        "feature_mode": "tracing",
+        "dependency_features": [
+          "tracing"
+        ],
+        "toolchain": "1.85.0",
+        "rustc": "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+        "consumer_lock_sha256": "9a1ca02e17fe2f8defc252c7f20528397a5165456bd4912233bf7052f01a7da8"
+      }
+    ],
+    "all_features_alias": "tracing (the only approved optional feature)",
+    "operator_lock_sha256": {
+      "operator-stable-default.lock": "c15e5dde70a98292ac3ce16e2b9320d5ecbf45d2f230b022031cfacdf7855665",
+      "operator-stable-tracing.lock": "0ad9594530b29615f4bad8d8bd661cea20f29d1b9d3452d7b579b501d44103df",
+      "operator-1.85.0-default.lock": "c15e5dde70a98292ac3ce16e2b9320d5ecbf45d2f230b022031cfacdf7855665",
+      "operator-1.85.0-tracing.lock": "0ad9594530b29615f4bad8d8bd661cea20f29d1b9d3452d7b579b501d44103df"
+    }
+  },
+  "package_inventory": {
+    "package_name": "partitionline",
+    "package_version": "0.1.0",
+    "license": "MIT OR Apache-2.0",
+    "license_notice_sha256": {
+      "LICENSE-MIT": "1b854877ff684cc9c954471e4f4be3def2aa7e27c118af36e1f73428d85eedb5",
+      "LICENSE-APACHE": "fee225ca1e8d8d91c2db9ab09a765e6e5a58e31411a80a499d1d33375b12f6e2",
+      "NOTICE": "2cd4755d65dc0f3736d5c568facc846f9fd1e2247de3d0fb017506fdb625fed1"
+    },
+    "file_count": 285,
+    "unpacked_file_bytes": 8233264,
+    "documents": [
+      "README.md",
+      "docs/ADOPTION.md",
+      "docs/CIVILIZATION.md",
+      "docs/RELEASE.md",
+      "docs/ROADMAP.md",
+      "docs/STATUS.md",
+      "docs/adopter-exercise.md",
+      "docs/api-stability.md",
+      "docs/auth-refresh.md",
+      "docs/benchmark-contract.md",
+      "docs/benchmark.md",
+      "docs/design.md",
+      "docs/gaps.md",
+      "docs/guide.md",
+      "docs/index.md",
+      "docs/migrate-from-rdkafka.md",
+      "docs/resource-contract.md",
+      "docs/schema-companion.md",
+      "docs/security.md",
+      "docs/support.md",
+      "docs/zstd-spike.md"
+    ],
+    "local_links": 178,
+    "versioned_repository_links": [
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/.github/workflows/ci.yml",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/.github/workflows/release-plz.yml",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/TODO.md",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md#standards-and-upstream-evidence-boundary",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/latency-ci-policy.json",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/evidence/KL03-10.json",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/evidence/KL07-14.json",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/gateway-adoption.md",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/performance-leadership.md",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-auth-smoke.sh",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-broker-smoke.sh",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-crate-consumer.sh",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-integrity-smoke.sh",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-latency-gate.sh",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/perf-profile.sh",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L3004",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L3007",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L3019",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L6615",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L6662",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L6684",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L6697",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1289",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1297",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1310",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1640",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1653",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1679",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1818",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1840",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1852",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L2185",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/group.rs#L2828",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/group.rs#L2874",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/group.rs#L2878",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/group.rs#L2923",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/group.rs#L2942",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L1034",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L629",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L656",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L673",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L720",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L729",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L734",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L739",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L868",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L947",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L993",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L1015",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L1029",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L1955",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L1962",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L1974",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L2378",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L976",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L106",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L121",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L126",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L167",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L207",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L22",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L286",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L32",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L324",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L335",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L377",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L75",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L77",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L80",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L85",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L166",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L180",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L194",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L207",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L219",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L434",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L466",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L48",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L493",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L527",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L58",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L80",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L94",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/share.rs#L1152",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/share.rs#L1610",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/share.rs#L1669",
+      "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/share.rs#L603",
+      "https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/benchmarks",
+      "https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/examples",
+      "https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/fuzz",
+      "https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol"
+    ],
+    "excluded_prefixes": [
+      "benchmarks/",
+      "fuzz/",
+      "docs/evidence/",
+      "docs/plan/",
+      "docs/audits/",
+      ".git/",
+      ".aws/",
+      ".codex/"
+    ],
+    "files": [
+      ".cargo_vcs_info.json",
+      "CHANGELOG.md",
+      "Cargo.lock",
+      "Cargo.toml",
+      "Cargo.toml.orig",
+      "LICENSE-APACHE",
+      "LICENSE-MIT",
+      "NOTICE",
+      "README.md",
+      "SECURITY.md",
+      "clippy.toml",
+      "deny.toml",
+      "docs/ADOPTION.md",
+      "docs/CIVILIZATION.md",
+      "docs/RELEASE.md",
+      "docs/ROADMAP.md",
+      "docs/STATUS.md",
+      "docs/adopter-exercise.md",
+      "docs/api-stability.md",
+      "docs/auth-refresh.md",
+      "docs/benchmark-contract.md",
+      "docs/benchmark.md",
+      "docs/design.md",
+      "docs/gaps.md",
+      "docs/guide.md",
+      "docs/index.md",
+      "docs/latency-baseline.json",
+      "docs/migrate-from-rdkafka.md",
+      "docs/resource-contract.md",
+      "docs/schema-companion.md",
+      "docs/security.md",
+      "docs/support.md",
+      "docs/zstd-spike.md",
+      "examples/admin.rs",
+      "examples/bench_fetch.rs",
+      "examples/bench_latency.rs",
+      "examples/bench_produce.rs",
+      "examples/common/verifiable.rs",
+      "examples/consume.rs",
+      "examples/consume_intercept.rs",
+      "examples/cooperative.rs",
+      "examples/describe_quorum.rs",
+      "examples/eos.rs",
+      "examples/group.rs",
+      "examples/intercept.rs",
+      "examples/kip848.rs",
+      "examples/metrics.rs",
+      "examples/oauth.rs",
+      "examples/offsets.rs",
+      "examples/pause.rs",
+      "examples/produce.rs",
+      "examples/produce_cancel.rs",
+      "examples/roundtrip.rs",
+      "examples/sasl.rs",
+      "examples/share.rs",
+      "examples/tls.rs",
+      "examples/txn.rs",
+      "examples/verifiable_consumer.rs",
+      "examples/verifiable_producer.rs",
+      "examples/wakeup.rs",
+      "src/admin.rs",
+      "src/cluster.rs",
+      "src/config.rs",
+      "src/consumer.rs",
+      "src/error.rs",
+      "src/group.rs",
+      "src/interceptor.rs",
+      "src/lib.rs",
+      "src/metrics.rs",
+      "src/net.rs",
+      "src/partitioner.rs",
+      "src/producer.rs",
+      "src/protocol/acl.rs",
+      "src/protocol/admin.rs",
+      "src/protocol/api.rs",
+      "src/protocol/api_keys.rs",
+      "src/protocol/buf.rs",
+      "src/protocol/cgheartbeat.rs",
+      "src/protocol/epoch.rs",
+      "src/protocol/fetch.rs",
+      "src/protocol/group.rs",
+      "src/protocol/header.rs",
+      "src/protocol/idem.rs",
+      "src/protocol/mod.rs",
+      "src/protocol/oauth.rs",
+      "src/protocol/offsets.rs",
+      "src/protocol/oidc.rs",
+      "src/protocol/records.rs",
+      "src/protocol/sasl.rs",
+      "src/protocol/scram.rs",
+      "src/protocol/share.rs",
+      "src/protocol/txn.rs",
+      "src/share.rs",
+      "tests/auth_lifecycle.rs",
+      "tests/buffer_ownership.rs",
+      "tests/client_api.rs",
+      "tests/cluster/__init__.py",
+      "tests/cluster/test_fixture.py",
+      "tests/cluster/topology.json",
+      "tests/common/fetch_fixture.rs",
+      "tests/common/mod.rs",
+      "tests/conformance/cases.json",
+      "tests/conformance/features.json",
+      "tests/conformance/java/README.md",
+      "tests/conformance/java/pins.json",
+      "tests/conformance/java/pom.xml",
+      "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+      "tests/conformance/java/src/main/java/org/slf4j/impl/StaticLoggerBinder.java",
+      "tests/conformance/test_check_protocol_coverage.py",
+      "tests/conformance/test_report.py",
+      "tests/consumer_close_commit.rs",
+      "tests/consumer_fetch_semantics.rs",
+      "tests/credential_redact.rs",
+      "tests/docs/README.md",
+      "tests/docs/registry.json",
+      "tests/docs/test_check_doc_examples.py",
+      "tests/docs/test_package_docs.py",
+      "tests/e2e.rs",
+      "tests/fetch_buffer_budget.rs",
+      "tests/fixtures/protocol_oracles/describe_quorum_v0_initial.json",
+      "tests/fixtures/protocol_oracles/describe_quorum_v0_initial_request.bin",
+      "tests/fixtures/protocol_oracles/describe_quorum_v0_initial_response.bin",
+      "tests/fixtures/protocol_oracles/describe_quorum_v1_fetch_timestamps.json",
+      "tests/fixtures/protocol_oracles/describe_quorum_v1_fetch_timestamps_request.bin",
+      "tests/fixtures/protocol_oracles/describe_quorum_v1_fetch_timestamps_response.bin",
+      "tests/fixtures/protocol_oracles/describe_quorum_v2_nodes_errors.json",
+      "tests/fixtures/protocol_oracles/describe_quorum_v2_nodes_errors_request.bin",
+      "tests/fixtures/protocol_oracles/describe_quorum_v2_nodes_errors_response.bin",
+      "tests/fixtures/protocol_oracles/describe_quorum_v2_partition_error.json",
+      "tests/fixtures/protocol_oracles/describe_quorum_v2_partition_error_request.bin",
+      "tests/fixtures/protocol_oracles/describe_quorum_v2_partition_error_response.bin",
+      "tests/fixtures/protocol_oracles/describe_quorum_v2_top_level_error.json",
+      "tests/fixtures/protocol_oracles/describe_quorum_v2_top_level_error_request.bin",
+      "tests/fixtures/protocol_oracles/describe_quorum_v2_top_level_error_response.bin",
+      "tests/fixtures/protocol_oracles/elect_leaders_v0_classic.json",
+      "tests/fixtures/protocol_oracles/elect_leaders_v0_classic_request.bin",
+      "tests/fixtures/protocol_oracles/elect_leaders_v0_classic_response.bin",
+      "tests/fixtures/protocol_oracles/elect_leaders_v1_election_type.json",
+      "tests/fixtures/protocol_oracles/elect_leaders_v1_election_type_request.bin",
+      "tests/fixtures/protocol_oracles/elect_leaders_v1_election_type_response.bin",
+      "tests/fixtures/protocol_oracles/elect_leaders_v2_flexible.json",
+      "tests/fixtures/protocol_oracles/elect_leaders_v2_flexible_request.bin",
+      "tests/fixtures/protocol_oracles/elect_leaders_v2_flexible_response.bin",
+      "tests/fixtures/protocol_oracles/fetch_v11_batches_records.json",
+      "tests/fixtures/protocol_oracles/fetch_v11_batches_records_request.bin",
+      "tests/fixtures/protocol_oracles/fetch_v11_batches_records_response.bin",
+      "tests/fixtures/protocol_oracles/fetch_v12_flexible_tags.json",
+      "tests/fixtures/protocol_oracles/fetch_v12_flexible_tags_request.bin",
+      "tests/fixtures/protocol_oracles/fetch_v12_flexible_tags_response.bin",
+      "tests/fixtures/protocol_oracles/fetch_v13_topic_ids.json",
+      "tests/fixtures/protocol_oracles/fetch_v13_topic_ids_request.bin",
+      "tests/fixtures/protocol_oracles/fetch_v13_topic_ids_response.bin",
+      "tests/fixtures/protocol_oracles/fetch_v15_replica_state.json",
+      "tests/fixtures/protocol_oracles/fetch_v15_replica_state_request.bin",
+      "tests/fixtures/protocol_oracles/fetch_v15_replica_state_response.bin",
+      "tests/fixtures/protocol_oracles/fetch_v16_endpoints.json",
+      "tests/fixtures/protocol_oracles/fetch_v16_endpoints_request.bin",
+      "tests/fixtures/protocol_oracles/fetch_v16_endpoints_response.bin",
+      "tests/fixtures/protocol_oracles/fetch_v17_max_3_9_1.json",
+      "tests/fixtures/protocol_oracles/fetch_v17_max_3_9_1_request.bin",
+      "tests/fixtures/protocol_oracles/fetch_v17_max_3_9_1_response.bin",
+      "tests/fixtures/protocol_oracles/fetch_v4_classic.json",
+      "tests/fixtures/protocol_oracles/fetch_v4_classic_request.bin",
+      "tests/fixtures/protocol_oracles/fetch_v4_classic_response.bin",
+      "tests/fixtures/protocol_oracles/fetch_v5_start_offset.json",
+      "tests/fixtures/protocol_oracles/fetch_v5_start_offset_request.bin",
+      "tests/fixtures/protocol_oracles/fetch_v5_start_offset_response.bin",
+      "tests/fixtures/protocol_oracles/fetch_v7_session.json",
+      "tests/fixtures/protocol_oracles/fetch_v7_session_request.bin",
+      "tests/fixtures/protocol_oracles/fetch_v7_session_response.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v10_timeout.json",
+      "tests/fixtures/protocol_oracles/list_offsets_v10_timeout_request.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v10_timeout_response.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v1_classic.json",
+      "tests/fixtures/protocol_oracles/list_offsets_v1_classic_request.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v1_classic_response.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v2_isolation.json",
+      "tests/fixtures/protocol_oracles/list_offsets_v2_isolation_request.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v2_isolation_response.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v3_throttle.json",
+      "tests/fixtures/protocol_oracles/list_offsets_v3_throttle_request.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v3_throttle_response.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v4_leader_epoch.json",
+      "tests/fixtures/protocol_oracles/list_offsets_v4_leader_epoch_request.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v4_leader_epoch_response.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v5_classic_boundary.json",
+      "tests/fixtures/protocol_oracles/list_offsets_v5_classic_boundary_request.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v5_classic_boundary_response.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v6_flexible.json",
+      "tests/fixtures/protocol_oracles/list_offsets_v6_flexible_request.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v6_flexible_response.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v7_max_timestamp.json",
+      "tests/fixtures/protocol_oracles/list_offsets_v7_max_timestamp_request.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v7_max_timestamp_response.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v8_earliest_local.json",
+      "tests/fixtures/protocol_oracles/list_offsets_v8_earliest_local_request.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v8_earliest_local_response.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v9_latest_tiered.json",
+      "tests/fixtures/protocol_oracles/list_offsets_v9_latest_tiered_request.bin",
+      "tests/fixtures/protocol_oracles/list_offsets_v9_latest_tiered_response.bin",
+      "tests/fixtures/protocol_oracles/matrix.json",
+      "tests/fixtures/protocol_oracles/metadata_v10_topic_ids.json",
+      "tests/fixtures/protocol_oracles/metadata_v10_topic_ids_request.bin",
+      "tests/fixtures/protocol_oracles/metadata_v10_topic_ids_response.bin",
+      "tests/fixtures/protocol_oracles/metadata_v11_no_cluster_auth.json",
+      "tests/fixtures/protocol_oracles/metadata_v11_no_cluster_auth_request.bin",
+      "tests/fixtures/protocol_oracles/metadata_v11_no_cluster_auth_response.bin",
+      "tests/fixtures/protocol_oracles/metadata_v12_id_only.json",
+      "tests/fixtures/protocol_oracles/metadata_v12_id_only_request.bin",
+      "tests/fixtures/protocol_oracles/metadata_v12_id_only_response.bin",
+      "tests/fixtures/protocol_oracles/metadata_v1_classic.json",
+      "tests/fixtures/protocol_oracles/metadata_v1_classic_request.bin",
+      "tests/fixtures/protocol_oracles/metadata_v1_classic_response.bin",
+      "tests/fixtures/protocol_oracles/metadata_v4_empty_topics.json",
+      "tests/fixtures/protocol_oracles/metadata_v4_empty_topics_request.bin",
+      "tests/fixtures/protocol_oracles/metadata_v4_empty_topics_response.bin",
+      "tests/fixtures/protocol_oracles/metadata_v5_offline_replicas.json",
+      "tests/fixtures/protocol_oracles/metadata_v5_offline_replicas_request.bin",
+      "tests/fixtures/protocol_oracles/metadata_v5_offline_replicas_response.bin",
+      "tests/fixtures/protocol_oracles/metadata_v7_leader_epoch.json",
+      "tests/fixtures/protocol_oracles/metadata_v7_leader_epoch_request.bin",
+      "tests/fixtures/protocol_oracles/metadata_v7_leader_epoch_response.bin",
+      "tests/fixtures/protocol_oracles/metadata_v8_authorized_ops.json",
+      "tests/fixtures/protocol_oracles/metadata_v8_authorized_ops_request.bin",
+      "tests/fixtures/protocol_oracles/metadata_v8_authorized_ops_response.bin",
+      "tests/fixtures/protocol_oracles/metadata_v9_flexible.json",
+      "tests/fixtures/protocol_oracles/metadata_v9_flexible_request.bin",
+      "tests/fixtures/protocol_oracles/metadata_v9_flexible_response.bin",
+      "tests/fixtures/protocol_oracles/produce_v10_current_leader.json",
+      "tests/fixtures/protocol_oracles/produce_v10_current_leader_request.bin",
+      "tests/fixtures/protocol_oracles/produce_v10_current_leader_response.bin",
+      "tests/fixtures/protocol_oracles/produce_v11_max_3_9_1.json",
+      "tests/fixtures/protocol_oracles/produce_v11_max_3_9_1_request.bin",
+      "tests/fixtures/protocol_oracles/produce_v11_max_3_9_1_response.bin",
+      "tests/fixtures/protocol_oracles/produce_v3_classic.json",
+      "tests/fixtures/protocol_oracles/produce_v3_classic_request.bin",
+      "tests/fixtures/protocol_oracles/produce_v3_classic_response.bin",
+      "tests/fixtures/protocol_oracles/produce_v5_start_offset.json",
+      "tests/fixtures/protocol_oracles/produce_v5_start_offset_request.bin",
+      "tests/fixtures/protocol_oracles/produce_v5_start_offset_response.bin",
+      "tests/fixtures/protocol_oracles/produce_v8_classic_errors.json",
+      "tests/fixtures/protocol_oracles/produce_v8_classic_errors_request.bin",
+      "tests/fixtures/protocol_oracles/produce_v8_classic_errors_response.bin",
+      "tests/fixtures/protocol_oracles/produce_v9_flexible_nulls.json",
+      "tests/fixtures/protocol_oracles/produce_v9_flexible_nulls_request.bin",
+      "tests/fixtures/protocol_oracles/produce_v9_flexible_nulls_response.bin",
+      "tests/fixtures/protocol_oracles/share_ack_v0_same_fields.json",
+      "tests/fixtures/protocol_oracles/share_ack_v0_same_fields_request.bin",
+      "tests/fixtures/protocol_oracles/share_ack_v0_same_fields_response.bin",
+      "tests/fixtures/protocol_oracles/share_ack_v1_same_fields.json",
+      "tests/fixtures/protocol_oracles/share_ack_v1_same_fields_request.bin",
+      "tests/fixtures/protocol_oracles/share_ack_v1_same_fields_response.bin",
+      "tests/fixtures/protocol_oracles/share_fetch_v0_null_records.json",
+      "tests/fixtures/protocol_oracles/share_fetch_v0_null_records_request.bin",
+      "tests/fixtures/protocol_oracles/share_fetch_v0_null_records_response.bin",
+      "tests/fixtures/protocol_oracles/share_fetch_v0_partition_max_bytes.json",
+      "tests/fixtures/protocol_oracles/share_fetch_v0_partition_max_bytes_request.bin",
+      "tests/fixtures/protocol_oracles/share_fetch_v0_partition_max_bytes_response.bin",
+      "tests/fixtures/protocol_oracles/share_fetch_v1_batch_size.json",
+      "tests/fixtures/protocol_oracles/share_fetch_v1_batch_size_request.bin",
+      "tests/fixtures/protocol_oracles/share_fetch_v1_batch_size_response.bin",
+      "tests/fixtures/protocol_oracles/share_fetch_v1_error_response.json",
+      "tests/fixtures/protocol_oracles/share_fetch_v1_error_response_request.bin",
+      "tests/fixtures/protocol_oracles/share_fetch_v1_error_response_response.bin",
+      "tests/fixtures/protocol_oracles/share_fetch_v1_null_records_rejected.json",
+      "tests/fixtures/protocol_oracles/share_fetch_v1_null_records_rejected_request.bin",
+      "tests/fixtures/protocol_oracles/share_fetch_v1_null_records_rejected_response.bin",
+      "tests/fixtures/protocol_oracles/share_v2_pin.json",
+      "tests/fixtures/protocol_oracles/smoke_produce_v9.json",
+      "tests/fixtures/protocol_oracles/smoke_produce_v9_request.bin",
+      "tests/fixtures/protocol_oracles/smoke_produce_v9_response.bin",
+      "tests/full_surface.rs",
+      "tests/fuzz_campaign_meta.rs",
+      "tests/fuzz_decode_smoke.rs",
+      "tests/history/__init__.py",
+      "tests/history/test_checker.py",
+      "tests/kip848_live.rs",
+      "tests/mock_produce.rs",
+      "tests/network_deadlines.rs",
+      "tests/produce_cancel.rs",
+      "tests/protocol_oracles.rs",
+      "tests/release/test_ci_gate.py",
+      "tests/release/test_publish_serialization.py",
+      "tests/roundtrip.rs",
+      "tests/verifiable_contract.rs"
+    ]
+  },
+  "artifacts": [
+    "scripts/ci-crate-consumer.sh",
+    "scripts/check-package-docs.py",
+    "scripts/check-doc-examples.py",
+    "tests/docs/test_package_docs.py",
+    "https://github.com/mingley/partitionline/commit/e0be45b2db5e0960c1c7136634c8c454c41c6f5c"
+  ],
+  "limits": [
+    "No publication or registry-installation claim; this validates a locally produced clean .crate at source SHA with version 0.1.0.",
+    "Registered public snippet corpus is README/guide/migration (19 fences); other packaged docs have navigation checks. External URLs are not fetched. Pinned excluded targets were resolved against the source snapshot before conversion.",
+    "License/NOTICE and file-prefix inventory are structural checks, not a comprehensive secret scanner or dependency license audit. Existing synthetic regression fixtures remain packaged.",
+    "Fresh downstream locks can select semver-compatible versions newer than the packaged root lock (e.g. tokio-rustls 0.26.6); exact downstream lock SHA-256 and tool versions are recorded.",
+    "Features are default and tracing only; all-features currently aliases tracing. No native compression/SASL feature introduced."
+  ],
+  "blocked_reason": null
+}

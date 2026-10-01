@@ -2038,13 +2038,38 @@
     {
       "id": "KL05-24",
       "title": "Bound companion schema caching and request coalescing",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL05-23"],
-      "files": ["partitionline-schema/src/registry.rs", "new: partitionline-schema/tests/cache.rs"],
+      "priority": "P2",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL05-23"
+      ],
+      "files": [
+        "partitionline-schema/src/registry.rs",
+        "new: partitionline-schema/tests/cache.rs"
+      ],
       "deliverable": "A size-bounded cache with explicit freshness and concurrent-lookup behavior.",
-      "acceptance": ["Coalesce same-key lookups without holding an async lock across unrelated requests.", "Define eviction, negative-result caching, cancellation and reference-cycle/size limits.", "A failed fetch never becomes a success-shaped cached schema; secrets and subject cardinality remain bounded in diagnostics."],
-      "validation": ["cargo test --locked --manifest-path partitionline-schema/Cargo.toml", "Exercise concurrency and eviction with deterministic local fixtures."],
-      "evidence": []
+      "acceptance": [
+        "Coalesce same-key lookups without holding an async lock across unrelated requests.",
+        "Define eviction, negative-result caching, cancellation and reference-cycle/size limits.",
+        "A failed fetch never becomes a success-shaped cached schema; secrets and subject cardinality remain bounded in diagnostics."
+      ],
+      "validation": [
+        "cargo test --locked --manifest-path partitionline-schema/Cargo.toml",
+        "Exercise concurrency and eviction with deterministic local fixtures."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-schema/src/registry.rs",
+        "partitionline-schema/tests/cache.rs",
+        "partitionline-schema/Cargo.toml",
+        "partitionline-schema/Cargo.lock",
+        "partitionline-schema/README.md",
+        "docs/schema-companion.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL05-24.json"
+      ]
     },
     {
       "id": "KL05-25",
@@ -3001,7 +3026,7 @@
       "title": "Verify packaged-crate examples and documentation links",
       "priority": "P1",
       "kind": "ci",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL07-05"
@@ -3022,7 +3047,9 @@
         "bash scripts/ci-crate-consumer.sh",
         "Run the actual public snippets against the extracted package."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL08-04.json"
+      ],
       "write_set": [
         "Cargo.toml",
         "README.md",
@@ -3036,7 +3063,8 @@
         ".github/workflows/ci.yml",
         "docs/plan/tasks.json",
         "docs/plan/evidence/KL08-04.json"
-      ]
+      ],
+      "blocked_reason": null
     },
     {
       "id": "KL08-05",
