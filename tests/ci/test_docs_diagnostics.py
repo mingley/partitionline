@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DocsDiagnosticsTests(unittest.TestCase):
-    def invoke(self, failing_phase):
+    def invoke(self, failing_phase, long_log=False):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             binary = root / "bin"
@@ -19,6 +19,8 @@ class DocsDiagnosticsTests(unittest.TestCase):
                 "#!/usr/bin/env bash\n"
                 'if [[ "$1" == -V ]]; then echo cargo-test; exit 0; fi\n'
                 'if [[ "$1" == "$PL_TEST_FAIL_PHASE" ]]; then\n'
+                '  if [[ "$PL_TEST_LONG_LOG" == 1 ]]; then\n'
+                '    for i in {1..600}; do echo "dependency progress $i 100%"; done; fi\n'
                 '  printf "diagnostic 100%%\\nsecond line\\n"; exit 42; fi\n'
                 'echo "test result: ok. 4 passed; 0 failed"\n'
             )
@@ -32,6 +34,7 @@ class DocsDiagnosticsTests(unittest.TestCase):
                 "OFFLINE": "1",
                 "PL_DOCS_REPORT_DIR": str(report),
                 "PL_TEST_FAIL_PHASE": failing_phase,
+                "PL_TEST_LONG_LOG": "1" if long_log else "0",
             }
             result = subprocess.run(
                 ["bash", str(ROOT / "scripts/ci-docs.sh")],
@@ -58,6 +61,14 @@ class DocsDiagnosticsTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(set(logs), {"identity.log", "rustdoc.log", "doctests.log"})
         self.assertNotIn("::error", result.stdout)
+
+    def test_long_compile_log_annotation_keeps_failure_tail(self):
+        result, logs = self.invoke("doc", long_log=True)
+        annotation = next(line for line in result.stdout.splitlines() if line.startswith("::error"))
+        self.assertLess(len(annotation.encode()), 6500)
+        self.assertIn("diagnostic 100%25%0Asecond line", annotation)
+        self.assertIn("dependency progress 1 100%", logs["rustdoc.log"])
+        self.assertEqual(result.returncode, 42)
 
 
 if __name__ == "__main__":

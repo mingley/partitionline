@@ -45,10 +45,14 @@ run_logged() {
   if [[ "$result" -ne 0 ]]; then
     python3 - "$report/$phase.log" "$phase" "$result" <<'PY'
 from pathlib import Path
+import re
 import sys
 log = Path(sys.argv[1]).read_text(encoding='utf-8', errors='replace')
-if len(log) > 14000:
-    log = log[:4000] + '\n[full log retained; middle omitted]\n' + log[-10000:]
+log = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', log)
+# Hosted workflow-command lines can truncate before a long message's tail.
+# Preserve the compiler failure at the end in an annotation under that limit.
+if len(log.encode('utf-8')) > 2000:
+    log = '[full log retained; showing tail]\n' + log.encode('utf-8')[-2000:].decode('utf-8', errors='replace')
 message = f'{sys.argv[2]} exited {sys.argv[3]}\n' + log
 message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
 print('::error title=Documentation gate::' + message)
