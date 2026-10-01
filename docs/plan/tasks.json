@@ -3588,13 +3588,41 @@
     {
       "id": "KL08-07",
       "title": "Rehearse the complete release and partial-recovery path",
-      "priority": "P1", "kind": "evidence", "status": "pending", "owner": null,
-      "depends_on": ["KL08-02", "KL08-03", "KL08-04", "KL08-05"],
-      "files": ["scripts/rehearse-partial-release.sh", "docs/RELEASE.md", "new: docs/evidence/releases/"],
+      "priority": "P1",
+      "kind": "evidence",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL08-02",
+        "KL08-03",
+        "KL08-04",
+        "KL08-05"
+      ],
+      "files": [
+        "scripts/rehearse-partial-release.sh",
+        "docs/RELEASE.md",
+        "new: docs/evidence/releases/"
+      ],
       "deliverable": "A no-publish rehearsal artifact for an exact candidate SHA and all partial completion states.",
-      "acceptance": ["Cover already-published version, registry unavailable, missing CI, interrupted confirmation and repeated release-note steps.", "No tags, package upload, permissions or secret changes occur during rehearsal.", "Record which stages passed, blocked or remain owner actions; never report a partial chain as a completed release."],
-      "validation": ["bash scripts/rehearse-partial-release.sh --self-test", "Run the approved no-publish rehearsal and inspect its complete stage report."],
-      "evidence": []
+      "acceptance": [
+        "Cover already-published version, registry unavailable, missing CI, interrupted confirmation and repeated release-note steps.",
+        "No tags, package upload, permissions or secret changes occur during rehearsal.",
+        "Record which stages passed, blocked or remain owner actions; never report a partial chain as a completed release."
+      ],
+      "validation": [
+        "bash scripts/rehearse-partial-release.sh --self-test",
+        "Run the approved no-publish rehearsal and inspect its complete stage report."
+      ],
+      "evidence": [],
+      "write_set": [
+        "scripts/rehearse-partial-release.sh",
+        "scripts/report-release-rehearsal.py",
+        "tests/release/test_rehearsal.py",
+        "docs/RELEASE.md",
+        "docs/evidence/releases/",
+        "docs/plan/evidence/KL08-07.json",
+        "docs/plan/tasks.json"
+      ]
     },
     {
       "id": "KL08-08",
