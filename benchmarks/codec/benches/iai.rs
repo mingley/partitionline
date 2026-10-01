@@ -111,6 +111,26 @@ fn iai_decompress_lz4(mut buf: Bytes) {
     black_box(decode_record_batch(black_box(&mut buf)).unwrap());
 }
 
+fn gzip_bytes() -> Bytes {
+    Bytes::from(batch_bytes(&gzip_batch()))
+}
+
+#[library_benchmark]
+#[bench::text(setup = gzip_bytes)]
+fn iai_decompress_gzip(mut buf: Bytes) {
+    black_box(decode_record_batch(black_box(&mut buf)).unwrap());
+}
+
+fn snappy_bytes() -> Bytes {
+    Bytes::from(batch_bytes(&snappy_batch()))
+}
+
+#[library_benchmark]
+#[bench::text(setup = snappy_bytes)]
+fn iai_decompress_snappy(mut buf: Bytes) {
+    black_box(decode_record_batch(black_box(&mut buf)).unwrap());
+}
+
 fn request_topics() -> Vec<ProduceTopicData> {
     let batch = RecordBatch::from_records(build_records(SEED, 100, 16, 100, "random", 0));
     vec![ProduceTopicData {
@@ -135,7 +155,7 @@ library_benchmark_group!(
     benchmarks =
         iai_encode, iai_decode, iai_crc,
         iai_compress_gzip, iai_compress_snappy, iai_compress_lz4,
-        iai_decompress_lz4, iai_request
+        iai_decompress_lz4, iai_decompress_gzip, iai_decompress_snappy, iai_request
 );
 
 main!(
