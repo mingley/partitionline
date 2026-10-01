@@ -346,6 +346,21 @@ protocol. See `examples/metrics.rs`. Optional `tracing` spans are covered
 in [Tracing](#tracing-optional-feature) below; [CIVILIZATION.md](CIVILIZATION.md)
 is **history** (the historical foundation plan), not a feature tracker.
 
+Produce v6–v12 responses mute new Produce requests to that broker for positive
+`throttle_time_ms`, across its connection slots. Other brokers continue sending;
+already transmitted responses remain readable. The wait consumes the original
+`delivery_timeout` and bounded close can interrupt it. Produce v3–v5 use server
+throttling, so the client does not add a second delay. Zero or invalid negative
+values never cancel an outstanding interval; overlapping intervals keep the
+latest expiry, including across a reconnect.
+
+`Producer::metrics().throttle` exposes fixed-size saturating counters for positive
+responses, their summed requested milliseconds, the largest request, and ignored
+negative responses. Requested time is not actual elapsed waiting: intervals can
+overlap and a producer may have no queued work. These counters have no broker or
+topic labels. This policy covers Produce; Fetch, Admin and group quotas have
+separate support entries.
+
 ## Recipes
 
 ### Backpressure

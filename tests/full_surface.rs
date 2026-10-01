@@ -13361,6 +13361,101 @@ async fn produce_throttle_close_timeout_interrupts_long_wait() {
 }
 
 #[tokio::test]
+async fn produce_throttle_reads_inflight_acks_without_unmuting_queued_work() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .batch_records(1)
+            .max_in_flight(5),
+    )
+    .await
+    .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value("warm"))
+        .await
+        .unwrap();
+    mock.set_produce_throttles(1, [500, 0, -1]);
+    mock.set_produce_delay_times(Duration::from_millis(120), 2);
+    // Both calls enqueue before this current-thread executor yields, so the
+    // second request can be in flight before the first quota is observed.
+    producer
+        .try_send(ProduceRecord::to("t").value("first"))
+        .unwrap();
+    producer
+        .try_send(ProduceRecord::to("t").value("inflight"))
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(2), async {
+        while producer.metrics().records_acked < 2 {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    let start = std::time::Instant::now();
+    producer
+        .try_send(ProduceRecord::to("t").value("queued"))
+        .unwrap();
+    tokio::time::timeout(Duration::from_millis(350), async {
+        while producer.metrics().records_acked < 3 {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("an already transmitted response must remain readable while muted");
+    assert_eq!(mock.produce_request_nodes(), [1, 1, 1]);
+    producer.flush().await.unwrap();
+    assert!(start.elapsed() >= Duration::from_millis(450));
+    let metrics = producer.metrics();
+    assert_eq!(
+        (
+            metrics.records_acked,
+            metrics.produce_errors,
+            metrics.bytes_buffered
+        ),
+        (4, 0, 0)
+    );
+    assert_eq!(
+        (
+            metrics.throttle.responses,
+            metrics.throttle.invalid_responses
+        ),
+        (1, 1)
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn produce_throttle_survives_idle_reconnection_and_version_change() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_throttles(1, [350]);
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .batch_records(1)
+            .connections_max_idle(Duration::from_millis(30)),
+    )
+    .await
+    .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value("quota"))
+        .await
+        .unwrap();
+    assert_eq!(mock.last_produce_version_for_node(1), Some(12));
+    mock.set_node_api_max(1, PRODUCE, 7);
+    let start = std::time::Instant::now();
+    let md = producer
+        .send(ProduceRecord::to("t").value("reconnect"))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 1);
+    assert!(start.elapsed() >= Duration::from_millis(300));
+    assert_eq!(mock.last_produce_version_for_node(1), Some(7));
+    assert_eq!(producer.metrics().throttle.responses, 1);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn produce_mixed_version_leader_movement_and_reconnection() {
     let mock = common::Mock::start_two_node().await;
     mock.set_node_api_max(1, PRODUCE, 12);

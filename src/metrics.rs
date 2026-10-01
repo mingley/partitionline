@@ -375,19 +375,30 @@ impl ThrottleTracker {
             &self.invalid_responses
         } else if millis > 0 {
             let millis = u64::try_from(millis).unwrap_or(0);
-            let _ =
-                self.requested_millis
-                    .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
-                        Some(old.saturating_add(millis))
-                    });
+            Self::saturating_add(&self.requested_millis, millis);
             let _ = self.max_millis.fetch_max(millis, Ordering::Relaxed);
             &self.responses
         } else {
             return;
         };
-        let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
-            Some(old.saturating_add(1))
-        });
+        Self::saturating_add(counter, 1);
+    }
+
+    // compare_exchange_weak is supported by the MSRV and current Rust; unlike
+    // fetch_update, it does not use a method deprecated in Rust 1.99.
+    fn saturating_add(counter: &AtomicU64, increment: u64) {
+        let mut old = counter.load(Ordering::Relaxed);
+        loop {
+            match counter.compare_exchange_weak(
+                old,
+                old.saturating_add(increment),
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => return,
+                Err(actual) => old = actual,
+            }
+        }
     }
 
     pub(crate) fn snapshot(&self) -> ThrottleStats {

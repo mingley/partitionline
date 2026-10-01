@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Producer honors positive broker quotas for Produce v6–v12 across connection
+  slots, retaining original delivery and close budgets while other brokers and
+  in-flight acknowledgements make progress. `ProducerMetrics` adds `throttle`
+  (`metrics::ThrottleStats`); callers using exhaustive struct literals must add
+  the field or use `..Default::default()`.
+
 - KIP-848 heartbeat responses now encode and decode a nullable assignment with
   Apache's signed byte marker. This fixes closing a consumer and receiving an
   unchanged assignment from real brokers. Truncated responses missing the final

@@ -146,3 +146,11 @@ This matrix Does **not** close KL-08. Still open: two independent adopter
 under production SLOs. Use the blank
 [adopter exercise template](adopter-exercise.md) to record runs when they
 happen — the template itself is **UNFILLED** and is not evidence.
+
+Produce quota scheduling supports negotiated v6–v12 across all connections to
+one broker, while v3–v5 retain server throttling. Positive waits share the existing
+delivery deadline and close budget. The fixed-size `ProducerMetrics.throttle`
+snapshot reports requested time and invalid negative responses. Deterministic
+peer tests cover broker isolation, in-flight acknowledgements, reconnection,
+version boundaries, expiry and shutdown; no live quota deployment is claimed.
+Fetch, Admin and group quota scheduling remain separate qualifications.

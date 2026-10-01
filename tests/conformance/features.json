@@ -831,10 +831,10 @@
     "id": "quotas.producer_throttle",
     "profile": "quotas",
     "layer": "runtime",
-    "disposition": "partial",
-    "entrypoint": "partitionline::protocol::api::encode_produce_response_with_throttle",
-    "evidence": "docs/audits/2026-09-21.md:A07",
-    "notes": "ProduceResponse decodes throttle_time_ms on wire, but producer runtime discards it without sleeping or scheduling (audit A07, KL05-08)."
+    "disposition": "present",
+    "entrypoint": "partitionline::Producer::metrics",
+    "evidence": "tests/full_surface.rs:produce_throttle_applies_to_second_connection_for_same_broker",
+    "notes": "Produce v6-12 positive quotas mute only that broker across connection slots, retaining original delivery/close budgets and readable in-flight responses; v3-5 use server throttling. Zero/negative values do not cancel outstanding intervals. Fixed-size saturating metrics report requested time, not elapsed waiting. Deterministic peer tests and pinned Apache 4.3.1 scheduling reference qualify this scope; no live quota deployment or other API quotas claimed (KL05-08)."
   },
   {
     "id": "quotas.consumer_throttle",
