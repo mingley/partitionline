@@ -6,10 +6,10 @@ semantics, and straightforward to operate. "Best" must mean a reproducible
 result for a named workload, not a universal claim.
 
 This is an execution plan, not a certification or permission to deploy.
-**Implementation starts at [one task per session](plan/README.md).**
-[tasks.json](plan/tasks.json) is the canonical queue: narrow deliverables,
+**Implementation starts at [one task per session](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md).**
+[tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json) is the canonical queue: narrow deliverables,
 dependencies, starting files, acceptance criteria and focused checks.
-[TODO.md](../TODO.md) is its short launch order, not a second status database.
+[TODO.md](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/TODO.md) is its short launch order, not a second status database.
 The KL packages below define scope and closing gates, **not session-sized
 assignments**.
 
@@ -20,7 +20,7 @@ independent reviewers remain unassigned until actually claimed.
 ## 1. Current audited baseline
 
 Baseline: [cb7e97d](https://github.com/mingley/partitionline/tree/cb7e97d3b92a8555aea34d59266a2990c206395f),
-audited **2026-09-21**. Read the [source audit](audits/2026-09-21.md) for
+audited **2026-09-21**. Read the [source audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md) for
 frozen source locations, upstream pins, reproduced failures and coverage limits.
 The exact-SHA [CI run 33948193731](https://github.com/mingley/partitionline/actions/runs/33948193731)
 has 14 successful jobs, with actual broker identities checked. Existing CI
@@ -53,9 +53,9 @@ adds the new evidence rather than changing the support promise by prose alone.
 | Area | Existing evidence and source | Qualification gap |
 |---|---|---|
 | Package and dependency boundary | [Cargo.toml](../Cargo.toml): published `partitionline` 0.1.0, Rust 1.85 declaration, MIT OR Apache-2.0. Client code forbids unsafe; no librdkafka dependency. TLS uses `rustls`/`ring`, including native compilation via `cc`. | Published/installable does not mean production-qualified. Do not claim the full build has no C dependencies. |
-| Producer, consumer and protocol | [producer](../src/producer.rs), [consumer](../src/consumer.rs), [protocol](../src/protocol), [mock tests](../tests/full_surface.rs): routing, negotiated versions, batching, retries, idempotence and transactions. | Five reproduced consumer defects; per-API and mixed-version evidence still needed. Mock agreement is not an independent broker oracle. |
-| Group and share APIs | [group](../src/group.rs), [share](../src/share.rs), [broker smoke](../scripts/ci-broker-smoke.sh): classic/cooperative, KIP-848 and share-group paths. | Existing 3.9.1/4.1.0 CI smoke is not multi-broker chaos. Check executed cases and capability gates; an ignored live test is not covered by default `cargo test`. |
-| Build and safety CI | [CI](../.github/workflows/ci.yml) already includes Rust 1.85/stable, features, package, audit/deny, short fuzz, broker and auth lanes; the audited run is green. | Add strict rustdoc/doctests, independent case reports and exact required-lane release checks. Extend existing lanes instead of creating duplicates. |
+| Producer, consumer and protocol | [producer](../src/producer.rs), [consumer](../src/consumer.rs), [protocol](https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol), [mock tests](../tests/full_surface.rs): routing, negotiated versions, batching, retries, idempotence and transactions. | Five reproduced consumer defects; per-API and mixed-version evidence still needed. Mock agreement is not an independent broker oracle. |
+| Group and share APIs | [group](../src/group.rs), [share](../src/share.rs), [broker smoke](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-broker-smoke.sh): classic/cooperative, KIP-848 and share-group paths. | Existing 3.9.1/4.1.0 CI smoke is not multi-broker chaos. Check executed cases and capability gates; an ignored live test is not covered by default `cargo test`. |
+| Build and safety CI | [CI](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/.github/workflows/ci.yml) already includes Rust 1.85/stable, features, package, audit/deny, short fuzz, broker and auth lanes; the audited run is green. | Add strict rustdoc/doctests, independent case reports and exact required-lane release checks. Extend existing lanes instead of creating duplicates. |
 | Codecs and ecosystem | [zstd spike](zstd-spike.md), [schema companion](schema-companion.md): gzip/snappy/LZ4 exist; zstd is absent; `partitionline-schema` is an unpublished framing scaffold. | Evaluate zstd decoding and encoding separately. Backend/dependency approval precedes implementation; keep native compression out of defaults. A scaffold or decoder alone is not complete ecosystem/codec support. |
 | Performance | [benchmark.md](benchmark.md) separates locked Lab A produce results from unsigned this-VM fetch/latency results. Recorded produce latency was 62/95 us p50/p99 versus rust-rdkafka 58/90 us. | No universal speed claim. Preserve Suite HOLD and its signoff rules; do not combine different hosts/configurations into one victory. |
 | Operations | [metrics](../src/metrics.rs), optional `tracing`, [security policy](security.md), [adoption checklist](ADOPTION.md) already exist. | Prove diagnostic usefulness, redaction, auth rotation, recovery and operator-driven rollback on a defined profile. |
@@ -86,7 +86,7 @@ threshold in the inspected upstream evidence. KL01 maps pinned protocol JSON,
 Java behavioral tests, Apache system scenarios and applicable librdkafka
 regressions to explicit case dispositions. Performance gates below are
 repository goals, not OSS standards. See the audit's
-[standards boundary](audits/2026-09-21.md#standards-and-upstream-evidence-boundary).
+[standards boundary](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md#standards-and-upstream-evidence-boundary).
 
 ## 3. Scorecard
 
@@ -109,7 +109,7 @@ Each package may require several small PRs. Existing commands below are
 building blocks, **not proof that new acceptance criteria already pass**.
 New harnesses must be added and wired into CI before their package can close.
 Use the corresponding `KL01-*` through `KL10-*` cards in
-[tasks.json](plan/tasks.json); do not assign an entire numbered package to
+[tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json); do not assign an entire numbered package to
 one implementation session.
 
 ### KL-01: Recover the baseline and establish protocol oracles
@@ -121,7 +121,7 @@ one implementation session.
    every required upstream case to evidence. Separate harness noise from a
    client regression; retain historical failures rather than overwriting them.
    **Partial (2026-09-05):** shared-runner vs local-native vs controlled-host
-   budgets recorded in [latency-ci-policy.json](latency-ci-policy.json);
+   budgets recorded in [https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/latency-ci-policy.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/latency-ci-policy.json);
    nested 1,344/750 µs miss is historical (`SKIP_LATENCY_GATE` on integrity).
    GHA 5000 µs and local 750 µs relative gate unchanged. Controlled-host
    reproduce remains open. Not Done.
@@ -142,16 +142,16 @@ one implementation session.
    They are local consistency checks, not independent Java-generated
    fixtures. The ignored live path is optional via `REQUIRE_BROKER=1`.
    KL01-03 through KL01-08 add the missing independent evidence.
-4. Extend existing [fuzz targets](../fuzz) beyond short CI smoke, focusing on
+4. Extend existing [fuzz targets](https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/fuzz) beyond short CI smoke, focusing on
    lengths, tagged fields, truncated batches, CRC, allocation and decompression
    bounds. Retain minimized failures and campaign/coverage metadata.
    **Partial (2026-09-05):** campaign metadata harness (`scripts/ci-fuzz-campaign.sh`,
    `fuzz/campaign/metadata.example.json`) is distinct from 15s CI smoke; minimized
    failures are retained under `fuzz/artifacts/minimized/`. Not a sustained-campaign close.
 
-**Work surfaces:** [protocol](../src/protocol), [fuzz smoke](../tests/fuzz_decode_smoke.rs),
-[broker smoke](../scripts/ci-broker-smoke.sh), [integrity smoke](../scripts/ci-integrity-smoke.sh),
-[latency gate](../scripts/ci-latency-gate.sh).
+**Work surfaces:** [protocol](https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol), [fuzz smoke](../tests/fuzz_decode_smoke.rs),
+[broker smoke](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-broker-smoke.sh), [integrity smoke](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-integrity-smoke.sh),
+[latency gate](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-latency-gate.sh).
 **Done when:** required CI is green without silent skips or weaker assertions;
 each advertised matrix cell names the actual broker and cases; differential
 fixtures and sustained campaigns have linked results and no unresolved failures.
@@ -213,7 +213,7 @@ campaigns depend on the completed independent/resource contracts.
 
 **Work surfaces:** [producer](../src/producer.rs), [consumer](../src/consumer.rs),
 [group](../src/group.rs), [share](../src/share.rs), [transaction protocol](../src/protocol/txn.rs),
-[live tests](../tests/kip848_live.rs), [broker smoke](../scripts/ci-broker-smoke.sh).
+[live tests](../tests/kip848_live.rs), [broker smoke](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-broker-smoke.sh).
 **Done when:** seeded histories satisfy each profile's invariants and recovery
 budget across supported broker versions, with no unexplained outcomes.
 `acks=all` alone is not an exactly-once guarantee.
@@ -228,7 +228,7 @@ KL-02/03 before production-performance claims.
    another Rust client when its semantics match. Preserve the existing Lab A
    contracts and compare separate producer, consumer and end-to-end results.
    **Partial (2026-09-05):** CI vs local vs controlled-host budgets recorded
-   in [latency-ci-policy.json](latency-ci-policy.json). Shared-runner smoke
+   in [https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/latency-ci-policy.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/latency-ci-policy.json). Shared-runner smoke
    is not Lab A; unsigned samples must not lift Suite HOLD. Controlled-host
    qualification remains open. Not Done.
 2. Match acks, idempotence, isolation, replication/ISR, compression, batch/linger,
@@ -246,7 +246,7 @@ KL-02/03 before production-performance claims.
    and executor contention. Land one explained, reversible optimization per PR.
    Reject apparent wins from weaker durability, hidden errors or one bespoke schema.
 
-**Work surfaces:** [benchmark examples](../examples), [latency gate](../scripts/ci-latency-gate.sh),
+**Work surfaces:** [benchmark examples](https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/examples), [latency gate](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-latency-gate.sh),
 [producer](../src/producer.rs), [network](../src/net.rs), [record codec](../src/protocol/records.rs).
 **Done when:** an independent operator reproduces named scorecard wins from
 raw artifacts and exact configs/revisions. Publish losses too. Performance
@@ -303,7 +303,7 @@ honest dependency footprint. Deferred features remain documented exclusions.
    Mid-connection refresh/rotation / outage soak remains open.
 
 **Work surfaces:** [network](../src/net.rs), [OAuth](../src/protocol/oauth.rs),
-[OIDC](../src/protocol/oidc.rs), [auth smoke](../scripts/ci-auth-smoke.sh),
+[OIDC](../src/protocol/oidc.rs), [auth smoke](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-auth-smoke.sh),
 [security policy](security.md).
 **Done when:** short-lived-credential fixtures and real secure broker cases
 cover multiple rotations/outages with documented outcomes, bounded recovery
@@ -329,7 +329,7 @@ recipes, migration, diagnostics and newcomer evidence each have their own card.
    stale leader and blocked consumer using telemetry rather than payload logging.
 
 **Work surfaces:** [metrics](../src/metrics.rs), [interceptors](../src/interceptor.rs),
-[guide](guide.md), [examples](../examples), [consumer fixture](../scripts/ci-crate-consumer.sh).
+[guide](guide.md), [examples](https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/examples), [consumer fixture](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-crate-consumer.sh).
 **Done when:** examples run from a fresh package consumer, usability feedback
 is resolved, and disabled/enabled instrumentation costs and redaction are measured.
 
@@ -340,7 +340,7 @@ is resolved, and disabled/enabled instrumentation costs and redaction are measur
 for adoption and API stabilization. Optional KL-05 features do not gate everyone.
 
 1. Select one serialized publication path across
-   [release-plz](../.github/workflows/release-plz.yml) and legacy workflows.
+   [release-plz](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/.github/workflows/release-plz.yml) and legacy workflows.
    Require green evidence for the exact release SHA, isolated package consumers,
    author/license/notice inventory and an idempotent partial-release recovery.
    Reconcile [release policy](RELEASE.md), metadata checks and stale handoff
@@ -389,9 +389,9 @@ version bump is implied by finishing a feature checklist.
 **Depends on:** KL-04 contract and result format; KL-03 for consumer
 optimizations; KL-04 campaigns before any claim.
 
-The [performance leadership program](plan/performance-leadership.md) holds
+The [performance leadership program](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/performance-leadership.md) holds
 the strategy, hot-path map and worker protocol. Cards are KL09-01 through
-KL09-70 in [tasks.json](plan/tasks.json).
+KL09-70 in [tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json).
 
 1. Freeze the claim gate: peer set (librdkafka C, Java, franz-go,
    rust-rdkafka, pure-Rust peer), per-profile metrics and claim types. A
@@ -414,7 +414,7 @@ KL09-70 in [tasks.json](plan/tasks.json).
 
 **Work surfaces:** [producer](../src/producer.rs), [consumer](../src/consumer.rs),
 [record codec](../src/protocol/records.rs), [network](../src/net.rs),
-[benchmarks](../benchmarks).
+[benchmarks](https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/benchmarks).
 **Done when:** every KL09 card is accepted, has a measured rejection or
 is explicitly blocked; the allocation and instruction gates run in CI;
 and KL09-70 records a per-cell verdict from raw artifacts. Public wording
@@ -428,9 +428,9 @@ gzip consume.
 **Depends on:** KL-04 peers and result format; KL-09 worker protocol and
 codec benchmarks; KL-05 for zstd.
 
-The [gateway adoption plan](plan/gateway-adoption.md) holds the profile,
+The [gateway adoption plan](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/gateway-adoption.md) holds the profile,
 the dated evidence and the card map. Cards are KL10-01 through KL10-14 in
-[tasks.json](plan/tasks.json).
+[tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json).
 
 1. Restore a green `main`: the verifiable contract tests must find the
    example binaries they run (KL10-01).
@@ -445,7 +445,7 @@ the dated evidence and the card map. Cards are KL10-01 through KL10-14 in
 
 **Work surfaces:** [record codec](../src/protocol/records.rs),
 [producer](../src/producer.rs), [consumer](../src/consumer.rs),
-[CI](../.github/workflows/ci.yml), [benchmarks](../benchmarks).
+[CI](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/.github/workflows/ci.yml), [benchmarks](https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/benchmarks).
 **Done when:** `main` CI is green; on the gateway cells partitionline uses
 no more CPU per record than librdkafka for gzip produce and gzip consume at
 matched settings, with p99 no worse; per-record acknowledgment costs at
@@ -464,7 +464,7 @@ most 10% over `try_send`; and KL10-12 has published its dated verdict.
 Read only one ready card plus its relevant evidence. Stop after that
 deliverable. Long evidence campaigns use resumable jobs, not larger
 implementation sessions. The full handoff/approval contract is in the
-[session guide](plan/README.md).
+[session guide](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md).
 
 Existing proof entry points (from the repository root):
 

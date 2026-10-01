@@ -145,7 +145,7 @@ def run(command, cwd=None):
     return result.stdout
 
 
-def compile_against_package(archive, selected, work):
+def compile_against_package(archive, selected, work, feature_mode="tracing", toolchain=None):
     package = work / 'package'
     package.mkdir()
     with tarfile.open(archive) as packed:
@@ -155,6 +155,12 @@ def compile_against_package(archive, selected, work):
         raise CheckError('packed crate must contain exactly one top-level Cargo.toml')
     consumer = work / 'consumer'
     (consumer / 'src').mkdir(parents=True)
+    package_info = tomllib.loads(manifests[0].read_text())
+    declared = set(package_info.get('features', {})) - {'default'}
+    if not declared.issubset({'tracing'}):
+        raise CheckError('packaged optional-feature matrix needs an explicit update')
+    features = [] if feature_mode == 'default' else sorted(declared)
+    cargo = ['cargo'] + ([f'+{toolchain}'] if toolchain else [])
     dependency = json.dumps(str(manifests[0].parent))
     (consumer / 'Cargo.toml').write_text(f'''[package]
 name = "partitionline-markdown-check"
@@ -162,16 +168,27 @@ version = "0.0.0"
 edition = "2021"
 [workspace]
 [dependencies]
-partitionline = {{ path = {dependency}, features = ["tracing"] }}
+partitionline = {{ path = {dependency}, features = {json.dumps(features)} }}
 tokio = {{ version = "1", features = ["macros", "rt-multi-thread", "time"] }}
 ''')
     (consumer / 'src/lib.rs').write_text(rustdoc_source(selected))
     manifest = str(consumer / 'Cargo.toml')
-    run(['cargo', 'generate-lockfile', '--manifest-path', manifest])
-    output = run(['cargo', 'test', '--locked', '--doc', '--manifest-path', manifest])
+    run(cargo + ['generate-lockfile', '--manifest-path', manifest])
+    output = run(cargo + ['test', '--locked', '--doc', '--manifest-path', manifest])
     counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', output)
     if len(counts) != 1 or tuple(map(int, counts[0])) != (len(selected), 0, 0):
         raise CheckError(f'rustdoc did not compile all {len(selected)} registered snippets without skips: {counts}')
+    vcs = manifests[0].parent / '.cargo_vcs_info.json'
+    return {
+        'package_name': package_info['package']['name'],
+        'package_version': package_info['package']['version'],
+        'package_vcs_info': json.loads(vcs.read_text()) if vcs.exists() else None,
+        'feature_mode': feature_mode, 'dependency_features': features,
+        'toolchain': toolchain or 'current',
+        'rustc': run(['rustc'] + ([f'+{toolchain}'] if toolchain else []) + ['--version']).strip(),
+        'consumer_lock_sha256': hashlib.sha256((consumer / 'Cargo.lock').read_bytes()).hexdigest(),
+    }
+
 
 
 def main(argv=None):
@@ -182,6 +199,8 @@ def main(argv=None):
     parser.add_argument('--allow-dirty', action='store_true', help='local development packaging only')
     parser.add_argument('--links-only', action='store_true')
     parser.add_argument('--report', type=Path)
+    parser.add_argument('--features', choices=('default', 'tracing', 'all'), default='tracing')
+    parser.add_argument('--toolchain', help='installed Rust toolchain; otherwise current')
     args = parser.parse_args(argv)
     root = args.root.resolve()
     try:
@@ -211,7 +230,7 @@ def main(argv=None):
                 archive = Path(metadata['target_directory']) / 'package' / f'{package["name"]}-{package["version"]}.crate'
             report['package_sha256'] = hashlib.sha256(archive.read_bytes()).hexdigest()
             with tempfile.TemporaryDirectory(prefix='partitionline-markdown-') as directory:
-                compile_against_package(archive, selected, Path(directory))
+                report.update(compile_against_package(archive, selected, Path(directory), args.features, args.toolchain))
             report['compiled_snippets'] = len(selected)
         if args.report:
             args.report.parent.mkdir(parents=True, exist_ok=True)

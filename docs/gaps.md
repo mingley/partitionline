@@ -7,12 +7,12 @@ every row ships in the next commit. Status is the contract:
 **Audit qualification:** the inventory's **done** label means the API is
 callable in current source, not that the runtime behavior is complete and
 not that independent conformance or production qualification is complete.
-The [2026-09-21 audit](audits/2026-09-21.md) reproduces five consumer
+The [2026-09-21 audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md) reproduces five consumer
 defects and separates codec helpers from runtime support. Per-entry runtime
 status — `present`, `partial`, `missing`, `out_of_scope` — lives in the
 KL05-01 [feature registry](../tests/conformance/features.json), which
 qualifies several rows below (see Registry cross-check). Use
-[the small-session queue](plan/README.md) for repairs and major-feature
+[the small-session queue](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md) for repairs and major-feature
 completion; do not infer an all-features/all-versions pass from this table.
 
 | Status | Meaning |

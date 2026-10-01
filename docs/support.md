@@ -8,11 +8,11 @@ Suite HOLD.
 For API churn rules see [api-stability.md](api-stability.md). For how cuts are
 published see [RELEASE.md](RELEASE.md). For adopter steps see [ADOPTION.md](ADOPTION.md).
 
-**Known qualification limits:** the [2026-09-21 source audit](audits/2026-09-21.md)
+**Known qualification limits:** the [2026-09-21 source audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md)
 reproduced five consumer correctness cases at `cb7e97d`. CI-backed below means
 the named lanes execute, not that all client semantics are correct.
 Apache 4.1.2/4.2.1/4.3.1 are planned compatibility targets, not covered by the
-existing 3.9.1/4.1.0 matrix. Follow [the task queue](plan/README.md) for repairs
+existing 3.9.1/4.1.0 matrix. Follow [the task queue](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md) for repairs
 and evidence before extending support claims.
 
 ## Supported (CI-backed)

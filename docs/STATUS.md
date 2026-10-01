@@ -4,9 +4,9 @@ Suite HOLD stands. This file records holes. It does not lift them.
 
 **Latest source audit (2026-09-21):** at `cb7e97d`, exact-source CI is green,
 but five deterministic consumer semantics cases and a strict-rustdoc check
-fail. See the [audit and retained probes](audits/2026-09-21.md). Current
-execution is [one task per session](plan/README.md); task status lives in
-[tasks.json](plan/tasks.json). The dated entries below are historical evidence,
+fail. See the [audit and retained probes](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md). Current
+execution is [one task per session](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md); task status lives in
+[tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json). The dated entries below are historical evidence,
 not a replacement for the current source audit or a complete-profile signoff.
 
 | Hole | Status |
@@ -167,7 +167,7 @@ not a replacement for the current source audit or a complete-profile signoff.
 
 **KL-02 produce cancel contract (2026-09-05, tip `633bad3`):** guide cancellation/shutdown table; `tests/produce_cancel.rs` (completed/failed/ambiguous/Closed); durable `Producer` `closed` flag so clones cannot send after `close`. Does **not** close full KL-02 (no overload soak). Does **not** lift Suite HOLD.
 
-**KL-01/KL-04 latency CI policy (2026-09-05, tip `cc59201`):** CI run 33938039612 nested integrity produce-ack p99 **1,344 µs** vs **750 µs** is **historical** — `integrity-smoke` no longer nests the local relative gate (`SKIP_LATENCY_GATE=1`). Dedicated `latency-gate` remains `LATENCY_LIMIT_US=5000` (GHA+Docker catastrophic ceiling, unsigned). Local default is still 500 µs + 50% slack (750 µs). This is **not** a claim that raising a limit fixed the miss. Suite HOLD unchanged. See [latency-ci-policy.json](latency-ci-policy.json).
+**KL-01/KL-04 latency CI policy (2026-09-05, tip `cc59201`):** CI run 33938039612 nested integrity produce-ack p99 **1,344 µs** vs **750 µs** is **historical** — `integrity-smoke` no longer nests the local relative gate (`SKIP_LATENCY_GATE=1`). Dedicated `latency-gate` remains `LATENCY_LIMIT_US=5000` (GHA+Docker catastrophic ceiling, unsigned). Local default is still 500 µs + 50% slack (750 µs). This is **not** a claim that raising a limit fixed the miss. Suite HOLD unchanged. See [https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/latency-ci-policy.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/latency-ci-policy.json).
 
 **KL-01 fuzz campaign metadata (2026-09-05, tip `3e9a0fb`):** campaign harness/metadata landed (`scripts/ci-fuzz-campaign.sh`, `fuzz/campaign/metadata.example.json`, retained `fuzz/artifacts/minimized/`); 15s CI smoke (`scripts/ci-fuzz-smoke.sh`, `FUZZ_SECONDS=15`) unchanged; not a sustained-campaign close of KL-01; Suite HOLD unchanged.
 

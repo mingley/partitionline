@@ -37,21 +37,21 @@ the goal table; each row names where that kind of information lives.
 
 ## Plan and history
 
-- Task status lives **only** in [plan/tasks.json](plan/tasks.json); the
-  [session guide](plan/README.md), [ROADMAP](ROADMAP.md) and
-  [TODO](../TODO.md) are navigation and context. Never duplicate or reset
+- Task status lives **only** in [https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json); the
+  [session guide](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md), [ROADMAP](ROADMAP.md) and
+  [TODO](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/TODO.md) are navigation and context. Never duplicate or reset
   task statuses in prose.
-- [Performance leadership program](plan/performance-leadership.md) (KL09):
+- [Performance leadership program](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/performance-leadership.md) (KL09):
   the fastest-client claim gate, the hot-path map and the measure-first
   optimization protocol. It is a plan, not a performance claim.
-- [Gateway adoption plan](plan/gateway-adoption.md) (KL10): the gateway
+- [Gateway adoption plan](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/gateway-adoption.md) (KL10): the gateway
   profile, a dated same-settings comparison against librdkafka, and the
   cards that close its gaps. It is a plan, not a performance claim.
 - [STATUS.md](STATUS.md) is the **historical** Suite HOLD log: dated
   entries are historical evidence, not a current signoff.
 - [CIVILIZATION.md](CIVILIZATION.md) is the **historical** foundation plan,
   superseded by the session plan and the
-  [2026-09-21 audit](audits/2026-09-21.md).
+  [2026-09-21 audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md).
 - Blank adopter run template: [adopter-exercise.md](adopter-exercise.md)
   (**unfilled**, not evidence). Companion designs:
   [schema-companion.md](schema-companion.md),

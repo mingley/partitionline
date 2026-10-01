@@ -14,8 +14,8 @@ partitionline = "0.1"
 **Status:** partitionline 0.1.0 is on [crates.io](https://crates.io/crates/partitionline) (`partitionline = "0.1"`). Probe: `bash scripts/check-installable.sh`.
 
 **Qualification:** installable is not production-qualified. The
-[2026-09-21 source audit](docs/audits/2026-09-21.md) reproduced five unresolved
-consumer correctness cases. The [small-session plan](docs/plan/README.md)
+[2026-09-21 source audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md) reproduced five unresolved
+consumer correctness cases. The [small-session plan](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md)
 prioritizes those repairs before broader compatibility and performance claims.
 
 ## Produce
@@ -172,8 +172,8 @@ stability/support/gaps/security matrices, and architecture in
 [docs/design.md](docs/design.md).
 Migrate from rust-rdkafka: [docs/migrate-from-rdkafka.md](docs/migrate-from-rdkafka.md).
 Adoption / pilot checklist: [docs/ADOPTION.md](docs/ADOPTION.md).
-Pick one implementation task: [session guide](docs/plan/README.md) /
-[TODO.md](TODO.md) — only [docs/plan/tasks.json](docs/plan/tasks.json) owns
+Pick one implementation task: [session guide](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md) /
+[https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/TODO.md](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/TODO.md) — only [https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json) owns
 task status. [CIVILIZATION.md](docs/CIVILIZATION.md) is the **historical**
 foundation plan (history, not a task queue).
 

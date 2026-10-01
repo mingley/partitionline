@@ -1,9 +1,9 @@
 # Civilization plan for partitionline
 
 **Historical foundation plan.** Current execution is
-[one task per session](plan/README.md), with status/dependencies in
-[tasks.json](plan/tasks.json) and profile gates in [ROADMAP.md](ROADMAP.md).
-The [2026-09-21 audit](audits/2026-09-21.md) supersedes broad completion
+[one task per session](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md), with status/dependencies in
+[tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json) and profile gates in [ROADMAP.md](ROADMAP.md).
+The [2026-09-21 audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md) supersedes broad completion
 inferences from this file's capability checklist.
 
 **North star:** Critical event infrastructure can run on a memory-safe Kafka

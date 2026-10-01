@@ -61,7 +61,7 @@ to a 2.15.0 `librdkafka`. Do not use rust-rdkafka as the C bar.
 
 ## Profiling a run (KL09-11)
 
-[scripts/perf-profile.sh](../scripts/perf-profile.sh) captures CPU samples, a
+[scripts/perf-profile.sh](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/perf-profile.sh) captures CPU samples, a
 syscall summary, rusage (context switches, peak RSS, faults) and a heap
 profile for a named cell or command, using only locally installed tools
 detected at runtime (`samply`/`perf`/`sample`, `strace`/`dtruss`,
@@ -617,5 +617,5 @@ Lab A / Kernel Integrity signoff. The nested integrity-job miss on
 (produce-ack p99 **1,344 µs** vs **750 µs**) is **historical**:
 `integrity-smoke` now sets `SKIP_LATENCY_GATE=1`. Raising a CI ceiling
 does not fix that miss. Suite HOLD stays. Machine-readable budgets:
-[latency-ci-policy.json](latency-ci-policy.json). Reproduce on a
+[https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/latency-ci-policy.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/latency-ci-policy.json). Reproduce on a
 controlled host before treating any sample as qualification.

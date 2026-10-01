@@ -154,13 +154,13 @@ retry-after-refresh. They are intentionally outside `is_retriable()`, which
 covers only wire/transport outcomes.
 
 Transactional classification follows the operation-specific Apache handler
-tables pinned by [KL03-10](plan/evidence/KL03-10.json). A Produce fencing
+tables pinned by [KL03-10](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/evidence/KL03-10.json). A Produce fencing
 error is terminal; abort-required errors clear through abort. Classic
 coordinators recover using InitProducerId with the last authorized identity;
 transaction V2 uses the EndTxn response identity without a second re-init.
 Repeating `init_transactions()` only checks initialization; it neither clears
 these states nor obtains a new identity.
-The [KL07-14 public-API checks](plan/evidence/KL07-14.json) cover both paths.
+The [KL07-14 public-API checks](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/evidence/KL07-14.json) cover both paths.
 These categories describe client state separately from `is_retriable()`;
 a broker code's disposition can differ between Produce and EndTxn.
 `Error::Closed` displays the client-neutral `client closed` on all paths.
