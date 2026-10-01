@@ -44,6 +44,9 @@ the goal table; each row names where that kind of information lives.
 - [Performance leadership program](plan/performance-leadership.md) (KL09):
   the fastest-client claim gate, the hot-path map and the measure-first
   optimization protocol. It is a plan, not a performance claim.
+- [Gateway adoption plan](plan/gateway-adoption.md) (KL10): the gateway
+  profile, a dated same-settings comparison against librdkafka, and the
+  cards that close its gaps. It is a plan, not a performance claim.
 - [STATUS.md](STATUS.md) is the **historical** Suite HOLD log: dated
   entries are historical evidence, not a current signoff.
 - [CIVILIZATION.md](CIVILIZATION.md) is the **historical** foundation plan,

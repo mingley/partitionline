@@ -108,7 +108,7 @@ them retrospectively merely to make a failing result green.
 Each package may require several small PRs. Existing commands below are
 building blocks, **not proof that new acceptance criteria already pass**.
 New harnesses must be added and wired into CI before their package can close.
-Use the corresponding `KL01-*` through `KL08-*` cards in
+Use the corresponding `KL01-*` through `KL10-*` cards in
 [tasks.json](plan/tasks.json); do not assign an entire numbered package to
 one implementation session.
 
@@ -420,6 +420,36 @@ is explicitly blocked; the allocation and instruction gates run in CI;
 and KL09-70 records a per-cell verdict from raw artifacts. Public wording
 uses only claim types whose thresholds are met, and follows the Suite
 HOLD signoff.
+
+### KL-10: Win the gateway workload
+
+**Priority:** P0 restore green `main` CI; P1 cells, gzip, delivery API and
+gzip consume.
+**Depends on:** KL-04 peers and result format; KL-09 worker protocol and
+codec benchmarks; KL-05 for zstd.
+
+The [gateway adoption plan](plan/gateway-adoption.md) holds the profile,
+the dated evidence and the card map. Cards are KL10-01 through KL10-14 in
+[tasks.json](plan/tasks.json).
+
+1. Restore a green `main`: the verifiable contract tests must find the
+   example binaries they run (KL10-01).
+2. Make the gateway profile measurable: about 1 KiB JSON-like records,
+   gzip, mTLS, `acks=all`, max in flight 1 and per-record acknowledgment,
+   against a same-settings librdkafka peer, plus 1 KiB codec microbenchmarks.
+3. Close the measured gaps: gzip decode (KL09-34, then decode off the
+   caller task), gzip feed overhead and backend policy, an owned
+   per-record delivery API, consumer peak RSS, and zstd (KL05-02..05).
+4. Propose gzip and gateway cells for the benchmark contract, and publish a
+   dated local per-cell verdict.
+
+**Work surfaces:** [record codec](../src/protocol/records.rs),
+[producer](../src/producer.rs), [consumer](../src/consumer.rs),
+[CI](../.github/workflows/ci.yml), [benchmarks](../benchmarks).
+**Done when:** `main` CI is green; on the gateway cells partitionline uses
+no more CPU per record than librdkafka for gzip produce and gzip consume at
+matched settings, with p99 no worse; per-record acknowledgment costs at
+most 10% over `try_send`; and KL10-12 has published its dated verdict.
 
 ## 5. First PRs and proof discipline
 

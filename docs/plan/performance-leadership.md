@@ -519,6 +519,10 @@ These cards in other lanes are also performance features:
 - **KL05-10**: opt-in sticky partitioner
 - **KL05-11/12**: Produce v13 and Fetch v18
 - **KL04-13**: campaign-driven cards for losing cells
+- **KL10**: the [gateway adoption plan](gateway-adoption.md): gateway-profile
+  cells (1 KiB gzip, mTLS, per-record acks), gzip backend and feed costs,
+  an owned delivery API and off-caller fetch decoding. Its 2026-09-30
+  evidence makes **KL09-34** the largest measured consume hotspot.
 
 KL09 does not duplicate them.
 

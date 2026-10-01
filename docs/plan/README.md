@@ -35,6 +35,7 @@ The prefixes retain the existing roadmap packages:
 | KL07 | Documentation, diagnostics and adoption ergonomics |
 | KL08 | Releases, support and production qualification |
 | KL09 | Performance leadership: fast local evidence loop, measured optimization and the fastest-client claim gate |
+| KL10 | Gateway adoption: close the gaps a same-settings gateway workload exposes (gzip, mTLS, per-record acks, gzip consume, red CI) |
 
 **Size rule:** one observable behavior, one fixture family, one adapter, one
 documentation outcome, or one evidence job per task. Aim for one or two
@@ -88,6 +89,13 @@ in-progress card per hot file, such as `src/producer.rs` or
 `src/consumer.rs`, across all lanes. It also defines an atomic claim
 procedure: push the claim to `origin/main` with a declared `write_set`.
 Use both whenever parallel sessions are active.
+
+**Gateway adoption work (KL10)** follows the
+[gateway adoption plan](gateway-adoption.md). It defines the gateway
+profile, records the dated same-settings comparison against librdkafka
+that motivated it, and maps each gap to a card. KL10 optimization cards use
+the KL09 worker protocol and hot-file locks. Start with **KL10-01**, which
+restores a green `main` CI that every other card's validation needs.
 
 ## Execute and hand off
 

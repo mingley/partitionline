@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-09-26",
+  "updated": "2026-09-30",
   "audited_source": "cb7e97d3b92a8555aea34d59266a2990c206395f",
   "guide": "docs/plan/README.md",
   "audit": "docs/audits/2026-09-21.md",
@@ -3511,6 +3511,160 @@
       "deliverable": "A per-cell verdict (win/loss/tie/unsupported with CIs) against the best peer on x86_64 and arm64, and the strongest claim type from section 0 that the evidence supports.",
       "acceptance": ["Every required cell appears with raw artifact links; losing cells are listed by name and each becomes a KL04-13-style card.", "Claim wording uses only the section 0 claim types whose thresholds are met (global, profile, X%-faster, efficiency) and cites the KL04-14 independent reproduction.", "README/benchmark.md/STATUS edits and any Suite HOLD change require explicit maintainer authorization recorded in evidence; without it, publish the verdict only under docs/evidence/perf/claim-audit/."],
       "validation": ["Regenerate the verdict from a clean checkout and compare the output deterministically.", "Check each displayed claim against its raw record count, configuration and confidence interval."],
+      "evidence": []
+    },
+    {
+      "id": "KL10-01",
+      "title": "Restore green main CI for the verifiable contract tests",
+      "priority": "P0", "kind": "ci", "status": "pending", "owner": null,
+      "depends_on": [],
+      "files": [".github/workflows/ci.yml", "tests/verifiable_contract.rs", "CONTRIBUTING.md"],
+      "deliverable": "cargo test --all-targets passes from a clean target directory on stable, 1.85 and the features job: tests/verifiable_contract.rs finds (or builds) the verifiable_producer and verifiable_consumer example binaries it runs, instead of panicking with 'missing example binary'.",
+      "acceptance": ["Failing first: from a clean CARGO_TARGET_DIR, cargo test --locked --all-targets reproduces the five verifiable_contract failures seen on main since 848e58c (KL01-09).", "The fix makes the test self-sufficient (for example, it builds the two examples with the running cargo and target directory before use), or every CI job that runs the suite builds the examples first and CONTRIBUTING.md states the prerequisite. No test is ignored, skipped or weakened.", "test (1.85), test (stable) and features are green on the fix commit on main; the run URL is recorded in evidence."],
+      "validation": ["CARGO_TARGET_DIR=$(mktemp -d) cargo test --locked --test verifiable_contract", "cargo test --locked --all-targets", "cargo test --locked --all-targets --features tracing", "gh run list --workflow ci --branch main (the fix commit's run is green)"],
+      "evidence": []
+    },
+    {
+      "id": "KL10-02",
+      "title": "Build the gateway produce cells with a same-settings librdkafka peer",
+      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "depends_on": ["KL04-05", "KL04-06", "KL04-07", "KL09-01"],
+      "files": ["benchmarks/scenarios.json", "new: benchmarks/gateway/", "benchmarks/peers/rust/", "docs/plan/performance-leadership.md"],
+      "deliverable": "The exploratory produce cells defined in gateway-adoption.md section 0 (lb-gateway-produce-gzip, lb-gateway-produce-lz4, lb-gateway-produce-ack), run for partitionline and the KL04-05 rust-rdkafka peer, reusing the KL04-06 open-loop scheduler and the KL04-07 record-history gate, and registered as rows in performance-leadership.md section 4.",
+      "acceptance": ["Both clients emit their effective configuration; the driver refuses to compare runs whose codec, level, acks, max in flight, linger, batch size or TLS settings differ, and labels the acknowledgment mode (per-record completion, or fire-and-forget confirmed by a timed flush).", "Acknowledged counts are reconciled against partition high-watermark deltas and the KL04-07 record histories; enqueue rates are never reported as acknowledged throughput; CPU comes from process rusage; results validate with scripts/benchmark-report.py.", "The baseline is measured on a harness-only commit (library unchanged) with the section 4 protocol (>=5 interleaved repetitions, medians with 95% CIs); differences from gateway-adoption.md section 2 are recorded and explained, not gated.", "librdkafka and any other native code stay in workspace-excluded benchmark crates and never enter the partitionline dependency graph or package."],
+      "validation": ["cargo test --locked --manifest-path benchmarks/gateway/Cargo.toml", "python3 scripts/benchmark-report.py <gateway result files>", "cargo tree -p partitionline --edges normal (no librdkafka, no new native crates)"],
+      "evidence": []
+    },
+    {
+      "id": "KL10-03",
+      "title": "Add a 1 KiB JSON-like payload family to the codec microbenchmarks",
+      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "depends_on": ["KL09-04", "KL09-05"],
+      "files": ["benchmarks/codec/", "docs/plan/performance-leadership.md"],
+      "deliverable": "micro-compress:<codec>:json1k and micro-decompress:<codec>:json1k cells (gzip, lz4, snappy) over seeded JSON-like 1 KiB records at 16 KiB and 256 KiB batches, plus a raw-backend baseline that compresses the same bytes in one call, so client feed overhead is separable from backend speed.",
+      "acceptance": ["Allocation and instruction baselines are recorded for the new cells; existing baselines are unchanged.", "The cells are listed in performance-leadership.md section 4 with their builder card.", "Payloads are seeded and deterministic; the report includes the compression ratio per cell."],
+      "validation": ["cargo test --locked --manifest-path benchmarks/codec/Cargo.toml", "cargo bench --manifest-path benchmarks/codec/Cargo.toml -- json1k (record command and output)"],
+      "evidence": []
+    },
+    {
+      "id": "KL10-04",
+      "title": "Explain the in-client gzip deflate overhead",
+      "priority": "P1", "kind": "analysis", "status": "pending", "owner": null,
+      "depends_on": ["KL10-02", "KL10-03"],
+      "files": ["docs/plan/gateway-adoption.md", "docs/plan/tasks.json"],
+      "deliverable": "A measured explanation (reading src/protocol/records.rs and src/producer.rs; no edits) of why gzip_compress_into costs about 18 us per 1 KiB record on lb-gateway-produce-gzip versus about 10 us for the same backend compressing the same bytes in one call (gateway-adoption.md section 2).",
+      "acceptance": ["Measure batch-size distribution under the gateway knobs, write granularity into the encoder, encoder and hash-table initialization per batch, output growth and level; attribute the gap with profiles from the KL09-11 script or equivalent.", "Split each fix worth >=5% of the cell into a dependent outcome-branch card (at most three), or record that the gap is not reproducible.", "No production code changes in this card."],
+      "validation": ["Link the profiles and per-hypothesis measurements in evidence.", "Each proposed child card fits one session and names its hot files."],
+      "evidence": []
+    },
+    {
+      "id": "KL10-05",
+      "title": "Decide the gzip backend policy",
+      "priority": "P1", "kind": "decision", "status": "pending", "owner": null,
+      "depends_on": ["KL10-03", "KL05-01"],
+      "files": ["new: docs/gzip-backend.md", "Cargo.toml", "deny.toml"],
+      "deliverable": "A reviewed decision on the gzip backend: keep miniz_oxide, add zlib-rs (pure Rust, but it uses unsafe and SIMD internally) as an opt-in cargo feature, or change the default, with measured, licensing, MSRV (1.85), maintenance and safety evidence.",
+      "acceptance": ["Measure compress and decompress separately on the KL10-03 cells on both x86_64 and arm64, with ratios; gateway-adoption.md section 2 numbers are context, not the evidence.", "Audit each candidate's unsafe and SIMD use, fuzzing and maintenance against the dependency policy in performance-leadership.md section 9; partitionline's own unsafe_code = forbid is unchanged.", "Any manifest change requires explicit maintainer approval recorded in evidence. 'Keep miniz_oxide' is a complete outcome: KL10-06 is then marked blocked with that reason and nothing downstream waits on it."],
+      "validation": ["Record candidate versions, licenses, MSRV and the measured table.", "Review the proposed feature and dependency graph (cargo tree) before any manifest change."],
+      "evidence": []
+    },
+    {
+      "id": "KL10-06",
+      "title": "Add the approved gzip backend as an opt-in feature",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL10-01", "KL10-05", "KL10-02"],
+      "files": ["Cargo.toml", "src/protocol/records.rs", "deny.toml", "docs/gzip-backend.md"],
+      "deliverable": "The backend approved by KL10-05 behind an additive cargo feature, selected at compile time, with byte-compatible gzip framing and unchanged decode bounds.",
+      "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "The default build's dependency graph is unchanged unless KL10-05 approved a default change.", "Batches written by the Java and librdkafka fixtures decode, and batches written with the feature decode in the Java oracle (scripts/ci-protocol-oracles.sh); KL02-03 bomb and decoded-byte limit tests are unchanged and green.", "The feature is documented in docs/gzip-backend.md and exercised by a CI job."],
+      "validation": ["cargo test --locked --features <feature> --test protocol_oracles", "cargo test --locked --features <feature> --test fuzz_decode_smoke", "bash scripts/ci-protocol-oracles.sh", "A/B cells micro-compress:gzip:json1k, micro-decompress:gzip:json1k, lb-gateway-produce-gzip: >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4, gateway rows)"],
+      "evidence": []
+    },
+    {
+      "id": "KL10-07",
+      "title": "Specify an owned, eagerly enqueued per-record delivery API",
+      "priority": "P1", "kind": "specification", "status": "pending", "owner": null,
+      "depends_on": ["KL07-10"],
+      "files": ["docs/api-stability.md", "docs/design.md"],
+      "deliverable": "An additive API in which admission (validation, buffer reservation and per-partition ordering) happens before the call returns, and the caller receives an owned Send + 'static completion for that record, in the style of librdkafka send_result and the Java client's send.",
+      "acceptance": ["State precisely what the existing borrowed send() future cannot provide (eager admission at call time, ordering fixed by call order rather than poll order, an owned completion that can cross task boundaries) and when it is sufficient.", "Specify the return type, the distinct buffer-full error (no hidden await), ordering across successive calls from one caller, that dropping the completion never cancels delivery, and interaction with flush, close, interceptors, idempotence and transactions.", "send() and try_send() keep their current behavior and signatures; maintainer sign-off (or rejection, which blocks KL10-08 with the reason) is recorded in evidence."],
+      "validation": ["The specification's examples compile as doctests or are marked as future acceptance commands.", "Review against docs/api-stability.md additive-change rules."],
+      "evidence": []
+    },
+    {
+      "id": "KL10-08",
+      "title": "Implement the owned delivery API",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL10-01", "KL10-07", "KL10-02"],
+      "files": ["src/producer.rs", "tests/mock_produce.rs", "tests/produce_cancel.rs"],
+      "deliverable": "The KL10-07 API, with behavioral tests and a gateway-cell measurement against the existing ways to get per-record outcomes.",
+      "acceptance": ["Failing-first tests: FIFO per partition across successive calls from one task; completion outcome matches the broker response; dropping a completion does not cancel or reorder delivery; buffer-full returns the distinct error immediately; close and flush resolve every outstanding completion.", "On lb-gateway-produce-ack, report CPU per record for the new API, a bounded set of concurrently polled borrowed send() futures, one spawned task per send(), and try_send plus a timed flush; the target is at most 1.10x try_send at the same load. Record the measured result either way.", "Existing producer suites pass with no new skips."],
+      "validation": ["cargo test --locked --test mock_produce", "cargo test --locked --test produce_cancel", "cargo test --locked --test buffer_ownership", "A/B cells lb-gateway-produce-ack, lb-gateway-produce-gzip: >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4, gateway rows)"],
+      "evidence": []
+    },
+    {
+      "id": "KL10-09",
+      "title": "Decode compressed fetch batches off the caller task",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL10-01", "KL09-34", "KL10-14"],
+      "files": ["src/consumer.rs", "src/protocol/fetch.rs"],
+      "deliverable": "Decompression and record decoding of fetched batches run on bounded workers (per partition or per leader response) instead of inline in the caller's fetch/poll, so consuming compressed data can use more than one core.",
+      "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Per-partition order, the KL02-08 aggregate buffer budget, seek, pause, rebalance and read_committed filtering are unchanged; each has a test that fails if decoded results are applied out of order or after invalidation.", "Worker count is bounded and configurable with a documented default; decode errors surface on the same call they do today."],
+      "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test fetch_buffer_budget", "cargo test --locked --test protocol_oracles", "A/B cells lb-gateway-fetch-gzip: >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4, gateway rows)"],
+      "evidence": []
+    },
+    {
+      "id": "KL10-10",
+      "title": "Explain consumer peak RSS on the gateway fetch cell",
+      "priority": "P1", "kind": "analysis", "status": "pending", "owner": null,
+      "depends_on": ["KL10-14"],
+      "files": ["docs/resource-contract.md", "docs/plan/gateway-adoption.md"],
+      "deliverable": "A measured account of the consumer's peak RSS on lb-gateway-fetch-gzip (1.4 GB against 193 MB for the peer in gateway-adoption.md section 2) against the configured fetch, partition and buffer budgets, with a decision on defaults or documentation.",
+      "acceptance": ["Attribute peak RSS to fetched bytes, decompressed expansion, pending records and allocator retention at the cell's settings.", "If RSS exceeds the documented budget, open a failing-first bounds card (P0); if it is within budget, document why and the knobs that reduce it.", "No production code changes in this card."],
+      "validation": ["Record RSS samples and the effective consumer configuration in evidence.", "Cross-check against docs/resource-contract.md."],
+      "evidence": []
+    },
+    {
+      "id": "KL10-11",
+      "title": "Propose gzip and gateway cells for the benchmark contract",
+      "priority": "P1", "kind": "specification", "status": "pending", "owner": null,
+      "depends_on": ["KL10-02", "KL10-14"],
+      "files": ["docs/benchmark-contract.md", "benchmarks/scenarios.json", "docs/plan/performance-leadership.md"],
+      "deliverable": "A contract amendment proposal that adds gzip bulk and fetch cells with ~1 KiB text records, and an mTLS per-record-acknowledgment cell, to the required set for the bulk, fetch and secure profiles.",
+      "acceptance": ["The proposal states each cell's knobs, peers, metrics and the contract version bump, and makes gzip an explicit required codec cell alongside lz4 and zstd.", "The maintainer's acceptance or rejection is recorded in evidence; frozen contract text and the KL09 claim gate change only after acceptance.", "If accepted, KL09-70's required-cell list includes the new cells."],
+      "validation": ["Validate scenarios.json changes with the existing contract tooling.", "Diff the contract and claim-gate text against the accepted proposal."],
+      "evidence": []
+    },
+    {
+      "id": "KL10-12",
+      "title": "Re-measure the gateway cells and publish a dated local verdict",
+      "priority": "P1", "kind": "analysis", "status": "pending", "owner": null,
+      "depends_on": ["KL10-01", "KL10-02", "KL10-14", "KL10-04", "KL10-05", "KL10-07", "KL10-09", "KL09-34"],
+      "files": ["new: docs/evidence/perf/gateway/", "docs/plan/gateway-adoption.md"],
+      "deliverable": "A dated per-cell local verdict (win, loss or tie with CIs) for partitionline against the rust-rdkafka peer on every gateway cell, including zstd if KL05-04 is done.",
+      "acceptance": ["Start only when KL10-06 and KL10-08 are each done or blocked with a recorded reason; a blocked or rejected card is listed with that reason, and its cells are measured on the default build.", "Every gateway cell appears with raw artifact links; losses are listed by name, and each loss above 5% becomes a card. The verdict is local and unsigned; README, benchmark.md and STATUS are not edited.", "gateway-adoption.md section 7 is updated with the new measured statement."],
+      "validation": ["Regenerate the verdict from a clean checkout and compare it deterministically.", "Check each number against its raw record count, configuration and confidence interval."],
+      "evidence": []
+    },
+    {
+      "id": "KL10-13",
+      "title": "Document the gateway adoption recipe",
+      "priority": "P2", "kind": "documentation", "status": "pending", "owner": null,
+      "depends_on": ["KL10-08"],
+      "files": ["new: examples/gateway.rs", "docs/migrate-from-rdkafka.md", "docs/guide.md"],
+      "deliverable": "An example and a migration section for gateway workloads: one shared producer with per-record completions, mTLS identity, explicit partitions and headers, and a manual-assignment consumer with seek.",
+      "acceptance": ["The example compiles in CI and runs against the broker smoke setup.", "The migration section maps the librdkafka settings used by gateways (acks, max in flight, linger, batch size, compression, SSL) to partitionline configuration, including any setting without an equivalent."],
+      "validation": ["cargo build --locked --example gateway", "bash scripts/ci-docs.sh"],
+      "evidence": []
+    },
+    {
+      "id": "KL10-14",
+      "title": "Build the gateway fetch cell with a same-settings librdkafka peer",
+      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "depends_on": ["KL04-05", "KL04-07", "KL09-01"],
+      "files": ["new: benchmarks/gateway/", "benchmarks/scenarios.json", "docs/plan/performance-leadership.md"],
+      "deliverable": "The exploratory lb-gateway-fetch-gzip cell defined in gateway-adoption.md section 0 (manual assignment from an explicit offset over a seeded gzip backlog written by another client), run for partitionline and the KL04-05 rust-rdkafka peer, and registered as a row in performance-leadership.md section 4.",
+      "acceptance": ["The backlog is written once by a pinned peer with recorded settings and reused unchanged by both clients; every consumed record's ID/hash is verified against the KL04-07 history.", "Both clients use matched fetch sizes, wait times and TLS settings, emit their effective configuration, and report records/s, CPU per record and peak RSS.", "The baseline is measured on a harness-only commit (library unchanged) with the section 4 protocol (>=5 interleaved repetitions, medians with 95% CIs); differences from gateway-adoption.md section 2 are recorded and explained, not gated."],
+      "validation": ["cargo test --locked --manifest-path benchmarks/gateway/Cargo.toml", "python3 scripts/benchmark-report.py <gateway result files>"],
       "evidence": []
     }
   ]

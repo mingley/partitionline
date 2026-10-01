@@ -1,6 +1,6 @@
 # Next-session queue
 
-**Default next task: `KL09-08` (P1) -- add multi-node, slow-node and fault modes to the null broker.** (`KL09-07` Fetch server landed; `KL09-02`/`KL09-03` await `KL04-07`.)
+**Default next task: `KL10-01` (P0) -- restore green `main` CI (`tests/verifiable_contract.rs` cannot find the example binaries it runs; every `main` run since `848e58c` fails `test` and `features`).** Then `KL09-34` (gzip consume is 7.8x librdkafka's CPU per record; see the [gateway adoption plan](docs/plan/gateway-adoption.md)) or `KL09-08` (null-broker fault modes). (`KL09-07` Fetch server landed; `KL09-02`/`KL09-03` await `KL04-07`.)
 
 Use [one task per session](docs/plan/README.md). The canonical
 [task registry](docs/plan/tasks.json) contains dependencies, starting files,
@@ -62,6 +62,7 @@ Follow the dependency graph, not a new open-ended audit:
 | `KL07-*` | Strict docs, actual snippet checks, tutorial/recipes, migration, bounded diagnostics and newcomer exercises |
 | `KL08-*` | Exact required-CI gates, one publisher, package/platform checks, separate adopter runs and operator-controlled rollback |
 | `KL09-*` | [Performance leadership](docs/plan/performance-leadership.md): claim gate, null-broker/allocation/instruction evidence loop, measured producer/codec/consumer/transport optimizations, franz-go peer and a per-cell fastest-client audit. First pickups: `KL09-01`, `KL09-14` |
+| `KL10-*` | [Gateway adoption](docs/plan/gateway-adoption.md): green main CI, gateway-profile cells against librdkafka, gzip backend and feed costs, an owned per-record delivery API, off-caller fetch decoding, consumer RSS and a dated verdict. First pickups: `KL10-01`, then `KL09-34` and `KL05-02` |
 
 All new cards begin **pending/unassigned**. Future validation commands are
 acceptance criteria, not completed evidence. A harness, example result,
