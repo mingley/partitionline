@@ -159,6 +159,7 @@ pub use crate::protocol::admin::{
     SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UNKNOWN_VOLUME_BYTES, UPGRADE_TYPE_SAFE_DOWNGRADE,
     UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
 };
+pub use crate::protocol::admin::{AddRaftVoterResponse, RaftVoterEndpoint};
 pub use crate::protocol::admin::{
     DescribeQuorumListener, DescribeQuorumNode, DescribeQuorumReplicaState,
 };
@@ -209,6 +210,16 @@ pub struct ElectLeadersOptions {
     /// `None` selects all partitions; `Some(vec![])` selects no partitions.
     pub partitions: Option<Vec<TopicPartition>>,
     /// Total operation deadline, including discovery, connects and retries.
+    /// `None` uses [`AdminConfig::request_timeout`].
+    pub timeout: Option<Duration>,
+}
+
+/// Expected cluster and total deadline for [`Admin::add_raft_voter`].
+#[derive(Debug, Clone, Default)]
+pub struct AddRaftVoterOptions {
+    /// Optional expected cluster identity, checked by the controller.
+    pub cluster_id: Option<String>,
+    /// Total deadline including discovery, authentication and retries.
     /// `None` uses [`AdminConfig::request_timeout`].
     pub timeout: Option<Duration>,
 }
@@ -3033,6 +3044,151 @@ fn partitions_from_new(topics: &[NewPartitions]) -> Vec<CreatePartitionsTopic> {
 }
 
 impl Admin {
+    /// Add a metadata-quorum voter (KIP-853), using AddRaftVoter v0.
+    ///
+    /// Broker-bootstrap clients send through a broker, which forwards to the
+    /// active controller, matching pinned Java 4.1. Controller bootstrap is not
+    /// supported. Requires a nonnegative voter ID, a nonreserved directory UUID
+    /// and at least one valid endpoint with unique listener names. These checks
+    /// run before I/O. The controller determines membership and feature support.
+    ///
+    /// Only NOT_CONTROLLER and transport failures are retried within one total
+    /// deadline. Other broker errors preserve their code/message, including
+    /// duplicate voter and server-side timeout. A lost response can leave the
+    /// membership outcome ambiguous; inspect the quorum before another change.
+    /// Success retains the broker's throttle time in the typed response.
+    pub async fn add_raft_voter(
+        &mut self,
+        voter_id: i32,
+        voter_directory_id: Uuid,
+        endpoints: Vec<RaftVoterEndpoint>,
+        options: AddRaftVoterOptions,
+    ) -> Result<AddRaftVoterResponse> {
+        if voter_id < 0 || Uuid::RESERVED.contains(&voter_directory_id) {
+            return Err(Error::protocol(
+                "voter ID must be nonnegative and directory UUID nonreserved",
+            ));
+        }
+        if endpoints.is_empty() {
+            return Err(Error::protocol("at least one voter endpoint is required"));
+        }
+        let mut names = std::collections::HashSet::with_capacity(endpoints.len());
+        for endpoint in &endpoints {
+            endpoint.validate()?;
+            if !names.insert(&endpoint.listener) {
+                return Err(Error::protocol("duplicate voter listener name"));
+            }
+        }
+        if options.cluster_id.as_ref().is_some_and(String::is_empty) {
+            return Err(Error::protocol("expected cluster ID must not be empty"));
+        }
+        let timeout = options.timeout.unwrap_or(self.cfg.request_timeout);
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("quorum timeout exceeds clock range"))?;
+        let request = crate::protocol::admin::AddRaftVoterRequest {
+            cluster_id: options.cluster_id,
+            timeout_ms: 0,
+            voter_id,
+            voter_directory_id: voter_directory_id.to_bytes(),
+            listeners: endpoints,
+        };
+        tokio::time::timeout(timeout, self.add_raft_voter_until(request, deadline))
+            .await
+            .map_err(|_| Error::Timeout)?
+    }
+
+    async fn add_raft_voter_until(
+        &mut self,
+        mut request: crate::protocol::admin::AddRaftVoterRequest,
+        deadline: Instant,
+    ) -> Result<AddRaftVoterResponse> {
+        let mut attempt = 0;
+        let mut reconnect = false;
+        let mut refresh = false;
+        loop {
+            let result = async {
+                if reconnect {
+                    let addr = self.conn.addr().to_owned();
+                    self.conn = self.open_node_conn(&addr).await?;
+                    reconnect = false;
+                }
+                self.ensure_bootstrap().await?;
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                let capabilities =
+                    crate::protocol::api::negotiate_api_versions(&mut self.conn, remaining).await?;
+                let version = capabilities
+                    .api_keys
+                    .iter()
+                    .find(|api| api.api_key == crate::protocol::api_keys::ADD_RAFT_VOTER)
+                    .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
+                    .ok_or_else(|| {
+                        Error::Unsupported("broker does not support AddRaftVoter v0".into())
+                    })?;
+                if refresh {
+                    self.refresh_metadata(None).await?;
+                    refresh = false;
+                }
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                request.timeout_ms = i32::try_from(remaining.as_millis())
+                    .unwrap_or(i32::MAX)
+                    .max(1);
+                let mut body = self
+                    .conn
+                    .roundtrip(
+                        crate::protocol::api_keys::ADD_RAFT_VOTER,
+                        version,
+                        |buf| {
+                            crate::protocol::admin::encode_add_raft_voter_request(
+                                buf, version, &request,
+                            )
+                        },
+                        remaining,
+                    )
+                    .await?;
+                let response =
+                    crate::protocol::admin::decode_add_raft_voter_response(&mut body, version)?;
+                if !body.is_empty() {
+                    return Err(Error::protocol("trailing AddRaftVoter response bytes"));
+                }
+                if response.error_code != 0 {
+                    return Err(Error::broker(
+                        response.error_code,
+                        response
+                            .error_message
+                            .unwrap_or_else(|| "AddRaftVoter".into()),
+                    ));
+                }
+                Ok(response)
+            }
+            .await;
+            match result {
+                Err(err)
+                    if err.broker_code() == Some(error::NOT_CONTROLLER)
+                        || matches!(err, Error::Io(_) | Error::Closed | Error::Timeout) =>
+                {
+                    if err.broker_code() == Some(error::NOT_CONTROLLER) {
+                        self.cluster.invalidate_controller();
+                        refresh = true;
+                    } else {
+                        reconnect = true;
+                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
+                }
+                result => return result,
+            }
+        }
+    }
+
     /// Inspect the metadata quorum (`__cluster_metadata`, partition 0).
     ///
     /// Matches Java `describeMetadataQuorum` for broker-bootstrap clients:

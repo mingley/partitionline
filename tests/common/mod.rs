@@ -33,6 +33,10 @@ use partitionline::protocol::acl::{
     AclBinding, AclBindingFilter, AclCreationResult, DeleteAclsResponse, DeletedAclsFilterResult,
 };
 use partitionline::protocol::admin::{
+    decode_add_raft_voter_request, encode_add_raft_voter_response, AddRaftVoterRequest,
+    AddRaftVoterResponse,
+};
+use partitionline::protocol::admin::{
     decode_allocate_producer_ids_request, decode_alter_client_quotas_request,
     decode_alter_configs_resources_request, decode_alter_partition_reassignments_request,
     decode_alter_replica_log_dirs_request, decode_alter_share_group_offsets_request,
@@ -135,7 +139,7 @@ use partitionline::protocol::api_keys::{
     SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
     WRITE_TXN_MARKERS,
 };
-use partitionline::protocol::api_keys::{DESCRIBE_QUORUM, ELECT_LEADERS};
+use partitionline::protocol::api_keys::{ADD_RAFT_VOTER, DESCRIBE_QUORUM, ELECT_LEADERS};
 use partitionline::protocol::cgheartbeat::{
     decode_consumer_group_heartbeat_request, encode_consumer_group_heartbeat_response,
     ConsumerGroupHeartbeatResponse, TopicPartitions,
@@ -410,6 +414,11 @@ struct State {
     describe_quorum_responses: VecDeque<DescribeQuorumResponse>,
     describe_quorum_delay: Option<Duration>,
     describe_quorum_drop: u32,
+    add_raft_voter_requests: Vec<(i32, i16, AddRaftVoterRequest)>,
+    add_raft_voter_responses: VecDeque<AddRaftVoterResponse>,
+    add_raft_voter_delay: Option<Duration>,
+    add_raft_voter_drop: u32,
+    add_raft_voter_trailing: bool,
     last_unregister_broker_node: Option<i32>,
     unregister_broker_not_controller: u32,
     last_unregistered_broker_id: Option<i32>,
@@ -833,6 +842,11 @@ fn new_state(
         describe_quorum_responses: VecDeque::new(),
         describe_quorum_delay: None,
         describe_quorum_drop: 0,
+        add_raft_voter_requests: Vec::new(),
+        add_raft_voter_responses: VecDeque::new(),
+        add_raft_voter_delay: None,
+        add_raft_voter_drop: 0,
+        add_raft_voter_trailing: false,
         last_unregister_broker_node: None,
         unregister_broker_not_controller: 0,
         last_unregistered_broker_id: None,
@@ -2532,6 +2546,24 @@ impl Mock {
     pub fn describe_quorum_requests(&self) -> Vec<(i32, i16, DescribeQuorumRequest)> {
         self.state.lock().describe_quorum_requests.clone()
     }
+    pub fn add_raft_voter_requests(&self) -> Vec<(i32, i16, AddRaftVoterRequest)> {
+        self.state.lock().add_raft_voter_requests.clone()
+    }
+    pub fn queue_add_raft_voter_response(&self, response: AddRaftVoterResponse) {
+        self.state
+            .lock()
+            .add_raft_voter_responses
+            .push_back(response);
+    }
+    pub fn set_add_raft_voter_delay(&self, delay: Duration) {
+        self.state.lock().add_raft_voter_delay = Some(delay);
+    }
+    pub fn drop_add_raft_voter_responses(&self, count: u32) {
+        self.state.lock().add_raft_voter_drop = count;
+    }
+    pub fn set_add_raft_voter_trailing(&self) {
+        self.state.lock().add_raft_voter_trailing = true;
+    }
     pub fn queue_describe_quorum_response(&self, response: DescribeQuorumResponse) {
         self.state
             .lock()
@@ -4028,6 +4060,7 @@ fn versions(st: &State, node_id: i32) -> ApiVersionsResponse {
         (UNREGISTER_BROKER, 0, 0),
         (ELECT_LEADERS, 0, 2),
         (DESCRIBE_QUORUM, 0, 2),
+        (ADD_RAFT_VOTER, 0, 0),
         (DESCRIBE_CLIENT_QUOTAS, 0, 1),
         (ALTER_CLIENT_QUOTAS, 0, 1),
         (ALLOCATE_PRODUCER_IDS, 0, 0),
@@ -5191,6 +5224,41 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         &DescribeUserScramCredentialsResponse::new(0, None, results),
                     )
                     .unwrap();
+                }
+            }
+            ADD_RAFT_VOTER => {
+                let request =
+                    decode_add_raft_voter_request(&mut frame, header.api_version).unwrap();
+                let (response, delay, drop_response, trailing) = {
+                    let mut st = state.lock();
+                    st.add_raft_voter_requests
+                        .push((node_id, header.api_version, request));
+                    let drop_response = st.add_raft_voter_drop > 0;
+                    if drop_response {
+                        st.add_raft_voter_drop -= 1;
+                    }
+                    (
+                        st.add_raft_voter_responses
+                            .pop_front()
+                            .unwrap_or(AddRaftVoterResponse {
+                                throttle_time_ms: 0,
+                                error_code: 0,
+                                error_message: None,
+                            }),
+                        st.add_raft_voter_delay,
+                        drop_response,
+                        st.add_raft_voter_trailing,
+                    )
+                };
+                if drop_response {
+                    break;
+                }
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
+                encode_add_raft_voter_response(&mut body, header.api_version, &response).unwrap();
+                if trailing {
+                    body.extend_from_slice(&[255]);
                 }
             }
             DESCRIBE_QUORUM => {

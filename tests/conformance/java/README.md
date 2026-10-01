@@ -44,3 +44,28 @@ To verify that existing committed fixtures match the generator output byte-for-b
 ```bash
 bash scripts/generate-protocol-fixtures.sh --verify
 ```
+
+## AddRaftVoter v0 oracle (KL05-20)
+
+`AddRaftVoterFixtures.java` is a standalone offline generator for fresh defaults,
+nullable fields, populated identity/endpoints and unknown tagged fields. It
+checks that the loaded classpath jar is exactly the supplied jar, with SHA-256
+`180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb`, from the
+Apache `apache/kafka:4.1.0` distribution. This is a distribution pin, separate
+from the Maven hash in `pins.json`. Tag object
+`080a42c343d919971985102a38c82dc6da0623d5` resolves to source commit
+`13f70256db3c994c590e5d262a7cc50b9e973204`.
+
+With JDK 21, the pinned jar and SLF4J API 1.7.36 available, run:
+
+```bash
+mkdir -p /tmp/add-raft-fixtures
+javac -cp "$KAFKA_CLIENT_JAR" -d /tmp/add-raft-fixtures tests/conformance/java/AddRaftVoterFixtures.java
+java -cp "/tmp/add-raft-fixtures:$KAFKA_CLIENT_JAR:$SLF4J_API_JAR" AddRaftVoterFixtures "$KAFKA_CLIENT_JAR" tests/fixtures/protocol_oracles --verify
+```
+
+Omit `--verify` to generate the four fixture cells. The generator verifies
+Apache self-roundtrips, emits binary hashes and performs no network request or
+quorum mutation. Rust tests consume all committed bytes offline, including
+truncation, null-required-field and unsupported-version checks. Unknown tags
+are skipped when decoding; Rust encoders emit no unknown tags.

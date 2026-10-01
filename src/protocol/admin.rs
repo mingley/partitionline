@@ -18240,10 +18240,205 @@ pub fn decode_describe_quorum_response<B: Buf>(
     })
 }
 
+/// A named controller endpoint for [`AddRaftVoterRequest`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RaftVoterEndpoint {
+    /// Nonempty uppercase listener name, without surrounding whitespace.
+    pub listener: String,
+    /// DNS name or IP literal, without URI brackets or a port suffix.
+    pub host: String,
+    /// Nonzero TCP port. The wire field is unsigned 16-bit.
+    pub port: u16,
+}
+
+impl RaftVoterEndpoint {
+    /// Construct and validate an endpoint. Listener checks match Java 4.1;
+    /// this client additionally rejects blank/whitespace hosts and port zero.
+    pub fn new(listener: impl Into<String>, host: impl Into<String>, port: u16) -> Result<Self> {
+        let endpoint = Self {
+            listener: listener.into(),
+            host: host.into(),
+            port,
+        };
+        endpoint.validate()?;
+        Ok(endpoint)
+    }
+
+    pub(crate) fn validate(&self) -> Result<()> {
+        if self.listener.is_empty()
+            || self.listener.trim() != self.listener
+            || self.listener.to_uppercase() != self.listener
+        {
+            return Err(Error::protocol(
+                "voter listener must be nonempty uppercase without surrounding whitespace",
+            ));
+        }
+        if self.host.is_empty()
+            || self
+                .host
+                .chars()
+                .any(|c| c.is_whitespace() || c.is_control())
+            || self.host.contains(['/', '\\', '@', '[', ']'])
+            || self.port == 0
+            || (self.host.contains(':') && self.host.parse::<std::net::Ipv6Addr>().is_err())
+        {
+            return Err(Error::protocol(
+                "voter endpoint needs a nonblank host and nonzero port",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// AddRaftVoter (api 80), v0, always flexible (KIP-853).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AddRaftVoterRequest {
+    /// Optional expected cluster identity; `None` is the Java default.
+    pub cluster_id: Option<String>,
+    /// Remaining server-side operation budget in milliseconds.
+    pub timeout_ms: i32,
+    /// Replica identity of the new voter.
+    pub voter_id: i32,
+    /// Directory identity, big-endian Kafka UUID bytes.
+    pub voter_directory_id: [u8; 16],
+    /// Named endpoints for reaching that controller.
+    pub listeners: Vec<RaftVoterEndpoint>,
+}
+
+/// AddRaftVoter v0 result; errors and throttling are top-level.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AddRaftVoterResponse {
+    /// Broker-reported quota throttle interval.
+    pub throttle_time_ms: i32,
+    /// Kafka error code, zero on success.
+    pub error_code: i16,
+    /// Nullable broker error message.
+    pub error_message: Option<String>,
+}
+
+fn add_raft_voter_version(version: i16) -> Result<()> {
+    if version != 0 {
+        return Err(Error::Unsupported("AddRaftVoter supports only v0".into()));
+    }
+    Ok(())
+}
+
+/// Encode AddRaftVoter v0. Semantic endpoint/identity validation belongs to
+/// the high-level Admin API; the codec also represents Apache's fresh defaults.
+pub fn encode_add_raft_voter_request(
+    buf: &mut BytesMut,
+    version: i16,
+    req: &AddRaftVoterRequest,
+) -> Result<()> {
+    add_raft_voter_version(version)?;
+    buf::put_string(buf, true, req.cluster_id.as_deref())?;
+    buf.put_i32(req.timeout_ms);
+    buf.put_i32(req.voter_id);
+    buf.extend_from_slice(&req.voter_directory_id);
+    buf::put_array_len(buf, true, Some(req.listeners.len()))?;
+    for endpoint in &req.listeners {
+        buf::put_string(buf, true, Some(&endpoint.listener))?;
+        buf::put_string(buf, true, Some(&endpoint.host))?;
+        buf.put_u16(endpoint.port);
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+/// Decode AddRaftVoter v0, rejecting null required fields and skipping unknown tags.
+pub fn decode_add_raft_voter_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<AddRaftVoterRequest> {
+    add_raft_voter_version(version)?;
+    let cluster_id = buf::get_string(buf, true)?;
+    let timeout_ms = buf::get_i32(buf)?;
+    let voter_id = buf::get_i32(buf)?;
+    let voter_directory_id = buf::get_uuid(buf)?;
+    let count =
+        buf::get_array_len(buf, true)?.ok_or_else(|| Error::protocol("null voter listeners"))?;
+    let mut listeners = Vec::with_capacity(count);
+    for _ in 0..count {
+        let listener = buf::get_string(buf, true)?
+            .ok_or_else(|| Error::protocol("null voter listener name"))?;
+        let host = buf::get_string(buf, true)?
+            .ok_or_else(|| Error::protocol("null voter listener host"))?;
+        buf::need(buf, 2)?;
+        let port = buf.get_u16();
+        buf::skip_tagged_fields(buf)?;
+        listeners.push(RaftVoterEndpoint {
+            listener,
+            host,
+            port,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(AddRaftVoterRequest {
+        cluster_id,
+        timeout_ms,
+        voter_id,
+        voter_directory_id,
+        listeners,
+    })
+}
+
+/// Encode AddRaftVoter v0 response.
+pub fn encode_add_raft_voter_response(
+    buf: &mut BytesMut,
+    version: i16,
+    resp: &AddRaftVoterResponse,
+) -> Result<()> {
+    add_raft_voter_version(version)?;
+    buf.put_i32(resp.throttle_time_ms);
+    buf.put_i16(resp.error_code);
+    buf::put_string(buf, true, resp.error_message.as_deref())?;
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+/// Decode AddRaftVoter v0 response, retaining errors and throttle time.
+pub fn decode_add_raft_voter_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<AddRaftVoterResponse> {
+    add_raft_voter_version(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_string(buf, true)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(AddRaftVoterResponse {
+        throttle_time_ms,
+        error_code,
+        error_message,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::collections::{BTreeSet, HashMap};
+
+    #[test]
+    fn add_raft_voter_endpoint_validation() {
+        for (listener, host, port) in [
+            ("", "localhost", 9093),
+            ("controller", "localhost", 9093),
+            (" CONTROLLER", "localhost", 9093),
+            ("CONTROLLER ", "localhost", 9093),
+            ("CONTROLLER", "", 9093),
+            ("CONTROLLER", "host name", 9093),
+            ("CONTROLLER", "host:9093", 9093),
+            ("CONTROLLER", "[::1]", 9093),
+            ("CONTROLLER", "http://localhost", 9093),
+            ("CONTROLLER", "user@localhost", 9093),
+            ("CONTROLLER", "localhost", 0),
+        ] {
+            assert!(RaftVoterEndpoint::new(listener, host, port).is_err());
+        }
+        assert!(RaftVoterEndpoint::new("CONTROLLER", "localhost", 65535).is_ok());
+        assert!(RaftVoterEndpoint::new("CONTROLLER", "::1", 9093).is_ok());
+    }
 
     #[test]
     fn create_topics_request_no_partition_sentinels_match_java() {

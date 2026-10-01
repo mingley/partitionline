@@ -1353,10 +1353,10 @@
     "id": "full_admin.add_raft_voter",
     "profile": "full admin",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/ROADMAP.md:KL-05",
-    "notes": "AddRaftVoter api 80 is not exposed in Admin; tracked in KL05-20."
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::add_raft_voter",
+    "evidence": "docs/plan/evidence/KL05-20.json",
+    "notes": "Typed v0 broker-forwarded operation, validated identity/endpoints, preserved errors and total deadline. Independent Apache fixtures and mock runtime checks; no real membership change or controller-bootstrap qualification."
   },
   {
     "id": "full_admin.remove_raft_voter",

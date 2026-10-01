@@ -14263,3 +14263,286 @@ async fn describe_quorum_malformed_singleton_responses_fail_closed() {
         admin.close().await.unwrap();
     }
 }
+
+fn raft_voter_endpoints() -> Vec<partitionline::RaftVoterEndpoint> {
+    vec![partitionline::RaftVoterEndpoint {
+        listener: "CONTROLLER".into(),
+        host: "::1".into(),
+        port: 65535,
+    }]
+}
+fn raft_voter_options(timeout: Duration) -> partitionline::AddRaftVoterOptions {
+    partitionline::AddRaftVoterOptions {
+        cluster_id: Some("cluster-410".into()),
+        timeout: Some(timeout),
+    }
+}
+fn raft_voter_reply(code: i16, message: Option<&str>) -> partitionline::AddRaftVoterResponse {
+    partitionline::AddRaftVoterResponse {
+        throttle_time_ms: 57,
+        error_code: code,
+        error_message: message.map(str::to_owned),
+    }
+}
+
+#[tokio::test]
+async fn add_raft_voter_preserves_identity_endpoints_cluster_and_success_throttle() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    mock.queue_add_raft_voter_response(raft_voter_reply(0, None));
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    let directory = partitionline::Uuid::from_parts(7, 9);
+    let result = admin
+        .add_raft_voter(
+            42,
+            directory,
+            raft_voter_endpoints(),
+            raft_voter_options(Duration::from_secs(2)),
+        )
+        .await
+        .unwrap();
+    assert_eq!(result.throttle_time_ms, 57);
+    let requests = mock.add_raft_voter_requests();
+    assert_eq!(requests.len(), 1);
+    assert_eq!(
+        (requests[0].0, requests[0].1),
+        (1, 0),
+        "broker bootstrap forwards, without hopping to the controller broker"
+    );
+    assert_eq!(requests[0].2.voter_id, 42);
+    assert_eq!(requests[0].2.voter_directory_id, directory.to_bytes());
+    assert_eq!(requests[0].2.cluster_id.as_deref(), Some("cluster-410"));
+    assert_eq!(requests[0].2.listeners, raft_voter_endpoints());
+    assert!((1..=2000).contains(&requests[0].2.timeout_ms));
+    admin
+        .add_raft_voter(43, directory, raft_voter_endpoints(), Default::default())
+        .await
+        .unwrap();
+    assert_eq!(mock.add_raft_voter_requests()[1].2.cluster_id, None);
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn add_raft_voter_controller_move_retries_with_remaining_deadline() {
+    let mock = common::Mock::start_two_node().await;
+    mock.queue_add_raft_voter_response(raft_voter_reply(error::NOT_CONTROLLER, Some("moved")));
+    mock.set_controller(2);
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    admin
+        .add_raft_voter(
+            42,
+            partitionline::Uuid::from_parts(7, 9),
+            raft_voter_endpoints(),
+            raft_voter_options(Duration::from_secs(2)),
+        )
+        .await
+        .unwrap();
+    let requests = mock.add_raft_voter_requests();
+    assert_eq!(requests.len(), 2);
+    assert!(requests.iter().all(|r| r.0 == 1 && r.1 == 0));
+    assert!(requests[1].2.timeout_ms < requests[0].2.timeout_ms);
+    assert_eq!(requests[1].2.listeners, requests[0].2.listeners);
+    assert_eq!(
+        requests[1].2.voter_directory_id,
+        requests[0].2.voter_directory_id
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn add_raft_voter_broker_errors_are_terminal_and_preserve_messages() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    for code in [
+        error::CLUSTER_AUTHORIZATION_FAILED,
+        error::INCONSISTENT_CLUSTER_ID,
+        error::INVALID_VOTER_KEY,
+        error::DUPLICATE_VOTER,
+        error::VOTER_NOT_FOUND,
+        error::REQUEST_TIMED_OUT,
+        error::INVALID_REQUEST,
+    ] {
+        mock.queue_add_raft_voter_response(raft_voter_reply(code, Some("exact broker message")));
+        let before = mock.add_raft_voter_requests().len();
+        let result = admin
+            .add_raft_voter(
+                42,
+                partitionline::Uuid::from_parts(7, 9),
+                raft_voter_endpoints(),
+                Default::default(),
+            )
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(result,Error::Broker { code:actual,message } if actual==code && message=="exact broker message")
+        );
+        assert_eq!(mock.add_raft_voter_requests().len(), before + 1);
+    }
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn add_raft_voter_lost_response_retries_without_masking_duplicate_outcome() {
+    let mock = common::Mock::start().await;
+    mock.drop_add_raft_voter_responses(1);
+    mock.queue_add_raft_voter_response(raft_voter_reply(0, None));
+    mock.queue_add_raft_voter_response(raft_voter_reply(
+        error::DUPLICATE_VOTER,
+        Some("membership may already have changed"),
+    ));
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    let result = admin
+        .add_raft_voter(
+            42,
+            partitionline::Uuid::from_parts(7, 9),
+            raft_voter_endpoints(),
+            raft_voter_options(Duration::from_secs(2)),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(result.broker_code(), Some(error::DUPLICATE_VOTER));
+    let requests = mock.add_raft_voter_requests();
+    assert_eq!(requests.len(), 2);
+    assert_eq!(
+        requests[0].2.voter_directory_id,
+        requests[1].2.voter_directory_id
+    );
+    assert_eq!(requests[0].2.listeners, requests[1].2.listeners);
+    mock.hide_api(partitionline::protocol::api_keys::ADD_RAFT_VOTER);
+    assert!(matches!(
+        admin
+            .add_raft_voter(
+                42,
+                partitionline::Uuid::from_parts(7, 9),
+                raft_voter_endpoints(),
+                Default::default()
+            )
+            .await
+            .unwrap_err(),
+        Error::Unsupported(_)
+    ));
+    assert_eq!(mock.add_raft_voter_requests().len(), 2);
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn add_raft_voter_invalid_input_and_unavailable_versions_send_nothing() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    let valid_id = partitionline::Uuid::from_parts(7, 9);
+    for case in 0..10 {
+        let mut voter_id = 42;
+        let mut directory = valid_id;
+        let mut endpoints = raft_voter_endpoints();
+        let mut options = raft_voter_options(Duration::from_secs(2));
+        match case {
+            0 => voter_id = -1,
+            1 => directory = partitionline::Uuid::ZERO,
+            2 => directory = partitionline::Uuid::ONE,
+            3 => endpoints.clear(),
+            4 => endpoints.push(endpoints[0].clone()),
+            5 => endpoints[0].listener = "controller".into(),
+            6 => endpoints[0].listener = " CONTROLLER".into(),
+            7 => endpoints[0].host = " ".into(),
+            8 => endpoints[0].port = 0,
+            _ => options.cluster_id = Some(String::new()),
+        }
+        assert!(matches!(
+            admin
+                .add_raft_voter(voter_id, directory, endpoints, options)
+                .await
+                .unwrap_err(),
+            Error::Protocol(_)
+        ));
+    }
+    for timeout in [Duration::ZERO, Duration::MAX] {
+        let error = admin
+            .add_raft_voter(
+                42,
+                valid_id,
+                raft_voter_endpoints(),
+                raft_voter_options(timeout),
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(error, Error::Timeout | Error::Protocol(_)));
+    }
+    mock.hide_api(partitionline::protocol::api_keys::ADD_RAFT_VOTER);
+    assert!(matches!(
+        admin
+            .add_raft_voter(42, valid_id, raft_voter_endpoints(), Default::default())
+            .await
+            .unwrap_err(),
+        Error::Unsupported(_)
+    ));
+    assert!(mock.add_raft_voter_requests().is_empty());
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn add_raft_voter_total_deadline_bounds_stalled_peer() {
+    let mock = common::Mock::start().await;
+    mock.set_add_raft_voter_delay(Duration::from_secs(2));
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    let started = Instant::now();
+    assert!(matches!(
+        admin
+            .add_raft_voter(
+                42,
+                partitionline::Uuid::from_parts(7, 9),
+                raft_voter_endpoints(),
+                raft_voter_options(Duration::from_millis(100))
+            )
+            .await
+            .unwrap_err(),
+        Error::Timeout
+    ));
+    assert!(started.elapsed() < Duration::from_secs(1));
+    assert_eq!(mock.add_raft_voter_requests().len(), 1);
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn add_raft_voter_trailing_response_bytes_fail_closed() {
+    let mock = common::Mock::start().await;
+    mock.set_add_raft_voter_trailing();
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    assert!(matches!(
+        admin
+            .add_raft_voter(
+                42,
+                partitionline::Uuid::from_parts(7, 9),
+                raft_voter_endpoints(),
+                Default::default()
+            )
+            .await
+            .unwrap_err(),
+        Error::Protocol(_)
+    ));
+    assert_eq!(mock.add_raft_voter_requests().len(), 1);
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn add_raft_voter_controller_refresh_shares_outer_deadline() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    mock.queue_add_raft_voter_response(raft_voter_reply(error::NOT_CONTROLLER, Some("moved")));
+    mock.set_metadata_delay(Duration::from_secs(2));
+    let started = Instant::now();
+    assert!(matches!(
+        admin
+            .add_raft_voter(
+                42,
+                partitionline::Uuid::from_parts(7, 9),
+                raft_voter_endpoints(),
+                raft_voter_options(Duration::from_millis(150))
+            )
+            .await
+            .unwrap_err(),
+        Error::Timeout
+    ));
+    assert!(started.elapsed() < Duration::from_secs(1));
+    assert_eq!(mock.add_raft_voter_requests().len(), 1);
+    admin.close().await.unwrap();
+}
