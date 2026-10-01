@@ -1,0 +1,274 @@
+diff --git a/src/protocol/records.rs b/src/protocol/records.rs
+index 77e4e57..38f3f7b 100644
+--- a/src/protocol/records.rs
++++ b/src/protocol/records.rs
+@@ -1654,37 +1654,61 @@ fn gzip_compress_into(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
+     Ok(())
+ }
+ 
+-fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize) -> Result<Vec<u8>> {
+-    let mut out = Vec::new();
+-    let mut chunk = [0u8; 8192];
++fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize, hint: usize) -> Result<Vec<u8>> {
++    // Hints are reservations, never proof of the decoded length. Read through
++    // EOF so codec checksum/truncation errors still propagate, even at the cap.
++    let initial = if hint == 0 { 8192 } else { hint }.min(max_bytes);
++    let mut out = vec![0; initial];
++    let mut filled = 0;
+     loop {
+-        let remaining_budget_plus_one = max_bytes.saturating_sub(out.len()).saturating_add(1);
+-        let to_read = chunk.len().min(remaining_budget_plus_one);
+-        let slice = chunk
+-            .get_mut(..to_read)
+-            .ok_or_else(|| Error::protocol("invalid chunk slice"))?;
+-        let n = reader
+-            .read(slice)
+-            .map_err(|e| Error::protocol(e.to_string()))?;
+-        if n == 0 {
+-            break;
+-        }
+-        if out.len().saturating_add(n) > max_bytes {
+-            return Err(Error::protocol(
+-                "Decompressed batch exceeds maximum allowable size",
+-            ));
++        if filled == out.len() {
++            let mut probe = [0];
++            if reader
++                .read(&mut probe)
++                .map_err(|e| Error::protocol(e.to_string()))?
++                == 0
++            {
++                break;
++            }
++            if filled == max_bytes {
++                return Err(Error::protocol(
++                    "Decompressed batch exceeds maximum allowable size",
++                ));
++            }
++            let next = out.len().saturating_mul(2).max(8192).min(max_bytes);
++            out.reserve_exact(next - out.len());
++            out.resize(next, 0);
++            *out.get_mut(filled)
++                .ok_or_else(|| Error::protocol("invalid decoded output slice"))? = probe[0];
++            filled += 1;
++        } else {
++            let dst = out
++                .get_mut(filled..)
++                .ok_or_else(|| Error::protocol("invalid decoded output slice"))?;
++            let n = reader
++                .read(dst)
++                .map_err(|e| Error::protocol(e.to_string()))?;
++            if n == 0 {
++                break;
++            }
++            filled += n;
+         }
+-        let piece = chunk
+-            .get(..n)
+-            .ok_or_else(|| Error::protocol("invalid chunk slice"))?;
+-        out.extend_from_slice(piece);
+     }
++    out.truncate(filled);
+     Ok(out)
+ }
+ 
+ fn gzip_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
++    // ISIZE is modulo 2^32 and untrusted until the decoder checks the trailer.
++    // Cap the reservation; a lying hint cannot bypass the actual byte limit.
++    let hint = src
++        .get(src.len().saturating_sub(4)..)
++        .and_then(|tail| <[u8; 4]>::try_from(tail).ok())
++        .and_then(|tail| usize::try_from(u32::from_le_bytes(tail)).ok())
++        .unwrap_or(0)
++        .min(max_bytes);
+     let mut decoder = flate2::read::GzDecoder::new(src);
+-    read_bounded(&mut decoder, max_bytes)
++    read_bounded(&mut decoder, max_bytes, hint)
+ }
+ 
+ /// xerial snappy-java header used by the Java Kafka client.
+@@ -1724,48 +1748,57 @@ fn snappy_compress_into(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
+     Ok(())
+ }
+ 
++fn snappy_chunk<'a>(cur: &mut &'a [u8]) -> Result<&'a [u8]> {
++    let prefix = cur
++        .get(..4)
++        .ok_or_else(|| Error::protocol("snappy-java short chunk"))?;
++    let clen = buf::usize_from_u32(u32::from_be_bytes(
++        prefix
++            .try_into()
++            .map_err(|_| Error::protocol("snappy-java short chunk"))?,
++    ))?;
++    let remaining = cur.get(4..).unwrap_or(&[]);
++    let block = remaining
++        .get(..clen)
++        .ok_or_else(|| Error::protocol("snappy-java chunk overruns buffer"))?;
++    *cur = remaining.get(clen..).unwrap_or(&[]);
++    Ok(block)
++}
++
+ fn snappy_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
+     if src.len() > 20 && src.starts_with(SNAPPY_JAVA_MAGIC) {
+-        let mut cur = src.get(16..).unwrap_or(&[]);
+-        let mut out = Vec::new();
+-        let mut decoder = snap::raw::Decoder::new();
+-        while cur.len() >= 4 {
+-            let prefix = cur
+-                .get(..4)
+-                .ok_or_else(|| Error::protocol("snappy-java short chunk"))?;
+-            let clen = buf::usize_from_u32(u32::from_be_bytes(
+-                prefix
+-                    .try_into()
+-                    .map_err(|_| Error::protocol("snappy-java short chunk"))?,
+-            ))?;
+-            cur = cur.get(4..).unwrap_or(&[]);
+-            if clen > cur.len() {
+-                return Err(Error::protocol("snappy-java chunk overruns buffer"));
+-            }
+-            let block = cur
+-                .get(..clen)
+-                .ok_or_else(|| Error::protocol("snappy-java chunk overruns buffer"))?;
+-            let chunk_len =
++        let chunks = src.get(16..).unwrap_or(&[]);
++        let mut cur = chunks;
++        let mut total = 0;
++        // Validate every framing/length hint before reserving one output. No
++        // temporary decoded chunk or second copy is needed, including xerial
++        // streams with multiple chunks.
++        while !cur.is_empty() {
++            let block = snappy_chunk(&mut cur)?;
++            let len =
+                 snap::raw::decompress_len(block).map_err(|e| Error::protocol(e.to_string()))?;
+-            if out.len().saturating_add(chunk_len) > max_bytes {
+-                return Err(Error::protocol(
+-                    "Decompressed batch exceeds maximum allowable size",
+-                ));
+-            }
+-            let chunk = decoder
+-                .decompress_vec(block)
+-                .map_err(|e| Error::protocol(e.to_string()))?;
+-            if out.len().saturating_add(chunk.len()) > max_bytes {
++            if len > max_bytes.saturating_sub(total) {
+                 return Err(Error::protocol(
+                     "Decompressed batch exceeds maximum allowable size",
+                 ));
+             }
+-            out.extend_from_slice(&chunk);
+-            cur = cur.get(clen..).unwrap_or(&[]);
++            total += len;
+         }
+-        if !cur.is_empty() {
+-            return Err(Error::protocol("snappy-java short chunk"));
++        let mut out = vec![0; total];
++        let mut filled = 0;
++        let mut decoder = snap::raw::Decoder::new();
++        cur = chunks;
++        while !cur.is_empty() {
++            let block = snappy_chunk(&mut cur)?;
++            let dst = out
++                .get_mut(filled..)
++                .ok_or_else(|| Error::protocol("invalid snappy output slice"))?;
++            let n = decoder
++                .decompress(block, dst)
++                .map_err(|e| Error::protocol(e.to_string()))?;
++            filled += n;
+         }
++        out.truncate(filled);
+         Ok(out)
+     } else {
+         let uncompressed_len =
+@@ -1814,12 +1847,16 @@ fn lz4_compress_into(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
+ }
+ 
+ fn lz4_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
++    let mut hint = 0;
+     if src.len() >= 14 && src.starts_with(&[0x04, 0x22, 0x4D, 0x18]) {
+         if let Some(&flg) = src.get(4) {
+             if flg & 0x08 != 0 {
+                 if let Some(slice) = src.get(6..14) {
+                     if let Ok(content_size_bytes) = slice.try_into() {
+                         let declared_size = u64::from_le_bytes(content_size_bytes);
++                        hint = usize::try_from(declared_size).map_err(|_| {
++                            Error::protocol("LZ4 content size exceeds address space")
++                        })?;
+                         if let Ok(max_bytes_u64) = u64::try_from(max_bytes) {
+                             if declared_size > max_bytes_u64 {
+                                 return Err(Error::protocol(
+@@ -1833,7 +1870,7 @@ fn lz4_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
+         }
+     }
+     let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
+-    read_bounded(&mut decoder, max_bytes)
++    read_bounded(&mut decoder, max_bytes, hint)
+ }
+ 
+ /// One record as borrowed slices for the produce encode path.
+@@ -4394,6 +4431,67 @@ mod tests {
+         );
+     }
+ 
++    #[test]
++    fn gzip_reservation_hint_cannot_bypass_validation() {
++        let payload = vec![0x42; 9000];
++        let compressed = Compression::Gzip.codec_compress(&payload).unwrap();
++        for claimed in [0u32, 1, 8192, u32::MAX] {
++            let mut corrupt = compressed.clone();
++            let trailer = corrupt.len() - 4;
++            corrupt[trailer..].copy_from_slice(&claimed.to_le_bytes());
++            assert!(gzip_decompress(&corrupt, payload.len()).is_err());
++            assert!(gzip_decompress(&corrupt, payload.len() - 1).is_err());
++        }
++        // Reading exactly the hinted length must still validate the checksum.
++        let mut bad_crc = compressed.clone();
++        let crc = bad_crc.len() - 8;
++        bad_crc[crc] ^= 1;
++        assert!(gzip_decompress(&bad_crc, payload.len()).is_err());
++    }
++
++    #[test]
++    fn snappy_multiple_chunks_share_one_bounded_output() {
++        let first = vec![0x37; 2048];
++        let second = vec![0x42; 9000];
++        let mut framed = Compression::Snappy.codec_compress(&first).unwrap();
++        let next = Compression::Snappy.codec_compress(&second).unwrap();
++        framed.extend_from_slice(&next[16..]);
++        let expected = [first, second].concat();
++        assert_eq!(
++            snappy_decompress(&framed, expected.len()).unwrap(),
++            expected
++        );
++        assert!(snappy_decompress(&framed, expected.len() - 1)
++            .unwrap_err()
++            .to_string()
++            .contains("maximum allowable size"));
++        for tail in [vec![0], vec![0, 0], vec![0, 0, 0]] {
++            let mut trailing = framed.clone();
++            trailing.extend(tail);
++            assert!(snappy_decompress(&trailing, expected.len()).is_err());
++        }
++        // A valid decoded-length hint with missing tags is still rejected.
++        let mut corrupt = framed;
++        corrupt.extend_from_slice(&1u32.to_be_bytes());
++        corrupt.push(3);
++        assert!(snappy_decompress(&corrupt, expected.len() + 3).is_err());
++    }
++
++    #[test]
++    fn bounded_direct_read_checks_eof_at_zero_and_exact_limit() {
++        for (input, max, hint) in [
++            (&b""[..], 0, 0),
++            (&b"hello"[..], 5, 5),
++            (&b"hello"[..], 5, 0),
++            (&b"hello"[..], 5, 1),
++        ] {
++            let mut reader = input;
++            assert_eq!(read_bounded(&mut reader, max, hint).unwrap(), input);
++        }
++        assert!(read_bounded(&mut &b"x"[..], 0, 0).is_err());
++        assert!(read_bounded(&mut &b"hello!"[..], 5, 5).is_err());
++    }
++
+     #[test]
+     fn record_batch_decode_with_limit_and_crc() {
+         for compression in [

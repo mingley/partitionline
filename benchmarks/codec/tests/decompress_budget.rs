@@ -10,10 +10,10 @@ static ALLOC: CountingAlloc = CountingAlloc;
 
 #[test]
 fn decompression_census_preserves_every_record() {
-    for (name, compression) in [
-        ("gzip", Compression::Gzip),
-        ("snappy", Compression::Snappy),
-        ("lz4", Compression::Lz4),
+    for (name, compression, max_allocations, max_bytes) in [
+        ("gzip", Compression::Gzip, 8, 250_968),
+        ("snappy", Compression::Snappy, 4, 178_768),
+        ("lz4", Compression::Lz4, 8, 305_976),
     ] {
         let records = build_records(0xC0DEC, 500, 16, 100, "text", 0);
         let batch = compressed_batch(records, compression);
@@ -25,6 +25,11 @@ fn decompression_census_preserves_every_record() {
         assert_eq!(decoded.count(), 500);
         assert_eq!(decoded.records(), batch.records());
         assert!(input.is_empty());
+        assert!(
+            allocations <= max_allocations,
+            "{name}: {allocations} allocations"
+        );
+        assert!(bytes <= max_bytes, "{name}: {bytes} allocated bytes");
         println!(
             "{}",
             serde_json::json!({

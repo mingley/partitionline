@@ -1,0 +1,147 @@
+{
+  "id": "KL09-34",
+  "status": "done",
+  "disposition": "rejected-regression",
+  "baseline_sha": "cc4f918c43cc32911a2ed544b97f42ddadd43ddc",
+  "candidate_patch_sha256": "b63f06325976f97bf26ae104e41a015d475995be09705de35ae441ac88cf4f72",
+  "hypothesis": "Reserve gzip/LZ4 output from capped size hints and decode directly into initialized bounded output; prevalidate xerial Snappy chunk lengths and decode all chunks into one output allocation.",
+  "acceptance_met": [
+    "Measured the unchanged decoder first on the committed measurement cells. The candidate reduced allocations by 25-37.5%, making the targeted cost visible.",
+    "The specified rejection branch applies: gzip Ir +2.913% and LZ4 Ir +7.762% exceed the 1% instruction guardrail; five interleaved timing pairs also show regressions.",
+    "All candidate production changes were reverted. Existing decompression-bomb/decoded-byte limit tests are unchanged. No allocation/instruction baseline was raised. The new measurement cells remain, with allocation caps at the unchanged parent counts."
+  ],
+  "measurements": {
+    "allocations_parent": {
+      "gzip": 8,
+      "snappy": 4,
+      "lz4": 8
+    },
+    "allocations_candidate": {
+      "gzip": 5,
+      "snappy": 3,
+      "lz4": 5
+    },
+    "instructions_delta_pct": {
+      "iai_encode/f03": 0.0,
+      "iai_decode/f03": 0.0,
+      "iai_crc/f03": 0.0,
+      "iai_compress_gzip/text": -0.00012134896165694187,
+      "iai_compress_snappy/text": -0.0031846711163630026,
+      "iai_compress_lz4/text": -0.000719441605401272,
+      "iai_decompress_lz4/text": 7.761582255727184,
+      "iai_decompress_gzip/text": 2.9132165174203806,
+      "iai_decompress_snappy/text": -5.884285597601391,
+      "iai_request/v9": 0.029816627739398527
+    },
+    "wall_clock": {
+      "decompress/gzip/random": {
+        "parent_median_batch_ns": 350469.86165023886,
+        "candidate_median_batch_ns": 359894.1869302936,
+        "parent_median_payload_bytes_per_s": 142665619.70426688,
+        "candidate_median_payload_bytes_per_s": 138929723.83486786,
+        "paired_throughput_delta_pct": -2.224860696415931,
+        "paired_bootstrap_ci95_pct": [
+          -8.635792742415937,
+          21.044735394844814
+        ],
+        "repetitions": 5
+      },
+      "decompress/gzip/text": {
+        "parent_median_batch_ns": 229803.65205093488,
+        "candidate_median_batch_ns": 260046.75502472083,
+        "parent_median_payload_bytes_per_s": 217577046.9866934,
+        "candidate_median_payload_bytes_per_s": 192273116.40649718,
+        "paired_throughput_delta_pct": -11.322733727411116,
+        "paired_bootstrap_ci95_pct": [
+          -14.787088412829274,
+          -2.1371463129131185
+        ],
+        "repetitions": 5
+      },
+      "decompress/lz4/random": {
+        "parent_median_batch_ns": 70575.77716088467,
+        "candidate_median_batch_ns": 87989.19155477264,
+        "parent_median_payload_bytes_per_s": 708458369.3073604,
+        "candidate_median_payload_bytes_per_s": 568251612.6867169,
+        "paired_throughput_delta_pct": -24.654679188221763,
+        "paired_bootstrap_ci95_pct": [
+          -29.31146263376411,
+          -13.468682061079583
+        ],
+        "repetitions": 5
+      },
+      "decompress/lz4/text": {
+        "parent_median_batch_ns": 92199.17622777466,
+        "candidate_median_batch_ns": 119671.75650878169,
+        "parent_median_payload_bytes_per_s": 542304194.5242206,
+        "candidate_median_payload_bytes_per_s": 417809527.1487966,
+        "paired_throughput_delta_pct": -23.635998401521995,
+        "paired_bootstrap_ci95_pct": [
+          -43.96297112408421,
+          -19.460808271765373
+        ],
+        "repetitions": 5
+      },
+      "decompress/snappy/random": {
+        "parent_median_batch_ns": 66183.53108620322,
+        "candidate_median_batch_ns": 77000.63464771403,
+        "parent_median_payload_bytes_per_s": 755474952.4451276,
+        "candidate_median_payload_bytes_per_s": 649345297.3310575,
+        "paired_throughput_delta_pct": -15.878775061564077,
+        "paired_bootstrap_ci95_pct": [
+          -28.98626258340086,
+          -10.772232025829087
+        ],
+        "repetitions": 5
+      },
+      "decompress/snappy/text": {
+        "parent_median_batch_ns": 103424.11381109321,
+        "candidate_median_batch_ns": 130561.6894020061,
+        "parent_median_payload_bytes_per_s": 483446250.17842823,
+        "candidate_median_payload_bytes_per_s": 382960730.89286894,
+        "paired_throughput_delta_pct": -19.80454510232984,
+        "paired_bootstrap_ci95_pct": [
+          -25.435796342577266,
+          -17.637680126100708
+        ],
+        "repetitions": 5
+      }
+    }
+  },
+  "commands": [
+    "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml --test decompress_budget -- --nocapture (each arm; five interleaved repetitions)",
+    "cargo bench --locked --manifest-path benchmarks/codec/Cargo.toml --bench codec --bench iai --no-run (separate parent/candidate target directories)",
+    "<compiled codec bench> --bench decompress --measurement-time 1 --warm-up-time 0.5 --sample-size 20 --nresamples 10000 --noplot (five interleaved pairs, six cases)",
+    "<compiled iai bench> --output-format=json --home=<per-run directory> --bench (five interleaved pairs, ten tracked cells)",
+    "python3 scripts/ci-perf-gate-extract.py --self-test; extraction and fail-closed finite/sample/cell checks for every retained artifact",
+    "cargo test --locked --lib protocol::records::tests (candidate: 43 passed including new lying-hint/multi-chunk/EOF checks)",
+    "cargo test --locked --test protocol_oracles --test fuzz_decode_smoke --test fetch_buffer_budget (candidate: all passed)",
+    "bash scripts/ci-protocol-oracles.sh (candidate: passed)",
+    "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml (candidate: all passed)",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings (candidate: passed)",
+    "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml --test decompress_budget (final unchanged decoder with parent allocation caps: passed)",
+    "git diff --exit-code -- src/protocol/records.rs (confirms complete production rollback)"
+  ],
+  "results": {
+    "candidate_correctness": "43 record-codec unit tests plus all listed card suites passed; no decoder corruption/limit failures",
+    "guardrails": "Rejected: gzip and LZ4 instructions exceed 1%; Snappy instructions -5.884%; unrelated cells within 0.030%. Wall-clock regressions corroborate rejection on this shared host.",
+    "complexity": "Candidate under 150 net production lines; archived patch includes its temporary behavioral regression tests.",
+    "final_production_change": "none"
+  },
+  "artifacts": [
+    "docs/plan/evidence/KL09-34.json",
+    "docs/evidence/perf/KL09-34/alloc-candidate.txt",
+    "docs/evidence/perf/KL09-34/alloc-parent.txt",
+    "docs/evidence/perf/KL09-34/candidate.patch",
+    "docs/evidence/perf/KL09-34/instructions-candidate.json",
+    "docs/evidence/perf/KL09-34/instructions-parent.json",
+    "docs/evidence/perf/KL09-34/measurements.json"
+  ],
+  "limits": [
+    "Local unsigned shared-cloud-host measurements; no controlled-host qualification or Suite HOLD lift.",
+    "The existing instruction baseline contains only an aarch64 key; acceptance was evaluated from paired x86_64 measurements of every tracked cell, not from a missing-baseline skip.",
+    "Java helper calls remained unavailable locally because the pinned Maven 4.1.0 artifact could not be fetched (HTTP 429); committed wire fixtures and all ordinary protocol oracle assertions ran. Separate exact-main CI 36817967575 verified the Java fixtures successfully.",
+    "The rejection branch waives the candidate deliverable: the unsafe performance tradeoff was not shipped."
+  ],
+  "blocked_reason": null
+}

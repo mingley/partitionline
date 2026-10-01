@@ -3230,7 +3230,7 @@
       "title": "Decompress fetch batches into validated, pre-sized output",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL09-04",
@@ -3252,7 +3252,9 @@
         "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml",
         "A/B cell micro-decompress:{lz4,gzip,snappy} (allocations, bytes/s): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL09-34.json"
+      ],
       "write_set": [
         "src/protocol/records.rs",
         "benchmarks/codec/tests/decompress_budget.rs",
@@ -3265,7 +3267,8 @@
         "docs/evidence/perf/KL09-34/instructions-parent.json",
         "docs/evidence/perf/KL09-34/instructions-candidate.json",
         "docs/evidence/perf/KL09-34/candidate.patch"
-      ]
+      ],
+      "disposition": "rejected-regression"
     },
     {
       "id": "KL09-35",

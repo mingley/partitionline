@@ -1,0 +1,65 @@
+{
+  "unit": "Ir",
+  "repetitions": [
+    {
+      "iai_encode/f03": 747429,
+      "iai_decode/f03": 579268,
+      "iai_crc/f03": 146964,
+      "iai_compress_gzip/text": 20601742,
+      "iai_compress_snappy/text": 1507220,
+      "iai_compress_lz4/text": 2223947,
+      "iai_decompress_lz4/text": 1171037,
+      "iai_decompress_gzip/text": 1921656,
+      "iai_decompress_snappy/text": 1089631,
+      "iai_request/v9": 160984
+    },
+    {
+      "iai_encode/f03": 747429,
+      "iai_decode/f03": 579268,
+      "iai_crc/f03": 146964,
+      "iai_compress_gzip/text": 20601742,
+      "iai_compress_snappy/text": 1507220,
+      "iai_compress_lz4/text": 2223947,
+      "iai_decompress_lz4/text": 1171037,
+      "iai_decompress_gzip/text": 1921656,
+      "iai_decompress_snappy/text": 1089631,
+      "iai_request/v9": 160984
+    },
+    {
+      "iai_encode/f03": 747429,
+      "iai_decode/f03": 579268,
+      "iai_crc/f03": 146964,
+      "iai_compress_gzip/text": 20601742,
+      "iai_compress_snappy/text": 1507220,
+      "iai_compress_lz4/text": 2223947,
+      "iai_decompress_lz4/text": 1171037,
+      "iai_decompress_gzip/text": 1921656,
+      "iai_decompress_snappy/text": 1089631,
+      "iai_request/v9": 160984
+    },
+    {
+      "iai_encode/f03": 747429,
+      "iai_decode/f03": 579268,
+      "iai_crc/f03": 146964,
+      "iai_compress_gzip/text": 20601742,
+      "iai_compress_snappy/text": 1507220,
+      "iai_compress_lz4/text": 2223947,
+      "iai_decompress_lz4/text": 1171037,
+      "iai_decompress_gzip/text": 1921656,
+      "iai_decompress_snappy/text": 1089631,
+      "iai_request/v9": 160984
+    },
+    {
+      "iai_encode/f03": 747429,
+      "iai_decode/f03": 579268,
+      "iai_crc/f03": 146964,
+      "iai_compress_gzip/text": 20601742,
+      "iai_compress_snappy/text": 1507220,
+      "iai_compress_lz4/text": 2223947,
+      "iai_decompress_lz4/text": 1171037,
+      "iai_decompress_gzip/text": 1921656,
+      "iai_decompress_snappy/text": 1089631,
+      "iai_request/v9": 160984
+    }
+  ]
+}

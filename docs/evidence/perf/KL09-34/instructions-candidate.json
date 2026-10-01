@@ -1,0 +1,65 @@
+{
+  "unit": "Ir",
+  "repetitions": [
+    {
+      "iai_encode/f03": 747429,
+      "iai_decode/f03": 579268,
+      "iai_crc/f03": 146964,
+      "iai_compress_gzip/text": 20601717,
+      "iai_compress_snappy/text": 1507172,
+      "iai_compress_lz4/text": 2223931,
+      "iai_decompress_lz4/text": 1261928,
+      "iai_decompress_gzip/text": 1977638,
+      "iai_decompress_snappy/text": 1025514,
+      "iai_request/v9": 161032
+    },
+    {
+      "iai_encode/f03": 747429,
+      "iai_decode/f03": 579268,
+      "iai_crc/f03": 146964,
+      "iai_compress_gzip/text": 20601717,
+      "iai_compress_snappy/text": 1507172,
+      "iai_compress_lz4/text": 2223931,
+      "iai_decompress_lz4/text": 1261928,
+      "iai_decompress_gzip/text": 1977638,
+      "iai_decompress_snappy/text": 1025514,
+      "iai_request/v9": 161032
+    },
+    {
+      "iai_encode/f03": 747429,
+      "iai_decode/f03": 579268,
+      "iai_crc/f03": 146964,
+      "iai_compress_gzip/text": 20601717,
+      "iai_compress_snappy/text": 1507172,
+      "iai_compress_lz4/text": 2223931,
+      "iai_decompress_lz4/text": 1261928,
+      "iai_decompress_gzip/text": 1977638,
+      "iai_decompress_snappy/text": 1025514,
+      "iai_request/v9": 161032
+    },
+    {
+      "iai_encode/f03": 747429,
+      "iai_decode/f03": 579268,
+      "iai_crc/f03": 146964,
+      "iai_compress_gzip/text": 20601717,
+      "iai_compress_snappy/text": 1507172,
+      "iai_compress_lz4/text": 2223931,
+      "iai_decompress_lz4/text": 1261928,
+      "iai_decompress_gzip/text": 1977638,
+      "iai_decompress_snappy/text": 1025514,
+      "iai_request/v9": 161032
+    },
+    {
+      "iai_encode/f03": 747429,
+      "iai_decode/f03": 579268,
+      "iai_crc/f03": 146964,
+      "iai_compress_gzip/text": 20601717,
+      "iai_compress_snappy/text": 1507172,
+      "iai_compress_lz4/text": 2223931,
+      "iai_decompress_lz4/text": 1261928,
+      "iai_decompress_gzip/text": 1977638,
+      "iai_decompress_snappy/text": 1025514,
+      "iai_request/v9": 161032
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{"allocations": 5, "bytes": 191460, "cell": "micro-decompress/gzip/text", "records": 500, "repetition": 1}
+{"allocations": 3, "bytes": 115396, "cell": "micro-decompress/snappy/text", "records": 500, "repetition": 1}
+{"allocations": 5, "bytes": 246468, "cell": "micro-decompress/lz4/text", "records": 500, "repetition": 1}
+{"allocations": 5, "bytes": 191460, "cell": "micro-decompress/gzip/text", "records": 500, "repetition": 2}
+{"allocations": 3, "bytes": 115396, "cell": "micro-decompress/snappy/text", "records": 500, "repetition": 2}
+{"allocations": 5, "bytes": 246468, "cell": "micro-decompress/lz4/text", "records": 500, "repetition": 2}
+{"allocations": 5, "bytes": 191460, "cell": "micro-decompress/gzip/text", "records": 500, "repetition": 3}
+{"allocations": 3, "bytes": 115396, "cell": "micro-decompress/snappy/text", "records": 500, "repetition": 3}
+{"allocations": 5, "bytes": 246468, "cell": "micro-decompress/lz4/text", "records": 500, "repetition": 3}
+{"allocations": 5, "bytes": 191460, "cell": "micro-decompress/gzip/text", "records": 500, "repetition": 4}
+{"allocations": 3, "bytes": 115396, "cell": "micro-decompress/snappy/text", "records": 500, "repetition": 4}
+{"allocations": 5, "bytes": 246468, "cell": "micro-decompress/lz4/text", "records": 500, "repetition": 4}
+{"allocations": 5, "bytes": 191460, "cell": "micro-decompress/gzip/text", "records": 500, "repetition": 5}
+{"allocations": 3, "bytes": 115396, "cell": "micro-decompress/snappy/text", "records": 500, "repetition": 5}
+{"allocations": 5, "bytes": 246468, "cell": "micro-decompress/lz4/text", "records": 500, "repetition": 5}
