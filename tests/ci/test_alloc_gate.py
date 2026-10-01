@@ -37,6 +37,25 @@ class AllocationGate(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Incomplete allocation-gate execution", result.stdout)
 
+    def test_long_failure_annotation_retains_tail_below_hosted_limit(self):
+        progress = "\x1b[32m" + ("dependency progress ☃ 100%\n" * 700) + "\x1b[0m"
+        result = self.run_gate(progress + "actual allocation mismatch 100%\nFAIL final census", 42)
+        annotation = next(line for line in result.stdout.splitlines()
+                          if line.startswith("::error"))
+        self.assertLess(len(annotation.encode("utf-8")), 6500)
+        self.assertIn("actual allocation mismatch 100%25%0AFAIL final census", annotation)
+        self.assertNotIn("\x1b", annotation)
+        self.assertEqual(result.returncode, 42)
+
+    def test_long_incomplete_success_keeps_validation_reason(self):
+        result = self.run_gate("dependency progress\n" * 1000 +
+                               "test result: ok. 0 passed; 0 failed; 0 ignored;", 0)
+        annotation = next(line for line in result.stdout.splitlines()
+                          if line.startswith("::error"))
+        self.assertLess(len(annotation.encode("utf-8")), 6500)
+        self.assertIn("Incomplete allocation-gate execution", annotation)
+        self.assertNotEqual(result.returncode, 0)
+
     def test_both_actual_tests_required(self):
         summary = "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s"
         result = self.run_gate("test alloc_budgets ... ok\n" + summary + "\n"
