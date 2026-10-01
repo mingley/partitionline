@@ -1,0 +1,65 @@
+# Java "25.0.3" 2026-04-21 LTS java.util.zip decodes Rust gzip sections, then writes sections at levels default/1/9
+java decodes rust-miniz-1: ok
+java decodes rust-miniz-16: ok
+java decodes rust-miniz-256: ok
+java decodes rust-zlibrs-1: ok
+java decodes rust-zlibrs-16: ok
+java decodes rust-zlibrs-256: ok
+java wrote sections (zlib 25.0.3+9-LTS)
+# zlib (librdkafka deflateInit2 settings) decodes Rust gzip sections, then writes levels default/1/9
+zlib 1.2.12 decodes rust-miniz-1: ok
+zlib 1.2.12 decodes rust-miniz-16: ok
+zlib 1.2.12 decodes rust-miniz-256: ok
+zlib 1.2.12 decodes rust-zlibrs-1: ok
+zlib 1.2.12 decodes rust-zlibrs-16: ok
+zlib 1.2.12 decodes rust-zlibrs-256: ok
+zlib wrote sections
+# partitionline decodes every section spliced into a v2 batch (zlibrs = default build, miniz = --no-default-features)
+zlibrs decodes java-l1-1: ok (1 records)
+zlibrs decodes java-l1-16: ok (16 records)
+zlibrs decodes java-l1-256: ok (256 records)
+zlibrs decodes java-l9-1: ok (1 records)
+zlibrs decodes java-l9-16: ok (16 records)
+zlibrs decodes java-l9-256: ok (256 records)
+zlibrs decodes java-ldefault-1: ok (1 records)
+zlibrs decodes java-ldefault-16: ok (16 records)
+zlibrs decodes java-ldefault-256: ok (256 records)
+zlibrs decodes rust-miniz-1: ok (1 records)
+zlibrs decodes rust-miniz-16: ok (16 records)
+zlibrs decodes rust-miniz-256: ok (256 records)
+zlibrs decodes rust-zlibrs-1: ok (1 records)
+zlibrs decodes rust-zlibrs-16: ok (16 records)
+zlibrs decodes rust-zlibrs-256: ok (256 records)
+zlibrs decodes zlib-l1-1: ok (1 records)
+zlibrs decodes zlib-l1-16: ok (16 records)
+zlibrs decodes zlib-l1-256: ok (256 records)
+zlibrs decodes zlib-l9-1: ok (1 records)
+zlibrs decodes zlib-l9-16: ok (16 records)
+zlibrs decodes zlib-l9-256: ok (256 records)
+zlibrs decodes zlib-ldefault-1: ok (1 records)
+zlibrs decodes zlib-ldefault-16: ok (16 records)
+zlibrs decodes zlib-ldefault-256: ok (256 records)
+miniz decodes java-l1-1: ok (1 records)
+miniz decodes java-l1-16: ok (16 records)
+miniz decodes java-l1-256: ok (256 records)
+miniz decodes java-l9-1: ok (1 records)
+miniz decodes java-l9-16: ok (16 records)
+miniz decodes java-l9-256: ok (256 records)
+miniz decodes java-ldefault-1: ok (1 records)
+miniz decodes java-ldefault-16: ok (16 records)
+miniz decodes java-ldefault-256: ok (256 records)
+miniz decodes rust-miniz-1: ok (1 records)
+miniz decodes rust-miniz-16: ok (16 records)
+miniz decodes rust-miniz-256: ok (256 records)
+miniz decodes rust-zlibrs-1: ok (1 records)
+miniz decodes rust-zlibrs-16: ok (16 records)
+miniz decodes rust-zlibrs-256: ok (256 records)
+miniz decodes zlib-l1-1: ok (1 records)
+miniz decodes zlib-l1-16: ok (16 records)
+miniz decodes zlib-l1-256: ok (256 records)
+miniz decodes zlib-l9-1: ok (1 records)
+miniz decodes zlib-l9-16: ok (16 records)
+miniz decodes zlib-l9-256: ok (256 records)
+miniz decodes zlib-ldefault-1: ok (1 records)
+miniz decodes zlib-ldefault-16: ok (16 records)
+miniz decodes zlib-ldefault-256: ok (256 records)

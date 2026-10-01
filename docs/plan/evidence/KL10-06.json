@@ -1,0 +1,296 @@
+{
+ "id": "KL10-06",
+ "status": "done",
+ "disposition": "accepted",
+ "source_sha": "the KL10-06 commit on main (see git log)",
+ "baseline_sha": "65d3e89a4775f6bfd913ed1467647b93a11b9329",
+ "hypothesis": "miniz_oxide dominates the gzip cells (gateway probe: 80% of client CPU in miniz compress_inner; 84% of fetch time in gzip_decompress). zlib-rs (approved by KL10-05) compresses and decompresses faster; flate2 runtime_detection lets CRC-32 use hardware on generic targets.",
+ "cells": [
+  "micro-compress:gzip:json1k/16k",
+  "micro-compress:gzip:json1k/256k",
+  "micro-decompress:gzip:json1k/16k",
+  "micro-decompress:gzip:json1k/256k",
+  "raw-compress:gzip:json1k/{16k,256k}",
+  "raw-decompress:gzip:json1k/{16k,256k}",
+  "compress/gzip/{text,random}",
+  "decompress/gzip/{text,random}",
+  "iai_compress_gzip/text",
+  "iai_decompress_gzip/text",
+  "json1k_iai gzip cells"
+ ],
+ "host": {
+  "arm64": "Apple M4 Pro (14 cores), macOS, rustc 1.98.1 aarch64-apple-darwin, bench profile; shared laptop, 1-minute load average 6.6-16.6 during runs",
+  "x86_64": "INTEL(R) XEON(R) PLATINUM 8573C, 4 vCPU GitHub-hosted ubuntu-latest, rustc 1.99.0, bench profile; 1-minute load average 1.0-3.6",
+  "aarch64_instructions": "Debian 12 aarch64 container on Apple M4 Pro, rustc 1.98.1, valgrind 3.19.0, iai-callgrind 0.14.2 (--allow-aslr)"
+ },
+ "commands": [
+  "REPS=5 bash docs/evidence/perf/KL10-05/measure.sh <parent> <candidate> <out> census iai criterion (arm64 local: criterion and census; aarch64 Linux container: census iai; x86_64 hosted run 36866219590: all) (exit 0)",
+  "cargo fmt --all --check; cargo clippy --all-targets --all-features -- -D warnings; cargo build --locked --example verifiable_producer --example verifiable_consumer; cargo test --doc --all-features; RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --all-features (exit 0)",
+  "cargo test --locked --all-targets --no-fail-fast (2 pre-existing failures, both reproduced on the parent; see correctness)",
+  "cargo test --locked --no-default-features --lib --test protocol_oracles --test fuzz_decode_smoke --test fetch_buffer_budget (exit 0)",
+  "cargo +1.85 check --locked --all-targets; cargo +1.85 check --locked --lib --no-default-features (exit 0)",
+  "bash scripts/ci-deny.sh (advisories, bans, licenses, sources ok); bash scripts/ci-protocol-oracles.sh (exit 0; live Apache decode skipped locally without conformance jars)",
+  "bash scripts/ci-alloc-budget.sh; cargo test --locked --manifest-path benchmarks/codec/Cargo.toml (exit 0)",
+  "cargo package --allow-dirty --no-verify + python3 -B scripts/check-package-docs.py <extracted crate> (exit 0)",
+  "gzip interop harness, docs/evidence/perf/KL10-05/interop/ (60/60 ok)",
+  "python3 scripts/check-doc-examples.py --allow-dirty [--features default] (19 compiled, 0 ignored; exit 0); python3 -B -m unittest discover -s tests/docs -p 'test_*.py' (exit 0)"
+ ],
+ "results": {
+  "primary": {
+   "metric": "micro-compress:gzip:json1k/256k throughput, paired delta vs parent",
+   "arm64": {
+    "ci95": [
+     65.76,
+     68.74
+    ],
+    "median": 68.13,
+    "paired": [
+     68.13,
+     65.76,
+     68.74,
+     67.67,
+     68.15
+    ]
+   },
+   "x86_64": {
+    "ci95": [
+     59.7,
+     61.17
+    ],
+    "median": 60.02,
+    "paired": [
+     61.17,
+     60.01,
+     60.02,
+     61.02,
+     59.7
+    ]
+   },
+   "repetitions": 5
+  },
+  "secondary": {
+   "compress/gzip/random": {
+    "arm64": 5.57,
+    "x86_64": 40.36
+   },
+   "compress/gzip/text": {
+    "arm64": 74.53,
+    "x86_64": 62.82
+   },
+   "decompress/gzip/random": {
+    "arm64": -11.53,
+    "x86_64": 10.0
+   },
+   "decompress/gzip/text": {
+    "arm64": 6.86,
+    "x86_64": 41.02
+   },
+   "micro-compress:gzip:json1k/16k": {
+    "arm64": 28.91,
+    "x86_64": 55.62
+   },
+   "micro-compress:gzip:json1k/256k": {
+    "arm64": 68.13,
+    "x86_64": 60.02
+   },
+   "micro-decompress:gzip:json1k/16k": {
+    "arm64": 15.39,
+    "x86_64": 21.9
+   },
+   "micro-decompress:gzip:json1k/256k": {
+    "arm64": 25.37,
+    "x86_64": 52.83
+   },
+   "raw-compress:gzip:json1k/16k": {
+    "arm64": 28.87,
+    "x86_64": 57.54
+   },
+   "raw-compress:gzip:json1k/256k": {
+    "arm64": 67.73,
+    "x86_64": 60.35
+   },
+   "raw-decompress:gzip:json1k/16k": {
+    "arm64": 2.32,
+    "x86_64": 14.78
+   },
+   "raw-decompress:gzip:json1k/256k": {
+    "arm64": 47.39,
+    "x86_64": 99.08
+   }
+  },
+  "instructions": {
+   "x86_64": {
+    "iai_compress_gzip/text": {
+     "baseline": 20600642,
+     "candidate": 11186888,
+     "delta_pct": -45.7
+    },
+    "iai_decompress_gzip/text": {
+     "baseline": 1934797,
+     "candidate": 1456805,
+     "delta_pct": -24.71
+    },
+    "json1k_compress/gzip_256k": {
+     "baseline": 74976171,
+     "candidate": 37910807,
+     "delta_pct": -49.44
+    },
+    "json1k_decompress/gzip_256k": {
+     "baseline": 4738709,
+     "candidate": 3344406,
+     "delta_pct": -29.42
+    }
+   },
+   "aarch64": {
+    "iai_compress_gzip/text": {
+     "baseline": 17903089,
+     "candidate": 11159067,
+     "delta_pct": -37.67
+    },
+    "iai_decompress_gzip/text": {
+     "baseline": 1982873,
+     "candidate": 1378293,
+     "delta_pct": -30.49
+    },
+    "json1k_compress/gzip_256k": {
+     "baseline": 65575134,
+     "candidate": 39130879,
+     "delta_pct": -40.33
+    },
+    "json1k_decompress/gzip_256k": {
+     "baseline": 5617697,
+     "candidate": 3190923,
+     "delta_pct": -43.2
+    }
+   },
+   "tracked_regressions": "none; non-gzip benches within 32 instructions (<0.01%)"
+  },
+  "allocations": {
+   "unit": "per json1k gzip cell (x86_64)",
+   "baseline": {
+    "micro-compress:gzip:json1k/16k": {
+     "allocated_bytes": 429419,
+     "allocations": 20,
+     "compressed_bytes": 4230,
+     "compressed_to_section_ratio": 0.25202573879885604
+    },
+    "micro-compress:gzip:json1k/256k": {
+     "allocated_bytes": 1521533,
+     "allocations": 24,
+     "compressed_bytes": 56160,
+     "compressed_to_section_ratio": 0.20882912898619704
+    },
+    "micro-decompress:gzip:json1k/16k": {
+     "allocated_bytes": 135096,
+     "allocations": 7,
+     "compressed_bytes": 4230,
+     "compressed_to_section_ratio": 0.25202573879885604
+    },
+    "micro-decompress:gzip:json1k/256k": {
+     "allocated_bytes": 1143096,
+     "allocations": 11,
+     "compressed_bytes": 56160,
+     "compressed_to_section_ratio": 0.20882912898619704
+    },
+    "raw-compress:gzip:json1k/16k": {
+     "allocated_bytes": 364780,
+     "allocations": 11,
+     "compressed_bytes": 4230,
+     "compressed_to_section_ratio": 0.25202573879885604
+    },
+    "raw-compress:gzip:json1k/256k": {
+     "allocated_bytes": 450448,
+     "allocations": 11,
+     "compressed_bytes": 56160,
+     "compressed_to_section_ratio": 0.20882912898619704
+    },
+    "raw-decompress:gzip:json1k/16k": {
+     "allocated_bytes": 141568,
+     "allocations": 13,
+     "compressed_bytes": 4230,
+     "compressed_to_section_ratio": 0.25202573879885604
+    },
+    "raw-decompress:gzip:json1k/256k": {
+     "allocated_bytes": 1124608,
+     "allocations": 17,
+     "compressed_bytes": 56160,
+     "compressed_to_section_ratio": 0.20882912898619704
+    }
+   },
+   "candidate": {
+    "micro-compress:gzip:json1k/16k": {
+     "allocated_bytes": 490143,
+     "allocations": 15,
+     "compressed_bytes": 4248,
+     "compressed_to_section_ratio": 0.2530981887511916
+    },
+    "micro-compress:gzip:json1k/256k": {
+     "allocated_bytes": 1582013,
+     "allocations": 19,
+     "compressed_bytes": 55934,
+     "compressed_to_section_ratio": 0.20798875535459305
+    },
+    "micro-decompress:gzip:json1k/16k": {
+     "allocated_bytes": 139352,
+     "allocations": 7,
+     "compressed_bytes": 4248,
+     "compressed_to_section_ratio": 0.2530981887511916
+    },
+    "micro-decompress:gzip:json1k/256k": {
+     "allocated_bytes": 1147352,
+     "allocations": 11,
+     "compressed_bytes": 55934,
+     "compressed_to_section_ratio": 0.20798875535459305
+    },
+    "raw-compress:gzip:json1k/16k": {
+     "allocated_bytes": 425540,
+     "allocations": 6,
+     "compressed_bytes": 4248,
+     "compressed_to_section_ratio": 0.2530981887511916
+    },
+    "raw-compress:gzip:json1k/256k": {
+     "allocated_bytes": 506372,
+     "allocations": 6,
+     "compressed_bytes": 55934,
+     "compressed_to_section_ratio": 0.20798875535459305
+    },
+    "raw-decompress:gzip:json1k/16k": {
+     "allocated_bytes": 145824,
+     "allocations": 13,
+     "compressed_bytes": 4248,
+     "compressed_to_section_ratio": 0.2530981887511916
+    },
+    "raw-decompress:gzip:json1k/256k": {
+     "allocated_bytes": 1128864,
+     "allocations": 17,
+     "compressed_bytes": 55934,
+     "compressed_to_section_ratio": 0.20798875535459305
+    }
+   },
+   "note": "counts fall by 5 per compress, unchanged per decompress; bytes rise 56-61 KB per compress and 4.3 KB per decompress; raise approved as KL10-15"
+  },
+  "guardrails": "Profile guardrails (CPU per record, RSS, p99) need the lb-gateway cells, which do not exist yet; KL10-12 measures them. Microbench loss: decompress/gzip/random on arm64 -11.5% (x86_64 +10.0%).",
+  "net_production_lines": 0,
+  "manifest_lines": "Cargo.toml +5/-2 (default zlib-rs feature, flate2 runtime_detection)",
+  "correctness": "cargo test --all-targets: 1729 passed, 2 failed, 3 ignored. Both failures reproduce on the parent and do not involve gzip: admin_list_offsets_earliest_and_latest (ListOffsets TimeoutMs 29997-29999 vs 30000 under load) and admin_against_kafka_if_present (a non-Kafka TLS listener on local 127.0.0.1:9092). --no-default-features lane: 1138 passed, 0 failed. Doctests 4/4. KL02-03 decompression-bomb and decoded-byte limit tests unchanged and green on both builds. Interop: java.util.zip and zlib 1.2.12 (librdkafka settings) decode zlib-rs and miniz output; both backends decode Java/zlib output at levels default/1/9 and each other's output (60/60)."
+ },
+ "maintainer_override": "Landed before KL10-02 at the maintainer's direction (2026-10-01); see the KL10-05 maintainer_approval.",
+ "artifacts": [
+  "docs/evidence/perf/KL10-05/",
+  "docs/gzip-backend.md"
+ ],
+ "limits": [
+  "local/unsigned; not a Kafka comparison claim",
+  "the lb-gateway A/B listed in validation is pending KL10-02; KL10-12 re-measures on the new default",
+  "the Java oracle decode of Rust produce output runs in the CI conformance lane; locally it skipped without conformance jars, and gzip interop was proven with java.util.zip directly",
+  "more than one card in this session by maintainer direction (KL10-05, KL10-06, KL10-15)"
+ ],
+ "tooling": "scripts/check-doc-examples.py accepts zlib-rs only as a default feature and keeps tracing as the only opt-in feature, so the packaged feature matrix (default, tracing) is unchanged",
+ "ci": {
+  "run": "https://github.com/mingley/partitionline/actions/runs/36869685434",
+  "event": "workflow_dispatch on branch mingley/kl10-05-gzip-backend",
+  "head_sha_before_rebase": "b90464bf",
+  "result": "success: fmt, clippy, audit, deny, package, test (stable), test (1.85), features (incl. the --no-default-features lane), alloc-budget (x86_64), perf-gate, latency-gate, fuzz-smoke, conformance-fixtures, broker-smoke (3.9.1, 4.1.0), broker-current (4.1.2, 4.2.1, 4.3.1), auth-smoke, integrity-smoke, windows (1.85.0), macos-arm64 (1.85.0); skipped: conformance-live",
+  "failures": "docs, windows (stable), macos-arm64 (stable): strict rustdoc 'redundant explicit link target' under rustc 1.99.0; identical on main run 36869103809 at 8bec4f21 (pre-existing, not from this change)"
+ }
+}

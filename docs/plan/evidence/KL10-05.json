@@ -1,0 +1,632 @@
+{
+ "id": "KL10-05",
+ "status": "done",
+ "disposition": "accepted",
+ "decision": "change-default-to-zlib-rs",
+ "baseline_sha": "65d3e89a4775f6bfd913ed1467647b93a11b9329",
+ "maintainer_approval": {
+  "by": "mingley (maintainer)",
+  "date": "2026-10-01",
+  "statements": [
+   "make sure partitionline is also using the most CPU efficient/fastest option for this too",
+   "you can make these changes to partitionline"
+  ],
+  "scope": "zlib-rs becomes the default gzip backend through a default `zlib-rs` cargo feature (flate2/zlib-rs); flate2 `runtime_detection` is enabled; `default-features = false` keeps miniz_oxide. Scoped exception to performance-leadership.md section 9 for this dependency only; partitionline's own unsafe_code = forbid is unchanged. The allocation-byte raise is approved separately as KL10-15."
+ },
+ "candidates": {
+  "miniz_oxide 0.9.1 (current)": {
+   "license": "MIT OR Zlib OR Apache-2.0",
+   "unsafe": "#![forbid(unsafe_code)]",
+   "simd": "none",
+   "notes": "flate2 rust_backend; CRC-32 from crc32fast"
+  },
+  "zlib-rs 0.6.8": {
+   "license": "Zlib (allowed by deny.toml)",
+   "msrv": "1.75 (<= 1.85)",
+   "unsafe": "469 source lines contain `unsafe`; 13 files use core::arch SIMD (adler32, crc32, compare256, inflate writer, cpu_features); 49 #[target_feature] functions",
+   "fuzzing": "upstream fuzz targets: checksum, compress, compress_gz, end_to_end, infback, inflate_chunked, uncompress, uncompress_random_input",
+   "maintenance": "Trifecta Tech Foundation (started under ISRG Prossimo); releases 0.6.6 2026-07-09, 0.6.7 2026-08-03, 0.6.8 2026-09-15; repo not archived",
+   "allocator": "flate2 enables zlib-rs `rust-allocator`, so allocations go through the global allocator (visible to the census)",
+   "runtime_detection": "without std (flate2 `runtime_detection` off) zlib-rs only uses compile-time SIMD (upstream issue #563)"
+  },
+  "excluded": "C backends (system zlib, zlib-ng, libdeflate): CONTRIBUTING.md forbids C compression libraries as default dependencies"
+ },
+ "dependency_graph": {
+  "default": "partitionline -> flate2 1.1.10 -> {zlib-rs 0.6.8 (used), miniz_oxide 0.9.1 (compiled, unused at runtime)}",
+  "no_default_features": "partitionline -> flate2 1.1.10 -> miniz_oxide 0.9.1",
+  "lockfile_change": "adds zlib-rs 0.6.8 to Cargo.lock, benchmarks/codec, benchmarks/runtime and fuzz lockfiles"
+ },
+ "acceptance_met": [
+  "Compress and decompress measured separately on the KL10-03 json1k cells (plus historical gzip cells) on arm64 (Apple M4 Pro, macOS) and x86_64 (Xeon Platinum 8573C, hosted Linux) with ratios; instructions on aarch64 and x86_64 Linux; gateway-adoption.md section 2 numbers not used as evidence.",
+  "Both candidates audited for unsafe/SIMD use, fuzzing, maintenance, license and MSRV against performance-leadership.md section 9; partitionline's own unsafe_code = forbid unchanged.",
+  "Manifest change approved by the maintainer and recorded here (maintainer_approval)."
+ ],
+ "results": {
+  "throughput_vs_parent_pct": {
+   "micro-compress:gzip:json1k/16k": {
+    "arm64_Z": {
+     "ci95": [
+      28.33,
+      31.55
+     ],
+     "median": 28.91,
+     "paired": [
+      28.33,
+      28.91,
+      31.38,
+      28.59,
+      31.55
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      54.44,
+      57.28
+     ],
+     "median": 55.62,
+     "paired": [
+      54.65,
+      57.13,
+      57.28,
+      54.44,
+      55.62
+     ]
+    },
+    "arm64_M": 0.62,
+    "x86_64_M": 0.62
+   },
+   "micro-compress:gzip:json1k/256k": {
+    "arm64_Z": {
+     "ci95": [
+      65.76,
+      68.74
+     ],
+     "median": 68.13,
+     "paired": [
+      68.13,
+      65.76,
+      68.74,
+      67.67,
+      68.15
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      59.7,
+      61.17
+     ],
+     "median": 60.02,
+     "paired": [
+      61.17,
+      60.01,
+      60.02,
+      61.02,
+      59.7
+     ]
+    },
+    "arm64_M": 0.15,
+    "x86_64_M": 0.62
+   },
+   "micro-decompress:gzip:json1k/16k": {
+    "arm64_Z": {
+     "ci95": [
+      15.14,
+      16.41
+     ],
+     "median": 15.39,
+     "paired": [
+      15.45,
+      16.41,
+      15.14,
+      15.39,
+      15.16
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      20.92,
+      24.62
+     ],
+     "median": 21.9,
+     "paired": [
+      24.62,
+      21.9,
+      21.92,
+      20.94,
+      20.92
+     ]
+    },
+    "arm64_M": 0.13,
+    "x86_64_M": 12.03
+   },
+   "micro-decompress:gzip:json1k/256k": {
+    "arm64_Z": {
+     "ci95": [
+      9.12,
+      29.25
+     ],
+     "median": 25.37,
+     "paired": [
+      28.17,
+      29.25,
+      24.92,
+      25.37,
+      9.12
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      50.6,
+      53.67
+     ],
+     "median": 52.83,
+     "paired": [
+      50.6,
+      52.59,
+      52.83,
+      53.67,
+      52.83
+     ]
+    },
+    "arm64_M": -3.46,
+    "x86_64_M": 10.07
+   },
+   "raw-compress:gzip:json1k/16k": {
+    "arm64_Z": {
+     "ci95": [
+      26.05,
+      31.34
+     ],
+     "median": 28.87,
+     "paired": [
+      31.34,
+      29.57,
+      26.05,
+      28.6,
+      28.87
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      55.99,
+      58.82
+     ],
+     "median": 57.54,
+     "paired": [
+      57.72,
+      57.41,
+      58.82,
+      57.54,
+      55.99
+     ]
+    },
+    "arm64_M": 0.56,
+    "x86_64_M": 0.67
+   },
+   "raw-compress:gzip:json1k/256k": {
+    "arm64_Z": {
+     "ci95": [
+      67.07,
+      69.5
+     ],
+     "median": 67.73,
+     "paired": [
+      67.07,
+      69.5,
+      67.73,
+      68.58,
+      67.12
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      59.71,
+      61.38
+     ],
+     "median": 60.35,
+     "paired": [
+      60.35,
+      60.15,
+      60.93,
+      61.38,
+      59.71
+     ]
+    },
+    "arm64_M": -0.43,
+    "x86_64_M": 0.35
+   },
+   "raw-decompress:gzip:json1k/16k": {
+    "arm64_Z": {
+     "ci95": [
+      1.62,
+      4.51
+     ],
+     "median": 2.32,
+     "paired": [
+      2.91,
+      1.65,
+      1.62,
+      4.51,
+      2.32
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      13.67,
+      17.64
+     ],
+     "median": 14.78,
+     "paired": [
+      17.64,
+      14.78,
+      13.67,
+      14.9,
+      14.61
+     ]
+    },
+    "arm64_M": -0.19,
+    "x86_64_M": 11.68
+   },
+   "raw-decompress:gzip:json1k/256k": {
+    "arm64_Z": {
+     "ci95": [
+      40.35,
+      58.91
+     ],
+     "median": 47.39,
+     "paired": [
+      52.05,
+      47.39,
+      40.35,
+      43.26,
+      58.91
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      96.94,
+      101.0
+     ],
+     "median": 99.08,
+     "paired": [
+      96.94,
+      99.08,
+      97.4,
+      100.85,
+      101.0
+     ]
+    },
+    "arm64_M": -2.46,
+    "x86_64_M": 10.26
+   },
+   "compress/gzip/text": {
+    "arm64_Z": {
+     "ci95": [
+      70.17,
+      75.91
+     ],
+     "median": 74.53,
+     "paired": [
+      70.17,
+      74.53,
+      75.91,
+      74.09,
+      75.52
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      61.87,
+      63.89
+     ],
+     "median": 62.82,
+     "paired": [
+      63.1,
+      62.82,
+      63.89,
+      61.87,
+      62.75
+     ]
+    },
+    "arm64_M": 0.83,
+    "x86_64_M": 0.04
+   },
+   "compress/gzip/random": {
+    "arm64_Z": {
+     "ci95": [
+      4.63,
+      7.49
+     ],
+     "median": 5.57,
+     "paired": [
+      5.57,
+      7.49,
+      4.63,
+      5.39,
+      5.83
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      39.97,
+      41.28
+     ],
+     "median": 40.36,
+     "paired": [
+      39.97,
+      40.81,
+      41.28,
+      40.36,
+      40.3
+     ]
+    },
+    "arm64_M": 0.34,
+    "x86_64_M": 0.68
+   },
+   "decompress/gzip/text": {
+    "arm64_Z": {
+     "ci95": [
+      6.27,
+      13.32
+     ],
+     "median": 6.86,
+     "paired": [
+      6.86,
+      9.32,
+      6.27,
+      13.32,
+      6.81
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      13.88,
+      42.8
+     ],
+     "median": 41.02,
+     "paired": [
+      13.88,
+      41.02,
+      42.8,
+      41.47,
+      40.28
+     ]
+    },
+    "arm64_M": -0.08,
+    "x86_64_M": 7.44
+   },
+   "decompress/gzip/random": {
+    "arm64_Z": {
+     "ci95": [
+      -12.06,
+      -10.89
+     ],
+     "median": -11.53,
+     "paired": [
+      -12.06,
+      -11.59,
+      -11.53,
+      -11.0,
+      -10.89
+     ]
+    },
+    "x86_64_Z": {
+     "ci95": [
+      4.6,
+      10.64
+     ],
+     "median": 10.0,
+     "paired": [
+      4.6,
+      10.04,
+      10.64,
+      9.44,
+      10.0
+     ]
+    },
+    "arm64_M": -0.03,
+    "x86_64_M": 4.68
+   }
+  },
+  "instructions": {
+   "aarch64_linux": {
+    "iai_compress_gzip/text": {
+     "P": 17903089,
+     "M": 17716366,
+     "Z": 11159067,
+     "Z_delta_pct": -37.67,
+     "M_delta_pct": -1.04
+    },
+    "iai_decompress_gzip/text": {
+     "P": 1982873,
+     "M": 1824561,
+     "Z": 1378293,
+     "Z_delta_pct": -30.49,
+     "M_delta_pct": -7.98
+    },
+    "json1k_compress/gzip_16k": {
+     "P": 2377814,
+     "M": 2332759,
+     "Z": 1884671,
+     "Z_delta_pct": -20.74,
+     "M_delta_pct": -1.89
+    },
+    "json1k_compress/gzip_256k": {
+     "P": 65575134,
+     "M": 64779406,
+     "Z": 39130879,
+     "Z_delta_pct": -40.33,
+     "M_delta_pct": -1.21
+    },
+    "json1k_decompress/gzip_16k": {
+     "P": 420773,
+     "M": 378076,
+     "Z": 282561,
+     "Z_delta_pct": -32.85,
+     "M_delta_pct": -10.15
+    },
+    "json1k_decompress/gzip_256k": {
+     "P": 5617697,
+     "M": 4933993,
+     "Z": 3190923,
+     "Z_delta_pct": -43.2,
+     "M_delta_pct": -12.17
+    },
+    "json1k_raw_compress/gzip_16k": {
+     "P": 2341052,
+     "M": 2296071,
+     "Z": 1853373,
+     "Z_delta_pct": -20.83,
+     "M_delta_pct": -1.92
+    },
+    "json1k_raw_compress/gzip_256k": {
+     "P": 65084896,
+     "M": 64289245,
+     "Z": 38637739,
+     "Z_delta_pct": -40.63,
+     "M_delta_pct": -1.22
+    },
+    "json1k_raw_decompress/gzip_16k": {
+     "P": 404259,
+     "M": 363916,
+     "Z": 312267,
+     "Z_delta_pct": -22.76,
+     "M_delta_pct": -9.98
+    },
+    "json1k_raw_decompress/gzip_256k": {
+     "P": 5405111,
+     "M": 4636512,
+     "Z": 2774524,
+     "Z_delta_pct": -48.67,
+     "M_delta_pct": -14.22
+    }
+   },
+   "x86_64_linux": {
+    "iai_compress_gzip/text": {
+     "P": 20600642,
+     "M": 20482883,
+     "Z": 11186888,
+     "Z_delta_pct": -45.7,
+     "M_delta_pct": -0.57
+    },
+    "iai_decompress_gzip/text": {
+     "P": 1934797,
+     "M": 1817141,
+     "Z": 1456805,
+     "Z_delta_pct": -24.71,
+     "M_delta_pct": -6.08
+    },
+    "json1k_compress/gzip_16k": {
+     "P": 3201261,
+     "M": 3170178,
+     "Z": 2390342,
+     "Z_delta_pct": -25.33,
+     "M_delta_pct": -0.97
+    },
+    "json1k_compress/gzip_256k": {
+     "P": 74976171,
+     "M": 74476225,
+     "Z": 37910807,
+     "Z_delta_pct": -49.44,
+     "M_delta_pct": -0.67
+    },
+    "json1k_decompress/gzip_16k": {
+     "P": 521571,
+     "M": 490543,
+     "Z": 348405,
+     "Z_delta_pct": -33.2,
+     "M_delta_pct": -5.95
+    },
+    "json1k_decompress/gzip_256k": {
+     "P": 4738709,
+     "M": 4239342,
+     "Z": 3344406,
+     "Z_delta_pct": -29.42,
+     "M_delta_pct": -10.54
+    },
+    "json1k_raw_compress/gzip_16k": {
+     "P": 3109538,
+     "M": 3078463,
+     "Z": 2358831,
+     "Z_delta_pct": -24.14,
+     "M_delta_pct": -1.0
+    },
+    "json1k_raw_compress/gzip_256k": {
+     "P": 74430909,
+     "M": 73930991,
+     "Z": 37329236,
+     "Z_delta_pct": -49.85,
+     "M_delta_pct": -0.67
+    },
+    "json1k_raw_decompress/gzip_16k": {
+     "P": 507333,
+     "M": 476456,
+     "Z": 380626,
+     "Z_delta_pct": -24.98,
+     "M_delta_pct": -6.09
+    },
+    "json1k_raw_decompress/gzip_256k": {
+     "P": 5377635,
+     "M": 4878003,
+     "Z": 3234371,
+     "Z_delta_pct": -39.86,
+     "M_delta_pct": -9.29
+    }
+   }
+  },
+  "non_gzip_instruction_changes": {
+   "max_abs_change_by_arm": {
+    "aarch64_linux_M": {
+     "bench": "json1k_raw_compress/lz4_256k",
+     "delta_Ir": -24,
+     "delta_pct": -0.00061
+    },
+    "aarch64_linux_Z": {
+     "bench": "json1k_raw_compress/lz4_256k",
+     "delta_Ir": -1,
+     "delta_pct": -3e-05
+    },
+    "x86_64_linux_M": {
+     "bench": "json1k_decompress/lz4_16k",
+     "delta_Ir": 12,
+     "delta_pct": 0.00537
+    },
+    "x86_64_linux_Z": {
+     "bench": "json1k_raw_compress/lz4_256k",
+     "delta_Ir": -32,
+     "delta_pct": -0.00063
+    }
+   },
+   "note": "lz4/snappy/encode/decode/crc/request cells are unchanged within a few dozen instructions (<0.01%)"
+  },
+  "ratio": {
+   "json1k/16k": {
+    "miniz": 4230,
+    "zlib-rs": 4248
+   },
+   "json1k/256k": {
+    "miniz": 56160,
+    "zlib-rs": 55934
+   },
+   "unit": "compressed record-section bytes"
+  },
+  "losses": [
+   "decompress/gzip/random (stored blocks) on arm64: -11.5% throughput (CI excludes zero); +10.0% on x86_64"
+  ]
+ },
+ "artifacts": [
+  "docs/evidence/perf/KL10-05/README.md",
+  "docs/evidence/perf/KL10-05/measurements.json",
+  "docs/evidence/perf/KL10-05/interop.txt",
+  "docs/evidence/perf/KL10-05/measure.sh",
+  "docs/evidence/perf/KL10-05/analyze.py",
+  "docs/evidence/perf/KL10-05/interop/",
+  "docs/gzip-backend.md"
+ ],
+ "limits": [
+  "local/unsigned; not a Kafka comparison claim",
+  "arm64 wall clock on a shared laptop (load 6.6-16.6); x86_64 on a 4-vCPU hosted runner with rustc 1.99.0",
+  "aarch64 instructions from valgrind 3.19.0 in a container; committed perf-baseline.json used 3.24.0",
+  "gateway cells (KL10-02/KL10-14) do not exist yet; KL10-12 measures them on the new default"
+ ]
+}

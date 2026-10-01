@@ -1,0 +1,165 @@
+{
+ "id": "KL10-15",
+ "status": "done",
+ "disposition": "accepted",
+ "baseline_sha": "65d3e89a4775f6bfd913ed1467647b93a11b9329",
+ "maintainer_approval": {
+  "by": "mingley (maintainer)",
+  "date": "2026-10-01",
+  "scope": "Raise allocated-byte baselines for gzip cells only, as a consequence of the approved zlib-rs default (KL10-05). Allocation counts are lowered in the same change."
+ },
+ "changes": {
+  "benchmarks/codec/tests/alloc_budget.rs": {
+   "micro-compress/gzip": {
+    "before": [
+     21,
+     529468
+    ],
+    "after": [
+     16,
+     590162
+    ],
+    "unit": "[allocations, bytes] on x86_64"
+   }
+  },
+  "benchmarks/codec/tests/decompress_budget.rs": {
+   "gzip cap": {
+    "before": [
+     8,
+     250968
+    ],
+    "after": [
+     8,
+     255224
+    ],
+    "measured_aarch64": [
+     8,
+     255160
+    ]
+   }
+  },
+  "benchmarks/codec/json1k-alloc-baseline.json": {
+   "cells_changed": "8 gzip cells (micro/raw x compress/decompress x 16k/256k); all 16 lz4/snappy cells unchanged",
+   "before": {
+    "micro-compress:gzip:json1k/16k": {
+     "allocated_bytes": 429419,
+     "allocations": 20,
+     "compressed_bytes": 4230,
+     "compressed_to_section_ratio": 0.25202573879885604
+    },
+    "micro-compress:gzip:json1k/256k": {
+     "allocated_bytes": 1521533,
+     "allocations": 24,
+     "compressed_bytes": 56160,
+     "compressed_to_section_ratio": 0.20882912898619704
+    },
+    "micro-decompress:gzip:json1k/16k": {
+     "allocated_bytes": 135096,
+     "allocations": 7,
+     "compressed_bytes": 4230,
+     "compressed_to_section_ratio": 0.25202573879885604
+    },
+    "micro-decompress:gzip:json1k/256k": {
+     "allocated_bytes": 1143096,
+     "allocations": 11,
+     "compressed_bytes": 56160,
+     "compressed_to_section_ratio": 0.20882912898619704
+    },
+    "raw-compress:gzip:json1k/16k": {
+     "allocated_bytes": 364780,
+     "allocations": 11,
+     "compressed_bytes": 4230,
+     "compressed_to_section_ratio": 0.25202573879885604
+    },
+    "raw-compress:gzip:json1k/256k": {
+     "allocated_bytes": 450448,
+     "allocations": 11,
+     "compressed_bytes": 56160,
+     "compressed_to_section_ratio": 0.20882912898619704
+    },
+    "raw-decompress:gzip:json1k/16k": {
+     "allocated_bytes": 141568,
+     "allocations": 13,
+     "compressed_bytes": 4230,
+     "compressed_to_section_ratio": 0.25202573879885604
+    },
+    "raw-decompress:gzip:json1k/256k": {
+     "allocated_bytes": 1124608,
+     "allocations": 17,
+     "compressed_bytes": 56160,
+     "compressed_to_section_ratio": 0.20882912898619704
+    }
+   },
+   "after": {
+    "micro-compress:gzip:json1k/16k": {
+     "allocated_bytes": 490143,
+     "allocations": 15,
+     "compressed_bytes": 4248,
+     "compressed_to_section_ratio": 0.2530981887511916
+    },
+    "micro-compress:gzip:json1k/256k": {
+     "allocated_bytes": 1582013,
+     "allocations": 19,
+     "compressed_bytes": 55934,
+     "compressed_to_section_ratio": 0.20798875535459305
+    },
+    "micro-decompress:gzip:json1k/16k": {
+     "allocated_bytes": 139352,
+     "allocations": 7,
+     "compressed_bytes": 4248,
+     "compressed_to_section_ratio": 0.2530981887511916
+    },
+    "micro-decompress:gzip:json1k/256k": {
+     "allocated_bytes": 1147352,
+     "allocations": 11,
+     "compressed_bytes": 55934,
+     "compressed_to_section_ratio": 0.20798875535459305
+    },
+    "raw-compress:gzip:json1k/16k": {
+     "allocated_bytes": 425540,
+     "allocations": 6,
+     "compressed_bytes": 4248,
+     "compressed_to_section_ratio": 0.2530981887511916
+    },
+    "raw-compress:gzip:json1k/256k": {
+     "allocated_bytes": 506372,
+     "allocations": 6,
+     "compressed_bytes": 55934,
+     "compressed_to_section_ratio": 0.20798875535459305
+    },
+    "raw-decompress:gzip:json1k/16k": {
+     "allocated_bytes": 145824,
+     "allocations": 13,
+     "compressed_bytes": 4248,
+     "compressed_to_section_ratio": 0.2530981887511916
+    },
+    "raw-decompress:gzip:json1k/256k": {
+     "allocated_bytes": 1128864,
+     "allocations": 17,
+     "compressed_bytes": 55934,
+     "compressed_to_section_ratio": 0.20798875535459305
+    }
+   }
+  },
+  "benchmarks/codec/src/lib.rs": "ZLIB_RS_STATE_BYTES_BELOW_X86_64 = 64 on non-x86_64 targets with the zlib-rs feature: zlib-rs Crc32Fold carries a PCLMULQDQ accumulator only on x86_64 (zlib-rs 0.6.8 src/crc32.rs), measured as exactly +64 bytes per stream on x86_64 vs aarch64; allocation counts and compressed bytes are identical across targets."
+ },
+ "acceptance_met": [
+  "Maintainer approval recorded above.",
+  "Only gzip cells changed; values equal the x86_64 census from hosted run 36866219590 (artifact kl10-05-x86_64) and the aarch64 census after the documented 64-byte adjustment.",
+  "scripts/ci-alloc-budget.sh passes on arm64 (macOS) and on x86_64 in the CI alloc-budget job of run 36869685434."
+ ],
+ "commands": [
+  "bash scripts/ci-alloc-budget.sh (exit 0, arm64)",
+  "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml --test decompress_budget -- --nocapture (exit 0)"
+ ],
+ "limits": [
+  "alloc_budget micro-compress/gzip (590162) and the decompress cap (255224) were set from the aarch64 measurement plus the documented 64 bytes and then confirmed by the x86_64 CI alloc-budget job"
+ ],
+ "ci": {
+  "run": "https://github.com/mingley/partitionline/actions/runs/36869685434",
+  "event": "workflow_dispatch on branch mingley/kl10-05-gzip-backend",
+  "head_sha_before_rebase": "b90464bf",
+  "result": "success: fmt, clippy, audit, deny, package, test (stable), test (1.85), features (incl. the --no-default-features lane), alloc-budget (x86_64), perf-gate, latency-gate, fuzz-smoke, conformance-fixtures, broker-smoke (3.9.1, 4.1.0), broker-current (4.1.2, 4.2.1, 4.3.1), auth-smoke, integrity-smoke, windows (1.85.0), macos-arm64 (1.85.0); skipped: conformance-live",
+  "failures": "docs, windows (stable), macos-arm64 (stable): strict rustdoc 'redundant explicit link target' under rustc 1.99.0; identical on main run 36869103809 at 8bec4f21 (pre-existing, not from this change)"
+ }
+}

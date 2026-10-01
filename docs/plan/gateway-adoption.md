@@ -178,7 +178,7 @@ backend reaches about 1 GB/s when it writes into a large buffer.
 | F2 | No cells cover the gateway profile | Produce cells and a fetch cell against a same-settings librdkafka peer | KL10-02, KL10-14 |
 | F3 | Codec microbenchmarks lack a realistic 1 KiB text family | JSON-like 1 KiB payloads at two batch sizes, plus a raw-backend baseline | KL10-03 |
 | F4 | In-client deflate costs almost 2× deflating the same bytes in one call | Measure batch sizes, write granularity, encoder re-initialization and level; split the fixes | KL10-04 |
-| F5 | miniz deflate is no faster than C zlib; zlib-rs is 1.8× faster | Backend policy decision, then an opt-in backend | KL10-05, KL10-06 |
+| F5 | miniz deflate is no faster than C zlib; zlib-rs is 1.8× faster | Backend policy decision, then an opt-in backend | KL10-05, KL10-06, KL10-15 |
 | F6 | gzip decode uses 7.8× librdkafka's CPU per record | Pre-sized decompression output (existing card), then decode off the caller task | **KL09-34**, KL10-09 |
 | F7 | No owned, eagerly admitted per-record completion | Specify, then implement, an additive delivery API | KL10-07, KL10-08 |
 | F8 | Consumer peak RSS is 1.4 GB, against 193 MB for the peer | Explain it against the configured budgets; fix the default or the documentation | KL10-10 |
@@ -225,6 +225,7 @@ reason.
 | KL10-12 | P1 | analysis | Re-measure the gateway cells and publish a dated local verdict | KL10-01, KL10-02, KL10-14, KL10-04, KL10-05, KL10-07, KL10-09, KL09-34 | - |
 | KL10-13 | P2 | documentation | Document the gateway adoption recipe | KL10-08 | - |
 | KL10-14 | P1 | benchmark | Build the gateway fetch cell with a same-settings librdkafka peer | KL04-05, KL04-07, KL09-01 | - |
+| KL10-15 | P1 | baseline-change | Re-baseline the gzip allocation cells for the zlib-rs default | KL10-05 | - |
 <!-- KL10-INDEX:END -->
 
 ## 6. Boundaries

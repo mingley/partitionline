@@ -4781,25 +4781,28 @@
     {
       "id": "KL10-05",
       "title": "Decide the gzip backend policy",
-      "priority": "P1", "kind": "decision", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "decision", "status": "done", "owner": "mingley",
       "depends_on": ["KL10-03", "KL05-01"],
       "files": ["new: docs/gzip-backend.md", "Cargo.toml", "deny.toml"],
       "deliverable": "A reviewed decision on the gzip backend: keep miniz_oxide, add zlib-rs (pure Rust, but it uses unsafe and SIMD internally) as an opt-in cargo feature, or change the default, with measured, licensing, MSRV (1.85), maintenance and safety evidence.",
       "acceptance": ["Measure compress and decompress separately on the KL10-03 cells on both x86_64 and arm64, with ratios; gateway-adoption.md section 2 numbers are context, not the evidence.", "Audit each candidate's unsafe and SIMD use, fuzzing and maintenance against the dependency policy in performance-leadership.md section 9; partitionline's own unsafe_code = forbid is unchanged.", "Any manifest change requires explicit maintainer approval recorded in evidence. 'Keep miniz_oxide' is a complete outcome: KL10-06 is then marked blocked with that reason and nothing downstream waits on it."],
       "validation": ["Record candidate versions, licenses, MSRV and the measured table.", "Review the proposed feature and dependency graph (cargo tree) before any manifest change."],
-      "evidence": [],
-      "write_set": ["docs/plan/tasks.json", "docs/plan/evidence/KL10-05.json", "docs/gzip-backend.md", "docs/evidence/perf/KL10-05/README.md", "docs/evidence/perf/KL10-05/measurements.json"]
+      "evidence": ["docs/plan/evidence/KL10-05.json"],
+      "write_set": ["docs/plan/tasks.json", "docs/plan/evidence/KL10-05.json", "docs/gzip-backend.md", "docs/evidence/perf/KL10-05/README.md", "docs/evidence/perf/KL10-05/measurements.json", "docs/evidence/perf/KL10-05/interop.txt", "docs/evidence/perf/KL10-05/measure.sh", "docs/evidence/perf/KL10-05/analyze.py", "docs/evidence/perf/KL10-05/interop/"],
+      "follow_up": "Decision: zlib-rs becomes the default gzip backend; default-features = false keeps miniz_oxide. Maintainer approval recorded in evidence; implemented by KL10-06, allocation-byte raise approved as KL10-15."
     },
     {
       "id": "KL10-06",
       "title": "Add the approved gzip backend as an opt-in feature",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL10-01", "KL10-05", "KL10-02"],
       "files": ["Cargo.toml", "src/protocol/records.rs", "deny.toml", "docs/gzip-backend.md"],
       "deliverable": "The backend approved by KL10-05 behind an additive cargo feature, selected at compile time, with byte-compatible gzip framing and unchanged decode bounds.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "The default build's dependency graph is unchanged unless KL10-05 approved a default change.", "Batches written by the Java and librdkafka fixtures decode, and batches written with the feature decode in the Java oracle (scripts/ci-protocol-oracles.sh); KL02-03 bomb and decoded-byte limit tests are unchanged and green.", "The feature is documented in docs/gzip-backend.md and exercised by a CI job."],
       "validation": ["cargo test --locked --features <feature> --test protocol_oracles", "cargo test --locked --features <feature> --test fuzz_decode_smoke", "bash scripts/ci-protocol-oracles.sh", "A/B cells micro-compress:gzip:json1k, micro-decompress:gzip:json1k, lb-gateway-produce-gzip: >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4, gateway rows)"],
-      "evidence": []
+      "evidence": ["docs/plan/evidence/KL10-06.json"],
+      "write_set": ["Cargo.toml", "Cargo.lock", "fuzz/Cargo.lock", "benchmarks/runtime/Cargo.lock", "benchmarks/codec/Cargo.toml", "benchmarks/codec/Cargo.lock", "src/protocol/records.rs", ".github/workflows/ci.yml", "scripts/check-doc-examples.py", "docs/gzip-backend.md", "docs/design.md", "docs/gaps.md", "docs/guide.md", "docs/migrate-from-rdkafka.md", "docs/security.md", "CHANGELOG.md", "docs/plan/tasks.json", "docs/plan/evidence/KL10-06.json"],
+      "maintainer_override": "2026-10-01: the maintainer directed landing the approved default before KL10-02. The named cells are the KL10-03 json1k gzip cells (plus the historical gzip cells and iai benches); the lb-gateway cells do not exist yet and KL10-12 measures them on the new default."
     },
     {
       "id": "KL10-07",
@@ -4909,6 +4912,18 @@
       "acceptance": ["The backlog is written once by a pinned peer with recorded settings and reused unchanged by both clients; every consumed record's ID/hash is verified against the KL04-07 history.", "Both clients use matched fetch sizes, wait times and TLS settings, emit their effective configuration, and report records/s, CPU per record and peak RSS.", "The baseline is measured on a harness-only commit (library unchanged) with the section 4 protocol (>=5 interleaved repetitions, medians with 95% CIs); differences from gateway-adoption.md section 2 are recorded and explained, not gated."],
       "validation": ["cargo test --locked --manifest-path benchmarks/gateway/Cargo.toml", "python3 scripts/benchmark-report.py <gateway result files>"],
       "evidence": []
+    },
+    {
+      "id": "KL10-15",
+      "title": "Re-baseline the gzip allocation cells for the zlib-rs default",
+      "priority": "P1", "kind": "baseline-change", "status": "done", "owner": "mingley",
+      "depends_on": ["KL10-05"],
+      "files": ["benchmarks/codec/tests/alloc_budget.rs", "benchmarks/codec/tests/decompress_budget.rs", "benchmarks/codec/tests/json1k.rs", "benchmarks/codec/json1k-alloc-baseline.json", "benchmarks/codec/src/lib.rs", "benchmarks/codec/JSON1K.md"],
+      "deliverable": "Allocation budgets and the json1k census baseline for the gzip cells match the zlib-rs default: allocation counts fall, allocated bytes rise; every other cell is unchanged.",
+      "acceptance": ["Maintainer approval for the raise is recorded in evidence (performance-leadership.md section 6 baselines rule).", "Only gzip cells change; counts and bytes equal the measured census on the CI gate host (x86_64); other targets apply the documented per-stream zlib-rs state difference.", "bash scripts/ci-alloc-budget.sh passes on x86_64 and arm64."],
+      "validation": ["bash scripts/ci-alloc-budget.sh", "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml"],
+      "evidence": ["docs/plan/evidence/KL10-15.json"],
+      "write_set": ["benchmarks/codec/tests/alloc_budget.rs", "benchmarks/codec/tests/decompress_budget.rs", "benchmarks/codec/tests/json1k.rs", "benchmarks/codec/json1k-alloc-baseline.json", "benchmarks/codec/src/lib.rs", "benchmarks/codec/JSON1K.md", "docs/plan/tasks.json", "docs/plan/gateway-adoption.md", "docs/ROADMAP.md", "docs/plan/evidence/KL10-15.json"]
     }
   ]
 }
