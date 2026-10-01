@@ -41,6 +41,43 @@ The companion now ships a bounded read-only Schema Registry client
 - `default-features = false` keeps the dep-free wire-framing core;
   `publish = false` is unchanged.
 
+## Bounded cache (KL05-24, landed)
+
+`RegistryClientConfig::cache(RegistryCacheConfig)` controls a cache shared by
+clones of one client. Separately constructed clients keep credentials and cache
+results isolated. Defaults: 256 completed entries, 8 MiB charged retained bytes,
+16 active distinct keys, 1024 UTF-8 bytes per subject; five-minute IDs/pinned
+versions, five-second `latest`, one-second typed 404s. Latest and pinned versions
+use different keys. Other failures, malformed data, over-limit responses and
+reference lists never become cached successes.
+
+Eviction is least recently used, subject to both entry and byte limits. Expiry
+is lazy on lookups/statistics; idle storage remains within those limits.
+Oversized valid successes bypass caching without evicting existing entries.
+Zero freshness disables that class; `disabled()` disables completed caching.
+Hard maxima are 4096 entries, 64 MiB charged bytes, 128 active distinct keys,
+4096 subject bytes and 24-hour freshness. Entry and byte limits must both be
+zero or both positive. Charged bytes include retained string/vector capacities
+and inline entry/Arc storage, excluding hash-bucket/allocator overhead and
+caller-owned clones/futures. This is a cache budget, not a process RSS bound.
+
+Same-key misses coalesce without holding an async lock during network I/O.
+Dropping a follower preserves its owner's request; dropping an owner closes its
+connection and wakes followers to take over the read-only lookup within their
+original deadlines. Capacity waits, coalescing and retries share each call's
+overall timeout. The cache creates no background tasks. Applications must still
+limit their own caller count and retained results. `cache_stats()` exposes
+aggregate counts without subjects, credentials or schema payloads.
+
+Reference resolution remains one level with input order and duplicates
+preserved, so cyclic declarations do not recurse. Input reference counts and
+subject sizes are validated before I/O; returned reference lists are checked
+before cache admission. The entire reference batch now has one
+`request_timeout`, replacing KL05-23's per-entry budget. The first failure
+returns an error without a partial vector; successful earlier individual
+lookups may remain cached. Deterministic loopback tests cover cancellation,
+coalescing, eviction, expiry and failed fetches; no live registry is claimed.
+
 ## Why a companion
 
 Operators often need Confluent-compatible wire (Avro / Protobuf / JSON Schema
@@ -76,7 +113,8 @@ partitionline-schema/
 
 1. Lives in its own repo **or** a workspace member excluded from the core
    package `include` list.
-2. Default features: no C, no OpenSSL (rustls).
+2. No librdkafka or OpenSSL. The default Rustls/Ring registry feature needs a
+   C compiler for Ring's build; dependency-free wire framing needs neither.
 3. Round-trip example against a local Schema Registry + Kafka.
 4. Documented as optional in `docs/ADOPTION.md` and core README.
 

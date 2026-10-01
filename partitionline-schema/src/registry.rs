@@ -55,6 +55,24 @@
 //! Every failure surfaces as the typed [`RegistryError`]. Messages carry
 //! statuses, endpoint descriptions, and registry `error_code`s only;
 //! response bodies, URLs, and credentials are never embedded.
+//!
+//! # Cache and cancellation
+//!
+//! Clones share one credential-scoped, size-bounded cache; separately constructed
+//! clients do not. [`RegistryCacheConfig`] defines freshness and entry, charged
+//! byte, subject and active distinct-key limits. Same-key misses share a request
+//! without holding a lock during I/O. Dropping a follower leaves its owner alive;
+//! dropping the owner closes its request and lets a waiting caller take over the
+//! read-only lookup within that caller's original deadline. No tasks are spawned.
+//! Only successful schemas and typed 404s are cached. Latest has separate
+//! freshness from IDs/pinned versions. [`RegistryClient::cache_stats`] reports
+//! counts without subjects or credentials. Callers still own and must bound
+//! their returned schema clones and waiting futures.
+
+mod cache;
+
+use cache::{Cache, Flight, Key, Role, Value};
+pub use cache::{RegistryCacheConfig, RegistryCacheStats};
 
 use std::fmt;
 use std::sync::Arc;
@@ -218,6 +236,7 @@ pub struct RegistryClientConfig {
     max_body_bytes: usize,
     max_references: usize,
     ca_pem: Option<Vec<u8>>,
+    cache: RegistryCacheConfig,
 }
 
 impl fmt::Debug for RegistryClientConfig {
@@ -225,6 +244,7 @@ impl fmt::Debug for RegistryClientConfig {
         f.debug_struct("RegistryClientConfig")
             .field("base_url", &self.base_url)
             .field("auth", &self.auth)
+            .field("cache", &self.cache)
             .field("connect_timeout", &self.connect_timeout)
             .field("request_timeout", &self.request_timeout)
             .field("max_attempts", &self.max_attempts)
@@ -253,6 +273,7 @@ impl RegistryClientConfig {
             max_body_bytes: DEFAULT_MAX_BODY_BYTES,
             max_references: DEFAULT_MAX_REFERENCES,
             ca_pem: None,
+            cache: RegistryCacheConfig::default(),
         }
     }
 
@@ -308,6 +329,14 @@ impl RegistryClientConfig {
         self
     }
 
+    /// Completed-cache bounds/freshness and active lookup limits. Client clones
+    /// share one cache; no lock is held across network I/O.
+    #[must_use]
+    pub fn cache(mut self, config: RegistryCacheConfig) -> Self {
+        self.cache = config;
+        self
+    }
+
     /// PEM CA bundle replacing Mozilla webpki roots for `https://`.
     #[must_use]
     pub fn ca_pem(mut self, pem: Vec<u8>) -> Self {
@@ -360,7 +389,7 @@ pub struct SchemaReference {
 }
 
 /// Version selector for [`RegistryClient::get_schema_by_subject`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SchemaVersion {
     /// The registry's `latest` version.
     Latest,
@@ -540,6 +569,7 @@ pub struct RegistryClient {
     backoff_max: Duration,
     max_body_bytes: usize,
     max_references: usize,
+    cache: Arc<Cache>,
 }
 
 impl fmt::Debug for RegistryClient {
@@ -552,6 +582,7 @@ impl fmt::Debug for RegistryClient {
             .field("max_attempts", &self.max_attempts)
             .field("max_body_bytes", &self.max_body_bytes)
             .field("max_references", &self.max_references)
+            .field("cache", self.cache.config())
             .finish()
     }
 }
@@ -595,6 +626,7 @@ impl RegistryClient {
                 RegistryError::invalid_config("host is not a valid TLS server name")
             })?;
         }
+        let cache = Arc::new(Cache::new(config.cache.clone())?);
         let tls = tls_config(config.ca_pem.as_deref())?;
         Ok(Self {
             base,
@@ -607,6 +639,7 @@ impl RegistryClient {
             backoff_max: config.backoff_max,
             max_body_bytes: config.max_body_bytes,
             max_references: config.max_references,
+            cache,
         })
     }
 
@@ -615,36 +648,44 @@ impl RegistryClient {
         &self.base.base_url
     }
 
-    /// Fetch a schema by global id (`GET /schemas/ids/{id}`).
-    pub async fn get_schema_by_id(&self, id: u32) -> Result<RegisteredSchema, RegistryError> {
-        let path = format!("{prefix}/schemas/ids/{id}", prefix = self.base.prefix);
-        let lookup = format!("schema id {id}");
-        let body = self.get_200_body(&path, &lookup).await?;
-        parse_registered_schema(id, &body)
+    /// Current cache resource counts after lazy expiry/cancellation cleanup.
+    pub async fn cache_stats(&self) -> RegistryCacheStats {
+        self.cache.stats().await
     }
 
-    /// Fetch a subject/version (`GET /subjects/{subject}/versions/{version}`).
-    ///
-    /// The subject is percent-encoded as one path segment.
+    /// Fetch a schema by global id (`GET /schemas/ids/{id}` on cache miss).
+    pub async fn get_schema_by_id(&self, id: u32) -> Result<RegisteredSchema, RegistryError> {
+        let value = self.lookup(Key::Id(id)).await?;
+        match value.as_ref() {
+            Value::Id(schema) => Ok(schema.clone()),
+            Value::Subject(_) => Err(RegistryError::malformed("cache result type mismatch")),
+        }
+    }
+
+    /// Fetch a subject/version (`GET /subjects/{subject}/versions/{version}`
+    /// on cache miss). Subject bytes are capped before path encoding; latest
+    /// freshness is separate from pinned versions. Errors omit subject text.
     pub async fn get_schema_by_subject(
         &self,
         subject: &str,
         version: SchemaVersion,
     ) -> Result<VersionedSchema, RegistryError> {
-        let encoded = percent_encode_segment(subject);
-        let path = format!(
-            "{prefix}/subjects/{encoded}/versions/{version}",
-            prefix = self.base.prefix,
-        );
-        let lookup = format!("subject '{subject}' version {version}");
-        let body = self.get_200_body(&path, &lookup).await?;
-        parse_versioned_schema(&body)
+        self.cache.validate_subject(subject)?;
+        let value = self
+            .lookup(Key::Subject(subject.to_string(), version))
+            .await?;
+        match value.as_ref() {
+            Value::Subject(schema) => Ok(schema.clone()),
+            Value::Id(_) => Err(RegistryError::malformed("cache result type mismatch")),
+        }
     }
 
-    /// Fetch every schema in `references` (one `GET` per entry, in order).
-    ///
-    /// Each fetch gets its own full `request_timeout`; the batch is bounded
-    /// by `max_references`. The first failure aborts the batch.
+    /// Resolve this one-level reference list in input order, with one overall
+    /// `request_timeout` for the batch (including cache/active-slot waiting).
+    /// Does not recursively traverse declarations: cyclic references cannot
+    /// cause unbounded traversal. Input and returned lists obey max_references.
+    /// Duplicates and input order are preserved. A failed batch returns no
+    /// partial vector; earlier successful individual lookups may remain cached.
     pub async fn fetch_references(
         &self,
         references: &[SchemaReference],
@@ -654,17 +695,90 @@ impl RegistryClient {
                 "reference list exceeds max_references",
             ));
         }
-        let mut out = Vec::with_capacity(references.len());
         for reference in references {
-            let schema = self
-                .get_schema_by_subject(
-                    reference.subject.as_str(),
-                    SchemaVersion::Pinned(reference.version),
-                )
-                .await?;
-            out.push(schema);
+            self.cache.validate_subject(&reference.subject)?;
         }
-        Ok(out)
+        timeout(self.request_timeout, async {
+            let mut out = Vec::with_capacity(references.len());
+            for reference in references {
+                out.push(
+                    self.get_schema_by_subject(
+                        &reference.subject,
+                        SchemaVersion::Pinned(reference.version),
+                    )
+                    .await?,
+                );
+            }
+            Ok(out)
+        })
+        .await
+        .map_err(|_| RegistryError::Timeout)?
+    }
+
+    async fn lookup(&self, key: Key) -> Result<Arc<Value>, RegistryError> {
+        timeout(self.request_timeout, async {
+            loop {
+                // Register before observing capacity to avoid losing a release
+                // notification between unlocking state and awaiting the signal.
+                let notified = self.cache.changed.notified();
+                tokio::pin!(notified);
+                let _registered = notified.as_mut().enable();
+                match self.cache.role(&key).await {
+                    Role::Hit(result) => return result,
+                    Role::Leader(leader) => {
+                        let result = self.lookup_uncached(&key).await.map(Arc::new);
+                        return self.cache.complete(&key, leader, result).await;
+                    }
+                    Role::Follower(mut receiver) => loop {
+                        let state = receiver.borrow_and_update().clone();
+                        match state {
+                            Flight::Finished(result) => return result,
+                            Flight::Cancelled => break,
+                            Flight::Pending => {
+                                if receiver.changed().await.is_err() {
+                                    break;
+                                }
+                            }
+                        }
+                    },
+                    Role::Capacity => notified.await,
+                }
+            }
+        })
+        .await
+        .map_err(|_| RegistryError::Timeout)?
+    }
+
+    async fn lookup_uncached(&self, key: &Key) -> Result<Value, RegistryError> {
+        let value = match key {
+            Key::Id(id) => {
+                let path = format!("{}/schemas/ids/{id}", self.base.prefix);
+                let body = self.get_200_body(&path, &format!("schema id {id}")).await?;
+                Value::Id(parse_registered_schema(*id, &body)?)
+            }
+            Key::Subject(subject, version) => {
+                let path = format!(
+                    "{}/subjects/{}/versions/{version}",
+                    self.base.prefix,
+                    percent_encode_segment(subject)
+                );
+                let body = self.get_200_body(&path, "subject/version").await?;
+                Value::Subject(parse_versioned_schema(&body)?)
+            }
+        };
+        let references = match &value {
+            Value::Id(schema) => &schema.references,
+            Value::Subject(schema) => &schema.references,
+        };
+        if references.len() > self.max_references {
+            return Err(RegistryError::malformed(
+                "schema reference list exceeds max_references",
+            ));
+        }
+        for reference in references {
+            self.cache.validate_subject(&reference.subject)?;
+        }
+        Ok(value)
     }
 
     /// `GET` with retries; returns the 200 body or a terminal error.
