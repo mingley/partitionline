@@ -157,7 +157,8 @@ use partitionline::protocol::epoch::{
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response_with_endpoints,
-    encode_fetch_response_with_throttle, FetchedPartition, FetchedTopic,
+    encode_fetch_response_with_throttle, FetchMetadata, FetchTopic, FetchedPartition, FetchedTopic,
+    ForgottenTopic,
 };
 use partitionline::protocol::group::{
     decode_find_coordinator_request_keys, decode_heartbeat_request,
@@ -252,6 +253,14 @@ type ListReassignmentTopicFilter = Vec<(String, Vec<i32>)>;
 
 type AppendedBatchKey = (i64, i16, String, i32, i32);
 type AppendedBatchVal = (i64, i32);
+type FetchSessionRequest = (
+    i32,
+    i16,
+    usize,
+    FetchMetadata,
+    Vec<FetchTopic>,
+    Vec<ForgottenTopic>,
+);
 
 struct State {
     /// Current TLS acceptor for TLS mocks; swapped by rotation (KL06-05).
@@ -551,6 +560,10 @@ struct State {
     accepted_fetch: Vec<i32>,
     fetch_throttles: HashMap<i32, VecDeque<i32>>,
     fetch_delays: HashMap<i32, VecDeque<std::time::Duration>>,
+    fetch_session_nodes: HashSet<i32>,
+    fetch_session_maps: HashMap<(i32, i32), (i32, Vec<FetchTopic>)>,
+    next_fetch_session: i32,
+    fetch_session_requests: Vec<FetchSessionRequest>,
     groups: HashMap<String, GroupReg>,
     assign_notify: Arc<Notify>,
     last_fetch_isolation: i8,
@@ -987,6 +1000,10 @@ fn new_state(
         accepted_fetch: Vec::new(),
         fetch_throttles: HashMap::new(),
         fetch_delays: HashMap::new(),
+        fetch_session_nodes: HashSet::new(),
+        fetch_session_maps: HashMap::new(),
+        next_fetch_session: 10_000,
+        fetch_session_requests: Vec::new(),
         groups: HashMap::new(),
         assign_notify: Arc::new(Notify::new()),
         last_fetch_isolation: 0,
@@ -2127,6 +2144,14 @@ impl Mock {
             .lock()
             .fetch_throttles
             .insert(node, values.into_iter().collect());
+    }
+
+    pub fn enable_fetch_sessions(&self, nodes: impl IntoIterator<Item = i32>) {
+        self.state.lock().fetch_session_nodes.extend(nodes);
+    }
+
+    pub fn fetch_session_requests(&self) -> Vec<FetchSessionRequest> {
+        self.state.lock().fetch_session_requests.clone()
     }
 
     pub fn set_fetch_delay_once(&self, node: i32, delay: std::time::Duration) {
@@ -6489,9 +6514,95 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 if let Some(delay) = delay {
                     tokio::time::sleep(delay).await;
                 }
-                let (iso, max_bytes, req, rack, ..) =
+                let request_bytes = frame.len();
+                let (iso, max_bytes, mut req, rack, session, forgotten, ..) =
                     decode_fetch_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
+                let session_enabled = st.fetch_session_nodes.contains(&node_id);
+                let mut session_id = 0;
+                let mut session_error = 0;
+                if session_enabled {
+                    st.fetch_session_requests.push((
+                        node_id,
+                        header.api_version,
+                        request_bytes,
+                        session,
+                        req.clone(),
+                        forgotten.clone(),
+                    ));
+                    if header.api_version >= 7 {
+                        for topic in &mut req {
+                            if topic.topic.is_empty() {
+                                topic.topic = topic_name_for_id(&st, topic.topic_id);
+                            }
+                        }
+                        if session.epoch() == 0 {
+                            let _ = st
+                                .fetch_session_maps
+                                .remove(&(node_id, session.session_id()));
+                            st.next_fetch_session += 1;
+                            session_id = st.next_fetch_session;
+                            let _ = st
+                                .fetch_session_maps
+                                .insert((node_id, session_id), (1, req.clone()));
+                        } else if session.epoch() > 0 {
+                            let key = (node_id, session.session_id());
+                            if let Some((epoch, mut cached)) = st.fetch_session_maps.remove(&key) {
+                                session_id = session.session_id();
+                                if epoch != session.epoch() {
+                                    session_error = error::INVALID_FETCH_SESSION_EPOCH;
+                                    req.clear();
+                                } else {
+                                    for forgotten in &forgotten {
+                                        let name = if forgotten.topic.is_empty() {
+                                            topic_name_for_id(&st, forgotten.topic_id)
+                                        } else {
+                                            forgotten.topic.clone()
+                                        };
+                                        for topic in &mut cached {
+                                            if topic.topic == name
+                                                && (header.api_version < 13
+                                                    || topic.topic_id == forgotten.topic_id)
+                                            {
+                                                topic.partitions.retain(|p| {
+                                                    !forgotten.partitions.contains(&p.partition)
+                                                });
+                                            }
+                                        }
+                                    }
+                                    cached.retain(|t| !t.partitions.is_empty());
+                                    for topic in req {
+                                        if let Some(old) = cached.iter_mut().find(|old| {
+                                            old.topic == topic.topic
+                                                && old.topic_id == topic.topic_id
+                                        }) {
+                                            for partition in topic.partitions {
+                                                if let Some(old) =
+                                                    old.partitions.iter_mut().find(|old| {
+                                                        old.partition == partition.partition
+                                                    })
+                                                {
+                                                    *old = partition;
+                                                } else {
+                                                    old.partitions.push(partition);
+                                                }
+                                            }
+                                        } else {
+                                            cached.push(topic);
+                                        }
+                                    }
+                                    req = cached.clone();
+                                }
+                                let _ = st
+                                    .fetch_session_maps
+                                    .insert(key, (FetchMetadata::next_epoch(epoch), cached));
+                            } else {
+                                session_error = error::FETCH_SESSION_ID_NOT_FOUND;
+                                req.clear();
+                            }
+                        }
+                    }
+                }
                 st.last_fetch_isolation = iso;
                 st.last_fetch_rack = rack.clone();
                 st.last_fetch_max_bytes = max_bytes;
@@ -6737,7 +6848,20 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .fetch_throttles
                     .get_mut(&node_id)
                     .and_then(VecDeque::pop_front);
-                if let Some(throttle) = throttle {
+                if session_enabled {
+                    encode_fetch_response_with_endpoints(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        session_error,
+                        session_id,
+                        &endpoints,
+                    )
+                    .unwrap();
+                    if let Some(throttle) = throttle {
+                        body[..4].copy_from_slice(&throttle.to_be_bytes());
+                    }
+                } else if let Some(throttle) = throttle {
                     assert!(
                         endpoints.is_empty(),
                         "quota fixture requires healthy leaders"

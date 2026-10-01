@@ -282,10 +282,10 @@
     "id": "manual_consumer.incremental_fetch_runtime",
     "profile": "manual consumer",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/audits/2026-09-21.md:A07",
-    "notes": "High-level consumer unconditionally sends FetchMetadata::LEGACY, ignoring incremental sessions (audit A07, KL05-06, KL05-07)."
+    "disposition": "partial",
+    "entrypoint": "partitionline::Consumer::fetch",
+    "evidence": "tests/consumer_fetch_semantics.rs",
+    "notes": "KL05-06 adds broker-local v7-v17 sessions, changed/forgotten partitions, session epochs and v4-v6 fallback. Encoded-byte reduction and Apache 4.3.1 handler transitions are measured. KL05-07 comprehensive recovery, full-response/session validation, close and topology/assignment fault qualification remain open."
   },
   {
     "id": "manual_consumer.offset_for_leader_epoch",

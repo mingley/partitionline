@@ -2936,3 +2936,185 @@ async fn fetch_throttle_interval_starts_at_each_response_completion() {
     consumer.close().await.unwrap();
     producer.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn incremental_fetch_sessions_reduce_unchanged_request_bytes_across_versions() {
+    for version in [4, 6, 7, 8, 11, 12, 13, 17] {
+        let mock = common::Mock::start().await;
+        mock.set_topic_partitions("t", 128);
+        mock.set_api_max(FETCH, version);
+        mock.enable_fetch_sessions([1]);
+        let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+            .await
+            .unwrap();
+        consumer
+            .assign_many((0..128).map(|p| (("t", p), 0)))
+            .await
+            .unwrap();
+        for _ in 0..3 {
+            assert!(consumer.fetch().await.unwrap().is_empty());
+        }
+        let requests = mock.fetch_session_requests();
+        assert_eq!(requests.len(), 3);
+        assert_eq!(
+            requests[0]
+                .4
+                .iter()
+                .map(|t| t.partitions.len())
+                .sum::<usize>(),
+            128
+        );
+        if version >= 7 {
+            assert_eq!(
+                requests[0].3,
+                partitionline::protocol::fetch::FetchMetadata::INITIAL
+            );
+            assert!(requests[1].3.session_id() > 0);
+            assert_eq!(requests[1].3.epoch(), 1);
+            assert_eq!(requests[2].3.epoch(), 2);
+            assert_eq!(requests[1].3.session_id(), requests[2].3.session_id());
+            assert!(requests[1].4.is_empty() && requests[2].4.is_empty());
+            assert!(
+                requests[1].2 * 20 < requests[0].2,
+                "unchanged request must shrink by over 95%"
+            );
+        } else {
+            for request in &requests {
+                assert_eq!(
+                    request.3,
+                    partitionline::protocol::fetch::FetchMetadata::LEGACY
+                );
+                assert_eq!(request.4[0].partitions.len(), 128);
+                assert_eq!(request.2, requests[0].2);
+            }
+        }
+        if version >= 13 {
+            assert!(requests[0].4[0].topic.is_empty());
+            assert_ne!(requests[0].4[0].topic_id, [0; 16]);
+        } else {
+            assert_eq!(requests[0].4[0].topic, "t");
+        }
+        eprintln!("KL05-06 Fetch v{version}: initial={} bytes unchanged={} bytes partitions=128 epochs={:?}",
+            requests[0].2, requests[1].2, requests.iter().map(|r| r.3.epoch()).collect::<Vec<_>>());
+        consumer.close().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn incremental_fetch_sessions_deliver_new_records_and_only_send_changed_offsets() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 4);
+    mock.enable_fetch_sessions([1]);
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    consumer
+        .assign_many((0..4).map(|p| (("t", p), 0)))
+        .await
+        .unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let ack = producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(2)
+                .key("key")
+                .value("value"),
+        )
+        .await
+        .unwrap();
+    assert_eq!(ack.offset, 0);
+    let records = consumer.fetch().await.unwrap();
+    assert_eq!(records.len(), 1);
+    assert_eq!((records[0].partition, records[0].offset), (2, 0));
+    assert_eq!(records[0].key.as_deref(), Some(b"key".as_slice()));
+    assert_eq!(records[0].value.as_deref(), Some(b"value".as_slice()));
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    let requests = mock.fetch_session_requests();
+    assert!(
+        requests[1].4.is_empty(),
+        "new broker records must arrive even with no changed request partitions"
+    );
+    assert_eq!(requests[2].4.len(), 1);
+    assert_eq!(requests[2].4[0].partitions.len(), 1);
+    assert_eq!(requests[2].4[0].partitions[0].partition, 2);
+    assert_eq!(requests[2].4[0].partitions[0].fetch_offset, 1);
+    assert!(requests[3].4.is_empty());
+    assert_eq!(consumer.position("t", 2).unwrap(), 1);
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn incremental_fetch_sessions_forget_paused_partitions_and_add_resumed_partitions() {
+    for version in [7, 12, 13, 17] {
+        let mock = common::Mock::start().await;
+        mock.set_topic_partitions("t", 4);
+        mock.set_api_max(FETCH, version);
+        mock.enable_fetch_sessions([1]);
+        let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+            .await
+            .unwrap();
+        consumer
+            .assign_many((0..4).map(|p| (("t", p), 0)))
+            .await
+            .unwrap();
+        assert!(consumer.fetch().await.unwrap().is_empty());
+        consumer.pause([("t", 1)]);
+        assert!(consumer.fetch().await.unwrap().is_empty());
+        consumer.resume([("t", 1)]);
+        assert!(consumer.fetch().await.unwrap().is_empty());
+        let requests = mock.fetch_session_requests();
+        assert_eq!(requests[1].5.len(), 1);
+        assert_eq!(requests[1].5[0].partitions, [1]);
+        assert!(requests[1].4.is_empty());
+        assert_eq!(requests[2].4[0].partitions.len(), 1);
+        assert_eq!(requests[2].4[0].partitions[0].partition, 1);
+        assert!(requests[2].5.is_empty());
+        if version >= 13 {
+            assert_ne!(requests[1].5[0].topic_id, [0; 16]);
+        } else {
+            assert_eq!(requests[1].5[0].topic, "t");
+        }
+        consumer.close().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn incremental_fetch_sessions_are_broker_local_with_legacy_peer_fallback() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    mock.set_node_api_max(1, FETCH, 17);
+    mock.set_node_api_max(2, FETCH, 6);
+    mock.enable_fetch_sessions([1, 2]);
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    let requests = mock.fetch_session_requests();
+    let current: Vec<_> = requests.iter().filter(|r| r.0 == 1).collect();
+    let legacy: Vec<_> = requests.iter().filter(|r| r.0 == 2).collect();
+    assert_eq!(current.len(), 2);
+    assert_eq!(legacy.len(), 2);
+    assert_eq!(current[1].3.epoch(), 1);
+    assert!(current[1].4.is_empty());
+    for request in legacy {
+        assert_eq!(
+            request.3,
+            partitionline::protocol::fetch::FetchMetadata::LEGACY
+        );
+        assert_eq!(request.4[0].partitions.len(), 1);
+    }
+    consumer.close().await.unwrap();
+}

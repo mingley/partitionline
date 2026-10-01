@@ -174,3 +174,9 @@ peer tests cover mixed versions, zero/negative durations, response discard at th
 buffer cap, deadline expiry, cancellation and idle reconnection. The Apache Java
 4.3.1 scheduling reference is executed independently; no live quota deployment
 or throughput improvement is claimed.
+
+Incremental Fetch runtime support is partial: broker-local v7–v17 sessions send
+changed/forgotten partitions and use correct name/ID versions; v4–v6 stay full.
+The Apache 4.3.1 handler and serialized request sizes are independently executed.
+Request-byte reduction is measured, while complete recovery, close and topology
+fault qualification remain KL05-07; no throughput or latency gain is claimed.

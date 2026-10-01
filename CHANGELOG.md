@@ -7,6 +7,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Consumer uses broker-local incremental Fetch sessions on v7–v17, retaining
+  full v4–v6 fallback, changed/forgotten partitions and independent epochs.
+  Session failures force the next request full. Request-byte reduction is
+  measured against Apache serialization; broader recovery remains KL05-07.
+
 - Consumer honors Fetch v8–v17 broker quotas while delivering from eligible peers
   and buffered records. Quota waits retain poll/request budgets and accept wakeup
   and caller cancellation; cancelling a one-shot poll preserves later settings.

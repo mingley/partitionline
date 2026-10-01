@@ -27,8 +27,8 @@ use crate::protocol::epoch::{
     OffsetForLeaderPartition, OffsetForLeaderTopic, OffsetForLeaderTopicResult,
 };
 use crate::protocol::fetch::{
-    decode_fetch_response, encode_fetch_request, FetchPartition, FetchTopic,
-    INVALID_LOG_START_OFFSET,
+    decode_fetch_response, encode_fetch_request_with_forgotten, FetchMetadata, FetchPartition,
+    FetchTopic, ForgottenTopic, INVALID_LOG_START_OFFSET,
 };
 use crate::protocol::group::Topic;
 use crate::protocol::offsets::{decode_list_offsets_topics_response, encode_list_offsets_request};
@@ -1295,6 +1295,7 @@ pub struct Consumer {
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     fetch_throttles: HashMap<i32, Instant>,
+    fetch_sessions: HashMap<i32, BrokerFetchSession>,
     throttle_metrics: crate::metrics::ThrottleTracker,
     assigned: Vec<(String, i32, i64)>,
     /// Last consumed record-batch leader epoch (Fetch v12+ `LastFetchedEpoch`).
@@ -1325,6 +1326,146 @@ struct FetchReply {
     version: i16,
     received_at: Instant,
     body: Result<Bytes>,
+}
+
+/// A broker's cached request map is bounded by this consumer's active assignment.
+/// Preparing marks the map uncertain until a response arrives, so cancellation
+/// cannot reuse an epoch whose request may already have reached the broker.
+struct BrokerFetchSession {
+    version: Option<i16>,
+    metadata: FetchMetadata,
+    partitions: HashMap<(String, i32), ([u8; 16], FetchPartition)>,
+    awaiting_response: bool,
+}
+
+impl Default for BrokerFetchSession {
+    fn default() -> Self {
+        Self {
+            version: None,
+            metadata: FetchMetadata::INITIAL,
+            partitions: HashMap::new(),
+            awaiting_response: false,
+        }
+    }
+}
+
+struct SessionFetchRequest {
+    metadata: FetchMetadata,
+    topics: Vec<FetchTopic>,
+    forgotten: Vec<ForgottenTopic>,
+}
+
+impl BrokerFetchSession {
+    fn reset(&mut self) {
+        self.metadata = self.metadata.next_close_existing_attempt_new();
+        self.awaiting_response = false;
+    }
+
+    fn prepare(&mut self, topics: Vec<FetchTopic>, version: i16) -> SessionFetchRequest {
+        if version < 7 {
+            *self = Self::default();
+            return SessionFetchRequest {
+                metadata: FetchMetadata::LEGACY,
+                topics,
+                forgotten: Vec::new(),
+            };
+        }
+        if self.awaiting_response || self.version != Some(version) {
+            self.reset();
+        }
+        self.version = Some(version);
+        let mut next = HashMap::new();
+        let mut changed: HashMap<String, Vec<FetchPartition>> = HashMap::new();
+        let mut ids = HashMap::new();
+        for topic in &topics {
+            let _ = ids.insert(topic.topic.clone(), topic.topic_id);
+            for partition in &topic.partitions {
+                let key = (topic.topic.clone(), partition.partition);
+                let value = (topic.topic_id, partition.clone());
+                if !self.metadata.is_full() && self.partitions.get(&key) != Some(&value) {
+                    changed
+                        .entry(topic.topic.clone())
+                        .or_default()
+                        .push(partition.clone());
+                }
+                let _ = next.insert(key, value);
+            }
+        }
+        let mut forgotten: HashMap<(String, [u8; 16]), Vec<i32>> = HashMap::new();
+        if !self.metadata.is_full() {
+            for ((topic, partition), (id, _)) in &self.partitions {
+                if next
+                    .get(&(topic.clone(), *partition))
+                    .is_none_or(|(next_id, _)| next_id != id)
+                {
+                    forgotten
+                        .entry((topic.clone(), *id))
+                        .or_default()
+                        .push(*partition);
+                }
+            }
+        }
+        let topics = if self.metadata.is_full() {
+            topics
+        } else {
+            fetch_topics(changed, &ids)
+        };
+        self.partitions = next;
+        self.awaiting_response = true;
+        let mut forgotten: Vec<_> = forgotten
+            .into_iter()
+            .map(|((topic, topic_id), mut partitions)| {
+                partitions.sort_unstable();
+                ForgottenTopic {
+                    topic,
+                    topic_id,
+                    partitions,
+                }
+            })
+            .collect();
+        forgotten.sort_by(|a, b| (&a.topic, a.topic_id).cmp(&(&b.topic, b.topic_id)));
+        SessionFetchRequest {
+            metadata: self.metadata,
+            topics,
+            forgotten,
+        }
+    }
+
+    fn response(&mut self, body: &Bytes, version: i16) -> Result<()> {
+        if version < 7 {
+            return Ok(());
+        }
+        let mut header = body.as_ref();
+        let result = (|| {
+            let _throttle = crate::protocol::buf::get_i32(&mut header)?;
+            let code = crate::protocol::buf::get_i16(&mut header)?;
+            let id = crate::protocol::buf::get_i32(&mut header)?;
+            if code != 0 {
+                if code == error::FETCH_SESSION_ID_NOT_FOUND {
+                    self.metadata = FetchMetadata::INITIAL;
+                }
+                return Err(Error::broker(code, "Fetch session"));
+            }
+            if id < 0 || (!self.metadata.is_full() && id != 0 && id != self.metadata.session_id()) {
+                return Err(Error::protocol(
+                    "Fetch response has an invalid session identity",
+                ));
+            }
+            self.metadata = if id == FetchMetadata::INVALID_SESSION_ID {
+                FetchMetadata::INITIAL
+            } else if self.metadata.is_full() {
+                FetchMetadata::new_incremental(id)
+            } else {
+                self.metadata.next_incremental()
+            };
+            self.awaiting_response = false;
+            Ok(())
+        })();
+        if result.is_err() {
+            self.reset();
+        }
+        result
+    }
 }
 
 /// Thread-safe handle that interrupts [`Consumer::fetch`] / group `poll`.
@@ -1413,6 +1554,7 @@ impl Consumer {
             cluster: Cluster::default(),
             conns: HashMap::new(),
             fetch_throttles: HashMap::new(),
+            fetch_sessions: HashMap::new(),
             throttle_metrics: crate::metrics::ThrottleTracker::default(),
             assigned: Vec::new(),
             last_fetched_epochs: HashMap::new(),
@@ -1956,6 +2098,9 @@ impl Consumer {
         }
         if self.conns.contains_key(&node) {
             return Ok(());
+        }
+        if let Some(session) = self.fetch_sessions.get_mut(&node) {
+            session.reset();
         }
         let addr = self
             .cluster
@@ -2562,6 +2707,8 @@ impl Consumer {
                 self.refresh_metadata(Some(&topics)).await?;
                 continue;
             }
+            self.fetch_sessions
+                .retain(|node, _| by_leader.contains_key(node));
             if by_leader.is_empty() {
                 return Ok(self.finish_fetch(out));
             }
@@ -2607,7 +2754,7 @@ impl Consumer {
             let wait = max_wait_ms.min(duration_millis_i32(
                 poll_deadline.saturating_duration_since(Instant::now()),
             ));
-            let bodies = self.fetch_from_leaders(by_leader, deadline, wait).await?;
+            let mut bodies = self.fetch_from_leaders(by_leader, deadline, wait).await?;
             // ThrottleTimeMs is the first INT32 on every negotiated Fetch
             // version. Observe every completed response's header before the
             // record budget can discard another peer's body. Normal decoding
@@ -2620,6 +2767,21 @@ impl Consumer {
                 let mut header = body.as_ref();
                 if let Ok(millis) = crate::protocol::buf::get_i32(&mut header) {
                     self.observe_fetch_throttle(reply.node, millis, reply.received_at);
+                }
+            }
+            // Every peer's session header must advance even when the record
+            // budget later discards its body. Failed or canceled requests force
+            // a full map next time; top-level errors never deliver partitions.
+            for reply in &mut bodies {
+                if let Some(session) = self.fetch_sessions.get_mut(&reply.node) {
+                    match &reply.body {
+                        Ok(body) => {
+                            if let Err(error) = session.response(body, reply.version) {
+                                reply.body = Err(error);
+                            }
+                        }
+                        Err(_) => session.reset(),
+                    }
                 }
             }
             let mut retry = FetchRetry::None;
@@ -2638,7 +2800,7 @@ impl Consumer {
                     }
                     Err(e) => return Err(e),
                 };
-                retry = retry.merge(self.apply_fetch_body(
+                let applied = self.apply_fetch_body(
                     node,
                     fetch_version,
                     &mut body,
@@ -2648,7 +2810,13 @@ impl Consumer {
                     &mut need_offsets,
                     &mut completed,
                     &mut budget_reached,
-                )?);
+                );
+                if applied.is_err() {
+                    if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                        session.reset();
+                    }
+                }
+                retry = retry.merge(applied?);
                 if budget_reached {
                     break;
                 }
@@ -2793,20 +2961,27 @@ impl Consumer {
                             conn.addr()
                         )));
                     }
+                    let request = self
+                        .fetch_sessions
+                        .entry(node)
+                        .or_default()
+                        .prepare(topics, fetch_version);
                     let body = conn
                         .roundtrip(
                             FETCH,
                             fetch_version,
                             |buf| {
-                                encode_fetch_request(
+                                encode_fetch_request_with_forgotten(
                                     buf,
                                     fetch_version,
                                     max_wait,
                                     min_bytes,
                                     max_bytes,
                                     isolation_level,
-                                    &topics,
+                                    &request.topics,
                                     rack.as_deref(),
+                                    request.metadata,
+                                    &request.forgotten,
                                 )
                             },
                             timeout,
@@ -2846,6 +3021,11 @@ impl Consumer {
                 .conns
                 .remove(&node)
                 .ok_or_else(|| Error::protocol("missing fetch conn"))?;
+            let request = self
+                .fetch_sessions
+                .entry(node)
+                .or_default()
+                .prepare(topics, fetch_version);
             let rack = rack.clone();
             let _ = set.spawn(async move {
                 let result = conn
@@ -2853,15 +3033,17 @@ impl Consumer {
                         FETCH,
                         fetch_version,
                         |buf| {
-                            encode_fetch_request(
+                            encode_fetch_request_with_forgotten(
                                 buf,
                                 fetch_version,
                                 max_wait,
                                 min_bytes,
                                 max_bytes,
                                 isolation_level,
-                                &topics,
+                                &request.topics,
                                 rack.as_deref(),
+                                request.metadata,
+                                &request.forgotten,
                             )
                         },
                         timeout,
@@ -4004,6 +4186,116 @@ pub(crate) fn partition_infos_from(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn session_topic(id: [u8; 16], offset: i64) -> FetchTopic {
+        FetchTopic {
+            topic: "t".into(),
+            topic_id: id,
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: 1,
+                fetch_offset: offset,
+                last_fetched_epoch: -1,
+                log_start_offset: -1,
+                partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
+            }],
+        }
+    }
+
+    fn session_header(code: i16, id: i32) -> Bytes {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&0i32.to_be_bytes());
+        bytes.extend_from_slice(&code.to_be_bytes());
+        bytes.extend_from_slice(&id.to_be_bytes());
+        Bytes::from(bytes)
+    }
+
+    #[test]
+    fn fetch_session_abandoned_request_requires_full_map_and_closes_known_session() {
+        let topic = session_topic([1; 16], 0);
+        let mut session = BrokerFetchSession::default();
+        let first = session.prepare(vec![topic.clone()], 17);
+        assert_eq!(first.metadata, FetchMetadata::INITIAL);
+        session.response(&session_header(0, 91), 17).unwrap();
+        let second = session.prepare(vec![topic.clone()], 17);
+        assert_eq!(second.metadata, FetchMetadata::new(91, 1));
+        assert!(second.topics.is_empty());
+        // No response was observed; an outer future may have been canceled.
+        let third = session.prepare(vec![topic], 17);
+        assert_eq!(third.metadata, FetchMetadata::new(91, 0));
+        assert_eq!(third.topics.len(), 1);
+        assert!(third.forgotten.is_empty());
+    }
+
+    #[test]
+    fn fetch_session_topic_id_replacement_forgets_old_identity() {
+        let mut session = BrokerFetchSession::default();
+        let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+        session.response(&session_header(0, 91), 17).unwrap();
+        let request = session.prepare(vec![session_topic([2; 16], 0)], 17);
+        assert_eq!(request.topics[0].topic_id, [2; 16]);
+        assert_eq!(request.forgotten[0].topic_id, [1; 16]);
+        assert_eq!(request.forgotten[0].partitions, [0]);
+    }
+
+    #[test]
+    fn fetch_session_failure_or_malformed_header_resets_before_partition_application() {
+        for code in [
+            error::FETCH_SESSION_ID_NOT_FOUND,
+            error::INVALID_FETCH_SESSION_EPOCH,
+            error::FETCH_SESSION_TOPIC_ID_ERROR,
+        ] {
+            let mut session = BrokerFetchSession::default();
+            let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+            session.response(&session_header(0, 91), 17).unwrap();
+            let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+            assert!(
+                matches!(session.response(&session_header(code, 0), 17), Err(Error::Broker { code: got, .. }) if got == code)
+            );
+            let request = session.prepare(vec![session_topic([1; 16], 0)], 17);
+            assert!(request.metadata.is_full());
+            assert_eq!(request.topics.len(), 1);
+            if code == error::FETCH_SESSION_ID_NOT_FOUND {
+                assert_eq!(request.metadata, FetchMetadata::INITIAL);
+            } else {
+                assert_eq!(request.metadata, FetchMetadata::new(91, 0));
+            }
+        }
+        let mut session = BrokerFetchSession::default();
+        let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+        assert!(session.response(&Bytes::from_static(&[0; 6]), 17).is_err());
+        assert!(session
+            .prepare(vec![session_topic([1; 16], 0)], 17)
+            .metadata
+            .is_full());
+    }
+
+    #[test]
+    fn fetch_session_decline_version_change_and_epoch_wrap() {
+        let mut session = BrokerFetchSession::default();
+        let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+        session.response(&session_header(0, 0), 17).unwrap();
+        assert_eq!(
+            session
+                .prepare(vec![session_topic([1; 16], 0)], 17)
+                .topics
+                .len(),
+            1
+        );
+        session.response(&session_header(0, 91), 17).unwrap();
+        session.metadata = FetchMetadata::new(91, i32::MAX);
+        let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+        session.response(&session_header(0, 91), 17).unwrap();
+        assert_eq!(session.metadata, FetchMetadata::new(91, 1));
+        let changed = session.prepare(vec![session_topic([1; 16], 0)], 12);
+        assert!(changed.metadata.is_full());
+        assert_eq!(changed.topics.len(), 1);
+        let legacy = session.prepare(vec![session_topic([1; 16], 0)], 6);
+        assert_eq!(legacy.metadata, FetchMetadata::LEGACY);
+        assert_eq!(legacy.topics.len(), 1);
+        assert!(session.partitions.is_empty());
+    }
 
     fn rec(topic: &str, partition: i32, offset: i64) -> FetchedRecord {
         FetchedRecord {

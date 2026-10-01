@@ -208,7 +208,7 @@ impl fmt::Display for FetchMetadata {
 /// [`Self::partition_data`] is Java `FetchRequest.PartitionData(Uuid, long, long, int, Optional, Optional)`
 /// (Java `topicId` is not stored; callers pass `partition`.
 /// `Optional.empty` epoch is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchPartition {
     /// Partition index.
     pub partition: i32,

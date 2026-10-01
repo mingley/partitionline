@@ -83,7 +83,7 @@ narrows the runtime claim for these rows; every entry names its entrypoint:
 |---|---|---|
 | Produce (batches, `buffer.memory`) | `producer.buffer_memory` | `partial` — headers, metadata, encoded buffers, and socket memory sit outside the cap |
 | Fetch with manual assignment | `manual_consumer.fetch` | `present` — audit A01–A05 repaired and covered by mock/fixture consumer and commit tests; incremental sessions/new wire deltas are separate gaps |
-| Fetch with manual assignment | `manual_consumer.incremental_fetch_runtime` | `missing` — always sends `FetchMetadata::LEGACY` |
+| Fetch with manual assignment | `manual_consumer.incremental_fetch_runtime` | `partial` — broker-local v7–v17 sessions and changed/forgotten partitions; v4–v6 fallback; complete recovery qualification remains KL05-07 |
 | Fetch with manual assignment | `manual_consumer.v18_wire`, `producer.v13_wire` | `missing` — newest wire deltas not implemented |
 | Pause / resume, position | `manual_consumer.seek` | `present` — whole-batch records below the requested offset are filtered (KL03-04) |
 | `auto.offset.reset`, `committed` | `manual_consumer.auto_offset_reset` | `present` — None fails without advancing; Earliest/Latest resolve leader log bounds (KL03-05) |

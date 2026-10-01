@@ -616,6 +616,23 @@ partition queues and brokers (KL02-08):
 Mock coverage: `tests/fetch_buffer_budget.rs`.
 
 
+### Incremental Fetch sessions
+
+The consumer keeps one Fetch session per active broker on v7–v17, sends changed
+partitions and removes forgotten partitions, and retains full requests on v4–v6.
+Session metadata is bounded by the active assignment. Each completed response
+advances its broker epoch even when the record buffer budget discards the body.
+A failed, abandoned or canceled request requires a full map before reusing the
+session; a session-level broker error returns its typed error without applying
+partition data and makes the next fetch full. Buffered records, delivered
+positions and commits retain their existing contracts.
+
+With 128 unchanged partitions, measured Fetch v17 request bodies shrink from
+4,268 to 25 bytes, matching Apache Java 4.3.1 serialization; this is a request-byte
+measurement. It does not establish a throughput or latency improvement. Full
+response validation, automatic session-error recovery, close and topology fault
+qualification remain tracked in KL05-07.
+
 ### Rebalance
 
 Prefer cooperative-sticky when partitions must move with less stop-the-world
