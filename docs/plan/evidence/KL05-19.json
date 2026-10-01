@@ -1,0 +1,96 @@
+{
+  "id": "KL05-19",
+  "status": "done",
+  "source_sha": "7bd831128f65489fe0af0f4a4c8d0895e96ea225",
+  "acceptance_met": [
+    "Typed QuorumInfo inspection of __cluster_metadata partition 0 through a broker-bootstrap peer; follows Java LeastLoadedBrokerOrActiveKController semantics for broker bootstraps, not a Metadata-controller broker hop.",
+    "Negotiates v0-v2 on each connected peer; retains unknown timestamp/directory/node sentinels on older schemas and exposes voter, observer, leader, epoch, high-watermark and v2 endpoints.",
+    "Top-level and singleton partition errors preserve broker codes/messages. NOT_CONTROLLER refreshes metadata; eligible broker/transport failures retry within one total deadline including reconnect, authentication and ApiVersions.",
+    "Six focused runtime tests cover version transitions, controller movement, missing API, terminal authorization errors, transport retry, capability change, deadline validation and malformed singleton results. Read-only example and matching inventory/docs included."
+  ],
+  "commands": [
+    "cargo test --locked --test full_surface describe_quorum",
+    "cargo test --locked --test client_api",
+    "cargo test --locked --lib describe_quorum",
+    "cargo +1.85.0 test --locked --test full_surface describe_quorum",
+    "cargo +1.85.0 check --locked --example describe_quorum",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings",
+    "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features",
+    "cargo fmt --check",
+    "python3 scripts/check-protocol-coverage.py",
+    "python3 scripts/check-protocol-coverage.py --self-test",
+    "python3 -m unittest tests.conformance.test_check_protocol_coverage",
+    "cargo run --locked --example describe_quorum",
+    "docker exec partitionline-plan-kafka /opt/kafka/bin/kafka-metadata-quorum.sh --bootstrap-server localhost:9092 describe --status",
+    "javap -p -c org.apache.kafka.clients.admin.KafkaAdminClient and KafkaAdminClient$33 / LeastLoadedBrokerOrActiveKController against the recorded Apache client jars"
+  ],
+  "results": {
+    "full_surface": {
+      "passed": 6,
+      "failed": 0
+    },
+    "client_api": {
+      "passed": 110,
+      "failed": 0
+    },
+    "codec_and_header": {
+      "passed": 10,
+      "failed": 0
+    },
+    "msrv_1_85": {
+      "passed": 6,
+      "failed": 0,
+      "example_check": "passed"
+    },
+    "coverage_guard": {
+      "passed": 15,
+      "failed": 0,
+      "unclassified_drift": 0
+    },
+    "clippy": "passed",
+    "rustdoc": "passed",
+    "fmt": "passed",
+    "failing_first": "Old DescribeQuorum header table fails the always-flexible test (request header 1 instead of 2).",
+    "live_read": {
+      "image": "apache/kafka:4.1.0",
+      "digest": "sha256:bff074a5d0051dbc0bbbcd25b045bb1fe84833ec0d3c7c965d1797dd289ec88f",
+      "rust_stdout": [
+        "leader=1 epoch=1 high_watermark=5715 voters=1 observers=0 nodes=1",
+        "voter=1 log_end_offset=5715 last_fetch_timestamp=1790835970923"
+      ],
+      "independent_java_status": {
+        "leader_id": 1,
+        "leader_epoch": 1,
+        "high_watermark": 5831,
+        "voters": [
+          {
+            "id": 1,
+            "endpoints": [
+              "CONTROLLER://localhost:9093"
+            ]
+          }
+        ],
+        "observers": []
+      },
+      "interpretation": "Independent reads agree on leader, epoch, membership and endpoint; high watermark advances between reads."
+    }
+  },
+  "provenance": {
+    "codecs": "KL05-18 independently pinned fixtures (3.9.1/4.1.0); unchanged in this card",
+    "java_admin_3_9_1_sha256": "25c5e4eb059c35766f645c0e0bd2fe623a1ebdc18250957506b1edbf476d1272",
+    "java_admin_4_1_0_docker_jar_sha256": "180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb",
+    "note": "4.1.0 routing cross-check used the recorded Docker-distribution jar, not a claimed Maven checksum match. KL05-18 committed wire fixtures remain the codec oracle."
+  },
+  "artifacts": [
+    "docs/plan/evidence/KL05-19.json",
+    "docs/plan/evidence/KL05-18.json",
+    "examples/describe_quorum.rs",
+    "https://github.com/mingley/partitionline/commit/7bd831128f65489fe0af0f4a4c8d0895e96ea225"
+  ],
+  "limits": [
+    "AdminConfig supports broker bootstrap; direct controller-bootstrap discovery is not added or claimed.",
+    "Live evidence is one read-only Apache 4.1.0 isolated broker, not multi-node quorum failover qualification. No controller membership mutation was performed.",
+    "No new dependencies, default changes, unsafe code or Raft state-machine RPCs."
+  ],
+  "blocked_reason": null
+}

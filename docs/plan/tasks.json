@@ -1788,7 +1788,7 @@
       "title": "Expose metadata quorum description through Admin",
       "priority": "P2",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL05-18"
@@ -1808,7 +1808,89 @@
         "cargo test --locked --test full_surface describe_quorum",
         "cargo test --locked --test client_api"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "7bd831128f65489fe0af0f4a4c8d0895e96ea225",
+          "commands": [
+            "cargo test --locked --test full_surface describe_quorum",
+            "cargo test --locked --test client_api",
+            "cargo test --locked --lib describe_quorum",
+            "cargo +1.85.0 test --locked --test full_surface describe_quorum",
+            "cargo +1.85.0 check --locked --example describe_quorum",
+            "cargo clippy --locked --all-targets --all-features -- -D warnings",
+            "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features",
+            "cargo fmt --check",
+            "python3 scripts/check-protocol-coverage.py",
+            "python3 scripts/check-protocol-coverage.py --self-test",
+            "python3 -m unittest tests.conformance.test_check_protocol_coverage",
+            "cargo run --locked --example describe_quorum",
+            "docker exec partitionline-plan-kafka /opt/kafka/bin/kafka-metadata-quorum.sh --bootstrap-server localhost:9092 describe --status",
+            "javap -p -c org.apache.kafka.clients.admin.KafkaAdminClient and KafkaAdminClient$33 / LeastLoadedBrokerOrActiveKController against the recorded Apache client jars"
+          ],
+          "results": {
+            "full_surface": {
+              "passed": 6,
+              "failed": 0
+            },
+            "client_api": {
+              "passed": 110,
+              "failed": 0
+            },
+            "codec_and_header": {
+              "passed": 10,
+              "failed": 0
+            },
+            "msrv_1_85": {
+              "passed": 6,
+              "failed": 0,
+              "example_check": "passed"
+            },
+            "coverage_guard": {
+              "passed": 15,
+              "failed": 0,
+              "unclassified_drift": 0
+            },
+            "clippy": "passed",
+            "rustdoc": "passed",
+            "fmt": "passed",
+            "failing_first": "Old DescribeQuorum header table fails the always-flexible test (request header 1 instead of 2).",
+            "live_read": {
+              "image": "apache/kafka:4.1.0",
+              "digest": "sha256:bff074a5d0051dbc0bbbcd25b045bb1fe84833ec0d3c7c965d1797dd289ec88f",
+              "rust_stdout": [
+                "leader=1 epoch=1 high_watermark=5715 voters=1 observers=0 nodes=1",
+                "voter=1 log_end_offset=5715 last_fetch_timestamp=1790835970923"
+              ],
+              "independent_java_status": {
+                "leader_id": 1,
+                "leader_epoch": 1,
+                "high_watermark": 5831,
+                "voters": [
+                  {
+                    "id": 1,
+                    "endpoints": [
+                      "CONTROLLER://localhost:9093"
+                    ]
+                  }
+                ],
+                "observers": []
+              },
+              "interpretation": "Independent reads agree on leader, epoch, membership and endpoint; high watermark advances between reads."
+            }
+          },
+          "artifacts": [
+            "docs/plan/evidence/KL05-19.json",
+            "docs/plan/evidence/KL05-18.json",
+            "examples/describe_quorum.rs",
+            "https://github.com/mingley/partitionline/commit/7bd831128f65489fe0af0f4a4c8d0895e96ea225"
+          ],
+          "limits": [
+            "AdminConfig supports broker bootstrap; direct controller-bootstrap discovery is not added or claimed.",
+            "Live evidence is one read-only Apache 4.1.0 isolated broker, not multi-node quorum failover qualification. No controller membership mutation was performed.",
+            "No new dependencies, default changes, unsafe code or Raft state-machine RPCs."
+          ]
+        }
+      ],
       "write_set": [
         "src/admin.rs",
         "src/lib.rs",
