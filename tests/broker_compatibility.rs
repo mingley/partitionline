@@ -4,7 +4,7 @@
     reason = "qualification helpers must fail the test on absent required fields or prerequisites"
 )]
 use std::collections::{BTreeMap, BTreeSet};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use partitionline::admin::{AlterConfig, ConfigResource, ConfigResourceUpdate, NewTopic};
@@ -97,7 +97,11 @@ async fn join_group(
 ) -> partitionline::Result<ConsumerGroup> {
     tokio::time::timeout(Duration::from_secs(20), async {
         loop {
-            let cfg = consumer_config(bootstrap);
+            let cfg = if kind == "transaction" {
+                consumer_config(bootstrap).isolation(IsolationLevel::ReadCommitted)
+            } else {
+                consumer_config(bootstrap)
+            };
             let result = match kind {
                 "kip848" => ConsumerGroup::join_consumer(cfg, id, topic).await,
                 "cooperative" => ConsumerGroup::join_cooperative_sticky(cfg, id, topic).await,
@@ -150,6 +154,60 @@ async fn verify_committed(
     }
     assert_eq!(offsets.len(), 2);
     Ok(offsets)
+}
+
+struct OffsetVisibility {
+    elapsed_ms: u128,
+    offsets: Option<BTreeMap<String, i64>>,
+}
+
+// EndTxn acknowledges the coordinator decision before every partition's marker
+// is applied. Observe stable OffsetFetch results without replaying the transaction.
+async fn transaction_committed(
+    group: &mut ConsumerGroup,
+) -> partitionline::Result<(BTreeMap<String, i64>, Vec<OffsetVisibility>)> {
+    let start = Instant::now();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        let mut observations = Vec::new();
+        loop {
+            let offsets = match group.committed().await {
+                Ok(partitions) => {
+                    let mut offsets = BTreeMap::new();
+                    for (partition, metadata) in partitions {
+                        assert!((0..2).contains(&partition.partition));
+                        assert!((-1..=PER_PARTITION).contains(&metadata.offset));
+                        assert!(offsets
+                            .insert(partition.partition.to_string(), metadata.offset)
+                            .is_none());
+                    }
+                    assert_eq!(offsets.len(), 2);
+                    Some(offsets)
+                }
+                Err(Error::Broker {
+                    code: partitionline::error::UNSTABLE_OFFSET_COMMIT,
+                    ..
+                }) => None,
+                Err(error) => return Err(error),
+            };
+            eprintln!(
+                "transaction offset visibility: {}ms {offsets:?}",
+                start.elapsed().as_millis()
+            );
+            let complete = offsets
+                .as_ref()
+                .is_some_and(|o| o.values().all(|v| *v == PER_PARTITION));
+            observations.push(OffsetVisibility {
+                elapsed_ms: start.elapsed().as_millis(),
+                offsets: offsets.clone(),
+            });
+            if complete {
+                return Ok((offsets.expect("complete stable offsets"), observations));
+            }
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+    })
+    .await
+    .map_err(|_| Error::Timeout)?
 }
 
 async fn run() -> partitionline::Result<()> {
@@ -356,7 +414,7 @@ async fn run() -> partitionline::Result<()> {
     eprintln!("compatibility phase: transaction");
     let id = format!("{prefix}-transaction");
     let txn = new_transactional(&bootstrap, &id, &mut attempts).await?;
-    let mut group = join_group(&bootstrap, &id, &input, "classic", &mut attempts).await?;
+    let mut group = join_group(&bootstrap, &id, &input, "transaction", &mut attempts).await?;
     let mut seen = BTreeSet::new();
     let mut output_expected = Expected {
         topic: output.clone(),
@@ -399,9 +457,8 @@ async fn run() -> partitionline::Result<()> {
         txn.commit_transaction().await?;
     }
     expected.complete(&seen);
-    assert!(committed_offsets
-        .insert("transaction", verify_committed(&mut group).await?)
-        .is_none());
+    let (offsets, visibility) = transaction_committed(&mut group).await?;
+    assert!(committed_offsets.insert("transaction", offsets).is_none());
     group.close_timeout(Duration::from_secs(3)).await?;
     assert!(group_ids.insert("transaction", id).is_none());
     txn.begin_transaction().await?;
@@ -460,6 +517,20 @@ async fn run() -> partitionline::Result<()> {
     }
     for (scenario, error) in attempts {
         println!("PL_COMPAT_STARTUP\t{scenario}\t{}", STANDARD.encode(error));
+    }
+    for (attempt, observation) in visibility.into_iter().enumerate() {
+        match observation.offsets {
+            Some(offsets) => println!(
+                "PL_COMPAT_VISIBILITY\t{attempt}\t{}\t{}\t{}",
+                observation.elapsed_ms,
+                offsets.get("0").expect("partition 0 visibility"),
+                offsets.get("1").expect("partition 1 visibility")
+            ),
+            None => println!(
+                "PL_COMPAT_VISIBILITY_ERROR\t{attempt}\t{}\t88",
+                observation.elapsed_ms
+            ),
+        }
     }
     println!("PL_COMPAT_ABORTED_VISIBLE\t0");
     println!("PL_COMPAT_SHARE_ACCEPTED\t{TOTAL}");

@@ -52,6 +52,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
+      - name: Documentation diagnostics negative tests
+        run: python3 -B -m unittest discover -s tests/ci -p test_docs_diagnostics.py
       - run: bash scripts/ci-docs.sh
       - name: Upload strict documentation diagnostics
         if: always()

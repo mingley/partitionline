@@ -32,9 +32,9 @@ def validate(identity, result, cell, source):
     for name, scenario in result['scenarios'].items():
         if scenario['status'] != 'passed':
             raise ValueError(f"required {name} is {scenario['status']}")
-        if name != 'admin' and (type(scenario['records']) is not int or scenario['records'] != total):
+        if type(scenario['records']) is not int or scenario['records'] != (0 if name == 'admin' else total):
             raise ValueError(f"{name}: exact history count missing")
-        if name != 'admin' and any(type(scenario[key]) is not int or scenario[key] != 0 for key in ('duplicates', 'missing', 'corrupt')):
+        if any(type(scenario[key]) is not int or scenario[key] != 0 for key in ('duplicates', 'missing', 'corrupt')):
             raise ValueError(f"{name}: invalid record history")
     for key, minimum in [('0', 3), ('1', 4), ('2', 1), ('11', 2), ('68', 0), ('76', 0), ('78', 0), ('79', 0)]:
         versions = result['api_ranges'].get(key)
@@ -52,13 +52,26 @@ def validate(identity, result, cell, source):
             raise ValueError(f"{group}: committed offsets differ")
         if result['group_ids'].get(group) != 'plcompat-' + cell['version'].replace('.', '-') + '-' + group:
             raise ValueError(f"{group}: group identity differs")
-    if result['transaction_aborted_visible'] != 0 or result['share_accepted'] != total:
+    if type(result['transaction_aborted_visible']) is not int or result['transaction_aborted_visible'] != 0 or type(result['share_accepted']) is not int or result['share_accepted'] != total:
         raise ValueError("transaction isolation/share acknowledgments incomplete")
+    observations = result['transaction_visibility']
+    if not observations or observations[-1].get('offsets') != {'0': 8, '1': 8}:
+        raise ValueError('transaction stable-offset observation missing')
+    elapsed = 0
+    for attempt, observation in enumerate(observations):
+        if type(observation['attempt']) is not int or observation['attempt'] != attempt or type(observation['elapsed_ms']) is not int or not elapsed <= observation['elapsed_ms'] <= 5000:
+            raise ValueError('transaction visibility sequence/deadline differs')
+        elapsed = observation['elapsed_ms']
+        if 'error' in observation:
+            if observation['error'] != 88 or 'offsets' in observation:
+                raise ValueError('unexpected transaction visibility error')
+        elif set(observation['offsets']) != {'0', '1'} or any(type(v) is not int or not -1 <= v <= 8 for v in observation['offsets'].values()):
+            raise ValueError('transaction visibility offsets invalid')
 
 
 def parse_runtime(output):
     result = {'scenarios': {}, 'api_ranges': {}, 'finalized_features': {},
-              'committed_offsets': {}, 'group_ids': {}, 'startup_attempts': []}
+              'committed_offsets': {}, 'group_ids': {}, 'startup_attempts': [], 'transaction_visibility': []}
     seen = set()
     for line in output.splitlines():
         at = line.find('PL_COMPAT_')
@@ -71,6 +84,8 @@ def parse_runtime(output):
         key = (tag, values[0]) if tag in ('PL_COMPAT_SCENARIO', 'PL_COMPAT_API', 'PL_COMPAT_FEATURE', 'PL_COMPAT_GROUP') else (tag,)
         if tag == 'PL_COMPAT_COMMITTED':
             key = (tag, *values[:2])
+        if tag in ('PL_COMPAT_VISIBILITY', 'PL_COMPAT_VISIBILITY_ERROR') and values:
+            key = ('PL_COMPAT_VISIBILITY', values[0])
         if tag != 'PL_COMPAT_STARTUP':
             if key in seen:
                 raise ValueError(f'duplicate runtime field {key}')
@@ -95,6 +110,12 @@ def parse_runtime(output):
         elif tag == 'PL_COMPAT_STARTUP' and len(values) == 2:
             result['startup_attempts'].append({'phase': 'setup', 'scenario': values[0],
                 'error': base64.b64decode(values[1], validate=True).decode('utf-8')})
+        elif tag == 'PL_COMPAT_VISIBILITY' and len(values) == 4:
+            attempt, elapsed, first, second = map(int, values)
+            result['transaction_visibility'].append({'attempt': attempt, 'elapsed_ms': elapsed, 'offsets': {'0': first, '1': second}})
+        elif tag == 'PL_COMPAT_VISIBILITY_ERROR' and len(values) == 3:
+            attempt, elapsed, error = map(int, values)
+            result['transaction_visibility'].append({'attempt': attempt, 'elapsed_ms': elapsed, 'error': error})
         elif tag in ('PL_COMPAT_ABORTED_VISIBLE', 'PL_COMPAT_SHARE_ACCEPTED') and len(values) == 1:
             result['transaction_aborted_visible' if tag == 'PL_COMPAT_ABORTED_VISIBLE' else 'share_accepted'] = int(values[0])
         elif tag != 'PL_COMPAT_COMPLETE' or values:

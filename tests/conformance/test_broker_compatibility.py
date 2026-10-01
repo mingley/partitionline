@@ -24,13 +24,14 @@ def fixture():
         'host_os':'Linux', 'host_arch':'x86_64', 'rustc_host':'x86_64-unknown-linux-gnu', 'rustc_release':'1.98.1'}
     result = {'source_sha': SOURCE, 'requested': CELL['reference'], 'input_topic':prefix+'-input',
         'output_topic':prefix+'-output','seed_timestamp':1000000,
-        'scenarios': {name: {'status':'passed','records':16,'duplicates':0,'missing':0,'corrupt':0}
+        'scenarios': {name: {'status':'passed','records':0 if name == 'admin' else 16,'duplicates':0,'missing':0,'corrupt':0}
                       for name in CELL['required_scenarios']},
         'api_ranges': {str(key):[0,20] for key in [0,1,2,11,68,76,78,79]},
         'finalized_features': {name:[1,1] for name in ['share.version','group.version','transaction.version','metadata.version']},
         'committed_offsets': {name:{'0':8,'1':8} for name in ['classic','cooperative','kip848','transaction']},
         'group_ids': {name:prefix+'-'+name for name in ['classic','cooperative','kip848','transaction']},
-        'transaction_aborted_visible':0,'share_accepted':16,'startup_attempts':[]}
+        'transaction_aborted_visible':0,'share_accepted':16,'startup_attempts':[],
+        'transaction_visibility':[{'attempt':0,'elapsed_ms':0,'offsets':{'0':8,'1':8}}]}
     return identity, result
 
 
@@ -45,6 +46,11 @@ def runtime_text(result):
     for name, offsets in result['committed_offsets'].items():
         lines += ['\t'.join(['PL_COMPAT_COMMITTED',name,p,str(offset)]) for p,offset in offsets.items()]
     lines += ['\t'.join(['PL_COMPAT_GROUP',name,id]) for name,id in result['group_ids'].items()]
+    for observation in result['transaction_visibility']:
+        if 'error' in observation:
+            lines.append('\t'.join(map(str,['PL_COMPAT_VISIBILITY_ERROR',observation['attempt'],observation['elapsed_ms'],observation['error']])))
+        else:
+            lines.append('\t'.join(map(str,['PL_COMPAT_VISIBILITY',observation['attempt'],observation['elapsed_ms'],observation['offsets']['0'],observation['offsets']['1']])))
     lines += ['PL_COMPAT_ABORTED_VISIBLE\t0','PL_COMPAT_SHARE_ACCEPTED\t16','PL_COMPAT_COMPLETE',
               'test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1s']
     return '\n'.join(lines)+'\n'
@@ -85,11 +91,16 @@ class BrokerCompatibility(unittest.TestCase):
             lambda i,r:r.update(source_sha='4'*40), lambda i,r:r['scenarios'].pop('share'),
             lambda i,r:r['scenarios']['kip848'].update(status='unsupported'),
             lambda i,r:r['scenarios']['manual'].update(records=0),
+            lambda i,r:r['scenarios']['admin'].update(records=16),
             lambda i,r:r['scenarios']['manual'].update(corrupt=False),
             lambda i,r:r['api_ranges'].pop('68'), lambda i,r:r['finalized_features']['share.version'].__setitem__(0,0),
             lambda i,r:r['committed_offsets']['transaction'].update({'0':7}),
             lambda i,r:r.update(transaction_aborted_visible=1),lambda i,r:r.update(share_accepted=15),
-            lambda i,r:r['group_ids'].pop('cooperative')]
+            lambda i,r:r['group_ids'].pop('cooperative'),
+            lambda i,r:r.update(transaction_visibility=[]),
+            lambda i,r:r['transaction_visibility'][0].update(attempt=True),
+            lambda i,r:r['transaction_visibility'][0].update(elapsed_ms=5001),
+            lambda i,r:r['transaction_visibility'][0]['offsets'].update({'0':-1})]
         for edit in edits:
             with self.subTest(edit=edits.index(edit)):
                 identity,result=fixture(); edit(identity,result)
@@ -102,6 +113,18 @@ class BrokerCompatibility(unittest.TestCase):
                     output+'PL_COMPAT_SCENARIO\n', output+'PL_COMPAT_SOURCE\t'+SOURCE+'\n',
                     output+'PL_COMPAT_COMMITTED\tclassic\t0\t8\n',output+'PL_COMPAT_UNKNOWN\tx\n']:
             with self.assertRaises(ValueError): report.parse_runtime(bad)
+
+    def test_transaction_marker_visibility_observations_preserved(self):
+        identity,result=fixture()
+        result['transaction_visibility']=[{'attempt':0,'elapsed_ms':0,'error':88},
+            {'attempt':1,'elapsed_ms':30,'offsets':{'0':-1,'1':8}},
+            {'attempt':2,'elapsed_ms':60,'offsets':{'0':8,'1':8}}]
+        parsed=report.parse_runtime(runtime_text(result))
+        self.assertEqual(parsed['transaction_visibility'],result['transaction_visibility'])
+        report.validate(identity,parsed,CELL,SOURCE)
+        for error in [15,101]:
+            result['transaction_visibility'][0]['error']=error
+            with self.assertRaises(ValueError):report.validate(identity,result,CELL,SOURCE)
 
     def test_independent_java_corruption_missing_offsets_and_feature_disagreement_fail(self):
         _,result=fixture()
