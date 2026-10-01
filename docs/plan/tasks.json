@@ -319,7 +319,9 @@
         "tests/client_api.rs",
         "tests/common/mod.rs",
         "tests/fixtures/protocol_oracles/current_groups",
-        "docs/plan/evidence/KL05-13.json"
+        "docs/plan/evidence/KL05-13.json",
+        "scripts/ci-docs.sh",
+        "tests/ci/test_docs_diagnostics.py"
       ]
     },
     {
