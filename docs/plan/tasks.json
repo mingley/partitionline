@@ -2787,7 +2787,7 @@
       "title": "Land snap 1.1.2 patch update",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL08-06"
@@ -2804,7 +2804,9 @@
         "cargo update -p snap --precise 1.1.2 then cargo test --locked (stable and 1.85)",
         "cargo audit and cargo deny check on the new lockfile"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL08-18.json"
+      ],
       "write_set": [
         "Cargo.lock",
         "docs/plan/tasks.json",

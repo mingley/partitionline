@@ -1,0 +1,38 @@
+{
+  "id": "KL08-18",
+  "status": "done",
+  "source_sha": "d87ab1cb90cd43f5ae65672ee09cd03a6576424b",
+  "acceptance_met": [
+    "Cargo.lock pins snap 1.1.2. Cargo.toml is unchanged, and every other full lockfile package entry is identical to the parent.",
+    "Stable and MSRV full suites pass, including Snappy raw/xerial roundtrips, corruption/decode-bound checks and Java wire fixture consistency. Audit reports zero vulnerabilities; deny passes."
+  ],
+  "commands": [
+    "cargo update -p snap --precise 1.1.2",
+    "cargo build --locked --example verifiable_producer --example verifiable_consumer; cargo test --locked",
+    "cargo +1.85.0 build --locked --example verifiable_producer --example verifiable_consumer; cargo +1.85.0 test --locked",
+    "cargo audit --json; cargo deny check",
+    "tomllib comparison of every non-target full lockfile package entry against parent (identical)"
+  ],
+  "results": {
+    "stable": {
+      "passed": 1675,
+      "failed": 0,
+      "ignored": 2
+    },
+    "msrv": {
+      "passed": 1675,
+      "failed": 0,
+      "ignored": 2
+    },
+    "audit_vulnerabilities": 0,
+    "deny": "advisories, bans, licenses and sources ok"
+  },
+  "artifacts": [
+    "docs/plan/evidence/KL08-18.json",
+    "https://github.com/mingley/partitionline/commit/d87ab1cb90cd43f5ae65672ee09cd03a6576424b"
+  ],
+  "limits": [
+    "The two pre-existing opt-in live-broker tests remain ignored; no skips were added."
+  ],
+  "blocked_reason": null
+}
