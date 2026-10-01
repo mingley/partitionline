@@ -3516,13 +3516,36 @@
     {
       "id": "KL10-01",
       "title": "Restore green main CI for the verifiable contract tests",
-      "priority": "P0", "kind": "ci", "status": "pending", "owner": null,
+      "priority": "P0",
+      "kind": "ci",
+      "status": "in_progress",
+      "owner": "codex",
       "depends_on": [],
-      "files": [".github/workflows/ci.yml", "tests/verifiable_contract.rs", "CONTRIBUTING.md"],
+      "files": [
+        ".github/workflows/ci.yml",
+        "tests/verifiable_contract.rs",
+        "CONTRIBUTING.md"
+      ],
       "deliverable": "cargo test --all-targets passes from a clean target directory on stable, 1.85 and the features job: tests/verifiable_contract.rs finds (or builds) the verifiable_producer and verifiable_consumer example binaries it runs, instead of panicking with 'missing example binary'.",
-      "acceptance": ["Failing first: from a clean CARGO_TARGET_DIR, cargo test --locked --all-targets reproduces the five verifiable_contract failures seen on main since 848e58c (KL01-09).", "The fix makes the test self-sufficient (for example, it builds the two examples with the running cargo and target directory before use), or every CI job that runs the suite builds the examples first and CONTRIBUTING.md states the prerequisite. No test is ignored, skipped or weakened.", "test (1.85), test (stable) and features are green on the fix commit on main; the run URL is recorded in evidence."],
-      "validation": ["CARGO_TARGET_DIR=$(mktemp -d) cargo test --locked --test verifiable_contract", "cargo test --locked --all-targets", "cargo test --locked --all-targets --features tracing", "gh run list --workflow ci --branch main (the fix commit's run is green)"],
-      "evidence": []
+      "acceptance": [
+        "Failing first: from a clean CARGO_TARGET_DIR, cargo test --locked --all-targets reproduces the five verifiable_contract failures seen on main since 848e58c (KL01-09).",
+        "The fix makes the test self-sufficient (for example, it builds the two examples with the running cargo and target directory before use), or every CI job that runs the suite builds the examples first and CONTRIBUTING.md states the prerequisite. No test is ignored, skipped or weakened.",
+        "test (1.85), test (stable) and features are green on the fix commit on main; the run URL is recorded in evidence."
+      ],
+      "validation": [
+        "CARGO_TARGET_DIR=$(mktemp -d) cargo test --locked --test verifiable_contract",
+        "cargo test --locked --all-targets",
+        "cargo test --locked --all-targets --features tracing",
+        "gh run list --workflow ci --branch main (the fix commit's run is green)"
+      ],
+      "evidence": [],
+      "write_set": [
+        ".github/workflows/ci.yml",
+        "CONTRIBUTING.md",
+        "tests/verifiable_contract.rs",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL10-01.json"
+      ]
     },
     {
       "id": "KL10-02",
