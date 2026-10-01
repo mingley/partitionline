@@ -303,7 +303,9 @@ async fn run() -> partitionline::Result<()> {
     eprintln!("compatibility phase: groups");
     for kind in ["classic", "cooperative", "kip848"] {
         let id = format!("{prefix}-{kind}");
+        eprintln!("compatibility group phase: {kind} join");
         let mut group = join_group(&bootstrap, &id, &input, kind, &mut attempts).await?;
+        eprintln!("compatibility group phase: {kind} poll");
         let mut seen = BTreeSet::new();
         while seen.len() < TOTAL {
             for record in &group.poll_timeout(Duration::from_secs(3)).await? {
@@ -311,10 +313,13 @@ async fn run() -> partitionline::Result<()> {
             }
         }
         expected.complete(&seen);
+        eprintln!("compatibility group phase: {kind} commit");
         group.commit().await?;
+        eprintln!("compatibility group phase: {kind} committed");
         assert!(committed_offsets
             .insert(kind, verify_committed(&mut group).await?)
             .is_none());
+        eprintln!("compatibility group phase: {kind} close");
         group.close_timeout(Duration::from_secs(3)).await?;
         assert!(group_ids.insert(kind, id).is_none());
         assert!(scenarios.insert(kind));
