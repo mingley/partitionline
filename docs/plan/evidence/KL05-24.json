@@ -1,0 +1,90 @@
+{
+  "id": "KL05-24",
+  "status": "done",
+  "source_sha": "e8e56d774020839bfee2a27384e1847520a37ce1",
+  "acceptance_met": true,
+  "commands": [
+    "cargo test --locked --manifest-path partitionline-schema/Cargo.toml",
+    "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml",
+    "cargo test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features",
+    "cargo clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings",
+    "RUSTDOCFLAGS='-D warnings' cargo doc --locked --manifest-path partitionline-schema/Cargo.toml --no-deps --all-features",
+    "cargo fmt --manifest-path partitionline-schema/Cargo.toml -- --check",
+    "bash scripts/check-schema-companion-scaffold.sh",
+    "git diff --check"
+  ],
+  "results": {
+    "stable": {
+      "lib_passed": 43,
+      "cache_passed": 17,
+      "failed": 0,
+      "ignored": 0
+    },
+    "msrv_1_85": {
+      "lib_passed": 43,
+      "cache_passed": 17,
+      "failed": 0,
+      "ignored": 0
+    },
+    "no_default_features": {
+      "passed": 4,
+      "failed": 0
+    },
+    "clippy": "passed",
+    "strict_rustdoc": "passed",
+    "fmt": "passed",
+    "scaffold": "passed",
+    "failing_first": "Before the implementation, concurrent same-key lookups caused two HTTP requests; the shared-request assertion failed.",
+    "cache_test_names": [
+      "same_key_concurrent_lookups_share_one_request",
+      "advance_cache_clock",
+      "unrelated_key_progresses_while_first_peer_is_stalled",
+      "dropped_owner_wakes_follower_for_takeover",
+      "dropped_follower_keeps_owner_request_alive",
+      "latest_freshness_is_separate_from_pinned_versions",
+      "negative_cache_preserves_error_and_expires",
+      "coalesced_failure_is_an_error_for_every_waiter",
+      "entry_lru_keeps_recent_hit_and_evicts_oldest",
+      "byte_budget_evicts_and_oversized_success_bypasses_cache",
+      "disabled_or_zero_freshness_keeps_completed_results_uncached",
+      "active_key_budget_and_request_deadlines_release_every_slot",
+      "subject_and_reference_limits_fail_before_io_or_cache_admission",
+      "cyclic_declarations_are_one_level_and_duplicates_keep_input_order",
+      "references_share_one_overall_deadline",
+      "caches_are_per_client_credentials_and_diagnostics_omit_subjects"
+    ]
+  },
+  "defaults": {
+    "completed_entries": 256,
+    "charged_retained_bytes": 8388608,
+    "active_distinct_keys": 16,
+    "subject_utf8_bytes": 1024,
+    "id_and_pinned_freshness_seconds": 300,
+    "latest_freshness_seconds": 5,
+    "not_found_freshness_seconds": 1
+  },
+  "behavior": [
+    "Least recently used eviction meets entry and charged-byte limits. Oversized successful results bypass caching. Expiry is lazy.",
+    "Only successful parsed schemas and typed 404 errors are memoized. Other failures remain errors for all coalesced waiters and do not populate the cache.",
+    "Clones share one credential-scoped cache; separately constructed clients remain isolated. Same-key requests share a caller-owned flight, unrelated keys proceed without a network lock.",
+    "Owner cancellation closes its request and wakes followers for read-only takeover within their original deadlines. Follower cancellation preserves the owner. No background library tasks.",
+    "Subject limits apply before key/path allocation and I/O; incoming reference count and subjects are checked before cache admission. Diagnostics expose aggregate counts without subject labels.",
+    "References are resolved one level, preserving order and duplicates; cyclic declarations do not recurse. One overall batch request_timeout includes all waits/retries. Earlier individually successful entries may remain cached when a later batch member fails."
+  ],
+  "artifacts": [
+    "partitionline-schema/src/registry.rs",
+    "partitionline-schema/src/registry/cache.rs",
+    "partitionline-schema/tests/cache.rs",
+    "partitionline-schema/README.md",
+    "docs/schema-companion.md",
+    "docs/plan/evidence/KL05-24.json"
+  ],
+  "limits": [
+    "Deterministic owned loopback HTTP tests and existing TLS tests; no live Schema Registry or external authentication service is claimed.",
+    "Charged retained bytes include capacities and inline entry/Arc storage, not hash-bucket/allocator overhead, process RSS or caller-owned result clones/futures; applications must bound callers/results.",
+    "Paused Tokio clocks are advanced only after fixture barriers to prove freshness and the overall reference deadline. The active-slot deadline test uses a bounded real-time window.",
+    "No new dependency families, root dependency changes or default features. Tokio sync is enabled for the optional registry implementation; test-util is a dev-only feature. The existing Ring backend needs a C compiler.",
+    "Current root CI does not exercise this workspace-excluded companion; the recorded companion checks are local stable/MSRV runs."
+  ],
+  "blocked_reason": null
+}

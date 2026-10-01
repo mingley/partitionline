@@ -1968,13 +1968,47 @@
     {
       "id": "KL05-20",
       "title": "Add the client-facing AddRaftVoter operation",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL05-19"],
-      "files": ["src/protocol/admin.rs", "src/admin.rs", "src/protocol/api_keys.rs", "tests/full_surface.rs"],
+      "priority": "P2",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL05-19"
+      ],
+      "files": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "src/protocol/api_keys.rs",
+        "tests/full_surface.rs"
+      ],
       "deliverable": "One typed quorum-membership addition API, gated by the approved full-admin scope.",
-      "acceptance": ["Verify the pinned Java Admin contract, controller routing, voter identity and endpoint validation.", "Use independent wire fixtures and mock partial/failure/deadline cases.", "Real controller membership changes require explicit isolated-lab approval; split codec/runtime cards first if this exceeds a small session."],
-      "validation": ["cargo test --locked --lib protocol::admin", "cargo test --locked --test full_surface add_raft_voter"],
-      "evidence": []
+      "acceptance": [
+        "Verify the pinned Java Admin contract, controller routing, voter identity and endpoint validation.",
+        "Use independent wire fixtures and mock partial/failure/deadline cases.",
+        "Real controller membership changes require explicit isolated-lab approval; split codec/runtime cards first if this exceeds a small session."
+      ],
+      "validation": [
+        "cargo test --locked --lib protocol::admin",
+        "cargo test --locked --test full_surface add_raft_voter"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "src/protocol/api_keys.rs",
+        "tests/full_surface.rs",
+        "tests/common/mod.rs",
+        "tests/protocol_oracles.rs",
+        "tests/conformance/java/",
+        "tests/conformance/fixtures/",
+        "tests/conformance/cases.json",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "features.json",
+        "docs/REFERENCE.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL05-20.json"
+      ]
     },
     {
       "id": "KL05-21",
@@ -2040,7 +2074,7 @@
       "title": "Bound companion schema caching and request coalescing",
       "priority": "P2",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL05-23"
@@ -2059,7 +2093,13 @@
         "cargo test --locked --manifest-path partitionline-schema/Cargo.toml",
         "Exercise concurrency and eviction with deterministic local fixtures."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "e8e56d774020839bfee2a27384e1847520a37ce1",
+          "artifact": "docs/plan/evidence/KL05-24.json",
+          "validation": "60 passing tests on stable and Rust 1.85; 4 no-default tests; strict Clippy/Rustdoc, fmt and scaffold passed."
+        }
+      ],
       "write_set": [
         "partitionline-schema/src/registry.rs",
         "partitionline-schema/tests/cache.rs",
