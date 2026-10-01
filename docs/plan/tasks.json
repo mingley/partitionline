@@ -1673,7 +1673,7 @@
       "title": "Honor consumer broker throttle intervals",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL02-07",
@@ -1694,7 +1694,33 @@
         "cargo test --locked --test consumer_fetch_semantics",
         "Check throttle behavior with a mixed fast/throttled two-broker fixture."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "db1979e2388c7136ad3d8ed0561c861850297b9c",
+          "commands": [
+            "cargo test --locked --test consumer_fetch_semantics (43 passed stable 1.98.1 and MSRV 1.85.0)",
+            "cargo build --locked --example verifiable_producer --example verifiable_consumer; cargo test --locked --all-targets (1753 passed, zero failed, 3 explicitly ignored broker/oracle profiles)",
+            "cargo +1.99.0 clippy --locked --all-targets --all-features -- -D warnings",
+            "RUSTUP_TOOLCHAIN=1.99.0 scripts/ci-docs.sh (strict rustdoc and 4 doctests)",
+            "python3 -B -m unittest discover -s tests/conformance -p test_*.py (49 passed)",
+            "python3 -B -m unittest discover -s tests/docs -p test_*.py (18 passed)",
+            "python3 -B -m unittest discover -s tests/ci -p test_*.py (9 passed)",
+            "python3 -B scripts/check-protocol-coverage.py (66 APIs, 38 classified gaps, zero unclassified drift)",
+            "JDK 21 javac/java FetchThrottleReference against checksum-verified Apache kafka-clients 4.3.1"
+          ],
+          "results": "1753 full-suite tests passed; 43 consumer semantics tests on stable and MSRV; Rust 1.99 strict Clippy/docs and executed Apache Java reference passed. Ten new quota scenarios cover record progress, budgets, cancellation, response clocks, buffer-cap discard, versions and reconnect.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-09.json"
+          ],
+          "limits": [
+            "Deterministic loopback scheduling plus an executed pinned Java reference, not a live broker quota deployment or performance claim.",
+            "Quota headers are observed on framed responses before record-budget selection. Existing full decoding/error classification and record/epoch/commit rules remain responsible for body validity.",
+            "fetch_timeout continues to supply a one-shot long-poll value. The quota wait shares that budget; transport uses request_timeout. An outer caller deadline remains the way to bound the entire higher-level operation.",
+            "Consumer-group Fetch uses the same scheduling; Admin and heartbeat/group quota policies remain outside this card.",
+            "No core dependencies, producer defaults, allocation baselines, or delivery/commit semantics changed."
+          ]
+        }
+      ],
       "write_set": [
         "src/consumer.rs",
         "src/metrics.rs",
