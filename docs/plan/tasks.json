@@ -312,10 +312,14 @@
         "src/group.rs",
         "src/protocol/group.rs",
         "tests/protocol_oracles.rs",
-        "tests/full_surface/group.rs",
-        "tests/conformance/fixtures/current-groups",
         "tests/conformance/java/CurrentGroupFixtures.java",
-        "CHANGELOG.md"
+        "CHANGELOG.md",
+        "src/protocol/cgheartbeat.rs",
+        "tests/full_surface.rs",
+        "tests/client_api.rs",
+        "tests/common/mod.rs",
+        "tests/fixtures/protocol_oracles/current_groups",
+        "docs/plan/evidence/KL05-13.json"
       ]
     },
     {
