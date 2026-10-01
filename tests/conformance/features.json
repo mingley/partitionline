@@ -1362,10 +1362,10 @@
     "id": "full_admin.remove_raft_voter",
     "profile": "full admin",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/ROADMAP.md:KL-05",
-    "notes": "RemoveRaftVoter api 81 is not exposed in Admin; tracked in KL05-21."
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::remove_raft_voter",
+    "evidence": "docs/plan/evidence/KL05-21.json",
+    "notes": "Typed broker-forwarded v0 operation with explicit voter/directory/cluster identity and local total deadline. Independent Apache fixtures and mock error/timeout tests; no real membership mutation or controller-bootstrap qualification."
   },
   {
     "id": "schema_ecosystem.wire_framing",

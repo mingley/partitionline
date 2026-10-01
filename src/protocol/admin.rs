@@ -18414,6 +18414,100 @@ pub fn decode_add_raft_voter_response<B: Buf>(
     })
 }
 
+/// RemoveRaftVoter (api 81) v0 request (always flexible). The schema has no
+/// TimeoutMs field; the high-level Admin deadline is enforced locally.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RemoveRaftVoterRequest {
+    /// Optional expected cluster identity.
+    pub cluster_id: Option<String>,
+    /// Replica identity of the voter being removed.
+    pub voter_id: i32,
+    /// Directory identity, big-endian Kafka UUID bytes.
+    pub voter_directory_id: [u8; 16],
+}
+
+/// RemoveRaftVoter v0 top-level result.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RemoveRaftVoterResponse {
+    /// Broker-reported quota throttle interval.
+    pub throttle_time_ms: i32,
+    /// Kafka error code, zero on success.
+    pub error_code: i16,
+    /// Nullable broker error message.
+    pub error_message: Option<String>,
+}
+
+fn remove_raft_voter_version(version: i16) -> Result<()> {
+    if version != 0 {
+        return Err(Error::Unsupported(
+            "RemoveRaftVoter supports only v0".into(),
+        ));
+    }
+    Ok(())
+}
+
+/// Encode RemoveRaftVoter v0, including nullable cluster identity.
+pub fn encode_remove_raft_voter_request(
+    buf: &mut BytesMut,
+    version: i16,
+    req: &RemoveRaftVoterRequest,
+) -> Result<()> {
+    remove_raft_voter_version(version)?;
+    buf::put_string(buf, true, req.cluster_id.as_deref())?;
+    buf.put_i32(req.voter_id);
+    buf.extend_from_slice(&req.voter_directory_id);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+/// Decode RemoveRaftVoter v0, skipping unknown tagged fields.
+pub fn decode_remove_raft_voter_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<RemoveRaftVoterRequest> {
+    remove_raft_voter_version(version)?;
+    let cluster_id = buf::get_string(buf, true)?;
+    let voter_id = buf::get_i32(buf)?;
+    let voter_directory_id = buf::get_uuid(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(RemoveRaftVoterRequest {
+        cluster_id,
+        voter_id,
+        voter_directory_id,
+    })
+}
+
+/// Encode RemoveRaftVoter v0 response.
+pub fn encode_remove_raft_voter_response(
+    buf: &mut BytesMut,
+    version: i16,
+    resp: &RemoveRaftVoterResponse,
+) -> Result<()> {
+    remove_raft_voter_version(version)?;
+    buf.put_i32(resp.throttle_time_ms);
+    buf.put_i16(resp.error_code);
+    buf::put_string(buf, true, resp.error_message.as_deref())?;
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+/// Decode RemoveRaftVoter v0 response, preserving errors and throttle time.
+pub fn decode_remove_raft_voter_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<RemoveRaftVoterResponse> {
+    remove_raft_voter_version(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_string(buf, true)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(RemoveRaftVoterResponse {
+        throttle_time_ms,
+        error_code,
+        error_message,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

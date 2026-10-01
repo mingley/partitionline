@@ -190,6 +190,7 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     78: list(range(0, 2)),   # ShareFetch: 0-1
     79: list(range(0, 2)),   # ShareAcknowledge: 0-1
     80: [0],                 # AddRaftVoter: 0 (Admin::add_raft_voter)
+    81: [0],                 # RemoveRaftVoter: 0 (Admin::remove_raft_voter)
     90: [0],                 # DescribeShareGroupOffsets: 0 (partitionline 4.1 share extension)
     91: [0],                 # AlterShareGroupOffsets: 0
     92: [0],                 # DeleteShareGroupOffsets: 0
@@ -234,11 +235,7 @@ CLASSIFIED_OUT_OF_SCOPE_FRAMEWORKS: Dict[str, str] = {
 # Client APIs tracked as missing runtime wiring in features.json
 # (do not count a key name as an implemented client operation).
 CLASSIFIED_MISSING_RUNTIME_APIS: Dict[int, Dict[str, Any]] = {
-    81: {
-        "name": "RemoveRaftVoter",
-        "feature_id": "full_admin.remove_raft_voter",
-        "reason": "RemoveRaftVoter api_key exists in api_keys.rs, but client runtime method Admin::remove_raft_voter is missing (entrypoint: none in features.json).",
-    },
+
 }
 
 # Classified version gaps (known differences between pinned Apache validVersions and client spoken versions).
@@ -721,7 +718,7 @@ def run_self_tests() -> int:
     res = evaluate_protocol_coverage()
     assert res["summary"]["exit_code"] == 0, "Frozen pins must exit 0"
     assert len(res["unclassified_drift"]) == 0, "Frozen pins must have 0 unclassified drift"
-    assert res["gap_counts"]["missing_runtime_wiring_apis"] == 1, "Expected 1 missing runtime API"
+    assert res["gap_counts"]["missing_runtime_wiring_apis"] == 0, "Expected no missing runtime APIs"
     assert res["gap_counts"]["excluded_broker_internal_apis"] == 22, "Expected 22 excluded broker internal APIs"
     print("  [ok] Frozen pins evaluated cleanly (exit 0, 0 unclassified drift)")
 

@@ -4526,3 +4526,107 @@ fn add_raft_voter_nullable_fields_match_apache() {
     malformed[25] = 0;
     assert!(decode_add_raft_voter_request(&mut &malformed[..], 0).is_err());
 }
+
+#[test]
+fn remove_raft_voter_apache_v0_fixtures() {
+    use partitionline::protocol::admin::{
+        decode_remove_raft_voter_request, decode_remove_raft_voter_response,
+        encode_remove_raft_voter_request, encode_remove_raft_voter_response,
+        RemoveRaftVoterRequest, RemoveRaftVoterResponse,
+    };
+    let cells: [(&[u8], &[u8], bool, bool); 3] = [
+        (
+            include_bytes!("fixtures/protocol_oracles/remove_raft_voter_v0_defaults_request.bin"),
+            include_bytes!("fixtures/protocol_oracles/remove_raft_voter_v0_defaults_response.bin"),
+            false,
+            false,
+        ),
+        (
+            include_bytes!("fixtures/protocol_oracles/remove_raft_voter_v0_populated_request.bin"),
+            include_bytes!("fixtures/protocol_oracles/remove_raft_voter_v0_populated_response.bin"),
+            true,
+            false,
+        ),
+        (
+            include_bytes!("fixtures/protocol_oracles/remove_raft_voter_v0_tagged_request.bin"),
+            include_bytes!("fixtures/protocol_oracles/remove_raft_voter_v0_tagged_response.bin"),
+            true,
+            true,
+        ),
+    ];
+    for (request, response, populated, tagged) in cells {
+        let mut req = request;
+        let actual = decode_remove_raft_voter_request(&mut req, 0).unwrap();
+        assert!(req.is_empty());
+        let expected = RemoveRaftVoterRequest {
+            cluster_id: Some(if populated { "cluster-410" } else { "" }.into()),
+            voter_id: if populated { 42 } else { 0 },
+            voter_directory_id: if populated {
+                partitionline::Uuid::from_parts(7, 9).to_bytes()
+            } else {
+                [0; 16]
+            },
+        };
+        assert_eq!(actual, expected);
+        let mut resp = response;
+        let actual_response = decode_remove_raft_voter_response(&mut resp, 0).unwrap();
+        assert!(resp.is_empty());
+        assert_eq!(
+            actual_response,
+            RemoveRaftVoterResponse {
+                throttle_time_ms: if populated { 42 } else { 0 },
+                error_code: if populated { 41 } else { 0 },
+                error_message: Some(if populated { "controller moved" } else { "" }.into()),
+            }
+        );
+        if !tagged {
+            let mut bytes = BytesMut::new();
+            encode_remove_raft_voter_request(&mut bytes, 0, &actual).unwrap();
+            assert_eq!(bytes.as_ref(), request);
+            bytes.clear();
+            encode_remove_raft_voter_response(&mut bytes, 0, &actual_response).unwrap();
+            assert_eq!(bytes.as_ref(), response);
+        }
+        for end in 0..request.len() {
+            assert!(decode_remove_raft_voter_request(&mut &request[..end], 0).is_err());
+        }
+        for end in 0..response.len() {
+            assert!(decode_remove_raft_voter_response(&mut &response[..end], 0).is_err());
+        }
+        for version in [-1, 1] {
+            assert!(decode_remove_raft_voter_request(&mut &request[..], version).is_err());
+            assert!(decode_remove_raft_voter_response(&mut &response[..], version).is_err());
+            let mut bytes = BytesMut::new();
+            assert!(encode_remove_raft_voter_request(&mut bytes, version, &actual).is_err());
+            assert!(bytes.is_empty());
+            assert!(
+                encode_remove_raft_voter_response(&mut bytes, version, &actual_response).is_err()
+            );
+            assert!(bytes.is_empty());
+        }
+    }
+}
+
+#[test]
+fn remove_raft_voter_nullable_fields_match_apache() {
+    use partitionline::protocol::admin::*;
+    let request =
+        include_bytes!("fixtures/protocol_oracles/remove_raft_voter_v0_nullable_request.bin");
+    let response =
+        include_bytes!("fixtures/protocol_oracles/remove_raft_voter_v0_nullable_response.bin");
+    let req = decode_remove_raft_voter_request(&mut &request[..], 0).unwrap();
+    let resp = decode_remove_raft_voter_response(&mut &response[..], 0).unwrap();
+    assert_eq!(req.cluster_id, None);
+    assert_eq!(resp.error_message, None);
+    let mut bytes = BytesMut::new();
+    encode_remove_raft_voter_request(&mut bytes, 0, &req).unwrap();
+    assert_eq!(bytes.as_ref(), request);
+    bytes.clear();
+    encode_remove_raft_voter_response(&mut bytes, 0, &resp).unwrap();
+    assert_eq!(bytes.as_ref(), response);
+    assert_eq!(
+        request.len(),
+        22,
+        "nullable cluster + voter ID + directory UUID + tags; no TimeoutMs"
+    );
+}

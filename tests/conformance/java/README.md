@@ -69,3 +69,18 @@ Apache self-roundtrips, emits binary hashes and performs no network request or
 quorum mutation. Rust tests consume all committed bytes offline, including
 truncation, null-required-field and unsupported-version checks. Unknown tags
 are skipped when decoding; Rust encoders emit no unknown tags.
+
+## RemoveRaftVoter v0 oracle (KL05-21)
+
+`RemoveRaftVoterFixtures.java` uses the same pinned distribution jar, JDK and
+source commit as the addition oracle. It covers fresh defaults, nullable fields,
+populated cluster/voter/directory identities and unknown tagged fields. The
+request has no TimeoutMs field. Compile and verify independently with:
+
+```bash
+javac -cp "$KAFKA_CLIENT_JAR" -d /tmp/add-raft-fixtures tests/conformance/java/RemoveRaftVoterFixtures.java
+java -cp "/tmp/add-raft-fixtures:$KAFKA_CLIENT_JAR:$SLF4J_API_JAR" RemoveRaftVoterFixtures "$KAFKA_CLIENT_JAR" tests/fixtures/protocol_oracles --verify
+```
+
+The generator performs no network I/O or membership mutation. Rust checks all
+four cells offline, with truncation and unsupported-version failures.

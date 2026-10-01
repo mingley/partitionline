@@ -159,7 +159,9 @@ pub use crate::protocol::admin::{
     SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UNKNOWN_VOLUME_BYTES, UPGRADE_TYPE_SAFE_DOWNGRADE,
     UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
 };
-pub use crate::protocol::admin::{AddRaftVoterResponse, RaftVoterEndpoint};
+pub use crate::protocol::admin::{
+    AddRaftVoterResponse, RaftVoterEndpoint, RemoveRaftVoterResponse,
+};
 pub use crate::protocol::admin::{
     DescribeQuorumListener, DescribeQuorumNode, DescribeQuorumReplicaState,
 };
@@ -221,6 +223,16 @@ pub struct AddRaftVoterOptions {
     pub cluster_id: Option<String>,
     /// Total deadline including discovery, authentication and retries.
     /// `None` uses [`AdminConfig::request_timeout`].
+    pub timeout: Option<Duration>,
+}
+
+/// Expected cluster and local total deadline for [`Admin::remove_raft_voter`].
+#[derive(Debug, Clone, Default)]
+pub struct RemoveRaftVoterOptions {
+    /// Optional expected cluster identity, checked by the controller.
+    pub cluster_id: Option<String>,
+    /// Local total deadline, including discovery, authentication and retries.
+    /// `None` uses [`AdminConfig::request_timeout`]. No TimeoutMs is sent.
     pub timeout: Option<Duration>,
 }
 
@@ -3166,6 +3178,136 @@ impl Admin {
                         response
                             .error_message
                             .unwrap_or_else(|| "AddRaftVoter".into()),
+                    ));
+                }
+                Ok(response)
+            }
+            .await;
+            match result {
+                Err(err)
+                    if err.broker_code() == Some(error::NOT_CONTROLLER)
+                        || matches!(err, Error::Io(_) | Error::Closed | Error::Timeout) =>
+                {
+                    if err.broker_code() == Some(error::NOT_CONTROLLER) {
+                        self.cluster.invalidate_controller();
+                        refresh = true;
+                    } else {
+                        reconnect = true;
+                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
+                }
+                result => return result,
+            }
+        }
+    }
+
+    /// Remove one metadata-quorum voter by replica and directory identity.
+    ///
+    /// Matches pinned Java 4.1 RemoveRaftVoter v0 for broker-bootstrap clients:
+    /// the broker forwards to the active controller. Direct controller bootstrap
+    /// is not supported. Rejects negative voter IDs, reserved directory UUIDs
+    /// and empty expected cluster IDs before I/O. There is no server TimeoutMs
+    /// field; the total local deadline bounds discovery, authentication,
+    /// capability negotiation, metadata refresh, RPC and retry waits.
+    ///
+    /// Only NOT_CONTROLLER and transport failures retry. Other broker errors
+    /// preserve code/message, including authorization and VOTER_NOT_FOUND. A
+    /// lost response may leave the membership outcome ambiguous; not-found after
+    /// retry is an error, not confirmed success. Inspect the quorum before a
+    /// subsequent membership change. Success retains broker throttle time.
+    pub async fn remove_raft_voter(
+        &mut self,
+        voter_id: i32,
+        voter_directory_id: Uuid,
+        options: RemoveRaftVoterOptions,
+    ) -> Result<RemoveRaftVoterResponse> {
+        if voter_id < 0 || Uuid::RESERVED.contains(&voter_directory_id) {
+            return Err(Error::protocol(
+                "voter ID must be nonnegative and directory UUID nonreserved",
+            ));
+        }
+        if options.cluster_id.as_ref().is_some_and(String::is_empty) {
+            return Err(Error::protocol("expected cluster ID must not be empty"));
+        }
+        let timeout = options.timeout.unwrap_or(self.cfg.request_timeout);
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("quorum timeout exceeds clock range"))?;
+        let request = crate::protocol::admin::RemoveRaftVoterRequest {
+            cluster_id: options.cluster_id,
+            voter_id,
+            voter_directory_id: voter_directory_id.to_bytes(),
+        };
+        tokio::time::timeout(timeout, self.remove_raft_voter_until(request, deadline))
+            .await
+            .map_err(|_| Error::Timeout)?
+    }
+
+    async fn remove_raft_voter_until(
+        &mut self,
+        request: crate::protocol::admin::RemoveRaftVoterRequest,
+        deadline: Instant,
+    ) -> Result<RemoveRaftVoterResponse> {
+        let mut attempt = 0;
+        let mut reconnect = false;
+        let mut refresh = false;
+        loop {
+            let result = async {
+                if reconnect {
+                    let addr = self.conn.addr().to_owned();
+                    self.conn = self.open_node_conn(&addr).await?;
+                    reconnect = false;
+                }
+                self.ensure_bootstrap().await?;
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                let capabilities =
+                    crate::protocol::api::negotiate_api_versions(&mut self.conn, remaining).await?;
+                let version = capabilities
+                    .api_keys
+                    .iter()
+                    .find(|api| api.api_key == crate::protocol::api_keys::REMOVE_RAFT_VOTER)
+                    .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
+                    .ok_or_else(|| {
+                        Error::Unsupported("broker does not support RemoveRaftVoter v0".into())
+                    })?;
+                if refresh {
+                    self.refresh_metadata(None).await?;
+                    refresh = false;
+                }
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                let mut body = self
+                    .conn
+                    .roundtrip(
+                        crate::protocol::api_keys::REMOVE_RAFT_VOTER,
+                        version,
+                        |buf| {
+                            crate::protocol::admin::encode_remove_raft_voter_request(
+                                buf, version, &request,
+                            )
+                        },
+                        remaining,
+                    )
+                    .await?;
+                let response =
+                    crate::protocol::admin::decode_remove_raft_voter_response(&mut body, version)?;
+                if !body.is_empty() {
+                    return Err(Error::protocol("trailing RemoveRaftVoter response bytes"));
+                }
+                if response.error_code != 0 {
+                    return Err(Error::broker(
+                        response.error_code,
+                        response
+                            .error_message
+                            .unwrap_or_else(|| "RemoveRaftVoter".into()),
                     ));
                 }
                 Ok(response)

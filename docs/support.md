@@ -43,11 +43,13 @@ registry status was re-checked at source `ca50ca1` (KL07-07).
 | Sticky unkeyed partitioner | Not implemented (round-robin instead) | `producer.sticky_partitioner` (`missing`) |
 | Signed Suite HOLD / Lab A | **Unsigned** — Suite HOLD remains | — (qualification gate, not a feature entry) |
 | Windows / macOS / non-x86_64 as CI-guaranteed | May build; not a CI matrix promise today | — (CI dimension, not a feature entry) |
-| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `full_admin.remove_raft_voter/describe_log_dirs_v5`, `producer.v13_wire`, `manual_consumer.v18_wire/list_offsets_v11` (`missing`) |
+| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `full_admin.describe_log_dirs_v5`, `producer.v13_wire`, `manual_consumer.v18_wire/list_offsets_v11` (`missing`) |
 
 Source now includes typed `elect_leaders`, read-only `describe_quorum` and
-`add_raft_voter` Admin methods. AddRaftVoter follows broker forwarding with v0
-negotiation, explicit voter/directory/endpoint validation and a total deadline.
+`add_raft_voter` / `remove_raft_voter` Admin methods. Both membership operations
+follow broker forwarding with v0
+negotiation, explicit voter/directory/cluster validation and a total deadline;
+addition also validates named endpoints. Removal has no wire TimeoutMs field.
 Independent Apache wire fixtures and mock failures cover its contract; no real
 controller membership change or direct controller-bootstrap support is qualified.
 A lost response can leave membership ambiguous: inspect the quorum before another

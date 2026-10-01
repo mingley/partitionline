@@ -22,7 +22,7 @@ use super::api_keys::{
     SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER,
     UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
-use super::api_keys::{ADD_RAFT_VOTER, DESCRIBE_QUORUM};
+use super::api_keys::{ADD_RAFT_VOTER, DESCRIBE_QUORUM, REMOVE_RAFT_VOTER};
 use super::buf;
 use crate::error::{Error, Result};
 
@@ -305,7 +305,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // GroupInstanceId. v8 Reason and v9 SkipAssignment keep the v6
         // header. v0–v1 and v10+ are not spoken.
         JOIN_GROUP if api_version >= 6 => 2,
-        DESCRIBE_QUORUM | ADD_RAFT_VOTER => 2,
+        DESCRIBE_QUORUM | ADD_RAFT_VOTER | REMOVE_RAFT_VOTER => 2,
         ELECT_LEADERS if api_version >= 2 => 2,
         // CreateTopics is classic through v4; flexible from v5
         // (Apache JSON flexibleVersions: "5+"). Kafka 4.0 validVersions
@@ -452,7 +452,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         HEARTBEAT if api_version >= 4 => 1,
         SYNC_GROUP if api_version >= 4 => 1,
         JOIN_GROUP if api_version >= 6 => 1,
-        DESCRIBE_QUORUM | ADD_RAFT_VOTER => 1,
+        DESCRIBE_QUORUM | ADD_RAFT_VOTER | REMOVE_RAFT_VOTER => 1,
         ELECT_LEADERS if api_version >= 2 => 1,
         CREATE_TOPICS if api_version >= 5 => 1,
         DELETE_TOPICS if api_version >= 4 => 1,
@@ -571,6 +571,12 @@ mod tests {
     fn add_raft_voter_headers_are_always_flexible() {
         assert_eq!(request_header_version(80, 0), 2);
         assert_eq!(response_header_version(80, 0), 1);
+    }
+
+    #[test]
+    fn remove_raft_voter_headers_are_always_flexible() {
+        assert_eq!(request_header_version(81, 0), 2);
+        assert_eq!(response_header_version(81, 0), 1);
     }
 
     #[test]

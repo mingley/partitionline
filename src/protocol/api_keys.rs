@@ -139,6 +139,8 @@ pub const SHARE_FETCH: i16 = 78;
 pub const SHARE_ACKNOWLEDGE: i16 = 79;
 /// AddRaftVoter (80). Kafka 4.1 `validVersions` is `0`.
 pub const ADD_RAFT_VOTER: i16 = 80;
+/// RemoveRaftVoter (81). Kafka 4.1 `validVersions` is `0`.
+pub const REMOVE_RAFT_VOTER: i16 = 81;
 /// DescribeShareGroupOffsets (90).
 pub const DESCRIBE_SHARE_GROUP_OFFSETS: i16 = 90;
 /// AlterShareGroupOffsets (91).
