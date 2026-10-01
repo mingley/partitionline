@@ -2104,19 +2104,18 @@
         "tests/full_surface.rs",
         "tests/common/mod.rs",
         "tests/protocol_oracles.rs",
-        "tests/request_header_versions.rs",
         "tests/fixtures/protocol_oracles/describe_log_dirs_*",
         "tests/conformance/java/DescribeLogDirsFixtures.java",
         "tests/conformance/java/README.md",
-        "tests/conformance/protocol-coverage.json",
         "tests/conformance/features.json",
-        "docs/reference/java-api.md",
         "docs/STATUS.md",
         "docs/gaps.md",
         "docs/support.md",
         "CHANGELOG.md",
         "docs/plan/tasks.json",
-        "docs/plan/evidence/KL05-22.json"
+        "docs/plan/evidence/KL05-22.json",
+        "src/protocol/header.rs",
+        "scripts/check-protocol-coverage.py"
       ]
     },
     {
