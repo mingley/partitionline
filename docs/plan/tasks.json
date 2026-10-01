@@ -1659,13 +1659,47 @@
     {
       "id": "KL05-07",
       "title": "Recover incremental Fetch sessions correctly",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL05-06"],
-      "files": ["src/consumer.rs", "tests/consumer_fetch_semantics.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL05-06"
+      ],
+      "files": [
+        "src/consumer.rs",
+        "tests/consumer_fetch_semantics.rs"
+      ],
       "deliverable": "Session error, reconnect, forgotten-partition and terminal-epoch handling.",
-      "acceptance": ["Test invalid/not-found sessions, epoch mismatch, broker restart and leader movement.", "Assign/unassign/pause/resume/topic recreation cannot leave stale session partitions or lose delivery state.", "Handle top-level response errors before partition application and close/reset sessions without hanging."],
-      "validation": ["cargo test --locked --test consumer_fetch_semantics", "Run a many-partition live session-reset scenario with a pinned Java reference."],
-      "evidence": []
+      "acceptance": [
+        "Test invalid/not-found sessions, epoch mismatch, broker restart and leader movement.",
+        "Assign/unassign/pause/resume/topic recreation cannot leave stale session partitions or lose delivery state.",
+        "Handle top-level response errors before partition application and close/reset sessions without hanging."
+      ],
+      "validation": [
+        "cargo test --locked --test consumer_fetch_semantics",
+        "Run a many-partition live session-reset scenario with a pinned Java reference."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/consumer.rs",
+        "tests/consumer_fetch_semantics.rs",
+        "tests/common/mod.rs",
+        "tests/conformance/features.json",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "tests/conformance/test_fetch_session_recovery.py",
+        "tests/oracles/java/FetchSessionOracle.java",
+        "tests/oracles/java/generate_fetch_session.py",
+        "scripts/ci-fetch-session-recovery.sh",
+        "scripts/report-fetch-session-recovery.py",
+        ".github/workflows/ci.yml",
+        "docs/guide.md",
+        "docs/gaps.md",
+        "docs/support.md",
+        "CHANGELOG.md",
+        "docs/plan/evidence/KL05-07.json",
+        "docs/plan/tasks.json"
+      ]
     },
     {
       "id": "KL05-08",
