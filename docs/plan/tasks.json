@@ -2074,13 +2074,50 @@
     {
       "id": "KL05-22",
       "title": "Add the selected DescribeLogDirs v5 delta",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL05-01", "KL01-03"],
-      "files": ["src/protocol/admin.rs", "src/admin.rs", "tests/full_surface.rs"],
+      "priority": "P2",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL05-01",
+        "KL01-03"
+      ],
+      "files": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "tests/full_surface.rs"
+      ],
       "deliverable": "The current client-facing log-directory description delta with typed results.",
-      "acceptance": ["Record schema/default differences and independent fixtures before lifting the version cap.", "Preserve current v1-v4 behavior, error/throttle fields and per-broker routing.", "Update only the matching API/reference row, not an unsupported all-admin-versions claim."],
-      "validation": ["cargo test --locked --lib protocol::admin", "cargo test --locked --test full_surface log_dirs"],
-      "evidence": []
+      "acceptance": [
+        "Record schema/default differences and independent fixtures before lifting the version cap.",
+        "Preserve current v1-v4 behavior, error/throttle fields and per-broker routing.",
+        "Update only the matching API/reference row, not an unsupported all-admin-versions claim."
+      ],
+      "validation": [
+        "cargo test --locked --lib protocol::admin",
+        "cargo test --locked --test full_surface log_dirs"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "tests/full_surface.rs",
+        "tests/common/mod.rs",
+        "tests/protocol_oracles.rs",
+        "tests/request_header_versions.rs",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_*",
+        "tests/conformance/java/DescribeLogDirsFixtures.java",
+        "tests/conformance/java/README.md",
+        "tests/conformance/protocol-coverage.json",
+        "tests/conformance/features.json",
+        "docs/reference/java-api.md",
+        "docs/STATUS.md",
+        "docs/gaps.md",
+        "docs/support.md",
+        "CHANGELOG.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL05-22.json"
+      ]
     },
     {
       "id": "KL05-23",
