@@ -120,12 +120,16 @@ export PL_COMPAT_REFERENCE="$reference" PL_COMPAT_SOURCE_SHA="$source_sha" PL_CO
 cargo test --locked --test broker_compatibility -- --ignored --exact live_compatibility_required --nocapture >"$report/runtime.log" 2>&1
 phase=independent-java-history-and-offsets
 prefix="plcompat-${version//./-}"
+# Kafka 4.2 deprecated --property and writes its warning to record stdout.
+# Keep strict record parsing and use each pinned CLI's supported option.
+formatter_option=--formatter-property
+if [[ "$version" == 4.1.2 ]]; then formatter_option=--property; fi
 for topic in input output; do
   timeout 40s docker exec "$name" /opt/kafka/bin/kafka-console-consumer.sh \
     --bootstrap-server localhost:9094 --topic "$prefix-$topic" --from-beginning \
     --max-messages 16 --timeout-ms 20000 --isolation-level read_committed \
-    --property print.key=true --property print.timestamp=true \
-    --property print.partition=true --property print.offset=true \
+    "$formatter_option" print.key=true "$formatter_option" print.timestamp=true \
+    "$formatter_option" print.partition=true "$formatter_option" print.offset=true \
     >"$report/java-$topic.log" 2>"$report/java-$topic.stderr.log"
 done
 for group in classic cooperative kip848 transaction; do
