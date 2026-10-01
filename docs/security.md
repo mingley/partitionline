@@ -13,7 +13,8 @@ This crate forbids `unsafe_code`. That removes a class of memory-safety bugs
 inside the client, not broker or network trust problems. Dependencies are not
 covered: the default gzip backend, zlib-rs, uses `unsafe` and SIMD internally
 and decodes broker-supplied bytes. Build with `default-features = false` to use
-miniz_oxide instead ([gzip-backend.md](gzip-backend.md)).
+miniz_oxide instead, which forbids `unsafe`; its gzip CRC-32 still comes from
+`crc32fast`, which uses `unsafe` SIMD ([gzip-backend.md](gzip-backend.md)).
 
 ## Auth and transport
 

@@ -681,8 +681,9 @@ exactly-once equivalence. Regression evidence:
 ## gzip backend (default feature)
 
 The default `zlib-rs` feature compresses and decompresses gzip with zlib-rs.
-To build without any dependency that uses `unsafe` for gzip, disable default
-features; gzip then uses miniz_oxide, which is slower:
+To limit `unsafe` in the gzip path to the small CRC-32 kernel in `crc32fast`,
+disable default features; gzip then uses miniz_oxide, which forbids `unsafe`
+and is slower:
 
 ```toml
 partitionline = { version = "0.1", default-features = false }

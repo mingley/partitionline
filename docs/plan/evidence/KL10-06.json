@@ -292,5 +292,8 @@
   "head_sha_before_rebase": "b90464bf",
   "result": "success: fmt, clippy, audit, deny, package, test (stable), test (1.85), features (incl. the --no-default-features lane), alloc-budget (x86_64), perf-gate, latency-gate, fuzz-smoke, conformance-fixtures, broker-smoke (3.9.1, 4.1.0), broker-current (4.1.2, 4.2.1, 4.3.1), auth-smoke, integrity-smoke, windows (1.85.0), macos-arm64 (1.85.0); skipped: conformance-live",
   "failures": "docs, windows (stable), macos-arm64 (stable): strict rustdoc 'redundant explicit link target' under rustc 1.99.0; identical on main run 36869103809 at 8bec4f21 (pre-existing, not from this change)"
- }
+ },
+ "corrections": [
+  "2026-10-01 correction: the miniz_oxide fallback is not free of unsafe in the gzip path. miniz_oxide 0.9.1 forbids unsafe, but flate2 computes gzip CRC-32 with crc32fast 1.5 (15 unsafe lines, SIMD intrinsics) and enables miniz_oxide's simd feature (simd-adler32 0.3.10, 36 unsafe lines, zlib-wrapped data only). Docs, CHANGELOG and the Cargo.toml comment now say the fallback narrows unsafe to that checksum code."
+ ]
 }

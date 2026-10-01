@@ -12,7 +12,13 @@ this one dependency; partitionline's own `unsafe_code = "forbid"` is unchanged.
 | Build | gzip backend | `unsafe` in the gzip path |
 |---|---|---|
 | default (`zlib-rs` feature) | zlib-rs 0.6 | yes, inside zlib-rs (SIMD, raw buffers) |
-| `default-features = false` | miniz_oxide 0.9 | no (`forbid(unsafe_code)`) |
+| `default-features = false` | miniz_oxide 0.9 | only crc32fast's CRC-32 kernel; miniz_oxide forbids `unsafe` |
+
+With miniz_oxide, flate2 computes the gzip CRC-32 with `crc32fast` (about 15
+lines of `unsafe` SIMD intrinsics) and enables miniz_oxide's `simd` feature,
+whose `simd-adler32` checksum is used only for zlib-wrapped data, not gzip. The
+fallback build narrows `unsafe` to that small checksum code; it does not
+remove it.
 
 Both builds enable flate2's `runtime_detection`, so zlib-rs and the CRC-32 used
 with miniz_oxide (`crc32fast`) pick hardware paths (PCLMULQDQ, AVX2, ARM CRC)

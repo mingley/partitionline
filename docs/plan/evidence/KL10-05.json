@@ -16,7 +16,7 @@
  "candidates": {
   "miniz_oxide 0.9.1 (current)": {
    "license": "MIT OR Zlib OR Apache-2.0",
-   "unsafe": "#![forbid(unsafe_code)]",
+   "unsafe": "#![forbid(unsafe_code)] in miniz_oxide; via flate2 the gzip CRC-32 uses crc32fast (15 unsafe lines, SIMD) and miniz_oxide's simd feature pulls simd-adler32 (36 unsafe lines; zlib-wrapped data only)",
    "simd": "none",
    "notes": "flate2 rust_backend; CRC-32 from crc32fast"
   },
@@ -628,5 +628,8 @@
   "arm64 wall clock on a shared laptop (load 6.6-16.6); x86_64 on a 4-vCPU hosted runner with rustc 1.99.0",
   "aarch64 instructions from valgrind 3.19.0 in a container; committed perf-baseline.json used 3.24.0",
   "gateway cells (KL10-02/KL10-14) do not exist yet; KL10-12 measures them on the new default"
+ ],
+ "corrections": [
+  "2026-10-01 correction: the miniz_oxide fallback is not free of unsafe in the gzip path. miniz_oxide 0.9.1 forbids unsafe, but flate2 computes gzip CRC-32 with crc32fast 1.5 (15 unsafe lines, SIMD intrinsics) and enables miniz_oxide's simd feature (simd-adler32 0.3.10, 36 unsafe lines, zlib-wrapped data only). Docs, CHANGELOG and the Cargo.toml comment now say the fallback narrows unsafe to that checksum code."
  ]
 }
