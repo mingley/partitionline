@@ -1172,6 +1172,7 @@ impl ConsumerGroup {
         )
         .await?;
         decode_offset_fetch_response(&mut body.clone(), version)
+            .map_err(|e| group_decode_context(e, "OffsetFetch", version, body.len()))
     }
 
     /// Fetch the current assignment. Rejoins on a classic rebalance.
@@ -2007,7 +2008,8 @@ impl ConsumerGroup {
                 timeout,
             )
             .await?;
-            let decoded = decode_join_group_response(&mut body.clone(), version)?;
+            let decoded = decode_join_group_response(&mut body.clone(), version)
+                .map_err(|e| group_decode_context(e, "JoinGroup", version, body.len()))?;
             if decoded.0 == error::MEMBER_ID_REQUIRED
                 && self.member_id == JoinGroupRequest::UNKNOWN_MEMBER_ID
                 && !decoded.4.is_empty()
@@ -2096,11 +2098,14 @@ impl ConsumerGroup {
             timeout,
         )
         .await?;
-        let (err, assignment, ..) = decode_sync_group_response(&mut body.clone(), version)?;
+        let (err, assignment, ..) = decode_sync_group_response(&mut body.clone(), version)
+            .map_err(|e| group_decode_context(e, "SyncGroup", version, body.len()))?;
         if err != 0 {
             return Err(Error::broker(err, "SyncGroup"));
         }
-        let assigned = decode_assignment(&assignment)?;
+        let assigned = decode_assignment(&assignment).map_err(|e| {
+            group_decode_context(e, "ConsumerProtocol assignment", version, assignment.len())
+        })?;
         let wanted: Vec<(String, i32)> = assigned
             .into_iter()
             .flat_map(|(t, ps)| ps.into_iter().map(move |p| (t.clone(), p)))
@@ -2948,6 +2953,17 @@ fn committed_starts(
     Ok(out)
 }
 
+// Preserve error categories while identifying a malformed response without
+// retaining broker addresses, group identities, or wire payloads.
+fn group_decode_context(error: Error, api: &str, version: i16, length: usize) -> Error {
+    match error {
+        Error::Protocol(message) => Error::protocol(format!(
+            "{api} v{version} response ({length} bytes): {message}"
+        )),
+        other => other,
+    }
+}
+
 fn peek_error_code(body: &[u8]) -> Option<i16> {
     if body.len() >= 6 {
         let b4 = *body.get(4)?;
@@ -2995,7 +3011,8 @@ pub(crate) async fn discover_coord(
                 }
             };
             let (err, _node, host, port) =
-                decode_find_coordinator_response(&mut body.clone(), version)?;
+                decode_find_coordinator_response(&mut body.clone(), version)
+                    .map_err(|e| group_decode_context(e, "FindCoordinator", version, body.len()))?;
             if err != 0 {
                 last = Error::broker(err, "FindCoordinator");
                 continue;
