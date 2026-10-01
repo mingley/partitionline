@@ -4281,7 +4281,8 @@
         "docs/plan/performance-leadership.md",
         "docs/plan/tasks.json",
         "docs/plan/evidence/KL10-03.json",
-        "docs/evidence/perf/KL10-03/"
+        "docs/evidence/perf/KL10-03/",
+        ".github/workflows/ci.yml"
       ]
     },
     {
