@@ -3912,3 +3912,32 @@ async fn live_fetch_session_recovery_required() {
     println!("PL_FETCH_TOPIC\t{topic}");
     println!("PL_FETCH_COMPLETE");
 }
+
+#[tokio::test]
+async fn fetch_session_recovery_terminal_retirement_obeys_broker_quota_and_close_budget() {
+    for budget in [Duration::from_millis(50), Duration::from_millis(400)] {
+        let mock = common::Mock::start().await;
+        mock.enable_fetch_sessions([1]);
+        mock.set_fetch_throttles(1, [150]);
+        let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+            .await
+            .unwrap();
+        consumer.assign("t", 0, 0).await.unwrap();
+        assert!(consumer.fetch().await.unwrap().is_empty());
+        assert_eq!(mock.remembered_fetch_partitions(1), 1);
+        let start = std::time::Instant::now();
+        consumer.close_timeout(budget).await.unwrap();
+        if budget < Duration::from_millis(150) {
+            assert_eq!(
+                mock.fetch_session_requests().len(),
+                1,
+                "terminal request must not bypass an active broker mute"
+            );
+            assert!(start.elapsed() < Duration::from_millis(100));
+        } else {
+            assert!(start.elapsed() >= Duration::from_millis(100));
+            assert_eq!(mock.remembered_fetch_partitions(1), 0);
+            assert_eq!(mock.fetch_session_requests().last().unwrap().3.epoch(), -1);
+        }
+    }
+}

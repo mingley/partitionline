@@ -633,7 +633,9 @@ Pausing every partition, moving to another broker, or replacing the assignment
 retires inactive known sessions on the next fetch. `unassign()` is synchronous;
 retirement happens on the next assigned fetch or close. Manual and group close
 send a best-effort terminal epoch for known sessions within one total remaining
-budget. `close_timeout(Duration::ZERO)` immediately drops manual connections.
+budget. Terminal requests also respect broker quotas; a connection is dropped
+when the mute exceeds the remaining budget. `close_timeout(Duration::ZERO)`
+immediately drops manual connections.
 Session retirement never commits offsets.
 
 With 128 unchanged partitions, measured Fetch v17 request bodies shrink from

@@ -2617,12 +2617,31 @@ impl Consumer {
             let Some(mut conn) = self.conns.remove(&node) else {
                 continue;
             };
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() || conn.fetch_version() < 7 {
+            if Instant::now() >= deadline || conn.fetch_version() < 7 {
                 continue;
             }
             let version = conn.fetch_version();
             let mut wakeup = self.wakeup_tx.subscribe();
+            if let Some(until) = self.fetch_throttles.get(&node).copied() {
+                // Terminal requests still obey the broker's quota. An owned
+                // connection can be dropped immediately when its mute outlives
+                // the remaining retirement budget.
+                if until >= deadline {
+                    continue;
+                }
+                tokio::select! {
+                    biased;
+                    result = wakeup.wait_for(|on| *on) => {
+                        drop(result);
+                        return Err(Error::Wakeup);
+                    }
+                    _ = tokio::time::sleep(until.saturating_duration_since(Instant::now())) => {}
+                }
+            }
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                continue;
+            }
             tokio::select! {
                 biased;
                 result = wakeup.wait_for(|on| *on) => {
