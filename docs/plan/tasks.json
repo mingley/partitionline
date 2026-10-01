@@ -2133,13 +2133,39 @@
     {
       "id": "KL07-04",
       "title": "Write and run a fresh-package quickstart",
-      "priority": "P1", "kind": "documentation", "status": "pending", "owner": null,
-      "depends_on": ["KL07-03", "KL03-07"],
-      "files": ["docs/guide.md", "examples/produce.rs", "examples/consume.rs", "scripts/lib/adopter-consumer-main.sh"],
+      "priority": "P1",
+      "kind": "documentation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL07-03",
+        "KL03-07"
+      ],
+      "files": [
+        "docs/guide.md",
+        "examples/produce.rs",
+        "examples/consume.rs",
+        "scripts/lib/adopter-consumer-main.sh"
+      ],
       "deliverable": "A short produce/process/commit/shutdown tutorial tested outside the workspace.",
-      "acceptance": ["State broker/topic/tool prerequisites and provide bounded commands with an explicit cleanup scope.", "Teach enqueue versus ack, delivery versus committed positions, backpressure and application processing before commit.", "Use the actual released/packed package surface and accurately distinguish unpublished HEAD features."],
-      "validation": ["Run the tutorial from a fresh downstream crate against an approved isolated broker.", "Record complete commands and expected output without credentials or private topic names."],
-      "evidence": []
+      "acceptance": [
+        "State broker/topic/tool prerequisites and provide bounded commands with an explicit cleanup scope.",
+        "Teach enqueue versus ack, delivery versus committed positions, backpressure and application processing before commit.",
+        "Use the actual released/packed package surface and accurately distinguish unpublished HEAD features."
+      ],
+      "validation": [
+        "Run the tutorial from a fresh downstream crate against an approved isolated broker.",
+        "Record complete commands and expected output without credentials or private topic names."
+      ],
+      "evidence": [],
+      "write_set": [
+        "docs/guide.md",
+        "examples/produce.rs",
+        "examples/consume.rs",
+        "scripts/lib/adopter-consumer-main.sh",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL07-04.json"
+      ]
     },
     {
       "id": "KL07-05",
@@ -2352,7 +2378,7 @@
       "title": "Prove fatal fencing and abort-required transaction latches",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL07-10"
@@ -2370,7 +2396,9 @@
       "validation": [
         "cargo test --locked --test client_api txn_abort"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL07-14.json"
+      ],
       "write_set": [
         "tests/client_api.rs",
         "docs/api-stability.md",

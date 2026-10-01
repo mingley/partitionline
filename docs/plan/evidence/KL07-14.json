@@ -1,0 +1,41 @@
+{
+  "id": "KL07-14",
+  "status": "done",
+  "source_sha": "9eda0e46424fdee494198b6b9728b4376157f116",
+  "implementation_sha": "d1970e13a119cc50628e226649bb46cd59947e0c",
+  "acceptance_met": [
+    "Reconciled the stale recoverable-fencing proposal with the newer pinned KL03-10 handler tables: PRODUCER_FENCED and INVALID_PRODUCER_ID_MAPPING are terminal, not recoverable via abort. No production behavior was weakened.",
+    "Public client_api coverage exercises four fatal and eight abortable cases across EndTxn v4/v5, including all four older-card error codes. Repeated commit cannot clear either sticky state; fatal fencing sends no EndTxn/re-init; abortable errors recover only after abort.",
+    "Classic recovery sends the last authorized (pid,epoch) to InitProducerId; transaction V2 uses EndTxn identity without re-init. A recovered transaction successfully sends/commits with the returned epoch.",
+    "Corrected caller guidance: PID mapping errors are fatal, abort-required Produce errors block commit, and init_transactions is an initialization check that cannot clear terminal state."
+  ],
+  "commands": [
+    "cargo test --locked --test client_api txn_abort",
+    "cargo test --locked --test full_surface transactional",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings",
+    "cargo fmt --check"
+  ],
+  "results": {
+    "client_api": {
+      "passed": 2,
+      "failed": 0,
+      "cases": 12
+    },
+    "full_surface_transactional": {
+      "passed": 18,
+      "failed": 0
+    },
+    "clippy": "passed",
+    "fmt": "passed"
+  },
+  "artifacts": [
+    "docs/plan/evidence/KL07-14.json",
+    "https://github.com/mingley/partitionline/commit/9eda0e46424fdee494198b6b9728b4376157f116",
+    "docs/plan/evidence/KL03-10.json"
+  ],
+  "limits": [
+    "Mock evidence, not live transactional qualification. Existing non-transactional/idempotent behavior is unchanged.",
+    "The original proposed acceptance was unsafe and superseded by KL03-10; the registry records the corrected, source-pinned contract rather than treating fatal fencing as abort-recoverable."
+  ],
+  "blocked_reason": null
+}
