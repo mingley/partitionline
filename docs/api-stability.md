@@ -51,9 +51,7 @@ Nothing is marked `#[doc(hidden)]` experimental today. If an API is added for
 a single deployment need before it hardens, mark it in rustdoc with
 `Experimental:` and list it here in the same PR.
 
-## Error categories (KL07-10)
-
-### Proposed owned delivery API (KL10-07; awaiting maintainer review)
+## Proposed owned delivery API (KL10-07; awaiting maintainer review)
 
 This is an additive proposal, not an available API. The existing `send`,
 `send_all`, and `try_send` signatures and behavior remain stable. KL10-08
@@ -126,6 +124,8 @@ dropped completions retain byte ownership until delivery; and exercise
 flush, bounded close, interceptors, idempotence, transaction commit/abort,
 and fatal fencing. Those are future checks, not executed evidence.
 
+## Error categories (KL07-10)
+
 Every public operation resolves to at most one `Error`, classified below.
 The mapping is normative for 0.x callers: match the category, not the
 `Display` text. `Display` strings are human diagnostics and may change on
@@ -177,6 +177,7 @@ ships as `0.MINOR` plus a CHANGELOG note.
 |---|---|
 | More than one of `sasl_plain`, `sasl_scram`, `sasl_scram_sha512`, `sasl_oauthbearer`, `sasl_oauthbearer_oidc` set (raw fields; the `sasl(..)` builder replaces) | `Protocol` error: set only one |
 | Empty bootstrap list, or every entry blank/unparseable | `Protocol` error: no bootstrap servers |
+| Raw producer `acks` outside `{0, 1, -1}` | `Protocol` error before bootstrap validation or network I/O |
 | Empty `group.id` at group/share join | `Protocol` error naming `group.id` |
 | Join or poll with no topics and no subscription/assignment | `Protocol` error: no topics / not subscribed |
 | Broker lacks a required ApiVersions range (e.g. no usable Produce/Fetch/Metadata) | `Unsupported` naming the API |
@@ -193,9 +194,8 @@ closes idle connections. `metadata_max_age` zero refreshes on every lookup.
 
 ### Passed through, not validated (caller/broker enforced)
 
-A raw `acks` outside `{0, 1, -1}` is sent on the wire (broker answers
-`INVALID_REQUIRED_ACKS`); negative consumer fetch bounds are likewise sent
-raw. `transaction_timeout` above the broker's `transaction.max.timeout.ms`
+Negative consumer fetch bounds are sent raw.
+`transaction_timeout` above the broker's `transaction.max.timeout.ms`
 fails broker-side with `INVALID_TRANSACTION_TIMEOUT`. Bounded constructor
 validation for the client-side cases is proposed in the KL07-10 evidence.
 

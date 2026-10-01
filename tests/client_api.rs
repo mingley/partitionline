@@ -33,6 +33,41 @@ use partitionline::{
 use std::time::Duration;
 
 #[tokio::test]
+async fn invalid_raw_acks_are_rejected_before_bootstrap_or_network_io() {
+    for acks in [i16::MIN, -2, 2, i16::MAX] {
+        let cfg = ProducerConfig {
+            acks,
+            bootstrap: vec!["invalid bootstrap address".to_owned()],
+            ..ProducerConfig::default()
+        };
+        let err = Producer::new(cfg).await.err().expect("invalid acks");
+        assert!(matches!(err, Error::Protocol(_)), "{acks}: {err}");
+        assert!(err.to_string().contains("acks"), "{acks}: {err}");
+    }
+}
+
+#[tokio::test]
+async fn valid_raw_acks_still_construct_and_idempotence_normalizes_them() {
+    let mock = common::Mock::start().await;
+    for acks in [-1, 0, 1] {
+        for enable_idempotence in [false, true] {
+            let cfg = ProducerConfig {
+                acks,
+                enable_idempotence,
+                ..ProducerConfig::bootstrap([mock.addr.clone()])
+            };
+            let producer = Producer::new(cfg).await.unwrap();
+            let md = producer
+                .send(ProduceRecord::to("t").value(&b"valid acks"[..]))
+                .await
+                .unwrap();
+            assert_eq!(md.has_offset(), acks != 0 || enable_idempotence);
+            producer.close().await.unwrap();
+        }
+    }
+}
+
+#[tokio::test]
 async fn send_all_queues_then_returns_offsets() {
     let mock = common::Mock::start().await;
     let producer =

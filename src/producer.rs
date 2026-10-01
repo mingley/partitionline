@@ -1241,6 +1241,9 @@ impl Producer {
     /// `InitProducerId` when idempotent or transactional.
     pub async fn new(cfg: ProducerConfig) -> Result<Self> {
         let mut cfg = cfg;
+        if !matches!(cfg.acks, -1..=1) {
+            return Err(Error::protocol("acks must be -1, 0, or 1"));
+        }
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let mut meta = BrokerConn::connect_tls_any(
             &cfg.bootstrap,
