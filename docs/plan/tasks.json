@@ -2363,7 +2363,7 @@
       "title": "Validate consumer fetch bounds at construction",
       "priority": "P2",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL07-10"
@@ -2381,7 +2381,9 @@
       "validation": [
         "cargo test --locked --test client_api fetch_bounds"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL07-15.json"
+      ],
       "write_set": [
         "src/consumer.rs",
         "tests/client_api.rs",

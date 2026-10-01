@@ -1,0 +1,15 @@
+{
+  "id": "KL07-15",
+  "status": "done",
+  "source_sha": "20f241a02d2fe6598186495b763a391d709c0fe9",
+  "baseline_sha": "abe8345",
+  "commands": [
+    "cargo test --locked --test client_api fetch_bounds (before: 1 passed, 4 failed; after: 5 passed, 0 failed, 0 ignored)",
+    "cargo fmt --all -- --check (exit 0)",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings (exit 0)"
+  ],
+  "results": "One no-I/O regression per field tests -1 and i32::MIN with an invalid bootstrap address; each Protocol error names the rejected field before address parsing. Zero and positive builder bounds still construct and close against the mock.",
+  "limits": [
+    "Mock-based constructor validation; no changes to zero-value fetch protocol semantics."
+  ]
+}
