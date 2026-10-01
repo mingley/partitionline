@@ -1,4 +1,4 @@
-//! Fetch-cell contract tests (KL09-10): the seven section-4
+//! Fetch-cell contract tests (KL09-10, KL10-16): the section-4
 //! consumer cells exist exactly as defined, and the ID/hash verifier
 //! accepts genuine synth records while rejecting corruptions.
 
@@ -11,7 +11,7 @@ use nullbroker::synth::record_hash;
 use runtime::fcells::{fetch_cells, verify_record};
 
 #[test]
-fn seven_cells_exact_ids_and_shapes() {
+fn fetch_cells_exact_ids_and_shapes() {
     let cells = fetch_cells();
     let ids: Vec<&str> = cells.iter().map(|c| c.id).collect();
     assert_eq!(
@@ -24,6 +24,7 @@ fn seven_cells_exact_ids_and_shapes() {
             "nb-fetch-capped-paused",
             "nb-fetch-appdelay",
             "nb-fetch-multinode",
+            "nb-fetch-gzip-overfetch",
         ]
     );
     let by_id = |id: &str| cells.iter().find(|c| c.id == id).unwrap();
@@ -58,6 +59,30 @@ fn seven_cells_exact_ids_and_shapes() {
     assert_eq!(multi.nodes, 3);
     assert_eq!(multi.slow_node, Some(2));
     assert_eq!(multi.slow_delay, Duration::from_millis(50));
+
+    let over = by_id("nb-fetch-gzip-overfetch");
+    assert_eq!((over.partitions, over.synth_payload_bytes), (6, 1024));
+    assert_eq!(over.synth_codec, 1);
+    assert_eq!(over.buffer_memory, Some(4 * 1024 * 1024));
+    assert_eq!(over.max_partition_fetch_bytes, Some(8 * 1024 * 1024));
+    assert_eq!(over.max_bytes, Some(50 * 1024 * 1024));
+    for cell in cells.iter().filter(|c| c.id != over.id) {
+        assert_eq!(
+            cell.synth_codec, 0,
+            "{} serves an uncompressed log",
+            cell.id
+        );
+        assert_eq!(
+            (
+                cell.buffer_memory,
+                cell.max_partition_fetch_bytes,
+                cell.max_bytes
+            ),
+            (None, None, None),
+            "{} keeps crate defaults",
+            cell.id
+        );
+    }
 }
 
 #[test]

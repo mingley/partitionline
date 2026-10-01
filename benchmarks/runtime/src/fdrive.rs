@@ -68,8 +68,20 @@ pub fn consumer_config(cell: &FetchCellDef, bootstrap: &[String]) -> ConsumerCon
         } else {
             IsolationLevel::ReadUncommitted
         });
-    match cell.max_poll_records {
+    let cfg = match cell.max_poll_records {
         Some(n) => cfg.max_poll_records(n),
+        None => cfg,
+    };
+    let cfg = match cell.buffer_memory {
+        Some(n) => cfg.buffer_memory(n),
+        None => cfg,
+    };
+    let cfg = match cell.max_partition_fetch_bytes {
+        Some(n) => cfg.max_partition_fetch_bytes(n),
+        None => cfg,
+    };
+    match cell.max_bytes {
+        Some(n) => cfg.max_bytes(n),
         None => cfg,
     }
 }

@@ -251,6 +251,7 @@ reports medians with bootstrap 95% CIs. Artifacts must pass
 | `nb-fetch-capped-paused` | KL09-10 | `max_poll_records=1`; 100k-record paused backlog | CPU per poll |
 | `nb-fetch-appdelay` | KL09-10 | Application sleeps 1 ms per returned batch | rec/s; peak RSS |
 | `nb-fetch-multinode` | KL09-10 | 3 nodes; one delays responses by 50 ms | Fast-node rec/s; p99 delivery latency |
+| `nb-fetch-gzip-overfetch` | KL10-16 | 6 partitions; 1 KiB gzip records (stored frames); 8 MiB per partition and 50 MiB per response against a 4 MiB `buffer_memory` | rec/s, CPU-ns/record, allocated bytes/record, fetched/consumed records |
 | `lb-bulk`, `lb-fetch` | KL09-02/03 | Isolated local broker; contract knobs | Contract metrics |
 | `lb-latency-openloop` | KL04-06 | Open loop at 10/50/80% of saturation | p50/p99/p99.9; schedule lag |
 | `lb-tls-connect`, `lb-tls-bulk` | `scripts/ci-auth-smoke.sh` setup | TLS broker; 8 sockets | Connect ms; rec/s; RSS; p99 |

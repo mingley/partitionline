@@ -31,6 +31,15 @@ pub struct FetchCellDef {
     pub synth_payload_bytes: usize,
     /// Every Nth synth batch (1-based) is aborted; 0 disables.
     pub synth_abort_every: u64,
+    /// Synth codec attribute (0 none, 1 gzip, 2 snappy, 3 lz4). The
+    /// broker serves compressed codecs as stored frames (ratio 1).
+    pub synth_codec: u8,
+    /// Consumer `buffer_memory` override (`None` = crate default).
+    pub buffer_memory: Option<usize>,
+    /// Consumer `max_partition_fetch_bytes` override (`None` = crate default).
+    pub max_partition_fetch_bytes: Option<i32>,
+    /// Consumer `max_bytes` override (`None` = crate default).
+    pub max_bytes: Option<i32>,
     /// `read_committed` isolation (else `read_uncommitted`).
     pub read_committed: bool,
     /// `max_poll_records` override (`None` = crate default).
@@ -56,12 +65,19 @@ pub struct FetchCellDef {
     pub seed: u64,
 }
 
-/// The seven section-4 fetch cells.
+/// The section-4 fetch cells: the seven KL09-10 cells plus the KL10-16
+/// over-fetch cell.
 ///
 /// Documented defaults for knobs section 4 leaves open: 20k
 /// delivered records per bulk-family cell (10k for 1000p/seek,
 /// 2k polls for capped-paused), 500-record synth batches (1000 for
 /// seek-in-batch), uncompressed synth log, 5s fetch waits.
+///
+/// `nb-fetch-gzip-overfetch` serves 1 KiB gzip records while the consumer
+/// asks for far more than its `buffer_memory` (8 MiB per partition, 48 MiB
+/// per response, 4 MiB budget). The synth gzip frames are stored blocks, so
+/// the 4 MiB budget stands in for the default 32 MiB under the 7-8x ratio of
+/// real gzip text, matching the 2026-10-01 gateway probe at `62561426`.
 #[must_use]
 pub fn fetch_cells() -> Vec<FetchCellDef> {
     vec![
@@ -74,6 +90,10 @@ pub fn fetch_cells() -> Vec<FetchCellDef> {
             synth_records_per_batch: 500,
             synth_payload_bytes: 100,
             synth_abort_every: 0,
+            synth_codec: 0,
+            buffer_memory: None,
+            max_partition_fetch_bytes: None,
+            max_bytes: None,
             read_committed: false,
             max_poll_records: None,
             target_records: 20_000,
@@ -95,6 +115,10 @@ pub fn fetch_cells() -> Vec<FetchCellDef> {
             synth_records_per_batch: 500,
             synth_payload_bytes: 100,
             synth_abort_every: 0,
+            synth_codec: 0,
+            buffer_memory: None,
+            max_partition_fetch_bytes: None,
+            max_bytes: None,
             read_committed: false,
             max_poll_records: None,
             target_records: 10_000,
@@ -116,6 +140,10 @@ pub fn fetch_cells() -> Vec<FetchCellDef> {
             synth_records_per_batch: 500,
             synth_payload_bytes: 100,
             synth_abort_every: 5,
+            synth_codec: 0,
+            buffer_memory: None,
+            max_partition_fetch_bytes: None,
+            max_bytes: None,
             read_committed: true,
             max_poll_records: None,
             target_records: 20_000,
@@ -137,6 +165,10 @@ pub fn fetch_cells() -> Vec<FetchCellDef> {
             synth_records_per_batch: 1000,
             synth_payload_bytes: 100,
             synth_abort_every: 0,
+            synth_codec: 0,
+            buffer_memory: None,
+            max_partition_fetch_bytes: None,
+            max_bytes: None,
             read_committed: false,
             max_poll_records: None,
             target_records: 10_000,
@@ -158,6 +190,10 @@ pub fn fetch_cells() -> Vec<FetchCellDef> {
             synth_records_per_batch: 500,
             synth_payload_bytes: 100,
             synth_abort_every: 0,
+            synth_codec: 0,
+            buffer_memory: None,
+            max_partition_fetch_bytes: None,
+            max_bytes: None,
             read_committed: false,
             max_poll_records: Some(1),
             target_records: 2_000,
@@ -179,6 +215,10 @@ pub fn fetch_cells() -> Vec<FetchCellDef> {
             synth_records_per_batch: 500,
             synth_payload_bytes: 100,
             synth_abort_every: 0,
+            synth_codec: 0,
+            buffer_memory: None,
+            max_partition_fetch_bytes: None,
+            max_bytes: None,
             read_committed: false,
             max_poll_records: None,
             target_records: 20_000,
@@ -200,6 +240,10 @@ pub fn fetch_cells() -> Vec<FetchCellDef> {
             synth_records_per_batch: 500,
             synth_payload_bytes: 100,
             synth_abort_every: 0,
+            synth_codec: 0,
+            buffer_memory: None,
+            max_partition_fetch_bytes: None,
+            max_bytes: None,
             read_committed: false,
             max_poll_records: None,
             target_records: 20_000,
@@ -211,6 +255,31 @@ pub fn fetch_cells() -> Vec<FetchCellDef> {
             slow_delay: Duration::from_millis(50),
             timeout: Duration::from_secs(300),
             seed: 0xFE7C_0007,
+        },
+        FetchCellDef {
+            id: "nb-fetch-gzip-overfetch",
+            topic: "nb-fetch-gzip",
+            partitions: 6,
+            synth_seed: 0xFE7C_0008,
+            synth_records_per_partition: 100_000,
+            synth_records_per_batch: 500,
+            synth_payload_bytes: 1024,
+            synth_abort_every: 0,
+            synth_codec: 1,
+            buffer_memory: Some(4 * 1024 * 1024),
+            max_partition_fetch_bytes: Some(8 * 1024 * 1024),
+            max_bytes: Some(50 * 1024 * 1024),
+            read_committed: false,
+            max_poll_records: None,
+            target_records: 60_000,
+            paused_partitions: Vec::new(),
+            seek_offset: None,
+            app_delay_per_batch: Duration::ZERO,
+            nodes: 1,
+            slow_node: None,
+            slow_delay: Duration::ZERO,
+            timeout: Duration::from_secs(300),
+            seed: 0xFE7C_0008,
         },
     ]
 }

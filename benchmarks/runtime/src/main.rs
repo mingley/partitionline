@@ -599,7 +599,11 @@ fn fetch_effective(cell: &runtime::fcells::FetchCellDef) -> serde_json::Value {
             "records_per_batch": cell.synth_records_per_batch,
             "payload_bytes": cell.synth_payload_bytes,
             "abort_every": cell.synth_abort_every,
+            "codec": cell.synth_codec,
         },
+        "buffer_memory": cell.buffer_memory,
+        "max_partition_fetch_bytes": cell.max_partition_fetch_bytes,
+        "max_bytes": cell.max_bytes,
         "nodes": cell.nodes,
         "slow_node": cell.slow_node,
         "slow_delay_ms": cell.slow_delay.as_millis() as u64,
@@ -629,6 +633,7 @@ fn run_fetch(
         synth_records_per_batch: cell.synth_records_per_batch,
         synth_payload_bytes: cell.synth_payload_bytes,
         synth_abort_every: cell.synth_abort_every,
+        synth_codec: cell.synth_codec,
         ..BrokerOpts::default()
     };
     let broker = Broker::spawn(nb_serve, &broker_opts, out_dir, &tag)?;
