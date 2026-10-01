@@ -1651,13 +1651,41 @@
     {
       "id": "KL05-17",
       "title": "Expose ElectLeaders through Admin",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL05-16"],
-      "files": ["src/admin.rs", "src/lib.rs", "tests/full_surface.rs"],
+      "priority": "P2",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL05-16"
+      ],
+      "files": [
+        "src/admin.rs",
+        "src/lib.rs",
+        "tests/full_surface.rs"
+      ],
       "deliverable": "Typed Admin leader-election options and results with controller routing and deadlines.",
-      "acceptance": ["Preserve per-partition success/error outcomes; retry only eligible controller/transport failures.", "Unsupported election/version combinations return explicit errors.", "Do not perform real unclean election outside an approved isolated qualification test."],
-      "validation": ["cargo test --locked --test full_surface elect_leaders", "cargo test --locked --test client_api"],
-      "evidence": []
+      "acceptance": [
+        "Preserve per-partition success/error outcomes; retry only eligible controller/transport failures.",
+        "Unsupported election/version combinations return explicit errors.",
+        "Do not perform real unclean election outside an approved isolated qualification test."
+      ],
+      "validation": [
+        "cargo test --locked --test full_surface elect_leaders",
+        "cargo test --locked --test client_api"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/admin.rs",
+        "src/lib.rs",
+        "src/protocol/header.rs",
+        "tests/common/mod.rs",
+        "tests/full_surface.rs",
+        "tests/conformance/features.json",
+        "docs/gaps.md",
+        "docs/migrate-from-rdkafka.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL05-17.json"
+      ]
     },
     {
       "id": "KL05-18",
