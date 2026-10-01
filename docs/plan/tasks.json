@@ -321,7 +321,8 @@
         "tests/fixtures/protocol_oracles/current_groups",
         "docs/plan/evidence/KL05-13.json",
         "scripts/ci-docs.sh",
-        "tests/ci/test_docs_diagnostics.py"
+        "tests/ci/test_docs_diagnostics.py",
+        "src/config.rs"
       ]
     },
     {
