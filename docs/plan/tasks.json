@@ -1671,13 +1671,42 @@
     {
       "id": "KL05-09",
       "title": "Honor consumer broker throttle intervals",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL02-07", "KL03-22"],
-      "files": ["src/consumer.rs", "src/metrics.rs", "tests/consumer_fetch_semantics.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL02-07",
+        "KL03-22"
+      ],
+      "files": [
+        "src/consumer.rs",
+        "src/metrics.rs",
+        "tests/consumer_fetch_semantics.rs"
+      ],
       "deliverable": "Version-aware per-broker fetch throttle handling with observable delay.",
-      "acceptance": ["Respect broker throttling without losing successful records from other brokers.", "Caller timeout/wakeup and pending-record delivery remain correct while one broker is throttled.", "Test applicable version boundaries; document any remaining admin/group quota-policy exclusions rather than claiming all-client support."],
-      "validation": ["cargo test --locked --test consumer_fetch_semantics", "Check throttle behavior with a mixed fast/throttled two-broker fixture."],
-      "evidence": []
+      "acceptance": [
+        "Respect broker throttling without losing successful records from other brokers.",
+        "Caller timeout/wakeup and pending-record delivery remain correct while one broker is throttled.",
+        "Test applicable version boundaries; document any remaining admin/group quota-policy exclusions rather than claiming all-client support."
+      ],
+      "validation": [
+        "cargo test --locked --test consumer_fetch_semantics",
+        "Check throttle behavior with a mixed fast/throttled two-broker fixture."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/consumer.rs",
+        "src/metrics.rs",
+        "tests/consumer_fetch_semantics.rs",
+        "tests/common/mod.rs",
+        "docs/guide.md",
+        "docs/support.md",
+        "tests/conformance/features.json",
+        "CHANGELOG.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL05-09.json"
+      ]
     },
     {
       "id": "KL05-10",
