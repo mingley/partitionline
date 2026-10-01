@@ -91,6 +91,17 @@ jobs:
       fail-fast: false
       matrix:
         rust: ['1.85.0', stable]
+    defaults:
+      run:
+        shell: bash
+    env:
+      PL_MACOS_TOOLCHAIN: ${{ matrix.rust }}
+      RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
@@ -107,21 +118,28 @@ jobs:
           test "$(uname -s)" = Darwin
           brew list openssl@3 >/dev/null || brew install openssl@3
           echo "$(brew --prefix openssl@3)/bin" >> "$GITHUB_PATH"
-      - id: qualification
-        name: Native default/tracing runtime and packed crate consumers
-        shell: bash
-        env:
-          PL_MACOS_TOOLCHAIN: ${{ matrix.rust }}
-          CARGO_BUILD_JOBS: '2'
-          CARGO_PROFILE_DEV_DEBUG: '0'
-          CARGO_PROFILE_TEST_DEBUG: '0'
-          CARGO_INCREMENTAL: '0'
-        run: bash scripts/ci-macos-arm64.sh
+      - id: capture
+        name: Verify native host and retain exact versions
+        run: bash scripts/ci-macos-arm64.sh capture
+      - name: Native default-feature mock and public API runtime
+        run: bash scripts/ci-macos-arm64.sh default
+      - name: Native tracing mock and public API runtime
+        run: bash scripts/ci-macos-arm64.sh tracing
+      - name: Strict stable Clippy
+        if: matrix.rust == 'stable'
+        run: bash scripts/ci-macos-arm64.sh clippy
+      - name: Strict native Rustdoc and doctests
+        run: bash scripts/ci-macos-arm64.sh docs
+      - name: Actual packed-crate default and tracing consumers
+        run: bash scripts/ci-macos-arm64.sh package
+      - id: report
+        name: Validate complete platform and package provenance
+        run: bash scripts/ci-macos-arm64.sh report
       - name: Retain platform versions, full test logs and package reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.qualification.outputs.artifact_name || format('macos-arm64-{0}-failed-{1}', matrix.rust, github.sha) }}
+          name: ${{ steps.report.outputs.artifact_name || steps.capture.outputs.artifact_name || format('macos-arm64-{0}-failed-{1}', matrix.rust, github.sha) }}
           path: target/macos-arm64/${{ matrix.rust }}/
           if-no-files-found: error
           retention-days: 30

@@ -135,8 +135,24 @@ def finish(directory):
                        'Clippy runs on stable; both Rust toolchains run default/tracing and strict documentation.']}
 
 
+def diagnose(path, phase, code):
+    lines = path.read_text(errors='replace').splitlines()
+    errors = [line for line in lines if re.search(r'error(?:\[|:)|doc-examples:|package-docs:|Traceback|Error:', line)]
+    detail = (errors[-1] if errors else (lines[-1] if lines else 'no output'))[:800]
+    detail = re.sub(r'https?://[^\s]+', '<url>', detail)
+    message = f'{phase} exited {code}: {detail}'
+    if os.environ.get('GITHUB_ACTIONS') == 'true':
+        escaped = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+        print('::error title=macOS qualification phase::'+escaped)
+    else:
+        print(message, file=sys.stderr)
+
+
 def main():
     try:
+        if len(sys.argv) == 5 and sys.argv[1] == 'diagnose':
+            diagnose(Path(sys.argv[2]), sys.argv[3], int(sys.argv[4]))
+            return 0
         if len(sys.argv) not in (3, 4):
             raise ValueError('capture <report-dir> <toolchain> | finish <report-dir>')
         mode, directory = sys.argv[1], Path(sys.argv[2])
