@@ -1,0 +1,38 @@
+{
+  "id": "KL08-17",
+  "status": "done",
+  "source_sha": "f57d2ad1bf5940c985dc1000020b4483fab74b4e",
+  "acceptance_met": [
+    "Cargo.lock alone pins tokio-rustls 0.26.5; manifest range is unchanged. Every other complete lockfile package entry is identical.",
+    "Stable 1.98.1 and MSRV 1.85.0 full default test suites pass; cargo audit has zero vulnerabilities and cargo deny passes."
+  ],
+  "commands": [
+    "cargo update -p tokio-rustls --precise 0.26.5",
+    "cargo build --locked --example verifiable_producer --example verifiable_consumer; cargo test --locked",
+    "cargo +1.85.0 build --locked --example verifiable_producer --example verifiable_consumer; cargo +1.85.0 test --locked",
+    "cargo audit --json; cargo deny check",
+    "tomllib comparison of every non-target lockfile package entry against parent (identical)"
+  ],
+  "results": {
+    "stable": {
+      "passed": 1673,
+      "failed": 0,
+      "ignored": 2
+    },
+    "msrv": {
+      "passed": 1673,
+      "failed": 0,
+      "ignored": 2
+    },
+    "audit_vulnerabilities": 0,
+    "deny": "advisories, bans, licenses and sources ok"
+  },
+  "artifacts": [
+    "docs/plan/evidence/KL08-17.json",
+    "https://github.com/mingley/partitionline/commit/f57d2ad1bf5940c985dc1000020b4483fab74b4e"
+  ],
+  "limits": [
+    "The two pre-existing opt-in live-broker tests remain ignored; no skips were added."
+  ],
+  "blocked_reason": null
+}
