@@ -1,0 +1,154 @@
+{
+  "id": "KL05-22",
+  "status": "done",
+  "source_sha": "69b06ead2833ecad0ee65e1454f6532043470632",
+  "acceptance_met": [
+    "Recorded Apache 4.3.1 schemas and independent Java-generated v1-v5 fixtures before lifting api 35 cap; first Rust decode rejected v5.",
+    "v1-v4 remain byte-for-byte compatible with 19 older independent fixture cells; only v5 adds IsCordoned. Error/throttle/volume/nullable/empty/Unicode fields and unknown tags are covered.",
+    "Selected peers negotiate their own current range; mixed v5/v4 mocks expose true/false defaults. Requests remain broker-local with no controller/coordinator routing. Only matching api/version/reference rows are lifted."
+  ],
+  "upstream": {
+    "version": "4.3.1",
+    "tag_object": "a07059eb9b5bac1bfdbb1e74313f2fae4ca20fd9",
+    "source_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+    "image": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+    "distribution_jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+    "jdk": "21.0.12.1",
+    "schemas": {
+      "DescribeLogDirsRequest-431.json": "63ba440915c66d6ed6f2e17ef4aac5d2eb36e1f14bc6bf9d3129b3ce6c99f218",
+      "DescribeLogDirsResponse-431.json": "4e3b47c05309d177a004e11f2e317a65393294106e7074ae65f70921c29ebe53"
+    }
+  },
+  "schema_delta": {
+    "request": "v5 is the same nullable Topics / required Topic / Partitions flexible layout as v2-v4. Fresh Apache defaults are Some(empty), not null.",
+    "response": "v5 adds ignorable bool IsCordoned default false after TotalBytes/UsableBytes before directory tags. Top ErrorCode remains v3+, volume sizes v4+ default -1.",
+    "headers": "request v2, response v1 at v5; no other cap changed.",
+    "public_compatibility": "Existing five-argument DescribeLogDirsResult::new defaults is_cordoned=false; with_cordoned and getter expose v5. Evolving-type struct-literal callers must initialize new public field; CHANGELOG records this source break."
+  },
+  "fixtures": {
+    "generator": "tests/conformance/java/DescribeLogDirsFixtures.java",
+    "cells": 24,
+    "files": 72,
+    "manifest_sha256": "059be87fea6c089e12ac355b3e3cb124dc66757900b04c0a1b79ce1cbf3c182f",
+    "verification": "Independent Apache size/write/read generation and --verify reproduced all bytes and metadata. Wrong loaded-jar identity and invalid argument reject before output directory creation. Rust exact canonical reencoding equals Java bytes; unknown tags decode then canonicalize without those tags.",
+    "cells_per_version": "defaults, nullable, empty, populated for v1-v5; tagged for v2-v5."
+  },
+  "runtime_contract": {
+    "deadline": "Checked one local budget per broker hop covers Metadata validation, connect/auth, fresh ApiVersions, directory RPC and existing per-node transport retry waits. Zero and overflow fail before I/O; stalled ApiVersions returns Timeout within caller budget. Multi-broker operations still apply timeout separately to each hop.",
+    "tradeoff": "One additional read-only ApiVersions RPC per attempt, avoiding another capability cache and stale bootstrap assumptions. No global Producer/Consumer/net changes.",
+    "routing": "Connected broker or specifically requested node; no controller/coordinator hop. Typed top/directory errors and throttle retained; trailing response bytes reject.",
+    "mock_cases": [
+      "v5 peer true vs v4 peer false",
+      "raw Apache tagged error/throttle/cordoned body through broker-local path",
+      "trailing body rejection and empty queries",
+      "post-connect API absence, zero/overflow deadline",
+      "stalled capability negotiation"
+    ]
+  },
+  "results": [
+    {
+      "toolchain": "1.98.1",
+      "suite": "admin",
+      "summary": [
+        "test result: ok. 332 passed; 0 failed; 0 ignored; 0 measured; 762 filtered out; finished in 0.03s"
+      ],
+      "log_sha256": "913c9159d618633e5121b31d51837622c3871863f1b1d435ecfbf5a01282178d"
+    },
+    {
+      "toolchain": "1.98.1",
+      "suite": "header",
+      "summary": [
+        "test result: ok. 72 passed; 0 failed; 0 ignored; 0 measured; 1022 filtered out; finished in 0.00s"
+      ],
+      "log_sha256": "238fadceccf497749b0cf180ae64a518c6a5afca4ce459ff936d44ec9adaf0d2"
+    },
+    {
+      "toolchain": "1.98.1",
+      "suite": "oracles",
+      "summary": [
+        "test result: ok. 26 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.12s"
+      ],
+      "log_sha256": "80a5cbfd297983245f22a7da50096b856ab322606b1540f8603d206e75e84390"
+    },
+    {
+      "toolchain": "1.98.1",
+      "suite": "full-surface",
+      "summary": [
+        "test result: ok. 310 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.68s"
+      ],
+      "log_sha256": "3ffef2059ce6cc52668521768b44b57d9dee924dec012b756667958512537859"
+    },
+    {
+      "toolchain": "1.85.0",
+      "suite": "admin",
+      "summary": [
+        "test result: ok. 332 passed; 0 failed; 0 ignored; 0 measured; 762 filtered out; finished in 0.03s"
+      ],
+      "log_sha256": "64744ff877bff31b6241e21fec4a7d85a6f3568308b2fb2988b14b0a49617bf3"
+    },
+    {
+      "toolchain": "1.85.0",
+      "suite": "header",
+      "summary": [
+        "test result: ok. 72 passed; 0 failed; 0 ignored; 0 measured; 1022 filtered out; finished in 0.00s"
+      ],
+      "log_sha256": "2c65246514acdf2d139bef21b32ccd57647f012542a03553447bfac9b1bb40e3"
+    },
+    {
+      "toolchain": "1.85.0",
+      "suite": "oracles",
+      "summary": [
+        "test result: ok. 26 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.08s"
+      ],
+      "log_sha256": "10cec0547c7ad7fb41031df86fba2a089d8835a267ae6966c5724f60768818b3"
+    },
+    {
+      "toolchain": "1.85.0",
+      "suite": "runtime",
+      "summary": [
+        "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 298 filtered out; finished in 0.11s"
+      ],
+      "log_sha256": "3c6c513e5b2658853701d94f82aaad3e2bb518a6eb81c2767941a6516120021c"
+    }
+  ],
+  "other_validation": {
+    "strict_all_target_all_feature_clippy": "passed",
+    "strict_rustdoc": "passed",
+    "fmt_and_diff_check": "passed",
+    "coverage_python_tests": "15 passed; 0 failed. Updated exact gap count and matching v5 assertion; synthetic API/version drift failures remain enforced.",
+    "coverage": "66 implemented client APIs, 0 missing runtime APIs, 39 classified version gaps, 0 unclassified drift. Full feature completion is not claimed."
+  },
+  "failed_attempts": [
+    {
+      "log_sha256": "56c799171c06e498d59112e4755e3b851c4c0d72d10dc2b8f9e3d630afbec13f",
+      "observed": "Before cap lift the new independent v5 fixture fails: DescribeLogDirs version 5 is not implemented."
+    },
+    {
+      "log_sha256": "83ceb09c9471157565df21f8c15df7559098f1ab0c3a69bf57def2254a82118d",
+      "observed": "Initial reuse of bootstrap v5 capability wrongly exposed true IsCordoned from v4 peer. Mixed-broker assertion failed; refreshing the selected peer range repairs it."
+    },
+    {
+      "observed": "Coverage regression tests initially expected 40 gaps and still listed api 35 v5 as missing; both fail after implementation. Updated to 39 and absence of matching gap; no synthetic negative test weakened."
+    }
+  ],
+  "commands": [
+    "javac -cp <pinned-4.3.1-distribution-jar> -d <temporary-classes> tests/conformance/java/DescribeLogDirsFixtures.java",
+    "java -cp <jar>:<classes> DescribeLogDirsFixtures <same-jar> tests/fixtures/protocol_oracles [--verify]",
+    "cargo test --offline --locked --lib protocol::admin (stable and 1.85.0)",
+    "cargo test --offline --locked --lib protocol::header (stable and 1.85.0)",
+    "cargo test --offline --locked --test protocol_oracles (stable and 1.85.0)",
+    "cargo test --offline --locked --test full_surface (stable)",
+    "cargo +1.85.0 test --offline --locked --test full_surface log_dirs",
+    "cargo clippy --offline --locked --all-targets --all-features -- -D warnings",
+    "RUSTDOCFLAGS=-Dwarnings cargo doc --offline --locked --all-features --no-deps",
+    "python3 -B -m unittest discover -s tests/conformance -p test_check_protocol_coverage.py",
+    "python3 -B scripts/check-protocol-coverage.py",
+    "cargo fmt --all -- --check",
+    "git diff --check"
+  ],
+  "limits": [
+    "Independent wire fixtures and mock runtime qualification; no new live Kafka 4.3.1 log-directory test or cordon operation. The existing full_surface opportunistic live Admin test ran against owned Kafka 4.1.0.",
+    "Protocol oracle suite retains one existing ignored opt-in Java/live comparison; no newly selected oracle skipped.",
+    "This only closes DescribeLogDirs v5, not all admin versions, HA, or signed Suite HOLD."
+  ]
+}

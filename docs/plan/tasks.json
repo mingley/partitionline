@@ -2076,7 +2076,7 @@
       "title": "Add the selected DescribeLogDirs v5 delta",
       "priority": "P2",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL05-01",
@@ -2097,7 +2097,37 @@
         "cargo test --locked --lib protocol::admin",
         "cargo test --locked --test full_surface log_dirs"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "69b06ead2833ecad0ee65e1454f6532043470632",
+          "commands": [
+            "javac -cp <pinned-4.3.1-distribution-jar> -d <temporary-classes> tests/conformance/java/DescribeLogDirsFixtures.java",
+            "java -cp <jar>:<classes> DescribeLogDirsFixtures <same-jar> tests/fixtures/protocol_oracles [--verify]",
+            "cargo test --offline --locked --lib protocol::admin (stable and 1.85.0)",
+            "cargo test --offline --locked --lib protocol::header (stable and 1.85.0)",
+            "cargo test --offline --locked --test protocol_oracles (stable and 1.85.0)",
+            "cargo test --offline --locked --test full_surface (stable)",
+            "cargo +1.85.0 test --offline --locked --test full_surface log_dirs",
+            "cargo clippy --offline --locked --all-targets --all-features -- -D warnings",
+            "RUSTDOCFLAGS=-Dwarnings cargo doc --offline --locked --all-features --no-deps",
+            "python3 -B -m unittest discover -s tests/conformance -p test_check_protocol_coverage.py",
+            "python3 -B scripts/check-protocol-coverage.py",
+            "cargo fmt --all -- --check",
+            "git diff --check"
+          ],
+          "results": "Stable: 332 protocol Admin + 72 header + 26 independent oracle (1 existing opt-in ignored) + 310 Admin runtime passed. MSRV: same protocol/oracle counts + 12 log-directory runtime tests passed. 24 Java fixture cells regenerate exactly; strict Clippy/rustdoc and 15 coverage regression tests pass.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-22.json",
+            "tests/conformance/java/DescribeLogDirsFixtures.java",
+            "tests/fixtures/protocol_oracles/describe_log_dirs_*"
+          ],
+          "limits": [
+            "Independent wire fixtures and mock runtime qualification; no new live Kafka 4.3.1 log-directory test or cordon operation. The existing full_surface opportunistic live Admin test ran against owned Kafka 4.1.0.",
+            "Protocol oracle suite retains one existing ignored opt-in Java/live comparison; no newly selected oracle skipped.",
+            "This only closes DescribeLogDirs v5, not all admin versions, HA, or signed Suite HOLD."
+          ]
+        }
+      ],
       "write_set": [
         "src/protocol/admin.rs",
         "src/admin.rs",
