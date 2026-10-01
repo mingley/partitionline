@@ -3379,7 +3379,7 @@
       "title": "Qualify an explicit Windows support cell",
       "priority": "P2",
       "kind": "ci",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL08-04"
@@ -3399,7 +3399,34 @@
         "Inspect the completed Windows CI cell and packaged-consumer artifact.",
         "Re-run affected mock tests on an existing Linux/macOS cell to preserve their behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "5b02bc5885e2692e71d98293f6ff748334b7d846",
+          "commands": [
+            "bash scripts/ci-windows.sh capture",
+            "bash scripts/ci-windows.sh default",
+            "bash scripts/ci-windows.sh tracing",
+            "bash scripts/ci-windows.sh clippy (stable only)",
+            "bash scripts/ci-windows.sh docs",
+            "bash scripts/ci-windows.sh package",
+            "bash scripts/ci-windows.sh report",
+            "python3 -B -m unittest discover -s tests/platform -p 'test_*.py'",
+            "bash -n scripts/ci-windows.sh",
+            "bash scripts/check-workflows.sh",
+            "git diff --check"
+          ],
+          "results": "Both native Windows MSRV/stable cells passed: each 1716 default + 1717 tracing tests, four mandatory TLS paths, strict docs, 38 packed snippets and 2 operator feature cells. Stable Clippy passed. Matching Linux/macOS runtime cells succeeded. Whole CI alloc-budget failure is separate and unqualified.",
+          "artifacts": [
+            "docs/plan/evidence/KL08-14.json",
+            "https://github.com/mingley/partitionline/actions/runs/36854758398"
+          ],
+          "limits": [
+            "Mock/runtime and actual packaged-consumer qualification only; no Windows live-broker, external auth-service or performance evidence. Existing explicitly opt-in ignored tests remain ignored and are retained in reports; no zero-ignore claim.",
+            "Artifact metadata and successful strict CI finisher inspected through GitHub API. Signed Azure log/ZIP download hosts are denied by environment network policy, so no manual inspection of downloaded report bytes is claimed.",
+            "This platform card does not lift Suite HOLD, approve 1.0 or establish correctness of every client semantic."
+          ]
+        }
+      ],
       "write_set": [
         ".github/workflows/ci.yml",
         "tests/common/mod.rs",

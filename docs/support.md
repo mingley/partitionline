@@ -21,8 +21,8 @@ and evidence before extending support claims.
 |---|---|---|
 | Crate version | `0.1.0` on crates.io | Installable; do not re-cut `0.1.0` |
 | MSRV | Rust **1.85** (`rust-version` in `Cargo.toml`) | `test (1.85)` and `test (stable)` CI; raising MSRV is a 0.x minor + CHANGELOG note |
-| Host OS (CI) | Linux (`ubuntu-latest`); native macOS (`macos-15`) for mock/runtime and packed consumers | `.github/workflows/ci.yml`; KL08-05 native default/tracing cells |
-| Host arch (CI) | Linux `x86_64`; macOS `arm64` | Native compiler/runtime guards and retained platform reports |
+| Host OS (CI) | Linux (`ubuntu-latest`); native macOS (`macos-15`) and Windows (`windows-2025`) for mock/runtime and packed consumers | `.github/workflows/ci.yml`; KL08-05 / KL08-14 native default/tracing cells |
+| Host arch (CI) | Linux `x86_64`; macOS `arm64`; Windows `x86_64` MSVC | Native compiler/runtime guards and retained platform reports |
 | Brokers | Apache Kafka **3.9.1** and **4.1.0** (`apache/kafka:3.9.1`, `apache/kafka:4.1.0`) | `broker-smoke` matrix (`KAFKA_IMAGE`) |
 | Default features | Pure Rust (no librdkafka / OpenSSL / libzstd / Cyrus SASL) | `Cargo.toml` defaults + deny/audit lanes |
 | Auth in smoke | SASL PLAIN / SCRAM / OAUTHBEARER + rustls TLS (when auth smoke runs) | `scripts/ci-auth-smoke.sh` (soft-skip without Java/Kafka unless `REQUIRE_AUTH=1`) |
@@ -38,12 +38,13 @@ scripts' empty arrays under `set -u`. OpenSSL generates ephemeral mock certifica
 and is a test executable,
 not a crate dependency. The lane records actual OS, architecture, compiler,
 OpenSSL, Bash and Python versions with complete logs/package reports. Linux MSRV,
-broker and performance lanes remain in place; this card adds no Windows promise.
+broker and performance lanes remain in place.
 
-KL08-14 adds a native `windows-2025` x86_64 MSVC qualification lane for Rust
-1.85.0 and stable, with the same default/tracing runtime, mandatory public TLS
-paths and actual packed-consumer checks. Windows remains unsupported until both
-cells pass. Prerequisites are MSVC C build tools for Ring, native 64-bit Python
+KL08-14 qualifies native `windows-2025` x86_64 MSVC for Rust 1.85.0 and
+stable, with default/tracing runtime, mandatory public TLS mock paths and actual
+packed-consumer checks. Both hosted toolchains passed at source `5b02bc5`;
+Windows live-broker, external auth-service and performance campaigns remain
+unqualified. Prerequisites are MSVC C build tools for Ring, native 64-bit Python
 3.11+ in UTF-8 mode (`PYTHONUTF8=1`), Git Bash 5+ and OpenSSL 3 on PATH. The driver maps package scripts'
 `python3` calls to setup-python's native `python.exe` and records the actual
 certificate executable/version. No cross-build, WSL, skipped-runtime or
@@ -62,7 +63,7 @@ registry status was re-checked at source `ca50ca1` (KL07-07).
 | Proactive OIDC token refresh | Not implemented | `auth.sasl_oidc_refresh` (`missing`) |
 | Sticky unkeyed partitioner | Not implemented (round-robin instead) | `producer.sticky_partitioner` (`missing`) |
 | Signed Suite HOLD / Lab A | **Unsigned** — Suite HOLD remains | — (qualification gate, not a feature entry) |
-| Windows / macOS Intel / other host architectures | May build; no CI support promise for these cells | — (CI dimension, not a feature entry) |
+| macOS Intel / other host architectures | May build; no CI support promise for these cells | — (CI dimension, not a feature entry) |
 | Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `full_admin.describe_log_dirs_v5`, `producer.v13_wire`, `manual_consumer.v18_wire/list_offsets_v11` (`missing`) |
 
 Source now includes typed `elect_leaders`, read-only `describe_quorum` and

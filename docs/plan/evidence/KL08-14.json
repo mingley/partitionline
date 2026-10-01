@@ -1,0 +1,251 @@
+{
+  "id": "KL08-14",
+  "status": "done",
+  "source_sha": "5b02bc5885e2692e71d98293f6ff748334b7d846",
+  "acceptance_met": [
+    "Native Windows-2025 x86_64 MSVC Rust 1.85.0 and stable each execute full default/tracing runtime, standalone verifiable binaries and all four mandatory public TLS mock paths. Host guards reject WSL, non-Windows, cross-target or non-native Python execution.",
+    "Both toolchains pass strict rustdoc/doctests and actual extracted-package default/tracing consumers plus 19 Markdown snippets per feature cell. Stable passes strict all-target/all-feature Clippy. The finisher validates clean source VCS, compiler/feature identity, archive and downstream lock hashes.",
+    "Prerequisites and native process/UTF-8/CRLF boundaries are explicit. Linux and both native macOS cells passed on the same source; their assertions were preserved. Complete platform logs and package reports retained as GitHub artifacts."
+  ],
+  "qualifying_run": {
+    "id": 36854758398,
+    "url": "https://github.com/mingley/partitionline/actions/runs/36854758398",
+    "source_sha": "5b02bc5885e2692e71d98293f6ff748334b7d846",
+    "whole_workflow_status_at_recording": "completed",
+    "whole_workflow_conclusion_at_recording": "failure",
+    "jobs": [
+      {
+        "id": 110344642299,
+        "name": "windows (1.85.0)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run dtolnay/rust-toolchain@master",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Select an actual OpenSSL 3 certificate-tool executable",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native Windows MSVC host and exact prerequisites",
+            "conclusion": "success"
+          },
+          {
+            "name": "Native default-feature mock and public API runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Native tracing mock and public API runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Strict stable Clippy",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Strict native Rustdoc and doctests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Actual packed-crate default and tracing consumers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate complete native runtime and package provenance",
+            "conclusion": "success"
+          },
+          {
+            "name": "Retain native versions, full logs and package reports",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 110344642313,
+        "name": "windows (stable)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run dtolnay/rust-toolchain@master",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Select an actual OpenSSL 3 certificate-tool executable",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native Windows MSVC host and exact prerequisites",
+            "conclusion": "success"
+          },
+          {
+            "name": "Native default-feature mock and public API runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Native tracing mock and public API runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Strict stable Clippy",
+            "conclusion": "success"
+          },
+          {
+            "name": "Strict native Rustdoc and doctests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Actual packed-crate default and tracing consumers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate complete native runtime and package provenance",
+            "conclusion": "success"
+          },
+          {
+            "name": "Retain native versions, full logs and package reports",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "id": 11158796898,
+        "name": "windows-stable-rust1.98.1-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-tests1716-1717-snips38",
+        "size_in_bytes": 65200,
+        "digest": "sha256:f238b79a4c5dd2d0df14af6e799db41b2824c8fbe51a8698fd9c98558ba9c97d",
+        "expired": false
+      },
+      {
+        "id": 11158117509,
+        "name": "windows-1.85.0-rust1.85.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-tests1716-1717-snips38",
+        "size_in_bytes": 65222,
+        "digest": "sha256:de277f0bd23379ceb992b48eb82175c6af206a810a9267343fba42c2f0e9aa40",
+        "expired": false
+      }
+    ]
+  },
+  "actual_versions": {
+    "windows": "10.0.26100",
+    "machine": "AMD64",
+    "pointer_bits": 64,
+    "rustc_host": "x86_64-pc-windows-msvc",
+    "rustc": [
+      "1.85.0",
+      "1.98.1"
+    ],
+    "python": "3.13.15",
+    "python_utf8_mode": 1,
+    "bash": "5.3.15",
+    "openssl": "3.5.7"
+  },
+  "results": {
+    "per_toolchain": {
+      "default_tests_passed": 1716,
+      "tracing_tests_passed": 1717,
+      "failed": 0,
+      "actual_packaged_snippets": 38,
+      "operator_feature_cells": 2,
+      "strict_rustdoc_and_doctests": "passed"
+    },
+    "stable_clippy": "passed",
+    "msrv_clippy": "not selected; stable is the Clippy lane",
+    "report_unit_tests": 13,
+    "linux_native_guard": "rejects before cargo; not Windows qualification",
+    "linux_and_macos_same_source": "test stable/MSRV and macOS stable/MSRV jobs succeeded",
+    "whole_workflow": "alloc-budget failed with exit 101; investigated separately, no whole-workflow success claim"
+  },
+  "commands": [
+    "bash scripts/ci-windows.sh capture",
+    "bash scripts/ci-windows.sh default",
+    "bash scripts/ci-windows.sh tracing",
+    "bash scripts/ci-windows.sh clippy (stable only)",
+    "bash scripts/ci-windows.sh docs",
+    "bash scripts/ci-windows.sh package",
+    "bash scripts/ci-windows.sh report",
+    "python3 -B -m unittest discover -s tests/platform -p 'test_*.py'",
+    "bash -n scripts/ci-windows.sh",
+    "bash scripts/check-workflows.sh",
+    "git diff --check"
+  ],
+  "failed_attempts": [
+    {
+      "run_id": 36851462362,
+      "source_sha": "0fe0f0854fb8b2072be9b4801887ca04b36508ca",
+      "job_id": 110334233980,
+      "phase": "capture",
+      "observed": "Native Python Bash-version subprocess exited 1; OpenSSL prerequisite passed. Exact executable selection repaired in eeb9a7ef78c661fd42779da30bfbc792fb59badf. Bare bash may resolve WSL; actual failed executable path was not observed."
+    },
+    {
+      "run_id": 36852201952,
+      "source_sha": "261651b37cfa6ea777583a9d407913014b67f47c",
+      "job_id": 110336773268,
+      "phase": "package",
+      "observed": "Runtime/default/tracing/docs passed; package annotation: package exited 1: .crate. Locally reproduced CRLF at native Python version and target-path output boundaries. Narrow Bash read trimming fixed in 8b4f4aa7d48ca32a943f1d0c6a697c11308f8088."
+    },
+    {
+      "run_id": 36853390284,
+      "source_sha": "8b4f4aa7d48ca32a943f1d0c6a697c11308f8088",
+      "job_ids": [
+        110340268750,
+        110340268801
+      ],
+      "phase": "package",
+      "observed": "Both failed: package-docs: FAIL: 'charmap' codec can't decode byte 0x9d in position 11169. Runtime/docs passed and stable Clippy passed. PYTHONUTF8=1 and strict report guard fixed in 5b02bc5885e2692e71d98293f6ff748334b7d846."
+    }
+  ],
+  "limits": [
+    "Mock/runtime and actual packaged-consumer qualification only; no Windows live-broker, external auth-service or performance evidence. Existing explicitly opt-in ignored tests remain ignored and are retained in reports; no zero-ignore claim.",
+    "Artifact metadata and successful strict CI finisher inspected through GitHub API. Signed Azure log/ZIP download hosts are denied by environment network policy, so no manual inspection of downloaded report bytes is claimed.",
+    "This platform card does not lift Suite HOLD, approve 1.0 or establish correctness of every client semantic."
+  ]
+}
