@@ -392,7 +392,8 @@
         "tests/common/mod.rs",
         "tests/conformance/cases.json",
         "docs/plan/tasks.json",
-        "docs/plan/evidence/KL01-15.json"
+        "docs/plan/evidence/KL01-15.json",
+        "tests/conformance/test_report.py"
       ]
     },
     {
