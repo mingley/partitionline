@@ -1679,6 +1679,23 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "KL01-16: verifiable_consumer_autocommit_has_no_manual_commit_events delivers offset 0, waits for interval auto-commit to store next offset 1, then delivers offset 1 and exits; every stdout line validated and no offsets_committed events. Final poll is not automatically committed on close by current root contract. Local mock proof only; no Java close-parity, live or ducktape qualification."
+    },
+    {
+      "id": "verifiable-produce-consume-live-4-1-2",
+      "api_family": null,
+      "api_version": null,
+      "profile": "ecosystem",
+      "adapter": "verifiable-scenario",
+      "source_pin": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "immutable_source_pin": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+      "source_kind": "upstream_cli_reference",
+      "peer_version_pin": "4.1.2",
+      "peer_pin": "4.1.2",
+      "peer_identity": "docker:apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "disposition": "not_run",
+      "denominator": true,
+      "supersedes_mock_case": "verifiable-produce-consume-3-9-1",
+      "reason": "KL01-17 frozen live scenario: both Rust adapter binaries, 25 null-key string IDs, one fresh partition, all acknowledgements/deliveries and manual next-offset commits, independently corroborated with the digest-pinned current Apache 4.1.2 broker Java CLI. source_pin names the normative Apache 3.9.1 CLI source; each execution separately records and verifies the actual clean candidate source SHA. No full ducktape or full SDK-profile passage."
     }
   ]
 }

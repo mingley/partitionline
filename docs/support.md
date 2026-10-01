@@ -42,6 +42,15 @@ feature fails the profile. Transaction commit-marker visibility is observed
 within five seconds without repeating the transaction. Startup coordinator
 errors and every visibility observation remain in the evidence.
 
+The Apache 4.1.2 lane also requires the KL01-17
+[frozen live verifiable scenario](../tests/conformance/verifiable-live-profile.json).
+It runs both Rust adapter binaries on one fresh partition, checks every event
+for 25 null-key decimal values, and confirms all records and the final committed
+offset 25 / lag 0 with that broker's Java CLI. Each attempt retains its actual
+clean source SHA, compiler/image identity, full streams and failures. This is
+one producer/consumer scenario; it does not qualify the full ducktape suite or
+the full SDK case registry. The earlier mock-only case remains historical.
+
 These profiles qualify current source with default features. They do not add
 multi-broker HA, rebalance churn, share lock-expiry, crash/fencing, external auth,
 native macOS/Windows broker, tiered-storage or performance qualification. The

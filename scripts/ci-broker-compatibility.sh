@@ -140,6 +140,13 @@ done
 phase=validate-complete-history
 python3 -B scripts/report-broker-compatibility.py "$report" "$version" "$source_sha" >"$report/report-validation.log" 2>&1
 cat "$report/report-validation.log"
+if [[ "${PL_COMPAT_RUN_VERIFIABLE:-0}" == 1 && "$version" == 4.1.2 ]]; then
+  phase=required-live-verifiable-scenario
+  REQUIRE_BROKER=1 PL_VERIFIABLE_CONTAINER="$name" \
+    PL_VERIFIABLE_REPORT_DIR="$report/verifiable" \
+    bash scripts/ci-verifiable-scenario.sh >"$report/verifiable-validation.log" 2>&1
+  cat "$report/verifiable-validation.log"
+fi
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   python3 - "$report/report.json" >>"$GITHUB_OUTPUT" <<'PY'
 import json,sys

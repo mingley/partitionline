@@ -382,6 +382,7 @@ jobs:
         version: ['4.1.2', '4.2.1', '4.3.1']
     env:
       PL_CURRENT_BROKER_CELL: ${{ matrix.version }}
+      PL_COMPAT_RUN_VERIFIABLE: '1'
       CARGO_BUILD_JOBS: '2'
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
@@ -394,6 +395,8 @@ jobs:
           python-version: '3.13'
       - name: Fail-closed broker report negative tests
         run: python3 -B -m unittest discover -s tests/conformance -p test_broker_compatibility.py
+      - name: Complete verifiable event history negative tests
+        run: python3 -B -m unittest discover -s tests/conformance -p test_verifiable_scenario.py
       - id: qualified
         name: Fresh digest-pinned broker and complete required histories
         run: bash scripts/ci-broker-smoke.sh
