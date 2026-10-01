@@ -418,15 +418,22 @@ jobs:
         run: python3 -B -m unittest discover -s tests/conformance -p test_broker_compatibility.py
       - name: Complete verifiable event history negative tests
         run: python3 -B -m unittest discover -s tests/conformance -p test_verifiable_scenario.py
+      - name: Observed Fetch recovery report negative tests
+        run: python3 -B -m unittest discover -s tests/conformance -p test_fetch_session_recovery.py
       - id: qualified
         name: Fresh digest-pinned broker and complete required histories
         run: bash scripts/ci-broker-smoke.sh
+      - name: Observe 32-partition Fetch reset and independent Java records
+        if: matrix.version == '4.1.2'
+        run: bash scripts/ci-fetch-session-recovery.sh
       - name: Retain identity, all startup attempts and complete histories
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: broker-current-${{ matrix.version }}-${{ github.sha }}-rust${{ steps.qualified.outputs.rust }}-scenarios${{ steps.qualified.outputs.scenarios }}-records${{ steps.qualified.outputs.records }}-${{ steps.qualified.outputs.features }}-${{ steps.qualified.outputs.digest }}
-          path: target/broker-compatibility/${{ matrix.version }}/
+          path: |
+            target/broker-compatibility/${{ matrix.version }}/
+            target/fetch-session-recovery/
           if-no-files-found: error
           retention-days: 30
 

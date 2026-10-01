@@ -30,7 +30,7 @@ def main():
     run('compile',[str(args.java_bin/'javac'),'--release','21','-cp',classpath,'-d',str(args.output),str(SOURCE)])
     text=run('execute',[str(args.java_bin/'java'),'-cp',str(args.output.resolve())+':'+classpath,'FetchSessionOracle'])
     rows=[json.loads(line) for line in text.splitlines()]
-    assert len(rows)==48
+    assert len(rows)==80
     expected={
         'initial':(0,0,128,0,128),'unchanged':(91,1,0,0,128),
         'changed-offset':(91,2,1,0,128),'removed':(91,3,0,1,127),
@@ -39,9 +39,15 @@ def main():
     sizes={7:(3112,33),8:(3112,33),11:(3626,35),12:(4258,29),13:(4272,29),17:(4268,25)}
     for version in sizes:
         selected=[row for row in rows if row['version']==version]
-        assert len(selected)==8 and {r['step'] for r in selected}==set(expected)
+        recovery={
+            'missing-full':(0,0,128,0,128),'throttled-full':(0,0,128,0,128),
+            'extra-incremental':(91,0,128,0,128),'topic-id-error':(91,0,128,0,128),
+            'terminal-close':(91,-1,128,0,128)}
+        if version>=13: recovery['unknown-id']=(91,0,128,0,128)
+        cases=expected | recovery
+        assert len(selected)==len(cases) and {r['step'] for r in selected}==set(cases)
         for row in selected:
-            assert tuple(row[k] for k in ['session_id','epoch','changed','forgotten','cached_partitions'])==expected[row['step']],row
+            assert tuple(row[k] for k in ['session_id','epoch','changed','forgotten','cached_partitions'])==cases[row['step']],row
             if row['step']=='initial': assert row['request_bytes']==sizes[version][0],row
             if row['step']=='unchanged': assert row['request_bytes']==sizes[version][1],row
     identity={'apache_client_version':'4.3.1','kafka_jar_sha256':PIN,
@@ -50,7 +56,7 @@ def main():
         'java_version_log':'java-version.stderr.log','rows':rows,'status':'passed',
         'scope':'Executed Apache FetchSessionHandler state transitions and official serialized Fetch request sizes; no throughput claim.'}
     (args.output/'report.json').write_text(json.dumps(identity,indent=2)+'\n')
-    print('Apache 4.3.1 session reference: 48 transitions and all six request-size pairs passed')
+    print('Apache 4.3.1 session reference: 80 transitions and all six request-size pairs passed')
 
 
 if __name__=='__main__':main()

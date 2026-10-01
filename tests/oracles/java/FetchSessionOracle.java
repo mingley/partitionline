@@ -51,6 +51,31 @@ public final class FetchSessionOracle {
             +",\"cached_partitions\":"+data.sessionPartitions().size()+",\"request_bytes\":"+bytes+"}");
     }
     static void check(boolean value) { if (!value) throw new AssertionError("Apache handler rejected valid response"); }
+    static void recovery(short version, String fault) {
+        var handler = new FetchSessionHandler(new LogContext(), 1);
+        var desired = partitions(FIRST, false, false);
+        request(handler, desired);
+        boolean full = fault.equals("missing-full") || fault.equals("throttled-full");
+        if (!full) {
+            check(handler.handleResponse(response(91, (short)0, FIRST, desired.keySet()), version));
+            request(handler, desired);
+        }
+        if (fault.equals("terminal-close")) {
+            handler.notifyClose();
+        } else {
+            FetchResponse bad = switch (fault) {
+                case "missing-full" -> response(91, (short)0, FIRST, List.of());
+                case "throttled-full" -> response(0, (short)0, FIRST, List.of());
+                case "extra-incremental" -> response(91, (short)0, FIRST, List.of(new TopicPartition("t",128)));
+                case "unknown-id" -> response(91, (short)0, SECOND, List.of(new TopicPartition("t",0)));
+                case "topic-id-error" -> response(0, Errors.FETCH_SESSION_TOPIC_ID_ERROR.code(), FIRST, List.of());
+                default -> throw new AssertionError(fault);
+            };
+            if (fault.equals("throttled-full")) bad.data().setThrottleTimeMs(80);
+            check(!handler.handleResponse(bad, version));
+        }
+        row(version, fault, request(handler, desired));
+    }
     public static void main(String[] args) {
         for (short version: new short[]{7,8,11,12,13,17}) {
             var handler = new FetchSessionHandler(new LogContext(), 1);
@@ -78,5 +103,10 @@ public final class FetchSessionOracle {
             row(version, "connection-error-full", request(handler, desired));
         }
         check(new FetchMetadata(91, Integer.MAX_VALUE).nextIncremental().epoch()==1);
+        for (short version: new short[]{7,8,11,12,13,17}) {
+            for (String fault: List.of("missing-full", "throttled-full", "extra-incremental", "topic-id-error", "terminal-close"))
+                recovery(version, fault);
+            if (version>=13) recovery(version, "unknown-id");
+        }
     }
 }

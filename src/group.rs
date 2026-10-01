@@ -1836,10 +1836,14 @@ impl ConsumerGroup {
     /// close must not commit polled-but-unprocessed records). Use poll-interval
     /// auto-commit or an explicit `commit*` before leave if you want stored offsets.
     pub async fn leave(mut self) -> Result<()> {
+        let started = Instant::now();
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
             *self.hb_deadline.lock() = None;
             self.consumer.close_interceptors();
+            self.consumer
+                .close_fetch_sessions(self.cfg.request_timeout)
+                .await;
             return Ok(());
         }
         self.flush_async_commits().await;
@@ -1848,6 +1852,9 @@ impl ConsumerGroup {
         *self.hb_deadline.lock() = None;
         let out = self.leave_coordinator(LEAVE_GROUP_REASON_CLOSED).await;
         self.consumer.close_interceptors();
+        self.consumer
+            .close_fetch_sessions(self.cfg.request_timeout.saturating_sub(started.elapsed()))
+            .await;
         out
     }
 

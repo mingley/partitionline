@@ -300,6 +300,7 @@ struct State {
     add_partitions_error_left: Option<u32>,
     log_start: HashMap<(String, i32), i64>,
     created_topics: HashMap<String, CreatedTopic>,
+    topic_id_overrides: HashMap<String, [u8; 16]>,
     metadata_calls: u32,
     last_metadata_allow_auto: Option<bool>,
     last_metadata_version: Option<i16>,
@@ -564,6 +565,7 @@ struct State {
     fetch_session_maps: HashMap<(i32, i32), (i32, Vec<FetchTopic>)>,
     next_fetch_session: i32,
     fetch_session_requests: Vec<FetchSessionRequest>,
+    fetch_session_raw_responses: HashMap<i32, VecDeque<Vec<u8>>>,
     groups: HashMap<String, GroupReg>,
     assign_notify: Arc<Notify>,
     last_fetch_isolation: i8,
@@ -756,6 +758,7 @@ fn new_state(
         add_partitions_error_left: None,
         log_start: HashMap::new(),
         created_topics,
+        topic_id_overrides: HashMap::new(),
         metadata_calls: 0,
         last_metadata_allow_auto: None,
         last_metadata_version: None,
@@ -1004,6 +1007,7 @@ fn new_state(
         fetch_session_maps: HashMap::new(),
         next_fetch_session: 10_000,
         fetch_session_requests: Vec::new(),
+        fetch_session_raw_responses: HashMap::new(),
         groups: HashMap::new(),
         assign_notify: Arc::new(Notify::new()),
         last_fetch_isolation: 0,
@@ -1138,6 +1142,14 @@ fn mock_topic_id(name: &str) -> [u8; 16] {
         }
     }
     id
+}
+
+fn topic_id_for(state: &State, name: &str) -> [u8; 16] {
+    state
+        .topic_id_overrides
+        .get(name)
+        .copied()
+        .unwrap_or_else(|| mock_topic_id(name))
 }
 
 fn kip848_topic_partitions(parts: &[(String, i32)]) -> Vec<TopicPartitions> {
@@ -1329,7 +1341,7 @@ fn metadata_topic_for(
     TopicMetadata {
         error_code: 0,
         name: Some(name.to_string()),
-        topic_id: mock_topic_id(name),
+        topic_id: topic_id_for(st, name),
         is_internal: spec.is_internal,
         partitions: (0..spec.num_partitions)
             .map(|i| {
@@ -2152,6 +2164,55 @@ impl Mock {
 
     pub fn fetch_session_requests(&self) -> Vec<FetchSessionRequest> {
         self.state.lock().fetch_session_requests.clone()
+    }
+
+    pub fn set_fetch_session_raw_responses(
+        &self,
+        node: i32,
+        bodies: impl IntoIterator<Item = Vec<u8>>,
+    ) {
+        let _ = self
+            .state
+            .lock()
+            .fetch_session_raw_responses
+            .insert(node, bodies.into_iter().collect());
+    }
+
+    pub fn fetch_session_id(&self, node: i32) -> Option<i32> {
+        self.state
+            .lock()
+            .fetch_session_maps
+            .keys()
+            .filter_map(|(n, id)| (*n == node).then_some(*id))
+            .max()
+    }
+
+    pub fn reset_fetch_sessions(&self, node: i32) {
+        self.state
+            .lock()
+            .fetch_session_maps
+            .retain(|(n, _), _| *n != node);
+    }
+
+    pub fn remembered_fetch_partitions(&self, node: i32) -> usize {
+        self.state
+            .lock()
+            .fetch_session_maps
+            .iter()
+            .filter(|((n, _), _)| *n == node)
+            .map(|(_, (_, topics))| topics.iter().map(|t| t.partitions.len()).sum::<usize>())
+            .sum()
+    }
+
+    pub fn topic_id(&self, topic: &str) -> [u8; 16] {
+        topic_id_for(&self.state.lock(), topic)
+    }
+
+    pub fn recreate_topic_id(&self, topic: &str, id: [u8; 16]) {
+        let mut state = self.state.lock();
+        let _ = state.topic_id_overrides.insert(topic.into(), id);
+        state.log.retain(|(name, _), _| name != topic);
+        state.next_offset.retain(|(name, _), _| name != topic);
     }
 
     pub fn set_fetch_delay_once(&self, node: i32, delay: std::time::Duration) {
@@ -3978,7 +4039,7 @@ fn topic_name_for_id(st: &State, id: [u8; 16]) -> String {
     }
     st.created_topics
         .keys()
-        .find(|name| mock_topic_id(name) == id)
+        .find(|name| topic_id_for(st, name) == id)
         .cloned()
         .unwrap_or_else(|| "t".into())
 }
@@ -6506,6 +6567,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             FETCH => {
+                let response_header_len = body.len();
                 let delay = state
                     .lock()
                     .fetch_delays
@@ -6600,6 +6662,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 session_error = error::FETCH_SESSION_ID_NOT_FOUND;
                                 req.clear();
                             }
+                        } else if session.epoch() == FetchMetadata::FINAL_EPOCH {
+                            let _ = st
+                                .fetch_session_maps
+                                .remove(&(node_id, session.session_id()));
                         }
                     }
                 }
@@ -6859,7 +6925,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     )
                     .unwrap();
                     if let Some(throttle) = throttle {
-                        body[..4].copy_from_slice(&throttle.to_be_bytes());
+                        body[response_header_len..response_header_len + 4]
+                            .copy_from_slice(&throttle.to_be_bytes());
                     }
                 } else if let Some(throttle) = throttle {
                     assert!(
@@ -6883,6 +6950,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         &endpoints,
                     )
                     .unwrap();
+                }
+                if let Some(raw) = st
+                    .fetch_session_raw_responses
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front)
+                {
+                    body.truncate(response_header_len);
+                    body.extend_from_slice(&raw);
                 }
             }
             OFFSET_FOR_LEADER_EPOCH => {

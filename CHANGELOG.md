@@ -9,8 +9,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 - Consumer uses broker-local incremental Fetch sessions on v7–v17, retaining
   full v4–v6 fallback, changed/forgotten partitions and independent epochs.
-  Session failures force the next request full. Request-byte reduction is
-  measured against Apache serialization; broader recovery remains KL05-07.
+  Session errors retry within the original deadline, response identities and
+  partition sets are validated before records are applied, and topic recreation
+  clears stale buffered records. Close retires known sessions within one remaining
+  budget; wakeup notifications no longer leak into a later fetch. Request-byte
+  reduction is measured against Apache serialization; no throughput gain is claimed.
 
 - Consumer honors Fetch v8–v17 broker quotas while delivering from eligible peers
   and buffered records. Quota waits retain poll/request budgets and accept wakeup

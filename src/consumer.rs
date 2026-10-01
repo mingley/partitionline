@@ -28,7 +28,7 @@ use crate::protocol::epoch::{
 };
 use crate::protocol::fetch::{
     decode_fetch_response, encode_fetch_request_with_forgotten, FetchMetadata, FetchPartition,
-    FetchTopic, ForgottenTopic, INVALID_LOG_START_OFFSET,
+    FetchTopic, FetchedTopic, ForgottenTopic, INVALID_LOG_START_OFFSET,
 };
 use crate::protocol::group::Topic;
 use crate::protocol::offsets::{decode_list_offsets_topics_response, encode_list_offsets_request};
@@ -1328,6 +1328,17 @@ struct FetchReply {
     body: Result<Bytes>,
 }
 
+struct FetchBody {
+    topics: Vec<FetchedTopic>,
+    endpoints: Vec<crate::protocol::api::NodeEndpoint>,
+}
+
+struct DecodedFetchReply {
+    node: i32,
+    body: Result<FetchBody>,
+    recovery: Option<FetchRetry>,
+}
+
 /// A broker's cached request map is bounded by this consumer's active assignment.
 /// Preparing marks the map uncertain until a response arrives, so cancellation
 /// cannot reuse an epoch whose request may already have reached the broker.
@@ -1359,6 +1370,43 @@ impl BrokerFetchSession {
     fn reset(&mut self) {
         self.metadata = self.metadata.next_close_existing_attempt_new();
         self.awaiting_response = false;
+    }
+
+    fn validate_partitions(&self, topics: &[FetchedTopic], version: i16, full: bool) -> Result<()> {
+        let expected: HashSet<_> = self
+            .partitions
+            .keys()
+            .map(|(name, partition)| (name.as_str(), *partition))
+            .collect();
+        let ids: HashMap<_, _> = self
+            .partitions
+            .iter()
+            .map(|((name, _), (id, _))| (*id, name.as_str()))
+            .collect();
+        let mut seen = HashSet::new();
+        for topic in topics {
+            let name = if version >= 13 {
+                ids.get(&topic.topic_id).copied().ok_or_else(|| {
+                    Error::protocol("Fetch session response has an unexpected topic ID")
+                })?
+            } else {
+                topic.topic.as_str()
+            };
+            for partition in &topic.partitions {
+                let key = (name, partition.partition);
+                if !expected.contains(&key) || !seen.insert(key) {
+                    return Err(Error::protocol(
+                        "Fetch session response has an extra or duplicate partition",
+                    ));
+                }
+            }
+        }
+        if full && seen != expected {
+            return Err(Error::protocol(
+                "Fetch full session response is missing partitions",
+            ));
+        }
+        Ok(())
     }
 
     fn prepare(&mut self, topics: Vec<FetchTopic>, version: i16) -> SessionFetchRequest {
@@ -1481,7 +1529,7 @@ impl WakeupHandle {
     /// Make the next (or in-flight) fetch return [`Error::Wakeup`].
     pub fn wakeup(&self) {
         self.flag.store(true, Ordering::SeqCst);
-        self.tx.send(true).unwrap_or(());
+        let _previous = self.tx.send_replace(true);
     }
 }
 
@@ -1874,6 +1922,7 @@ impl Consumer {
 
     /// Replace the assignment. One Metadata refresh for the topic set.
     pub(crate) async fn assign_all(&mut self, starts: &[(String, i32, i64)]) -> Result<()> {
+        let old_ids = self.topic_name_ids();
         let old_assigned: HashMap<(String, i32), i64> = self
             .assigned
             .iter()
@@ -1897,10 +1946,11 @@ impl Consumer {
             }
         }
         self.refresh_metadata(Some(&topics)).await?;
+        let new_ids = self.topic_name_ids();
         self.assigned.extend(starts.iter().cloned());
         for (topic, part, offset) in starts {
             if let Some(&old_offset) = old_assigned.get(&(topic.clone(), *part)) {
-                if old_offset != *offset {
+                if old_offset != *offset || old_ids.get(topic) != new_ids.get(topic) {
                     self.drop_pending_for(topic, *part);
                 }
             } else {
@@ -2509,7 +2559,7 @@ impl Consumer {
     /// use [`Self::wakeup_handle`].
     pub fn wakeup(&self) {
         self.wakeup.store(true, Ordering::SeqCst);
-        self.wakeup_tx.send(true).unwrap_or(());
+        let _previous = self.wakeup_tx.send_replace(true);
     }
 
     /// Cloneable handle for [`Self::wakeup`] from another task.
@@ -2521,21 +2571,74 @@ impl Consumer {
         }
     }
 
-    /// Drop fetch connections. The consumer is then gone (same as `Producer::close`).
-    pub async fn close(mut self) -> Result<()> {
+    /// Close known Fetch sessions within the request timeout, then drop connections.
+    /// Session retirement is best effort and does not commit offsets.
+    pub async fn close(self) -> Result<()> {
+        let timeout = self.cfg.request_timeout;
+        self.close_timeout(timeout).await
+    }
+
+    /// Best-effort terminal Fetch requests, bounded by one total caller budget.
+    ///
+    /// A zero budget drops connections immediately. A manual consumer has no
+    /// LeaveGroup RPC; group and share members use
+    /// [`crate::ConsumerGroup::close_timeout`] /
+    /// [`crate::ShareGroup::close_timeout`].
+    pub async fn close_timeout(mut self, timeout: Duration) -> Result<()> {
         self.cfg.interceptors.close();
+        self.close_fetch_sessions(timeout).await;
         self.conns.clear();
         Ok(())
     }
 
-    /// Drop fetch connections (Java `close(Duration)`).
-    ///
-    /// A manual consumer has no LeaveGroup RPC; this is the same as
-    /// [`Self::close`]. Group and share members use
-    /// [`crate::ConsumerGroup::close_timeout`] /
-    /// [`crate::ShareGroup::close_timeout`].
-    pub async fn close_timeout(self, _timeout: Duration) -> Result<()> {
-        self.close().await
+    pub(crate) async fn close_fetch_sessions(&mut self, timeout: Duration) {
+        if !timeout.is_zero() {
+            if let Some(deadline) = Instant::now().checked_add(timeout) {
+                let nodes = self.fetch_sessions.keys().copied().collect();
+                let _closed = self.retire_fetch_sessions(nodes, deadline).await;
+            }
+        }
+        self.fetch_sessions.clear();
+    }
+
+    async fn retire_fetch_sessions(
+        &mut self,
+        mut nodes: Vec<i32>,
+        deadline: Instant,
+    ) -> Result<()> {
+        nodes.sort_unstable();
+        for node in nodes {
+            let Some(session) = self.fetch_sessions.remove(&node) else {
+                continue;
+            };
+            if session.metadata.session_id() == FetchMetadata::INVALID_SESSION_ID {
+                continue;
+            }
+            let Some(mut conn) = self.conns.remove(&node) else {
+                continue;
+            };
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() || conn.fetch_version() < 7 {
+                continue;
+            }
+            let version = conn.fetch_version();
+            let mut wakeup = self.wakeup_tx.subscribe();
+            tokio::select! {
+                biased;
+                result = wakeup.wait_for(|on| *on) => {
+                    drop(result);
+                    return Err(Error::Wakeup);
+                }
+                result = conn.roundtrip(FETCH, version, |buf| {
+                    encode_fetch_request_with_forgotten(buf, version, 0, 1, self.cfg.max_bytes,
+                        self.cfg.isolation_level.as_i8(), &[], self.cfg.rack.as_deref(),
+                        session.metadata.next_close_existing(), &[])
+                }, remaining) => { drop(result); }
+            }
+            // Even an interrupted/failed retirement cannot leave a reused
+            // socket with an unread response or an uncertain session epoch.
+        }
+        Ok(())
     }
 
     pub(crate) fn close_interceptors(&self) {
@@ -2545,7 +2648,7 @@ impl Consumer {
     pub(crate) fn take_wakeup(&self) -> bool {
         let was = self.wakeup.swap(false, Ordering::SeqCst);
         if was {
-            self.wakeup_tx.send(false).unwrap_or(());
+            let _previous = self.wakeup_tx.send_replace(false);
         }
         was
     }
@@ -2707,8 +2810,14 @@ impl Consumer {
                 self.refresh_metadata(Some(&topics)).await?;
                 continue;
             }
-            self.fetch_sessions
-                .retain(|node, _| by_leader.contains_key(node));
+            let retired = self
+                .fetch_sessions
+                .keys()
+                .filter(|node| !by_leader.contains_key(node))
+                .copied()
+                .collect();
+            self.retire_fetch_sessions(retired, deadline.min(poll_deadline))
+                .await?;
             if by_leader.is_empty() {
                 return Ok(self.finish_fetch(out));
             }
@@ -2754,7 +2863,7 @@ impl Consumer {
             let wait = max_wait_ms.min(duration_millis_i32(
                 poll_deadline.saturating_duration_since(Instant::now()),
             ));
-            let mut bodies = self.fetch_from_leaders(by_leader, deadline, wait).await?;
+            let bodies = self.fetch_from_leaders(by_leader, deadline, wait).await?;
             // ThrottleTimeMs is the first INT32 on every negotiated Fetch
             // version. Observe every completed response's header before the
             // record budget can discard another peer's body. Normal decoding
@@ -2769,30 +2878,26 @@ impl Consumer {
                     self.observe_fetch_throttle(reply.node, millis, reply.received_at);
                 }
             }
-            // Every peer's session header must advance even when the record
-            // budget later discards its body. Failed or canceled requests force
-            // a full map next time; top-level errors never deliver partitions.
-            for reply in &mut bodies {
-                if let Some(session) = self.fetch_sessions.get_mut(&reply.node) {
-                    match &reply.body {
-                        Ok(body) => {
-                            if let Err(error) = session.response(body, reply.version) {
-                                reply.body = Err(error);
-                            }
-                        }
-                        Err(_) => session.reset(),
-                    }
-                }
-            }
+            // Decode each envelope once, before any record application. Validate
+            // every session even when the record budget will discard its body.
+            let bodies: Vec<_> = bodies
+                .into_iter()
+                .map(|reply| self.decode_fetch_reply(reply))
+                .collect();
             let mut retry = FetchRetry::None;
             let mut fenced = Vec::new();
             let mut need_offsets = Vec::new();
             let mut budget_reached = false;
             for reply in bodies {
                 let node = reply.node;
-                let fetch_version = reply.version;
-                let mut body = match reply.body {
+                let body = match reply.body {
                     Ok(b) => b,
+                    Err(_) if reply.recovery.is_some() => {
+                        if let Some(recovery) = reply.recovery {
+                            retry = retry.merge(recovery);
+                        }
+                        continue;
+                    }
                     Err(e) if e.is_retriable() => {
                         let _ = self.conns.remove(&node);
                         retry = retry.merge(FetchRetry::Backoff);
@@ -2802,8 +2907,7 @@ impl Consumer {
                 };
                 let applied = self.apply_fetch_body(
                     node,
-                    fetch_version,
-                    &mut body,
+                    body,
                     &mut out,
                     &mut out_bytes,
                     &mut fenced,
@@ -2866,9 +2970,11 @@ impl Consumer {
                             Err(Error::Timeout)
                         };
                     }
-                    let topics: Vec<String> =
-                        self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
-                    self.refresh_metadata(Some(&topics)).await?;
+                    if retry == FetchRetry::Backoff {
+                        let topics: Vec<String> =
+                            self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
+                        self.refresh_metadata(Some(&topics)).await?;
+                    }
                 }
                 continue;
             }
@@ -3088,6 +3194,59 @@ impl Consumer {
         }
     }
 
+    fn decode_fetch_reply(&mut self, reply: FetchReply) -> DecodedFetchReply {
+        let mut recovery = None;
+        let session = self.fetch_sessions.get_mut(&reply.node);
+        let mut session = session;
+        let body = (|| {
+            let mut bytes = reply.body?;
+            let full = session.as_ref().is_some_and(|s| s.metadata.is_full());
+            if let Some(session) = session.as_mut() {
+                if let Err(error) = session.response(&bytes, reply.version) {
+                    if let Error::Broker { code, .. } = &error {
+                        recovery = match *code {
+                            error::FETCH_SESSION_ID_NOT_FOUND
+                            | error::INVALID_FETCH_SESSION_EPOCH => Some(FetchRetry::Session),
+                            error::FETCH_SESSION_TOPIC_ID_ERROR => Some(FetchRetry::Backoff),
+                            _ => None,
+                        };
+                    }
+                    return Err(error);
+                }
+            }
+            let (topics, endpoints, _, _, throttle) =
+                decode_fetch_response(&mut bytes, reply.version)?;
+            if reply.version >= 7 {
+                if let Some(session) = session.as_mut() {
+                    // Apache treats an empty throttled full response as a
+                    // declined session. The quota scheduler owns the next wait.
+                    if full && throttle > 0 && topics.is_empty() {
+                        session.metadata = FetchMetadata::INITIAL;
+                    } else if let Err(error) =
+                        session.validate_partitions(&topics, reply.version, full)
+                    {
+                        if full {
+                            session.metadata = FetchMetadata::INITIAL;
+                        }
+                        recovery = Some(FetchRetry::Session);
+                        return Err(error);
+                    }
+                }
+            }
+            Ok(FetchBody { topics, endpoints })
+        })();
+        if body.is_err() {
+            if let Some(session) = session {
+                session.reset();
+            }
+        }
+        DecodedFetchReply {
+            node: reply.node,
+            body,
+            recovery,
+        }
+    }
+
     #[expect(
         clippy::too_many_arguments,
         reason = "private helper accumulates records, byte budgets, error recovery, and completed partitions across leaders"
@@ -3095,8 +3254,7 @@ impl Consumer {
     fn apply_fetch_body(
         &mut self,
         node: i32,
-        fetch_version: i16,
-        body: &mut Bytes,
+        body: FetchBody,
         out: &mut Vec<FetchedRecord>,
         out_bytes: &mut usize,
         fenced: &mut Vec<(String, i32)>,
@@ -3104,8 +3262,8 @@ impl Consumer {
         completed: &mut HashSet<(String, i32)>,
         budget_reached: &mut bool,
     ) -> Result<FetchRetry> {
-        let (fetched, endpoints, ..) = decode_fetch_response(body, fetch_version)?;
-        self.cluster.apply_node_endpoints(&endpoints);
+        let fetched = body.topics;
+        self.cluster.apply_node_endpoints(&body.endpoints);
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;
         for topic in fetched {
@@ -4020,6 +4178,8 @@ enum FetchRetry {
     Redirect,
     /// Retriable broker / IO error. Wait `retry.backoff.ms`.
     Backoff,
+    /// Reset a session within the request budget, keeping its healthy socket.
+    Session,
 }
 
 impl FetchRetry {
@@ -4028,12 +4188,13 @@ impl FetchRetry {
     }
 
     fn needs_backoff(self) -> bool {
-        self == Self::Backoff
+        matches!(self, Self::Backoff | Self::Session)
     }
 
     fn merge(self, other: Self) -> Self {
         match (self, other) {
             (Self::Backoff, _) | (_, Self::Backoff) => Self::Backoff,
+            (Self::Session, _) | (_, Self::Session) => Self::Session,
             (Self::Redirect, _) | (_, Self::Redirect) => Self::Redirect,
             (Self::None, Self::None) => Self::None,
         }

@@ -251,7 +251,10 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         self.assertIn("codecs.zstd.encode", missing_features)
         self.assertIn("auth.sasl_gssapi", missing_features)
         partial_features = {f["feature_id"] for f in results["missing_runtime_wiring"]["partial_features"]}
-        self.assertIn("manual_consumer.incremental_fetch_runtime", partial_features)
+        self.assertNotIn("manual_consumer.incremental_fetch_runtime", partial_features)
+        self.assertNotIn("manual_consumer.incremental_fetch_runtime", missing_features)
+        incremental = next(f for f in json.loads(FEATURES_PATH.read_text()) if f["id"] == "manual_consumer.incremental_fetch_runtime")
+        self.assertEqual(incremental["disposition"], "present")
         self.assertIn("share.v2_runtime", missing_features)
 
     def test_cli_execution_clean_exit_0(self):

@@ -282,10 +282,10 @@
     "id": "manual_consumer.incremental_fetch_runtime",
     "profile": "manual consumer",
     "layer": "runtime",
-    "disposition": "partial",
+    "disposition": "present",
     "entrypoint": "partitionline::Consumer::fetch",
     "evidence": "tests/consumer_fetch_semantics.rs",
-    "notes": "KL05-06 adds broker-local v7-v17 sessions, changed/forgotten partitions, session epochs and v4-v6 fallback. Encoded-byte reduction and Apache 4.3.1 handler transitions are measured. KL05-07 comprehensive recovery, full-response/session validation, close and topology/assignment fault qualification remain open."
+    "notes": "KL05-06/07 implement broker-local v7-v17 sessions, v4-v6 full fallback, full/incremental response validation, bounded session-error recovery and terminal close. Tests cover peer retries, cancellation/wakeup, broker cache loss, leader movement and topic recreation. The strict 32-partition live runner observes one reconnect reset and compares 65 records with pinned Apache Java; the separate Apache 4.3.1 handler executes 80 reference transitions. This runtime disposition is not a full profile or long-running fault campaign qualification."
   },
   {
     "id": "manual_consumer.offset_for_leader_epoch",

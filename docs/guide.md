@@ -623,15 +623,27 @@ partitions and removes forgotten partitions, and retains full requests on v4–v
 Session metadata is bounded by the active assignment. Each completed response
 advances its broker epoch even when the record buffer budget discards the body.
 A failed, abandoned or canceled request requires a full map before reusing the
-session; a session-level broker error returns its typed error without applying
-partition data and makes the next fetch full. Buffered records, delivered
-positions and commits retain their existing contracts.
+session. Session-not-found and invalid-epoch responses retry with a full map
+within the original request deadline; a topic-ID error also refreshes metadata.
+The consumer checks the session identity and partition set before applying any
+records. Reassigning a recreated topic discards buffered records from its old ID.
+Buffered records, delivered positions and commits retain their existing contracts.
+
+Pausing every partition, moving to another broker, or replacing the assignment
+retires inactive known sessions on the next fetch. `unassign()` is synchronous;
+retirement happens on the next assigned fetch or close. Manual and group close
+send a best-effort terminal epoch for known sessions within one total remaining
+budget. `close_timeout(Duration::ZERO)` immediately drops manual connections.
+Session retirement never commits offsets.
 
 With 128 unchanged partitions, measured Fetch v17 request bodies shrink from
 4,268 to 25 bytes, matching Apache Java 4.3.1 serialization; this is a request-byte
-measurement. It does not establish a throughput or latency improvement. Full
-response validation, automatic session-error recovery, close and topology fault
-qualification remain tracked in KL05-07.
+measurement. It does not establish a throughput or latency improvement. The
+KL05-07 runner observes Fetch IDs, epochs, offsets and forgotten partitions over
+32 partitions, pause/resume, an idle reconnect reset and terminal close, then
+compares all 65 records with the digest-pinned Apache 4.1.2 Java console consumer.
+The Apache 4.3.1 handler provides a separate executed recovery reference. These
+bounded scenarios do not establish a long-running broker fault campaign.
 
 ### Rebalance
 

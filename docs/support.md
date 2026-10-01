@@ -175,8 +175,10 @@ buffer cap, deadline expiry, cancellation and idle reconnection. The Apache Java
 4.3.1 scheduling reference is executed independently; no live quota deployment
 or throughput improvement is claimed.
 
-Incremental Fetch runtime support is partial: broker-local v7–v17 sessions send
-changed/forgotten partitions and use correct name/ID versions; v4–v6 stay full.
-The Apache 4.3.1 handler and serialized request sizes are independently executed.
-Request-byte reduction is measured, while complete recovery, close and topology
-fault qualification remain KL05-07; no throughput or latency gain is claimed.
+Incremental Fetch runtime support covers broker-local v7–v17 sessions and v4–v6
+full fallback, partition/identity validation, bounded session-error recovery,
+assignment and topic-ID changes, and terminal close. Tests and the strict
+32-partition live runner cover a named reconnect reset with 65 exact Rust/Java
+records. The Apache 4.3.1 handler independently executes 80 state transitions.
+Request-byte reduction is measured; no throughput, latency or sustained broker
+fault campaign result is claimed.

@@ -3118,3 +3118,797 @@ async fn incremental_fetch_sessions_are_broker_local_with_legacy_peer_fallback()
     }
     consumer.close().await.unwrap();
 }
+
+fn session_fault_body(code: i16, session: i32, topics: &[FetchedTopic]) -> Vec<u8> {
+    let mut body = BytesMut::new();
+    partitionline::protocol::fetch::encode_fetch_response_with_endpoints(
+        &mut body,
+        17,
+        topics,
+        code,
+        session,
+        &[],
+    )
+    .unwrap();
+    body.to_vec()
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_top_level_errors_retry_without_applying_poison_data() {
+    for code in [
+        partitionline::error::FETCH_SESSION_ID_NOT_FOUND,
+        partitionline::error::INVALID_FETCH_SESSION_EPOCH,
+        partitionline::error::FETCH_SESSION_TOPIC_ID_ERROR,
+    ] {
+        let mock = common::Mock::start().await;
+        mock.enable_fetch_sessions([1]);
+        let mut consumer = Consumer::new(
+            ConsumerConfig::bootstrap([mock.addr.clone()]).retry_backoff(Duration::from_millis(1)),
+        )
+        .await
+        .unwrap();
+        consumer.assign("t", 0, 0).await.unwrap();
+        assert!(consumer.fetch().await.unwrap().is_empty());
+        let session = mock.fetch_session_id(1).unwrap();
+        let producer =
+            Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+                .await
+                .unwrap();
+        assert_eq!(
+            producer
+                .send(ProduceRecord::to("t").partition(0).value("real"))
+                .await
+                .unwrap()
+                .offset,
+            0
+        );
+        let batch = custom_batch(0, &[b"poison"], -1, -1, None, false);
+        let mut partition = FetchedPartition::partition_response(0, 0);
+        partition.high_watermark = 1;
+        partition.last_stable_offset = 1;
+        partition.log_start_offset = 0;
+        partition.records = vec![batch];
+        let topics = [FetchedTopic {
+            topic: "t".into(),
+            topic_id: mock.topic_id("t"),
+            partitions: vec![partition],
+        }];
+        mock.set_fetch_session_raw_responses(1, [session_fault_body(code, 0, &topics)]);
+        let records = consumer.fetch().await.unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].offset, 0);
+        assert_eq!(records[0].value.as_deref(), Some(b"real".as_slice()));
+        assert_eq!(consumer.position("t", 0).unwrap(), 1);
+        let requests = mock.fetch_session_requests();
+        assert_eq!(requests.len(), 3);
+        assert_eq!(
+            requests[1].3,
+            partitionline::protocol::fetch::FetchMetadata::new(session, 1)
+        );
+        assert!(requests[2].3.is_full());
+        assert_eq!(requests[2].4[0].partitions[0].fetch_offset, 0);
+        assert_eq!(consumer.metrics().fetch_errors, 0);
+        consumer.close().await.unwrap();
+        producer.close().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_broker_restart_recreates_session_without_losing_offsets() {
+    let mock = common::Mock::start().await;
+    mock.enable_fetch_sessions([1]);
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).retry_backoff(Duration::from_millis(1)),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    let old = mock.fetch_session_id(1).unwrap();
+    mock.reset_fetch_sessions(1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    assert_eq!(
+        producer
+            .send(ProduceRecord::to("t").partition(0).value("after-restart"))
+            .await
+            .unwrap()
+            .offset,
+        0
+    );
+    let rows = consumer.fetch().await.unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].offset, 0);
+    assert_eq!(rows[0].value.as_deref(), Some(b"after-restart".as_slice()));
+    assert_ne!(mock.fetch_session_id(1).unwrap(), old);
+    let requests = mock.fetch_session_requests();
+    assert_eq!(requests.len(), 3);
+    assert_eq!(
+        requests[2].3,
+        partitionline::protocol::fetch::FetchMetadata::INITIAL
+    );
+    consumer.close().await.unwrap();
+    assert_eq!(mock.remembered_fetch_partitions(1), 0);
+    assert_eq!(mock.fetch_session_requests().last().unwrap().3.epoch(), -1);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_recreated_topic_reassignment_discards_previous_id_buffer() {
+    let mock = common::Mock::start().await;
+    mock.enable_fetch_sessions([1]);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    for (offset, value) in ["old-0", "old-1"].into_iter().enumerate() {
+        assert_eq!(
+            producer
+                .send(ProduceRecord::to("t").partition(0).value(value))
+                .await
+                .unwrap()
+                .offset,
+            offset as i64
+        );
+    }
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_poll_records(1))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let first = consumer.fetch().await.unwrap();
+    assert_eq!(first[0].value.as_deref(), Some(b"old-0".as_slice()));
+    mock.recreate_topic_id("t", [7; 16]);
+    let new_producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    for (offset, value) in ["new-0", "new-1", "new-2"].into_iter().enumerate() {
+        assert_eq!(
+            new_producer
+                .send(ProduceRecord::to("t").partition(0).value(value))
+                .await
+                .unwrap()
+                .offset,
+            offset as i64
+        );
+    }
+    consumer.assign_many([(("t", 0), 2)]).await.unwrap();
+    let rows = consumer.fetch().await.unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].offset, 2);
+    assert_eq!(rows[0].value.as_deref(), Some(b"new-2".as_slice()));
+    assert_eq!(consumer.position("t", 0).unwrap(), 3);
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+    new_producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_rejects_incomplete_full_and_extra_incremental_partitions() {
+    for malformed in ["missing-full", "extra", "duplicate", "unknown-topic-id"] {
+        let mock = common::Mock::start().await;
+        mock.enable_fetch_sessions([1]);
+        let mut consumer = Consumer::new(
+            ConsumerConfig::bootstrap([mock.addr.clone()]).retry_backoff(Duration::from_millis(1)),
+        )
+        .await
+        .unwrap();
+        consumer.assign("t", 0, 0).await.unwrap();
+        let session = if malformed == "missing-full" {
+            91
+        } else {
+            assert!(consumer.fetch().await.unwrap().is_empty());
+            mock.fetch_session_id(1).unwrap()
+        };
+        let topics = match malformed {
+            "missing-full" => vec![],
+            _ => vec![FetchedTopic {
+                topic: "t".into(),
+                topic_id: if malformed == "unknown-topic-id" {
+                    [9; 16]
+                } else {
+                    mock.topic_id("t")
+                },
+                partitions: if malformed == "duplicate" {
+                    vec![FetchedPartition::partition_response(0, 0); 2]
+                } else {
+                    vec![FetchedPartition::partition_response(
+                        if malformed == "extra" { 3 } else { 0 },
+                        0,
+                    )]
+                },
+            }],
+        };
+        mock.set_fetch_session_raw_responses(1, [session_fault_body(0, session, &topics)]);
+        assert!(consumer.fetch().await.unwrap().is_empty(), "{malformed}");
+        assert_eq!(consumer.position("t", 0).unwrap(), 0);
+        let requests = mock.fetch_session_requests();
+        assert!(requests.last().unwrap().3.is_full(), "{malformed}");
+        assert_eq!(requests.last().unwrap().4[0].partitions[0].fetch_offset, 0);
+        consumer.close().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_truncated_or_wrong_identity_response_forces_next_full_request() {
+    for invalid in ["truncated", "negative-id", "changed-id"] {
+        let mock = common::Mock::start().await;
+        mock.enable_fetch_sessions([1]);
+        let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+            .await
+            .unwrap();
+        consumer.assign("t", 0, 0).await.unwrap();
+        assert!(consumer.fetch().await.unwrap().is_empty());
+        let session = mock.fetch_session_id(1).unwrap();
+        let raw = match invalid {
+            "truncated" => vec![0; 8],
+            "negative-id" => session_fault_body(0, -1, &[]),
+            _ => session_fault_body(0, session + 1, &[]),
+        };
+        mock.set_fetch_session_raw_responses(1, [raw]);
+        assert!(
+            matches!(
+                consumer.fetch().await,
+                Err(partitionline::Error::Protocol(_))
+            ),
+            "{invalid}"
+        );
+        assert_eq!(consumer.position("t", 0).unwrap(), 0);
+        assert!(consumer.fetch().await.unwrap().is_empty());
+        assert!(mock.fetch_session_requests().last().unwrap().3.is_full());
+        consumer.close().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_repeated_errors_are_bounded_by_original_request_deadline() {
+    let mock = common::Mock::start().await;
+    mock.enable_fetch_sessions([1]);
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .request_timeout(Duration::from_millis(100))
+            .retry_backoff(Duration::from_millis(20)),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    mock.set_fetch_session_raw_responses(1, (0..64).map(|_| session_fault_body(70, 0, &[])));
+    let started = std::time::Instant::now();
+    let result = tokio::time::timeout(Duration::from_millis(500), consumer.fetch())
+        .await
+        .unwrap();
+    assert!(
+        matches!(result, Err(partitionline::Error::Timeout)),
+        "{result:?}"
+    );
+    assert!(started.elapsed() >= Duration::from_millis(80));
+    assert!(started.elapsed() < Duration::from_millis(400));
+    assert_eq!(consumer.position("t", 0).unwrap(), 0);
+    assert!((2..=7).contains(&mock.fetch_session_requests().len()));
+    consumer.close_timeout(Duration::ZERO).await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_peer_error_preserves_healthy_records_exactly_once() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    for p in 0..2 {
+        mock.set_partition_leader("t", p, p + 1);
+    }
+    mock.enable_fetch_sessions([1, 2]);
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).retry_backoff(Duration::from_millis(1)),
+    )
+    .await
+    .unwrap();
+    consumer
+        .assign_many((0..2).map(|p| (("t", p), 0)))
+        .await
+        .unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    for p in 0..2 {
+        assert_eq!(
+            producer
+                .send(
+                    ProduceRecord::to("t")
+                        .partition(p)
+                        .value(format!("peer-{p}"))
+                )
+                .await
+                .unwrap()
+                .offset,
+            0
+        );
+    }
+    mock.set_fetch_session_raw_responses(2, [session_fault_body(71, 0, &[])]);
+    let rows = consumer.fetch().await.unwrap();
+    let mut identities = rows
+        .iter()
+        .map(|r| (r.partition, r.offset, r.value.clone()))
+        .collect::<Vec<_>>();
+    identities.sort();
+    assert_eq!(identities.len(), 2);
+    for (p, identity) in identities.iter().enumerate() {
+        assert_eq!((identity.0, identity.1), (p as i32, 0));
+        assert_eq!(identity.2.as_deref(), Some(format!("peer-{p}").as_bytes()));
+        assert_eq!(consumer.position("t", p as i32).unwrap(), 1);
+    }
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert_eq!(consumer.metrics().records_fetched, 2);
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_pause_all_unassign_and_leader_move_retire_server_state() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.enable_fetch_sessions([1, 2]);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    consumer
+        .assign_many((0..2).map(|p| (("t", p), 0)))
+        .await
+        .unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert_eq!(mock.remembered_fetch_partitions(1), 2);
+    consumer.pause([("t", 0), ("t", 1)]);
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert_eq!(mock.remembered_fetch_partitions(1), 0);
+    consumer.resume([("t", 0), ("t", 1)]);
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert_eq!(mock.remembered_fetch_partitions(1), 2);
+    mock.set_partition_leader("t", 0, 2);
+    consumer.assign_many([(("t", 0), 0)]).await.unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert_eq!(mock.remembered_fetch_partitions(1), 0);
+    assert_eq!(mock.remembered_fetch_partitions(2), 1);
+    consumer.unassign();
+    consumer.assign("t", 1, 0).await.unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert_eq!(mock.remembered_fetch_partitions(2), 0);
+    assert_eq!(mock.remembered_fetch_partitions(1), 1);
+    consumer.close().await.unwrap();
+    assert_eq!(mock.remembered_fetch_partitions(1), 0);
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_cancelled_round_and_wakeup_recreate_without_position_advance() {
+    for wakeup in [false, true] {
+        let mock = common::Mock::start().await;
+        mock.enable_fetch_sessions([1]);
+        let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+            .await
+            .unwrap();
+        consumer.assign("t", 0, 0).await.unwrap();
+        assert!(consumer.fetch().await.unwrap().is_empty());
+        mock.set_fetch_delay_once(1, Duration::from_millis(500));
+        if wakeup {
+            let handle = consumer.wakeup_handle();
+            let wake = tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(20)).await;
+                handle.wakeup();
+            });
+            assert!(matches!(
+                consumer.fetch().await,
+                Err(partitionline::Error::Wakeup)
+            ));
+            wake.await.unwrap();
+        } else {
+            assert!(
+                tokio::time::timeout(Duration::from_millis(20), consumer.fetch())
+                    .await
+                    .is_err()
+            );
+        }
+        assert_eq!(consumer.position("t", 0).unwrap(), 0);
+        assert!(consumer.fetch().await.unwrap().is_empty());
+        let requests = mock.fetch_session_requests();
+        assert!(requests.last().unwrap().3.is_full());
+        assert_eq!(requests.last().unwrap().4[0].partitions[0].fetch_offset, 0);
+        consumer.close().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_close_uses_one_budget_across_stalled_brokers_and_zero_is_immediate()
+{
+    for budget in [Duration::ZERO, Duration::from_millis(50)] {
+        let mock = common::Mock::start_two_node().await;
+        mock.set_topic_partitions("t", 2);
+        for p in 0..2 {
+            mock.set_partition_leader("t", p, p + 1);
+        }
+        mock.enable_fetch_sessions([1, 2]);
+        let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+            .await
+            .unwrap();
+        consumer
+            .assign_many((0..2).map(|p| (("t", p), 0)))
+            .await
+            .unwrap();
+        assert!(consumer.fetch().await.unwrap().is_empty());
+        for node in [1, 2] {
+            mock.set_fetch_delay_once(node, Duration::from_millis(500));
+        }
+        let before = mock.fetch_session_requests().len();
+        let start = std::time::Instant::now();
+        tokio::time::timeout(Duration::from_millis(200), consumer.close_timeout(budget))
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(start.elapsed() < Duration::from_millis(150));
+        if budget.is_zero() {
+            assert_eq!(mock.fetch_session_requests().len(), before);
+        }
+    }
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_group_close_retires_session_without_automatic_offset_commit() {
+    let mock = common::Mock::start().await;
+    mock.enable_fetch_sessions([1]);
+    let mut group = partitionline::ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .auto_commit(true)
+            .max_wait_ms(10),
+        "session-retirement",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert!(group.poll().await.unwrap().is_empty());
+    assert!(mock.remembered_fetch_partitions(1) > 0);
+    let commits = mock.offset_commit_calls();
+    group.close().await.unwrap();
+    assert_eq!(mock.remembered_fetch_partitions(1), 0);
+    assert_eq!(mock.offset_commit_calls(), commits);
+    assert_eq!(mock.fetch_session_requests().last().unwrap().3.epoch(), -1);
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_empty_throttled_full_response_declines_session_until_quota_expires()
+{
+    let mock = common::Mock::start().await;
+    mock.enable_fetch_sessions([1]);
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let mut raw = session_fault_body(0, 0, &[]);
+    raw[..4].copy_from_slice(&80_i32.to_be_bytes());
+    mock.set_fetch_session_raw_responses(1, [raw]);
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    let started = std::time::Instant::now();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert!(started.elapsed() >= Duration::from_millis(60));
+    assert_eq!(
+        mock.fetch_session_requests().last().unwrap().3,
+        partitionline::protocol::fetch::FetchMetadata::INITIAL
+    );
+    assert_eq!(consumer.position("t", 0).unwrap(), 0);
+    consumer.close().await.unwrap();
+}
+
+struct LiveFetchObservation {
+    phase: usize,
+    version: i16,
+    session: i32,
+    epoch: i32,
+    changed: Vec<(i32, i64)>,
+    forgotten: Vec<i32>,
+    response_session: i32,
+    response_error: i16,
+    request_bytes: usize,
+}
+
+async fn observed_frame(stream: &mut TcpStream) -> std::io::Result<Vec<u8>> {
+    let size = stream.read_i32().await?;
+    assert!((0..=64 * 1024 * 1024).contains(&size));
+    let mut frame = vec![0; size as usize];
+    let _read = stream.read_exact(&mut frame).await?;
+    Ok(frame)
+}
+
+async fn forward_observed_frame(stream: &mut TcpStream, frame: &[u8]) -> std::io::Result<()> {
+    stream.write_i32(frame.len() as i32).await?;
+    stream.write_all(frame).await?;
+    Ok(())
+}
+
+async fn observe_fetch_connection(
+    mut client: TcpStream,
+    backend: String,
+    phase: Arc<AtomicUsize>,
+    history: Arc<parking_lot::Mutex<Vec<LiveFetchObservation>>>,
+) {
+    let mut broker = TcpStream::connect(backend).await.unwrap();
+    loop {
+        let request = match observed_frame(&mut client).await {
+            Ok(frame) => frame,
+            Err(_) => return,
+        };
+        let at_phase = phase.load(Ordering::SeqCst);
+        let mut body = request.as_slice();
+        let header = decode_request_header(&mut body).unwrap();
+        let fetch = if header.api_key == FETCH {
+            let size = body.len();
+            let (_, _, topics, _, metadata, forgotten, ..) =
+                decode_fetch_request(&mut body, header.api_version).unwrap();
+            assert!(body.is_empty());
+            Some((
+                size,
+                metadata,
+                topics
+                    .into_iter()
+                    .flat_map(|t| {
+                        t.partitions
+                            .into_iter()
+                            .map(|p| (p.partition, p.fetch_offset))
+                    })
+                    .collect::<Vec<_>>(),
+                forgotten
+                    .into_iter()
+                    .flat_map(|t| t.partitions)
+                    .collect::<Vec<_>>(),
+            ))
+        } else {
+            None
+        };
+        if forward_observed_frame(&mut broker, &request).await.is_err() {
+            return;
+        }
+        let response = match observed_frame(&mut broker).await {
+            Ok(frame) => frame,
+            Err(_) => return,
+        };
+        if let Some((size, metadata, mut changed, mut forgotten)) = fetch {
+            let mut body = response.as_slice();
+            let response_header =
+                decode_response_header(&mut body, FETCH, header.api_version).unwrap();
+            assert_eq!(response_header.correlation_id, header.correlation_id);
+            let (_, _, error, session, _) = partitionline::protocol::fetch::decode_fetch_response(
+                &mut body,
+                header.api_version,
+            )
+            .unwrap();
+            assert!(body.is_empty());
+            changed.sort_unstable();
+            forgotten.sort_unstable();
+            history.lock().push(LiveFetchObservation {
+                phase: at_phase,
+                version: header.api_version,
+                session: metadata.session_id(),
+                epoch: metadata.epoch(),
+                changed,
+                forgotten,
+                response_session: session,
+                response_error: error,
+                request_bytes: size,
+            });
+        }
+        if forward_observed_frame(&mut client, &response)
+            .await
+            .is_err()
+        {
+            return;
+        }
+    }
+}
+
+async fn live_session_records(
+    consumer: &mut Consumer,
+    topic: &str,
+    phase: usize,
+    expected: &[(i32, i64)],
+) {
+    let rows = tokio::time::timeout(Duration::from_secs(8), async {
+        let mut rows = Vec::new();
+        while rows.len() < expected.len() {
+            rows.extend(consumer.fetch().await.unwrap());
+        }
+        rows
+    })
+    .await
+    .unwrap();
+    let mut identities = Vec::new();
+    for row in &rows {
+        let key = String::from_utf8(row.key.clone().unwrap().to_vec()).unwrap();
+        let value = String::from_utf8(row.value.clone().unwrap().to_vec()).unwrap();
+        assert_eq!(row.topic, topic);
+        assert_eq!(key, row.partition.to_string());
+        assert_eq!(value, format!("KL05-07/{}/{}", row.partition, row.offset));
+        identities.push((row.partition, row.offset));
+        println!(
+            "PL_FETCH_RECORD\t{phase}\t{}\t{}\t{key}\t{value}",
+            row.partition, row.offset
+        );
+    }
+    identities.sort_unstable();
+    assert_eq!(identities, expected);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "requires the owned digest-pinned KL05-07 broker and explicit observer ports"]
+async fn live_fetch_session_recovery_required() {
+    assert_eq!(std::env::var("REQUIRE_BROKER").unwrap(), "1");
+    let topic = std::env::var("PL_FETCH_TOPIC").unwrap();
+    let source = std::env::var("PL_FETCH_SOURCE_SHA").unwrap();
+    let bootstrap = std::env::var("PL_FETCH_PROXY").unwrap();
+    let backend = std::env::var("PL_FETCH_BACKEND").unwrap();
+    assert!(topic.starts_with("plfetch-recovery-"));
+    assert!(bootstrap.starts_with("127.0.0.1:"));
+    assert!(backend.starts_with("127.0.0.1:"));
+    let listener = TcpListener::bind(&bootstrap).await.unwrap();
+    let phase = Arc::new(AtomicUsize::new(0));
+    let history = Arc::new(parking_lot::Mutex::new(Vec::new()));
+    let (stop, mut stopping) = oneshot::channel();
+    let proxy_phase = phase.clone();
+    let proxy_history = history.clone();
+    let proxy = tokio::spawn(async move {
+        let mut tasks = JoinSet::new();
+        loop {
+            tokio::select! {
+                _ = &mut stopping => break,
+                accepted = listener.accept() => {
+                    let (client, _) = accepted.unwrap();
+                    let _task = tasks.spawn(observe_fetch_connection(client, backend.clone(), proxy_phase.clone(), proxy_history.clone()));
+                }
+                Some(result) = tasks.join_next(), if !tasks.is_empty() => result.unwrap(),
+            }
+        }
+        tasks.abort_all();
+        while let Some(result) = tasks.join_next().await {
+            if let Err(error) = result {
+                assert!(error.is_cancelled(), "{error}");
+            }
+        }
+    });
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([bootstrap.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    for p in 0..32 {
+        let value = format!("KL05-07/{p}/0");
+        let ack = producer
+            .send(
+                ProduceRecord::to(topic.as_str())
+                    .partition(p)
+                    .key(p.to_string())
+                    .value(value.clone()),
+            )
+            .await
+            .unwrap();
+        assert_eq!((ack.partition, ack.offset), (p, 0));
+        println!("PL_FETCH_ACK\t{p}\t0\t{p}\t{value}");
+    }
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([bootstrap])
+            .connections_max_idle(Duration::from_secs(1))
+            .request_timeout(Duration::from_secs(3))
+            .max_wait_ms(100)
+            .max_poll_records(1000),
+    )
+    .await
+    .unwrap();
+    consumer
+        .assign_many((0..32).map(|p| ((topic.as_str(), p), 0)))
+        .await
+        .unwrap();
+    live_session_records(
+        &mut consumer,
+        &topic,
+        0,
+        &(0..32).map(|p| (p, 0)).collect::<Vec<_>>(),
+    )
+    .await;
+    phase.store(1, Ordering::SeqCst);
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    phase.store(2, Ordering::SeqCst);
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    phase.store(3, Ordering::SeqCst);
+    consumer.pause((16..32).map(|p| (topic.as_str(), p)));
+    for p in 0..32 {
+        let value = format!("KL05-07/{p}/1");
+        let ack = producer
+            .send(
+                ProduceRecord::to(topic.as_str())
+                    .partition(p)
+                    .key(p.to_string())
+                    .value(value.clone()),
+            )
+            .await
+            .unwrap();
+        assert_eq!((ack.partition, ack.offset), (p, 1));
+        println!("PL_FETCH_ACK\t{p}\t1\t{p}\t{value}");
+    }
+    live_session_records(
+        &mut consumer,
+        &topic,
+        3,
+        &(0..16).map(|p| (p, 1)).collect::<Vec<_>>(),
+    )
+    .await;
+    for p in 16..32 {
+        assert_eq!(consumer.position(&topic, p).unwrap(), 1);
+    }
+    phase.store(4, Ordering::SeqCst);
+    consumer.resume((16..32).map(|p| (topic.as_str(), p)));
+    live_session_records(
+        &mut consumer,
+        &topic,
+        4,
+        &(16..32).map(|p| (p, 1)).collect::<Vec<_>>(),
+    )
+    .await;
+    for p in 0..32 {
+        assert_eq!(consumer.position(&topic, p).unwrap(), 2);
+    }
+    phase.store(5, Ordering::SeqCst);
+    tokio::time::sleep(Duration::from_millis(1500)).await;
+    let value = "KL05-07/0/2";
+    let ack = producer
+        .send(
+            ProduceRecord::to(topic.as_str())
+                .partition(0)
+                .key("0")
+                .value(value),
+        )
+        .await
+        .unwrap();
+    assert_eq!((ack.partition, ack.offset), (0, 2));
+    println!("PL_FETCH_ACK\t0\t2\t0\t{value}");
+    live_session_records(&mut consumer, &topic, 5, &[(0, 2)]).await;
+    for p in 0..32 {
+        println!(
+            "PL_FETCH_POSITION\t{p}\t{}",
+            consumer.position(&topic, p).unwrap()
+        );
+    }
+    phase.store(6, Ordering::SeqCst);
+    consumer
+        .close_timeout(Duration::from_secs(2))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    stop.send(()).unwrap();
+    proxy.await.unwrap();
+    for row in history.lock().iter() {
+        let changed = row
+            .changed
+            .iter()
+            .map(|(p, o)| format!("{p}:{o}"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let forgotten = row
+            .forgotten
+            .iter()
+            .map(i32::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        println!(
+            "PL_FETCH_WIRE\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{changed}\t{forgotten}",
+            row.phase,
+            row.version,
+            row.session,
+            row.epoch,
+            row.response_session,
+            row.response_error,
+            row.request_bytes
+        );
+    }
+    println!("PL_FETCH_SOURCE\t{source}");
+    println!("PL_FETCH_TOPIC\t{topic}");
+    println!("PL_FETCH_COMPLETE");
+}
