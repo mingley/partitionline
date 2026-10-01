@@ -90,5 +90,62 @@
     "Criterion dev dependency requires Rust newer than 1.85; benchmark runtime library/binaries check at MSRV, while bench/test tools run on stable as existing policy.",
     "New instruction baseline is recorded separately, not added to the existing historical automatic regression gate."
   ],
-  "blocked_reason": null
+  "blocked_reason": null,
+  "allocation_gate_follow_up": {
+    "source_sha": "e31e56bd354f68e7743db34a1627c7f700b3fd73",
+    "qualifying_ci_source": "14cd70ea5759d0ed10ac93cb5653227e31d96c43",
+    "run_id": 36858000776,
+    "job_id": 110355531950,
+    "conclusion": "success",
+    "steps": [
+      {
+        "name": "Set up job",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run actions/checkout@v7",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run dtolnay/rust-toolchain@stable",
+        "conclusion": "success"
+      },
+      {
+        "name": "Allocation gate failure-preservation tests",
+        "conclusion": "success"
+      },
+      {
+        "name": "Both serial allocation census tests (unchanged budgets)",
+        "conclusion": "success"
+      },
+      {
+        "name": "Retain compiler identity and complete allocation failure",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Run actions/checkout@v7",
+        "conclusion": "success"
+      },
+      {
+        "name": "Complete job",
+        "conclusion": "success"
+      }
+    ],
+    "artifacts": [
+      {
+        "id": 11159526169,
+        "name": "alloc-budget-14cd70ea5759d0ed10ac93cb5653227e31d96c43",
+        "digest": "sha256:9dcdfe017f7389378a0b19793da134d2cae09ec6432e94be8b5da58dd5e1a35c",
+        "size_in_bytes": 2608
+      }
+    ],
+    "prior_failed_attempt": {
+      "run_id": 36854758398,
+      "source_sha": "5b02bc5885e2692e71d98293f6ff748334b7d846",
+      "job_id": 110344642642,
+      "observed": "Hosted cargo allocation test command exited 101; no underlying panic available through denied log/ZIP download host. Both local serial tests subsequently passed. The original cause remains unknown; no census budget increased."
+    },
+    "validation": "Three wrapper tests pass: preserve exit 42 and escaped diagnostics, reject zero/incomplete test runs, require both serial census test names and exact pass summaries. Actual local and hosted census gates both pass with unchanged baselines.",
+    "limits": "Failure retention improves future diagnosis; a successful subsequent run does not establish the cause of the earlier hosted failure. Artifact metadata and successful gate step inspected; raw artifact bytes unavailable under network policy."
+  }
 }

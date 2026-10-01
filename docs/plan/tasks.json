@@ -4629,7 +4629,7 @@
       "title": "Add a 1 KiB JSON-like payload family to the codec microbenchmarks",
       "priority": "P1",
       "kind": "benchmark",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL09-04",
@@ -4663,7 +4663,7 @@
         "tests/ci/test_alloc_gate.py"
       ],
       "blocked_reason": null,
-      "follow_up": "Investigate hosted allocation-gate exit 101 at source 5b02bc5 / run 36854758398; retain original benchmark evidence and budgets. Local stable allocation tests pass. Add failure diagnostics before attributing a cause."
+      "follow_up": "Hosted allocation gate succeeded at 14cd70e, run 36858000776 / job 110355531950. Original failed attempt preserved in evidence; cause unknown. Census budgets unchanged; strict diagnostics retain future failures."
     },
     {
       "id": "KL10-04",
