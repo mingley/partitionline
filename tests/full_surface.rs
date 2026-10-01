@@ -14789,3 +14789,113 @@ async fn remove_raft_voter_controller_refresh_shares_outer_deadline() {
     assert_eq!(mock.remove_raft_voter_requests().len(), 1);
     admin.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn describe_log_dirs_v5_falls_back_per_broker() {
+    use partitionline::protocol::api_keys::DESCRIBE_LOG_DIRS;
+    let mock = common::Mock::start_two_node().await;
+    mock.set_api_max(DESCRIBE_LOG_DIRS, 5);
+    mock.set_node_api_max(2, DESCRIBE_LOG_DIRS, 4);
+    mock.set_controller(2);
+    mock.move_coordinator();
+    mock.set_describe_log_dirs_cordoned(1);
+    mock.set_describe_log_dirs_cordoned(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let replies = admin.describe_broker_log_dirs(vec![1, 2]).await.unwrap();
+    assert_eq!(replies.len(), 2);
+    assert_eq!(replies[0].0, 1);
+    assert!(replies[0].1.results[0].is_cordoned());
+    assert_eq!(replies[1].0, 2);
+    assert!(!replies[1].1.results[0].is_cordoned());
+    assert_eq!(mock.describe_log_dirs_nodes(), vec![1, 2]);
+    assert_eq!(mock.last_describe_log_dirs_version(), Some(4));
+    assert_eq!(mock.last_describe_groups_node(), None);
+    assert_eq!(mock.last_alter_client_quotas_node(), None);
+}
+
+#[tokio::test]
+async fn describe_log_dirs_v5_preserves_java_errors_throttle_and_broker_route() {
+    use partitionline::protocol::api_keys::DESCRIBE_LOG_DIRS;
+    let mock = common::Mock::start_two_node().await;
+    mock.set_api_max(DESCRIBE_LOG_DIRS, 5);
+    mock.set_controller(2);
+    mock.move_coordinator();
+    mock.queue_describe_log_dirs_raw_response(
+        1,
+        include_bytes!("fixtures/protocol_oracles/describe_log_dirs_v5_tagged_response.bin")
+            .to_vec(),
+    );
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let response = admin.describe_log_dirs(None).await.unwrap();
+    assert_eq!(response.throttle_time_ms, 37);
+    assert_eq!(response.error_code, 31);
+    assert_eq!(response.results[0].error_code, 0);
+    assert_eq!(response.results[1].error_code, 56);
+    assert!(response.results[0].is_cordoned());
+    assert!(!response.results[1].is_cordoned());
+    assert_eq!(response.error_counts().get(&31), Some(&1));
+    assert_eq!(response.error_counts().get(&56), Some(&1));
+    assert_eq!(mock.last_describe_log_dirs_version(), Some(5));
+    assert_eq!(mock.describe_log_dirs_nodes(), vec![1]);
+    assert_eq!(mock.last_describe_groups_node(), None);
+}
+
+#[tokio::test]
+async fn describe_log_dirs_v5_rejects_trailing_body_and_preserves_empty_queries() {
+    use partitionline::protocol::api_keys::DESCRIBE_LOG_DIRS;
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_LOG_DIRS, 5);
+    let mut body =
+        include_bytes!("fixtures/protocol_oracles/describe_log_dirs_v5_populated_response.bin")
+            .to_vec();
+    body.push(99);
+    mock.queue_describe_log_dirs_raw_response(1, body);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let error = admin.describe_log_dirs(Some(vec![])).await.unwrap_err();
+    assert!(error.to_string().contains("trailing DescribeLogDirs"));
+    assert_eq!(mock.last_describe_log_dirs().unwrap().topics, Some(vec![]));
+    let response = admin.describe_log_dirs(Some(vec![])).await.unwrap();
+    assert!(!response.results[0].is_cordoned());
+    assert!(response.results[0].topics.is_empty());
+}
+
+#[tokio::test]
+async fn describe_log_dirs_v5_absence_and_deadline_never_send_directory_rpc() {
+    use partitionline::protocol::api_keys::DESCRIBE_LOG_DIRS;
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_LOG_DIRS, 5);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    assert!(matches!(
+        admin.describe_log_dirs_timeout(None, Duration::ZERO).await,
+        Err(partitionline::Error::Timeout)
+    ));
+    assert!(admin
+        .describe_log_dirs_timeout(None, Duration::MAX)
+        .await
+        .unwrap_err()
+        .to_string()
+        .contains("deadline overflow"));
+    assert!(mock.describe_log_dirs_nodes().is_empty());
+    mock.hide_api(DESCRIBE_LOG_DIRS);
+    assert!(matches!(
+        admin.describe_log_dirs(None).await,
+        Err(partitionline::Error::Unsupported(_))
+    ));
+    assert!(mock.describe_log_dirs_nodes().is_empty());
+}
+
+#[tokio::test]
+async fn describe_log_dirs_v5_deadline_bounds_stalled_capability_negotiation() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    mock.set_api_versions_delay(Duration::from_secs(1));
+    let started = std::time::Instant::now();
+    assert!(matches!(
+        admin
+            .describe_log_dirs_timeout(None, Duration::from_millis(100))
+            .await,
+        Err(partitionline::Error::Timeout)
+    ));
+    assert!(started.elapsed() < Duration::from_millis(500));
+    assert!(mock.describe_log_dirs_nodes().is_empty());
+}

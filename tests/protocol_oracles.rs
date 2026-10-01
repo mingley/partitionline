@@ -4630,3 +4630,184 @@ fn remove_raft_voter_nullable_fields_match_apache() {
         "nullable cluster + voter ID + directory UUID + tags; no TimeoutMs"
     );
 }
+
+#[test]
+fn describe_log_dirs_v5_independent_java_fixtures() {
+    use partitionline::protocol::admin::{
+        decode_describe_log_dirs_request, decode_describe_log_dirs_response,
+        encode_describe_log_dirs_request, encode_describe_log_dirs_response,
+    };
+    macro_rules! case {
+        ($v:literal, $name:literal) => {{
+            let request = include_bytes!(concat!(
+                "fixtures/protocol_oracles/describe_log_dirs_v",
+                $v,
+                "_",
+                $name,
+                "_request.bin"
+            ))
+            .as_slice();
+            let response = include_bytes!(concat!(
+                "fixtures/protocol_oracles/describe_log_dirs_v",
+                $v,
+                "_",
+                $name,
+                "_response.bin"
+            ))
+            .as_slice();
+            let canonical_request = if $name == "tagged" {
+                include_bytes!(concat!(
+                    "fixtures/protocol_oracles/describe_log_dirs_v",
+                    $v,
+                    "_populated_request.bin"
+                ))
+                .as_slice()
+            } else {
+                request
+            };
+            let canonical_response = if $name == "tagged" {
+                include_bytes!(concat!(
+                    "fixtures/protocol_oracles/describe_log_dirs_v",
+                    $v,
+                    "_populated_response.bin"
+                ))
+                .as_slice()
+            } else {
+                response
+            };
+            (
+                $v,
+                $name,
+                request,
+                response,
+                canonical_request,
+                canonical_response,
+            )
+        }};
+    }
+    for (version, cell, request, response, canonical_request, canonical_response) in [
+        case!(1, "defaults"),
+        case!(1, "nullable"),
+        case!(1, "empty"),
+        case!(1, "populated"),
+        case!(2, "defaults"),
+        case!(2, "nullable"),
+        case!(2, "empty"),
+        case!(2, "populated"),
+        case!(2, "tagged"),
+        case!(3, "defaults"),
+        case!(3, "nullable"),
+        case!(3, "empty"),
+        case!(3, "populated"),
+        case!(3, "tagged"),
+        case!(4, "defaults"),
+        case!(4, "nullable"),
+        case!(4, "empty"),
+        case!(4, "populated"),
+        case!(4, "tagged"),
+        case!(5, "defaults"),
+        case!(5, "nullable"),
+        case!(5, "empty"),
+        case!(5, "populated"),
+        case!(5, "tagged"),
+    ] {
+        let mut bytes = request;
+        let request = decode_describe_log_dirs_request(&mut bytes, version).unwrap();
+        assert!(bytes.is_empty(), "request v{version} {cell} leftover");
+        if cell == "nullable" {
+            assert!(request.topics.is_none());
+        } else if cell == "defaults" || cell == "empty" {
+            assert_eq!(request.topics, Some(vec![]));
+        } else {
+            let topics = request.topics.as_ref().unwrap();
+            assert_eq!(topics[0].name, "alpha");
+            assert_eq!(topics[0].partitions, [0, 2]);
+            assert_eq!(topics[1].name, "béta");
+            assert!(topics[1].partitions.is_empty());
+        }
+        let mut output = BytesMut::new();
+        encode_describe_log_dirs_request(&mut output, version, &request).unwrap();
+        assert_eq!(
+            output.as_ref(),
+            canonical_request,
+            "request v{version} {cell}"
+        );
+        let mut bytes = response;
+        let response = decode_describe_log_dirs_response(&mut bytes, version).unwrap();
+        assert!(bytes.is_empty(), "response v{version} {cell} leftover");
+        if cell == "defaults" || cell == "nullable" {
+            assert_eq!(response.throttle_time_ms, 0);
+        } else {
+            assert_eq!(response.throttle_time_ms, 37);
+        }
+        assert_eq!(
+            response.error_code,
+            if version >= 3 && cell != "defaults" && cell != "nullable" {
+                31
+            } else {
+                0
+            }
+        );
+        if cell == "populated" || cell == "tagged" {
+            assert_eq!(response.results.len(), 2);
+            let directory = &response.results[0];
+            assert_eq!(directory.log_dir, "/logs/a");
+            assert_eq!(directory.is_cordoned(), version >= 5);
+            assert_eq!(
+                directory.total_bytes,
+                if version >= 4 { 1000000 } else { -1 }
+            );
+            assert_eq!(
+                directory.usable_bytes,
+                if version >= 4 { 456789 } else { -1 }
+            );
+            assert_eq!(directory.topics[0].partitions[0].partition_size, 123456);
+            assert_eq!(directory.topics[0].partitions[0].offset_lag, -1);
+            assert!(directory.topics[0].partitions[0].is_future_key);
+            assert_eq!(response.results[1].error_code, 56);
+            assert!(!response.results[1].is_cordoned());
+        } else {
+            assert!(response.results.is_empty());
+        }
+        output.clear();
+        encode_describe_log_dirs_response(&mut output, version, &response).unwrap();
+        assert_eq!(
+            output.as_ref(),
+            canonical_response,
+            "response v{version} {cell}"
+        );
+    }
+}
+
+#[test]
+fn describe_log_dirs_v5_truncation_and_version_bounds_fail_closed() {
+    use partitionline::protocol::admin::{
+        decode_describe_log_dirs_request, decode_describe_log_dirs_response,
+        encode_describe_log_dirs_request, encode_describe_log_dirs_response,
+    };
+    let request =
+        include_bytes!("fixtures/protocol_oracles/describe_log_dirs_v5_tagged_request.bin");
+    let response =
+        include_bytes!("fixtures/protocol_oracles/describe_log_dirs_v5_tagged_response.bin");
+    for length in 0..request.len() {
+        assert!(
+            decode_describe_log_dirs_request(&mut &request[..length], 5).is_err(),
+            "request prefix {length}"
+        );
+    }
+    for length in 0..response.len() {
+        assert!(
+            decode_describe_log_dirs_response(&mut &response[..length], 5).is_err(),
+            "response prefix {length}"
+        );
+    }
+    let request = decode_describe_log_dirs_request(&mut request.as_slice(), 5).unwrap();
+    let response = decode_describe_log_dirs_response(&mut response.as_slice(), 5).unwrap();
+    for version in [-1, 0, 6] {
+        let mut bytes = BytesMut::from(&[99][..]);
+        assert!(encode_describe_log_dirs_request(&mut bytes, version, &request).is_err());
+        assert_eq!(bytes.as_ref(), &[99]);
+        assert!(encode_describe_log_dirs_response(&mut bytes, version, &response).is_err());
+        assert_eq!(bytes.as_ref(), &[99]);
+    }
+}

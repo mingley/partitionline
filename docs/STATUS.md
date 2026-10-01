@@ -1,5 +1,12 @@
 # STATUS
 
+**2026-10-01 source update (KL05-22):** DescribeLogDirs api 35 now supports
+v1–v5. The v5 response adds typed `IsCordoned`; v1–v4 keep their existing bytes
+and default false. Independent Apache 4.3.1 fixtures precede the version-cap
+change, and selected peers negotiate their own range within each hop’s deadline.
+This is wire/mock evidence, with one additional ApiVersions RPC per attempt;
+no live v5 qualification, all-admin-versions claim or Suite HOLD lift.
+
 Suite HOLD stands. This file records holes. It does not lift them.
 
 **Latest source audit (2026-09-21):** at `cb7e97d`, exact-source CI is green,

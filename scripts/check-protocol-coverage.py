@@ -153,7 +153,7 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     32: list(range(0, 5)),   # DescribeConfigs: 0-4
     33: list(range(0, 3)),   # AlterConfigs: 0-2
     34: list(range(1, 3)),   # AlterReplicaLogDirs: 1-2
-    35: list(range(1, 5)),   # DescribeLogDirs: 1-4
+    35: list(range(1, 6)),   # DescribeLogDirs: 1-5
     36: list(range(0, 3)),   # SaslAuthenticate: 0-2
     37: list(range(0, 4)),   # CreatePartitions: 0-3
     38: list(range(1, 4)),   # CreateDelegationToken: 1-3
@@ -273,7 +273,6 @@ CLASSIFIED_VERSION_GAPS: Dict[Tuple[int, int], Dict[str, Any]] = {
 
     # DescribeLogDirs (35)
     (35, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "DescribeLogDirs v0 removed in Kafka 4.0; client starts at v1"},
-    (35, 5): {"pin": "4.3.1", "direction": "upstream_cap", "reason": "DescribeLogDirs v5 in Kafka 4.3.1; client capped at v4 (full_admin.describe_log_dirs_v5 missing in features.json)"},
 
     # ShareFetch (78)
     (78, 2): {"pin": "4.3.1", "direction": "upstream_cap", "reason": "ShareFetch v2 in Kafka 4.3.1; client capped at v1 (share.v2_wire_delta missing in features.json)"},

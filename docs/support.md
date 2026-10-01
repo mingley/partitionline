@@ -64,7 +64,14 @@ registry status was re-checked at source `ca50ca1` (KL07-07).
 | Sticky unkeyed partitioner | Not implemented (round-robin instead) | `producer.sticky_partitioner` (`missing`) |
 | Signed Suite HOLD / Lab A | **Unsigned** — Suite HOLD remains | — (qualification gate, not a feature entry) |
 | macOS Intel / other host architectures | May build; no CI support promise for these cells | — (CI dimension, not a feature entry) |
-| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `full_admin.describe_log_dirs_v5`, `producer.v13_wire`, `manual_consumer.v18_wire/list_offsets_v11` (`missing`) |
+| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `producer.v13_wire`, `manual_consumer.v18_wire/list_offsets_v11` (`missing`) |
+
+DescribeLogDirs now negotiates each selected broker’s v1–v5 range and exposes
+typed `IsCordoned` at v5 (older versions default to false). Each attempt adds one
+ApiVersions control RPC within that broker hop’s deadline. Independent Apache
+4.3.1 bytes and mixed-version mock brokers qualify this delta; live v5 broker
+behavior remains unqualified. Public struct literals for `DescribeLogDirsResult`
+need the new `is_cordoned` field; its existing constructor defaults it to false.
 
 Source now includes typed `elect_leaders`, read-only `describe_quorum` and
 `add_raft_voter` / `remove_raft_voter` Admin methods. Both membership operations

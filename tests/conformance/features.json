@@ -1095,16 +1095,16 @@
     "disposition": "present",
     "entrypoint": "partitionline::admin::Admin::describe_log_dirs",
     "evidence": "src/admin.rs:Admin::describe_log_dirs",
-    "notes": "DescribeLogDirs api 35 v1-v4 for disk space and replica directories."
+    "notes": "DescribeLogDirs api 35 v1-v5 for disk space and replica directories; v5 reports IsCordoned."
   },
   {
     "id": "full_admin.describe_log_dirs_v5",
     "profile": "full admin",
-    "layer": "wire_helper",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/ROADMAP.md:KL-05",
-    "notes": "DescribeLogDirs v5 delta is not implemented; tracked in KL05-22."
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::describe_log_dirs",
+    "evidence": "docs/plan/evidence/KL05-22.json",
+    "notes": "Typed IsCordoned state at v5; per-broker negotiation falls back to v1-v4 with false default. Independent Apache 4.3.1 fixtures and mock runtime paths; no live v5 or all-admin-versions qualification."
   },
   {
     "id": "full_admin.alter_replica_log_dirs",

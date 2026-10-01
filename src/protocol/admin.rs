@@ -15080,6 +15080,9 @@ pub struct DescribeLogDirsResult {
     pub total_bytes: i64,
     /// Usable bytes on this log directory.
     pub usable_bytes: i64,
+    /// Whether the broker has cordoned this directory (v5+).
+    /// Older versions decode the Apache default `false`.
+    pub is_cordoned: bool,
 }
 
 impl DescribeLogDirsResult {
@@ -15097,7 +15100,21 @@ impl DescribeLogDirsResult {
             topics,
             total_bytes,
             usable_bytes,
+            is_cordoned: false,
         }
+    }
+
+    /// Set the v5 cordoned state; older wire versions omit this ignorable field.
+    #[must_use]
+    pub const fn with_cordoned(mut self, is_cordoned: bool) -> Self {
+        self.is_cordoned = is_cordoned;
+        self
+    }
+
+    /// Java `LogDirDescription.isCordoned` (default `false` on older versions).
+    #[must_use]
+    pub const fn is_cordoned(&self) -> bool {
+        self.is_cordoned
     }
 
     /// Kafka error code (`0` is success).
@@ -15131,7 +15148,7 @@ impl DescribeLogDirsResult {
     }
 }
 
-/// DescribeLogDirs (api 35) v1–v4 response body.
+/// DescribeLogDirs (api 35) v1–v5 response body.
 ///
 /// **ErrorCode is top-level**, after throttle. Official JSON adds
 /// top-level ErrorCode at versions `3+`. Each result also has a
@@ -15205,24 +15222,24 @@ impl DescribeLogDirsResponse {
 
 /// `true` when DescribeLogDirs `version` is flexible.
 ///
-/// v1 is classic. v2–v4 are flexible. Kafka 4.0 `validVersions` is
-/// `1-4` (v0 removed). This crate speaks 1–4. v0 and v5+ are not
-/// spoken. v5 is a named STATUS hole.
+/// v1 is classic. v2–v5 are flexible. Kafka 4.0 `validVersions` is
+/// `1-4` (v0 removed). This crate speaks 1–5. v0 and v6+ are not spoken.
+/// Kafka 4.3.1 adds IsCordoned at v5; older versions default false.
 fn describe_log_dirs_flexible(version: i16) -> Result<bool> {
     match version {
         1 => Ok(false),
-        2..=4 => Ok(true),
+        2..=5 => Ok(true),
         other => Err(Error::protocol(format!(
             "DescribeLogDirs version {other} is not implemented"
         ))),
     }
 }
 
-/// DescribeLogDirs v1–4 (classic at v1; flexible from v2; KIP-113 /
+/// DescribeLogDirs v1–5 (classic at v1; flexible from v2; KIP-113 /
 /// KIP-784 / KIP-827).
 ///
 /// Official Apache JSON (`apiKey: 35`, request `listeners: ["broker"]`,
-/// `validVersions: "1-4"`, `flexibleVersions: "2+"`). Official JSON lists
+/// `validVersions: "1-5"`, `flexibleVersions: "2+"`). Official JSON lists
 /// **no** `errorCodes`. Official Java `KafkaApis.handleDescribeLogDirsRequest`
 /// answers from the connected broker (`replicaManager.describeLogDirs`);
 /// it does not look up a controller or a coordinator. Auth failure
@@ -15232,14 +15249,14 @@ fn describe_log_dirs_flexible(version: i16) -> Result<bool> {
 /// ErrorCode when that dir is offline, or `Errors.forException(t).code()`
 /// for other throwables. `NOT_COORDINATOR` (16) is **not** listed.
 /// `NOT_CONTROLLER` (41) is **not** listed. `NOT_LEADER_OR_FOLLOWER`
-/// (6) is **not** a client hop. kafka-protocol 0.18.0
-/// (`DescribeLogDirsRequest` / `DescribeLogDirsResponse`, `VERSIONS`
-/// min=1 max=4). Kafka 4.0 max is 4; this crate speaks 1–4. v0 was
-/// removed in Kafka 4.0. v5 is a named STATUS hole and is not spoken.
+/// (6) is **not** a client hop. Apache Kafka 4.3.1 source and independent
+/// Java serializers pin the v5 IsCordoned field. Kafka 4.0–4.2 max is 4;
+/// this crate speaks 1–5. v0 was removed in Kafka 4.0. Older versions
+/// omit IsCordoned and decode its Apache default false.
 /// Request encode used `features = ["client"]`; response encode used
 /// `broker`. Request: nullable `Topics` of `{Topic STRING, Partitions
 /// INT32[], tagged (v2+)}`, tagged (v2+). Same request fields on
-/// v1–v4. Response: `ThrottleTimeMs` INT32, **top-level `ErrorCode`
+/// v1–v5. Response: `ThrottleTimeMs` INT32, **top-level `ErrorCode`
 /// INT16 (v3+)**, `Results` of `{ErrorCode INT16, LogDir STRING,
 /// Topics [{Name STRING, Partitions [{PartitionIndex INT32,
 /// PartitionSize INT64, OffsetLag INT64, IsFutureKey BOOLEAN, tagged
@@ -15332,8 +15349,8 @@ pub fn decode_describe_log_dirs_request<B: Buf>(
     Ok(DescribeLogDirsRequest { topics })
 }
 
-/// Encode a DescribeLogDirs response (v1–4). Top-level ErrorCode is
-/// v3+. TotalBytes / UsableBytes are v4+.
+/// Encode a DescribeLogDirs response (v1–5). Top-level ErrorCode is
+/// v3+. TotalBytes / UsableBytes are v4+; IsCordoned is v5+.
 ///
 /// ThrottleTimeMs is JSON `0+` (from [`DescribeLogDirsResponse::throttle_time_ms`];
 /// JSON default `0`). KIP-219 only changes
@@ -15373,6 +15390,9 @@ pub fn encode_describe_log_dirs_response(
             buf.put_i64(dir.total_bytes);
             buf.put_i64(dir.usable_bytes);
         }
+        if version >= 5 {
+            buf.put_i8(i8::from(dir.is_cordoned));
+        }
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
@@ -15385,7 +15405,7 @@ pub fn encode_describe_log_dirs_response(
 
 /// Decode a DescribeLogDirs response.
 ///
-/// ThrottleTimeMs is JSON `0+` (always on the wire for spoken v1–v4).
+/// ThrottleTimeMs is JSON `0+` (always on the wire for spoken v1–v5).
 pub fn decode_describe_log_dirs_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -15429,6 +15449,11 @@ pub fn decode_describe_log_dirs_response<B: Buf>(
         } else {
             (-1, -1)
         };
+        let is_cordoned = if version >= 5 {
+            buf::get_bool(buf)?
+        } else {
+            false
+        };
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
@@ -15438,6 +15463,7 @@ pub fn decode_describe_log_dirs_response<B: Buf>(
             topics,
             total_bytes,
             usable_bytes,
+            is_cordoned,
         });
     }
     if flexible {
@@ -34094,18 +34120,17 @@ mod tests {
     }
 
     #[test]
-    fn describe_log_dirs_does_not_speak_v5() {
-        // kafka-protocol 0.18.0 VERSIONS.max = 4. Kafka 4.0
-        // validVersions is 1-4. This crate speaks 1–4. v5 is a named
-        // STATUS hole.
-        assert_eq!(crate::protocol::api_keys::pick_version(1, 5, 1, 4), Some(4));
-        assert_eq!(crate::protocol::api_keys::pick_version(5, 5, 1, 4), None);
+    fn describe_log_dirs_version_bounds_preserve_v4_layout() {
+        // Kafka 4.3.1 extends the cap to v5; v0/v6 stay unsupported.
+        // The older v4 layout must remain byte-identical.
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 5, 1, 5), Some(5));
+        assert_eq!(crate::protocol::api_keys::pick_version(6, 6, 1, 5), None);
         let mut buf = BytesMut::new();
-        let err = encode_describe_log_dirs_request(&mut buf, 5, &DescribeLogDirsRequest::new(None))
+        let err = encode_describe_log_dirs_request(&mut buf, 6, &DescribeLogDirsRequest::new(None))
             .unwrap_err();
         assert!(
             err.to_string().contains("not implemented"),
-            "v5 is not spoken, got {err}"
+            "v6 is not spoken, got {err}"
         );
         buf.clear();
         let err = encode_describe_log_dirs_request(&mut buf, 0, &DescribeLogDirsRequest::new(None))

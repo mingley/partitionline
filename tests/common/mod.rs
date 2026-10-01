@@ -294,6 +294,7 @@ struct State {
     last_metadata_version: Option<i16>,
     last_api_versions_version: Option<i16>,
     api_versions_versions: Vec<i16>,
+    api_versions_delay: Option<Duration>,
     /// Last Metadata topic filter: `None` = never recorded;
     /// `Some(None)` = all topics; `Some(Some(names))` = named.
     last_metadata_topics: Option<Option<Vec<String>>>,
@@ -524,6 +525,8 @@ struct State {
     last_describe_log_dirs_version: Option<i16>,
     describe_log_dirs_nodes: Vec<i32>,
     last_describe_log_dirs: Option<DescribeLogDirsRequest>,
+    describe_log_dirs_cordoned_nodes: HashSet<i32>,
+    describe_log_dirs_raw_responses: HashMap<i32, VecDeque<Vec<u8>>>,
     last_create_delegation_token_node: Option<i32>,
     last_create_delegation_token_version: Option<i16>,
     last_create_delegation_token: Option<CreateDelegationTokenRequest>,
@@ -738,6 +741,7 @@ fn new_state(
         last_metadata_version: None,
         last_api_versions_version: None,
         api_versions_versions: Vec::new(),
+        api_versions_delay: None,
         last_metadata_topics: None,
         last_metadata_topic_ids: None,
         last_metadata_include_topic_authorized: None,
@@ -953,6 +957,8 @@ fn new_state(
         last_describe_log_dirs_version: None,
         describe_log_dirs_nodes: Vec::new(),
         last_describe_log_dirs: None,
+        describe_log_dirs_cordoned_nodes: HashSet::new(),
+        describe_log_dirs_raw_responses: HashMap::new(),
         last_create_delegation_token_node: None,
         last_create_delegation_token_version: None,
         last_create_delegation_token: None,
@@ -1921,6 +1927,10 @@ impl Mock {
 
     pub fn api_versions_versions(&self) -> Vec<i16> {
         self.state.lock().api_versions_versions.clone()
+    }
+
+    pub fn set_api_versions_delay(&self, delay: Duration) {
+        self.state.lock().api_versions_delay = Some(delay);
     }
 
     pub fn last_metadata_topics(&self) -> Option<Option<Vec<String>>> {
@@ -3021,6 +3031,23 @@ impl Mock {
 
     pub fn last_describe_log_dirs(&self) -> Option<DescribeLogDirsRequest> {
         self.state.lock().last_describe_log_dirs.clone()
+    }
+
+    pub fn set_describe_log_dirs_cordoned(&self, node: i32) {
+        let _ = self
+            .state
+            .lock()
+            .describe_log_dirs_cordoned_nodes
+            .insert(node);
+    }
+
+    pub fn queue_describe_log_dirs_raw_response(&self, node: i32, response: Vec<u8>) {
+        self.state
+            .lock()
+            .describe_log_dirs_raw_responses
+            .entry(node)
+            .or_default()
+            .push_back(response);
     }
 
     pub fn last_create_delegation_token_node(&self) -> Option<i32> {
@@ -4311,6 +4338,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
         }
         match header.api_key {
             API_VERSIONS => {
+                let delay = state.lock().api_versions_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let mut st = state.lock();
                 st.last_api_versions_version = Some(header.api_version);
                 st.api_versions_versions.push(header.api_version);
@@ -7932,15 +7963,26 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     })
                     .unwrap_or_default();
                 st.last_describe_log_dirs = Some(req);
-                encode_describe_log_dirs_response(
-                    &mut body,
-                    version,
-                    &DescribeLogDirsResponse::new(
-                        0,
-                        vec![DescribeLogDirsResult::new(0, "/d", topics, -1, -1)],
-                    ),
-                )
-                .unwrap();
+                if let Some(response) = st
+                    .describe_log_dirs_raw_responses
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front)
+                {
+                    body.extend_from_slice(&response);
+                } else {
+                    encode_describe_log_dirs_response(
+                        &mut body,
+                        version,
+                        &DescribeLogDirsResponse::new(
+                            0,
+                            vec![DescribeLogDirsResult::new(0, "/d", topics, -1, -1)
+                                .with_cordoned(
+                                    st.describe_log_dirs_cordoned_nodes.contains(&node_id),
+                                )],
+                        ),
+                    )
+                    .unwrap();
+                }
             }
             CREATE_DELEGATION_TOKEN => {
                 let version = header.api_version;

@@ -84,3 +84,30 @@ java -cp "/tmp/add-raft-fixtures:$KAFKA_CLIENT_JAR:$SLF4J_API_JAR" RemoveRaftVot
 
 The generator performs no network I/O or membership mutation. Rust checks all
 four cells offline, with truncation and unsupported-version failures.
+
+## DescribeLogDirs v1–v5 oracle (KL05-22)
+
+`DescribeLogDirsFixtures.java` uses Apache 4.3.1's message size/write/read
+implementations. The jar must be the supplied loaded classpath file and match
+SHA-256 `dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e`
+from `apache/kafka:4.3.1` distribution image digest
+`sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837`.
+Tag object `a07059eb9b5bac1bfdbb1e74313f2fae4ca20fd9` peels to source commit
+`26b251a451ce941d3d7a55e6487bcb7f16b5ad48`. This pin is separate from the
+older Maven and distribution pins above. With JDK 21 (verified with 21.0.12.1):
+
+```bash
+mkdir -p /tmp/log-dir-fixtures
+javac -cp "$KAFKA_CLIENT_JAR" -d /tmp/log-dir-fixtures tests/conformance/java/DescribeLogDirsFixtures.java
+java -cp "/tmp/log-dir-fixtures:$KAFKA_CLIENT_JAR" DescribeLogDirsFixtures "$KAFKA_CLIENT_JAR" tests/fixtures/protocol_oracles --verify
+```
+
+Omit `--verify` to generate 24 cells and 72 binary/metadata files. Fresh Apache
+request defaults contain an empty collection; explicit null remains distinct.
+Cases cover empty/populated/error/throttle/Unicode data, v3 top-level errors,
+v4 volume sizes, v5 true/false cordoned states and unknown tags at every nested
+level. The writer deliberately sets IsCordoned true on older versions to prove
+its ignorable-field omission and reader false default. Version projections are
+applied after serialization, preserving original unknown tags. Rust decodes
+all cells, reproduces canonical bytes exactly, skips unknown tags, and rejects
+truncation/unsupported versions. This generator performs no network operation.

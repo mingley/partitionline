@@ -1263,6 +1263,8 @@ mod tests {
         assert_eq!(response_header_version(DESCRIBE_LOG_DIRS, 3), 1);
         assert_eq!(request_header_version(DESCRIBE_LOG_DIRS, 4), 2);
         assert_eq!(response_header_version(DESCRIBE_LOG_DIRS, 4), 1);
+        assert_eq!(request_header_version(DESCRIBE_LOG_DIRS, 5), 2);
+        assert_eq!(response_header_version(DESCRIBE_LOG_DIRS, 5), 1);
     }
 
     #[test]

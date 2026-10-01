@@ -202,13 +202,13 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         # 1. Version gaps
         self.assertIn("version_gaps", results)
         version_gaps = results["version_gaps"]
-        self.assertGreaterEqual(len(version_gaps), 40)
+        self.assertEqual(len(version_gaps), 39)
         # Check key expected version gaps
         self.assertTrue(any(g["api_key"] == 0 and g["version"] == 13 for g in version_gaps))  # Produce v13
         self.assertTrue(any(g["api_key"] == 1 and g["version"] == 18 for g in version_gaps))  # Fetch v18
         self.assertTrue(any(g["api_key"] == 2 and g["version"] == 11 for g in version_gaps))  # ListOffsets v11
         self.assertTrue(any(g["api_key"] == 78 and g["version"] == 2 for g in version_gaps)) # ShareFetch v2
-        self.assertTrue(any(g["api_key"] == 35 and g["version"] == 5 for g in version_gaps)) # DescribeLogDirs v5
+        self.assertFalse(any(g["api_key"] == 35 and g["version"] == 5 for g in version_gaps)) # DescribeLogDirs v5 implemented
 
         # 2. Missing runtime wiring
         self.assertIn("missing_runtime_wiring", results)
@@ -284,8 +284,8 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         """
         res = self.run_cli(["--diff-only"])
         self.assertEqual(res.returncode, 0)
-        self.assertNotIn("Implemented Client APIs (62):", res.stdout)
-        self.assertIn("Version Gaps (40):", res.stdout)
+        self.assertNotIn("Implemented Client APIs (66):", res.stdout)
+        self.assertIn("Version Gaps (39):", res.stdout)
 
     def test_cli_self_test_flag(self):
         """

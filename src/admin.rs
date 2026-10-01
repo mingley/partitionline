@@ -2868,7 +2868,6 @@ pub struct Admin {
     push_telemetry_version: Option<i16>,
     assign_replicas_to_dirs_version: Option<i16>,
     alter_replica_log_dirs_version: Option<i16>,
-    describe_log_dirs_version: Option<i16>,
     create_delegation_token_version: Option<i16>,
     renew_delegation_token_version: Option<i16>,
     expire_delegation_token_version: Option<i16>,
@@ -3892,9 +3891,6 @@ impl Admin {
         let alter_replica_log_dirs_version = versions
             .get(&ALTER_REPLICA_LOG_DIRS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2));
-        let describe_log_dirs_version = versions
-            .get(&DESCRIBE_LOG_DIRS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 4));
         let create_delegation_token_version = versions
             .get(&CREATE_DELEGATION_TOKEN)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3));
@@ -3952,7 +3948,6 @@ impl Admin {
             push_telemetry_version,
             assign_replicas_to_dirs_version,
             alter_replica_log_dirs_version,
-            describe_log_dirs_version,
             create_delegation_token_version,
             renew_delegation_token_version,
             expire_delegation_token_version,
@@ -11089,8 +11084,8 @@ impl Admin {
     }
 
     /// Describe log directories (DescribeLogDirs api 35, KIP-113 /
-    /// KIP-784 / KIP-827; v1–v4, classic at v1, flexible from v2,
-    /// top-level ErrorCode v3+, TotalBytes / UsableBytes v4).
+    /// KIP-784 / KIP-827; v1–v5, classic at v1, flexible from v2,
+    /// top-level ErrorCode v3+, TotalBytes / UsableBytes v4, IsCordoned v5).
     ///
     /// Lands on the connected broker (bootstrap is fine). Official
     /// Apache JSON listeners are `broker` only. Official JSON lists no
@@ -11109,9 +11104,11 @@ impl Admin {
     /// `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level `error_code` is the
     /// INT16 at bytes 4–5 on leftover-empty **v3+**, after throttle —
     /// not a first-directory field and not a first-partition field.
-    /// Fixture directory path and topic/partition indexes only; this
-    /// is not a log-dir store. v5 is a named STATUS hole and is not
-    /// spoken. Java `describeLogDirs(Collection<Integer>)` is
+    /// Typed results include the v5 cordoned state; older versions
+    /// decode the Apache default false. Each attempt refreshes the connected
+    /// peer's ApiVersions within the same deadline (one extra control RPC),
+    /// so a mixed-version cluster uses each broker's own v1–v5 range.
+    /// Java `describeLogDirs(Collection<Integer>)` is
     /// [`Self::describe_broker_log_dirs`]. DescribeLogDirs has no
     /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
     /// For a one-shot deadline, use [`Self::describe_log_dirs_timeout`].
@@ -11134,19 +11131,7 @@ impl Admin {
         topics: Option<Vec<DescribableLogDirTopic>>,
         timeout: Duration,
     ) -> Result<DescribeLogDirsResponse> {
-        let version = self
-            .describe_log_dirs_version
-            .ok_or_else(|| Error::Unsupported("broker does not support DescribeLogDirs".into()))?;
-        let req = DescribeLogDirsRequest::new(topics);
-        let body = self
-            .roundtrip_bootstrap(
-                DESCRIBE_LOG_DIRS,
-                version,
-                |buf| encode_describe_log_dirs_request(buf, version, &req),
-                timeout,
-            )
-            .await?;
-        decode_describe_log_dirs_response(&mut body.clone(), version)
+        self.describe_log_dirs_at(None, topics, timeout).await
     }
 
     /// Replica log directories (Java `Admin.describeReplicaLogDirs`).
@@ -11184,7 +11169,6 @@ impl Admin {
         }
         let mut infos: HashMap<(String, i32, i32), ReplicaLogDirInfo> = HashMap::new();
         for broker_id in replica_broker_ids(&replicas) {
-            self.ensure_broker(broker_id).await?;
             let topics = describable_topics_for_broker(&replicas, broker_id);
             let resp = self
                 .describe_log_dirs_on(broker_id, Some(topics), timeout)
@@ -11250,7 +11234,6 @@ impl Admin {
         }
         let mut out = Vec::with_capacity(ids.len());
         for broker_id in ids {
-            self.ensure_broker(broker_id).await?;
             let resp = self.describe_log_dirs_on(broker_id, None, timeout).await?;
             out.push((broker_id, resp));
         }
@@ -11263,38 +11246,89 @@ impl Admin {
         topics: Option<Vec<DescribableLogDirTopic>>,
         timeout: Duration,
     ) -> Result<DescribeLogDirsResponse> {
-        let version = self
-            .describe_log_dirs_version
-            .ok_or_else(|| Error::Unsupported("broker does not support DescribeLogDirs".into()))?;
-        let deadline = Instant::now() + timeout;
-        let mut attempt = 0u32;
-        let req = DescribeLogDirsRequest::new(topics);
-        loop {
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing describe_log_dirs conn"))?;
-                conn.roundtrip(
-                    DESCRIBE_LOG_DIRS,
-                    version,
-                    |buf| encode_describe_log_dirs_request(buf, version, &req),
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
-                }
-                Err(e) => return Err(e),
-            };
-            return decode_describe_log_dirs_response(&mut body.clone(), version);
+        self.describe_log_dirs_at(Some(node), topics, timeout).await
+    }
+
+    // Each selected peer is queried for its current range, including after a
+    // reconnect. This read-only diagnostic API adds one ApiVersions RPC per
+    // attempt instead of retaining another peer-capability cache. Connection,
+    // auth, capability lookup, request and existing retry waits share one budget.
+    async fn describe_log_dirs_at(
+        &mut self,
+        node: Option<i32>,
+        topics: Option<Vec<DescribableLogDirTopic>>,
+        timeout: Duration,
+    ) -> Result<DescribeLogDirsResponse> {
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
         }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("DescribeLogDirs deadline overflow"))?;
+        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
+            if let Some(node) = node {
+                self.ensure_broker(node).await?;
+            }
+            let request = DescribeLogDirsRequest::new(topics);
+            let mut attempt = 0;
+            loop {
+                let result = async {
+                    if let Some(node) = node {
+                        self.connect_node(node).await?;
+                    } else {
+                        self.ensure_bootstrap().await?;
+                    }
+                    let conn = if let Some(node) = node {
+                        self.conns
+                            .get_mut(&node)
+                            .ok_or_else(|| Error::protocol("missing describe_log_dirs conn"))?
+                    } else {
+                        &mut self.conn
+                    };
+                    let capabilities = crate::protocol::api::negotiate_api_versions(
+                        conn,
+                        deadline.saturating_duration_since(Instant::now()),
+                    )
+                    .await?;
+                    let version = capabilities
+                        .api_keys
+                        .iter()
+                        .find(|api| api.api_key == DESCRIBE_LOG_DIRS)
+                        .and_then(|api| pick_version(api.min_version, api.max_version, 1, 5))
+                        .ok_or_else(|| {
+                            Error::Unsupported(
+                                "broker does not support DescribeLogDirs v1-5".into(),
+                            )
+                        })?;
+                    let body = conn
+                        .roundtrip(
+                            DESCRIBE_LOG_DIRS,
+                            version,
+                            |output| encode_describe_log_dirs_request(output, version, &request),
+                            deadline.saturating_duration_since(Instant::now()),
+                        )
+                        .await?;
+                    let mut cursor = body.as_ref();
+                    let response = decode_describe_log_dirs_response(&mut cursor, version)?;
+                    if !cursor.is_empty() {
+                        return Err(Error::protocol("trailing DescribeLogDirs response bytes"));
+                    }
+                    Ok(response)
+                }
+                .await;
+                match result {
+                    Err(error) if node.is_some() && error.is_retriable() => {
+                        if let Some(node) = node {
+                            let _ = self.conns.remove(&node);
+                        }
+                        self.wait_retry(&mut attempt, deadline).await?;
+                    }
+                    other => return other,
+                }
+            }
+        })
+        .await
+        .map_err(|_| Error::Timeout)?
     }
 
     async fn alter_replica_log_dirs_on(

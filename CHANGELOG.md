@@ -9,6 +9,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- DescribeLogDirs now supports v5's `IsCordoned` state, with broker routing and
+  v1–v4 fallback preserved. The evolving `DescribeLogDirsResult` type adds
+  `is_cordoned`; struct-literal callers must initialize it. Its existing
+  five-argument `new` constructor stays available and defaults to false;
+  `with_cordoned` sets the new field. Older wire versions omit it and decode false.
+
 - Scripts: tip Verifiable quiet soft-latency recovery — after `latency gate failed (soft)`, `ci-tip-verifiable-broker` sleeps and re-runs integrity (`TIP_VERIFIABLE_QUIET_RETRIES` default 1, `TIP_VERIFIABLE_QUIET_SLEEP_SECS` default 8; `0` disables). Only a clean recheck may restore `ok`; still-soft stays PARTIAL/exit 2. `--self-test` + bars gate quiet retry (no greenwash).
 - Scripts: tip Verifiable soft-latency honesty — soft latency miss is PARTIAL even when integrity-smoke prints `ok`; handoff `--self-test` gates day1 README/ADOPTION preserve on `LAND_PARKS=1`.
 - Scripts/docs: cut-release `PUBLISH_LOCAL` auto-defaults to 1 when `CARGO_REGISTRY_TOKEN` is in-env; CIVILIZATION agent priority leads with WP-0.5 token cut.
