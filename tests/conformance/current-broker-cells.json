@@ -21,7 +21,9 @@
       "records_per_partition": 8,
       "partitions": 2,
       "replication_factor": 1,
-      "qualification": "pending"
+      "qualification": "passed",
+      "qualifying_source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+      "ci_run_id": 36869103809
     },
     {
       "version": "4.2.1",
@@ -42,7 +44,9 @@
       "records_per_partition": 8,
       "partitions": 2,
       "replication_factor": 1,
-      "qualification": "pending"
+      "qualification": "passed",
+      "qualifying_source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+      "ci_run_id": 36869103809
     },
     {
       "version": "4.3.1",
@@ -63,7 +67,9 @@
       "records_per_partition": 8,
       "partitions": 2,
       "replication_factor": 1,
-      "qualification": "pending"
+      "qualification": "passed",
+      "qualifying_source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+      "ci_run_id": 36869103809
     }
   ]
 }

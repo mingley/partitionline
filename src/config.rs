@@ -1,7 +1,7 @@
 //! Shared client configuration types.
 //!
 //! These are the knobs you set before connecting. Field-by-field mutation on
-//! [`ProducerConfig`](crate::ProducerConfig) still works; the builders here are
+//! [`ProducerConfig`] still works; the builders here are
 //! the shorter path.
 //!
 //! The normative compatibility contract for public config fields (rejected

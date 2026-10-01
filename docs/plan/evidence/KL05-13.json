@@ -134,5 +134,12 @@
     "Wire fixtures are synthetic responses, not a live tiered-storage pending-upload boundary. No remote-storage backend, upload lifecycle, storage maintenance operation or Kafka 4.3.1 live semantic qualification is claimed.",
     "The two historical 3.9.1/4.1.0 matrix denominators remain v1-v10; v11 is a separate 4.3.1 extension fixture suite. One existing opt-in Java/live oracle remains ignored; new fixtures run offline without Java.",
     "Stable full_surface opportunistic live Admin test ran against the owned Kafka 4.1.0 broker. The card does not qualify all Kafka API versions or lift Suite HOLD."
-  ]
+  ],
+  "deadline_assertion_follow_up": {
+    "reason": "Full all-targets suite exposed three remaining exact TimeoutMs assertions in tests/client_api.rs after the remaining-budget change.",
+    "first_failed_local_source_sha": "95d4a0580a2dc8379b07582e069358156482393a",
+    "source_sha": "d0271c880ab43f79129d7e2d78b696af5b9971b5",
+    "repair": "Keep topic/partition/isolation/version/record assertions; require a positive wire timeout no larger than the configured 30s/12s/8s budget. The 100ms delayed negotiation test still proves actual budget subtraction.",
+    "validation": "Rust 1.98.1 all-targets: 1733 passed, 0 failed, 3 explicitly ignored; Rust 1.85.0 named client_api test: 1 passed, 109 filtered. No production deadline or census budget changed by this follow-up."
+  }
 }

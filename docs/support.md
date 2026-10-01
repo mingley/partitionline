@@ -11,9 +11,11 @@ published see [RELEASE.md](RELEASE.md). For adopter steps see [ADOPTION.md](ADOP
 **Known qualification limits:** the [2026-09-21 source audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md)
 reproduced five consumer correctness cases at `cb7e97d`. CI-backed below means
 the named lanes execute, not that all client semantics are correct.
-Apache 4.1.2/4.2.1/4.3.1 are planned compatibility targets, not covered by the
-existing 3.9.1/4.1.0 matrix. Follow [the task queue](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md) for repairs
-and evidence before extending support claims.
+Apache 4.1.2/4.2.1/4.3.1 now have separate digest-pinned, exact-history
+compatibility profiles. The earlier 3.9.1/4.1.0 smoke cells remain historical
+executed coverage. The current profiles qualify the scenarios described below;
+the [task queue](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md)
+still tracks broader correctness, fault and performance work.
 
 ## Supported (CI-backed)
 
@@ -23,9 +25,28 @@ and evidence before extending support claims.
 | MSRV | Rust **1.85** (`rust-version` in `Cargo.toml`) | `test (1.85)` and `test (stable)` CI; raising MSRV is a 0.x minor + CHANGELOG note |
 | Host OS (CI) | Linux (`ubuntu-latest`); native macOS (`macos-15`) and Windows (`windows-2025`) for mock/runtime and packed consumers | `.github/workflows/ci.yml`; KL08-05 / KL08-14 native default/tracing cells |
 | Host arch (CI) | Linux `x86_64`; macOS `arm64`; Windows `x86_64` MSVC | Native compiler/runtime guards and retained platform reports |
-| Brokers | Apache Kafka **3.9.1** and **4.1.0** (`apache/kafka:3.9.1`, `apache/kafka:4.1.0`) | `broker-smoke` matrix (`KAFKA_IMAGE`) |
+| Brokers (current source) | Apache Kafka **4.1.2**, **4.2.1**, **4.3.1**; historical smoke on **3.9.1** / **4.1.0** | `broker-current` required profiles and separate `broker-smoke` history; [frozen image digests](../tests/conformance/current-broker-cells.json) |
 | Default features | Pure Rust (no librdkafka / OpenSSL / libzstd / Cyrus SASL) | `Cargo.toml` defaults + deny/audit lanes |
 | Auth in smoke | SASL PLAIN / SCRAM / OAUTHBEARER + rustls TLS (when auth smoke runs) | `scripts/ci-auth-smoke.sh` (soft-skip without Java/Kafka unless `REQUIRE_AUTH=1`) |
+
+KL01-10 qualifies the three current broker distributions at source `8bec4f2`
+in [CI run 36869103809](https://github.com/mingley/partitionline/actions/runs/36869103809).
+Each fresh Linux x86_64 single-broker RF1 cell requires admin checks, 16 exact
+produced records, manual consumption, one-member classic/cooperative/KIP-848
+groups, share accept/close, and transactional output/offset commit with a hidden
+abort sentinel. Rust verifies complete identities, offsets, timestamps and
+payloads; the pinned Java CLI independently reads both histories and verifies
+four groups' committed offsets and zero lag. Actual image/compiler/API ranges
+and finalized feature levels are retained; API absence or a disabled required
+feature fails the profile. Transaction commit-marker visibility is observed
+within five seconds without repeating the transaction. Startup coordinator
+errors and every visibility observation remain in the evidence.
+
+These profiles qualify current source with default features. They do not add
+multi-broker HA, rebalance churn, share lock-expiry, crash/fencing, external auth,
+native macOS/Windows broker, tiered-storage or performance qualification. The
+historical smoke checks do not qualify a failed current profile. Published
+`0.1.0` remains a separate source baseline.
 
 ## Explicitly unsupported / not promised
 

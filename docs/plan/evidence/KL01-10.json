@@ -1,0 +1,2031 @@
+{
+  "id": "KL01-10",
+  "status": "done",
+  "source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+  "acceptance_met": [
+    "Digest-pinned owned native Linux x86_64 Apache 4.1.2/4.2.1/4.3.1 cells execute eight required exact-history scenarios, locally and in CI.",
+    "Requested/actual image and loaded image ID, CLI distribution, compiler, API ranges and finalized features are captured and validated; missing or disabled required APIs/features fail.",
+    "Rust record identity/partition/offset/timestamp/payload/full-set/duplicate checks and independent Java histories/committed offsets corroborate the profile. No progress-string or ignored-test success.",
+    "Historical 3.9.1/4.1.0 smoke evidence remains distinct; no fallback broker or skipped required scenario qualifies a current cell."
+  ],
+  "ci": {
+    "run_id": 36869103809,
+    "url": "https://github.com/mingley/partitionline/actions/runs/36869103809",
+    "source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+    "broker_cells": [
+      {
+        "version": "4.1.2",
+        "job_id": 110392574673,
+        "job_url": "https://github.com/mingley/partitionline/actions/runs/36869103809/job/110392574673",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run dtolnay/rust-toolchain@stable",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Fail-closed broker report negative tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Fresh digest-pinned broker and complete required histories",
+            "conclusion": "success"
+          },
+          {
+            "name": "Retain identity, all startup attempts and complete histories",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ],
+        "artifact": {
+          "id": 11165203072,
+          "name": "broker-current-4.1.2-8bec4f21fd92bb2aaa8b44f2899534b900f94c1e-rust1.99.0-scenarios8-records16-share1-group1-txn2-meta27-5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+          "size_in_bytes": 23676,
+          "digest": "sha256:256533e4791fda820120117e4342fe7e276b8c8d2b650988bda0eb254a233ff0",
+          "expired": false
+        }
+      },
+      {
+        "version": "4.2.1",
+        "job_id": 110392574577,
+        "job_url": "https://github.com/mingley/partitionline/actions/runs/36869103809/job/110392574577",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run dtolnay/rust-toolchain@stable",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Fail-closed broker report negative tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Fresh digest-pinned broker and complete required histories",
+            "conclusion": "success"
+          },
+          {
+            "name": "Retain identity, all startup attempts and complete histories",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ],
+        "artifact": {
+          "id": 11166956254,
+          "name": "broker-current-4.2.1-8bec4f21fd92bb2aaa8b44f2899534b900f94c1e-rust1.99.0-scenarios8-records16-share1-group1-txn2-meta29-9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+          "size_in_bytes": 23334,
+          "digest": "sha256:b1590085f3ce2763a9a81df1a836b051ab1674b981c9b2cca085c61dbe2e7580",
+          "expired": false
+        }
+      },
+      {
+        "version": "4.3.1",
+        "job_id": 110392574650,
+        "job_url": "https://github.com/mingley/partitionline/actions/runs/36869103809/job/110392574650",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run dtolnay/rust-toolchain@stable",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Fail-closed broker report negative tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Fresh digest-pinned broker and complete required histories",
+            "conclusion": "success"
+          },
+          {
+            "name": "Retain identity, all startup attempts and complete histories",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ],
+        "artifact": {
+          "id": 11164838167,
+          "name": "broker-current-4.3.1-8bec4f21fd92bb2aaa8b44f2899534b900f94c1e-rust1.99.0-scenarios8-records16-share1-group1-txn2-meta30-77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+          "size_in_bytes": 24060,
+          "digest": "sha256:5ef8baa62993a7eedff3b833c77dc96733feb34d804e28663d12e61ada5273a4",
+          "expired": false
+        }
+      }
+    ],
+    "scope": "All three required broker jobs passed. Whole run is not claimed green: strict docs failed on the newly released Rust 1.99 redundant-link lint; repaired and separately checked below."
+  },
+  "local_cells": [
+    {
+      "version": "4.1.2",
+      "report": {
+        "schema_version": 1,
+        "source_sha": "4e0759ba12380c2de0d7c9d0d60aadd89dffb774",
+        "cell": {
+          "version": "4.1.2",
+          "image": "apache/kafka:4.1.2",
+          "digest": "sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+          "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+          "host": "linux-x86_64",
+          "required_scenarios": [
+            "admin",
+            "produce",
+            "manual",
+            "classic",
+            "cooperative",
+            "kip848",
+            "share",
+            "transaction"
+          ],
+          "records_per_partition": 8,
+          "partitions": 2,
+          "replication_factor": 1,
+          "qualification": "pending"
+        },
+        "identity": {
+          "requested": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+          "actual_reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+          "container_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+          "inspected_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+          "repo_digests": [
+            "apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+          ],
+          "kafka_cli_version": "4.1.2\n",
+          "host_os": "Linux",
+          "host_arch": "x86_64",
+          "rustc_host": "x86_64-unknown-linux-gnu",
+          "rustc_release": "1.98.1"
+        },
+        "runtime": {
+          "scenarios": {
+            "admin": {
+              "records": 0,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "classic": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "cooperative": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "kip848": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "manual": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "produce": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "share": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "transaction": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            }
+          },
+          "api_ranges": {
+            "0": [
+              0,
+              13
+            ],
+            "1": [
+              4,
+              18
+            ],
+            "10": [
+              0,
+              6
+            ],
+            "11": [
+              0,
+              9
+            ],
+            "12": [
+              0,
+              4
+            ],
+            "13": [
+              0,
+              5
+            ],
+            "14": [
+              0,
+              5
+            ],
+            "15": [
+              0,
+              6
+            ],
+            "16": [
+              0,
+              5
+            ],
+            "17": [
+              0,
+              1
+            ],
+            "18": [
+              0,
+              4
+            ],
+            "19": [
+              2,
+              7
+            ],
+            "2": [
+              1,
+              10
+            ],
+            "20": [
+              1,
+              6
+            ],
+            "21": [
+              0,
+              2
+            ],
+            "22": [
+              0,
+              5
+            ],
+            "23": [
+              2,
+              4
+            ],
+            "24": [
+              0,
+              5
+            ],
+            "25": [
+              0,
+              4
+            ],
+            "26": [
+              0,
+              5
+            ],
+            "27": [
+              1,
+              1
+            ],
+            "28": [
+              0,
+              5
+            ],
+            "29": [
+              1,
+              3
+            ],
+            "3": [
+              0,
+              13
+            ],
+            "30": [
+              1,
+              3
+            ],
+            "31": [
+              1,
+              3
+            ],
+            "32": [
+              1,
+              4
+            ],
+            "33": [
+              0,
+              2
+            ],
+            "34": [
+              1,
+              2
+            ],
+            "35": [
+              1,
+              4
+            ],
+            "36": [
+              0,
+              2
+            ],
+            "37": [
+              0,
+              3
+            ],
+            "38": [
+              1,
+              3
+            ],
+            "39": [
+              1,
+              2
+            ],
+            "40": [
+              1,
+              2
+            ],
+            "41": [
+              1,
+              3
+            ],
+            "42": [
+              0,
+              2
+            ],
+            "43": [
+              0,
+              2
+            ],
+            "44": [
+              0,
+              1
+            ],
+            "45": [
+              0,
+              1
+            ],
+            "46": [
+              0,
+              0
+            ],
+            "47": [
+              0,
+              0
+            ],
+            "48": [
+              0,
+              1
+            ],
+            "49": [
+              0,
+              1
+            ],
+            "50": [
+              0,
+              0
+            ],
+            "51": [
+              0,
+              0
+            ],
+            "55": [
+              0,
+              2
+            ],
+            "57": [
+              0,
+              2
+            ],
+            "60": [
+              0,
+              2
+            ],
+            "61": [
+              0,
+              0
+            ],
+            "64": [
+              0,
+              0
+            ],
+            "65": [
+              0,
+              0
+            ],
+            "66": [
+              0,
+              2
+            ],
+            "68": [
+              0,
+              1
+            ],
+            "69": [
+              0,
+              1
+            ],
+            "74": [
+              0,
+              1
+            ],
+            "75": [
+              0,
+              0
+            ],
+            "76": [
+              1,
+              1
+            ],
+            "77": [
+              1,
+              1
+            ],
+            "78": [
+              1,
+              1
+            ],
+            "79": [
+              1,
+              1
+            ],
+            "8": [
+              2,
+              9
+            ],
+            "80": [
+              0,
+              0
+            ],
+            "81": [
+              0,
+              0
+            ],
+            "83": [
+              0,
+              0
+            ],
+            "84": [
+              0,
+              0
+            ],
+            "85": [
+              0,
+              0
+            ],
+            "86": [
+              0,
+              0
+            ],
+            "87": [
+              0,
+              0
+            ],
+            "9": [
+              1,
+              9
+            ],
+            "90": [
+              0,
+              0
+            ],
+            "91": [
+              0,
+              0
+            ],
+            "92": [
+              0,
+              0
+            ]
+          },
+          "finalized_features": {
+            "eligible.leader.replicas.version": [
+              1,
+              1
+            ],
+            "group.version": [
+              1,
+              1
+            ],
+            "metadata.version": [
+              27,
+              27
+            ],
+            "share.version": [
+              1,
+              1
+            ],
+            "transaction.version": [
+              2,
+              2
+            ]
+          },
+          "committed_offsets": {
+            "classic": {
+              "0": 8,
+              "1": 8
+            },
+            "cooperative": {
+              "0": 8,
+              "1": 8
+            },
+            "kip848": {
+              "0": 8,
+              "1": 8
+            },
+            "transaction": {
+              "0": 8,
+              "1": 8
+            }
+          },
+          "group_ids": {
+            "classic": "plcompat-4-1-2-classic",
+            "cooperative": "plcompat-4-1-2-cooperative",
+            "kip848": "plcompat-4-1-2-kip848",
+            "transaction": "plcompat-4-1-2-transaction"
+          },
+          "startup_attempts": [
+            {
+              "phase": "setup",
+              "scenario": "classic",
+              "error": "broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator"
+            },
+            {
+              "phase": "setup",
+              "scenario": "transaction",
+              "error": "broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator"
+            },
+            {
+              "phase": "setup",
+              "scenario": "transaction",
+              "error": "broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId"
+            }
+          ],
+          "transaction_visibility": [
+            {
+              "attempt": 0,
+              "elapsed_ms": 2,
+              "error": 88
+            },
+            {
+              "attempt": 1,
+              "elapsed_ms": 31,
+              "offsets": {
+                "0": 8,
+                "1": 8
+              }
+            }
+          ],
+          "source_sha": "4e0759ba12380c2de0d7c9d0d60aadd89dffb774",
+          "requested": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+          "input_topic": "plcompat-4-1-2-input",
+          "output_topic": "plcompat-4-1-2-output",
+          "seed_timestamp": 1790861118411,
+          "transaction_aborted_visible": 0,
+          "share_accepted": 16
+        },
+        "status": "passed"
+      },
+      "report_sha256": "400f30d2167ec174f7d3b7a4dcb89d7a1a510c6dacd774d5960946e8c7da8dff",
+      "raw_history": {
+        "runtime.log": "    Finished `test` profile [unoptimized] target(s) in 0.07s\n     Running tests/broker_compatibility.rs (/workspace/.cloud-setup/partitionline-ci-clean/debug/deps/broker_compatibility-a3f6499b854ba5a9)\n\nrunning 1 test\ncompatibility phase: admin-connect\ncompatibility phase: admin-features\ncompatibility phase: admin-create-topics\ncompatibility phase: admin-offsets\ncompatibility phase: produce\ncompatibility phase: manual\ncompatibility phase: groups\ncompatibility group phase: classic join\ncoordinator startup classic: broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator\ncompatibility group phase: classic poll\ncompatibility group phase: classic commit\ncompatibility group phase: classic committed\ncompatibility group phase: classic close\ncompatibility group phase: cooperative join\ncompatibility group phase: cooperative poll\ncompatibility group phase: cooperative commit\ncompatibility group phase: cooperative committed\ncompatibility group phase: cooperative close\ncompatibility group phase: kip848 join\ncompatibility group phase: kip848 poll\ncompatibility group phase: kip848 commit\ncompatibility group phase: kip848 committed\ncompatibility group phase: kip848 close\ncompatibility phase: share\ncompatibility phase: transaction\ntransaction coordinator startup: broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator\ntransaction coordinator startup: broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId\ntransaction offset visibility: 2ms None\ntransaction offset visibility: 31ms Some({\"0\": 8, \"1\": 8})\nPL_COMPAT_SOURCE\t4e0759ba12380c2de0d7c9d0d60aadd89dffb774\nPL_COMPAT_REFERENCE\tapache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\nPL_COMPAT_INPUT_TOPIC\tplcompat-4-1-2-input\nPL_COMPAT_OUTPUT_TOPIC\tplcompat-4-1-2-output\nPL_COMPAT_SEED_TIMESTAMP\t1790861118411\nPL_COMPAT_SCENARIO\tadmin\tpassed\t0\t0\t0\t0\nPL_COMPAT_SCENARIO\tclassic\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tcooperative\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tkip848\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tmanual\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tproduce\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tshare\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\ttransaction\tpassed\t16\t0\t0\t0\nPL_COMPAT_API\t0\t0\t13\nPL_COMPAT_API\t1\t4\t18\nPL_COMPAT_API\t10\t0\t6\nPL_COMPAT_API\t11\t0\t9\nPL_COMPAT_API\t12\t0\t4\nPL_COMPAT_API\t13\t0\t5\nPL_COMPAT_API\t14\t0\t5\nPL_COMPAT_API\t15\t0\t6\nPL_COMPAT_API\t16\t0\t5\nPL_COMPAT_API\t17\t0\t1\nPL_COMPAT_API\t18\t0\t4\nPL_COMPAT_API\t19\t2\t7\nPL_COMPAT_API\t2\t1\t10\nPL_COMPAT_API\t20\t1\t6\nPL_COMPAT_API\t21\t0\t2\nPL_COMPAT_API\t22\t0\t5\nPL_COMPAT_API\t23\t2\t4\nPL_COMPAT_API\t24\t0\t5\nPL_COMPAT_API\t25\t0\t4\nPL_COMPAT_API\t26\t0\t5\nPL_COMPAT_API\t27\t1\t1\nPL_COMPAT_API\t28\t0\t5\nPL_COMPAT_API\t29\t1\t3\nPL_COMPAT_API\t3\t0\t13\nPL_COMPAT_API\t30\t1\t3\nPL_COMPAT_API\t31\t1\t3\nPL_COMPAT_API\t32\t1\t4\nPL_COMPAT_API\t33\t0\t2\nPL_COMPAT_API\t34\t1\t2\nPL_COMPAT_API\t35\t1\t4\nPL_COMPAT_API\t36\t0\t2\nPL_COMPAT_API\t37\t0\t3\nPL_COMPAT_API\t38\t1\t3\nPL_COMPAT_API\t39\t1\t2\nPL_COMPAT_API\t40\t1\t2\nPL_COMPAT_API\t41\t1\t3\nPL_COMPAT_API\t42\t0\t2\nPL_COMPAT_API\t43\t0\t2\nPL_COMPAT_API\t44\t0\t1\nPL_COMPAT_API\t45\t0\t1\nPL_COMPAT_API\t46\t0\t0\nPL_COMPAT_API\t47\t0\t0\nPL_COMPAT_API\t48\t0\t1\nPL_COMPAT_API\t49\t0\t1\nPL_COMPAT_API\t50\t0\t0\nPL_COMPAT_API\t51\t0\t0\nPL_COMPAT_API\t55\t0\t2\nPL_COMPAT_API\t57\t0\t2\nPL_COMPAT_API\t60\t0\t2\nPL_COMPAT_API\t61\t0\t0\nPL_COMPAT_API\t64\t0\t0\nPL_COMPAT_API\t65\t0\t0\nPL_COMPAT_API\t66\t0\t2\nPL_COMPAT_API\t68\t0\t1\nPL_COMPAT_API\t69\t0\t1\nPL_COMPAT_API\t74\t0\t1\nPL_COMPAT_API\t75\t0\t0\nPL_COMPAT_API\t76\t1\t1\nPL_COMPAT_API\t77\t1\t1\nPL_COMPAT_API\t78\t1\t1\nPL_COMPAT_API\t79\t1\t1\nPL_COMPAT_API\t8\t2\t9\nPL_COMPAT_API\t80\t0\t0\nPL_COMPAT_API\t81\t0\t0\nPL_COMPAT_API\t83\t0\t0\nPL_COMPAT_API\t84\t0\t0\nPL_COMPAT_API\t85\t0\t0\nPL_COMPAT_API\t86\t0\t0\nPL_COMPAT_API\t87\t0\t0\nPL_COMPAT_API\t9\t1\t9\nPL_COMPAT_API\t90\t0\t0\nPL_COMPAT_API\t91\t0\t0\nPL_COMPAT_API\t92\t0\t0\nPL_COMPAT_FEATURE\teligible.leader.replicas.version\t1\t1\nPL_COMPAT_FEATURE\tgroup.version\t1\t1\nPL_COMPAT_FEATURE\tmetadata.version\t27\t27\nPL_COMPAT_FEATURE\tshare.version\t1\t1\nPL_COMPAT_FEATURE\ttransaction.version\t2\t2\nPL_COMPAT_COMMITTED\tclassic\t0\t8\nPL_COMPAT_COMMITTED\tclassic\t1\t8\nPL_COMPAT_COMMITTED\tcooperative\t0\t8\nPL_COMPAT_COMMITTED\tcooperative\t1\t8\nPL_COMPAT_COMMITTED\tkip848\t0\t8\nPL_COMPAT_COMMITTED\tkip848\t1\t8\nPL_COMPAT_COMMITTED\ttransaction\t0\t8\nPL_COMPAT_COMMITTED\ttransaction\t1\t8\nPL_COMPAT_GROUP\tclassic\tplcompat-4-1-2-classic\nPL_COMPAT_GROUP\tcooperative\tplcompat-4-1-2-cooperative\nPL_COMPAT_GROUP\tkip848\tplcompat-4-1-2-kip848\nPL_COMPAT_GROUP\ttransaction\tplcompat-4-1-2-transaction\nPL_COMPAT_STARTUP\tclassic\tYnJva2VyIGVycm9yIDE1IChDT09SRElOQVRPUl9OT1RfQVZBSUxBQkxFKTogRmluZENvb3JkaW5hdG9y\nPL_COMPAT_STARTUP\ttransaction\tYnJva2VyIGVycm9yIDE1IChDT09SRElOQVRPUl9OT1RfQVZBSUxBQkxFKTogRmluZENvb3JkaW5hdG9y\nPL_COMPAT_STARTUP\ttransaction\tYnJva2VyIGVycm9yIDE0IChDT09SRElOQVRPUl9MT0FEX0lOX1BST0dSRVNTKTogSW5pdFByb2R1Y2VySWQ=\nPL_COMPAT_VISIBILITY_ERROR\t0\t2\t88\nPL_COMPAT_VISIBILITY\t1\t31\t8\t8\nPL_COMPAT_ABORTED_VISIBLE\t0\nPL_COMPAT_SHARE_ACCEPTED\t16\nPL_COMPAT_COMPLETE\ntest live_compatibility_required ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.02s\n\n",
+        "features.log": "Feature: eligible.leader.replicas.version\tSupportedMinVersion: 0\tSupportedMaxVersion: 1\tFinalizedVersionLevel: 1\tEpoch: 33\nFeature: group.version\tSupportedMinVersion: 0\tSupportedMaxVersion: 1\tFinalizedVersionLevel: 1\tEpoch: 33\nFeature: kraft.version\tSupportedMinVersion: 0\tSupportedMaxVersion: 1\tFinalizedVersionLevel: 0\tEpoch: 33\nFeature: metadata.version\tSupportedMinVersion: 3.3-IV3\tSupportedMaxVersion: 4.1-IV1\tFinalizedVersionLevel: 4.1-IV1\tEpoch: 33\nFeature: share.version\tSupportedMinVersion: 0\tSupportedMaxVersion: 1\tFinalizedVersionLevel: 1\tEpoch: 33\nFeature: transaction.version\tSupportedMinVersion: 0\tSupportedMaxVersion: 2\tFinalizedVersionLevel: 2\tEpoch: 33\n",
+        "java-input.log": "CreateTime:1790861118411\tPartition:0\tOffset:0\t0:0\tKL01-10/0/0/x\nCreateTime:1790861118412\tPartition:0\tOffset:1\t0:1\tKL01-10/0/1/xx\nCreateTime:1790861118413\tPartition:0\tOffset:2\t0:2\tKL01-10/0/2/xxx\nCreateTime:1790861118414\tPartition:0\tOffset:3\t0:3\tKL01-10/0/3/xxxx\nCreateTime:1790861118415\tPartition:0\tOffset:4\t0:4\tKL01-10/0/4/xxxxx\nCreateTime:1790861118416\tPartition:0\tOffset:5\t0:5\tKL01-10/0/5/xxxxxx\nCreateTime:1790861118417\tPartition:0\tOffset:6\t0:6\tKL01-10/0/6/xxxxxxx\nCreateTime:1790861118418\tPartition:0\tOffset:7\t0:7\tKL01-10/0/7/xxxxxxxx\nCreateTime:1790861118411\tPartition:1\tOffset:0\t1:0\tKL01-10/1/0/x\nCreateTime:1790861118412\tPartition:1\tOffset:1\t1:1\tKL01-10/1/1/xx\nCreateTime:1790861118413\tPartition:1\tOffset:2\t1:2\tKL01-10/1/2/xxx\nCreateTime:1790861118414\tPartition:1\tOffset:3\t1:3\tKL01-10/1/3/xxxx\nCreateTime:1790861118415\tPartition:1\tOffset:4\t1:4\tKL01-10/1/4/xxxxx\nCreateTime:1790861118416\tPartition:1\tOffset:5\t1:5\tKL01-10/1/5/xxxxxx\nCreateTime:1790861118417\tPartition:1\tOffset:6\t1:6\tKL01-10/1/6/xxxxxxx\nCreateTime:1790861118418\tPartition:1\tOffset:7\t1:7\tKL01-10/1/7/xxxxxxxx\n",
+        "java-output.log": "CreateTime:1790861118411\tPartition:0\tOffset:0\t0:0\tKL01-10/0/0/x\nCreateTime:1790861118412\tPartition:0\tOffset:1\t0:1\tKL01-10/0/1/xx\nCreateTime:1790861118413\tPartition:0\tOffset:2\t0:2\tKL01-10/0/2/xxx\nCreateTime:1790861118414\tPartition:0\tOffset:3\t0:3\tKL01-10/0/3/xxxx\nCreateTime:1790861118415\tPartition:0\tOffset:4\t0:4\tKL01-10/0/4/xxxxx\nCreateTime:1790861118416\tPartition:0\tOffset:5\t0:5\tKL01-10/0/5/xxxxxx\nCreateTime:1790861118417\tPartition:0\tOffset:6\t0:6\tKL01-10/0/6/xxxxxxx\nCreateTime:1790861118418\tPartition:0\tOffset:7\t0:7\tKL01-10/0/7/xxxxxxxx\nCreateTime:1790861118411\tPartition:0\tOffset:8\t1:0\tKL01-10/1/0/x\nCreateTime:1790861118412\tPartition:0\tOffset:9\t1:1\tKL01-10/1/1/xx\nCreateTime:1790861118413\tPartition:0\tOffset:10\t1:2\tKL01-10/1/2/xxx\nCreateTime:1790861118414\tPartition:0\tOffset:11\t1:3\tKL01-10/1/3/xxxx\nCreateTime:1790861118415\tPartition:0\tOffset:12\t1:4\tKL01-10/1/4/xxxxx\nCreateTime:1790861118416\tPartition:0\tOffset:13\t1:5\tKL01-10/1/5/xxxxxx\nCreateTime:1790861118417\tPartition:0\tOffset:14\t1:6\tKL01-10/1/6/xxxxxxx\nCreateTime:1790861118418\tPartition:0\tOffset:15\t1:7\tKL01-10/1/7/xxxxxxxx\n",
+        "java-offsets-classic.log": "\nConsumer group 'plcompat-4-1-2-classic' has no active members.\n\nGROUP                  TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-1-2-classic plcompat-4-1-2-input 0          8               8               0               -               -               -\nplcompat-4-1-2-classic plcompat-4-1-2-input 1          8               8               0               -               -               -\n",
+        "java-offsets-cooperative.log": "\nConsumer group 'plcompat-4-1-2-cooperative' has no active members.\n\nGROUP                      TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-1-2-cooperative plcompat-4-1-2-input 0          8               8               0               -               -               -\nplcompat-4-1-2-cooperative plcompat-4-1-2-input 1          8               8               0               -               -               -\n",
+        "java-offsets-kip848.log": "\nConsumer group 'plcompat-4-1-2-kip848' has no active members.\n\nGROUP                 TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-1-2-kip848 plcompat-4-1-2-input 0          8               8               0               -               -               -\nplcompat-4-1-2-kip848 plcompat-4-1-2-input 1          8               8               0               -               -               -\n",
+        "java-offsets-transaction.log": "\nConsumer group 'plcompat-4-1-2-transaction' has no active members.\n\nGROUP                      TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-1-2-transaction plcompat-4-1-2-input 0          8               8               0               -               -               -\nplcompat-4-1-2-transaction plcompat-4-1-2-input 1          8               8               0               -               -               -\n"
+      },
+      "artifact_manifest": {
+        "broker-version.log": "b3bb6f691586de9019e3cc79bc93f052fe628911cf38bff77319a05242cc7fec",
+        "broker.log": "20d20742d5a183729c7fe4187752e280b80281627582158b71b0629708fcfe8c",
+        "build.log": "8d3e74e329a74ea4f01a7e3c9c13bef227bae19eeb100feaf70868403950e44d",
+        "cargo.log": "9950bbb2d5c3417b1a068f0e81f6d3cac991a363193bdf2a22d447f5acf8b503",
+        "cleanup.log": "36243f8d6efd2d344587f5512a1ace9e6d9c25785dad5efcd73841bcefdbb2cd",
+        "container-id.log": "b8c94715b80b40a39f7ab2a696b660ed8eb203234a1521b413fabc6c3059d421",
+        "features-before.log": "5da0e5b99f79469b19e769437e77dedd93492d0758c91f851ef5b390fcce9134",
+        "features-upgrade.log": "e141022fde66c8abf284d87a0ea005a43a2851b2f0dac97891d587fbe0e336ee",
+        "features.log": "2551add7574100cdf2672cf815a5125f5c054882078d8bcf7efc18b7487f3f8c",
+        "identity.json": "e9da2d1189806d2ef989298c7b04bde29f7b58710f755673f21b2916847a23d3",
+        "java-input.log": "be736a186e31d7f31ba4b1dc67992a80c7b8ad30da96a47d8989338225bf677a",
+        "java-input.stderr.log": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+        "java-offsets-classic.log": "796aa4f165804afb9d7cf78ff00ce8e169e5fc2954d4bd1a0cb85922a66e1463",
+        "java-offsets-cooperative.log": "3112605325f705a92d3c2cabde0ebcb3b6e4fba4ccd86cc7dba7ede8574cad7c",
+        "java-offsets-kip848.log": "4ffd5b4ee54796bfa4b7cfe4c27b08566ee6a39b6d9d5c5ad67134df95c04a9f",
+        "java-offsets-transaction.log": "9873bc1715dd3b71b30d278141772832869dc15339ad7922c4597a33af17bcb4",
+        "java-output.log": "f85240adcd9d340fc0afa474bb1de4aad377009621ef39241ba22f3312a41c31",
+        "java-output.stderr.log": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+        "readiness-1.log": "1de1898f1f6aebad7893769434022c7888661c57bc7cd28bc08ed3e6338d8254",
+        "readiness-2.log": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+        "readiness.log": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+        "report-validation.log": "89eff2efd975f9f49f738b3ffa15199f403d6058cc94498d0de821e3aaa92800",
+        "report.json": "400f30d2167ec174f7d3b7a4dcb89d7a1a510c6dacd774d5960946e8c7da8dff",
+        "runtime.log": "100065d19092f936b099a168e6b0d86a0b818fc7844e62041cb4b48dd9968a08",
+        "rustc.log": "778fbc643a806f0dd123c056e66201d7e8a56a61928ec0a33171be8d6c2d5a37",
+        "start.log": "36243f8d6efd2d344587f5512a1ace9e6d9c25785dad5efcd73841bcefdbb2cd"
+      }
+    },
+    {
+      "version": "4.2.1",
+      "report": {
+        "schema_version": 1,
+        "source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+        "cell": {
+          "version": "4.2.1",
+          "image": "apache/kafka:4.2.1",
+          "digest": "sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+          "reference": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+          "host": "linux-x86_64",
+          "required_scenarios": [
+            "admin",
+            "produce",
+            "manual",
+            "classic",
+            "cooperative",
+            "kip848",
+            "share",
+            "transaction"
+          ],
+          "records_per_partition": 8,
+          "partitions": 2,
+          "replication_factor": 1,
+          "qualification": "pending"
+        },
+        "identity": {
+          "requested": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+          "actual_reference": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+          "container_image_id": "sha256:55c1b9c10383fbe90c4cf5f68cf02e6813f645fddd553483dcc66e8c3d3c6f24",
+          "inspected_image_id": "sha256:55c1b9c10383fbe90c4cf5f68cf02e6813f645fddd553483dcc66e8c3d3c6f24",
+          "repo_digests": [
+            "apache/kafka@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0"
+          ],
+          "kafka_cli_version": "4.2.1\n",
+          "host_os": "Linux",
+          "host_arch": "x86_64",
+          "rustc_host": "x86_64-unknown-linux-gnu",
+          "rustc_release": "1.98.1"
+        },
+        "runtime": {
+          "scenarios": {
+            "admin": {
+              "records": 0,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "classic": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "cooperative": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "kip848": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "manual": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "produce": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "share": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "transaction": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            }
+          },
+          "api_ranges": {
+            "0": [
+              0,
+              13
+            ],
+            "1": [
+              4,
+              18
+            ],
+            "10": [
+              0,
+              6
+            ],
+            "11": [
+              0,
+              9
+            ],
+            "12": [
+              0,
+              4
+            ],
+            "13": [
+              0,
+              5
+            ],
+            "14": [
+              0,
+              5
+            ],
+            "15": [
+              0,
+              6
+            ],
+            "16": [
+              0,
+              5
+            ],
+            "17": [
+              0,
+              1
+            ],
+            "18": [
+              0,
+              4
+            ],
+            "19": [
+              2,
+              7
+            ],
+            "2": [
+              1,
+              11
+            ],
+            "20": [
+              1,
+              6
+            ],
+            "21": [
+              0,
+              2
+            ],
+            "22": [
+              0,
+              5
+            ],
+            "23": [
+              2,
+              4
+            ],
+            "24": [
+              0,
+              5
+            ],
+            "25": [
+              0,
+              4
+            ],
+            "26": [
+              0,
+              5
+            ],
+            "27": [
+              1,
+              2
+            ],
+            "28": [
+              0,
+              5
+            ],
+            "29": [
+              1,
+              3
+            ],
+            "3": [
+              0,
+              13
+            ],
+            "30": [
+              1,
+              3
+            ],
+            "31": [
+              1,
+              3
+            ],
+            "32": [
+              1,
+              4
+            ],
+            "33": [
+              0,
+              2
+            ],
+            "34": [
+              1,
+              2
+            ],
+            "35": [
+              1,
+              4
+            ],
+            "36": [
+              0,
+              2
+            ],
+            "37": [
+              0,
+              3
+            ],
+            "38": [
+              1,
+              3
+            ],
+            "39": [
+              1,
+              2
+            ],
+            "40": [
+              1,
+              2
+            ],
+            "41": [
+              1,
+              3
+            ],
+            "42": [
+              0,
+              2
+            ],
+            "43": [
+              0,
+              2
+            ],
+            "44": [
+              0,
+              1
+            ],
+            "45": [
+              0,
+              1
+            ],
+            "46": [
+              0,
+              0
+            ],
+            "47": [
+              0,
+              0
+            ],
+            "48": [
+              0,
+              1
+            ],
+            "49": [
+              0,
+              1
+            ],
+            "50": [
+              0,
+              0
+            ],
+            "51": [
+              0,
+              0
+            ],
+            "55": [
+              0,
+              2
+            ],
+            "57": [
+              0,
+              2
+            ],
+            "60": [
+              0,
+              2
+            ],
+            "61": [
+              0,
+              0
+            ],
+            "64": [
+              0,
+              0
+            ],
+            "65": [
+              0,
+              0
+            ],
+            "66": [
+              0,
+              2
+            ],
+            "68": [
+              0,
+              1
+            ],
+            "69": [
+              0,
+              1
+            ],
+            "74": [
+              0,
+              1
+            ],
+            "75": [
+              0,
+              0
+            ],
+            "76": [
+              1,
+              1
+            ],
+            "77": [
+              1,
+              1
+            ],
+            "78": [
+              1,
+              2
+            ],
+            "79": [
+              1,
+              2
+            ],
+            "8": [
+              2,
+              10
+            ],
+            "80": [
+              0,
+              1
+            ],
+            "81": [
+              0,
+              0
+            ],
+            "83": [
+              0,
+              0
+            ],
+            "84": [
+              0,
+              0
+            ],
+            "85": [
+              0,
+              1
+            ],
+            "86": [
+              0,
+              0
+            ],
+            "87": [
+              0,
+              1
+            ],
+            "88": [
+              0,
+              0
+            ],
+            "89": [
+              0,
+              0
+            ],
+            "9": [
+              1,
+              10
+            ],
+            "90": [
+              0,
+              1
+            ],
+            "91": [
+              0,
+              0
+            ],
+            "92": [
+              0,
+              0
+            ]
+          },
+          "finalized_features": {
+            "eligible.leader.replicas.version": [
+              1,
+              1
+            ],
+            "group.version": [
+              1,
+              1
+            ],
+            "metadata.version": [
+              29,
+              29
+            ],
+            "share.version": [
+              1,
+              1
+            ],
+            "streams.version": [
+              1,
+              1
+            ],
+            "transaction.version": [
+              2,
+              2
+            ]
+          },
+          "committed_offsets": {
+            "classic": {
+              "0": 8,
+              "1": 8
+            },
+            "cooperative": {
+              "0": 8,
+              "1": 8
+            },
+            "kip848": {
+              "0": 8,
+              "1": 8
+            },
+            "transaction": {
+              "0": 8,
+              "1": 8
+            }
+          },
+          "group_ids": {
+            "classic": "plcompat-4-2-1-classic",
+            "cooperative": "plcompat-4-2-1-cooperative",
+            "kip848": "plcompat-4-2-1-kip848",
+            "transaction": "plcompat-4-2-1-transaction"
+          },
+          "startup_attempts": [
+            {
+              "phase": "setup",
+              "scenario": "classic",
+              "error": "broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator"
+            },
+            {
+              "phase": "setup",
+              "scenario": "transaction",
+              "error": "broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator"
+            },
+            {
+              "phase": "setup",
+              "scenario": "transaction",
+              "error": "broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId"
+            }
+          ],
+          "transaction_visibility": [
+            {
+              "attempt": 0,
+              "elapsed_ms": 7,
+              "error": 88
+            },
+            {
+              "attempt": 1,
+              "elapsed_ms": 41,
+              "offsets": {
+                "0": 8,
+                "1": 8
+              }
+            }
+          ],
+          "source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+          "requested": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+          "input_topic": "plcompat-4-2-1-input",
+          "output_topic": "plcompat-4-2-1-output",
+          "seed_timestamp": 1790861415130,
+          "transaction_aborted_visible": 0,
+          "share_accepted": 16
+        },
+        "status": "passed"
+      },
+      "report_sha256": "ba829cfbbea758eef3a209aa74df225524b0b250d442960c7a5c3fd180dadc40",
+      "raw_history": {
+        "runtime.log": "    Finished `test` profile [unoptimized] target(s) in 0.14s\n     Running tests/broker_compatibility.rs (/workspace/.cloud-setup/partitionline-ci-clean/debug/deps/broker_compatibility-a3f6499b854ba5a9)\n\nrunning 1 test\ncompatibility phase: admin-connect\ncompatibility phase: admin-features\ncompatibility phase: admin-create-topics\ncompatibility phase: admin-offsets\ncompatibility phase: produce\ncompatibility phase: manual\ncompatibility phase: groups\ncompatibility group phase: classic join\ncoordinator startup classic: broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator\ncompatibility group phase: classic poll\ncompatibility group phase: classic commit\ncompatibility group phase: classic committed\ncompatibility group phase: classic close\ncompatibility group phase: cooperative join\ncompatibility group phase: cooperative poll\ncompatibility group phase: cooperative commit\ncompatibility group phase: cooperative committed\ncompatibility group phase: cooperative close\ncompatibility group phase: kip848 join\ncompatibility group phase: kip848 poll\ncompatibility group phase: kip848 commit\ncompatibility group phase: kip848 committed\ncompatibility group phase: kip848 close\ncompatibility phase: share\ncompatibility phase: transaction\ntransaction coordinator startup: broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator\ntransaction coordinator startup: broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId\ntransaction offset visibility: 7ms None\ntransaction offset visibility: 41ms Some({\"0\": 8, \"1\": 8})\nPL_COMPAT_SOURCE\t8bec4f21fd92bb2aaa8b44f2899534b900f94c1e\nPL_COMPAT_REFERENCE\tapache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0\nPL_COMPAT_INPUT_TOPIC\tplcompat-4-2-1-input\nPL_COMPAT_OUTPUT_TOPIC\tplcompat-4-2-1-output\nPL_COMPAT_SEED_TIMESTAMP\t1790861415130\nPL_COMPAT_SCENARIO\tadmin\tpassed\t0\t0\t0\t0\nPL_COMPAT_SCENARIO\tclassic\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tcooperative\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tkip848\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tmanual\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tproduce\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tshare\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\ttransaction\tpassed\t16\t0\t0\t0\nPL_COMPAT_API\t0\t0\t13\nPL_COMPAT_API\t1\t4\t18\nPL_COMPAT_API\t10\t0\t6\nPL_COMPAT_API\t11\t0\t9\nPL_COMPAT_API\t12\t0\t4\nPL_COMPAT_API\t13\t0\t5\nPL_COMPAT_API\t14\t0\t5\nPL_COMPAT_API\t15\t0\t6\nPL_COMPAT_API\t16\t0\t5\nPL_COMPAT_API\t17\t0\t1\nPL_COMPAT_API\t18\t0\t4\nPL_COMPAT_API\t19\t2\t7\nPL_COMPAT_API\t2\t1\t11\nPL_COMPAT_API\t20\t1\t6\nPL_COMPAT_API\t21\t0\t2\nPL_COMPAT_API\t22\t0\t5\nPL_COMPAT_API\t23\t2\t4\nPL_COMPAT_API\t24\t0\t5\nPL_COMPAT_API\t25\t0\t4\nPL_COMPAT_API\t26\t0\t5\nPL_COMPAT_API\t27\t1\t2\nPL_COMPAT_API\t28\t0\t5\nPL_COMPAT_API\t29\t1\t3\nPL_COMPAT_API\t3\t0\t13\nPL_COMPAT_API\t30\t1\t3\nPL_COMPAT_API\t31\t1\t3\nPL_COMPAT_API\t32\t1\t4\nPL_COMPAT_API\t33\t0\t2\nPL_COMPAT_API\t34\t1\t2\nPL_COMPAT_API\t35\t1\t4\nPL_COMPAT_API\t36\t0\t2\nPL_COMPAT_API\t37\t0\t3\nPL_COMPAT_API\t38\t1\t3\nPL_COMPAT_API\t39\t1\t2\nPL_COMPAT_API\t40\t1\t2\nPL_COMPAT_API\t41\t1\t3\nPL_COMPAT_API\t42\t0\t2\nPL_COMPAT_API\t43\t0\t2\nPL_COMPAT_API\t44\t0\t1\nPL_COMPAT_API\t45\t0\t1\nPL_COMPAT_API\t46\t0\t0\nPL_COMPAT_API\t47\t0\t0\nPL_COMPAT_API\t48\t0\t1\nPL_COMPAT_API\t49\t0\t1\nPL_COMPAT_API\t50\t0\t0\nPL_COMPAT_API\t51\t0\t0\nPL_COMPAT_API\t55\t0\t2\nPL_COMPAT_API\t57\t0\t2\nPL_COMPAT_API\t60\t0\t2\nPL_COMPAT_API\t61\t0\t0\nPL_COMPAT_API\t64\t0\t0\nPL_COMPAT_API\t65\t0\t0\nPL_COMPAT_API\t66\t0\t2\nPL_COMPAT_API\t68\t0\t1\nPL_COMPAT_API\t69\t0\t1\nPL_COMPAT_API\t74\t0\t1\nPL_COMPAT_API\t75\t0\t0\nPL_COMPAT_API\t76\t1\t1\nPL_COMPAT_API\t77\t1\t1\nPL_COMPAT_API\t78\t1\t2\nPL_COMPAT_API\t79\t1\t2\nPL_COMPAT_API\t8\t2\t10\nPL_COMPAT_API\t80\t0\t1\nPL_COMPAT_API\t81\t0\t0\nPL_COMPAT_API\t83\t0\t0\nPL_COMPAT_API\t84\t0\t0\nPL_COMPAT_API\t85\t0\t1\nPL_COMPAT_API\t86\t0\t0\nPL_COMPAT_API\t87\t0\t1\nPL_COMPAT_API\t88\t0\t0\nPL_COMPAT_API\t89\t0\t0\nPL_COMPAT_API\t9\t1\t10\nPL_COMPAT_API\t90\t0\t1\nPL_COMPAT_API\t91\t0\t0\nPL_COMPAT_API\t92\t0\t0\nPL_COMPAT_FEATURE\teligible.leader.replicas.version\t1\t1\nPL_COMPAT_FEATURE\tgroup.version\t1\t1\nPL_COMPAT_FEATURE\tmetadata.version\t29\t29\nPL_COMPAT_FEATURE\tshare.version\t1\t1\nPL_COMPAT_FEATURE\tstreams.version\t1\t1\nPL_COMPAT_FEATURE\ttransaction.version\t2\t2\nPL_COMPAT_COMMITTED\tclassic\t0\t8\nPL_COMPAT_COMMITTED\tclassic\t1\t8\nPL_COMPAT_COMMITTED\tcooperative\t0\t8\nPL_COMPAT_COMMITTED\tcooperative\t1\t8\nPL_COMPAT_COMMITTED\tkip848\t0\t8\nPL_COMPAT_COMMITTED\tkip848\t1\t8\nPL_COMPAT_COMMITTED\ttransaction\t0\t8\nPL_COMPAT_COMMITTED\ttransaction\t1\t8\nPL_COMPAT_GROUP\tclassic\tplcompat-4-2-1-classic\nPL_COMPAT_GROUP\tcooperative\tplcompat-4-2-1-cooperative\nPL_COMPAT_GROUP\tkip848\tplcompat-4-2-1-kip848\nPL_COMPAT_GROUP\ttransaction\tplcompat-4-2-1-transaction\nPL_COMPAT_STARTUP\tclassic\tYnJva2VyIGVycm9yIDE1IChDT09SRElOQVRPUl9OT1RfQVZBSUxBQkxFKTogRmluZENvb3JkaW5hdG9y\nPL_COMPAT_STARTUP\ttransaction\tYnJva2VyIGVycm9yIDE1IChDT09SRElOQVRPUl9OT1RfQVZBSUxBQkxFKTogRmluZENvb3JkaW5hdG9y\nPL_COMPAT_STARTUP\ttransaction\tYnJva2VyIGVycm9yIDE0IChDT09SRElOQVRPUl9MT0FEX0lOX1BST0dSRVNTKTogSW5pdFByb2R1Y2VySWQ=\nPL_COMPAT_VISIBILITY_ERROR\t0\t7\t88\nPL_COMPAT_VISIBILITY\t1\t41\t8\t8\nPL_COMPAT_ABORTED_VISIBLE\t0\nPL_COMPAT_SHARE_ACCEPTED\t16\nPL_COMPAT_COMPLETE\ntest live_compatibility_required ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.77s\n\n",
+        "features.log": "Feature: eligible.leader.replicas.version\tSupportedMinVersion: 0\tSupportedMaxVersion: 1\tFinalizedVersionLevel: 1\tEpoch: 27\nFeature: group.version\tSupportedMinVersion: 0\tSupportedMaxVersion: 1\tFinalizedVersionLevel: 1\tEpoch: 27\nFeature: kraft.version\tSupportedMinVersion: 0\tSupportedMaxVersion: 1\tFinalizedVersionLevel: 0\tEpoch: 27\nFeature: metadata.version\tSupportedMinVersion: 3.3-IV3\tSupportedMaxVersion: 4.2-IV1\tFinalizedVersionLevel: 4.2-IV1\tEpoch: 27\nFeature: share.version\tSupportedMinVersion: 0\tSupportedMaxVersion: 1\tFinalizedVersionLevel: 1\tEpoch: 27\nFeature: streams.version\tSupportedMinVersion: 0\tSupportedMaxVersion: 1\tFinalizedVersionLevel: 1\tEpoch: 27\nFeature: transaction.version\tSupportedMinVersion: 0\tSupportedMaxVersion: 2\tFinalizedVersionLevel: 2\tEpoch: 27\n",
+        "java-input.log": "CreateTime:1790861415130\tPartition:1\tOffset:0\t1:0\tKL01-10/1/0/x\nCreateTime:1790861415131\tPartition:1\tOffset:1\t1:1\tKL01-10/1/1/xx\nCreateTime:1790861415132\tPartition:1\tOffset:2\t1:2\tKL01-10/1/2/xxx\nCreateTime:1790861415133\tPartition:1\tOffset:3\t1:3\tKL01-10/1/3/xxxx\nCreateTime:1790861415134\tPartition:1\tOffset:4\t1:4\tKL01-10/1/4/xxxxx\nCreateTime:1790861415135\tPartition:1\tOffset:5\t1:5\tKL01-10/1/5/xxxxxx\nCreateTime:1790861415136\tPartition:1\tOffset:6\t1:6\tKL01-10/1/6/xxxxxxx\nCreateTime:1790861415137\tPartition:1\tOffset:7\t1:7\tKL01-10/1/7/xxxxxxxx\nCreateTime:1790861415130\tPartition:0\tOffset:0\t0:0\tKL01-10/0/0/x\nCreateTime:1790861415131\tPartition:0\tOffset:1\t0:1\tKL01-10/0/1/xx\nCreateTime:1790861415132\tPartition:0\tOffset:2\t0:2\tKL01-10/0/2/xxx\nCreateTime:1790861415133\tPartition:0\tOffset:3\t0:3\tKL01-10/0/3/xxxx\nCreateTime:1790861415134\tPartition:0\tOffset:4\t0:4\tKL01-10/0/4/xxxxx\nCreateTime:1790861415135\tPartition:0\tOffset:5\t0:5\tKL01-10/0/5/xxxxxx\nCreateTime:1790861415136\tPartition:0\tOffset:6\t0:6\tKL01-10/0/6/xxxxxxx\nCreateTime:1790861415137\tPartition:0\tOffset:7\t0:7\tKL01-10/0/7/xxxxxxxx\n",
+        "java-output.log": "CreateTime:1790861415130\tPartition:0\tOffset:0\t0:0\tKL01-10/0/0/x\nCreateTime:1790861415131\tPartition:0\tOffset:1\t0:1\tKL01-10/0/1/xx\nCreateTime:1790861415132\tPartition:0\tOffset:2\t0:2\tKL01-10/0/2/xxx\nCreateTime:1790861415133\tPartition:0\tOffset:3\t0:3\tKL01-10/0/3/xxxx\nCreateTime:1790861415134\tPartition:0\tOffset:4\t0:4\tKL01-10/0/4/xxxxx\nCreateTime:1790861415135\tPartition:0\tOffset:5\t0:5\tKL01-10/0/5/xxxxxx\nCreateTime:1790861415136\tPartition:0\tOffset:6\t0:6\tKL01-10/0/6/xxxxxxx\nCreateTime:1790861415137\tPartition:0\tOffset:7\t0:7\tKL01-10/0/7/xxxxxxxx\nCreateTime:1790861415130\tPartition:0\tOffset:8\t1:0\tKL01-10/1/0/x\nCreateTime:1790861415131\tPartition:0\tOffset:9\t1:1\tKL01-10/1/1/xx\nCreateTime:1790861415132\tPartition:0\tOffset:10\t1:2\tKL01-10/1/2/xxx\nCreateTime:1790861415133\tPartition:0\tOffset:11\t1:3\tKL01-10/1/3/xxxx\nCreateTime:1790861415134\tPartition:0\tOffset:12\t1:4\tKL01-10/1/4/xxxxx\nCreateTime:1790861415135\tPartition:0\tOffset:13\t1:5\tKL01-10/1/5/xxxxxx\nCreateTime:1790861415136\tPartition:0\tOffset:14\t1:6\tKL01-10/1/6/xxxxxxx\nCreateTime:1790861415137\tPartition:0\tOffset:15\t1:7\tKL01-10/1/7/xxxxxxxx\n",
+        "java-offsets-classic.log": "\nConsumer group 'plcompat-4-2-1-classic' has no active members.\n\nGROUP                  TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-2-1-classic plcompat-4-2-1-input 0          8               8               0               -               -               -\nplcompat-4-2-1-classic plcompat-4-2-1-input 1          8               8               0               -               -               -\n",
+        "java-offsets-cooperative.log": "\nConsumer group 'plcompat-4-2-1-cooperative' has no active members.\n\nGROUP                      TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-2-1-cooperative plcompat-4-2-1-input 0          8               8               0               -               -               -\nplcompat-4-2-1-cooperative plcompat-4-2-1-input 1          8               8               0               -               -               -\n",
+        "java-offsets-kip848.log": "\nConsumer group 'plcompat-4-2-1-kip848' has no active members.\n\nGROUP                 TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-2-1-kip848 plcompat-4-2-1-input 0          8               8               0               -               -               -\nplcompat-4-2-1-kip848 plcompat-4-2-1-input 1          8               8               0               -               -               -\n",
+        "java-offsets-transaction.log": "\nConsumer group 'plcompat-4-2-1-transaction' has no active members.\n\nGROUP                      TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-2-1-transaction plcompat-4-2-1-input 0          8               8               0               -               -               -\nplcompat-4-2-1-transaction plcompat-4-2-1-input 1          8               8               0               -               -               -\n"
+      },
+      "artifact_manifest": {
+        "broker-version.log": "e5d77a995a7d89c4b24498cb8947c3b40e53f4d2c0ba2380796cdb059d237848",
+        "broker.log": "08910871fe0b6befcff27a85fb9ad58561231526435cee78246dbce702f023ba",
+        "build.log": "82ab44cd1647ac39f62e58636f8c4eb0a8e74e3bec872ae35047955363f0a8f3",
+        "cargo.log": "9950bbb2d5c3417b1a068f0e81f6d3cac991a363193bdf2a22d447f5acf8b503",
+        "cleanup.log": "083a6de6886a468058a72de9809bf3534acdb21d40a604442cad8867607ebd6f",
+        "container-id.log": "462002fa8c26b18619288d1a790fd74bf365fcf8afccdf6ea5f8034c9968fba3",
+        "features-before.log": "8159891f89ce8c041c32fada64e2a03ac0d786ac8be2f3623655681043465175",
+        "features.log": "e601beb5d75baa4f6cb2a433ee581cfe7ea3731e91788961e555bff79b041ff6",
+        "identity.json": "7c419b870f54b2f69460b506781cc245cfc53a8b155ff8298fa623e452312f71",
+        "java-input.log": "b2859de07825b6e748035d8bd4d7126edf6a14e150e0d21c3340fb812f2d3ddb",
+        "java-input.stderr.log": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+        "java-offsets-classic.log": "a0a927bc53213eeaa58ec17ecd0751b078597f746578ac03dc629a010b278216",
+        "java-offsets-cooperative.log": "43ac4ed6060c4eb72374d9295d3a96f58089b088c1ce10478729e6ef32c67278",
+        "java-offsets-kip848.log": "93562fe4a3d330403d36904df18490b798951a61dab4a72fd476123bad1a9dbd",
+        "java-offsets-transaction.log": "3921d1a52d31c44a6e96f48b465d1f943df126bba95bec3a8232fd36f6095e58",
+        "java-output.log": "eb443b25b3db37b6e3576ea7b6b52c13aad2c6061913cb1f2d662e224eeb7707",
+        "java-output.stderr.log": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+        "readiness-1.log": "4ee172d001f6c440b523e58486759b77a5a7592032ff6d8875337442d4bbd569",
+        "readiness-2.log": "17b2037242288456e81deed86a59e78723eef178594ac391be841399edb55d8e",
+        "readiness.log": "17b2037242288456e81deed86a59e78723eef178594ac391be841399edb55d8e",
+        "report-validation.log": "04b7e85af2025d167d95f1592ecff3a38bfd7f70701123ca6b9b81c4f7373080",
+        "report.json": "ba829cfbbea758eef3a209aa74df225524b0b250d442960c7a5c3fd180dadc40",
+        "runtime.log": "f9ffa4685004f3a0ac443440e3d7f400c5267cda6c91917b025c894819c8c8f9",
+        "rustc.log": "778fbc643a806f0dd123c056e66201d7e8a56a61928ec0a33171be8d6c2d5a37",
+        "start.log": "083a6de6886a468058a72de9809bf3534acdb21d40a604442cad8867607ebd6f"
+      }
+    },
+    {
+      "version": "4.3.1",
+      "report": {
+        "schema_version": 1,
+        "source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+        "cell": {
+          "version": "4.3.1",
+          "image": "apache/kafka:4.3.1",
+          "digest": "sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+          "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+          "host": "linux-x86_64",
+          "required_scenarios": [
+            "admin",
+            "produce",
+            "manual",
+            "classic",
+            "cooperative",
+            "kip848",
+            "share",
+            "transaction"
+          ],
+          "records_per_partition": 8,
+          "partitions": 2,
+          "replication_factor": 1,
+          "qualification": "pending"
+        },
+        "identity": {
+          "requested": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+          "actual_reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+          "container_image_id": "sha256:47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11",
+          "inspected_image_id": "sha256:47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11",
+          "repo_digests": [
+            "apache/kafka@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837"
+          ],
+          "kafka_cli_version": "4.3.1\n",
+          "host_os": "Linux",
+          "host_arch": "x86_64",
+          "rustc_host": "x86_64-unknown-linux-gnu",
+          "rustc_release": "1.98.1"
+        },
+        "runtime": {
+          "scenarios": {
+            "admin": {
+              "records": 0,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "classic": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "cooperative": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "kip848": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "manual": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "produce": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "share": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            },
+            "transaction": {
+              "records": 16,
+              "duplicates": 0,
+              "missing": 0,
+              "corrupt": 0,
+              "status": "passed"
+            }
+          },
+          "api_ranges": {
+            "0": [
+              0,
+              13
+            ],
+            "1": [
+              4,
+              18
+            ],
+            "10": [
+              0,
+              6
+            ],
+            "11": [
+              0,
+              9
+            ],
+            "12": [
+              0,
+              4
+            ],
+            "13": [
+              0,
+              5
+            ],
+            "14": [
+              0,
+              5
+            ],
+            "15": [
+              0,
+              6
+            ],
+            "16": [
+              0,
+              5
+            ],
+            "17": [
+              0,
+              1
+            ],
+            "18": [
+              0,
+              4
+            ],
+            "19": [
+              2,
+              7
+            ],
+            "2": [
+              1,
+              11
+            ],
+            "20": [
+              1,
+              6
+            ],
+            "21": [
+              0,
+              2
+            ],
+            "22": [
+              0,
+              5
+            ],
+            "23": [
+              2,
+              4
+            ],
+            "24": [
+              0,
+              5
+            ],
+            "25": [
+              0,
+              4
+            ],
+            "26": [
+              0,
+              5
+            ],
+            "27": [
+              1,
+              2
+            ],
+            "28": [
+              0,
+              5
+            ],
+            "29": [
+              1,
+              3
+            ],
+            "3": [
+              0,
+              13
+            ],
+            "30": [
+              1,
+              3
+            ],
+            "31": [
+              1,
+              3
+            ],
+            "32": [
+              1,
+              4
+            ],
+            "33": [
+              0,
+              2
+            ],
+            "34": [
+              1,
+              2
+            ],
+            "35": [
+              1,
+              5
+            ],
+            "36": [
+              0,
+              2
+            ],
+            "37": [
+              0,
+              3
+            ],
+            "38": [
+              1,
+              3
+            ],
+            "39": [
+              1,
+              2
+            ],
+            "40": [
+              1,
+              2
+            ],
+            "41": [
+              1,
+              3
+            ],
+            "42": [
+              0,
+              2
+            ],
+            "43": [
+              0,
+              2
+            ],
+            "44": [
+              0,
+              1
+            ],
+            "45": [
+              0,
+              1
+            ],
+            "46": [
+              0,
+              0
+            ],
+            "47": [
+              0,
+              0
+            ],
+            "48": [
+              0,
+              1
+            ],
+            "49": [
+              0,
+              1
+            ],
+            "50": [
+              0,
+              0
+            ],
+            "51": [
+              0,
+              0
+            ],
+            "55": [
+              0,
+              2
+            ],
+            "57": [
+              0,
+              2
+            ],
+            "60": [
+              0,
+              2
+            ],
+            "61": [
+              0,
+              0
+            ],
+            "64": [
+              0,
+              0
+            ],
+            "65": [
+              0,
+              0
+            ],
+            "66": [
+              0,
+              2
+            ],
+            "68": [
+              0,
+              1
+            ],
+            "69": [
+              0,
+              1
+            ],
+            "74": [
+              0,
+              1
+            ],
+            "75": [
+              0,
+              0
+            ],
+            "76": [
+              1,
+              1
+            ],
+            "77": [
+              1,
+              1
+            ],
+            "78": [
+              1,
+              2
+            ],
+            "79": [
+              1,
+              2
+            ],
+            "8": [
+              2,
+              10
+            ],
+            "80": [
+              0,
+              1
+            ],
+            "81": [
+              0,
+              0
+            ],
+            "83": [
+              0,
+              0
+            ],
+            "84": [
+              0,
+              0
+            ],
+            "85": [
+              0,
+              1
+            ],
+            "86": [
+              0,
+              0
+            ],
+            "87": [
+              0,
+              1
+            ],
+            "88": [
+              0,
+              0
+            ],
+            "89": [
+              0,
+              0
+            ],
+            "9": [
+              1,
+              10
+            ],
+            "90": [
+              0,
+              1
+            ],
+            "91": [
+              0,
+              0
+            ],
+            "92": [
+              0,
+              0
+            ]
+          },
+          "finalized_features": {
+            "eligible.leader.replicas.version": [
+              1,
+              1
+            ],
+            "group.version": [
+              1,
+              1
+            ],
+            "metadata.version": [
+              30,
+              30
+            ],
+            "share.version": [
+              1,
+              1
+            ],
+            "streams.version": [
+              1,
+              1
+            ],
+            "transaction.version": [
+              2,
+              2
+            ]
+          },
+          "committed_offsets": {
+            "classic": {
+              "0": 8,
+              "1": 8
+            },
+            "cooperative": {
+              "0": 8,
+              "1": 8
+            },
+            "kip848": {
+              "0": 8,
+              "1": 8
+            },
+            "transaction": {
+              "0": 8,
+              "1": 8
+            }
+          },
+          "group_ids": {
+            "classic": "plcompat-4-3-1-classic",
+            "cooperative": "plcompat-4-3-1-cooperative",
+            "kip848": "plcompat-4-3-1-kip848",
+            "transaction": "plcompat-4-3-1-transaction"
+          },
+          "startup_attempts": [
+            {
+              "phase": "setup",
+              "scenario": "classic",
+              "error": "broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator"
+            },
+            {
+              "phase": "setup",
+              "scenario": "transaction",
+              "error": "broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId"
+            },
+            {
+              "phase": "setup",
+              "scenario": "transaction",
+              "error": "broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId"
+            }
+          ],
+          "transaction_visibility": [
+            {
+              "attempt": 0,
+              "elapsed_ms": 12,
+              "error": 88
+            },
+            {
+              "attempt": 1,
+              "elapsed_ms": 52,
+              "offsets": {
+                "0": 8,
+                "1": 8
+              }
+            }
+          ],
+          "source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+          "requested": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+          "input_topic": "plcompat-4-3-1-input",
+          "output_topic": "plcompat-4-3-1-output",
+          "seed_timestamp": 1790861462116,
+          "transaction_aborted_visible": 0,
+          "share_accepted": 16
+        },
+        "status": "passed"
+      },
+      "report_sha256": "86dbdcd408af4540452a03feb4eeae90c916a4728e37378a16a793244e327c53",
+      "raw_history": {
+        "runtime.log": "    Finished `test` profile [unoptimized] target(s) in 0.06s\n     Running tests/broker_compatibility.rs (/workspace/.cloud-setup/partitionline-ci-clean/debug/deps/broker_compatibility-a3f6499b854ba5a9)\n\nrunning 1 test\ncompatibility phase: admin-connect\ncompatibility phase: admin-features\ncompatibility phase: admin-create-topics\ncompatibility phase: admin-offsets\ncompatibility phase: produce\ncompatibility phase: manual\ncompatibility phase: groups\ncompatibility group phase: classic join\ncoordinator startup classic: broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator\ncompatibility group phase: classic poll\ncompatibility group phase: classic commit\ncompatibility group phase: classic committed\ncompatibility group phase: classic close\ncompatibility group phase: cooperative join\ncompatibility group phase: cooperative poll\ncompatibility group phase: cooperative commit\ncompatibility group phase: cooperative committed\ncompatibility group phase: cooperative close\ncompatibility group phase: kip848 join\ncompatibility group phase: kip848 poll\ncompatibility group phase: kip848 commit\ncompatibility group phase: kip848 committed\ncompatibility group phase: kip848 close\ncompatibility phase: share\ncompatibility phase: transaction\ntransaction coordinator startup: broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId\ntransaction coordinator startup: broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId\ntransaction offset visibility: 12ms None\ntransaction offset visibility: 52ms Some({\"0\": 8, \"1\": 8})\nPL_COMPAT_SOURCE\t8bec4f21fd92bb2aaa8b44f2899534b900f94c1e\nPL_COMPAT_REFERENCE\tapache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837\nPL_COMPAT_INPUT_TOPIC\tplcompat-4-3-1-input\nPL_COMPAT_OUTPUT_TOPIC\tplcompat-4-3-1-output\nPL_COMPAT_SEED_TIMESTAMP\t1790861462116\nPL_COMPAT_SCENARIO\tadmin\tpassed\t0\t0\t0\t0\nPL_COMPAT_SCENARIO\tclassic\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tcooperative\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tkip848\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tmanual\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tproduce\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tshare\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\ttransaction\tpassed\t16\t0\t0\t0\nPL_COMPAT_API\t0\t0\t13\nPL_COMPAT_API\t1\t4\t18\nPL_COMPAT_API\t10\t0\t6\nPL_COMPAT_API\t11\t0\t9\nPL_COMPAT_API\t12\t0\t4\nPL_COMPAT_API\t13\t0\t5\nPL_COMPAT_API\t14\t0\t5\nPL_COMPAT_API\t15\t0\t6\nPL_COMPAT_API\t16\t0\t5\nPL_COMPAT_API\t17\t0\t1\nPL_COMPAT_API\t18\t0\t4\nPL_COMPAT_API\t19\t2\t7\nPL_COMPAT_API\t2\t1\t11\nPL_COMPAT_API\t20\t1\t6\nPL_COMPAT_API\t21\t0\t2\nPL_COMPAT_API\t22\t0\t5\nPL_COMPAT_API\t23\t2\t4\nPL_COMPAT_API\t24\t0\t5\nPL_COMPAT_API\t25\t0\t4\nPL_COMPAT_API\t26\t0\t5\nPL_COMPAT_API\t27\t1\t2\nPL_COMPAT_API\t28\t0\t5\nPL_COMPAT_API\t29\t1\t3\nPL_COMPAT_API\t3\t0\t13\nPL_COMPAT_API\t30\t1\t3\nPL_COMPAT_API\t31\t1\t3\nPL_COMPAT_API\t32\t1\t4\nPL_COMPAT_API\t33\t0\t2\nPL_COMPAT_API\t34\t1\t2\nPL_COMPAT_API\t35\t1\t5\nPL_COMPAT_API\t36\t0\t2\nPL_COMPAT_API\t37\t0\t3\nPL_COMPAT_API\t38\t1\t3\nPL_COMPAT_API\t39\t1\t2\nPL_COMPAT_API\t40\t1\t2\nPL_COMPAT_API\t41\t1\t3\nPL_COMPAT_API\t42\t0\t2\nPL_COMPAT_API\t43\t0\t2\nPL_COMPAT_API\t44\t0\t1\nPL_COMPAT_API\t45\t0\t1\nPL_COMPAT_API\t46\t0\t0\nPL_COMPAT_API\t47\t0\t0\nPL_COMPAT_API\t48\t0\t1\nPL_COMPAT_API\t49\t0\t1\nPL_COMPAT_API\t50\t0\t0\nPL_COMPAT_API\t51\t0\t0\nPL_COMPAT_API\t55\t0\t2\nPL_COMPAT_API\t57\t0\t2\nPL_COMPAT_API\t60\t0\t2\nPL_COMPAT_API\t61\t0\t0\nPL_COMPAT_API\t64\t0\t0\nPL_COMPAT_API\t65\t0\t0\nPL_COMPAT_API\t66\t0\t2\nPL_COMPAT_API\t68\t0\t1\nPL_COMPAT_API\t69\t0\t1\nPL_COMPAT_API\t74\t0\t1\nPL_COMPAT_API\t75\t0\t0\nPL_COMPAT_API\t76\t1\t1\nPL_COMPAT_API\t77\t1\t1\nPL_COMPAT_API\t78\t1\t2\nPL_COMPAT_API\t79\t1\t2\nPL_COMPAT_API\t8\t2\t10\nPL_COMPAT_API\t80\t0\t1\nPL_COMPAT_API\t81\t0\t0\nPL_COMPAT_API\t83\t0\t0\nPL_COMPAT_API\t84\t0\t0\nPL_COMPAT_API\t85\t0\t1\nPL_COMPAT_API\t86\t0\t0\nPL_COMPAT_API\t87\t0\t1\nPL_COMPAT_API\t88\t0\t0\nPL_COMPAT_API\t89\t0\t0\nPL_COMPAT_API\t9\t1\t10\nPL_COMPAT_API\t90\t0\t1\nPL_COMPAT_API\t91\t0\t0\nPL_COMPAT_API\t92\t0\t0\nPL_COMPAT_FEATURE\teligible.leader.replicas.version\t1\t1\nPL_COMPAT_FEATURE\tgroup.version\t1\t1\nPL_COMPAT_FEATURE\tmetadata.version\t30\t30\nPL_COMPAT_FEATURE\tshare.version\t1\t1\nPL_COMPAT_FEATURE\tstreams.version\t1\t1\nPL_COMPAT_FEATURE\ttransaction.version\t2\t2\nPL_COMPAT_COMMITTED\tclassic\t0\t8\nPL_COMPAT_COMMITTED\tclassic\t1\t8\nPL_COMPAT_COMMITTED\tcooperative\t0\t8\nPL_COMPAT_COMMITTED\tcooperative\t1\t8\nPL_COMPAT_COMMITTED\tkip848\t0\t8\nPL_COMPAT_COMMITTED\tkip848\t1\t8\nPL_COMPAT_COMMITTED\ttransaction\t0\t8\nPL_COMPAT_COMMITTED\ttransaction\t1\t8\nPL_COMPAT_GROUP\tclassic\tplcompat-4-3-1-classic\nPL_COMPAT_GROUP\tcooperative\tplcompat-4-3-1-cooperative\nPL_COMPAT_GROUP\tkip848\tplcompat-4-3-1-kip848\nPL_COMPAT_GROUP\ttransaction\tplcompat-4-3-1-transaction\nPL_COMPAT_STARTUP\tclassic\tYnJva2VyIGVycm9yIDE1IChDT09SRElOQVRPUl9OT1RfQVZBSUxBQkxFKTogRmluZENvb3JkaW5hdG9y\nPL_COMPAT_STARTUP\ttransaction\tYnJva2VyIGVycm9yIDE0IChDT09SRElOQVRPUl9MT0FEX0lOX1BST0dSRVNTKTogSW5pdFByb2R1Y2VySWQ=\nPL_COMPAT_STARTUP\ttransaction\tYnJva2VyIGVycm9yIDE0IChDT09SRElOQVRPUl9MT0FEX0lOX1BST0dSRVNTKTogSW5pdFByb2R1Y2VySWQ=\nPL_COMPAT_VISIBILITY_ERROR\t0\t12\t88\nPL_COMPAT_VISIBILITY\t1\t52\t8\t8\nPL_COMPAT_ABORTED_VISIBLE\t0\nPL_COMPAT_SHARE_ACCEPTED\t16\nPL_COMPAT_COMPLETE\ntest live_compatibility_required ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.77s\n\n",
+        "features.log": "Feature: eligible.leader.replicas.version          SupportedMinVersion: 0                SupportedMaxVersion: 1                FinalizedVersionLevel: 1                Epoch: 30\nFeature: group.version                             SupportedMinVersion: 0                SupportedMaxVersion: 1                FinalizedVersionLevel: 1                Epoch: 30\nFeature: kraft.version                             SupportedMinVersion: 0                SupportedMaxVersion: 1                FinalizedVersionLevel: 0                Epoch: 30\nFeature: metadata.version                          SupportedMinVersion: 3.3-IV3          SupportedMaxVersion: 4.3-IV0          FinalizedVersionLevel: 4.3-IV0          Epoch: 30\nFeature: share.version                             SupportedMinVersion: 0                SupportedMaxVersion: 1                FinalizedVersionLevel: 1                Epoch: 30\nFeature: streams.version                           SupportedMinVersion: 0                SupportedMaxVersion: 1                FinalizedVersionLevel: 1                Epoch: 30\nFeature: transaction.version                       SupportedMinVersion: 0                SupportedMaxVersion: 2                FinalizedVersionLevel: 2                Epoch: 30\n",
+        "java-input.log": "CreateTime:1790861462116\tPartition:1\tOffset:0\t1:0\tKL01-10/1/0/x\nCreateTime:1790861462117\tPartition:1\tOffset:1\t1:1\tKL01-10/1/1/xx\nCreateTime:1790861462118\tPartition:1\tOffset:2\t1:2\tKL01-10/1/2/xxx\nCreateTime:1790861462119\tPartition:1\tOffset:3\t1:3\tKL01-10/1/3/xxxx\nCreateTime:1790861462120\tPartition:1\tOffset:4\t1:4\tKL01-10/1/4/xxxxx\nCreateTime:1790861462121\tPartition:1\tOffset:5\t1:5\tKL01-10/1/5/xxxxxx\nCreateTime:1790861462122\tPartition:1\tOffset:6\t1:6\tKL01-10/1/6/xxxxxxx\nCreateTime:1790861462123\tPartition:1\tOffset:7\t1:7\tKL01-10/1/7/xxxxxxxx\nCreateTime:1790861462116\tPartition:0\tOffset:0\t0:0\tKL01-10/0/0/x\nCreateTime:1790861462117\tPartition:0\tOffset:1\t0:1\tKL01-10/0/1/xx\nCreateTime:1790861462118\tPartition:0\tOffset:2\t0:2\tKL01-10/0/2/xxx\nCreateTime:1790861462119\tPartition:0\tOffset:3\t0:3\tKL01-10/0/3/xxxx\nCreateTime:1790861462120\tPartition:0\tOffset:4\t0:4\tKL01-10/0/4/xxxxx\nCreateTime:1790861462121\tPartition:0\tOffset:5\t0:5\tKL01-10/0/5/xxxxxx\nCreateTime:1790861462122\tPartition:0\tOffset:6\t0:6\tKL01-10/0/6/xxxxxxx\nCreateTime:1790861462123\tPartition:0\tOffset:7\t0:7\tKL01-10/0/7/xxxxxxxx\n",
+        "java-output.log": "CreateTime:1790861462116\tPartition:0\tOffset:0\t0:0\tKL01-10/0/0/x\nCreateTime:1790861462117\tPartition:0\tOffset:1\t0:1\tKL01-10/0/1/xx\nCreateTime:1790861462118\tPartition:0\tOffset:2\t0:2\tKL01-10/0/2/xxx\nCreateTime:1790861462119\tPartition:0\tOffset:3\t0:3\tKL01-10/0/3/xxxx\nCreateTime:1790861462120\tPartition:0\tOffset:4\t0:4\tKL01-10/0/4/xxxxx\nCreateTime:1790861462121\tPartition:0\tOffset:5\t0:5\tKL01-10/0/5/xxxxxx\nCreateTime:1790861462122\tPartition:0\tOffset:6\t0:6\tKL01-10/0/6/xxxxxxx\nCreateTime:1790861462123\tPartition:0\tOffset:7\t0:7\tKL01-10/0/7/xxxxxxxx\nCreateTime:1790861462116\tPartition:0\tOffset:8\t1:0\tKL01-10/1/0/x\nCreateTime:1790861462117\tPartition:0\tOffset:9\t1:1\tKL01-10/1/1/xx\nCreateTime:1790861462118\tPartition:0\tOffset:10\t1:2\tKL01-10/1/2/xxx\nCreateTime:1790861462119\tPartition:0\tOffset:11\t1:3\tKL01-10/1/3/xxxx\nCreateTime:1790861462120\tPartition:0\tOffset:12\t1:4\tKL01-10/1/4/xxxxx\nCreateTime:1790861462121\tPartition:0\tOffset:13\t1:5\tKL01-10/1/5/xxxxxx\nCreateTime:1790861462122\tPartition:0\tOffset:14\t1:6\tKL01-10/1/6/xxxxxxx\nCreateTime:1790861462123\tPartition:0\tOffset:15\t1:7\tKL01-10/1/7/xxxxxxxx\n",
+        "java-offsets-classic.log": "\nConsumer group 'plcompat-4-3-1-classic' has no active members.\n\nGROUP                  TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-3-1-classic plcompat-4-3-1-input 0          8               8               0               -               -               -\nplcompat-4-3-1-classic plcompat-4-3-1-input 1          8               8               0               -               -               -\n",
+        "java-offsets-cooperative.log": "\nConsumer group 'plcompat-4-3-1-cooperative' has no active members.\n\nGROUP                      TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-3-1-cooperative plcompat-4-3-1-input 0          8               8               0               -               -               -\nplcompat-4-3-1-cooperative plcompat-4-3-1-input 1          8               8               0               -               -               -\n",
+        "java-offsets-kip848.log": "\nConsumer group 'plcompat-4-3-1-kip848' has no active members.\n\nGROUP                 TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-3-1-kip848 plcompat-4-3-1-input 0          8               8               0               -               -               -\nplcompat-4-3-1-kip848 plcompat-4-3-1-input 1          8               8               0               -               -               -\n",
+        "java-offsets-transaction.log": "\nConsumer group 'plcompat-4-3-1-transaction' has no active members.\n\nGROUP                      TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplcompat-4-3-1-transaction plcompat-4-3-1-input 0          8               8               0               -               -               -\nplcompat-4-3-1-transaction plcompat-4-3-1-input 1          8               8               0               -               -               -\n"
+      },
+      "artifact_manifest": {
+        "broker-version.log": "8722a3e4c8ef0feb2e7a669f5f854c72d5d6390b25598f9745dc95e5ffe51dce",
+        "broker.log": "a947fbb6316426058ce6ecf1eb222589f51eaca89b8a8d1636ad894e5a7402a0",
+        "build.log": "82ab44cd1647ac39f62e58636f8c4eb0a8e74e3bec872ae35047955363f0a8f3",
+        "cargo.log": "9950bbb2d5c3417b1a068f0e81f6d3cac991a363193bdf2a22d447f5acf8b503",
+        "cleanup.log": "2b076f63da5823473ef92aeac56ed7190f672462dd26f0834fb9acd4f436f7c1",
+        "container-id.log": "a180654505635c6983c01f7bb6683c571927ca04174010a3b412b3797ed1c93c",
+        "features-before.log": "12e97896ec5309787d7e4fc7ddad8158c00d3439307b427ac510c5b8c6d80c8d",
+        "features.log": "7b58c981f5ca67a5f76a257888767ba060c214810e691fb0b9d56bf551a67a96",
+        "identity.json": "aab4f7233d906eaaa54e4da339f7581da2f44ee06c37e0bf468723a9f4b59cd3",
+        "java-input.log": "e1f39b6a1be64d78faec548cde8cc8b5122166df0427f0bbcb34a1041a846fa1",
+        "java-input.stderr.log": "f3edc003f205e0249dd721108fa2c087d376ad354c89212209949431bdff72db",
+        "java-offsets-classic.log": "e4ac59c87a7885ae6b4a7181807e288e91631f25df9ae75c6cfa45ff4e8d63cc",
+        "java-offsets-cooperative.log": "c32fa53eb037e24913893a16092b549020450e306d3a26d08f8e3e3798d75e09",
+        "java-offsets-kip848.log": "8cfd485ca1bce4a749fd6e95ce9fff8b3743393f6e26cc128eba5ccb0ff0fe7e",
+        "java-offsets-transaction.log": "a6e848d6db9a724c767c5d8a933721cc1a38adb719e5af03467c3490131141d4",
+        "java-output.log": "db25550e11c1dba6002c9cd627ef0bd4c911bdd04e0b261c9bf5bfc97f4c1cd0",
+        "java-output.stderr.log": "f3edc003f205e0249dd721108fa2c087d376ad354c89212209949431bdff72db",
+        "readiness-1.log": "a4dc5afe31f475ca2adca06b78dcf812a4940627f5618cf009b4a61d1720a8e5",
+        "readiness-2.log": "12f44df66f3485397aa344616484d1d1cd0c7b2d8ae91814fbe3660574505bd4",
+        "readiness.log": "12f44df66f3485397aa344616484d1d1cd0c7b2d8ae91814fbe3660574505bd4",
+        "report-validation.log": "7c397338dee22f96b2a3f016b55d9f395eaa6f83c9c31846da1dc48aa48e1739",
+        "report.json": "86dbdcd408af4540452a03feb4eeae90c916a4728e37378a16a793244e327c53",
+        "runtime.log": "219be6e5b9623f42200bdd2d8f1a49baa4536287b4b85b0b6600754628b86b41",
+        "rustc.log": "778fbc643a806f0dd123c056e66201d7e8a56a61928ec0a33171be8d6c2d5a37",
+        "start.log": "2b076f63da5823473ef92aeac56ed7190f672462dd26f0834fb9acd4f436f7c1"
+      }
+    }
+  ],
+  "profile": {
+    "scenarios": [
+      "admin",
+      "produce",
+      "manual",
+      "classic",
+      "cooperative",
+      "kip848",
+      "share",
+      "transaction"
+    ],
+    "records": 16,
+    "partitions": 2,
+    "records_per_partition": 8,
+    "replication_factor": 1,
+    "share_state_replication_factor": 1,
+    "share_state_min_isr": 1,
+    "runtime_deadline_seconds": 150,
+    "visibility_deadline_seconds": 5,
+    "startup": "Only broker coordinator codes 14/15/16 during group/transaction construction retry under a 20-second limit; every attempt is retained.",
+    "transaction_visibility": "ReadCommitted group OffsetFetch observes error 88 or offsets until both equal 8, retaining every observation. EndTxn is not replayed. Final offsets and Java lag-zero checks are required; aborted output must remain hidden.",
+    "java": "Pinned broker distribution CLI consumes both full histories read_committed and checks four group offset pairs; current formatter flags keep strict stdout parsing.",
+    "negative_tests": "49 conformance Python tests, including 5 current-profile methods with invalid source/digest/host/features/scenarios/history/offset/visibility cases; 4 docs diagnostics negatives/positives; 13 native platform report tests."
+  },
+  "interoperability_fix": {
+    "source_sha": "d0271c880ab43f79129d7e2d78b696af5b9971b5",
+    "api": 68,
+    "versions": [
+      0,
+      1
+    ],
+    "delta": "Nullable Assignment uses signed INT8 (-1 null, 1 canonical present). Decode follows Apache negative/null and nonnegative/present branches and rejects a null nonnullable TopicPartitions array. Final top-level tag count is mandatory. The prior unsigned-varint null read consumed the broker tag byte.",
+    "public_signatures": "unchanged; no manifest, dependency, feature-default or unsafe-policy change",
+    "fixtures": {
+      "cells": 12,
+      "assets": 24,
+      "source_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "schema_sha256": "38412debc1c3a7c968cefc57db05c718ea12c6f65b473da053c2d727cfdfe15d",
+      "jdk": "21.0.12.1",
+      "generator": "tests/conformance/java/CurrentGroupFixtures.java",
+      "coverage": "Both versions: null, leave, error, empty, populated and nested/top-level unknown tags; Apache size/write/read and --verify; Rust canonical bytes, required fields, truncated prefixes and signed-marker aliases.",
+      "before_fix_log_sha256": "43752a9ce1f6f6b0222546b19c76f0458a9d9f7f82664e49f722b364087f8f9a"
+    }
+  },
+  "validation": [
+    {
+      "log": "kl01-10-fixed-alltargets.log",
+      "toolchain": "1.98.1",
+      "sha256": "cf0c313817147ddb26b4a17556f6d284239528badbe4bb37e819abef29b4c7d5",
+      "summaries": [
+        "test result: ok. 1094 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s",
+        "test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.18s",
+        "test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.60s",
+        "test result: ok. 110 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.26s",
+        "test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s",
+        "test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.92s",
+        "test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s",
+        "test result: ok. 316 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.00s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s",
+        "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s",
+        "test result: ok. 30 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.16s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.04s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "tail": null
+    },
+    {
+      "log": "kl01-10-msrv-heartbeat.log",
+      "toolchain": "1.85.0",
+      "sha256": "44027a223a004342c149a3713e7d4ebc20fb2d9f92eb12c71c0e1dabaa498a02",
+      "summaries": [
+        "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1080 filtered out; finished in 0.00s"
+      ],
+      "tail": null
+    },
+    {
+      "log": "kl01-10-msrv-oracles.log",
+      "toolchain": "1.85.0",
+      "sha256": "c8a58ec448b44f51182d7bf954f6e2b79b49903dab8cc9992e2484f1b89fd24d",
+      "summaries": [
+        "test result: ok. 30 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.25s"
+      ],
+      "tail": null
+    },
+    {
+      "log": "kl01-10-msrv-deadline.log",
+      "toolchain": "1.85.0",
+      "sha256": "c2323c39818005a9f6ec31fceef178a28336e81bbbcc41e2b66dc7fdb00b56a5",
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 109 filtered out; finished in 0.01s"
+      ],
+      "tail": null
+    },
+    {
+      "log": "kl01-10-final-clippy.log",
+      "toolchain": "1.98.1",
+      "sha256": "dfe97b850adac7f6e89e5df293a59f3d2a620a4e49133964680924924cb3348a",
+      "summaries": [],
+      "tail": "    Checking partitionline v0.1.0 (/workspace/partitionline)\n    Finished `dev` profile [unoptimized] target(s) in 57.99s\n"
+    },
+    {
+      "log": "kl01-10-rust199-docs.log",
+      "toolchain": "1.99.0",
+      "sha256": "c9be1800ee67781a6be0840531ec07ebe6c8cc66e2d720f4e0ba8700739dc15f",
+      "summaries": [
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s"
+      ],
+      "tail": null
+    }
+  ],
+  "failed_attempts": [
+    {
+      "source_sha": "ee04f8a49fbf1fd3b1b0ce63a0f9128a797863fe",
+      "version": "4.1.2",
+      "exit": 101,
+      "reason": "Protocol need 1 bytes, have 0; later checkpoints identify KIP-848 close, independently reproduced with Apache null-Assignment bytes.",
+      "runtime_log_sha256": "4150f26d63034362f7679cfaf6ed7f16e3b35f6598667f89d5c502bd7b8b7607"
+    },
+    {
+      "source_sha": "ee04f8a49fbf1fd3b1b0ce63a0f9128a797863fe",
+      "version": "4.2.1",
+      "exit": 101,
+      "reason": "Protocol need 1 bytes, have 0; later checkpoints identify KIP-848 close, independently reproduced with Apache null-Assignment bytes.",
+      "runtime_log_sha256": "adc70c24dd7d0c8bc47a279c47bbe7ddbcfbed76f6a5fd6336532463b5b6245f"
+    },
+    {
+      "source_sha": "ee04f8a49fbf1fd3b1b0ce63a0f9128a797863fe",
+      "version": "4.3.1",
+      "exit": 101,
+      "reason": "Protocol need 1 bytes, have 0; later checkpoints identify KIP-848 close, independently reproduced with Apache null-Assignment bytes.",
+      "runtime_log_sha256": "3bd4e368b5e63c134ee3e0481722e9836af214bf83a84a5f8f10c9345046f66f"
+    },
+    {
+      "source_sha": "95d4a0580a2dc8379b07582e069358156482393a",
+      "version": "4.1.2",
+      "exit": 101,
+      "reason": "Classic/cooperative and KIP-848 join/poll/commit pass; KIP-848 close fails. This local diagnostic commit was rebased before pushing.",
+      "runtime_log_sha256": "18277d0b50b8d0519032cff0ce27fe9d43e1e0d02fb860c6a3ce015a39621f46"
+    },
+    {
+      "source_sha": "d0271c880ab43f79129d7e2d78b696af5b9971b5",
+      "version": "4.1.2",
+      "exit": 101,
+      "reason": "Heartbeat fix proceeds to share; fixture had share state replication factor 3/min ISR 2 on one broker, causing coordinator initialization timeout.",
+      "runtime_log_sha256": "c09ff5e79be4816373fbe1f5f88c73190153f17a440339526354ecc197fbe372"
+    },
+    {
+      "source_sha": "31fe9aa8b0b5c45f4ddce05ceeb3bb7f784ecd31",
+      "version": "4.1.2",
+      "exit": 101,
+      "reason": "RF1 share succeeds; immediate transactional OffsetFetch returns -1 before commit markers are applied. Stable observations later preserve error 88 and wait only for read visibility.",
+      "runtime_log_sha256": "843b68f42acf292c802b2159b11689398c75352759852752c7a4137d28d13365"
+    },
+    {
+      "source_sha": "45a754048f43be75b356b5b2f0835ba7e5ba1928",
+      "version": "4.2.1",
+      "exit": 1,
+      "reason": "Rust profile passes but Java stdout contains --property deprecation warning. Strict finisher rejects; corrected CLI flag rather than filtering unknown stdout.",
+      "runtime_log_sha256": "7115953655cafb32da707b4d083164fa762618f87774943a2f8719a4b9aa307a"
+    }
+  ],
+  "failed_ci_runs": [
+    {
+      "source_sha": "ee04f8a49fbf1fd3b1b0ce63a0f9128a797863fe",
+      "run_id": 36863173887,
+      "broker_jobs": [
+        110372624560,
+        110372624613,
+        110372624628
+      ],
+      "observed": "All three fail with the same malformed null-Assignment decode."
+    },
+    {
+      "source_sha": "31fe9aa8b0b5c45f4ddce05ceeb3bb7f784ecd31",
+      "run_id": 36867606283,
+      "broker_jobs": [
+        110387555916,
+        110387555803,
+        110387555528
+      ],
+      "observed": "Profiles remain failed before stable transaction-offset observation; no qualification claimed."
+    }
+  ],
+  "documentation_follow_up": {
+    "observed_ci_job": 110392574193,
+    "compiler": "1.99.0 released 2026-10-01",
+    "observed": "Strict rustdoc redundant_explicit_links rejects module link ProducerConfig -> crate::ProducerConfig. Independent public-module reproduction confirms the warning.",
+    "repair": "Shorten to the same resolved intra-doc link; keep -D warnings and all features.",
+    "validation": "Named Rust 1.99.0 strict rustdoc and all four doctests pass locally. Diagnostic wrapper preserves exact Cargo/tee exit, raw phase logs and compiler identity; bounded ANSI-stripped tail annotations expose errors when artifact hosts are unavailable.",
+    "artifact_access": "Hosted raw artifact downloads are blocked by network policy; CI claims use successful job/step results and strict-finisher artifact metadata. Local raw histories are embedded above; no downloaded hosted-byte claim.",
+    "packaged_navigation": {
+      "file_count": 435,
+      "local_links": 179,
+      "documents": [
+        "README.md",
+        "docs/ADOPTION.md",
+        "docs/CIVILIZATION.md",
+        "docs/RELEASE.md",
+        "docs/ROADMAP.md",
+        "docs/STATUS.md",
+        "docs/adopter-exercise.md",
+        "docs/api-stability.md",
+        "docs/auth-refresh.md",
+        "docs/benchmark-contract.md",
+        "docs/benchmark.md",
+        "docs/design.md",
+        "docs/gaps.md",
+        "docs/guide.md",
+        "docs/index.md",
+        "docs/migrate-from-rdkafka.md",
+        "docs/resource-contract.md",
+        "docs/schema-companion.md",
+        "docs/security.md",
+        "docs/support.md",
+        "docs/zstd-spike.md"
+      ],
+      "note": "Local allow-dirty archive checked for navigation/license/exclusions; this is a navigation check, not a new clean publication or packed-consumer runtime qualification."
+    }
+  },
+  "limitations": [
+    "One fresh single-broker Linux x86_64 RF1 profile per pinned distribution, with default crate features and named scenario histories; no multi-broker HA, fault/soak, live native Windows/macOS, external auth, controlled performance or adopter qualification.",
+    "Classic/cooperative/KIP-848 are one-member groups; no new rebalance/churn claim. Share profile proves accept and close, not lock expiry or partial acknowledgements.",
+    "Transactions prove committed output/offsets and hidden abort sentinel under transaction.version=2; no crash/fencing campaign or global cross-partition snapshot guarantee.",
+    "API/version gaps and tiered-upload/cordoning/controller-membership support limits remain. Suite HOLD stays unsigned.",
+    "Historical conformance registry cases remain source-pinned to their audited baseline; new cells use their own frozen registry."
+  ]
+}

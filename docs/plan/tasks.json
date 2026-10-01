@@ -276,7 +276,7 @@
       "title": "Add current Apache broker compatibility cells",
       "priority": "P1",
       "kind": "ci",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL01-02"
@@ -296,7 +296,9 @@
         "Run the broker smoke/report path for each added cell in CI.",
         "Inspect failed/unsupported-cell reporting and ensure the required profile does not become green."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-10.json"
+      ],
       "write_set": [
         ".github/workflows/ci.yml",
         "scripts/ci-broker-smoke.sh",
