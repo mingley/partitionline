@@ -462,5 +462,1126 @@
       "status": "not_run",
       "reason": "Only a local marker was created; real note creation remains an owner release action."
     }
-  ]
+  ],
+  "packed_documentation_follow_up": {
+    "qualified_source_sha": "ae34dcfdd63bdffdbc78797ddf7a61de9f4a6730",
+    "reason": "Relative release/verifiable evidence links reached excluded docs/evidence and docs/plan paths inside the extracted crate. Both now use immutable repository URLs.",
+    "failed_attempts": {
+      "release_link": {
+        "sha256": "68bbbd4819b8e587dc4ef21214933064d26e89f0cfa405b9aaa998e0a2bef976",
+        "bytes": 141,
+        "text": "   Packaging partitionline v0.1.0 (/workspace/partitionline)\n    Updating crates.io index\n    Packaged 442 files, 8.2MiB (1.3MiB compressed)\n"
+      },
+      "verifiable_link": {
+        "sha256": "8d34cd52dd15274bd177acce597446c7c748b7a3fb3c6a0874c7bb1bf02a25b0",
+        "bytes": 424,
+        "text": "    Blocking waiting for file lock on package cache\n   Packaging partitionline v0.1.0 (/workspace/partitionline)\n    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on package cache\n    Updating crates.io index\n    Packaged 442 files, 8.2MiB (1.3MiB compressed)\npackage-docs: FAIL: /tmp/tmp.xFm9nmRY4o/partitionline-0.1.0/docs/support.md:45: missing local file: plan/evidence/KL01-17.json\n"
+      }
+    },
+    "reproduced_release_error": "package-docs: FAIL: docs/RELEASE.md:42: missing local file: evidence/releases/3109514bc9aa30def679d43fdd823d2c71138ab1-no-publish-rehearsal.json",
+    "package_feature_toolchain_summary": {
+      "package_sha256": "1b0712af0d4ae49908a9fa51f9e6f6ee3b32969bdf6f8c62d1afc0b8133000e8",
+      "source_vcs_info": {
+        "git": {
+          "sha1": "ae34dcfdd63bdffdbc78797ddf7a61de9f4a6730"
+        },
+        "path_in_vcs": ""
+      },
+      "feature_matrix": [
+        {
+          "documents": [
+            "README.md",
+            "docs/guide.md",
+            "docs/migrate-from-rdkafka.md"
+          ],
+          "compiled_snippets": 19,
+          "local_links": 39,
+          "ignored_snippets": [],
+          "snippets": [
+            {
+              "document": "README.md",
+              "line": 23,
+              "sha256": "737e8da3b740b661e51f87ee4a98f187b14387bf570a23adbece43a2feb7e73d"
+            },
+            {
+              "document": "README.md",
+              "line": 42,
+              "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+            },
+            {
+              "document": "README.md",
+              "line": 62,
+              "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+            },
+            {
+              "document": "README.md",
+              "line": 86,
+              "sha256": "a990118bd77a2265b6ec3ef1355c1c965ee3232ae75798cca94f2823fad6f39c"
+            },
+            {
+              "document": "README.md",
+              "line": 111,
+              "sha256": "8b3313cd26930fe1023416b6029d56ce67f133460125f7b19a090a0819c03642"
+            },
+            {
+              "document": "README.md",
+              "line": 135,
+              "sha256": "d174cd31ee728c80ba03a9c4167cfe2a93e05a8a0ea753b87c4ed7bf69d64fd8"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 68,
+              "sha256": "c4c51043849dada85a70ec82aa279bdb056965bf21ec16ec249be11adb9ac0b2"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 221,
+              "sha256": "813a2ce2c94810da31565021b06811fcce2c413b189c40d38824042aa8aa65cc"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 245,
+              "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 262,
+              "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 303,
+              "sha256": "7318a827710d2914e781b0983e0f0c8e8558e3a1922b4ebdbbff329b4595f516"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 318,
+              "sha256": "94616599031102ea2ac914c926133a2d4c840711c8d79225385364fa8bd0f892"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 423,
+              "sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 91,
+              "sha256": "e225ec7ca4f62c204205edde832851484e166908e8e40f92763e356d4fd93b61"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 125,
+              "sha256": "57dec7d81e474f1ef1e7dc627500e28223a20a8137abfce4f1396009311a7825"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 187,
+              "sha256": "6da9b0b031891bb37671bd99124620f8162c67561f01b2716a71a512e1736e64"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 230,
+              "sha256": "380e427c7cfb1420e2f142fadd87d7a85f0185dce9567c2be5fcacdbf095d86a"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 258,
+              "sha256": "08e8db4b324f80d0e4ef3dd06bc8751433264d587852196e69b4d990fd7c3723"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 285,
+              "sha256": "2397317b8f720ad1a34a19e46b7618683bd5e03f38372c7f29c44970f3027723"
+            }
+          ],
+          "package_sha256": "1b0712af0d4ae49908a9fa51f9e6f6ee3b32969bdf6f8c62d1afc0b8133000e8",
+          "package_name": "partitionline",
+          "package_version": "0.1.0",
+          "package_vcs_info": {
+            "git": {
+              "sha1": "ae34dcfdd63bdffdbc78797ddf7a61de9f4a6730"
+            },
+            "path_in_vcs": ""
+          },
+          "feature_mode": "default",
+          "dependency_features": [],
+          "toolchain": "1.99.0",
+          "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+          "consumer_lock_sha256": "bea4af133f69fb18034cb40789c7000d8ad249ff0e285e95dacef4830c85f251"
+        },
+        {
+          "documents": [
+            "README.md",
+            "docs/guide.md",
+            "docs/migrate-from-rdkafka.md"
+          ],
+          "compiled_snippets": 19,
+          "local_links": 39,
+          "ignored_snippets": [],
+          "snippets": [
+            {
+              "document": "README.md",
+              "line": 23,
+              "sha256": "737e8da3b740b661e51f87ee4a98f187b14387bf570a23adbece43a2feb7e73d"
+            },
+            {
+              "document": "README.md",
+              "line": 42,
+              "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+            },
+            {
+              "document": "README.md",
+              "line": 62,
+              "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+            },
+            {
+              "document": "README.md",
+              "line": 86,
+              "sha256": "a990118bd77a2265b6ec3ef1355c1c965ee3232ae75798cca94f2823fad6f39c"
+            },
+            {
+              "document": "README.md",
+              "line": 111,
+              "sha256": "8b3313cd26930fe1023416b6029d56ce67f133460125f7b19a090a0819c03642"
+            },
+            {
+              "document": "README.md",
+              "line": 135,
+              "sha256": "d174cd31ee728c80ba03a9c4167cfe2a93e05a8a0ea753b87c4ed7bf69d64fd8"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 68,
+              "sha256": "c4c51043849dada85a70ec82aa279bdb056965bf21ec16ec249be11adb9ac0b2"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 221,
+              "sha256": "813a2ce2c94810da31565021b06811fcce2c413b189c40d38824042aa8aa65cc"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 245,
+              "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 262,
+              "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 303,
+              "sha256": "7318a827710d2914e781b0983e0f0c8e8558e3a1922b4ebdbbff329b4595f516"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 318,
+              "sha256": "94616599031102ea2ac914c926133a2d4c840711c8d79225385364fa8bd0f892"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 423,
+              "sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 91,
+              "sha256": "e225ec7ca4f62c204205edde832851484e166908e8e40f92763e356d4fd93b61"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 125,
+              "sha256": "57dec7d81e474f1ef1e7dc627500e28223a20a8137abfce4f1396009311a7825"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 187,
+              "sha256": "6da9b0b031891bb37671bd99124620f8162c67561f01b2716a71a512e1736e64"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 230,
+              "sha256": "380e427c7cfb1420e2f142fadd87d7a85f0185dce9567c2be5fcacdbf095d86a"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 258,
+              "sha256": "08e8db4b324f80d0e4ef3dd06bc8751433264d587852196e69b4d990fd7c3723"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 285,
+              "sha256": "2397317b8f720ad1a34a19e46b7618683bd5e03f38372c7f29c44970f3027723"
+            }
+          ],
+          "package_sha256": "1b0712af0d4ae49908a9fa51f9e6f6ee3b32969bdf6f8c62d1afc0b8133000e8",
+          "package_name": "partitionline",
+          "package_version": "0.1.0",
+          "package_vcs_info": {
+            "git": {
+              "sha1": "ae34dcfdd63bdffdbc78797ddf7a61de9f4a6730"
+            },
+            "path_in_vcs": ""
+          },
+          "feature_mode": "tracing",
+          "dependency_features": [
+            "tracing"
+          ],
+          "toolchain": "1.99.0",
+          "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+          "consumer_lock_sha256": "2d331efc108fd3fd72a368f1fe433b14befb3deb736ce3c632e0d97fa95d8d4b"
+        },
+        {
+          "documents": [
+            "README.md",
+            "docs/guide.md",
+            "docs/migrate-from-rdkafka.md"
+          ],
+          "compiled_snippets": 19,
+          "local_links": 39,
+          "ignored_snippets": [],
+          "snippets": [
+            {
+              "document": "README.md",
+              "line": 23,
+              "sha256": "737e8da3b740b661e51f87ee4a98f187b14387bf570a23adbece43a2feb7e73d"
+            },
+            {
+              "document": "README.md",
+              "line": 42,
+              "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+            },
+            {
+              "document": "README.md",
+              "line": 62,
+              "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+            },
+            {
+              "document": "README.md",
+              "line": 86,
+              "sha256": "a990118bd77a2265b6ec3ef1355c1c965ee3232ae75798cca94f2823fad6f39c"
+            },
+            {
+              "document": "README.md",
+              "line": 111,
+              "sha256": "8b3313cd26930fe1023416b6029d56ce67f133460125f7b19a090a0819c03642"
+            },
+            {
+              "document": "README.md",
+              "line": 135,
+              "sha256": "d174cd31ee728c80ba03a9c4167cfe2a93e05a8a0ea753b87c4ed7bf69d64fd8"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 68,
+              "sha256": "c4c51043849dada85a70ec82aa279bdb056965bf21ec16ec249be11adb9ac0b2"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 221,
+              "sha256": "813a2ce2c94810da31565021b06811fcce2c413b189c40d38824042aa8aa65cc"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 245,
+              "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 262,
+              "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 303,
+              "sha256": "7318a827710d2914e781b0983e0f0c8e8558e3a1922b4ebdbbff329b4595f516"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 318,
+              "sha256": "94616599031102ea2ac914c926133a2d4c840711c8d79225385364fa8bd0f892"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 423,
+              "sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 91,
+              "sha256": "e225ec7ca4f62c204205edde832851484e166908e8e40f92763e356d4fd93b61"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 125,
+              "sha256": "57dec7d81e474f1ef1e7dc627500e28223a20a8137abfce4f1396009311a7825"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 187,
+              "sha256": "6da9b0b031891bb37671bd99124620f8162c67561f01b2716a71a512e1736e64"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 230,
+              "sha256": "380e427c7cfb1420e2f142fadd87d7a85f0185dce9567c2be5fcacdbf095d86a"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 258,
+              "sha256": "08e8db4b324f80d0e4ef3dd06bc8751433264d587852196e69b4d990fd7c3723"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 285,
+              "sha256": "2397317b8f720ad1a34a19e46b7618683bd5e03f38372c7f29c44970f3027723"
+            }
+          ],
+          "package_sha256": "1b0712af0d4ae49908a9fa51f9e6f6ee3b32969bdf6f8c62d1afc0b8133000e8",
+          "package_name": "partitionline",
+          "package_version": "0.1.0",
+          "package_vcs_info": {
+            "git": {
+              "sha1": "ae34dcfdd63bdffdbc78797ddf7a61de9f4a6730"
+            },
+            "path_in_vcs": ""
+          },
+          "feature_mode": "default",
+          "dependency_features": [],
+          "toolchain": "1.85.0",
+          "rustc": "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+          "consumer_lock_sha256": "bea4af133f69fb18034cb40789c7000d8ad249ff0e285e95dacef4830c85f251"
+        },
+        {
+          "documents": [
+            "README.md",
+            "docs/guide.md",
+            "docs/migrate-from-rdkafka.md"
+          ],
+          "compiled_snippets": 19,
+          "local_links": 39,
+          "ignored_snippets": [],
+          "snippets": [
+            {
+              "document": "README.md",
+              "line": 23,
+              "sha256": "737e8da3b740b661e51f87ee4a98f187b14387bf570a23adbece43a2feb7e73d"
+            },
+            {
+              "document": "README.md",
+              "line": 42,
+              "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+            },
+            {
+              "document": "README.md",
+              "line": 62,
+              "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+            },
+            {
+              "document": "README.md",
+              "line": 86,
+              "sha256": "a990118bd77a2265b6ec3ef1355c1c965ee3232ae75798cca94f2823fad6f39c"
+            },
+            {
+              "document": "README.md",
+              "line": 111,
+              "sha256": "8b3313cd26930fe1023416b6029d56ce67f133460125f7b19a090a0819c03642"
+            },
+            {
+              "document": "README.md",
+              "line": 135,
+              "sha256": "d174cd31ee728c80ba03a9c4167cfe2a93e05a8a0ea753b87c4ed7bf69d64fd8"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 68,
+              "sha256": "c4c51043849dada85a70ec82aa279bdb056965bf21ec16ec249be11adb9ac0b2"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 221,
+              "sha256": "813a2ce2c94810da31565021b06811fcce2c413b189c40d38824042aa8aa65cc"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 245,
+              "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 262,
+              "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 303,
+              "sha256": "7318a827710d2914e781b0983e0f0c8e8558e3a1922b4ebdbbff329b4595f516"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 318,
+              "sha256": "94616599031102ea2ac914c926133a2d4c840711c8d79225385364fa8bd0f892"
+            },
+            {
+              "document": "docs/guide.md",
+              "line": 423,
+              "sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 91,
+              "sha256": "e225ec7ca4f62c204205edde832851484e166908e8e40f92763e356d4fd93b61"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 125,
+              "sha256": "57dec7d81e474f1ef1e7dc627500e28223a20a8137abfce4f1396009311a7825"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 187,
+              "sha256": "6da9b0b031891bb37671bd99124620f8162c67561f01b2716a71a512e1736e64"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 230,
+              "sha256": "380e427c7cfb1420e2f142fadd87d7a85f0185dce9567c2be5fcacdbf095d86a"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 258,
+              "sha256": "08e8db4b324f80d0e4ef3dd06bc8751433264d587852196e69b4d990fd7c3723"
+            },
+            {
+              "document": "docs/migrate-from-rdkafka.md",
+              "line": 285,
+              "sha256": "2397317b8f720ad1a34a19e46b7618683bd5e03f38372c7f29c44970f3027723"
+            }
+          ],
+          "package_sha256": "1b0712af0d4ae49908a9fa51f9e6f6ee3b32969bdf6f8c62d1afc0b8133000e8",
+          "package_name": "partitionline",
+          "package_version": "0.1.0",
+          "package_vcs_info": {
+            "git": {
+              "sha1": "ae34dcfdd63bdffdbc78797ddf7a61de9f4a6730"
+            },
+            "path_in_vcs": ""
+          },
+          "feature_mode": "tracing",
+          "dependency_features": [
+            "tracing"
+          ],
+          "toolchain": "1.85.0",
+          "rustc": "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+          "consumer_lock_sha256": "2d331efc108fd3fd72a368f1fe433b14befb3deb736ce3c632e0d97fa95d8d4b"
+        }
+      ],
+      "all_features_alias": "tracing (the only approved optional feature)",
+      "operator_lock_sha256": {
+        "operator-1.99.0-default.lock": "f7e53394922182c85ff5f2f39ca56f461443028aeb0510990bd1debe1249e838",
+        "operator-1.99.0-tracing.lock": "6aa869a3bd4a8f2f873256c9b66d41de2050b23eb46b6e53d08ecae2b79fafd1",
+        "operator-1.85.0-default.lock": "f7e53394922182c85ff5f2f39ca56f461443028aeb0510990bd1debe1249e838",
+        "operator-1.85.0-tracing.lock": "6aa869a3bd4a8f2f873256c9b66d41de2050b23eb46b6e53d08ecae2b79fafd1"
+      }
+    },
+    "package_docs_inventory": {
+      "package_name": "partitionline",
+      "package_version": "0.1.0",
+      "license": "MIT OR Apache-2.0",
+      "license_notice_sha256": {
+        "LICENSE-MIT": "1b854877ff684cc9c954471e4f4be3def2aa7e27c118af36e1f73428d85eedb5",
+        "LICENSE-APACHE": "fee225ca1e8d8d91c2db9ab09a765e6e5a58e31411a80a499d1d33375b12f6e2",
+        "NOTICE": "2cd4755d65dc0f3736d5c568facc846f9fd1e2247de3d0fb017506fdb625fed1"
+      },
+      "file_count": 442,
+      "unpacked_file_bytes": 8626319,
+      "documents": [
+        "README.md",
+        "docs/ADOPTION.md",
+        "docs/CIVILIZATION.md",
+        "docs/RELEASE.md",
+        "docs/ROADMAP.md",
+        "docs/STATUS.md",
+        "docs/adopter-exercise.md",
+        "docs/api-stability.md",
+        "docs/auth-refresh.md",
+        "docs/benchmark-contract.md",
+        "docs/benchmark.md",
+        "docs/design.md",
+        "docs/gaps.md",
+        "docs/guide.md",
+        "docs/gzip-backend.md",
+        "docs/index.md",
+        "docs/migrate-from-rdkafka.md",
+        "docs/resource-contract.md",
+        "docs/schema-companion.md",
+        "docs/security.md",
+        "docs/support.md",
+        "docs/zstd-spike.md"
+      ],
+      "local_links": 183,
+      "versioned_repository_links": [
+        "https://github.com/mingley/partitionline/blob/65d3e89a4775f6bfd913ed1467647b93a11b9329/docs/plan/performance-leadership.md#9-boundaries-unchanged-unless-the-maintainer-decides-otherwise",
+        "https://github.com/mingley/partitionline/blob/80b4c78a4399ed5cfc68c7a3cb14046f008e9d78/docs/plan/evidence/KL01-17.json",
+        "https://github.com/mingley/partitionline/blob/90ebae57bf87a420d5fa69bd14fe7cdfa7553ac9/docs/evidence/releases/3109514bc9aa30def679d43fdd823d2c71138ab1-no-publish-rehearsal.json",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/.github/workflows/ci.yml",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/.github/workflows/release-plz.yml",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/TODO.md",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md#standards-and-upstream-evidence-boundary",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/latency-ci-policy.json",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/evidence/KL03-10.json",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/evidence/KL07-14.json",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/gateway-adoption.md",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/performance-leadership.md",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-auth-smoke.sh",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-broker-smoke.sh",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-crate-consumer.sh",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-integrity-smoke.sh",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/ci-latency-gate.sh",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/scripts/perf-profile.sh",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L3004",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L3007",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L3019",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L6615",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L6662",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L6684",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/admin.rs#L6697",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1289",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1297",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1310",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1640",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1653",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1679",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1818",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1840",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L1852",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/consumer.rs#L2185",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/group.rs#L2828",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/group.rs#L2874",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/group.rs#L2878",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/group.rs#L2923",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/group.rs#L2942",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L1034",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L629",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L656",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L673",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L720",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L729",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L734",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L739",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L868",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L947",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/net.rs#L993",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L1015",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L1029",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L1955",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L1962",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L1974",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L2378",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/producer.rs#L976",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L106",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L121",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L126",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L167",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L207",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L22",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L286",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L32",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L324",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L335",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L377",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L75",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L77",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L80",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/oidc.rs#L85",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L166",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L180",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L194",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L207",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L219",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L434",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L466",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L48",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L493",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L527",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L58",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L80",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol/sasl.rs#L94",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/share.rs#L1152",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/share.rs#L1610",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/share.rs#L1669",
+        "https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/share.rs#L603",
+        "https://github.com/mingley/partitionline/blob/a5c0a7f12d8b546ea61267e5fd681e944edcf35f/partitionline-schema/tests/oracles/protobuf/README.md",
+        "https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/benchmarks",
+        "https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/examples",
+        "https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/fuzz",
+        "https://github.com/mingley/partitionline/tree/917d877d7b049f3da5af90bd2a5804b85080ed2b/src/protocol"
+      ],
+      "excluded_prefixes": [
+        "benchmarks/",
+        "fuzz/",
+        "docs/evidence/",
+        "docs/plan/",
+        "docs/audits/",
+        ".git/",
+        ".aws/",
+        ".codex/"
+      ],
+      "files": [
+        ".cargo_vcs_info.json",
+        "CHANGELOG.md",
+        "Cargo.lock",
+        "Cargo.toml",
+        "Cargo.toml.orig",
+        "LICENSE-APACHE",
+        "LICENSE-MIT",
+        "NOTICE",
+        "README.md",
+        "SECURITY.md",
+        "clippy.toml",
+        "deny.toml",
+        "docs/ADOPTION.md",
+        "docs/CIVILIZATION.md",
+        "docs/RELEASE.md",
+        "docs/ROADMAP.md",
+        "docs/STATUS.md",
+        "docs/adopter-exercise.md",
+        "docs/api-stability.md",
+        "docs/auth-refresh.md",
+        "docs/benchmark-contract.md",
+        "docs/benchmark.md",
+        "docs/design.md",
+        "docs/gaps.md",
+        "docs/guide.md",
+        "docs/gzip-backend.md",
+        "docs/index.md",
+        "docs/latency-baseline.json",
+        "docs/migrate-from-rdkafka.md",
+        "docs/resource-contract.md",
+        "docs/schema-companion.md",
+        "docs/security.md",
+        "docs/support.md",
+        "docs/zstd-spike.md",
+        "examples/admin.rs",
+        "examples/bench_fetch.rs",
+        "examples/bench_latency.rs",
+        "examples/bench_produce.rs",
+        "examples/common/verifiable.rs",
+        "examples/consume.rs",
+        "examples/consume_intercept.rs",
+        "examples/cooperative.rs",
+        "examples/describe_quorum.rs",
+        "examples/eos.rs",
+        "examples/group.rs",
+        "examples/intercept.rs",
+        "examples/kip848.rs",
+        "examples/metrics.rs",
+        "examples/oauth.rs",
+        "examples/offsets.rs",
+        "examples/pause.rs",
+        "examples/produce.rs",
+        "examples/produce_cancel.rs",
+        "examples/roundtrip.rs",
+        "examples/sasl.rs",
+        "examples/share.rs",
+        "examples/tls.rs",
+        "examples/txn.rs",
+        "examples/verifiable_consumer.rs",
+        "examples/verifiable_producer.rs",
+        "examples/wakeup.rs",
+        "src/admin.rs",
+        "src/cluster.rs",
+        "src/config.rs",
+        "src/consumer.rs",
+        "src/error.rs",
+        "src/group.rs",
+        "src/interceptor.rs",
+        "src/lib.rs",
+        "src/metrics.rs",
+        "src/net.rs",
+        "src/partitioner.rs",
+        "src/producer.rs",
+        "src/protocol/acl.rs",
+        "src/protocol/admin.rs",
+        "src/protocol/api.rs",
+        "src/protocol/api_keys.rs",
+        "src/protocol/buf.rs",
+        "src/protocol/cgheartbeat.rs",
+        "src/protocol/epoch.rs",
+        "src/protocol/fetch.rs",
+        "src/protocol/group.rs",
+        "src/protocol/header.rs",
+        "src/protocol/idem.rs",
+        "src/protocol/mod.rs",
+        "src/protocol/oauth.rs",
+        "src/protocol/offsets.rs",
+        "src/protocol/oidc.rs",
+        "src/protocol/records.rs",
+        "src/protocol/sasl.rs",
+        "src/protocol/scram.rs",
+        "src/protocol/share.rs",
+        "src/protocol/txn.rs",
+        "src/share.rs",
+        "tests/auth_lifecycle.rs",
+        "tests/broker_compatibility.rs",
+        "tests/buffer_ownership.rs",
+        "tests/ci/test_alloc_gate.py",
+        "tests/ci/test_docs_diagnostics.py",
+        "tests/client_api.rs",
+        "tests/cluster/__init__.py",
+        "tests/cluster/test_fixture.py",
+        "tests/cluster/topology.json",
+        "tests/common/fetch_fixture.rs",
+        "tests/common/mod.rs",
+        "tests/conformance/cases.json",
+        "tests/conformance/current-broker-cells.json",
+        "tests/conformance/features.json",
+        "tests/conformance/java/AddRaftVoterFixtures.java",
+        "tests/conformance/java/CurrentGroupFixtures.java",
+        "tests/conformance/java/DescribeLogDirsFixtures.java",
+        "tests/conformance/java/ListOffsetsV11Fixtures.java",
+        "tests/conformance/java/README.md",
+        "tests/conformance/java/RemoveRaftVoterFixtures.java",
+        "tests/conformance/java/pins.json",
+        "tests/conformance/java/pom.xml",
+        "tests/conformance/java/src/main/java/org/apache/kafka/conformance/FixtureGenerator.java",
+        "tests/conformance/java/src/main/java/org/slf4j/impl/StaticLoggerBinder.java",
+        "tests/conformance/test_broker_compatibility.py",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "tests/conformance/test_fetch_session_recovery.py",
+        "tests/conformance/test_report.py",
+        "tests/conformance/test_verifiable_scenario.py",
+        "tests/conformance/verifiable-live-profile.json",
+        "tests/consumer_close_commit.rs",
+        "tests/consumer_fetch_semantics.rs",
+        "tests/credential_redact.rs",
+        "tests/docs/README.md",
+        "tests/docs/registry.json",
+        "tests/docs/test_check_doc_examples.py",
+        "tests/docs/test_package_docs.py",
+        "tests/e2e.rs",
+        "tests/fetch_buffer_budget.rs",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_defaults.json",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_defaults_request.bin",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_defaults_response.bin",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_nullable.json",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_nullable_request.bin",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_nullable_response.bin",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_populated.json",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_populated_request.bin",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_populated_response.bin",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_tagged.json",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_tagged_request.bin",
+        "tests/fixtures/protocol_oracles/add_raft_voter_v0_tagged_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_empty.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_empty_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_error.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_error_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_leave.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_leave_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_null.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_null_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_populated.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_populated_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_tagged.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v0_tagged_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_empty.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_empty_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_error.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_error_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_leave.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_leave_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_null.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_null_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_populated.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_populated_response.bin",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_tagged.json",
+        "tests/fixtures/protocol_oracles/current_groups/cgheartbeat_v1_tagged_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_defaults.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_defaults_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_defaults_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_empty.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_empty_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_empty_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_nullable.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_nullable_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_nullable_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_populated.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_populated_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v1_populated_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_defaults.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_defaults_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_defaults_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_empty.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_empty_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_empty_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_nullable.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_nullable_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_nullable_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_populated.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_populated_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_populated_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_tagged.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_tagged_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v2_tagged_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_defaults.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_defaults_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_defaults_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_empty.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_empty_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_empty_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_nullable.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_nullable_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_nullable_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_populated.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_populated_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_populated_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_tagged.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_tagged_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v3_tagged_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_defaults.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_defaults_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_defaults_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_empty.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_empty_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_empty_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_nullable.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_nullable_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_nullable_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_populated.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_populated_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_populated_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_tagged.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_tagged_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v4_tagged_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_defaults.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_defaults_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_defaults_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_empty.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_empty_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_empty_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_nullable.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_nullable_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_nullable_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_populated.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_populated_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_populated_response.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_tagged.json",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_tagged_request.bin",
+        "tests/fixtures/protocol_oracles/describe_log_dirs_v5_tagged_response.bin",
+        "tests/fixtures/protocol_oracles/describe_quorum_v0_initial.json",
+        "tests/fixtures/protocol_oracles/describe_quorum_v0_initial_request.bin",
+        "tests/fixtures/protocol_oracles/describe_quorum_v0_initial_response.bin",
+        "tests/fixtures/protocol_oracles/describe_quorum_v1_fetch_timestamps.json",
+        "tests/fixtures/protocol_oracles/describe_quorum_v1_fetch_timestamps_request.bin",
+        "tests/fixtures/protocol_oracles/describe_quorum_v1_fetch_timestamps_response.bin",
+        "tests/fixtures/protocol_oracles/describe_quorum_v2_nodes_errors.json",
+        "tests/fixtures/protocol_oracles/describe_quorum_v2_nodes_errors_request.bin",
+        "tests/fixtures/protocol_oracles/describe_quorum_v2_nodes_errors_response.bin",
+        "tests/fixtures/protocol_oracles/describe_quorum_v2_partition_error.json",
+        "tests/fixtures/protocol_oracles/describe_quorum_v2_partition_error_request.bin",
+        "tests/fixtures/protocol_oracles/describe_quorum_v2_partition_error_response.bin",
+        "tests/fixtures/protocol_oracles/describe_quorum_v2_top_level_error.json",
+        "tests/fixtures/protocol_oracles/describe_quorum_v2_top_level_error_request.bin",
+        "tests/fixtures/protocol_oracles/describe_quorum_v2_top_level_error_response.bin",
+        "tests/fixtures/protocol_oracles/elect_leaders_v0_classic.json",
+        "tests/fixtures/protocol_oracles/elect_leaders_v0_classic_request.bin",
+        "tests/fixtures/protocol_oracles/elect_leaders_v0_classic_response.bin",
+        "tests/fixtures/protocol_oracles/elect_leaders_v1_election_type.json",
+        "tests/fixtures/protocol_oracles/elect_leaders_v1_election_type_request.bin",
+        "tests/fixtures/protocol_oracles/elect_leaders_v1_election_type_response.bin",
+        "tests/fixtures/protocol_oracles/elect_leaders_v2_flexible.json",
+        "tests/fixtures/protocol_oracles/elect_leaders_v2_flexible_request.bin",
+        "tests/fixtures/protocol_oracles/elect_leaders_v2_flexible_response.bin",
+        "tests/fixtures/protocol_oracles/fetch_v11_batches_records.json",
+        "tests/fixtures/protocol_oracles/fetch_v11_batches_records_request.bin",
+        "tests/fixtures/protocol_oracles/fetch_v11_batches_records_response.bin",
+        "tests/fixtures/protocol_oracles/fetch_v12_flexible_tags.json",
+        "tests/fixtures/protocol_oracles/fetch_v12_flexible_tags_request.bin",
+        "tests/fixtures/protocol_oracles/fetch_v12_flexible_tags_response.bin",
+        "tests/fixtures/protocol_oracles/fetch_v13_topic_ids.json",
+        "tests/fixtures/protocol_oracles/fetch_v13_topic_ids_request.bin",
+        "tests/fixtures/protocol_oracles/fetch_v13_topic_ids_response.bin",
+        "tests/fixtures/protocol_oracles/fetch_v15_replica_state.json",
+        "tests/fixtures/protocol_oracles/fetch_v15_replica_state_request.bin",
+        "tests/fixtures/protocol_oracles/fetch_v15_replica_state_response.bin",
+        "tests/fixtures/protocol_oracles/fetch_v16_endpoints.json",
+        "tests/fixtures/protocol_oracles/fetch_v16_endpoints_request.bin",
+        "tests/fixtures/protocol_oracles/fetch_v16_endpoints_response.bin",
+        "tests/fixtures/protocol_oracles/fetch_v17_max_3_9_1.json",
+        "tests/fixtures/protocol_oracles/fetch_v17_max_3_9_1_request.bin",
+        "tests/fixtures/protocol_oracles/fetch_v17_max_3_9_1_response.bin",
+        "tests/fixtures/protocol_oracles/fetch_v4_classic.json",
+        "tests/fixtures/protocol_oracles/fetch_v4_classic_request.bin",
+        "tests/fixtures/protocol_oracles/fetch_v4_classic_response.bin",
+        "tests/fixtures/protocol_oracles/fetch_v5_start_offset.json",
+        "tests/fixtures/protocol_oracles/fetch_v5_start_offset_request.bin",
+        "tests/fixtures/protocol_oracles/fetch_v5_start_offset_response.bin",
+        "tests/fixtures/protocol_oracles/fetch_v7_session.json",
+        "tests/fixtures/protocol_oracles/fetch_v7_session_request.bin",
+        "tests/fixtures/protocol_oracles/fetch_v7_session_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v10_timeout.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v10_timeout_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v10_timeout_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_committed.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_committed_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_committed_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_defaults.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_defaults_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_defaults_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_empty.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_empty_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_empty_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_errors.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_errors_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_errors_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_tagged.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_tagged_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_tagged_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_uncommitted.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_uncommitted_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_uncommitted_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v1_classic.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v1_classic_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v1_classic_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v2_isolation.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v2_isolation_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v2_isolation_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v3_throttle.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v3_throttle_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v3_throttle_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v4_leader_epoch.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v4_leader_epoch_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v4_leader_epoch_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v5_classic_boundary.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v5_classic_boundary_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v5_classic_boundary_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v6_flexible.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v6_flexible_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v6_flexible_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v7_max_timestamp.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v7_max_timestamp_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v7_max_timestamp_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v8_earliest_local.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v8_earliest_local_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v8_earliest_local_response.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v9_latest_tiered.json",
+        "tests/fixtures/protocol_oracles/list_offsets_v9_latest_tiered_request.bin",
+        "tests/fixtures/protocol_oracles/list_offsets_v9_latest_tiered_response.bin",
+        "tests/fixtures/protocol_oracles/matrix.json",
+        "tests/fixtures/protocol_oracles/metadata_v10_topic_ids.json",
+        "tests/fixtures/protocol_oracles/metadata_v10_topic_ids_request.bin",
+        "tests/fixtures/protocol_oracles/metadata_v10_topic_ids_response.bin",
+        "tests/fixtures/protocol_oracles/metadata_v11_no_cluster_auth.json",
+        "tests/fixtures/protocol_oracles/metadata_v11_no_cluster_auth_request.bin",
+        "tests/fixtures/protocol_oracles/metadata_v11_no_cluster_auth_response.bin",
+        "tests/fixtures/protocol_oracles/metadata_v12_id_only.json",
+        "tests/fixtures/protocol_oracles/metadata_v12_id_only_request.bin",
+        "tests/fixtures/protocol_oracles/metadata_v12_id_only_response.bin",
+        "tests/fixtures/protocol_oracles/metadata_v1_classic.json",
+        "tests/fixtures/protocol_oracles/metadata_v1_classic_request.bin",
+        "tests/fixtures/protocol_oracles/metadata_v1_classic_response.bin",
+        "tests/fixtures/protocol_oracles/metadata_v4_empty_topics.json",
+        "tests/fixtures/protocol_oracles/metadata_v4_empty_topics_request.bin",
+        "tests/fixtures/protocol_oracles/metadata_v4_empty_topics_response.bin",
+        "tests/fixtures/protocol_oracles/metadata_v5_offline_replicas.json",
+        "tests/fixtures/protocol_oracles/metadata_v5_offline_replicas_request.bin",
+        "tests/fixtures/protocol_oracles/metadata_v5_offline_replicas_response.bin",
+        "tests/fixtures/protocol_oracles/metadata_v7_leader_epoch.json",
+        "tests/fixtures/protocol_oracles/metadata_v7_leader_epoch_request.bin",
+        "tests/fixtures/protocol_oracles/metadata_v7_leader_epoch_response.bin",
+        "tests/fixtures/protocol_oracles/metadata_v8_authorized_ops.json",
+        "tests/fixtures/protocol_oracles/metadata_v8_authorized_ops_request.bin",
+        "tests/fixtures/protocol_oracles/metadata_v8_authorized_ops_response.bin",
+        "tests/fixtures/protocol_oracles/metadata_v9_flexible.json",
+        "tests/fixtures/protocol_oracles/metadata_v9_flexible_request.bin",
+        "tests/fixtures/protocol_oracles/metadata_v9_flexible_response.bin",
+        "tests/fixtures/protocol_oracles/produce_v10_current_leader.json",
+        "tests/fixtures/protocol_oracles/produce_v10_current_leader_request.bin",
+        "tests/fixtures/protocol_oracles/produce_v10_current_leader_response.bin",
+        "tests/fixtures/protocol_oracles/produce_v11_max_3_9_1.json",
+        "tests/fixtures/protocol_oracles/produce_v11_max_3_9_1_request.bin",
+        "tests/fixtures/protocol_oracles/produce_v11_max_3_9_1_response.bin",
+        "tests/fixtures/protocol_oracles/produce_v3_classic.json",
+        "tests/fixtures/protocol_oracles/produce_v3_classic_request.bin",
+        "tests/fixtures/protocol_oracles/produce_v3_classic_response.bin",
+        "tests/fixtures/protocol_oracles/produce_v5_start_offset.json",
+        "tests/fixtures/protocol_oracles/produce_v5_start_offset_request.bin",
+        "tests/fixtures/protocol_oracles/produce_v5_start_offset_response.bin",
+        "tests/fixtures/protocol_oracles/produce_v8_classic_errors.json",
+        "tests/fixtures/protocol_oracles/produce_v8_classic_errors_request.bin",
+        "tests/fixtures/protocol_oracles/produce_v8_classic_errors_response.bin",
+        "tests/fixtures/protocol_oracles/produce_v9_flexible_nulls.json",
+        "tests/fixtures/protocol_oracles/produce_v9_flexible_nulls_request.bin",
+        "tests/fixtures/protocol_oracles/produce_v9_flexible_nulls_response.bin",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_defaults.json",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_defaults_request.bin",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_defaults_response.bin",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_nullable.json",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_nullable_request.bin",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_nullable_response.bin",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_populated.json",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_populated_request.bin",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_populated_response.bin",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_tagged.json",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_tagged_request.bin",
+        "tests/fixtures/protocol_oracles/remove_raft_voter_v0_tagged_response.bin",
+        "tests/fixtures/protocol_oracles/share_ack_v0_same_fields.json",
+        "tests/fixtures/protocol_oracles/share_ack_v0_same_fields_request.bin",
+        "tests/fixtures/protocol_oracles/share_ack_v0_same_fields_response.bin",
+        "tests/fixtures/protocol_oracles/share_ack_v1_same_fields.json",
+        "tests/fixtures/protocol_oracles/share_ack_v1_same_fields_request.bin",
+        "tests/fixtures/protocol_oracles/share_ack_v1_same_fields_response.bin",
+        "tests/fixtures/protocol_oracles/share_fetch_v0_null_records.json",
+        "tests/fixtures/protocol_oracles/share_fetch_v0_null_records_request.bin",
+        "tests/fixtures/protocol_oracles/share_fetch_v0_null_records_response.bin",
+        "tests/fixtures/protocol_oracles/share_fetch_v0_partition_max_bytes.json",
+        "tests/fixtures/protocol_oracles/share_fetch_v0_partition_max_bytes_request.bin",
+        "tests/fixtures/protocol_oracles/share_fetch_v0_partition_max_bytes_response.bin",
+        "tests/fixtures/protocol_oracles/share_fetch_v1_batch_size.json",
+        "tests/fixtures/protocol_oracles/share_fetch_v1_batch_size_request.bin",
+        "tests/fixtures/protocol_oracles/share_fetch_v1_batch_size_response.bin",
+        "tests/fixtures/protocol_oracles/share_fetch_v1_error_response.json",
+        "tests/fixtures/protocol_oracles/share_fetch_v1_error_response_request.bin",
+        "tests/fixtures/protocol_oracles/share_fetch_v1_error_response_response.bin",
+        "tests/fixtures/protocol_oracles/share_fetch_v1_null_records_rejected.json",
+        "tests/fixtures/protocol_oracles/share_fetch_v1_null_records_rejected_request.bin",
+        "tests/fixtures/protocol_oracles/share_fetch_v1_null_records_rejected_response.bin",
+        "tests/fixtures/protocol_oracles/share_v2_pin.json",
+        "tests/fixtures/protocol_oracles/smoke_produce_v9.json",
+        "tests/fixtures/protocol_oracles/smoke_produce_v9_request.bin",
+        "tests/fixtures/protocol_oracles/smoke_produce_v9_response.bin",
+        "tests/full_surface.rs",
+        "tests/fuzz_campaign_meta.rs",
+        "tests/fuzz_decode_smoke.rs",
+        "tests/history/__init__.py",
+        "tests/history/test_checker.py",
+        "tests/kip848_live.rs",
+        "tests/mock_produce.rs",
+        "tests/network_deadlines.rs",
+        "tests/oracles/java/FetchSessionOracle.java",
+        "tests/oracles/java/generate_fetch_session.py",
+        "tests/platform/test_macos_report.py",
+        "tests/platform/test_windows_report.py",
+        "tests/produce_cancel.rs",
+        "tests/protocol_oracles.rs",
+        "tests/release/test_ci_gate.py",
+        "tests/release/test_publish_serialization.py",
+        "tests/release/test_rehearsal.py",
+        "tests/roundtrip.rs",
+        "tests/verifiable_contract.rs"
+      ]
+    },
+    "raw_validation": {
+      "sha256": "c882f8318b4e0a61d4e583fdade649851cf1ef3fa8f05c001d0d22fda0b8c5a0",
+      "bytes": 11409,
+      "text": "   Packaging partitionline v0.1.0 (/workspace/partitionline)\n    Updating crates.io index\n    Packaged 442 files, 8.2MiB (1.3MiB compressed)\npackage-docs: 22 documents, 183 local links, 98 pinned repository targets; license and exclusion inventory passed\n    Updating crates.io index\n     Locking 76 packages to highest compatible versions\n   Compiling libc v0.2.189\n    Checking cfg-if v1.0.5\n   Compiling shlex v2.0.1\n   Compiling find-msvc-tools v0.1.14\n   Compiling cc v1.5.1\n   Compiling proc-macro2 v1.0.107\n    Checking typenum v1.20.1\n   Compiling ring v0.17.14\n   Compiling quote v1.0.47\n   Compiling unicode-ident v1.0.26\n    Checking hybrid-array v0.4.15\n    Checking cmov v0.5.4\n    Checking zeroize v1.9.0\n    Checking rustls-pki-types v1.15.1\n    Checking ctutils v0.4.2\n    Checking block-buffer v0.12.1\n    Checking crypto-common v0.2.2\n    Checking getrandom v0.2.17\n    Checking untrusted v0.9.0\n    Checking const-oid v0.10.2\n   Compiling semver v1.0.28\n   Compiling rustc_version v0.4.1\n    Checking digest v0.11.3\n   Compiling syn v3.0.6\n    Checking errno v0.3.14\n   Compiling rustls v0.23.45\n   Compiling crc32fast v1.5.2\n   Compiling parking_lot_core v0.9.12\n    Checking signal-hook-registry v1.4.8\n    Checking rustls-webpki v0.103.15\n   Compiling crc32c v0.6.8\n    Checking mio v1.2.3\n    Checking socket2 v0.6.5\n    Checking once_cell v1.21.4\n    Checking scopeguard v1.2.0\n    Checking bytes v1.12.1\n    Checking pin-project-lite v0.2.17\n    Checking simd-adler32 v0.3.10\n    Checking adler2 v2.0.1\n   Compiling getrandom v0.4.3\n    Checking smallvec v1.16.2\n    Checking subtle v2.6.1\n   Compiling snap v1.1.2\n   Compiling tokio-macros v2.7.2\n    Checking tokio v1.53.1\n    Checking miniz_oxide v0.9.1\n    Checking lock_api v0.4.14\n    Checking hmac v0.13.0\n    Checking cpufeatures v0.3.1\n    Checking zlib-rs v0.6.8\n    Checking twox-hash v2.1.4\n    Checking lz4_flex v0.14.0\n    Checking flate2 v1.1.10\n    Checking sha2 v0.11.0\n    Checking pbkdf2 v0.13.0\n    Checking tokio-rustls v0.26.6\n    Checking parking_lot v0.12.5\n    Checking webpki-roots v1.0.9\n    Checking base64 v0.23.1\n    Checking partitionline v0.1.0 (/tmp/tmp.ObQVmW7w1d/partitionline-0.1.0)\n    Checking partitionline-crate-consumer v0.0.0 (/tmp/tmp.ObQVmW7w1d/consumer-1.99.0-default)\n    Finished `dev` profile [unoptimized] target(s) in 29.00s\n    Updating crates.io index\n     Locking 76 packages to highest compatible versions\n   Compiling libc v0.2.189\n   Compiling cfg-if v1.0.5\n   Compiling typenum v1.20.1\n   Compiling hybrid-array v0.4.15\n   Compiling zeroize v1.9.0\n   Compiling cmov v0.5.4\n   Compiling ctutils v0.4.2\n   Compiling rustls-pki-types v1.15.1\n   Compiling getrandom v0.2.17\n   Compiling crypto-common v0.2.2\n   Compiling block-buffer v0.12.1\n   Compiling const-oid v0.10.2\n   Compiling untrusted v0.9.0\n   Compiling ring v0.17.14\n   Compiling digest v0.11.3\n   Compiling errno v0.3.14\n   Compiling signal-hook-registry v1.4.8\n   Compiling mio v1.2.3\n   Compiling socket2 v0.6.5\n   Compiling rustls-webpki v0.103.15\n   Compiling pin-project-lite v0.2.17\n   Compiling smallvec v1.16.2\n   Compiling subtle v2.6.1\n   Compiling scopeguard v1.2.0\n   Compiling bytes v1.12.1\n   Compiling once_cell v1.21.4\n   Compiling simd-adler32 v0.3.10\n   Compiling adler2 v2.0.1\n   Compiling tokio v1.53.1\n   Compiling miniz_oxide v0.9.1\n   Compiling rustls v0.23.45\n   Compiling lock_api v0.4.14\n   Compiling parking_lot_core v0.9.12\n   Compiling crc32fast v1.5.2\n   Compiling hmac v0.13.0\n   Compiling cpufeatures v0.3.1\n   Compiling twox-hash v2.1.4\n   Compiling zlib-rs v0.6.8\n   Compiling lz4_flex v0.14.0\n   Compiling pbkdf2 v0.13.0\n   Compiling sha2 v0.11.0\n   Compiling crc32c v0.6.8\n   Compiling snap v1.1.2\n   Compiling parking_lot v0.12.5\n   Compiling tokio-rustls v0.26.6\n   Compiling getrandom v0.4.3\n   Compiling webpki-roots v1.0.9\n   Compiling base64 v0.23.1\n   Compiling flate2 v1.1.10\n   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-asvmlmcm/package/partitionline-0.1.0)\n   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-asvmlmcm/consumer)\n    Finished `test` profile [unoptimized] target(s) in 37.31s\n   Doc-tests partitionline_markdown_check\n\nrunning 19 tests\ntest src/lib.rs - (line 215) - compile ... ok\ntest src/lib.rs - (line 104) - compile ... ok\ntest src/lib.rs - (line 19) - compile ... ok\ntest src/lib.rs - (line 283) - compile ... ok\ntest src/lib.rs - (line 268) - compile ... ok\ntest src/lib.rs - (line 3) - compile ... ok\ntest src/lib.rs - (line 293) - compile ... ok\ntest src/lib.rs - (line 365) - compile ... ok\ntest src/lib.rs - (line 33) - compile ... ok\ntest src/lib.rs - (line 383) - compile ... ok\ntest src/lib.rs - (line 425) - compile ... ok\ntest src/lib.rs - (line 434) - compile ... ok\ntest src/lib.rs - (line 403) - compile ... ok\ntest src/lib.rs - (line 445) - compile ... ok\ntest src/lib.rs - (line 52) - compile ... ok\ntest src/lib.rs - (line 73) - compile ... ok\ntest src/lib.rs - (line 90) - compile ... ok\ntest src/lib.rs - (line 235) - compile ... ok\ntest src/lib.rs - (line 249) - compile ... ok\n\ntest result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.18s\n\nrustc 1.99.0 (b940084d7 2026-09-28)\ndoc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored\n    Updating crates.io index\n     Locking 80 packages to highest compatible versions\n    Checking once_cell v1.21.4\n   Compiling syn v2.0.119\n    Checking rustls v0.23.45\n    Checking tracing-core v0.1.36\n    Checking tokio-rustls v0.26.6\n   Compiling tracing-attributes v0.1.31\n    Checking tracing v0.1.44\n    Checking partitionline v0.1.0 (/tmp/tmp.ObQVmW7w1d/partitionline-0.1.0)\n    Checking partitionline-crate-consumer v0.0.0 (/tmp/tmp.ObQVmW7w1d/consumer-1.99.0-tracing)\n    Finished `dev` profile [unoptimized] target(s) in 12.94s\n    Updating crates.io index\n     Locking 80 packages to highest compatible versions\n   Compiling once_cell v1.21.4\n   Compiling rustls v0.23.45\n   Compiling tracing-core v0.1.36\n   Compiling tracing v0.1.44\n   Compiling tokio-rustls v0.26.6\n   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-nw0mz5e_/package/partitionline-0.1.0)\n   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-nw0mz5e_/consumer)\n    Finished `test` profile [unoptimized] target(s) in 17.82s\n   Doc-tests partitionline_markdown_check\n\nrunning 19 tests\ntest src/lib.rs - (line 215) - compile ... ok\ntest src/lib.rs - (line 235) - compile ... ok\ntest src/lib.rs - (line 19) - compile ... ok\ntest src/lib.rs - (line 283) - compile ... ok\ntest src/lib.rs - (line 104) - compile ... ok\ntest src/lib.rs - (line 268) - compile ... ok\ntest src/lib.rs - (line 249) - compile ... ok\ntest src/lib.rs - (line 365) - compile ... ok\ntest src/lib.rs - (line 3) - compile ... ok\ntest src/lib.rs - (line 383) - compile ... ok\ntest src/lib.rs - (line 33) - compile ... ok\ntest src/lib.rs - (line 425) - compile ... ok\ntest src/lib.rs - (line 434) - compile ... ok\ntest src/lib.rs - (line 445) - compile ... ok\ntest src/lib.rs - (line 403) - compile ... ok\ntest src/lib.rs - (line 73) - compile ... ok\ntest src/lib.rs - (line 52) - compile ... ok\ntest src/lib.rs - (line 90) - compile ... ok\ntest src/lib.rs - (line 293) - compile ... ok\n\ntest result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s\n\nrustc 1.99.0 (b940084d7 2026-09-28)\ndoc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored\n    Updating crates.io index\n     Locking 76 packages to latest compatible versions\n   Compiling crc32fast v1.5.2\n    Checking zlib-rs v0.6.8\n    Checking flate2 v1.1.10\n    Checking partitionline v0.1.0 (/tmp/tmp.ObQVmW7w1d/partitionline-0.1.0)\n    Checking partitionline-crate-consumer v0.0.0 (/tmp/tmp.ObQVmW7w1d/consumer-1.85.0-default)\n    Finished `dev` profile [unoptimized] target(s) in 10.94s\n    Updating crates.io index\n     Locking 76 packages to latest compatible versions\n   Compiling crc32fast v1.5.2\n   Compiling zlib-rs v0.6.8\n   Compiling flate2 v1.1.10\n   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-g7l3hykt/package/partitionline-0.1.0)\n   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-g7l3hykt/consumer)\n    Finished `test` profile [unoptimized] target(s) in 19.02s\n   Doc-tests partitionline_markdown_check\n\nrunning 19 tests\ntest src/lib.rs - (line 235) - compile ... ok\ntest src/lib.rs - (line 19) - compile ... ok\ntest src/lib.rs - (line 215) - compile ... ok\ntest src/lib.rs - (line 283) - compile ... ok\ntest src/lib.rs - (line 104) - compile ... ok\ntest src/lib.rs - (line 249) - compile ... ok\ntest src/lib.rs - (line 268) - compile ... ok\ntest src/lib.rs - (line 365) - compile ... ok\ntest src/lib.rs - (line 3) - compile ... ok\ntest src/lib.rs - (line 33) - compile ... ok\ntest src/lib.rs - (line 293) - compile ... ok\ntest src/lib.rs - (line 383) - compile ... ok\ntest src/lib.rs - (line 425) - compile ... ok\ntest src/lib.rs - (line 434) - compile ... ok\ntest src/lib.rs - (line 403) - compile ... ok\ntest src/lib.rs - (line 445) - compile ... ok\ntest src/lib.rs - (line 52) - compile ... ok\ntest src/lib.rs - (line 90) - compile ... ok\ntest src/lib.rs - (line 73) - compile ... ok\n\ntest result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s\n\nrustc 1.85.0 (4d91de4e4 2025-02-17)\ndoc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored\n    Updating crates.io index\n     Locking 80 packages to latest compatible versions\n    Checking partitionline v0.1.0 (/tmp/tmp.ObQVmW7w1d/partitionline-0.1.0)\n    Checking partitionline-crate-consumer v0.0.0 (/tmp/tmp.ObQVmW7w1d/consumer-1.85.0-tracing)\n    Finished `dev` profile [unoptimized] target(s) in 11.12s\n    Updating crates.io index\n     Locking 80 packages to latest compatible versions\n   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-hvgyrvom/package/partitionline-0.1.0)\n   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-hvgyrvom/consumer)\n    Finished `test` profile [unoptimized] target(s) in 25.03s\n   Doc-tests partitionline_markdown_check\n\nrunning 19 tests\ntest src/lib.rs - (line 19) - compile ... ok\ntest src/lib.rs - (line 215) - compile ... ok\ntest src/lib.rs - (line 235) - compile ... ok\ntest src/lib.rs - (line 104) - compile ... ok\ntest src/lib.rs - (line 268) - compile ... ok\ntest src/lib.rs - (line 283) - compile ... ok\ntest src/lib.rs - (line 249) - compile ... ok\ntest src/lib.rs - (line 365) - compile ... ok\ntest src/lib.rs - (line 33) - compile ... ok\ntest src/lib.rs - (line 3) - compile ... ok\ntest src/lib.rs - (line 383) - compile ... ok\ntest src/lib.rs - (line 293) - compile ... ok\ntest src/lib.rs - (line 425) - compile ... ok\ntest src/lib.rs - (line 403) - compile ... ok\ntest src/lib.rs - (line 445) - compile ... ok\ntest src/lib.rs - (line 434) - compile ... ok\ntest src/lib.rs - (line 52) - compile ... ok\ntest src/lib.rs - (line 90) - compile ... ok\ntest src/lib.rs - (line 73) - compile ... ok\n\ntest result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s\n\nrustc 1.85.0 (4d91de4e4 2025-02-17)\ndoc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored\nci-crate-consumer: 4 actual package feature/toolchain cells passed; source/package/version and license inventory retained in /workspace/.cloud-setup/kl08-07-packed-link-final\n"
+    },
+    "results": "Four extracted-package cells: Rust 1.99.0 / 1.85.0 x default / tracing; 19 real Markdown snippets each, 39 local links, zero ignored, plus the actual operator program per cell.",
+    "limits": "No upload, publish or tag operation; the original no-publish rehearsal and owner-action boundaries remain unchanged."
+  }
 }

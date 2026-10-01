@@ -3661,7 +3661,7 @@
       "title": "Rehearse the complete release and partial-recovery path",
       "priority": "P1",
       "kind": "evidence",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL08-02",
