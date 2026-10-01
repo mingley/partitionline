@@ -246,10 +246,10 @@
     "id": "manual_consumer.fetch",
     "profile": "manual consumer",
     "layer": "runtime",
-    "disposition": "partial",
+    "disposition": "present",
     "entrypoint": "partitionline::consumer::Consumer::fetch",
-    "evidence": "docs/audits/2026-09-21.md:A01",
-    "notes": "Parallel fetch from partition leaders; partial due to 5 reproduced audit defects (A01 seek filtering, A02 abort markers, A03 partial retry drops, A04 offset reset, A05 poll commit)."
+    "evidence": "docs/plan/evidence/KL03-06.json",
+    "notes": "Parallel fetch from partition leaders; repaired audit A01-A05 are covered by consumer_fetch_semantics and consumer_close_commit (KL03-03 through KL03-07). Mock/fixture correctness evidence, not live broker qualification."
   },
   {
     "id": "manual_consumer.v4_v17_wire",
@@ -318,10 +318,10 @@
     "id": "manual_consumer.seek",
     "profile": "manual consumer",
     "layer": "runtime",
-    "disposition": "partial",
+    "disposition": "present",
     "entrypoint": "partitionline::consumer::Consumer::seek",
-    "evidence": "docs/audits/2026-09-21.md:A01",
-    "notes": "Sets next fetch position; partial because seeking inside an existing batch redelivers earlier records (audit A01, KL03-04)."
+    "evidence": "docs/plan/evidence/KL03-04.json",
+    "notes": "Filters records below the requested fetch offset inside whole batches; sparse/compacted offsets and multi-partition cases tested. Mock/fixture evidence."
   },
   {
     "id": "manual_consumer.seek_with_metadata",
@@ -372,10 +372,10 @@
     "id": "manual_consumer.auto_offset_reset",
     "profile": "manual consumer",
     "layer": "runtime",
-    "disposition": "partial",
+    "disposition": "present",
     "entrypoint": "partitionline::config::AutoOffsetReset",
-    "evidence": "docs/audits/2026-09-21.md:A04",
-    "notes": "Default Earliest; partial because auto.offset.reset=None unconditionally resets to log start on OFFSET_OUT_OF_RANGE (audit A04, KL03-05)."
+    "evidence": "docs/plan/evidence/KL03-05.json",
+    "notes": "None returns out-of-range without advancing; Earliest/Latest resolve leader log bounds and clear stale pending state; preferred-replica errors retry at leader before reset. Mock evidence."
   },
   {
     "id": "manual_consumer.follower_fetch",
@@ -660,10 +660,10 @@
     "id": "transactions.read_committed_consumer",
     "profile": "transactions",
     "layer": "runtime",
-    "disposition": "partial",
+    "disposition": "present",
     "entrypoint": "partitionline::consumer::ConsumerConfig::isolation",
-    "evidence": "docs/audits/2026-09-21.md:A02",
-    "notes": "IsolationLevel::ReadCommitted; partial because aborted control markers cause subsequent committed batches under same PID to be discarded (audit A02, KL03-03)."
+    "evidence": "docs/plan/evidence/KL03-03.json",
+    "notes": "ABORT markers end the matching aborted interval, so later committed transactions under the same producer ID remain visible. Control and aborted records are filtered; mock/fixture evidence."
   },
   {
     "id": "codecs.none",
@@ -678,28 +678,28 @@
     "id": "codecs.gzip",
     "profile": "codecs",
     "layer": "runtime",
-    "disposition": "partial",
+    "disposition": "present",
     "entrypoint": "partitionline::protocol::records::Compression::Gzip",
-    "evidence": "docs/audits/2026-09-21.md:A08",
-    "notes": "Pure-Rust flate2 gzip codec; partial because decompression uses read_to_end without decoded-byte budget (audit A08)."
+    "evidence": "docs/plan/evidence/KL02-03.json",
+    "notes": "Pure-Rust flate2 gzip; bounded decompression rejects output above the 64 MiB hard decode limit before retaining over-budget expansion. Boundary/bomb/CRC/truncation fixtures, not an RSS guarantee."
   },
   {
     "id": "codecs.snappy",
     "profile": "codecs",
     "layer": "runtime",
-    "disposition": "partial",
+    "disposition": "present",
     "entrypoint": "partitionline::protocol::records::Compression::Snappy",
-    "evidence": "docs/audits/2026-09-21.md:A08",
-    "notes": "Pure-Rust snap snappy codec; partial because decompression allocates without decoded-byte budget (audit A08)."
+    "evidence": "docs/plan/evidence/KL02-03.json",
+    "notes": "Pure-Rust snap Snappy; raw and framed expansion use the hard decoded-byte budget. Boundary/bomb fixtures, not an RSS guarantee."
   },
   {
     "id": "codecs.lz4",
     "profile": "codecs",
     "layer": "runtime",
-    "disposition": "partial",
+    "disposition": "present",
     "entrypoint": "partitionline::protocol::records::Compression::Lz4",
-    "evidence": "docs/audits/2026-09-21.md:A08",
-    "notes": "Pure-Rust lz4_flex codec; partial because decompression uses read_to_end without decoded-byte budget (audit A08)."
+    "evidence": "docs/plan/evidence/KL02-03.json",
+    "notes": "Pure-Rust lz4_flex; bounded decompression enforces the hard decoded-byte budget. Boundary/bomb/CRC/truncation fixtures, not an RSS guarantee."
   },
   {
     "id": "codecs.zstd.decode",

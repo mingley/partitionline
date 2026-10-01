@@ -210,13 +210,12 @@ before fetch and stores the **previously delivered** positions — the batch
 about to be returned is not committed until a subsequent poll, so a crash
 after one capped poll cannot skip prefetched records on rejoin. Zero interval
 commits after delivery on the same poll when records were returned.
-Leave/close/unsubscribe **never** auto-commit. Known partials:
-`auto.offset.reset=None` unconditionally resets to log start on
-`OFFSET_OUT_OF_RANGE` (`manual_consumer.auto_offset_reset`), seeking inside
-an existing batch redelivers earlier records (`manual_consumer.seek`), and
-aborted control markers cause subsequent committed batches under the same PID
-to be discarded under `read_committed`
-(`transactions.read_committed_consumer`).
+Leave/close/unsubscribe **never** auto-commit. Repaired contracts are proven
+by mock/fixture tests: `auto.offset.reset=None` returns out-of-range without
+advancing (KL03-05); seeking within a whole batch filters earlier records
+(KL03-04); ABORT ends its aborted interval so later committed transactions
+under the same producer ID remain visible (KL03-03). These are targeted
+correctness results, not universal Java or live compatibility qualification.
 
 ## Codecs
 
@@ -238,9 +237,9 @@ let _cfg = ProducerConfig::bootstrap(["127.0.0.1:9092"])
 zstd stays out because the Kafka ecosystem codec is `libzstd` C, and
 `deny.toml:45` bans `zstd-sys` / `libzstd-sys` from the feature set (pure-Rust
 zstd is tracked as research in `docs/zstd-spike.md`). Plan a compression
-alternative before porting zstd topics. Decompression of the supported codecs
-currently allocates without a decoded-byte budget (`codecs.gzip/snappy/lz4`,
-partial).
+alternative before porting zstd topics. Supported codecs enforce the 64 MiB hard decoded-byte budget during expansion
+(KL02-03). Exactly-at-limit data remains valid; process RSS includes other
+allocations and is not a promise of that byte budget.
 
 ## Auth and TLS
 
@@ -295,6 +294,11 @@ impl ProducerInterceptor for Logging {
 
 let _cfg = ProducerConfig::bootstrap(["127.0.0.1:9092"]).interceptor(Logging);
 ```
+
+For runnable bounded process/commit, cancellation/shutdown and transaction
+recipes, see the [operator guide](guide.md#recipes). Commit only fully
+processed returned offsets, retain send/flush errors, and distinguish
+ambiguous commit from abort-required or terminal fencing outcomes.
 
 Cancellation differs from Java futures: dropping a `send` future does **not**
 dequeue the record — once accepted into `buffer_memory`, delivery may

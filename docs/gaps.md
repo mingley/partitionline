@@ -82,16 +82,16 @@ narrows the runtime claim for these rows; every entry names its entrypoint:
 | Inventory row | Registry entry | Registry status |
 |---|---|---|
 | Produce (batches, `buffer.memory`) | `producer.buffer_memory` | `partial` — headers, metadata, encoded buffers, and socket memory sit outside the cap |
-| Fetch with manual assignment | `manual_consumer.fetch` | `partial` — five reproduced audit defects (A01 seek filtering et al.) |
+| Fetch with manual assignment | `manual_consumer.fetch` | `present` — audit A01–A05 repaired and covered by mock/fixture consumer and commit tests; incremental sessions/new wire deltas are separate gaps |
 | Fetch with manual assignment | `manual_consumer.incremental_fetch_runtime` | `missing` — always sends `FetchMetadata::LEGACY` |
 | Fetch with manual assignment | `manual_consumer.v18_wire`, `manual_consumer.list_offsets_v11`, `producer.v13_wire` | `missing` — newest wire deltas not implemented |
-| Pause / resume, position | `manual_consumer.seek` | `partial` — seeking inside an existing batch redelivers earlier records |
-| `auto.offset.reset`, `committed` | `manual_consumer.auto_offset_reset` | `partial` — `None` unconditionally resets to log start on `OFFSET_OUT_OF_RANGE` |
+| Pause / resume, position | `manual_consumer.seek` | `present` — whole-batch records below the requested offset are filtered (KL03-04) |
+| `auto.offset.reset`, `committed` | `manual_consumer.auto_offset_reset` | `present` — None fails without advancing; Earliest/Latest resolve leader log bounds (KL03-05) |
 | KIP-848 next-gen consumer groups | `group.kip848_heartbeat_scheduling` | `partial` — heartbeat loop uses fixed 150 ms, not the broker response interval |
 | Share groups | `share.heartbeat_scheduling` | `partial` — share heartbeat interval hard-coded to 150 ms |
 | Share groups | `share.v2_wire_delta`, `share.v2_runtime` | `missing` — ShareFetch/ShareAcknowledge v2 not implemented |
-| ListOffsets, seek, `isolation.level` | `transactions.read_committed_consumer` | `partial` — aborted control markers cause subsequent committed batches under the same PID to be discarded |
-| gzip / snappy / lz4 | `codecs.gzip`, `codecs.snappy`, `codecs.lz4` | `partial` — decompression allocates without a decoded-byte budget |
+| ListOffsets, seek, `isolation.level` | `transactions.read_committed_consumer` | `present` — ABORT ends the matching interval; later committed records remain visible (KL03-03) |
+| gzip / snappy / lz4 | `codecs.gzip`, `codecs.snappy`, `codecs.lz4` | `present` — hard decoded-byte budget enforced during expansion (KL02-03); process RSS is a separate concern |
 | zstd | `codecs.zstd.decode`, `codecs.zstd.encode`, `codecs.zstd.wire_helper` | `missing` — explicit gap of the complete-codec profile |
 | SASL GSSAPI / Kerberos | `auth.sasl_gssapi` | `missing` — explicit gap (Cyrus SASL C) |
 | SASL OIDC (token endpoint) | `auth.sasl_oidc_refresh` | `missing` — no proactive refresh before expiry |

@@ -380,19 +380,122 @@ contract honesty slice, not a process RSS bound.
 Mock coverage: `tests/buffer_ownership.rs`.
 
 
+### Process only the returned batch, then commit
+
+This one-batch program caps each poll at one record, pauses its current
+assignment while processing, commits only that batch's `next_offsets()`, and
+leaves within 20 seconds. Paste it into the quickstart downstream package's
+`src/main.rs`; set `KAFKA_TOPIC` to an existing populated topic and
+`KAFKA_GROUP` to your group. Printing is the processing step in this example.
+Replace it with your application operation and return an error before commit
+if processing fails.
+
+```rust,no_run
+use partitionline::{ConsumerConfig, ConsumerGroup, Error};
+use std::time::Duration;
+
+async fn run() -> partitionline::Result<()> {
+    let bootstrap = std::env::var("KAFKA_BOOTSTRAP")
+        .unwrap_or_else(|_| "127.0.0.1:9092".into());
+    let topic = std::env::var("KAFKA_TOPIC")
+        .unwrap_or_else(|_| "partitionline".into());
+    let group_id = std::env::var("KAFKA_GROUP")
+        .unwrap_or_else(|_| "partitionline-process-recipe".into());
+    let config = ConsumerConfig::bootstrap([bootstrap])
+        .auto_commit(false)
+        .max_poll_records(1)
+        .max_wait_ms(100)
+        .connect_timeout(Duration::from_secs(2))
+        .request_timeout(Duration::from_secs(2));
+    let mut group = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            match ConsumerGroup::join_topics(config.clone(), group_id.clone(), [topic.clone()]).await {
+                Ok(group) => return Ok(group),
+                Err(error) if matches!(error.broker_code(), Some(
+                    partitionline::error::COORDINATOR_NOT_AVAILABLE
+                    | partitionline::error::COORDINATOR_LOAD_IN_PROGRESS
+                    | partitionline::error::NOT_COORDINATOR
+                )) => tokio::time::sleep(Duration::from_millis(100)).await,
+                Err(error) => return Err(error),
+            }
+        }
+    })
+    .await
+    .map_err(|_| Error::Timeout)??;
+    let outcome = tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            let batch = group.poll_timeout(Duration::from_secs(1)).await?;
+            if batch.is_empty() {
+                continue;
+            }
+            let paused = group.assignment();
+            group.pause(paused.clone());
+            for record in &batch {
+                println!("processed {}-{}@{}", record.topic, record.partition, record.offset);
+            }
+            let committed = group
+                .commit_with_metadata_timeout(batch.next_offsets(), Duration::from_secs(2))
+                .await;
+            group.resume(paused);
+            committed?;
+            println!("committed returned batch only");
+            return Ok(());
+        }
+    })
+    .await
+    .map_err(|_| Error::Timeout)
+    .and_then(std::convert::identity);
+    let left = tokio::time::timeout(Duration::from_secs(3), group.leave())
+        .await
+        .map_err(|_| Error::Timeout)?;
+    outcome?;
+    left
+}
+
+#[tokio::main]
+async fn main() -> partitionline::Result<()> {
+    tokio::time::timeout(Duration::from_secs(20), run())
+        .await
+        .map_err(|_| Error::Timeout)?
+}
+```
+
+Delivered positions exclude prefetched records beyond the poll cap. Commit
+stores the next offset, with its leader epoch; `leave`, `close` and
+`unsubscribe` do not auto-commit unfinished processing. A failed or cancelled
+commit is not proof that no offset was stored: inspect committed offsets on
+restart, and use an idempotent processing key such as `(topic, partition,
+offset)` when effects can repeat. Never restart from the internal fetch
+cursor, nor commit all fetched records after processing only part of a batch.
+
+Pause retains buffered bytes and stops delivery for those partitions; it does
+not prevent rebalance or extend `max_poll_interval`. Keep processing bounded,
+handle revoke/assign events, and stop work whose ownership was lost. Do not
+force a stale commit after a membership/fencing error. Cooperative rejoin
+preserves pending records for retained partitions and discards revoked state;
+new owners resume from stored group offsets. This program's pause does not
+promise exclusive ownership during an arbitrary external operation.
+
+Regression evidence: `consumer_close_commit::commit_after_capped_poll_must_not_commit_buffered_records`,
+`commit_after_capped_poll_with_pause_and_resume`,
+`rebalance_preserves_buffered_records_for_retained_partitions`,
+`static_member_unsubscribe_then_commit_sends_no_offset_commit`, and
+`kip848_fencing_rejoin_preserves_delivered_position`.
+
 ### Produce cancellation and shutdown
 
 Once `send` / `try_send` has accepted a record into `buffer_memory`, dropping the
 caller future does **not** mean the record was never written. Delivery may still
-reach the broker; treat the caller outcome as **ambiguous** until `flush` or
-`close` settles it.
+reach the broker; treat the caller outcome as **ambiguous** until you retain the delivery result or settle queued work with `flush`.
+Closing stops workers, but a successful `close` is not a replacement for
+retaining a send/flush delivery error.
 
 | Stage | Typical signals | Caller outcome |
 |---|---|---|
-| Before enqueue | `QueueFull`, `Timeout`, `RecordTooLarge`, never queued | **Failed** / not accepted |
+| Before enqueue | unpolled `send`; rejected `try_send` (`QueueFull`, `RecordTooLarge`); known admission failure | **Not accepted** |
 | Buffered (queued, not yet on the wire) | `metrics().bytes_buffered > 0`; drop `send` future | **Ambiguous** — worker may still deliver |
 | After send / before ack | in flight to broker; drop `send` future | **Ambiguous** |
-| After broker ack | `Ok(RecordMetadata)` or successful `try_send`+`flush` | **Completed** |
+| After broker ack | `Ok(RecordMetadata)` or accepted `try_send` plus successful `flush`, with `acks=1/all` | **Acknowledged**; `acks=0` cannot prove an acknowledged offset |
 | After `close` / `close_timeout` | further `send`/`try_send` on any clone | **Failed** with `Error::Closed` |
 
 Prefer an explicit `close` (or `close_timeout`) over dropping the last `Producer`
@@ -403,6 +506,32 @@ brokers and retry queues, failing in-flight batches with `Error::Timeout`
 `Error::Closed` to concurrent sends across all clones. Dropping the last
 `Producer` handle aborts worker and background tasks without leaking buffer
 permits or connections. Mock coverage: `tests/produce_cancel.rs`.
+
+Run the bounded cancellation recipe against an existing topic:
+
+```bash
+KAFKA_TOPIC=events cargo run --example produce_cancel
+```
+
+It polls one send wait for 20 ms, drops that wait, explicitly flushes queued
+work, then closes within a 15-second process deadline. A lazy, unpolled send
+has accepted nothing. Once polled, an outer timeout may happen before or
+after admission; a delivery timeout after transmission remains ambiguous.
+The recipe retains the flush result separately from close and never resends
+the cancelled record. Aggregate settlement cannot reconstruct its missing
+per-record receipt. Retrying a fresh send after such ambiguity can duplicate
+a record even when idempotence was enabled on the original producer.
+
+For backpressure, rejected `try_send` has not admitted that record: wait for
+other work to settle within a deadline, then retry admission. `send` already
+waits up to `max_block` for admission and uses its delivery deadline after
+admission. Do not spin or move overload into an unbounded application queue.
+For overload/byte ownership, run `cargo test --locked --test buffer_ownership`;
+for stalled shutdown and cancellation, run
+`cargo test --locked --test produce_cancel`. Named cases include
+`dropping_send_future_while_buffered_is_ambiguous_but_still_delivers`,
+`stalled_broker_close_timeout_terminates_boundedly_and_completes_inflight`, and
+`concurrent_sends_during_close_do_not_hang_and_observe_closed`.
 
 
 
@@ -464,8 +593,43 @@ pause (`examples/cooperative.rs`). Handle `on_rebalance` for revoke/assign.
 
 ### Exactly-once consume → produce
 
-`examples/eos.rs`: read with `ReadCommitted`, produce inside a transaction,
-`send_offsets_for_group`, `commit_transaction`.
+Run `KAFKA_TOPIC=events KAFKA_OUTPUT_TOPIC=events-out KAFKA_GROUP=recipe-eos
+KAFKA_TRANSACTIONAL_ID=recipe-eos cargo run --example eos` (on one shell line)
+with both topics present and at least one source record. The program uses
+`ReadCommitted`, auto-commit off and a 64-record poll cap; it copies one
+returned batch, sends `next_offsets()` with current group metadata, commits,
+leaves and closes within 45 seconds.
+
+Initialization and group join retry transient coordinator-startup errors
+within their own deadlines, before staging any transaction data. The producer
+internally retries sends; the recipe never resends staged data.
+It may retry **the same transaction's commit** within a ten-second budget:
+a lost commit response is ambiguous, and EndTxn is idempotent. It does not
+switch an ambiguous commit to abort. A failure before commit attempts a
+bounded abort; explicit abort-required errors need successful abort before
+another transaction. Failed/ambiguous abort stops the instance. Fencing
+(`PRODUCER_FENCED` or `INVALID_PRODUCER_ID_MAPPING`) is terminal: abort or
+`init_transactions` cannot repair that instance. Classic identity recovery
+after abort is authorized by the coordinator; transaction V2 supplies its
+identity through EndTxn. Do not invent a local epoch increment.
+
+After abort, the consumer's delivered position may already have advanced.
+This one-batch program exits; its replacement joins from stored committed
+group offsets, rather than continuing from that delivered position. Use one
+stable transactional ID per logical worker and one active owner of that ID.
+If commit remained ambiguous, resolve it through stored group offsets and
+`ReadCommitted` output before deciding to reprocess. If no source record is
+available, the example returns a bounded timeout rather than waiting forever.
+
+The atomic boundary is Kafka output plus consumed Kafka offsets. Database
+writes, HTTP calls, filesystem effects and log printing are outside it; use
+a durable idempotency key/outbox or an application protocol for those effects.
+This is a tested Kafka contract, not universal Java API or external
+exactly-once equivalence. Regression evidence:
+`client_api::txn_abort_required_codes_block_commit_and_recover_only_after_abort`,
+`txn_abort_fatal_fencing_is_terminal_across_coordinator_versions`, the
+`full_surface` transactional cases, and
+`consumer_fetch_semantics::committed_transaction_after_abort_for_same_pid_must_be_visible`.
 
 ## Tracing (optional feature)
 
