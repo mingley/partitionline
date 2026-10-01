@@ -1,0 +1,94 @@
+{
+  "id": "KL10-03",
+  "status": "done",
+  "source_sha": "312f742b65f224e5de70896c7d823789eca4a7bd",
+  "acceptance_met": [
+    "Seeded valid exactly-1-KiB JSON records at 16/256-record payload batches. Added 12 full compress/decompress cells and 12 backend-only comparison cells across gzip/LZ4/Snappy. Backend inputs are the exact serialized Kafka record section; independently round-trip all bytes and records.",
+    "Initial allocation, allocated-byte, input-hash and compression-ratio baselines for all 24 cells. CI checks the serial new-family census alongside the unchanged historical allocation gate. Separate IAI group and new baseline retain all instruction counts without changing the historical regression group or baseline files.",
+    "Section 4 names all cells and their KL10-03 builder. Every timing cell retains 100 raw samples and median bootstrap 95% CI; all 24 instruction counts repeated exactly, debug/release allocation reports matched."
+  ],
+  "commands": [
+    "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml",
+    "cargo clippy --locked --manifest-path benchmarks/codec/Cargo.toml --all-targets -- -D warnings",
+    "cargo +1.85.0 check --locked --manifest-path benchmarks/codec/Cargo.toml --lib --bins",
+    "cargo fmt --manifest-path benchmarks/codec/Cargo.toml --check",
+    "bash scripts/check-workflows.sh",
+    "IAI_CALLGRIND_ALLOW_ASLR=yes cargo bench --locked --manifest-path benchmarks/codec/Cargo.toml -- json1k",
+    "cargo bench --locked --manifest-path benchmarks/codec/Cargo.toml --bench json1k_iai -- --allow-aslr --output-format=json",
+    "cargo run --release --locked --manifest-path benchmarks/codec/Cargo.toml --bin json1k-census",
+    "python3 -B benchmarks/codec/validate-json1k.py",
+    "Validate deliberately missing-cell, invalid-ratio and zero-instruction copies: all rejected",
+    "sha256sum -c /workspace/.cloud-setup/kl10-03-existing-baselines.sha256"
+  ],
+  "results": {
+    "codec_tests": {
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    "full_filter_run": {
+      "timing_cells": 24,
+      "samples_per_cell": 100,
+      "instruction_cells": 24,
+      "exit_code": 0
+    },
+    "instruction_repeat": {
+      "cells": 24,
+      "max_delta_pct": 0.0
+    },
+    "debug_release_census": "all 24 cells exactly identical",
+    "report_negative_cases": {
+      "rejected": 3,
+      "unexpectedly_accepted": 0
+    },
+    "clippy": "passed",
+    "fmt": "passed",
+    "msrv_library_and_bins": "passed",
+    "workflows": {
+      "passed": 4
+    },
+    "historical_baseline_files": "all three SHA-256 unchanged",
+    "ci_allocation_job": {
+      "run_url": "https://github.com/mingley/partitionline/actions/runs/36830735018",
+      "source_sha": "312f742b65f224e5de70896c7d823789eca4a7bd",
+      "conclusion": "success"
+    }
+  },
+  "host": {
+    "source_sha": "312f742b65f224e5de70896c7d823789eca4a7bd",
+    "metadata_recorded_utc": "2026-10-01T07:35:08.268010+00:00",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+    "cpu": {
+      "vendor_id": "GenuineIntel",
+      "model name": "INTEL(R) XEON(R) PLATINUM 8573C"
+    },
+    "frequency_governors": [
+      "not exposed by cloud host"
+    ],
+    "valgrind": "valgrind-3.24.0",
+    "iai_callgrind_runner": "iai-callgrind-runner 0.14.2",
+    "control": "Shared cloud workspace; frequency policy not changed. Local unsigned baseline; no A/B or peer comparison.",
+    "command": "IAI_CALLGRIND_ALLOW_ASLR=yes cargo bench --locked --manifest-path benchmarks/codec/Cargo.toml -- json1k",
+    "existing_baselines_sha256": [
+      "ac7b97f4dc3c7eadce0662ec25a994496c39d0037dae9ed6411a4624889a0c1d  benchmarks/codec/baseline.json",
+      "bbf5e997ad2854b969429939bb7c1a5d1278ee7151e94315b29169a79e0b7d4a  benchmarks/codec/baseline.json.sha256",
+      "f0f8265a2ba7ec24ba7427f738b54dff631f3bb8c53c3a2f3283afefc345e8f5  benchmarks/codec/perf-baseline.json"
+    ]
+  },
+  "artifacts": [
+    "docs/evidence/perf/KL10-03/",
+    "benchmarks/codec/json1k-alloc-baseline.json",
+    "benchmarks/codec/json1k-instruction-baseline.json",
+    "benchmarks/codec/validate-json1k.py",
+    "https://github.com/mingley/partitionline/commit/312f742b65f224e5de70896c7d823789eca4a7bd"
+  ],
+  "limits": [
+    "Shared x86_64 cloud host; local unsigned initial baseline, no controlled A/B or fastest-client claim. Frequency governor not exposed; no arm64 measurement.",
+    "Raw decoding intentionally omits public bounded expansion and Kafka parsing; buffer-sizing/output framing/destruction costs differ. Full-minus-raw does not isolate a single overhead.",
+    "Benchmark crate alone adds direct references to already-locked pure Rust backends. Root dependencies/default features/production code are unchanged.",
+    "Criterion dev dependency requires Rust newer than 1.85; benchmark runtime library/binaries check at MSRV, while bench/test tools run on stable as existing policy.",
+    "New instruction baseline is recorded separately, not added to the existing historical automatic regression gate."
+  ],
+  "blocked_reason": null
+}

@@ -1,0 +1,455 @@
+   Compiling partitionline v0.1.0 (<SOURCE>)
+   Compiling codec v0.1.0 (<SOURCE>/benchmarks/codec)
+    Finished `bench` profile [optimized] target(s) in 51.22s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/lib.rs (<BENCH_TARGET>/release/deps/codec-c30e56814a463a16)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (<BENCH_TARGET>/release/deps/codec_preflight-bed2ffa13e86f14a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/json1k-census.rs (<BENCH_TARGET>/release/deps/json1k_census-e7e3bb0a1c678595)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running benches/codec.rs (<BENCH_TARGET>/release/deps/codec-f209f106d81d682d)
+Gnuplot not found, using plotters backend
+Benchmarking micro-compress:gzip:json1k/16k
+Benchmarking micro-compress:gzip:json1k/16k: Warming up for 3.0000 s
+Benchmarking micro-compress:gzip:json1k/16k: Collecting 100 samples in estimated 7.3641 s (15k iterations)
+Benchmarking micro-compress:gzip:json1k/16k: Analyzing
+micro-compress:gzip:json1k/16k
+                        time:   [490.51 µs 504.32 µs 519.20 µs]
+                        thrpt:  [30.094 MiB/s 30.982 MiB/s 31.855 MiB/s]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+
+Benchmarking micro-decompress:gzip:json1k/16k
+Benchmarking micro-decompress:gzip:json1k/16k: Warming up for 3.0000 s
+Benchmarking micro-decompress:gzip:json1k/16k: Collecting 100 samples in estimated 5.1333 s (126k iterations)
+Benchmarking micro-decompress:gzip:json1k/16k: Analyzing
+micro-decompress:gzip:json1k/16k
+                        time:   [38.594 µs 39.704 µs 41.016 µs]
+                        thrpt:  [380.95 MiB/s 393.54 MiB/s 404.85 MiB/s]
+Found 8 outliers among 100 measurements (8.00%)
+  5 (5.00%) high mild
+  3 (3.00%) high severe
+
+Benchmarking raw-compress:gzip:json1k/16k
+Benchmarking raw-compress:gzip:json1k/16k: Warming up for 3.0000 s
+Benchmarking raw-compress:gzip:json1k/16k: Collecting 100 samples in estimated 6.0449 s (15k iterations)
+Benchmarking raw-compress:gzip:json1k/16k: Analyzing
+raw-compress:gzip:json1k/16k
+                        time:   [404.12 µs 412.17 µs 420.29 µs]
+                        thrpt:  [37.177 MiB/s 37.909 MiB/s 38.664 MiB/s]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+
+Benchmarking raw-decompress:gzip:json1k/16k
+Benchmarking raw-decompress:gzip:json1k/16k: Warming up for 3.0000 s
+Benchmarking raw-decompress:gzip:json1k/16k: Collecting 100 samples in estimated 5.1475 s (141k iterations)
+Benchmarking raw-decompress:gzip:json1k/16k: Analyzing
+raw-decompress:gzip:json1k/16k
+                        time:   [34.877 µs 35.667 µs 36.544 µs]
+                        thrpt:  [427.56 MiB/s 438.08 MiB/s 448.01 MiB/s]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking micro-compress:lz4:json1k/16k
+Benchmarking micro-compress:lz4:json1k/16k: Warming up for 3.0000 s
+Benchmarking micro-compress:lz4:json1k/16k: Collecting 100 samples in estimated 5.0116 s (167k iterations)
+Benchmarking micro-compress:lz4:json1k/16k: Analyzing
+micro-compress:lz4:json1k/16k
+                        time:   [30.742 µs 34.301 µs 38.913 µs]
+                        thrpt:  [401.53 MiB/s 455.53 MiB/s 508.26 MiB/s]
+Found 8 outliers among 100 measurements (8.00%)
+  3 (3.00%) high mild
+  5 (5.00%) high severe
+
+Benchmarking micro-decompress:lz4:json1k/16k
+Benchmarking micro-decompress:lz4:json1k/16k: Warming up for 3.0000 s
+Benchmarking micro-decompress:lz4:json1k/16k: Collecting 100 samples in estimated 5.0537 s (359k iterations)
+Benchmarking micro-decompress:lz4:json1k/16k: Analyzing
+micro-decompress:lz4:json1k/16k
+                        time:   [13.511 µs 13.744 µs 14.001 µs]
+                        thrpt:  [1.0898 GiB/s 1.1102 GiB/s 1.1294 GiB/s]
+Found 7 outliers among 100 measurements (7.00%)
+  5 (5.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking raw-compress:lz4:json1k/16k
+Benchmarking raw-compress:lz4:json1k/16k: Warming up for 3.0000 s
+Benchmarking raw-compress:lz4:json1k/16k: Collecting 100 samples in estimated 5.0512 s (187k iterations)
+Benchmarking raw-compress:lz4:json1k/16k: Analyzing
+raw-compress:lz4:json1k/16k
+                        time:   [26.662 µs 27.061 µs 27.539 µs]
+                        thrpt:  [567.39 MiB/s 577.39 MiB/s 586.03 MiB/s]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+
+Benchmarking raw-decompress:lz4:json1k/16k
+Benchmarking raw-decompress:lz4:json1k/16k: Warming up for 3.0000 s
+Benchmarking raw-decompress:lz4:json1k/16k: Collecting 100 samples in estimated 5.0384 s (520k iterations)
+Benchmarking raw-decompress:lz4:json1k/16k: Analyzing
+raw-decompress:lz4:json1k/16k
+                        time:   [9.3472 µs 9.4941 µs 9.6513 µs]
+                        thrpt:  [1.5810 GiB/s 1.6072 GiB/s 1.6324 GiB/s]
+Found 4 outliers among 100 measurements (4.00%)
+  4 (4.00%) high mild
+
+Benchmarking micro-compress:snappy:json1k/16k
+Benchmarking micro-compress:snappy:json1k/16k: Warming up for 3.0000 s
+Benchmarking micro-compress:snappy:json1k/16k: Collecting 100 samples in estimated 5.0450 s (167k iterations)
+Benchmarking micro-compress:snappy:json1k/16k: Analyzing
+micro-compress:snappy:json1k/16k
+                        time:   [28.155 µs 28.922 µs 29.758 µs]
+                        thrpt:  [525.06 MiB/s 540.25 MiB/s 554.96 MiB/s]
+Found 10 outliers among 100 measurements (10.00%)
+  5 (5.00%) high mild
+  5 (5.00%) high severe
+
+Benchmarking micro-decompress:snappy:json1k/16k
+Benchmarking micro-decompress:snappy:json1k/16k: Warming up for 3.0000 s
+Benchmarking micro-decompress:snappy:json1k/16k: Collecting 100 samples in estimated 5.0259 s (348k iterations)
+Benchmarking micro-decompress:snappy:json1k/16k: Analyzing
+micro-decompress:snappy:json1k/16k
+                        time:   [13.701 µs 13.956 µs 14.241 µs]
+                        thrpt:  [1.0715 GiB/s 1.0934 GiB/s 1.1137 GiB/s]
+Found 7 outliers among 100 measurements (7.00%)
+  5 (5.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking raw-compress:snappy:json1k/16k
+Benchmarking raw-compress:snappy:json1k/16k: Warming up for 3.0000 s
+Benchmarking raw-compress:snappy:json1k/16k: Collecting 100 samples in estimated 5.0239 s (197k iterations)
+Benchmarking raw-compress:snappy:json1k/16k: Analyzing
+raw-compress:snappy:json1k/16k
+                        time:   [24.746 µs 25.310 µs 26.016 µs]
+                        thrpt:  [600.60 MiB/s 617.34 MiB/s 631.42 MiB/s]
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+
+Benchmarking raw-decompress:snappy:json1k/16k
+Benchmarking raw-decompress:snappy:json1k/16k: Warming up for 3.0000 s
+Benchmarking raw-decompress:snappy:json1k/16k: Collecting 100 samples in estimated 5.0313 s (480k iterations)
+Benchmarking raw-decompress:snappy:json1k/16k: Analyzing
+raw-decompress:snappy:json1k/16k
+                        time:   [10.370 µs 10.571 µs 10.789 µs]
+                        thrpt:  [1.4143 GiB/s 1.4434 GiB/s 1.4715 GiB/s]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high severe
+
+Benchmarking micro-compress:gzip:json1k/256k
+Benchmarking micro-compress:gzip:json1k/256k: Warming up for 3.0000 s
+Benchmarking micro-compress:gzip:json1k/256k: Collecting 100 samples in estimated 5.0665 s (300 iterations)
+Benchmarking micro-compress:gzip:json1k/256k: Analyzing
+micro-compress:gzip:json1k/256k
+                        time:   [16.653 ms 16.930 ms 17.223 ms]
+                        thrpt:  [14.515 MiB/s 14.767 MiB/s 15.012 MiB/s]
+Found 5 outliers among 100 measurements (5.00%)
+  5 (5.00%) high mild
+
+Benchmarking micro-decompress:gzip:json1k/256k
+Benchmarking micro-decompress:gzip:json1k/256k: Warming up for 3.0000 s
+Benchmarking micro-decompress:gzip:json1k/256k: Collecting 100 samples in estimated 7.3215 s (10k iterations)
+Benchmarking micro-decompress:gzip:json1k/256k: Analyzing
+micro-decompress:gzip:json1k/256k
+                        time:   [722.75 µs 737.55 µs 754.67 µs]
+                        thrpt:  [331.27 MiB/s 338.96 MiB/s 345.90 MiB/s]
+Found 14 outliers among 100 measurements (14.00%)
+  6 (6.00%) high mild
+  8 (8.00%) high severe
+
+Benchmarking raw-compress:gzip:json1k/256k
+Benchmarking raw-compress:gzip:json1k/256k: Warming up for 3.0000 s
+Benchmarking raw-compress:gzip:json1k/256k: Collecting 100 samples in estimated 6.6301 s (400 iterations)
+Benchmarking raw-compress:gzip:json1k/256k: Analyzing
+raw-compress:gzip:json1k/256k
+                        time:   [16.390 ms 16.651 ms 16.932 ms]
+                        thrpt:  [14.765 MiB/s 15.014 MiB/s 15.253 MiB/s]
+Found 5 outliers among 100 measurements (5.00%)
+  5 (5.00%) high mild
+
+Benchmarking raw-decompress:gzip:json1k/256k
+Benchmarking raw-decompress:gzip:json1k/256k: Warming up for 3.0000 s
+Benchmarking raw-decompress:gzip:json1k/256k: Collecting 100 samples in estimated 6.9216 s (10k iterations)
+Benchmarking raw-decompress:gzip:json1k/256k: Analyzing
+raw-decompress:gzip:json1k/256k
+                        time:   [710.84 µs 734.54 µs 763.73 µs]
+                        thrpt:  [327.34 MiB/s 340.35 MiB/s 351.70 MiB/s]
+Found 13 outliers among 100 measurements (13.00%)
+  3 (3.00%) high mild
+  10 (10.00%) high severe
+
+Benchmarking micro-compress:lz4:json1k/256k
+Benchmarking micro-compress:lz4:json1k/256k: Warming up for 3.0000 s
+Benchmarking micro-compress:lz4:json1k/256k: Collecting 100 samples in estimated 6.5731 s (10k iterations)
+Benchmarking micro-compress:lz4:json1k/256k: Analyzing
+micro-compress:lz4:json1k/256k
+                        time:   [643.07 µs 660.76 µs 682.51 µs]
+                        thrpt:  [366.29 MiB/s 378.35 MiB/s 388.76 MiB/s]
+Found 9 outliers among 100 measurements (9.00%)
+  7 (7.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking micro-decompress:lz4:json1k/256k
+Benchmarking micro-decompress:lz4:json1k/256k: Warming up for 3.0000 s
+Benchmarking micro-decompress:lz4:json1k/256k: Collecting 100 samples in estimated 5.8701 s (30k iterations)
+Benchmarking micro-decompress:lz4:json1k/256k: Analyzing
+micro-decompress:lz4:json1k/256k
+                        time:   [187.85 µs 192.64 µs 198.06 µs]
+                        thrpt:  [1.2326 GiB/s 1.2673 GiB/s 1.2996 GiB/s]
+Found 7 outliers among 100 measurements (7.00%)
+  6 (6.00%) high mild
+  1 (1.00%) high severe
+
+Benchmarking raw-compress:lz4:json1k/256k
+Benchmarking raw-compress:lz4:json1k/256k: Warming up for 3.0000 s
+Benchmarking raw-compress:lz4:json1k/256k: Collecting 100 samples in estimated 5.8350 s (10k iterations)
+Benchmarking raw-compress:lz4:json1k/256k: Analyzing
+raw-compress:lz4:json1k/256k
+                        time:   [560.59 µs 572.92 µs 586.59 µs]
+                        thrpt:  [426.19 MiB/s 436.36 MiB/s 445.96 MiB/s]
+Found 7 outliers among 100 measurements (7.00%)
+  6 (6.00%) high mild
+  1 (1.00%) high severe
+
+Benchmarking raw-decompress:lz4:json1k/256k
+Benchmarking raw-decompress:lz4:json1k/256k: Warming up for 3.0000 s
+Benchmarking raw-decompress:lz4:json1k/256k: Collecting 100 samples in estimated 5.0071 s (35k iterations)
+Benchmarking raw-decompress:lz4:json1k/256k: Analyzing
+raw-decompress:lz4:json1k/256k
+                        time:   [136.08 µs 138.57 µs 141.43 µs]
+                        thrpt:  [1.7263 GiB/s 1.7619 GiB/s 1.7941 GiB/s]
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking micro-compress:snappy:json1k/256k
+Benchmarking micro-compress:snappy:json1k/256k: Warming up for 3.0000 s
+Benchmarking micro-compress:snappy:json1k/256k: Collecting 100 samples in estimated 5.0224 s (10k iterations)
+Benchmarking micro-compress:snappy:json1k/256k: Analyzing
+micro-compress:snappy:json1k/256k
+                        time:   [481.77 µs 499.25 µs 520.31 µs]
+                        thrpt:  [480.48 MiB/s 500.75 MiB/s 518.92 MiB/s]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high severe
+
+Benchmarking micro-decompress:snappy:json1k/256k
+Benchmarking micro-decompress:snappy:json1k/256k: Warming up for 3.0000 s
+Benchmarking micro-decompress:snappy:json1k/256k: Collecting 100 samples in estimated 5.7634 s (25k iterations)
+Benchmarking micro-decompress:snappy:json1k/256k: Analyzing
+micro-decompress:snappy:json1k/256k
+                        time:   [226.47 µs 230.89 µs 235.70 µs]
+                        thrpt:  [1.0358 GiB/s 1.0574 GiB/s 1.0780 GiB/s]
+Found 9 outliers among 100 measurements (9.00%)
+  7 (7.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking raw-compress:snappy:json1k/256k
+Benchmarking raw-compress:snappy:json1k/256k: Warming up for 3.0000 s
+Benchmarking raw-compress:snappy:json1k/256k: Collecting 100 samples in estimated 6.5474 s (15k iterations)
+Benchmarking raw-compress:snappy:json1k/256k: Analyzing
+raw-compress:snappy:json1k/256k
+                        time:   [425.78 µs 433.48 µs 442.57 µs]
+                        thrpt:  [564.89 MiB/s 576.73 MiB/s 587.15 MiB/s]
+Found 10 outliers among 100 measurements (10.00%)
+  3 (3.00%) high mild
+  7 (7.00%) high severe
+
+Benchmarking raw-decompress:snappy:json1k/256k
+Benchmarking raw-decompress:snappy:json1k/256k: Warming up for 3.0000 s
+Benchmarking raw-decompress:snappy:json1k/256k: Collecting 100 samples in estimated 5.4042 s (30k iterations)
+Benchmarking raw-decompress:snappy:json1k/256k: Analyzing
+raw-decompress:snappy:json1k/256k
+                        time:   [175.95 µs 179.43 µs 183.07 µs]
+                        thrpt:  [1.3336 GiB/s 1.3606 GiB/s 1.3876 GiB/s]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+
+     Running benches/iai.rs (<BENCH_TARGET>/release/deps/iai-643a30ff1a9d3b45)
+iai_callgrind_runner: Warn : The RUST_LOG environment variable to set the log level changed to IAI_CALLGRIND_LOG
+     Running benches/json1k_iai.rs (<BENCH_TARGET>/release/deps/json1k_iai-5c834b7bfc86123d)
+iai_callgrind_runner: Warn : The RUST_LOG environment variable to set the log level changed to IAI_CALLGRIND_LOG
+json1k_iai::json1k::json1k_compress gzip_16k:setup_batch(16, Compression :: Gzip)
+  Instructions:                     3200991|N/A                  (*********)
+  L1 Hits:                          4474445|N/A                  (*********)
+  L2 Hits:                            25074|N/A                  (*********)
+  RAM Hits:                            6992|N/A                  (*********)
+  Total read+write:                 4506511|N/A                  (*********)
+  Estimated Cycles:                 4844535|N/A                  (*********)
+json1k_iai::json1k::json1k_compress gzip_256k:setup_batch(256, Compression :: Gzip)
+  Instructions:                    74972574|N/A                  (*********)
+  L1 Hits:                         92570519|N/A                  (*********)
+  L2 Hits:                          2966864|N/A                  (*********)
+  RAM Hits:                           12359|N/A                  (*********)
+  Total read+write:                95549742|N/A                  (*********)
+  Estimated Cycles:               107837404|N/A                  (*********)
+json1k_iai::json1k::json1k_compress lz4_16k:setup_batch(16, Compression :: Lz4)
+  Instructions:                      399964|N/A                  (*********)
+  L1 Hits:                           545382|N/A                  (*********)
+  L2 Hits:                             1578|N/A                  (*********)
+  RAM Hits:                            1492|N/A                  (*********)
+  Total read+write:                  548452|N/A                  (*********)
+  Estimated Cycles:                  605492|N/A                  (*********)
+json1k_iai::json1k::json1k_compress lz4_256k:setup_batch(256, Compression :: Lz4)
+  Instructions:                     5793617|N/A                  (*********)
+  L1 Hits:                          8199699|N/A                  (*********)
+  L2 Hits:                            35343|N/A                  (*********)
+  RAM Hits:                            9516|N/A                  (*********)
+  Total read+write:                 8244558|N/A                  (*********)
+  Estimated Cycles:                 8709474|N/A                  (*********)
+json1k_iai::json1k::json1k_compress snappy_16k:setup_batch(16, Compression :: Snappy)
+  Instructions:                      270119|N/A                  (*********)
+  L1 Hits:                           395709|N/A                  (*********)
+  L2 Hits:                             1333|N/A                  (*********)
+  RAM Hits:                            1301|N/A                  (*********)
+  Total read+write:                  398343|N/A                  (*********)
+  Estimated Cycles:                  447909|N/A                  (*********)
+json1k_iai::json1k::json1k_compress snappy_256k:setup_batch(256, Compression :: Snappy)
+  Instructions:                     3439048|N/A                  (*********)
+  L1 Hits:                          4833769|N/A                  (*********)
+  L2 Hits:                            26185|N/A                  (*********)
+  RAM Hits:                           10662|N/A                  (*********)
+  Total read+write:                 4870616|N/A                  (*********)
+  Estimated Cycles:                 5337864|N/A                  (*********)
+json1k_iai::json1k::json1k_decompress gzip_16k:setup_wire(16, Compression :: Gzip)
+  Instructions:                      517175|N/A                  (*********)
+  L1 Hits:                           841810|N/A                  (*********)
+  L2 Hits:                             4809|N/A                  (*********)
+  RAM Hits:                             730|N/A                  (*********)
+  Total read+write:                  847349|N/A                  (*********)
+  Estimated Cycles:                  891405|N/A                  (*********)
+json1k_iai::json1k::json1k_decompress gzip_256k:setup_wire(256, Compression :: Gzip)
+  Instructions:                     4684237|N/A                  (*********)
+  L1 Hits:                          6555250|N/A                  (*********)
+  L2 Hits:                            34536|N/A                  (*********)
+  RAM Hits:                            1588|N/A                  (*********)
+  Total read+write:                 6591374|N/A                  (*********)
+  Estimated Cycles:                 6783510|N/A                  (*********)
+json1k_iai::json1k::json1k_decompress lz4_16k:setup_wire(16, Compression :: Lz4)
+  Instructions:                      219662|N/A                  (*********)
+  L1 Hits:                           333119|N/A                  (*********)
+  L2 Hits:                             1413|N/A                  (*********)
+  RAM Hits:                            1102|N/A                  (*********)
+  Total read+write:                  335634|N/A                  (*********)
+  Estimated Cycles:                  378754|N/A                  (*********)
+json1k_iai::json1k::json1k_decompress lz4_256k:setup_wire(256, Compression :: Lz4)
+  Instructions:                     2368566|N/A                  (*********)
+  L1 Hits:                          3277994|N/A                  (*********)
+  L2 Hits:                            21212|N/A                  (*********)
+  RAM Hits:                            4241|N/A                  (*********)
+  Total read+write:                 3303447|N/A                  (*********)
+  Estimated Cycles:                 3532489|N/A                  (*********)
+json1k_iai::json1k::json1k_decompress snappy_16k:setup_wire(16, Compression :: Snappy)
+  Instructions:                      151570|N/A                  (*********)
+  L1 Hits:                           231025|N/A                  (*********)
+  L2 Hits:                              617|N/A                  (*********)
+  RAM Hits:                             287|N/A                  (*********)
+  Total read+write:                  231929|N/A                  (*********)
+  Estimated Cycles:                  244155|N/A                  (*********)
+json1k_iai::json1k::json1k_decompress snappy_256k:setup_wire(256, Compression :: Snappy)
+  Instructions:                     2140317|N/A                  (*********)
+  L1 Hits:                          3161938|N/A                  (*********)
+  L2 Hits:                             9531|N/A                  (*********)
+  RAM Hits:                            8566|N/A                  (*********)
+  Total read+write:                 3180035|N/A                  (*********)
+  Estimated Cycles:                 3509403|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_compress gzip_16k:setup_raw(16, Compression :: Gzip)
+  Instructions:                     3109677|N/A                  (*********)
+  L1 Hits:                          4311709|N/A                  (*********)
+  L2 Hits:                            24463|N/A                  (*********)
+  RAM Hits:                            5550|N/A                  (*********)
+  Total read+write:                 4341722|N/A                  (*********)
+  Estimated Cycles:                 4628274|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_compress gzip_256k:setup_raw(256, Compression :: Gzip)
+  Instructions:                    74436307|N/A                  (*********)
+  L1 Hits:                         91685836|N/A                  (*********)
+  L2 Hits:                          2971197|N/A                  (*********)
+  RAM Hits:                            5377|N/A                  (*********)
+  Total read+write:                94662410|N/A                  (*********)
+  Estimated Cycles:               106730016|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_compress lz4_16k:setup_raw(16, Compression :: Lz4)
+  Instructions:                      363326|N/A                  (*********)
+  L1 Hits:                           493435|N/A                  (*********)
+  L2 Hits:                             1238|N/A                  (*********)
+  RAM Hits:                             988|N/A                  (*********)
+  Total read+write:                  495661|N/A                  (*********)
+  Estimated Cycles:                  534205|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_compress lz4_256k:setup_raw(256, Compression :: Lz4)
+  Instructions:                     5073430|N/A                  (*********)
+  L1 Hits:                          6933354|N/A                  (*********)
+  L2 Hits:                            25918|N/A                  (*********)
+  RAM Hits:                            2226|N/A                  (*********)
+  Total read+write:                 6961498|N/A                  (*********)
+  Estimated Cycles:                 7140854|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_compress snappy_16k:setup_raw(16, Compression :: Snappy)
+  Instructions:                      234655|N/A                  (*********)
+  L1 Hits:                           345662|N/A                  (*********)
+  L2 Hits:                              836|N/A                  (*********)
+  RAM Hits:                             871|N/A                  (*********)
+  Total read+write:                  347369|N/A                  (*********)
+  Estimated Cycles:                  380327|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_compress snappy_256k:setup_raw(256, Compression :: Snappy)
+  Instructions:                     2433021|N/A                  (*********)
+  L1 Hits:                          2992883|N/A                  (*********)
+  L2 Hits:                            13817|N/A                  (*********)
+  RAM Hits:                            1652|N/A                  (*********)
+  Total read+write:                 3008352|N/A                  (*********)
+  Estimated Cycles:                 3119788|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_decompress gzip_16k:setup_packed(16, Compression :: Gzip)
+  Instructions:                      518554|N/A                  (*********)
+  L1 Hits:                           837763|N/A                  (*********)
+  L2 Hits:                             4465|N/A                  (*********)
+  RAM Hits:                             570|N/A                  (*********)
+  Total read+write:                  842798|N/A                  (*********)
+  Estimated Cycles:                  880038|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_decompress gzip_256k:setup_packed(256, Compression :: Gzip)
+  Instructions:                     5559919|N/A                  (*********)
+  L1 Hits:                          9050205|N/A                  (*********)
+  L2 Hits:                            44362|N/A                  (*********)
+  RAM Hits:                            6719|N/A                  (*********)
+  Total read+write:                 9101286|N/A                  (*********)
+  Estimated Cycles:                 9507180|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_decompress lz4_16k:setup_packed(16, Compression :: Lz4)
+  Instructions:                      198774|N/A                  (*********)
+  L1 Hits:                           327648|N/A                  (*********)
+  L2 Hits:                              942|N/A                  (*********)
+  RAM Hits:                            1110|N/A                  (*********)
+  Total read+write:                  329700|N/A                  (*********)
+  Estimated Cycles:                  371208|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_decompress lz4_256k:setup_packed(256, Compression :: Lz4)
+  Instructions:                     2162266|N/A                  (*********)
+  L1 Hits:                          3338538|N/A                  (*********)
+  L2 Hits:                            15085|N/A                  (*********)
+  RAM Hits:                            4303|N/A                  (*********)
+  Total read+write:                 3357926|N/A                  (*********)
+  Estimated Cycles:                 3564568|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_decompress snappy_16k:setup_packed(16, Compression :: Snappy)
+  Instructions:                      109736|N/A                  (*********)
+  L1 Hits:                           144249|N/A                  (*********)
+  L2 Hits:                              272|N/A                  (*********)
+  RAM Hits:                             148|N/A                  (*********)
+  Total read+write:                  144669|N/A                  (*********)
+  Estimated Cycles:                  150789|N/A                  (*********)
+json1k_iai::json1k::json1k_raw_decompress snappy_256k:setup_packed(256, Compression :: Snappy)
+  Instructions:                     1587430|N/A                  (*********)
+  L1 Hits:                          1992781|N/A                  (*********)
+  L2 Hits:                             5734|N/A                  (*********)
+  RAM Hits:                            2283|N/A                  (*********)
+  Total read+write:                 2000798|N/A                  (*********)
+  Estimated Cycles:                 2101356|N/A                  (*********)
+
+Iai-Callgrind result: Ok. 24 without regressions; 0 regressed; 24 benchmarks finished in 17.3676s

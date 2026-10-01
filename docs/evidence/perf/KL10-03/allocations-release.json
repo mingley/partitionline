@@ -1,0 +1,270 @@
+{
+  "cells": [
+    {
+      "allocated_bytes": 429419,
+      "allocations": 20,
+      "cell": "micro-compress:gzip:json1k/16k",
+      "compressed_bytes": 4230,
+      "compressed_to_section_ratio": 0.25202573879885604,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 135096,
+      "allocations": 7,
+      "cell": "micro-decompress:gzip:json1k/16k",
+      "compressed_bytes": 4230,
+      "compressed_to_section_ratio": 0.25202573879885604,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 364780,
+      "allocations": 11,
+      "cell": "raw-compress:gzip:json1k/16k",
+      "compressed_bytes": 4230,
+      "compressed_to_section_ratio": 0.25202573879885604,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 141568,
+      "allocations": 13,
+      "cell": "raw-decompress:gzip:json1k/16k",
+      "compressed_bytes": 4230,
+      "compressed_to_section_ratio": 0.25202573879885604,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 234107,
+      "allocations": 15,
+      "cell": "micro-compress:lz4:json1k/16k",
+      "compressed_bytes": 6993,
+      "compressed_to_section_ratio": 0.41664680648236413,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 190104,
+      "allocations": 7,
+      "cell": "micro-decompress:lz4:json1k/16k",
+      "compressed_bytes": 6993,
+      "compressed_to_section_ratio": 0.41664680648236413,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 175041,
+      "allocations": 7,
+      "cell": "raw-compress:lz4:json1k/16k",
+      "compressed_bytes": 6993,
+      "compressed_to_section_ratio": 0.41664680648236413,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 147856,
+      "allocations": 3,
+      "cell": "raw-decompress:lz4:json1k/16k",
+      "compressed_bytes": 6993,
+      "compressed_to_section_ratio": 0.41664680648236413,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 122985,
+      "allocations": 13,
+      "cell": "micro-compress:snappy:json1k/16k",
+      "compressed_bytes": 5891,
+      "compressed_to_section_ratio": 0.350989037178265,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 35256,
+      "allocations": 4,
+      "cell": "micro-decompress:snappy:json1k/16k",
+      "compressed_bytes": 5891,
+      "compressed_to_section_ratio": 0.350989037178265,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 52381,
+      "allocations": 2,
+      "cell": "raw-compress:snappy:json1k/16k",
+      "compressed_bytes": 5871,
+      "compressed_to_section_ratio": 0.3497974261201144,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 16784,
+      "allocations": 1,
+      "cell": "raw-decompress:snappy:json1k/16k",
+      "compressed_bytes": 5871,
+      "compressed_to_section_ratio": 0.3497974261201144,
+      "records": 16,
+      "section_bytes": 16784,
+      "section_sha256": "d8a76afa9449d5c23980d2f4ffdccf0b5b12bc42e56e3e0693f2cb041d4802bd",
+      "value_bytes": 16384
+    },
+    {
+      "allocated_bytes": 1521533,
+      "allocations": 24,
+      "cell": "micro-compress:gzip:json1k/256k",
+      "compressed_bytes": 56160,
+      "compressed_to_section_ratio": 0.20882912898619704,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    },
+    {
+      "allocated_bytes": 1143096,
+      "allocations": 11,
+      "cell": "micro-decompress:gzip:json1k/256k",
+      "compressed_bytes": 56160,
+      "compressed_to_section_ratio": 0.20882912898619704,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    },
+    {
+      "allocated_bytes": 450448,
+      "allocations": 11,
+      "cell": "raw-compress:gzip:json1k/256k",
+      "compressed_bytes": 56160,
+      "compressed_to_section_ratio": 0.20882912898619704,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    },
+    {
+      "allocated_bytes": 1124608,
+      "allocations": 17,
+      "cell": "raw-decompress:gzip:json1k/256k",
+      "compressed_bytes": 56160,
+      "compressed_to_section_ratio": 0.20882912898619704,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    },
+    {
+      "allocated_bytes": 1503924,
+      "allocations": 20,
+      "cell": "micro-compress:lz4:json1k/256k",
+      "compressed_bytes": 105554,
+      "compressed_to_section_ratio": 0.39249910756782486,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    },
+    {
+      "allocated_bytes": 1198104,
+      "allocations": 11,
+      "cell": "micro-decompress:lz4:json1k/256k",
+      "compressed_bytes": 105554,
+      "compressed_to_section_ratio": 0.39249910756782486,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    },
+    {
+      "allocated_bytes": 538539,
+      "allocations": 9,
+      "cell": "raw-compress:lz4:json1k/256k",
+      "compressed_bytes": 105554,
+      "compressed_to_section_ratio": 0.39249910756782486,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    },
+    {
+      "allocated_bytes": 1114112,
+      "allocations": 6,
+      "cell": "raw-decompress:lz4:json1k/256k",
+      "compressed_bytes": 105554,
+      "compressed_to_section_ratio": 0.39249910756782486,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    },
+    {
+      "allocated_bytes": 1483021,
+      "allocations": 17,
+      "cell": "micro-compress:snappy:json1k/256k",
+      "compressed_bytes": 88719,
+      "compressed_to_section_ratio": 0.32989870894811996,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    },
+    {
+      "allocated_bytes": 564504,
+      "allocations": 4,
+      "cell": "micro-decompress:snappy:json1k/256k",
+      "compressed_bytes": 88719,
+      "compressed_to_section_ratio": 0.32989870894811996,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    },
+    {
+      "allocated_bytes": 346549,
+      "allocations": 2,
+      "cell": "raw-compress:snappy:json1k/256k",
+      "compressed_bytes": 88699,
+      "compressed_to_section_ratio": 0.32982433960019036,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    },
+    {
+      "allocated_bytes": 268928,
+      "allocations": 1,
+      "cell": "raw-decompress:snappy:json1k/256k",
+      "compressed_bytes": 88699,
+      "compressed_to_section_ratio": 0.32982433960019036,
+      "records": 256,
+      "section_bytes": 268928,
+      "section_sha256": "4fbe2c471bfb84cfb4cb0ef099d4adab11526e5b99389e1dfa223a180d9c0c5a",
+      "value_bytes": 262144
+    }
+  ],
+  "seed": 789996,
+  "value_bytes_per_record": 1024
+}

@@ -2999,13 +2999,44 @@
     {
       "id": "KL08-04",
       "title": "Verify packaged-crate examples and documentation links",
-      "priority": "P1", "kind": "ci", "status": "pending", "owner": null,
-      "depends_on": ["KL07-05"],
-      "files": ["Cargo.toml", "scripts/ci-crate-consumer.sh", "scripts/lib/adopter-consumer-main.sh"],
+      "priority": "P1",
+      "kind": "ci",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL07-05"
+      ],
+      "files": [
+        "Cargo.toml",
+        "scripts/ci-crate-consumer.sh",
+        "scripts/lib/adopter-consumer-main.sh"
+      ],
       "deliverable": "An isolated packed-crate consumer that compiles the actual documented stable surface.",
-      "acceptance": ["Check default/tracing and approved optional-feature combinations, with source/package/version recorded.", "Packaged README/doc links either resolve in the package or point explicitly to versioned repository docs.", "Preserve MSRV and exclude benchmark peers, secrets and large raw evidence; inspect license/NOTICE inventory."],
-      "validation": ["cargo package --locked --list", "bash scripts/ci-crate-consumer.sh", "Run the actual public snippets against the extracted package."],
-      "evidence": []
+      "acceptance": [
+        "Check default/tracing and approved optional-feature combinations, with source/package/version recorded.",
+        "Packaged README/doc links either resolve in the package or point explicitly to versioned repository docs.",
+        "Preserve MSRV and exclude benchmark peers, secrets and large raw evidence; inspect license/NOTICE inventory."
+      ],
+      "validation": [
+        "cargo package --locked --list",
+        "bash scripts/ci-crate-consumer.sh",
+        "Run the actual public snippets against the extracted package."
+      ],
+      "evidence": [],
+      "write_set": [
+        "Cargo.toml",
+        "README.md",
+        "docs/*.md",
+        "scripts/ci-crate-consumer.sh",
+        "scripts/lib/adopter-consumer-main.sh",
+        "scripts/check-doc-examples.py",
+        "scripts/check-package-docs.py",
+        "tests/docs/test_check_doc_examples.py",
+        "tests/docs/test_package_docs.py",
+        ".github/workflows/ci.yml",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL08-04.json"
+      ]
     },
     {
       "id": "KL08-05",
@@ -4255,7 +4286,7 @@
       "title": "Add a 1 KiB JSON-like payload family to the codec microbenchmarks",
       "priority": "P1",
       "kind": "benchmark",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL09-04",
@@ -4275,7 +4306,9 @@
         "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml",
         "cargo bench --manifest-path benchmarks/codec/Cargo.toml -- json1k (record command and output)"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL10-03.json"
+      ],
       "write_set": [
         "benchmarks/codec/",
         "docs/plan/performance-leadership.md",
@@ -4283,7 +4316,8 @@
         "docs/plan/evidence/KL10-03.json",
         "docs/evidence/perf/KL10-03/",
         ".github/workflows/ci.yml"
-      ]
+      ],
+      "blocked_reason": null
     },
     {
       "id": "KL10-04",

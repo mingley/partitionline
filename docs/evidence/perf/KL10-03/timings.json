@@ -1,0 +1,218 @@
+[
+  {
+    "cell": "micro-compress:gzip:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 487518.7538986355,
+    "median_95pct_ci_ns": [
+      474353.25589225587,
+      508557.04054054053
+    ]
+  },
+  {
+    "cell": "micro-compress:gzip:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 16443653.666666668,
+    "median_95pct_ci_ns": [
+      16212543.0,
+      16828676.333333332
+    ]
+  },
+  {
+    "cell": "micro-compress:lz4:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 29619.151608391607,
+    "median_95pct_ci_ns": [
+      29139.222943722943,
+      30162.01111111111
+    ]
+  },
+  {
+    "cell": "micro-compress:lz4:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 636196.2933829138,
+    "median_95pct_ci_ns": [
+      620718.4895282187,
+      645515.4833333333
+    ]
+  },
+  {
+    "cell": "micro-compress:snappy:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 27351.187973484848,
+    "median_95pct_ci_ns": [
+      26928.271437782074,
+      27938.885130373503
+    ]
+  },
+  {
+    "cell": "micro-compress:snappy:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 473250.0896739131,
+    "median_95pct_ci_ns": [
+      462796.09589041094,
+      489166.5
+    ]
+  },
+  {
+    "cell": "micro-decompress:gzip:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 40474.31016450217,
+    "median_95pct_ci_ns": [
+      38903.12434676435,
+      42913.18380952381
+    ]
+  },
+  {
+    "cell": "micro-decompress:gzip:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 710145.2747549019,
+    "median_95pct_ci_ns": [
+      699711.9769230769,
+      721611.8289141414
+    ]
+  },
+  {
+    "cell": "micro-decompress:lz4:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 13466.519405320814,
+    "median_95pct_ci_ns": [
+      13207.374000761325,
+      13632.9476861167
+    ]
+  },
+  {
+    "cell": "micro-decompress:lz4:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 185009.01801552105,
+    "median_95pct_ci_ns": [
+      182253.63888888888,
+      187513.63166971918
+    ]
+  },
+  {
+    "cell": "micro-decompress:snappy:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 13666.4134346457,
+    "median_95pct_ci_ns": [
+      13482.951783723523,
+      13924.462468765618
+    ]
+  },
+  {
+    "cell": "micro-decompress:snappy:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 224327.5225108225,
+    "median_95pct_ci_ns": [
+      220616.74990530303,
+      227865.50337078652
+    ]
+  },
+  {
+    "cell": "raw-compress:gzip:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 401447.972728528,
+    "median_95pct_ci_ns": [
+      392794.10256410256,
+      413356.16483516485
+    ]
+  },
+  {
+    "cell": "raw-compress:gzip:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 16220362.0,
+    "median_95pct_ci_ns": [
+      15994683.5,
+      16652060.5
+    ]
+  },
+  {
+    "cell": "raw-compress:lz4:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 26727.55345735346,
+    "median_95pct_ci_ns": [
+      26219.760751823254,
+      26926.105405405404
+    ]
+  },
+  {
+    "cell": "raw-compress:lz4:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 561681.4948092031,
+    "median_95pct_ci_ns": [
+      551675.5534722223,
+      566744.9302325582
+    ]
+  },
+  {
+    "cell": "raw-compress:snappy:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 24985.220482408622,
+    "median_95pct_ci_ns": [
+      24293.406200941914,
+      25593.427655677657
+    ]
+  },
+  {
+    "cell": "raw-compress:snappy:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 425255.0166666667,
+    "median_95pct_ci_ns": [
+      414270.48745519714,
+      435674.9074074074
+    ]
+  },
+  {
+    "cell": "raw-decompress:gzip:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 34781.55251521661,
+    "median_95pct_ci_ns": [
+      33847.4930875576,
+      35570.65051020408
+    ]
+  },
+  {
+    "cell": "raw-decompress:gzip:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 698168.7830769231,
+    "median_95pct_ci_ns": [
+      683686.1142857143,
+      711153.4747474748
+    ]
+  },
+  {
+    "cell": "raw-decompress:lz4:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 9299.44766843189,
+    "median_95pct_ci_ns": [
+      9080.179803428024,
+      9505.774235618026
+    ]
+  },
+  {
+    "cell": "raw-decompress:lz4:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 136421.41433897504,
+    "median_95pct_ci_ns": [
+      133697.4212269585,
+      138281.64589665656
+    ]
+  },
+  {
+    "cell": "raw-decompress:snappy:json1k/16k",
+    "samples": 100,
+    "median_ns_per_batch": 10464.800912429066,
+    "median_95pct_ci_ns": [
+      10210.271446732773,
+      10635.842105263158
+    ]
+  },
+  {
+    "cell": "raw-decompress:snappy:json1k/256k",
+    "samples": 100,
+    "median_ns_per_batch": 174425.63331505848,
+    "median_95pct_ci_ns": [
+      170620.83333333334,
+      177539.58474025974
+    ]
+  }
+]
