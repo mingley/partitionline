@@ -1650,7 +1650,8 @@
         "docs/support.md",
         "CHANGELOG.md",
         "docs/plan/evidence/KL05-06.json",
-        "docs/plan/tasks.json"
+        "docs/plan/tasks.json",
+        "tests/conformance/test_check_protocol_coverage.py"
       ]
     },
     {
