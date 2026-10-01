@@ -1,0 +1,7 @@
+{
+  "documents": [
+    "README.md",
+    "docs/guide.md",
+    "docs/migrate-from-rdkafka.md"
+  ]
+}
