@@ -32,11 +32,14 @@ def validate_versions(data):
         raise ValueError('OpenSSL 3 certificate-tool prerequisite missing')
     if not re.fullmatch(r'[0-9a-f]{40}', data['source_sha']):
         raise ValueError('source commit missing')
-    if not data['windows_version'] or not data['openssl_executable']:
+    if not data['windows_version'] or not data['openssl_executable'] or not data['bash_executable']:
         raise ValueError('exact platform or certificate-tool identity missing')
 
 
 def capture(toolchain):
+    bash_executable = os.environ.get('PL_WINDOWS_BASH_EXECUTABLE')
+    if not bash_executable:
+        raise ValueError('driver-selected native Git Bash executable missing')
     rustc = BASE.command('rustc', '-vV')
     fields = dict(line.split(': ', 1) for line in rustc.splitlines() if ': ' in line)
     data = {
@@ -44,7 +47,10 @@ def capture(toolchain):
         'pointer_bits': struct.calcsize('P') * 8,
         'windows_release': platform.release(), 'windows_version': platform.version(),
         'python_version': platform.python_version(),
-        'bash_version': BASE.command('bash', '-c', 'printf "%s" "$BASH_VERSION"'),
+        # Windows PATH can resolve bare bash to the WSL launcher. Use the exact
+        # native Git Bash executable selected by the running driver instead.
+        'bash_version': BASE.command(bash_executable, '-c', 'printf "%s" "$BASH_VERSION"'),
+        'bash_executable': bash_executable,
         'requested_toolchain': toolchain, 'rustc_verbose': rustc,
         'rustc_release': fields['release'], 'rustc_host': fields['host'],
         'cargo_version': BASE.command('cargo', '--version'),

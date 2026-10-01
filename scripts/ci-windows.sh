@@ -12,6 +12,7 @@ toolchain="${PL_WINDOWS_TOOLCHAIN:-stable}"
 case "$toolchain" in stable|1.85.0) ;; *) echo 'unqualified Rust toolchain' >&2; exit 1 ;; esac
 [[ -z "${CARGO_BUILD_TARGET:-}" ]] || { echo 'unexpected cross target' >&2; exit 1; }
 export RUSTUP_TOOLCHAIN="$toolchain" CARGO_TERM_COLOR=never
+export PL_WINDOWS_BASH_EXECUTABLE="$(cygpath -m "$BASH")"
 # setup-python's native Windows executable is named python.exe. Child Bash
 # package scripts use python3; do not copy an exe away from its installed stdlib.
 python3() { command python "$@"; }
@@ -42,7 +43,7 @@ PYNAME
 run_phase() {
   case "$1" in
     capture)
-      python3 -B scripts/report-windows.py capture "$report" "$toolchain"
+      run_log capture python3 -B scripts/report-windows.py capture "$report" "$toolchain"
       publish_name versions.json
       run_log parser-tests python3 -B -m unittest discover -s tests/platform -p 'test_*.py'
       ;;

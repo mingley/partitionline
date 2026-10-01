@@ -15,6 +15,7 @@ def versions():
             'rustc_release': '1.85.0', 'python_version': '3.13.1',
             'bash_version': '5.2.37(1)-release', 'openssl_version': 'OpenSSL 3.5.0 fixture',
             'openssl_executable': r'C:\fixture\openssl.exe',
+            'bash_executable': r'C:\fixture\bash.exe',
             'windows_version': '10.0.fixture', 'source_sha': '0' * 40}
 
 
@@ -37,7 +38,8 @@ class WindowsReportTest(unittest.TestCase):
     def test_missing_prerequisite_or_identity_is_not_a_green_skip(self):
         for field, value in [('python_version', '3.9.1'), ('bash_version', '3.2.1'),
                              ('openssl_version', 'LibreSSL 3.3.6'), ('source_sha', ''),
-                             ('windows_version', ''), ('openssl_executable', '')]:
+                             ('windows_version', ''), ('openssl_executable', ''),
+                             ('bash_executable', '')]:
             with self.subTest(field=field):
                 data = versions(); data[field] = value
                 with self.assertRaises(ValueError): REPORT.validate_versions(data)
