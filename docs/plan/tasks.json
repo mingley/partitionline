@@ -2023,7 +2023,7 @@
       "title": "Add the client-facing RemoveRaftVoter operation",
       "priority": "P2",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL05-19"
@@ -2044,7 +2044,13 @@
         "cargo test --locked --lib protocol::admin",
         "cargo test --locked --test full_surface remove_raft_voter"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "bfc5a6937ed79ca87ff61ff40a5c64c9284c0d8e",
+          "artifact": "docs/plan/evidence/KL05-21.json",
+          "validation": "305 full Admin tests; 16 voter runtime and 4 independent oracle tests on Rust 1.85; 332 Admin, 72 header, 24 full oracle and 15 coverage tests; strict Clippy/Rustdoc/fmt passed."
+        }
+      ],
       "write_set": [
         "src/protocol/admin.rs",
         "src/admin.rs",
@@ -3154,13 +3160,39 @@
     {
       "id": "KL08-05",
       "title": "Qualify macOS arm64 while preserving the MSRV matrix",
-      "priority": "P1", "kind": "ci", "status": "pending", "owner": null,
-      "depends_on": ["KL08-04"],
-      "files": [".github/workflows/ci.yml", "scripts/ci-msrv.sh", "docs/support.md"],
+      "priority": "P1",
+      "kind": "ci",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL08-04"
+      ],
+      "files": [
+        ".github/workflows/ci.yml",
+        "scripts/ci-msrv.sh",
+        "docs/support.md"
+      ],
       "deliverable": "One macOS arm64 build/runtime cell alongside the existing Linux x86_64 and Rust 1.85/stable lanes.",
-      "acceptance": ["Preserve existing Rust 1.85/stable checks and document the added platform's OpenSSL/test prerequisites.", "Do not treat a local arm64 build as a CI guarantee or bundle Windows provisioning into this card.", "Support rows reference actual passing evidence; unsupported platforms remain explicit."],
-      "validation": ["Inspect completed platform/MSRV CI cells and their exact versions.", "Check required feature combinations and package-consumer artifacts per advertised platform."],
-      "evidence": []
+      "acceptance": [
+        "Preserve existing Rust 1.85/stable checks and document the added platform's OpenSSL/test prerequisites.",
+        "Do not treat a local arm64 build as a CI guarantee or bundle Windows provisioning into this card.",
+        "Support rows reference actual passing evidence; unsupported platforms remain explicit."
+      ],
+      "validation": [
+        "Inspect completed platform/MSRV CI cells and their exact versions.",
+        "Check required feature combinations and package-consumer artifacts per advertised platform."
+      ],
+      "evidence": [],
+      "write_set": [
+        ".github/workflows/ci.yml",
+        "scripts/ci-msrv.sh",
+        "scripts/ci-macos-arm64.sh",
+        "scripts/report-macos-arm64.py",
+        "tests/platform/test_macos_report.py",
+        "docs/support.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL08-05.json"
+      ]
     },
     {
       "id": "KL08-06",

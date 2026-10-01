@@ -1,0 +1,130 @@
+{
+  "id": "KL05-21",
+  "status": "done",
+  "source_sha": "bfc5a6937ed79ca87ff61ff40a5c64c9284c0d8e",
+  "acceptance_met": true,
+  "commands": [
+    "cargo test --locked --lib protocol::admin",
+    "cargo test --locked --lib protocol::header",
+    "cargo test --locked --test protocol_oracles",
+    "cargo test --locked --test full_surface",
+    "cargo +1.85.0 test --locked --test full_surface raft_voter",
+    "cargo +1.85.0 test --locked --test protocol_oracles raft_voter",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings",
+    "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features",
+    "cargo fmt --all -- --check",
+    "git diff --check",
+    "python3 -B -m unittest tests.conformance.test_check_protocol_coverage",
+    "python3 -B scripts/check-protocol-coverage.py --self-test",
+    "python3 -B scripts/check-protocol-coverage.py",
+    "JDK 21.0.12.1 javac RemoveRaftVoterFixtures.java against recorded Apache distribution jar; java RemoveRaftVoterFixtures <same-jar> tests/fixtures/protocol_oracles --verify"
+  ],
+  "results": {
+    "full_admin_surface": {
+      "passed": 305,
+      "failed": 0,
+      "ignored": 0
+    },
+    "quorum_membership_runtime": {
+      "passed": 16,
+      "new_remove_tests": 8,
+      "failed": 0
+    },
+    "msrv_1_85_runtime": {
+      "passed": 16,
+      "failed": 0
+    },
+    "msrv_1_85_oracles": {
+      "passed": 4,
+      "failed": 0
+    },
+    "admin_codec_units": {
+      "passed": 332,
+      "failed": 0
+    },
+    "header_units": {
+      "passed": 72,
+      "failed": 0
+    },
+    "all_protocol_oracles": {
+      "passed": 24,
+      "failed": 0,
+      "ignored": 1,
+      "note": "The existing opt-in live Java test remains ignored; all four new membership fixture cells run offline."
+    },
+    "coverage_tests": {
+      "passed": 15,
+      "failed": 0
+    },
+    "coverage": {
+      "implemented_apis": 66,
+      "missing_runtime_apis": 0,
+      "unclassified_drift": 0
+    },
+    "strict_clippy": "passed",
+    "strict_rustdoc": "passed",
+    "fmt": "passed",
+    "failing_first": "Original RemoveRaftVoter v0 request-header lookup produced v1 instead of Apache flexible v2.",
+    "independent_fixture_cells": 4
+  },
+  "contract": [
+    "Matches source-pinned Java broker-bootstrap LeastLoadedBrokerOrActiveKController route; broker forwards to the active controller, without a Metadata-controller broker hop.",
+    "Negotiates only supported v0 with request header v2 / response header v1. API absence is Unsupported before mutation I/O, including a capability change after reconnect.",
+    "Typed nonnegative replica ID, nonreserved directory UUID and optional cluster identity, checked before I/O. A local total deadline includes discovery, authentication, capability negotiation, metadata refresh, network and retry waits. The wire schema has no TimeoutMs field.",
+    "Only NOT_CONTROLLER and eligible transport failures retry; other broker errors preserve code/message, including authorization, inconsistent cluster, invalid voter key, VOTER_NOT_FOUND and REQUEST_TIMED_OUT.",
+    "A lost response followed by VOTER_NOT_FOUND stays an explicit ambiguous error, never converted into confirmed success. Success retains throttle time.",
+    "Fresh Apache defaults, explicit nullable fields, populated identity and unknown tagged fields are independently encoded; Rust checks exact untagged bytes, semantic tagged decoding, truncation and unsupported versions."
+  ],
+  "provenance": {
+    "apache_version": "4.1.0",
+    "upstream_tag_object": "080a42c343d919971985102a38c82dc6da0623d5",
+    "upstream_source_commit": "13f70256db3c994c590e5d262a7cc50b9e973204",
+    "schema_sha256": {
+      "RemoveRaftVoterRequest-410.json": "97681ec52ffd4b1e301f0a2f5bf4707abd6c38897854f3d66e6e2ed4d12cce4f",
+      "RemoveRaftVoterResponse-410.json": "feef10a5d76ff26b3be178f0cf50056588e2eff24b22897d8149bd5e726b1e44"
+    },
+    "java_admin_source_sha256": "b62419cffb95103ccbdc4eecfd8955c6ffabea99efd2a67da69fdcd815a2c5b0",
+    "jar_origin": "Apache 4.1.0 Docker distribution, not a Maven checksum match",
+    "jar_sha256": "180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb",
+    "generator": "tests/conformance/java/RemoveRaftVoterFixtures.java",
+    "generator_sha256": "b071c41db317be27a5504c5fde826731b5f0cfb8f5eca74dff142b4b8929df27",
+    "fixture_hashes": {
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_defaults.json": "045c0a390ad1c914442d71a6855cde6d395d3b38ff1cdcd5ef0bb7e682d6add4",
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_defaults_request.bin": "884998df6a91f27eb4284624ff8c5c35bc6888dde0b3bbaa01d2b631240b8cf4",
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_defaults_response.bin": "30e06038fb18a7cfda688d7bfe8de1ca8fee6002c5b4a498e6993a3592e88893",
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_nullable.json": "9fcf6713bb9b434a2ad10cd643229bc0d475f71f20ddf59f7c334e4566a70873",
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_nullable_request.bin": "6a4875ddaceaa91fb3369f0f6d962f77442daf1b1d97733457d12bcabdf79441",
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_nullable_response.bin": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_populated.json": "ec1912bffb772dd84a6cf040e52707e86e46375397762393d3a92c49dc3549a2",
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_populated_request.bin": "22b394da44117c5a5574b55a0221b319a9ce044ba24572c37a5aac5e331febe2",
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_populated_response.bin": "5f819e08a1e93a0f013ebe799f6be0cae366b6f5cdbc8e0541d5dae27b3f36cd",
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_tagged.json": "dd584a8a6b8a63fd0d1a35a29a348d31c63af62d5962f6e9e1b93a2f54cbcc2b",
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_tagged_request.bin": "e5963501f5cf938a02bbcc5241bf980939c8cdf25b4c791cd6791bb9fb84fa2c",
+      "tests/fixtures/protocol_oracles/remove_raft_voter_v0_tagged_response.bin": "9c321b8328934c434b19b338928560d1d3857bbafaedae765e3f711cc8485d30"
+    }
+  },
+  "artifacts": [
+    "docs/plan/evidence/KL05-21.json",
+    "tests/conformance/java/RemoveRaftVoterFixtures.java",
+    "tests/conformance/java/README.md",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_defaults.json",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_defaults_request.bin",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_defaults_response.bin",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_nullable.json",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_nullable_request.bin",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_nullable_response.bin",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_populated.json",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_populated_request.bin",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_populated_response.bin",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_tagged.json",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_tagged_request.bin",
+    "tests/fixtures/protocol_oracles/remove_raft_voter_v0_tagged_response.bin"
+  ],
+  "limits": [
+    "No real quorum membership mutation occurred. The card explicitly requires operator approval for real mutation; codec/runtime/mock acceptance is complete without a live membership campaign.",
+    "Direct controller-bootstrap discovery and multi-node live controller failover are not added or qualified. No UpdateRaftVoter or broker-internal Raft state-machine APIs.",
+    "A single request has one top-level outcome, not per-voter partial results; errors remain errors even when transport loss leaves the mutation ambiguous.",
+    "No new dependencies, unsafe code or default changes. Local stable/MSRV plus independent offline fixtures are recorded; exact-source full remote CI is not claimed before completion."
+  ],
+  "blocked_reason": null
+}
