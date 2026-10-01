@@ -2286,13 +2286,37 @@
     {
       "id": "KL07-05",
       "title": "Compile actual Markdown snippets and check links",
-      "priority": "P1", "kind": "test-infrastructure", "status": "pending", "owner": null,
-      "depends_on": ["KL07-02", "KL07-04"],
-      "files": ["new: scripts/check-doc-examples.py", "new: tests/docs/", ".github/workflows/ci.yml"],
+      "priority": "P1",
+      "kind": "test-infrastructure",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL07-02",
+        "KL07-04"
+      ],
+      "files": [
+        "new: scripts/check-doc-examples.py",
+        "new: tests/docs/",
+        ".github/workflows/ci.yml"
+      ],
       "deliverable": "A small checker for maintained Markdown Rust examples and local file/anchor links.",
-      "acceptance": ["Compile the actual fenced snippets or shared source includes, not a handwritten lookalike fixture.", "Support documented hidden setup/no_run cases and test broken snippet/link/anchor failures.", "Avoid brittle paragraph-equality/grep gates; prose edits should not require copying the prose into tests."],
-      "validation": ["Run the documentation checker's own negative tests.", "Compile all registered public snippets against the packed crate in CI."],
-      "evidence": []
+      "acceptance": [
+        "Compile the actual fenced snippets or shared source includes, not a handwritten lookalike fixture.",
+        "Support documented hidden setup/no_run cases and test broken snippet/link/anchor failures.",
+        "Avoid brittle paragraph-equality/grep gates; prose edits should not require copying the prose into tests."
+      ],
+      "validation": [
+        "Run the documentation checker's own negative tests.",
+        "Compile all registered public snippets against the packed crate in CI."
+      ],
+      "evidence": [],
+      "write_set": [
+        "scripts/check-doc-examples.py",
+        "tests/docs/",
+        ".github/workflows/ci.yml",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL07-05.json"
+      ]
     },
     {
       "id": "KL07-06",
