@@ -156,7 +156,8 @@ use partitionline::protocol::epoch::{
     EpochEndOffset, OffsetForLeaderTopicResult,
 };
 use partitionline::protocol::fetch::{
-    decode_fetch_request, encode_fetch_response_with_endpoints, FetchedPartition, FetchedTopic,
+    decode_fetch_request, encode_fetch_response_with_endpoints,
+    encode_fetch_response_with_throttle, FetchedPartition, FetchedTopic,
 };
 use partitionline::protocol::group::{
     decode_find_coordinator_request_keys, decode_heartbeat_request,
@@ -548,6 +549,8 @@ struct State {
     /// Per-partition batches observed on Produce: (topic, partition, records, encoded bytes).
     produce_batches: Vec<(String, i32, i32, i32)>,
     accepted_fetch: Vec<i32>,
+    fetch_throttles: HashMap<i32, VecDeque<i32>>,
+    fetch_delays: HashMap<i32, VecDeque<std::time::Duration>>,
     groups: HashMap<String, GroupReg>,
     assign_notify: Arc<Notify>,
     last_fetch_isolation: i8,
@@ -982,6 +985,8 @@ fn new_state(
         produce_throttles: HashMap::new(),
         produce_batches: Vec::new(),
         accepted_fetch: Vec::new(),
+        fetch_throttles: HashMap::new(),
+        fetch_delays: HashMap::new(),
         groups: HashMap::new(),
         assign_notify: Arc::new(Notify::new()),
         last_fetch_isolation: 0,
@@ -2114,6 +2119,22 @@ impl Mock {
 
     pub fn api_hidden(&self, api_key: i16) -> bool {
         self.state.lock().hidden_apis.contains(&api_key)
+    }
+
+    pub fn set_fetch_throttles(&self, node: i32, values: impl IntoIterator<Item = i32>) {
+        let _ = self
+            .state
+            .lock()
+            .fetch_throttles
+            .insert(node, values.into_iter().collect());
+    }
+
+    pub fn set_fetch_delay_once(&self, node: i32, delay: std::time::Duration) {
+        let _ = self
+            .state
+            .lock()
+            .fetch_delays
+            .insert(node, VecDeque::from([delay]));
     }
 
     pub fn fetch_nodes(&self) -> Vec<i32> {
@@ -6460,6 +6481,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             FETCH => {
+                let delay = state
+                    .lock()
+                    .fetch_delays
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let (iso, max_bytes, req, rack, ..) =
                     decode_fetch_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
@@ -6704,15 +6733,33 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .iter()
                         .flat_map(|t| t.partitions.iter().map(|p| p.current_leader_id)),
                 );
-                encode_fetch_response_with_endpoints(
-                    &mut body,
-                    header.api_version,
-                    &topics,
-                    0,
-                    0,
-                    &endpoints,
-                )
-                .unwrap();
+                let throttle = st
+                    .fetch_throttles
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                if let Some(throttle) = throttle {
+                    assert!(
+                        endpoints.is_empty(),
+                        "quota fixture requires healthy leaders"
+                    );
+                    encode_fetch_response_with_throttle(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        throttle,
+                    )
+                    .unwrap();
+                } else {
+                    encode_fetch_response_with_endpoints(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        0,
+                        0,
+                        &endpoints,
+                    )
+                    .unwrap();
+                }
             }
             OFFSET_FOR_LEADER_EPOCH => {
                 let (topics, ..) =

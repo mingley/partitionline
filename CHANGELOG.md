@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Consumer honors Fetch v8–v17 broker quotas while delivering from eligible peers
+  and buffered records. Quota waits retain poll/request budgets and accept wakeup
+  and caller cancellation; cancelling a one-shot poll preserves later settings.
+  `ConsumerMetrics` adds `throttle` (`metrics::ThrottleStats`); exhaustive struct
+  literals must add the field or use `..Default::default()`.
+
 - Producer honors positive broker quotas for Produce v6–v12 across connection
   slots, retaining original delivery and close budgets while other brokers and
   in-flight acknowledgements make progress. `ProducerMetrics` adds `throttle`

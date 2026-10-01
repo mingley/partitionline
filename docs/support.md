@@ -153,4 +153,14 @@ delivery deadline and close budget. The fixed-size `ProducerMetrics.throttle`
 snapshot reports requested time and invalid negative responses. Deterministic
 peer tests cover broker isolation, in-flight acknowledgements, reconnection,
 version boundaries, expiry and shutdown; no live quota deployment is claimed.
-Fetch, Admin and group quota scheduling remain separate qualifications.
+Admin and heartbeat/group quota scheduling remain separate qualifications.
+
+Fetch quota scheduling supports negotiated v8–v17 per broker with per-response
+completion clocks; v4–v7 retain server throttling. Other brokers and buffered
+records continue delivering while a peer is muted. All-muted waits share the
+poll long-poll and original request budgets and accept wakeup/caller cancellation.
+`ConsumerMetrics.throttle` uses fixed-size requested-time counters. Deterministic
+peer tests cover mixed versions, zero/negative durations, response discard at the
+buffer cap, deadline expiry, cancellation and idle reconnection. The Apache Java
+4.3.1 scheduling reference is executed independently; no live quota deployment
+or throughput improvement is claimed.

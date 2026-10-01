@@ -1294,6 +1294,8 @@ pub struct Consumer {
     metadata: Option<MetadataResponse>,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
+    fetch_throttles: HashMap<i32, Instant>,
+    throttle_metrics: crate::metrics::ThrottleTracker,
     assigned: Vec<(String, i32, i64)>,
     /// Last consumed record-batch leader epoch (Fetch v12+ `LastFetchedEpoch`).
     last_fetched_epochs: HashMap<(String, i32), i32>,
@@ -1315,6 +1317,14 @@ pub struct Consumer {
     m_fetch_latency: crate::metrics::LatencyTracker,
     topic_metrics: HashMap<String, crate::metrics::FetchTopicTracker>,
     reconnect_fails: HashMap<i32, u32>,
+}
+
+/// Preserve each peer's completion clock while collecting a concurrent round.
+struct FetchReply {
+    node: i32,
+    version: i16,
+    received_at: Instant,
+    body: Result<Bytes>,
 }
 
 /// Thread-safe handle that interrupts [`Consumer::fetch`] / group `poll`.
@@ -1402,6 +1412,8 @@ impl Consumer {
             metadata: None,
             cluster: Cluster::default(),
             conns: HashMap::new(),
+            fetch_throttles: HashMap::new(),
+            throttle_metrics: crate::metrics::ThrottleTracker::default(),
             assigned: Vec::new(),
             last_fetched_epochs: HashMap::new(),
             preferred: HashMap::new(),
@@ -2217,16 +2229,20 @@ impl Consumer {
     /// the Fetch stay buffered and are returned on the next call.
     #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub async fn fetch(&mut self) -> Result<ConsumerRecords> {
-        self.fetch_records(true).await
+        self.fetch_records(true, self.cfg.max_wait_ms).await
     }
 
     /// [`Self::fetch`] for a subscribed [`crate::ConsumerGroup`] (assignment
     /// may still be empty while the coordinator is joining).
     pub(crate) async fn fetch_allow_unassigned(&mut self) -> Result<ConsumerRecords> {
-        self.fetch_records(false).await
+        self.fetch_records(false, self.cfg.max_wait_ms).await
     }
 
-    async fn fetch_records(&mut self, require_assignment: bool) -> Result<ConsumerRecords> {
+    async fn fetch_records(
+        &mut self,
+        require_assignment: bool,
+        max_wait_ms: i32,
+    ) -> Result<ConsumerRecords> {
         if self.take_wakeup() {
             return Err(Error::Wakeup);
         }
@@ -2234,7 +2250,7 @@ impl Consumer {
             return Err(reject_java_no_subscription_or_assignment());
         }
         let started = Instant::now();
-        let result = self.fetch_assigned().await;
+        let result = self.fetch_assigned(max_wait_ms).await;
         match result {
             Ok(recs) => {
                 let elapsed = started.elapsed();
@@ -2266,7 +2282,7 @@ impl Consumer {
 
     /// Fetch with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
     ///
-    /// [`ConsumerConfig::max_wait_ms`] is restored afterwards. Nothing
+    /// A cancelled one-shot future leaves [`ConsumerConfig::max_wait_ms`] intact. Nothing
     /// assigned is the same Java `IllegalStateException` as [`Self::fetch`].
     pub async fn fetch_timeout(&mut self, timeout: Duration) -> Result<ConsumerRecords> {
         self.fetch_records_timeout(timeout, true).await
@@ -2285,11 +2301,10 @@ impl Consumer {
         timeout: Duration,
         require_assignment: bool,
     ) -> Result<ConsumerRecords> {
-        let prev = self.cfg.max_wait_ms;
-        self.cfg.max_wait_ms = duration_millis_i32(timeout);
-        let out = self.fetch_records(require_assignment).await;
-        self.cfg.max_wait_ms = prev;
-        out
+        // Carry the one-shot value through the future instead of mutating cfg:
+        // cancellation during a quota wait must not change later poll settings.
+        self.fetch_records(require_assignment, duration_millis_i32(timeout))
+            .await
     }
 
     /// Fetch counters and round latency since connect (min/mean/max and p50/p99).
@@ -2304,6 +2319,7 @@ impl Consumer {
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
+            throttle: self.throttle_metrics.snapshot(),
             topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
         }
     }
@@ -2422,7 +2438,7 @@ impl Consumer {
         }
     }
 
-    async fn fetch_assigned(&mut self) -> Result<Vec<FetchedRecord>> {
+    async fn fetch_assigned(&mut self, max_wait_ms: i32) -> Result<Vec<FetchedRecord>> {
         if let Some(ready) = self.take_ready() {
             return Ok(ready);
         }
@@ -2432,10 +2448,16 @@ impl Consumer {
         if self.cfg.buffer_memory > 0 && self.buffered_bytes >= self.cfg.buffer_memory {
             return Ok(Vec::new());
         }
-        let deadline = Instant::now() + self.cfg.request_timeout;
+        let started = Instant::now();
+        let deadline = started + self.cfg.request_timeout;
+        let poll_deadline =
+            started + Duration::from_millis(u64::try_from(max_wait_ms).unwrap_or(0));
         let initial_assigned = self.assigned.clone();
         let initial_epochs = self.last_fetched_epochs.clone();
-        match self.fetch_assigned_inner(deadline).await {
+        match self
+            .fetch_assigned_inner(deadline, poll_deadline, max_wait_ms)
+            .await
+        {
             Ok(records) => Ok(records),
             Err(e) => {
                 self.assigned = initial_assigned;
@@ -2445,7 +2467,12 @@ impl Consumer {
         }
     }
 
-    async fn fetch_assigned_inner(&mut self, deadline: Instant) -> Result<Vec<FetchedRecord>> {
+    async fn fetch_assigned_inner(
+        &mut self,
+        deadline: Instant,
+        poll_deadline: Instant,
+        max_wait_ms: i32,
+    ) -> Result<Vec<FetchedRecord>> {
         let mut attempt = 0u32;
         let mut out = Vec::new();
         let mut out_bytes = 0usize;
@@ -2538,13 +2565,71 @@ impl Consumer {
             if by_leader.is_empty() {
                 return Ok(self.finish_fetch(out));
             }
-            let bodies = self.fetch_from_leaders(by_leader).await?;
+            if !self.fetch_throttles.is_empty() {
+                let now = Instant::now();
+                self.fetch_throttles.retain(|_, until| *until > now);
+                let mut earliest: Option<Instant> = None;
+                by_leader.retain(|node, _| {
+                    if let Some(until) = self.fetch_throttles.get(node) {
+                        earliest = Some(earliest.map_or(*until, |old| old.min(*until)));
+                        false
+                    } else {
+                        true
+                    }
+                });
+                if by_leader.is_empty() {
+                    // Deliver previously accumulated work before waiting for
+                    // any muted peer; no fetch/position advance for that peer.
+                    if !out.is_empty() {
+                        return Ok(self.finish_fetch(out));
+                    }
+                    if now >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    if now >= poll_deadline {
+                        return Ok(self.finish_fetch(out));
+                    }
+                    if let Some(until) = earliest {
+                        let wake = until.min(deadline).min(poll_deadline);
+                        let mut rx = self.wakeup_tx.subscribe();
+                        tokio::select! {
+                            biased;
+                            result = rx.wait_for(|on| *on) => {
+                                drop(result);
+                                return Err(Error::Wakeup);
+                            }
+                            _ = tokio::time::sleep(wake.saturating_duration_since(now)) => {}
+                        }
+                        continue;
+                    }
+                }
+            }
+            let wait = max_wait_ms.min(duration_millis_i32(
+                poll_deadline.saturating_duration_since(Instant::now()),
+            ));
+            let bodies = self.fetch_from_leaders(by_leader, deadline, wait).await?;
+            // ThrottleTimeMs is the first INT32 on every negotiated Fetch
+            // version. Observe every completed response's header before the
+            // record budget can discard another peer's body. Normal decoding
+            // retains responsibility for truncated/invalid response errors.
+            for reply in &bodies {
+                if reply.version < 8 {
+                    continue;
+                }
+                let Ok(body) = &reply.body else { continue };
+                let mut header = body.as_ref();
+                if let Ok(millis) = crate::protocol::buf::get_i32(&mut header) {
+                    self.observe_fetch_throttle(reply.node, millis, reply.received_at);
+                }
+            }
             let mut retry = FetchRetry::None;
             let mut fenced = Vec::new();
             let mut need_offsets = Vec::new();
             let mut budget_reached = false;
-            for (node, fetch_version, body) in bodies {
-                let mut body = match body {
+            for reply in bodies {
+                let node = reply.node;
+                let fetch_version = reply.version;
+                let mut body = match reply.body {
                     Ok(b) => b,
                     Err(e) if e.is_retriable() => {
                         let _ = self.conns.remove(&node);
@@ -2626,7 +2711,9 @@ impl Consumer {
     async fn fetch_from_leaders(
         &mut self,
         by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
-    ) -> Result<Vec<(i32, i16, Result<Bytes>)>> {
+        deadline: Instant,
+        max_wait: i32,
+    ) -> Result<Vec<FetchReply>> {
         if self.woken() {
             self.conns.clear();
             return Err(Error::Wakeup);
@@ -2639,7 +2726,7 @@ impl Consumer {
                 self.conns.clear();
                 Err(Error::Wakeup)
             }
-            result = self.fetch_from_leaders_io(by_leader) => {
+            result = self.fetch_from_leaders_io(by_leader, deadline, max_wait) => {
                 result
             }
         }
@@ -2648,13 +2735,20 @@ impl Consumer {
     async fn fetch_from_leaders_io(
         &mut self,
         mut by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
-    ) -> Result<Vec<(i32, i16, Result<Bytes>)>> {
+        deadline: Instant,
+        max_wait: i32,
+    ) -> Result<Vec<FetchReply>> {
         let mut nodes: Vec<i32> = by_leader.keys().copied().collect();
         nodes.sort_unstable();
         for node in &nodes {
-            self.connect_node(*node).await?;
+            let rest = deadline.saturating_duration_since(Instant::now());
+            if rest.is_zero() {
+                return Err(Error::Timeout);
+            }
+            tokio::time::timeout(rest, self.connect_node(*node))
+                .await
+                .map_err(|_| Error::Timeout)??;
         }
-        let max_wait = self.cfg.max_wait_ms;
         let min_bytes = self.cfg.min_bytes;
         let max_bytes = if self.cfg.buffer_memory > 0 {
             let headroom = self.cfg.buffer_memory.saturating_sub(self.buffered_bytes);
@@ -2670,7 +2764,11 @@ impl Consumer {
             self.cfg.max_bytes
         };
         let isolation_level = self.cfg.isolation_level.as_i8();
-        let timeout = self.cfg.request_timeout;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let max_wait = max_wait.min(duration_millis_i32(timeout));
         let rack = self.cfg.rack.clone();
         let name_ids = self.topic_name_ids();
         if nodes.len() <= 1 {
@@ -2716,7 +2814,12 @@ impl Consumer {
                         .await;
                     (fetch_version, body)
                 };
-                out.push((node, fetch_version, body));
+                out.push(FetchReply {
+                    node,
+                    version: fetch_version,
+                    received_at: Instant::now(),
+                    body,
+                });
             }
             return Ok(out);
         }
@@ -2764,18 +2867,43 @@ impl Consumer {
                         timeout,
                     )
                     .await;
-                (node, fetch_version, conn, result)
+                (
+                    FetchReply {
+                        node,
+                        version: fetch_version,
+                        received_at: Instant::now(),
+                        body: result,
+                    },
+                    conn,
+                )
             });
         }
         let mut out = Vec::new();
         while let Some(joined) = set.join_next().await {
-            let (node, fetch_version, conn, result) =
-                joined.map_err(|e| Error::protocol(format!("fetch task: {e}")))?;
-            let _ = self.conns.insert(node, conn);
-            out.push((node, fetch_version, result));
+            let (reply, conn) = joined.map_err(|e| Error::protocol(format!("fetch task: {e}")))?;
+            let _ = self.conns.insert(reply.node, conn);
+            out.push(reply);
         }
-        out.sort_by_key(|(n, _, _)| *n);
+        out.sort_by_key(|reply| reply.node);
         Ok(out)
+    }
+
+    fn observe_fetch_throttle(&mut self, node: i32, millis: i32, received_at: Instant) {
+        self.throttle_metrics.observe(millis);
+        let Ok(millis) = u64::try_from(millis) else {
+            return;
+        };
+        if millis == 0 {
+            return;
+        }
+        if let Some(until) = received_at.checked_add(Duration::from_millis(millis)) {
+            // A fast peer's quota can expire while another response is pending;
+            // processing the aggregate result must not restart that interval.
+            if until > Instant::now() {
+                let previous = self.fetch_throttles.entry(node).or_insert(until);
+                *previous = (*previous).max(until);
+            }
+        }
     }
 
     #[expect(

@@ -840,10 +840,10 @@
     "id": "quotas.consumer_throttle",
     "profile": "quotas",
     "layer": "runtime",
-    "disposition": "partial",
-    "entrypoint": "partitionline::protocol::fetch::decode_fetch_response",
-    "evidence": "docs/audits/2026-09-21.md:A07",
-    "notes": "FetchResponse decodes throttle_time_ms on wire, but consumer runtime discards it without delay (audit A07, KL05-09)."
+    "disposition": "present",
+    "entrypoint": "partitionline::Consumer::metrics",
+    "evidence": "tests/consumer_fetch_semantics.rs:fetch_throttle_delays_next_request_without_delaying_returned_records",
+    "notes": "Fetch v8-17 response quotas mute only that broker from each individual response completion; v4-7 use server throttling. Eligible brokers and buffered records continue delivering. All-muted waits respect poll/request budgets, wakeup and caller cancellation without changing later one-shot settings; over-budget bodies still contribute quota headers. Fixed-size requested-time metrics and deterministic peer tests plus executed Apache 4.3.1 scheduling reference qualify this scope. Admin/heartbeat/group quotas and live quota deployments are excluded (KL05-09)."
   },
   {
     "id": "quotas.client_metric",

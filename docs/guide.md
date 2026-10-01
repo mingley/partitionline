@@ -361,6 +361,21 @@ overlap and a producer may have no queued work. These counters have no broker or
 topic labels. This policy covers Produce; Fetch, Admin and group quotas have
 separate support entries.
 
+Fetch v8–v17 quota headers mute new Fetch requests to that broker; v4–v7 retain
+server throttling. Eligible brokers and already buffered records remain available.
+Each interval starts when its response finishes, so a slower peer cannot restart
+another broker's expired quota. Headers from every completed response are observed
+even when the record buffer budget prevents delivering that body's records.
+
+When every needed broker is muted, the wait ends at the poll's long-poll budget
+(`max_wait_ms`, or the one-shot `fetch_timeout` value) and returns an empty batch.
+The original `request_timeout` still bounds connection and Fetch work, including
+quota waiting. `wakeup` and an outer caller deadline interrupt the wait; cancelling
+a one-shot poll preserves subsequent poll settings. `Consumer::metrics().throttle`
+reports the same requested-time counters as the producer. This also covers the
+Fetch calls behind consumer-group polling; Admin and heartbeat/group quotas remain
+separate policies.
+
 ## Recipes
 
 ### Backpressure

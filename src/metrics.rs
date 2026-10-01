@@ -458,10 +458,12 @@ pub struct ConsumerMetrics {
     pub records_fetched: u64,
     /// Key plus value bytes of returned records.
     pub bytes_fetched: u64,
-    /// Failed fetch rounds.
+    /// Failed fetch rounds, excluding explicit wakeup.
     pub fetch_errors: u64,
     /// End-to-end duration of each successful fetch round.
     pub fetch_latency: LatencyStats,
+    /// Fetch v8+ client quota observations, aggregated across brokers.
+    pub throttle: ThrottleStats,
     /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
     pub topics: Vec<TopicFetchMetrics>,
 }

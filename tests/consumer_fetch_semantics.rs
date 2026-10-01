@@ -2424,3 +2424,515 @@ async fn fetch_mixed_version_preferred_replica_uses_replica_version() {
     );
     consumer.close().await.unwrap();
 }
+
+/// A successful response's quota applies to the next request, not delivery of
+/// the records already returned by that response.
+#[tokio::test]
+async fn fetch_throttle_delays_next_request_without_delaying_returned_records() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let first_ack = producer
+        .send(ProduceRecord::to("t").value("first"))
+        .await
+        .unwrap();
+    assert_eq!(first_ack.offset, 0);
+    mock.set_fetch_throttles(1, [350]);
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let first = consumer.fetch().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].offset, 0);
+    let second_ack = producer
+        .send(ProduceRecord::to("t").value("second"))
+        .await
+        .unwrap();
+    assert_eq!(second_ack.offset, 1);
+    let start = std::time::Instant::now();
+    let second = consumer.fetch().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_eq!(second[0].offset, 1);
+    assert!(
+        start.elapsed() >= Duration::from_millis(300),
+        "Fetch quota was discarded"
+    );
+    assert_eq!(mock.fetch_nodes(), [1, 1]);
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_throttle_other_broker_progress_and_legacy_version() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    mock.set_node_api_max(1, FETCH, 17);
+    mock.set_node_api_max(2, FETCH, 7);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    for partition in 0..2 {
+        let ack = producer
+            .send(ProduceRecord::to("t").partition(partition).value("initial"))
+            .await
+            .unwrap();
+        assert_eq!((ack.partition, ack.offset), (partition, 0));
+    }
+    mock.set_fetch_throttles(1, [1000]);
+    mock.set_fetch_throttles(2, [60_000]);
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .unwrap();
+    let initial = consumer.fetch().await.unwrap();
+    assert_eq!(initial.len(), 2);
+    for (partition, value) in [(0, "slow"), (1, "fast")] {
+        let ack = producer
+            .send(ProduceRecord::to("t").partition(partition).value(value))
+            .await
+            .unwrap();
+        assert_eq!((ack.partition, ack.offset), (partition, 1));
+    }
+    let start = std::time::Instant::now();
+    let fast = tokio::time::timeout(Duration::from_millis(300), consumer.fetch())
+        .await
+        .expect("an unrelated/legacy broker must remain fetchable")
+        .unwrap();
+    assert_eq!(
+        fast.iter()
+            .map(|r| (r.partition, r.offset))
+            .collect::<Vec<_>>(),
+        [(1, 1)]
+    );
+    assert_eq!(fast[0].value.as_deref(), Some(b"fast".as_slice()));
+    assert_eq!(
+        mock.fetch_nodes().iter().filter(|node| **node == 1).count(),
+        1
+    );
+    assert_eq!(consumer.metrics().throttle.responses, 1);
+    assert_eq!(consumer.metrics().throttle.requested_millis, 1000);
+    consumer.pause([TopicPartition::new("t", 1)]);
+    let slow = consumer
+        .fetch_timeout(Duration::from_secs(2))
+        .await
+        .unwrap();
+    assert_eq!(
+        slow.iter()
+            .map(|r| (r.partition, r.offset))
+            .collect::<Vec<_>>(),
+        [(0, 1)]
+    );
+    assert_eq!(slow[0].value.as_deref(), Some(b"slow".as_slice()));
+    assert!(start.elapsed() >= Duration::from_millis(900));
+    assert_eq!(
+        consumer.positions(),
+        [
+            (TopicPartition::new("t", 0), 2),
+            (TopicPartition::new("t", 1), 2)
+        ]
+    );
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_throttle_version_boundary_zero_and_invalid_values() {
+    for version in [4, 7, 8, 11, 12, 13, 17] {
+        let mock = common::Mock::start().await;
+        mock.set_node_api_max(1, FETCH, version);
+        let producer =
+            Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+                .await
+                .unwrap();
+        let ack = producer
+            .send(ProduceRecord::to("t").value("x"))
+            .await
+            .unwrap();
+        assert_eq!(ack.offset, 0);
+        mock.set_fetch_throttles(1, [if version < 8 { 60_000 } else { 150 }, 0, -1, i32::MIN]);
+        let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+            .await
+            .unwrap();
+        consumer.assign("t", 0, 0).await.unwrap();
+        let first = consumer.fetch().await.unwrap();
+        assert_eq!(first.len(), 1);
+        let start = std::time::Instant::now();
+        for _ in 0..3 {
+            let records = tokio::time::timeout(Duration::from_secs(1), consumer.fetch())
+                .await
+                .unwrap()
+                .unwrap();
+            assert!(records.is_empty());
+        }
+        assert_eq!(mock.last_fetch_version_for_node(1), Some(version));
+        let stats = consumer.metrics().throttle;
+        if version >= 8 {
+            assert!(start.elapsed() >= Duration::from_millis(100));
+            assert_eq!(
+                (
+                    stats.responses,
+                    stats.requested_millis,
+                    stats.max_millis,
+                    stats.invalid_responses
+                ),
+                (1, 150, 150, 2)
+            );
+        } else {
+            assert_eq!(stats, partitionline::metrics::ThrottleStats::default());
+        }
+        assert_eq!(consumer.positions(), [(TopicPartition::new("t", 0), 1)]);
+        consumer.close().await.unwrap();
+        producer.close().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn fetch_throttle_delivers_pending_records_and_bounds_one_shot_wait() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    for value in ["a", "b", "c"] {
+        let ack = producer
+            .send(ProduceRecord::to("t").value(value))
+            .await
+            .unwrap();
+        assert_eq!(ack.partition, 0);
+    }
+    mock.set_fetch_throttles(1, [i32::MAX]);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_poll_records(1))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    for offset in 0..3 {
+        let records = tokio::time::timeout(
+            Duration::from_millis(300),
+            consumer.fetch_timeout(Duration::ZERO),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].offset, offset);
+        assert_eq!(
+            consumer.positions(),
+            [(TopicPartition::new("t", 0), offset + 1)]
+        );
+    }
+    let start = std::time::Instant::now();
+    let empty = tokio::time::timeout(
+        Duration::from_millis(300),
+        consumer.fetch_timeout(Duration::from_millis(40)),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(empty.is_empty());
+    assert!(start.elapsed() >= Duration::from_millis(30));
+    assert_eq!(mock.fetch_nodes(), [1]);
+    assert_eq!(consumer.metrics().records_fetched, 3);
+    assert_eq!(
+        consumer.metrics().throttle.requested_millis,
+        u64::try_from(i32::MAX).unwrap()
+    );
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_throttle_wakeup_preserves_positions_and_quota() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let ack = producer
+        .send(ProduceRecord::to("t").value("first"))
+        .await
+        .unwrap();
+    assert_eq!(ack.offset, 0);
+    mock.set_fetch_throttles(1, [1000]);
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert_eq!(consumer.fetch().await.unwrap().len(), 1);
+    let handle = consumer.wakeup_handle();
+    let wake = tokio::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(30)).await;
+        handle.wakeup();
+    });
+    let result = tokio::time::timeout(
+        Duration::from_millis(300),
+        consumer.fetch_timeout(Duration::from_secs(2)),
+    )
+    .await
+    .unwrap();
+    assert!(
+        matches!(result, Err(partitionline::Error::Wakeup)),
+        "{result:?}"
+    );
+    wake.await.unwrap();
+    assert_eq!(consumer.positions(), [(TopicPartition::new("t", 0), 1)]);
+    assert!(consumer
+        .fetch_timeout(Duration::ZERO)
+        .await
+        .unwrap()
+        .is_empty());
+    assert_eq!(mock.fetch_nodes(), [1]);
+    assert_eq!(consumer.metrics().fetch_errors, 0); // Wakeup retains its existing separate outcome.
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_throttle_wait_consumes_request_deadline() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let ack = producer
+        .send(ProduceRecord::to("t").value("first"))
+        .await
+        .unwrap();
+    assert_eq!(ack.offset, 0);
+    mock.set_fetch_throttles(1, [1000]);
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .request_timeout(Duration::from_millis(100))
+            .max_wait_ms(2000),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert_eq!(consumer.fetch().await.unwrap().len(), 1);
+    let start = std::time::Instant::now();
+    let result = tokio::time::timeout(Duration::from_millis(300), consumer.fetch())
+        .await
+        .unwrap();
+    assert!(
+        matches!(result, Err(partitionline::Error::Timeout)),
+        "{result:?}"
+    );
+    assert!(start.elapsed() >= Duration::from_millis(75));
+    assert_eq!(mock.fetch_nodes(), [1]);
+    assert_eq!(consumer.positions(), [(TopicPartition::new("t", 0), 1)]);
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_throttle_caller_cancellation_does_not_mutate_default_wait() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let ack = producer
+        .send(ProduceRecord::to("t").value("first"))
+        .await
+        .unwrap();
+    assert_eq!(ack.offset, 0);
+    mock.set_fetch_throttles(1, [350]);
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert_eq!(consumer.fetch().await.unwrap().len(), 1);
+    let cancelled = tokio::time::timeout(
+        Duration::from_millis(30),
+        consumer.fetch_timeout(Duration::from_millis(40)),
+    )
+    .await;
+    assert!(
+        cancelled.is_err(),
+        "caller must be able to cancel a quota wait"
+    );
+    assert_eq!(mock.fetch_nodes(), [1]);
+    let ack = producer
+        .send(ProduceRecord::to("t").value("second"))
+        .await
+        .unwrap();
+    assert_eq!(ack.offset, 1);
+    let next = consumer.fetch().await.unwrap();
+    assert_eq!(
+        next.len(),
+        1,
+        "cancelled one-shot wait must not shrink default 500ms wait"
+    );
+    assert_eq!(next[0].offset, 1);
+    assert_eq!(consumer.positions(), [(TopicPartition::new("t", 0), 2)]);
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_throttle_observes_peer_body_discarded_at_buffer_limit() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 3);
+    for partition in 0..3 {
+        mock.set_partition_leader("t", partition, if partition < 2 { 1 } else { 2 });
+    }
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    for partition in 0..3 {
+        let ack = producer
+            .send(
+                ProduceRecord::to("t")
+                    .partition(partition)
+                    .value("oversized"),
+            )
+            .await
+            .unwrap();
+        assert_eq!((ack.partition, ack.offset), (partition, 0));
+    }
+    mock.set_fetch_throttles(2, [1000]);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).buffer_memory(1))
+            .await
+            .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0), (("t", 2), 0)])
+        .await
+        .unwrap();
+    let first = consumer.fetch().await.unwrap();
+    assert_eq!(
+        first
+            .iter()
+            .map(|r| (r.partition, r.offset))
+            .collect::<Vec<_>>(),
+        [(0, 0)]
+    );
+    assert_eq!(consumer.metrics().throttle.responses, 1);
+    let next = consumer.fetch().await.unwrap();
+    assert_eq!(
+        next.iter()
+            .map(|r| (r.partition, r.offset))
+            .collect::<Vec<_>>(),
+        [(1, 0)]
+    );
+    assert_eq!(
+        mock.fetch_nodes().iter().filter(|node| **node == 2).count(),
+        1
+    );
+    consumer.pause([TopicPartition::new("t", 0), TopicPartition::new("t", 1)]);
+    let remaining = consumer
+        .fetch_timeout(Duration::from_secs(2))
+        .await
+        .unwrap();
+    assert_eq!(
+        remaining
+            .iter()
+            .map(|r| (r.partition, r.offset))
+            .collect::<Vec<_>>(),
+        [(2, 0)]
+    );
+    assert_eq!(
+        consumer.positions(),
+        [
+            (TopicPartition::new("t", 0), 1),
+            (TopicPartition::new("t", 1), 1),
+            (TopicPartition::new("t", 2), 1)
+        ]
+    );
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_throttle_preserves_interval_during_idle_reconnection() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let ack = producer
+        .send(ProduceRecord::to("t").value("first"))
+        .await
+        .unwrap();
+    assert_eq!(ack.offset, 0);
+    mock.set_fetch_throttles(1, [350]);
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .connections_max_idle(Duration::from_millis(30)),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert_eq!(consumer.fetch().await.unwrap().len(), 1);
+    mock.set_node_api_max(1, FETCH, 7);
+    let ack = producer
+        .send(ProduceRecord::to("t").value("second"))
+        .await
+        .unwrap();
+    assert_eq!(ack.offset, 1);
+    let start = std::time::Instant::now();
+    let next = consumer.fetch().await.unwrap();
+    assert_eq!(next.len(), 1);
+    assert_eq!(next[0].offset, 1);
+    assert!(start.elapsed() >= Duration::from_millis(300));
+    assert_eq!(mock.last_fetch_version_for_node(1), Some(7));
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_throttle_interval_starts_at_each_response_completion() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    for partition in 0..2 {
+        let ack = producer
+            .send(ProduceRecord::to("t").partition(partition).value("initial"))
+            .await
+            .unwrap();
+        assert_eq!(ack.offset, 0);
+    }
+    mock.set_fetch_throttles(1, [400]);
+    mock.set_fetch_delay_once(2, Duration::from_millis(800));
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .unwrap();
+    assert_eq!(consumer.fetch().await.unwrap().len(), 2);
+    for partition in 0..2 {
+        let ack = producer
+            .send(ProduceRecord::to("t").partition(partition).value("after"))
+            .await
+            .unwrap();
+        assert_eq!(ack.offset, 1);
+    }
+    // Broker 1's 400ms quota expired while broker 2's first response waited.
+    // Its clock must not restart when the aggregate result is processed.
+    let next = consumer.fetch().await.unwrap();
+    let mut identities = next
+        .iter()
+        .map(|r| (r.partition, r.offset))
+        .collect::<Vec<_>>();
+    identities.sort();
+    assert_eq!(identities, [(0, 1), (1, 1)]);
+    consumer.close().await.unwrap();
+    producer.close().await.unwrap();
+}
