@@ -2068,7 +2068,8 @@
         "partitionline-schema/README.md",
         "docs/schema-companion.md",
         "docs/plan/tasks.json",
-        "docs/plan/evidence/KL05-24.json"
+        "docs/plan/evidence/KL05-24.json",
+        "partitionline-schema/src/registry/cache.rs"
       ]
     },
     {
