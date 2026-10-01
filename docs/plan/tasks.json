@@ -2660,13 +2660,43 @@
     {
       "id": "KL08-16",
       "title": "Migrate to getrandom 0.4.3",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL08-06"],
-      "files": ["Cargo.toml", "Cargo.lock", "src/group.rs", "src/admin.rs", "src/protocol/scram.rs", "src/protocol/oidc.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL08-06"
+      ],
+      "files": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "src/group.rs",
+        "src/admin.rs",
+        "src/protocol/scram.rs",
+        "src/protocol/oidc.rs"
+      ],
       "deliverable": "getrandom 0.4.3 with the 4 call-site migration (PR #100 red as-is: E0425).",
-      "acceptance": ["Cargo.toml requires getrandom 0.4, Cargo.lock pins 0.4.3; ring keeps its own 0.2.17 copy (no forced unification).", "All 4 call sites migrated to the 0.4 API with identical fallback behavior (group.rs, admin.rs, protocol/scram.rs, protocol/oidc.rs).", "MSRV 1.85 cell passes (getrandom 0.4.3 declares rust 1.85); audit and deny pass including new transitive r-efi."],
-      "validation": ["cargo test --locked (stable and 1.85) covering scram/oauth/group member-id paths", "cargo clippy --all-targets --all-features -- -D warnings", "cargo audit and cargo deny check on the new lockfile"],
-      "evidence": []
+      "acceptance": [
+        "Cargo.toml requires getrandom 0.4, Cargo.lock pins 0.4.3; ring keeps its own 0.2.17 copy (no forced unification).",
+        "All 4 call sites migrated to the 0.4 API with identical fallback behavior (group.rs, admin.rs, protocol/scram.rs, protocol/oidc.rs).",
+        "MSRV 1.85 cell passes (getrandom 0.4.3 declares rust 1.85); audit and deny pass including new transitive r-efi."
+      ],
+      "validation": [
+        "cargo test --locked (stable and 1.85) covering scram/oauth/group member-id paths",
+        "cargo clippy --all-targets --all-features -- -D warnings",
+        "cargo audit and cargo deny check on the new lockfile"
+      ],
+      "evidence": [],
+      "write_set": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "src/group.rs",
+        "src/admin.rs",
+        "src/protocol/scram.rs",
+        "src/protocol/oidc.rs",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL08-16.json"
+      ]
     },
     {
       "id": "KL08-17",
