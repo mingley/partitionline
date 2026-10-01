@@ -1,0 +1,701 @@
+{
+ "card": "KL10-16",
+ "baseline_sha": "3eb74f4d (cell commit; measured as local 68c6924b, identical except a benchmark contract test)",
+ "method": "interleaved repetitions (parent then candidate, order alternating), runtime harness --repetitions 1 per run; paired deltas per repetition; CI is a 10k bootstrap of the median",
+ "host": "Apple M4 Pro (14 cores), macOS, rustc 1.98.1, release; shared laptop, 1-minute load average 14-19",
+ "nb_cells": {
+  "nb-fetch-gzip-overfetch": {
+   "repetitions": 7,
+   "parent_median": {
+    "cpu_ns_per_record": 13320.6,
+    "records_per_second": 11332,
+    "allocated_bytes_per_record": 58911.3,
+    "allocations_per_record": 1.3409,
+    "peak_rss_bytes": 248774656
+   },
+   "candidate_median": {
+    "cpu_ns_per_record": 9410.1,
+    "records_per_second": 11894,
+    "allocated_bytes_per_record": 6229.3,
+    "allocations_per_record": 1.0568,
+    "peak_rss_bytes": 79822848
+   },
+   "paired_delta_pct": {
+    "cpu_ns_per_record": {
+     "median": -29.46,
+     "ci95": [
+      -30.59,
+      -27.1
+     ]
+    },
+    "records_per_second": {
+     "median": 5.17,
+     "ci95": [
+      4.8,
+      6.22
+     ]
+    },
+    "allocated_bytes_per_record": {
+     "median": -89.43,
+     "ci95": [
+      -89.43,
+      -89.43
+     ]
+    },
+    "peak_rss_bytes": {
+     "median": -67.98,
+     "ci95": [
+      -69.18,
+      -66.44
+     ]
+    }
+   },
+   "runs": {
+    "parent": [
+     {
+      "rep": 1,
+      "cpu_ns_per_record": 11813.1,
+      "allocated_bytes_per_record": 58903.3,
+      "allocations_per_record": 1.3409,
+      "records_per_second": 10698,
+      "peak_rss_bytes": 264208384,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 2,
+      "cpu_ns_per_record": 13450.8,
+      "allocated_bytes_per_record": 58911.3,
+      "allocations_per_record": 1.3409,
+      "records_per_second": 11410,
+      "peak_rss_bytes": 248774656,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 3,
+      "cpu_ns_per_record": 13320.6,
+      "allocated_bytes_per_record": 58911.3,
+      "allocations_per_record": 1.3409,
+      "records_per_second": 11437,
+      "peak_rss_bytes": 242597888,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 4,
+      "cpu_ns_per_record": 12989.8,
+      "allocated_bytes_per_record": 58911.3,
+      "allocations_per_record": 1.3409,
+      "records_per_second": 11190,
+      "peak_rss_bytes": 265814016,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 5,
+      "cpu_ns_per_record": 12911.1,
+      "allocated_bytes_per_record": 58911.3,
+      "allocations_per_record": 1.3409,
+      "records_per_second": 11262,
+      "peak_rss_bytes": 241795072,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 6,
+      "cpu_ns_per_record": 13485.5,
+      "allocated_bytes_per_record": 58911.3,
+      "allocations_per_record": 1.3409,
+      "records_per_second": 11347,
+      "peak_rss_bytes": 250200064,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 7,
+      "cpu_ns_per_record": 13488.8,
+      "allocated_bytes_per_record": 58911.3,
+      "allocations_per_record": 1.3409,
+      "records_per_second": 11332,
+      "peak_rss_bytes": 231718912,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     }
+    ],
+    "cand": [
+     {
+      "rep": 1,
+      "cpu_ns_per_record": 7406.9,
+      "allocated_bytes_per_record": 6229.3,
+      "allocations_per_record": 1.0568,
+      "records_per_second": 11833,
+      "peak_rss_bytes": 83640320,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 2,
+      "cpu_ns_per_record": 9552.9,
+      "allocated_bytes_per_record": 6229.3,
+      "allocations_per_record": 1.0568,
+      "records_per_second": 11869,
+      "peak_rss_bytes": 84197376,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 3,
+      "cpu_ns_per_record": 9246.2,
+      "allocated_bytes_per_record": 6229.3,
+      "allocations_per_record": 1.0568,
+      "records_per_second": 11986,
+      "peak_rss_bytes": 77676544,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 4,
+      "cpu_ns_per_record": 9163.0,
+      "allocated_bytes_per_record": 6229.3,
+      "allocations_per_record": 1.0568,
+      "records_per_second": 11769,
+      "peak_rss_bytes": 79822848,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 5,
+      "cpu_ns_per_record": 9585.8,
+      "allocated_bytes_per_record": 6229.3,
+      "allocations_per_record": 1.0568,
+      "records_per_second": 11962,
+      "peak_rss_bytes": 81149952,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 6,
+      "cpu_ns_per_record": 9830.9,
+      "allocated_bytes_per_record": 6229.3,
+      "allocations_per_record": 1.0568,
+      "records_per_second": 11894,
+      "peak_rss_bytes": 77119488,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     },
+     {
+      "rep": 7,
+      "cpu_ns_per_record": 9410.1,
+      "allocated_bytes_per_record": 6229.3,
+      "allocations_per_record": 1.0568,
+      "records_per_second": 12035,
+      "peak_rss_bytes": 77103104,
+      "records_consumed": 60000,
+      "broker_fetched_records": 779000,
+      "verified": true
+     }
+    ]
+   }
+  },
+  "nb-fetch-bulk": {
+   "repetitions": 7,
+   "parent_median": {
+    "cpu_ns_per_record": 1661.2,
+    "records_per_second": 174790,
+    "allocated_bytes_per_record": 5410.4,
+    "allocations_per_record": 6.7754,
+    "peak_rss_bytes": 98091008
+   },
+   "candidate_median": {
+    "cpu_ns_per_record": 1532.3,
+    "records_per_second": 175078,
+    "allocated_bytes_per_record": 5409.5,
+    "allocations_per_record": 6.7755,
+    "peak_rss_bytes": 80429056
+   },
+   "paired_delta_pct": {
+    "cpu_ns_per_record": {
+     "median": -5.2,
+     "ci95": [
+      -18.04,
+      -0.01
+     ]
+    },
+    "records_per_second": {
+     "median": 0.94,
+     "ci95": [
+      -4.54,
+      2.53
+     ]
+    },
+    "allocated_bytes_per_record": {
+     "median": -0.02,
+     "ci95": [
+      -0.02,
+      -0.02
+     ]
+    },
+    "peak_rss_bytes": {
+     "median": -17.99,
+     "ci95": [
+      -40.52,
+      43.2
+     ]
+    }
+   },
+   "runs": {
+    "parent": [
+     {
+      "rep": 1,
+      "cpu_ns_per_record": 1746.8,
+      "allocated_bytes_per_record": 5410.4,
+      "allocations_per_record": 6.7754,
+      "records_per_second": 174781,
+      "peak_rss_bytes": 98091008,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 2,
+      "cpu_ns_per_record": 1612.4,
+      "allocated_bytes_per_record": 5410.4,
+      "allocations_per_record": 6.7754,
+      "records_per_second": 174790,
+      "peak_rss_bytes": 56164352,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 3,
+      "cpu_ns_per_record": 1617.8,
+      "allocated_bytes_per_record": 5410.4,
+      "allocations_per_record": 6.7754,
+      "records_per_second": 177679,
+      "peak_rss_bytes": 98091008,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 4,
+      "cpu_ns_per_record": 1737.5,
+      "allocated_bytes_per_record": 5410.4,
+      "allocations_per_record": 6.7754,
+      "records_per_second": 173112,
+      "peak_rss_bytes": 98091008,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 5,
+      "cpu_ns_per_record": 1580.9,
+      "allocated_bytes_per_record": 5410.4,
+      "allocations_per_record": 6.7754,
+      "records_per_second": 172845,
+      "peak_rss_bytes": 74792960,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 6,
+      "cpu_ns_per_record": 1676.7,
+      "allocated_bytes_per_record": 5410.4,
+      "allocations_per_record": 6.7754,
+      "records_per_second": 177369,
+      "peak_rss_bytes": 98205696,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 7,
+      "cpu_ns_per_record": 1661.2,
+      "allocated_bytes_per_record": 5410.4,
+      "allocations_per_record": 6.7754,
+      "records_per_second": 176490,
+      "peak_rss_bytes": 40009728,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     }
+    ],
+    "cand": [
+     {
+      "rep": 1,
+      "cpu_ns_per_record": 1216.0,
+      "allocated_bytes_per_record": 5409.5,
+      "allocations_per_record": 6.7755,
+      "records_per_second": 155228,
+      "peak_rss_bytes": 54558720,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 2,
+      "cpu_ns_per_record": 1612.2,
+      "allocated_bytes_per_record": 5409.5,
+      "allocations_per_record": 6.7755,
+      "records_per_second": 166846,
+      "peak_rss_bytes": 80429056,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 3,
+      "cpu_ns_per_record": 1636.5,
+      "allocated_bytes_per_record": 5409.5,
+      "allocations_per_record": 6.7755,
+      "records_per_second": 175078,
+      "peak_rss_bytes": 80445440,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 4,
+      "cpu_ns_per_record": 1647.2,
+      "allocated_bytes_per_record": 5409.5,
+      "allocations_per_record": 6.7755,
+      "records_per_second": 175028,
+      "peak_rss_bytes": 58343424,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 5,
+      "cpu_ns_per_record": 1529.3,
+      "allocated_bytes_per_record": 5409.5,
+      "allocations_per_record": 6.7755,
+      "records_per_second": 180123,
+      "peak_rss_bytes": 80429056,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 6,
+      "cpu_ns_per_record": 1532.3,
+      "allocated_bytes_per_record": 5409.5,
+      "allocations_per_record": 6.7755,
+      "records_per_second": 179034,
+      "peak_rss_bytes": 80429056,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     },
+     {
+      "rep": 7,
+      "cpu_ns_per_record": 1361.6,
+      "allocated_bytes_per_record": 5409.5,
+      "allocations_per_record": 6.7755,
+      "records_per_second": 180959,
+      "peak_rss_bytes": 80658432,
+      "records_consumed": 20000,
+      "broker_fetched_records": 135000,
+      "verified": true
+     }
+    ]
+   }
+  }
+ },
+ "real_broker_consume": {
+  "setup": "local Kafka broker on 127.0.0.1:9092 (mTLS), topic rsbench-k8, 8 partitions, real gzip 1 KiB records written by librdkafka; probe plprobe2 from the 2026-10-01 compression-parity eval rebuilt against each arm; manual assignment; max_bytes 50 MiB, max_partition_fetch_bytes 8 MiB, default buffer_memory 32 MiB; up to 1M records or 30 s",
+  "runs": [
+   {
+    "client": "pl",
+    "mode": "consume",
+    "records": 961480,
+    "mb": 985,
+    "wall_s": 30.8,
+    "rec_per_s": 31213,
+    "cpu_s": 14.47,
+    "cores": 0.47,
+    "cpu_us_per_rec": 15.05,
+    "maxrss_mb": 1334,
+    "arm": "parent",
+    "rep": 1,
+    "load1": 15.95
+   },
+   {
+    "client": "pl",
+    "mode": "consume",
+    "records": 1025625,
+    "mb": 1050,
+    "wall_s": 22.6,
+    "rec_per_s": 45408,
+    "cpu_s": 4.61,
+    "cores": 0.204,
+    "cpu_us_per_rec": 4.49,
+    "maxrss_mb": 311,
+    "arm": "cand",
+    "rep": 1,
+    "load1": 13.29
+   },
+   {
+    "client": "pl",
+    "mode": "consume",
+    "records": 1025625,
+    "mb": 1050,
+    "wall_s": 22.1,
+    "rec_per_s": 46401,
+    "cpu_s": 4.53,
+    "cores": 0.205,
+    "cpu_us_per_rec": 4.42,
+    "maxrss_mb": 308,
+    "arm": "cand",
+    "rep": 2,
+    "load1": 11.99
+   },
+   {
+    "client": "pl",
+    "mode": "consume",
+    "records": 897401,
+    "mb": 919,
+    "wall_s": 30.6,
+    "rec_per_s": 29353,
+    "cpu_s": 13.76,
+    "cores": 0.45,
+    "cpu_us_per_rec": 15.33,
+    "maxrss_mb": 1381,
+    "arm": "parent",
+    "rep": 2,
+    "load1": 15.03
+   },
+   {
+    "client": "pl",
+    "mode": "consume",
+    "records": 929451,
+    "mb": 952,
+    "wall_s": 30.1,
+    "rec_per_s": 30842,
+    "cpu_s": 14.04,
+    "cores": 0.466,
+    "cpu_us_per_rec": 15.11,
+    "maxrss_mb": 1324,
+    "arm": "parent",
+    "rep": 3,
+    "load1": 13.38
+   },
+   {
+    "client": "pl",
+    "mode": "consume",
+    "records": 1025625,
+    "mb": 1050,
+    "wall_s": 22.0,
+    "rec_per_s": 46523,
+    "cpu_s": 4.6,
+    "cores": 0.209,
+    "cpu_us_per_rec": 4.49,
+    "maxrss_mb": 298,
+    "arm": "cand",
+    "rep": 3,
+    "load1": 12.95
+   }
+  ],
+  "parent_median_cpu_us_per_rec": 15.11,
+  "candidate_median_cpu_us_per_rec": 4.49,
+  "parent_median_rec_per_s": 30842,
+  "candidate_median_rec_per_s": 46401,
+  "parent_median_maxrss_mb": 1334,
+  "candidate_median_maxrss_mb": 308,
+  "reference": "librdkafka 2.12.1 static on the same setup: 2.35 us/rec (2026-10-01 eval at 62561426)"
+ },
+ "instructions": {
+  "host": "Debian 12 aarch64 container on Apple M4 Pro, rustc 1.98.1, valgrind 3.19.0, iai-callgrind 0.14.2 (--allow-aslr); parent worktree at local 68c6924b (= 3eb74f4d code) vs candidate",
+  "Ir": {
+   "iai_compress_gzip/text": {
+    "parent": 11159121,
+    "candidate": 11163121,
+    "delta_pct": 0.036
+   },
+   "iai_compress_lz4/text": {
+    "parent": 1887246,
+    "candidate": 1891246,
+    "delta_pct": 0.212
+   },
+   "iai_compress_snappy/text": {
+    "parent": 1379336,
+    "candidate": 1383336,
+    "delta_pct": 0.29
+   },
+   "iai_crc/f03": {
+    "parent": 110834,
+    "candidate": 110834,
+    "delta_pct": 0.0
+   },
+   "iai_decode/f03": {
+    "parent": 548809,
+    "candidate": 539888,
+    "delta_pct": -1.626
+   },
+   "iai_decompress_gzip/text": {
+    "parent": 1378025,
+    "candidate": 1369356,
+    "delta_pct": -0.629
+   },
+   "iai_decompress_lz4/text": {
+    "parent": 995377,
+    "candidate": 986452,
+    "delta_pct": -0.897
+   },
+   "iai_decompress_snappy/text": {
+    "parent": 936556,
+    "candidate": 927635,
+    "delta_pct": -0.953
+   },
+   "iai_encode/f03": {
+    "parent": 756679,
+    "candidate": 760679,
+    "delta_pct": 0.529
+   },
+   "iai_request/v9": {
+    "parent": 152836,
+    "candidate": 152828,
+    "delta_pct": -0.005
+   },
+   "json1k_compress/gzip_16k": {
+    "parent": 1884725,
+    "candidate": 1884725,
+    "delta_pct": 0.0
+   },
+   "json1k_compress/gzip_256k": {
+    "parent": 39130933,
+    "candidate": 39130933,
+    "delta_pct": 0.0
+   },
+   "json1k_compress/lz4_16k": {
+    "parent": 307229,
+    "candidate": 307229,
+    "delta_pct": 0.0
+   },
+   "json1k_compress/lz4_256k": {
+    "parent": 4482838,
+    "candidate": 4482838,
+    "delta_pct": 0.0
+   },
+   "json1k_compress/snappy_16k": {
+    "parent": 185892,
+    "candidate": 185892,
+    "delta_pct": 0.0
+   },
+   "json1k_compress/snappy_256k": {
+    "parent": 2759418,
+    "candidate": 2759418,
+    "delta_pct": 0.0
+   },
+   "json1k_decompress/gzip_16k": {
+    "parent": 282451,
+    "candidate": 282097,
+    "delta_pct": -0.125
+   },
+   "json1k_decompress/gzip_256k": {
+    "parent": 3189861,
+    "candidate": 3184160,
+    "delta_pct": -0.179
+   },
+   "json1k_decompress/lz4_16k": {
+    "parent": 139569,
+    "candidate": 139108,
+    "delta_pct": -0.33
+   },
+   "json1k_decompress/lz4_256k": {
+    "parent": 2047638,
+    "candidate": 2040937,
+    "delta_pct": -0.327
+   },
+   "json1k_decompress/snappy_16k": {
+    "parent": 113300,
+    "candidate": 112843,
+    "delta_pct": -0.403
+   },
+   "json1k_decompress/snappy_256k": {
+    "parent": 1743158,
+    "candidate": 1736461,
+    "delta_pct": -0.384
+   },
+   "json1k_raw_compress/gzip_16k": {
+    "parent": 1853373,
+    "candidate": 1853389,
+    "delta_pct": 0.001
+   },
+   "json1k_raw_compress/gzip_256k": {
+    "parent": 38637739,
+    "candidate": 38637755,
+    "delta_pct": 0.0
+   },
+   "json1k_raw_compress/lz4_16k": {
+    "parent": 271986,
+    "candidate": 271986,
+    "delta_pct": 0.0
+   },
+   "json1k_raw_compress/lz4_256k": {
+    "parent": 3930267,
+    "candidate": 3930267,
+    "delta_pct": 0.0
+   },
+   "json1k_raw_compress/snappy_16k": {
+    "parent": 151174,
+    "candidate": 151174,
+    "delta_pct": 0.0
+   },
+   "json1k_raw_compress/snappy_256k": {
+    "parent": 2197935,
+    "candidate": 2197935,
+    "delta_pct": 0.0
+   },
+   "json1k_raw_decompress/gzip_16k": {
+    "parent": 312267,
+    "candidate": 312288,
+    "delta_pct": 0.007
+   },
+   "json1k_raw_decompress/gzip_256k": {
+    "parent": 2774524,
+    "candidate": 2774553,
+    "delta_pct": 0.001
+   },
+   "json1k_raw_decompress/lz4_16k": {
+    "parent": 110683,
+    "candidate": 110683,
+    "delta_pct": 0.0
+   },
+   "json1k_raw_decompress/lz4_256k": {
+    "parent": 1654009,
+    "candidate": 1654009,
+    "delta_pct": 0.0
+   },
+   "json1k_raw_decompress/snappy_16k": {
+    "parent": 88615,
+    "candidate": 88615,
+    "delta_pct": 0.0
+   },
+   "json1k_raw_decompress/snappy_256k": {
+    "parent": 1378653,
+    "candidate": 1378653,
+    "delta_pct": 0.0
+   }
+  },
+  "max_increase": "iai_encode/f03",
+  "max_increase_pct": 0.529
+ }
+}

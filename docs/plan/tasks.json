@@ -5193,14 +5193,26 @@
     {
       "id": "KL10-16",
       "title": "Decompress fetch batches only when they are applied",
-      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "mingley",
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
       "depends_on": ["KL02-08", "KL09-10"],
       "files": ["src/consumer.rs", "src/protocol/fetch.rs", "src/protocol/records.rs", "benchmarks/runtime/", "tests/fetch_buffer_budget.rs"],
       "deliverable": "Consumer::fetch splits and CRC-checks every fetched batch but decompresses and decodes a batch only when it is applied within the buffer_memory budget. Batches past the budget stay compressed and are re-fetched later instead of being inflated and discarded (decode-then-discard, found 2026-10-01 at 62561426: 15.0 us/rec at 8 MiB/partition with the default 32 MiB budget vs 1.47 with a 1 GiB budget). A new nb-fetch-gzip-overfetch cell reproduces it.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "The cell lands in its own first commit, is registered in performance-leadership.md section 4 and is measured on that commit before the fix.", "Delivered records, order, positions, KIP-74 first-batch progress, read_committed filtering and the KL02-03 decode limits are unchanged; framing, CRC and codec errors still fail the whole response before any record is applied; a failing-first test shows a batch past the budget is not decoded.", "The public decode_fetch_response keeps its signature and output."],
       "validation": ["cargo test --locked --test fetch_buffer_budget", "cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test protocol_oracles", "cargo test --locked --test fuzz_decode_smoke", "A/B cells nb-fetch-gzip-overfetch and nb-fetch-bulk: >=5 interleaved repetitions on the same host, medians with 95% CI"],
-      "evidence": [],
-      "write_set": ["src/consumer.rs", "src/protocol/fetch.rs", "src/protocol/records.rs", "benchmarks/runtime/src/fcells.rs", "benchmarks/runtime/src/fdrive.rs", "benchmarks/runtime/src/main.rs", "tests/fetch_buffer_budget.rs", "docs/plan/performance-leadership.md", "docs/plan/gateway-adoption.md", "docs/ROADMAP.md", "CHANGELOG.md", "docs/plan/tasks.json", "docs/plan/evidence/KL10-16.json", "docs/evidence/perf/KL10-16/"]
+      "evidence": ["docs/plan/evidence/KL10-16.json"],
+      "write_set": ["src/consumer.rs", "src/protocol/fetch.rs", "src/protocol/records.rs", "benchmarks/runtime/src/fcells.rs", "benchmarks/runtime/src/fdrive.rs", "benchmarks/runtime/src/main.rs", "tests/fetch_buffer_budget.rs", "docs/plan/performance-leadership.md", "docs/plan/gateway-adoption.md", "docs/ROADMAP.md", "CHANGELOG.md", "docs/plan/tasks.json", "docs/plan/evidence/KL10-16.json", "docs/evidence/perf/KL10-16/", "docs/guide.md", "benchmarks/runtime/tests/fcells.rs"],
+      "follow_up": "Accepted: nb-fetch-gzip-overfetch -29.5% CPU/record, -89% allocated bytes; real broker 15.1 -> 4.5 us/record. Re-fetch of batches past the budget remains (KL10-17)."
+    },
+    {
+      "id": "KL10-17",
+      "title": "Keep fetched batches the budget cannot hold instead of re-fetching them",
+      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "depends_on": ["KL10-16"],
+      "files": ["src/consumer.rs", "docs/resource-contract.md", "docs/guide.md"],
+      "deliverable": "Batches past buffer_memory stay in a per-partition queue of framed, still-compressed batches (Java Fetcher CompletedFetch model) and are decoded as application consumption drains the budget, so the consumer stops re-fetching them. After KL10-16 the nb-fetch-gzip-overfetch cell still fetches about 13x the consumed bytes and the real-broker gateway probe sits at 4.5 us/record against librdkafka's 2.35.",
+      "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Retained compressed bytes have a documented cap and accounting in resource-contract.md; seek, pause, resume, revocation, assignment changes and leader changes drop or keep retained batches exactly as they do decoded pending records.", "Delivered records, order, positions, KIP-74 progress, read_committed filtering and the KL02-03 decode limits are unchanged; fetched/consumed bytes on nb-fetch-gzip-overfetch fall toward 1."],
+      "validation": ["cargo test --locked --test fetch_buffer_budget", "cargo test --locked --test consumer_fetch_semantics", "A/B cells nb-fetch-gzip-overfetch and nb-fetch-bulk: >=5 interleaved repetitions on the same host, medians with 95% CI"],
+      "evidence": []
     }
   ]
 }

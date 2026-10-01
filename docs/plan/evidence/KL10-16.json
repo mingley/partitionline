@@ -1,0 +1,103 @@
+{
+ "id": "KL10-16",
+ "status": "done",
+ "disposition": "accepted",
+ "source_sha": "the KL10-16 commit on main (see git log)",
+ "baseline_sha": "3eb74f4d (cell commit; measured before the change as local 68c6924b, identical except a benchmark contract test)",
+ "hypothesis": "Consumer::fetch decodes every batch of every fetched response before applying the buffer_memory budget, then drops what the budget cannot hold and re-fetches it (decode-then-discard, 2026-10-01 re-probe at 62561426). Deferring decompression and record decode until a batch is applied removes the discarded decode work; framing, CRC and codec checks stay eager.",
+ "cells": [
+  "nb-fetch-gzip-overfetch",
+  "nb-fetch-bulk"
+ ],
+ "host": "Apple M4 Pro (14 cores), macOS, rustc 1.98.1, release; shared laptop, 1-minute load average 14-19",
+ "commands": [
+  "runtime --cell nb-fetch-gzip-overfetch --out <dir> --repetitions 1 and runtime --cell nb-fetch-bulk ... (7 interleaved repetitions per arm; exit 0, 0 failures)",
+  "plprobe2 rsbench-k8 pl consume 1000000 30 against the local mTLS broker (3 interleaved repetitions per arm)",
+  "measure.sh <parent> <candidate> <out> iai in a Debian 12 aarch64 container (iai and json1k_iai benches)",
+  "cargo fmt --all --check; cargo clippy --all-targets --all-features -- -D warnings; cargo build --locked --example verifiable_producer --example verifiable_consumer; cargo test --doc --all-features; RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --all-features (exit 0)",
+  "cargo test --locked --all-targets --no-fail-fast (1774 passed, 1 failed: admin_against_kafka_if_present, environmental and failing on the parent too)",
+  "cargo test --locked --no-default-features --lib --test protocol_oracles --test fuzz_decode_smoke --test fetch_buffer_budget; cargo +1.85 check --locked --all-targets; bash scripts/ci-deny.sh; bash scripts/ci-protocol-oracles.sh (exit 0)",
+  "bash scripts/ci-alloc-budget.sh; cargo test --locked --manifest-path benchmarks/codec/Cargo.toml; cargo test --locked --manifest-path benchmarks/runtime/Cargo.toml; python3 scripts/check-doc-examples.py --allow-dirty (exit 0)",
+  "failing-first: tests/fetch_buffer_budget.rs batch_past_budget_is_not_decompressed fails on the parent (the first fetch errors with the decode ceiling) and passes on the candidate"
+ ],
+ "results": {
+  "primary": {
+   "metric": "nb-fetch-gzip-overfetch client CPU-ns per record",
+   "baseline_median": 13320.6,
+   "candidate_median": 9410.1,
+   "delta_pct": -29.46,
+   "ci95_pct": [
+    -30.59,
+    -27.1
+   ],
+   "repetitions": 7
+  },
+  "throughput": {
+   "metric": "nb-fetch-gzip-overfetch records/s",
+   "delta_pct": 5.17,
+   "ci95_pct": [
+    4.8,
+    6.22
+   ]
+  },
+  "allocations": {
+   "unit": "allocated bytes per delivered record (nb-fetch-gzip-overfetch)",
+   "baseline": 58911.3,
+   "candidate": 6229.3
+  },
+  "peak_rss_bytes": {
+   "baseline": 248774656,
+   "candidate": 79822848
+  },
+  "real_broker": {
+   "cpu_us_per_record": [
+    15.11,
+    4.49
+   ],
+   "records_per_second": [
+    30842,
+    46401
+   ],
+   "max_rss_mb": [
+    1334,
+    308
+   ],
+   "reference": "librdkafka 2.12.1 static on the same setup: 2.35 us/rec (2026-10-01 eval at 62561426)"
+  },
+  "instructions": {
+   "bench": "tracked iai and json1k_iai benches (aarch64 Linux)",
+   "max_increase": "iai_encode/f03",
+   "max_increase_pct": 0.529,
+   "decode_benches": "-0.1% to -1.6%"
+  },
+  "guardrails": "nb-fetch-bulk CPU-ns/record -5.2% (CI [-18.04, -0.01]), allocations per record unchanged; codec allocation gates unchanged; no tracked instruction bench above +1%",
+  "net_production_lines": 161,
+  "complexity_budget": "161 net production lines (>150) is justified by -29.5% CPU on the nb-fetch-gzip-overfetch cell (>=5% required)",
+  "correctness": "delivered records verified by ID/hash in every nb run (integrity verified, 0 validation failures); fetch_buffer_budget 9/9 including the new failing-first test; consumer_fetch_semantics, protocol_oracles, fuzz_decode_smoke green; public decode_fetch_response unchanged (now built on the crate-private raw decoder)"
+ },
+ "behavior_notes": [
+  "Framing, CRC32-C and codec errors still fail the whole response before any record is applied.",
+  "Errors found only while decompressing or decoding records now surface when that batch is applied; a corrupt batch past the budget is reported by the later fetch that reaches it.",
+  "The fetch is still over-requested: about 13x the consumed bytes are fetched because batches past the budget are re-fetched (KL10-17)."
+ ],
+ "artifacts": [
+  "docs/evidence/perf/KL10-16/README.md",
+  "docs/evidence/perf/KL10-16/measurements.json",
+  "docs/evidence/perf/KL10-16/real-broker-consume.jsonl"
+ ],
+ "limits": [
+  "local/unsigned; not a Kafka comparison claim",
+  "the nb cell serves gzip as stored frames, so it understates real-gzip decode savings",
+  "x86_64 not measured locally; CI runs the instruction and allocation gates"
+ ],
+ "ci": {
+  "run": "https://github.com/mingley/partitionline/actions/runs/36912000222",
+  "event": "workflow_dispatch on branch mingley/kl10-16-fetch-decode-budget (pre-fixup head 5b7b58b0)",
+  "result": "success: fmt, clippy, audit, deny, docs, package, perf-gate, latency-gate, fuzz-smoke, conformance-fixtures, broker-smoke (3.9.1, 4.1.0), broker-current (4.1.2, 4.2.1, 4.3.1), auth-smoke, integrity-smoke, release-rehearsal, macos-arm64 (stable, 1.85.0), windows (1.85.0); skipped: conformance-live",
+  "failures": [
+   "test (stable), test (1.85), features: the new batch_past_budget_is_not_decompressed timed out at the fixture's 2 s request timeout while the debug-build mock gzipped the 64 MiB batch; fixed by a 60 s request timeout in that test",
+   "alloc-budget: micro-encode/1000 19 allocs / 263,036 bytes vs budget 15 / 262,136 (encode path, untouched here); identical on main run 36908847029 at e9e41538 (pre-existing)",
+   "windows (stable): fetch_throttle_caller_cancellation_does_not_mutate_default_wait; identical on main run 36908847029 (pre-existing)"
+  ]
+ }
+}

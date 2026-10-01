@@ -429,7 +429,7 @@ gzip consume.
 codec benchmarks; KL-05 for zstd.
 
 The [gateway adoption plan](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/gateway-adoption.md) holds the profile,
-the dated evidence and the card map. Cards are KL10-01 through KL10-15 in
+the dated evidence and the card map. Cards are KL10-01 through KL10-17 in
 [tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json).
 
 1. Restore a green `main`: the verifiable contract tests must find the

@@ -179,7 +179,7 @@ backend reaches about 1 GB/s when it writes into a large buffer.
 | F3 | Codec microbenchmarks lack a realistic 1 KiB text family | JSON-like 1 KiB payloads at two batch sizes, plus a raw-backend baseline | KL10-03 |
 | F4 | In-client deflate costs almost 2× deflating the same bytes in one call | Measure batch sizes, write granularity, encoder re-initialization and level; split the fixes | KL10-04 |
 | F5 | miniz deflate is no faster than C zlib; zlib-rs is 1.8× faster | Backend policy decision, then an opt-in backend | KL10-05, KL10-06, KL10-15 |
-| F6 | gzip decode uses 7.8× librdkafka's CPU per record | Pre-sized decompression output (existing card), then decode off the caller task | **KL09-34**, KL10-09 |
+| F6 | gzip decode uses 7.8× librdkafka's CPU per record | Decode-then-discard (re-probe 2026-10-01): decompress only applied batches, then keep the rest instead of re-fetching; pre-sized output (rejected) and off-caller decode | KL10-16, KL10-17, **KL09-34**, KL10-09 |
 | F7 | No owned, eagerly admitted per-record completion | Specify, then implement, an additive delivery API | KL10-07, KL10-08 |
 | F8 | Consumer peak RSS is 1.4 GB, against 193 MB for the peer | Explain it against the configured budgets; fix the default or the documentation | KL10-10 |
 | F9 | The claim gate has no gzip or ~1 KiB cells | Propose a contract amendment adding gateway cells | KL10-11 |
@@ -226,6 +226,8 @@ reason.
 | KL10-13 | P2 | documentation | Document the gateway adoption recipe | KL10-08 | - |
 | KL10-14 | P1 | benchmark | Build the gateway fetch cell with a same-settings librdkafka peer | KL04-05, KL04-07, KL09-01 | - |
 | KL10-15 | P1 | baseline-change | Re-baseline the gzip allocation cells for the zlib-rs default | KL10-05 | - |
+| KL10-16 | P1 | implementation | Decompress fetch batches only when they are applied | KL02-08, KL09-10 | consumer, fetch, records |
+| KL10-17 | P1 | implementation | Keep fetched batches the budget cannot hold instead of re-fetching them | KL10-16 | consumer |
 <!-- KL10-INDEX:END -->
 
 ## 6. Boundaries

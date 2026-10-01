@@ -1,0 +1,6 @@
+{"client":"pl","mode":"consume","records":961480,"mb":985,"wall_s":30.8,"rec_per_s":31213,"cpu_s":14.47,"cores":0.470,"cpu_us_per_rec":15.05,"maxrss_mb":1334,"arm":"parent","rep":1,"load1":15.95}
+{"client":"pl","mode":"consume","records":1025625,"mb":1050,"wall_s":22.6,"rec_per_s":45408,"cpu_s":4.61,"cores":0.204,"cpu_us_per_rec":4.49,"maxrss_mb":311,"arm":"cand","rep":1,"load1":13.29}
+{"client":"pl","mode":"consume","records":1025625,"mb":1050,"wall_s":22.1,"rec_per_s":46401,"cpu_s":4.53,"cores":0.205,"cpu_us_per_rec":4.42,"maxrss_mb":308,"arm":"cand","rep":2,"load1":11.99}
+{"client":"pl","mode":"consume","records":897401,"mb":919,"wall_s":30.6,"rec_per_s":29353,"cpu_s":13.76,"cores":0.450,"cpu_us_per_rec":15.33,"maxrss_mb":1381,"arm":"parent","rep":2,"load1":15.03}
+{"client":"pl","mode":"consume","records":929451,"mb":952,"wall_s":30.1,"rec_per_s":30842,"cpu_s":14.04,"cores":0.466,"cpu_us_per_rec":15.11,"maxrss_mb":1324,"arm":"parent","rep":3,"load1":13.38}
+{"client":"pl","mode":"consume","records":1025625,"mb":1050,"wall_s":22.0,"rec_per_s":46523,"cpu_s":4.60,"cores":0.209,"cpu_us_per_rec":4.49,"maxrss_mb":298,"arm":"cand","rep":3,"load1":12.95}
