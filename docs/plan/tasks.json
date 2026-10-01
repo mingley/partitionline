@@ -2007,9 +2007,9 @@
         "scripts/check-protocol-coverage.py",
         "tests/conformance/test_check_protocol_coverage.py",
         "tests/conformance/features.json",
-        "docs/REFERENCE.md",
         "docs/plan/tasks.json",
-        "docs/plan/evidence/KL05-20.json"
+        "docs/plan/evidence/KL05-20.json",
+        "docs/support.md"
       ]
     },
     {
