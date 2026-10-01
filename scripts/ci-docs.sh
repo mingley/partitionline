@@ -21,6 +21,42 @@ case "$MODE" in
     ;;
 esac
 
+report="${PL_DOCS_REPORT_DIR:-$ROOT/target/docs-gate}"
+mkdir -p "$report"
+{
+  git rev-parse HEAD
+  rustc -Vv
+  cargo -V
+  uname -sm
+} >"$report/identity.log"
+
+run_logged() {
+  local phase="$1"
+  shift
+  local statuses result
+  set +e
+  "$@" 2>&1 | tee "$report/$phase.log"
+  statuses=("${PIPESTATUS[@]}")
+  result=${statuses[0]}
+  if [[ "$result" -eq 0 && "${statuses[1]}" -ne 0 ]]; then
+    result=${statuses[1]}
+  fi
+  set -e
+  if [[ "$result" -ne 0 ]]; then
+    python3 - "$report/$phase.log" "$phase" "$result" <<'PY'
+from pathlib import Path
+import sys
+log = Path(sys.argv[1]).read_text(encoding='utf-8', errors='replace')
+if len(log) > 14000:
+    log = log[:4000] + '\n[full log retained; middle omitted]\n' + log[-10000:]
+message = f'{sys.argv[2]} exited {sys.argv[3]}\n' + log
+message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+print('::error title=Documentation gate::' + message)
+PY
+  fi
+  return "$result"
+}
+
 # Auto-detect if offline can be used when dependencies are cached.
 CARGO_OFFLINE_FLAG=()
 if [[ "$MODE" == "--offline" || "${OFFLINE:-0}" == "1" ]] || \
@@ -30,12 +66,12 @@ fi
 
 run_docs_build() {
   echo "ci-docs: RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features ${CARGO_OFFLINE_FLAG[*]}"
-  RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features "${CARGO_OFFLINE_FLAG[@]}"
+  run_logged rustdoc env RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features "${CARGO_OFFLINE_FLAG[@]}"
 }
 
 run_doctests() {
   echo "ci-docs: cargo test --locked --doc --all-features ${CARGO_OFFLINE_FLAG[*]}"
-  cargo test --locked --doc --all-features "${CARGO_OFFLINE_FLAG[@]}"
+  run_logged doctests cargo test --locked --doc --all-features "${CARGO_OFFLINE_FLAG[@]}"
 }
 
 run_docs_gate() {
