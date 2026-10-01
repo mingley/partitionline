@@ -1612,13 +1612,46 @@
     {
       "id": "KL05-06",
       "title": "Use incremental Fetch sessions in the consumer",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL03-06", "KL03-22", "KL01-05"],
-      "files": ["src/consumer.rs", "src/protocol/fetch.rs", "tests/consumer_fetch_semantics.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL03-06",
+        "KL03-22",
+        "KL01-05"
+      ],
+      "files": [
+        "src/consumer.rs",
+        "src/protocol/fetch.rs",
+        "tests/consumer_fetch_semantics.rs"
+      ],
       "deliverable": "Per-broker session state using the already-existing FetchMetadata and forgotten-topic codecs.",
-      "acceptance": ["Create sessions and send only changed partitions with correct epochs and topic-name/ID versions.", "Keep legacy fallback for peers that cannot use sessions; do not change delivery/commit semantics.", "Prove request-size reduction for many unchanged partitions without making an unmeasured throughput claim."],
-      "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --lib protocol::fetch"],
-      "evidence": []
+      "acceptance": [
+        "Create sessions and send only changed partitions with correct epochs and topic-name/ID versions.",
+        "Keep legacy fallback for peers that cannot use sessions; do not change delivery/commit semantics.",
+        "Prove request-size reduction for many unchanged partitions without making an unmeasured throughput claim."
+      ],
+      "validation": [
+        "cargo test --locked --test consumer_fetch_semantics",
+        "cargo test --locked --lib protocol::fetch"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/consumer.rs",
+        "src/protocol/fetch.rs",
+        "tests/consumer_fetch_semantics.rs",
+        "tests/common/mod.rs",
+        "tests/conformance/features.json",
+        "tests/oracles/java/FetchSessionOracle.java",
+        "tests/oracles/java/generate_fetch_session.py",
+        "docs/guide.md",
+        "docs/gaps.md",
+        "docs/support.md",
+        "CHANGELOG.md",
+        "docs/plan/evidence/KL05-06.json",
+        "docs/plan/tasks.json"
+      ]
     },
     {
       "id": "KL05-07",
