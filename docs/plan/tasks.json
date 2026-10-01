@@ -2361,13 +2361,34 @@
     {
       "id": "KL07-15",
       "title": "Validate consumer fetch bounds at construction",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL07-10"],
-      "files": ["src/consumer.rs", "tests/client_api.rs"],
+      "priority": "P2",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL07-10"
+      ],
+      "files": [
+        "src/consumer.rs",
+        "tests/client_api.rs"
+      ],
       "deliverable": "Constructor rejection of negative consumer fetch bounds.",
-      "acceptance": ["Consumer::new returns Error::protocol before any network I/O when max_wait_ms, min_bytes, max_bytes, or max_partition_fetch_bytes is negative.", "Zero and positive values keep current behavior; fetch builders are unchanged.", "client_api gains a no-I/O rejection test per field."],
-      "validation": ["cargo test --locked --test client_api fetch_bounds"],
-      "evidence": []
+      "acceptance": [
+        "Consumer::new returns Error::protocol before any network I/O when max_wait_ms, min_bytes, max_bytes, or max_partition_fetch_bytes is negative.",
+        "Zero and positive values keep current behavior; fetch builders are unchanged.",
+        "client_api gains a no-I/O rejection test per field."
+      ],
+      "validation": [
+        "cargo test --locked --test client_api fetch_bounds"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/consumer.rs",
+        "tests/client_api.rs",
+        "docs/api-stability.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL07-15.json"
+      ]
     },
     {
       "id": "KL08-01",
