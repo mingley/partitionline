@@ -42,6 +42,7 @@ feature fails the profile. Transaction commit-marker visibility is observed
 within five seconds without repeating the transaction. Startup coordinator
 errors and every visibility observation remain in the evidence.
 
+KL01-17 qualifies source `9404187` with retained [complete live evidence](plan/evidence/KL01-17.json).
 The Apache 4.1.2 lane also requires the KL01-17
 [frozen live verifiable scenario](../tests/conformance/verifiable-live-profile.json).
 It runs both Rust adapter binaries on one fresh partition, checks every event

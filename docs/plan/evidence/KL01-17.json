@@ -1,0 +1,604 @@
+{
+  "schema_version": 1,
+  "task": "KL01-17",
+  "status": "qualified",
+  "qualifying_source_sha": "9404187d5e9c01be31611de1e4218dddeffc482d",
+  "scope": "Exactly one predeclared adapter scenario on digest-pinned Apache 4.1.2; not full ducktape or SDK-profile passage.",
+  "frozen_profile_sha256": "9e7ddf87aeafff5ffd6a4566b6859a636db9f61531593dd6615babb784b3df01",
+  "normative_cli_source": "ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "passed_attempt": {
+    "build.log": {
+      "sha256": "a11a1de8037a032bda7e33f88e31dc898d0129cfe94956add639cd289d2ce985",
+      "bytes": 60,
+      "text": "    Finished `dev` profile [unoptimized] target(s) in 0.06s\n"
+    },
+    "build.stdout.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "text": ""
+    },
+    "cargo.log": {
+      "sha256": "9950bbb2d5c3417b1a068f0e81f6d3cac991a363193bdf2a22d447f5acf8b503",
+      "bytes": 36,
+      "text": "cargo 1.98.1 (797e8a9bc 2026-08-05)\n"
+    },
+    "consumer.jsonl": {
+      "sha256": "b6ef66c5b21d579587926ebea33bfd60bf938edc7df295b6dd9bae2a05c6ea18",
+      "bytes": 4783,
+      "text": "{\"timestamp\":1790870060016,\"name\":\"startup_complete\"}\n{\"timestamp\":1790870060077,\"name\":\"partitions_assigned\",\"partitions\":[{\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0}]}\n{\"timestamp\":1790870060118,\"name\":\"record_data\",\"key\":null,\"value\":\"0\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":0}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"1\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":1}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"2\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":2}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"3\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":3}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"4\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":4}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"5\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":5}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"6\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":6}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"7\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":7}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"8\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":8}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"9\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":9}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"10\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":10}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"11\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":11}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"12\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":12}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"13\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":13}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"14\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":14}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"15\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":15}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"16\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":16}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"17\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":17}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"18\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":18}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"19\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":19}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"20\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":20}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"21\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":21}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"22\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":22}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"23\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":23}\n{\"timestamp\":1790870060119,\"name\":\"record_data\",\"key\":null,\"value\":\"24\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":24}\n{\"timestamp\":1790870060119,\"name\":\"records_consumed\",\"count\":25,\"partitions\":[{\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"count\":25,\"minOffset\":0,\"maxOffset\":24}]}\n{\"timestamp\":1790870060144,\"name\":\"offsets_committed\",\"offsets\":[{\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":25}],\"success\":true}\n{\"timestamp\":1790870060144,\"name\":\"partitions_revoked\",\"partitions\":[{\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0}]}\n{\"timestamp\":1790870060166,\"name\":\"shutdown_complete\"}\n"
+    },
+    "consumer.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "text": ""
+    },
+    "create-topic.log": {
+      "sha256": "050f80a325b739e2f32390e8e423ea7318d5a13ce07a815dd5399f01adf2912e",
+      "bytes": 67,
+      "text": "Created topic plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542.\n"
+    },
+    "create-topic.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "text": ""
+    },
+    "identity.json": {
+      "sha256": "18440643949fa8e787438d1a5e9b520c0295848aad81c614a0517169d61c0c86",
+      "bytes": 1145,
+      "text": "{\n  \"candidate_source_sha\": \"9404187d5e9c01be31611de1e4218dddeffc482d\",\n  \"profile_sha256\": \"9e7ddf87aeafff5ffd6a4566b6859a636db9f61531593dd6615babb784b3df01\",\n  \"broker_reference\": \"apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n  \"broker_version\": \"4.1.2\",\n  \"container\": \"pl-compat-4-1-2-248754\",\n  \"container_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n  \"bootstrap\": \"127.0.0.1:19092\",\n  \"inspected_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n  \"repo_digests\": [\n    \"apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\"\n  ],\n  \"kafka_cli_version\": \"4.1.2\",\n  \"topic\": \"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\n  \"group\": \"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542-group\",\n  \"started_ms\": 1790870056923,\n  \"exit_codes\": {\n    \"producer\": 0,\n    \"consumer\": 0,\n    \"java-records\": 0,\n    \"java-offsets\": 0\n  },\n  \"phase\": \"validate-complete-history\",\n  \"ended_ms\": 1790870067516,\n  \"prerequisite_exit_codes\": {\n    \"build\": 0,\n    \"create-topic\": 0\n  }\n}\n"
+    },
+    "java-offsets.log": {
+      "sha256": "71f1ceda84a54e2d2e1d40c86ea2e7d607115ce7862f3dad18aa274df58b012b",
+      "bytes": 415,
+      "text": "\nGROUP                                                     TOPIC                                               PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplverifiable-4-1-2-3795740881244a7ca42da6c4c4102542-group plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542 0          25              25              0               -               -               -\n"
+    },
+    "java-offsets.stderr.log": {
+      "sha256": "ea59f95054057bdb64587ddd6e2584fbb08224da092caf885a47f8d468ddd1ee",
+      "bytes": 99,
+      "text": "\nConsumer group 'plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542-group' has no active members.\n"
+    },
+    "java-records.log": {
+      "sha256": "ec74ff428015931e7571a497ebf99c284a04ae181fe96e60e8b9fc671804afd2",
+      "bytes": 730,
+      "text": "Partition:0\tOffset:0\tnull\t0\nPartition:0\tOffset:1\tnull\t1\nPartition:0\tOffset:2\tnull\t2\nPartition:0\tOffset:3\tnull\t3\nPartition:0\tOffset:4\tnull\t4\nPartition:0\tOffset:5\tnull\t5\nPartition:0\tOffset:6\tnull\t6\nPartition:0\tOffset:7\tnull\t7\nPartition:0\tOffset:8\tnull\t8\nPartition:0\tOffset:9\tnull\t9\nPartition:0\tOffset:10\tnull\t10\nPartition:0\tOffset:11\tnull\t11\nPartition:0\tOffset:12\tnull\t12\nPartition:0\tOffset:13\tnull\t13\nPartition:0\tOffset:14\tnull\t14\nPartition:0\tOffset:15\tnull\t15\nPartition:0\tOffset:16\tnull\t16\nPartition:0\tOffset:17\tnull\t17\nPartition:0\tOffset:18\tnull\t18\nPartition:0\tOffset:19\tnull\t19\nPartition:0\tOffset:20\tnull\t20\nPartition:0\tOffset:21\tnull\t21\nPartition:0\tOffset:22\tnull\t22\nPartition:0\tOffset:23\tnull\t23\nPartition:0\tOffset:24\tnull\t24\n"
+    },
+    "java-records.stderr.log": {
+      "sha256": "bddb7ea0e285e0078b79ac392a1e694454bb3f375816425028544e03f0661706",
+      "bytes": 33,
+      "text": "Processed a total of 25 messages\n"
+    },
+    "producer.jsonl": {
+      "sha256": "c4cf16e683826e37eae23f5321d1f986facd10e2d6126f8c2af9988fa015ca6f",
+      "bytes": 4491,
+      "text": "{\"timestamp\":1790870059710,\"name\":\"startup_complete\"}\n{\"timestamp\":1790870059739,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"0\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":0}\n{\"timestamp\":1790870059748,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"1\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":1}\n{\"timestamp\":1790870059757,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"2\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":2}\n{\"timestamp\":1790870059765,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"3\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":3}\n{\"timestamp\":1790870059778,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"4\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":4}\n{\"timestamp\":1790870059787,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"5\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":5}\n{\"timestamp\":1790870059795,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"6\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":6}\n{\"timestamp\":1790870059803,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"7\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":7}\n{\"timestamp\":1790870059814,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"8\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":8}\n{\"timestamp\":1790870059825,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"9\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":9}\n{\"timestamp\":1790870059833,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"10\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":10}\n{\"timestamp\":1790870059841,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"11\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":11}\n{\"timestamp\":1790870059849,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"12\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":12}\n{\"timestamp\":1790870059857,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"13\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":13}\n{\"timestamp\":1790870059866,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"14\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":14}\n{\"timestamp\":1790870059875,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"15\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":15}\n{\"timestamp\":1790870059883,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"16\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":16}\n{\"timestamp\":1790870059892,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"17\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":17}\n{\"timestamp\":1790870059900,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"18\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":18}\n{\"timestamp\":1790870059908,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"19\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":19}\n{\"timestamp\":1790870059917,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"20\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":20}\n{\"timestamp\":1790870059926,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"21\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":21}\n{\"timestamp\":1790870059936,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"22\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":22}\n{\"timestamp\":1790870059945,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"23\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":23}\n{\"timestamp\":1790870059954,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"24\",\"topic\":\"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\"partition\":0,\"offset\":24}\n{\"timestamp\":1790870059954,\"name\":\"shutdown_complete\"}\n{\"timestamp\":1790870059954,\"name\":\"tool_data\",\"sent\":25,\"acked\":25,\"target_throughput\":-1,\"avg_throughput\":102.45901639344262}\n"
+    },
+    "producer.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "text": ""
+    },
+    "report-validation.log": {
+      "sha256": "42c4e42bef1ff26e3410c8683081fe51e3d1dfbdbeb2ab5efb4afc1fcb5943ab",
+      "bytes": 96,
+      "text": "Live verifiable scenario: all 25 acknowledgements, deliveries and Java-confirmed offsets passed\n"
+    },
+    "report.json": {
+      "sha256": "e4e0ba8ffc1bbc6204ca95f3dded7fea97005c29327c7e727657bff4008e964f",
+      "bytes": 8446,
+      "text": "{\n  \"schema_version\": 1,\n  \"scope\": \"One frozen live verifiable producer-consumer scenario on current Apache 4.1.2; this profile does not cover the full SDK case registry or ducktape suite.\",\n  \"candidate_source_sha\": \"9404187d5e9c01be31611de1e4218dddeffc482d\",\n  \"identity\": {\n    \"candidate_source_sha\": \"9404187d5e9c01be31611de1e4218dddeffc482d\",\n    \"profile_sha256\": \"9e7ddf87aeafff5ffd6a4566b6859a636db9f61531593dd6615babb784b3df01\",\n    \"broker_reference\": \"apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n    \"broker_version\": \"4.1.2\",\n    \"container\": \"pl-compat-4-1-2-248754\",\n    \"container_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n    \"bootstrap\": \"127.0.0.1:19092\",\n    \"inspected_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n    \"repo_digests\": [\n      \"apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\"\n    ],\n    \"kafka_cli_version\": \"4.1.2\",\n    \"topic\": \"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\n    \"group\": \"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542-group\",\n    \"started_ms\": 1790870056923,\n    \"exit_codes\": {\n      \"producer\": 0,\n      \"consumer\": 0,\n      \"java-records\": 0,\n      \"java-offsets\": 0\n    },\n    \"phase\": \"validate-complete-history\",\n    \"ended_ms\": 1790870067516,\n    \"prerequisite_exit_codes\": {\n      \"build\": 0,\n      \"create-topic\": 0\n    }\n  },\n  \"producer\": {\n    \"events\": 28,\n    \"acknowledged\": 25\n  },\n  \"consumer\": {\n    \"events\": 31,\n    \"delivered\": 25,\n    \"polls\": 1,\n    \"commits\": 1,\n    \"final_committed_offset\": 25\n  },\n  \"java\": {\n    \"records\": 25,\n    \"committed_offset\": 25,\n    \"end_offset\": 25,\n    \"lag\": 0\n  },\n  \"cases\": [\n    {\n      \"id\": \"verifiable-produce-consume-live-4-1-2\",\n      \"source_pin\": \"ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c\",\n      \"peer_pin\": \"4.1.2\",\n      \"peer_identity\": \"docker:apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n      \"status\": \"independent_pass\",\n      \"artifacts\": [\n        \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/identity.json\",\n        \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/producer.jsonl\",\n        \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/consumer.jsonl\",\n        \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/java-records.log\",\n        \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/java-offsets.log\"\n      ]\n    }\n  ],\n  \"case_summary\": {\n    \"schema_version\": 1,\n    \"audited_source\": \"ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c\",\n    \"peer_identity\": {\n      \"candidate_source_sha\": \"9404187d5e9c01be31611de1e4218dddeffc482d\",\n      \"profile_sha256\": \"9e7ddf87aeafff5ffd6a4566b6859a636db9f61531593dd6615babb784b3df01\",\n      \"broker_reference\": \"apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n      \"broker_version\": \"4.1.2\",\n      \"container\": \"pl-compat-4-1-2-248754\",\n      \"container_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n      \"bootstrap\": \"127.0.0.1:19092\",\n      \"inspected_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n      \"repo_digests\": [\n        \"apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\"\n      ],\n      \"kafka_cli_version\": \"4.1.2\",\n      \"topic\": \"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542\",\n      \"group\": \"plverifiable-4-1-2-3795740881244a7ca42da6c4c4102542-group\",\n      \"started_ms\": 1790870056923,\n      \"exit_codes\": {\n        \"producer\": 0,\n        \"consumer\": 0,\n        \"java-records\": 0,\n        \"java-offsets\": 0\n      },\n      \"phase\": \"validate-complete-history\",\n      \"ended_ms\": 1790870067516,\n      \"prerequisite_exit_codes\": {\n        \"build\": 0,\n        \"create-topic\": 0\n      }\n    },\n    \"peer_identities\": [\n      \"docker:apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\"\n    ],\n    \"negotiated_api_versions\": {},\n    \"total_cases\": 1,\n    \"denominator_cases\": 1,\n    \"excluded_cases\": 0,\n    \"status_counts\": {\n      \"blocked\": 0,\n      \"not_run\": 0,\n      \"not_applicable\": 0,\n      \"independent_pass\": 1,\n      \"unsupported\": 0,\n      \"local_consistency\": 0,\n      \"failed\": 0\n    },\n    \"total_attempts\": 1,\n    \"passed_cases_count\": 1,\n    \"failing_cases\": [],\n    \"blocked_cases\": [],\n    \"not_run_cases\": [],\n    \"unsupported_cases\": [],\n    \"flaky_cases\": [],\n    \"dispositions\": {\n      \"verifiable-produce-consume-live-4-1-2\": \"independent_pass\"\n    },\n    \"cases\": {\n      \"verifiable-produce-consume-live-4-1-2\": {\n        \"id\": \"verifiable-produce-consume-live-4-1-2\",\n        \"in_denominator\": true,\n        \"final_status\": \"independent_pass\",\n        \"first_status\": \"independent_pass\",\n        \"attempts_count\": 1,\n        \"attempts\": [\n          {\n            \"case_id\": \"verifiable-produce-consume-live-4-1-2\",\n            \"attempt\": 1,\n            \"status\": \"independent_pass\",\n            \"artifacts\": [\n              \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/identity.json\",\n              \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/producer.jsonl\",\n              \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/consumer.jsonl\",\n              \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/java-records.log\",\n              \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/java-offsets.log\"\n            ],\n            \"source_pin\": \"ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c\",\n            \"peer_pin\": \"4.1.2\",\n            \"peer_identity\": \"docker:apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n            \"reason\": \"KL01-17 frozen live scenario: both Rust adapter binaries, 25 null-key string IDs, one fresh partition, all acknowledgements/deliveries and manual next-offset commits, independently corroborated with the digest-pinned current Apache 4.1.2 broker Java CLI. source_pin names the normative Apache 3.9.1 CLI source; each execution separately records and verifies the actual clean candidate source SHA. No full ducktape or full SDK-profile passage.\",\n            \"report_source\": \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542\"\n          }\n        ],\n        \"passed\": true,\n        \"notes\": []\n      }\n    },\n    \"preserved_attempt_log\": [\n      {\n        \"case_id\": \"verifiable-produce-consume-live-4-1-2\",\n        \"attempt\": 1,\n        \"status\": \"independent_pass\",\n        \"artifacts\": [\n          \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/identity.json\",\n          \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/producer.jsonl\",\n          \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/consumer.jsonl\",\n          \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/java-records.log\",\n          \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542/java-offsets.log\"\n        ],\n        \"source_pin\": \"ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c\",\n        \"peer_pin\": \"4.1.2\",\n        \"peer_identity\": \"docker:apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n        \"reason\": \"KL01-17 frozen live scenario: both Rust adapter binaries, 25 null-key string IDs, one fresh partition, all acknowledgements/deliveries and manual next-offset commits, independently corroborated with the digest-pinned current Apache 4.1.2 broker Java CLI. source_pin names the normative Apache 3.9.1 CLI source; each execution separately records and verifies the actual clean candidate source SHA. No full ducktape or full SDK-profile passage.\",\n        \"report_source\": \"/workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542\"\n      }\n    ],\n    \"success\": true,\n    \"exit_code\": 0\n  }\n}\n"
+    },
+    "rustc.log": {
+      "sha256": "778fbc643a806f0dd123c056e66201d7e8a56a61928ec0a33171be8d6c2d5a37",
+      "bytes": 196,
+      "text": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n"
+    }
+  },
+  "failed_attempts": [
+    {
+      "kind": "strict runner rejected bare 4.1.2 CLI version before either adapter executed",
+      "artifacts": {
+        "identity.json": {
+          "sha256": "077a83b1da53e7fbc1dac66d70eb753e77c804148b27b83c31464290877528bc",
+          "bytes": 1037,
+          "text": "{\n  \"candidate_source_sha\": \"69ecb747e21198ab23682a79602522fdd4efc5f4\",\n  \"profile_sha256\": \"9e7ddf87aeafff5ffd6a4566b6859a636db9f61531593dd6615babb784b3df01\",\n  \"broker_reference\": \"apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n  \"broker_version\": \"4.1.2\",\n  \"container\": \"pl-compat-4-1-2-242313\",\n  \"container_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n  \"bootstrap\": \"127.0.0.1:19092\",\n  \"inspected_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n  \"repo_digests\": [\n    \"apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\"\n  ],\n  \"kafka_cli_version\": \"4.1.2\",\n  \"topic\": \"plverifiable-4-1-2-9b83e48c3d28432bb1fe22a785a40393\",\n  \"group\": \"plverifiable-4-1-2-9b83e48c3d28432bb1fe22a785a40393-group\",\n  \"started_ms\": 1790869941171,\n  \"exit_codes\": {},\n  \"phase\": \"build\",\n  \"failure\": \"actual Java CLI version differs from frozen broker cell\",\n  \"ended_ms\": 1790869941171\n}\n"
+        }
+      },
+      "runner_log": "build: actual Java CLI version differs from frozen broker cell\n"
+    }
+  ],
+  "validation": {
+    "kl01-17-conformance-tests.log": ".......................................................E.\n======================================================================\nERROR: test_single_case_cannot_pass_full_primary_registry (test_verifiable_scenario.VerifiableScenario.test_single_case_cannot_pass_full_primary_registry)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/partitionline/tests/conformance/test_verifiable_scenario.py\", line 170, in test_single_case_cannot_pass_full_primary_registry\n    summary = primary.validate_and_aggregate_reports(registry, [('single live scenario', result)],\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/partitionline/scripts/conformance-report.py\", line 428, in validate_and_aggregate_reports\n    raise ConformanceValidationError(f\"Missing {len(missing_cases)} required conformance case(s){suffix}\")\nprimary_report.ConformanceValidationError: Missing 105 required conformance case(s) (showing 5 of 105: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)\n\n----------------------------------------------------------------------\nRan 57 tests in 0.861s\n\nFAILED (errors=1)\n",
+    "kl01-17-conformance-tests-cli-fixed.log": "..........................................................\n----------------------------------------------------------------------\nRan 58 tests in 0.922s\n\nOK\n",
+    "kl01-17-doc-tests.log": "..................\n----------------------------------------------------------------------\nRan 18 tests in 0.178s\n\nOK\n"
+  },
+  "parent_broker_profile": {
+    "schema_version": 1,
+    "source_sha": "9404187d5e9c01be31611de1e4218dddeffc482d",
+    "cell": {
+      "version": "4.1.2",
+      "image": "apache/kafka:4.1.2",
+      "digest": "sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "host": "linux-x86_64",
+      "required_scenarios": [
+        "admin",
+        "produce",
+        "manual",
+        "classic",
+        "cooperative",
+        "kip848",
+        "share",
+        "transaction"
+      ],
+      "records_per_partition": 8,
+      "partitions": 2,
+      "replication_factor": 1,
+      "qualification": "passed",
+      "qualifying_source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+      "ci_run_id": 36869103809
+    },
+    "identity": {
+      "requested": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "actual_reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "container_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+      "inspected_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+      "repo_digests": [
+        "apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+      ],
+      "kafka_cli_version": "4.1.2\n",
+      "host_os": "Linux",
+      "host_arch": "x86_64",
+      "rustc_host": "x86_64-unknown-linux-gnu",
+      "rustc_release": "1.98.1"
+    },
+    "runtime": {
+      "scenarios": {
+        "admin": {
+          "records": 0,
+          "duplicates": 0,
+          "missing": 0,
+          "corrupt": 0,
+          "status": "passed"
+        },
+        "classic": {
+          "records": 16,
+          "duplicates": 0,
+          "missing": 0,
+          "corrupt": 0,
+          "status": "passed"
+        },
+        "cooperative": {
+          "records": 16,
+          "duplicates": 0,
+          "missing": 0,
+          "corrupt": 0,
+          "status": "passed"
+        },
+        "kip848": {
+          "records": 16,
+          "duplicates": 0,
+          "missing": 0,
+          "corrupt": 0,
+          "status": "passed"
+        },
+        "manual": {
+          "records": 16,
+          "duplicates": 0,
+          "missing": 0,
+          "corrupt": 0,
+          "status": "passed"
+        },
+        "produce": {
+          "records": 16,
+          "duplicates": 0,
+          "missing": 0,
+          "corrupt": 0,
+          "status": "passed"
+        },
+        "share": {
+          "records": 16,
+          "duplicates": 0,
+          "missing": 0,
+          "corrupt": 0,
+          "status": "passed"
+        },
+        "transaction": {
+          "records": 16,
+          "duplicates": 0,
+          "missing": 0,
+          "corrupt": 0,
+          "status": "passed"
+        }
+      },
+      "api_ranges": {
+        "0": [
+          0,
+          13
+        ],
+        "1": [
+          4,
+          18
+        ],
+        "10": [
+          0,
+          6
+        ],
+        "11": [
+          0,
+          9
+        ],
+        "12": [
+          0,
+          4
+        ],
+        "13": [
+          0,
+          5
+        ],
+        "14": [
+          0,
+          5
+        ],
+        "15": [
+          0,
+          6
+        ],
+        "16": [
+          0,
+          5
+        ],
+        "17": [
+          0,
+          1
+        ],
+        "18": [
+          0,
+          4
+        ],
+        "19": [
+          2,
+          7
+        ],
+        "2": [
+          1,
+          10
+        ],
+        "20": [
+          1,
+          6
+        ],
+        "21": [
+          0,
+          2
+        ],
+        "22": [
+          0,
+          5
+        ],
+        "23": [
+          2,
+          4
+        ],
+        "24": [
+          0,
+          5
+        ],
+        "25": [
+          0,
+          4
+        ],
+        "26": [
+          0,
+          5
+        ],
+        "27": [
+          1,
+          1
+        ],
+        "28": [
+          0,
+          5
+        ],
+        "29": [
+          1,
+          3
+        ],
+        "3": [
+          0,
+          13
+        ],
+        "30": [
+          1,
+          3
+        ],
+        "31": [
+          1,
+          3
+        ],
+        "32": [
+          1,
+          4
+        ],
+        "33": [
+          0,
+          2
+        ],
+        "34": [
+          1,
+          2
+        ],
+        "35": [
+          1,
+          4
+        ],
+        "36": [
+          0,
+          2
+        ],
+        "37": [
+          0,
+          3
+        ],
+        "38": [
+          1,
+          3
+        ],
+        "39": [
+          1,
+          2
+        ],
+        "40": [
+          1,
+          2
+        ],
+        "41": [
+          1,
+          3
+        ],
+        "42": [
+          0,
+          2
+        ],
+        "43": [
+          0,
+          2
+        ],
+        "44": [
+          0,
+          1
+        ],
+        "45": [
+          0,
+          1
+        ],
+        "46": [
+          0,
+          0
+        ],
+        "47": [
+          0,
+          0
+        ],
+        "48": [
+          0,
+          1
+        ],
+        "49": [
+          0,
+          1
+        ],
+        "50": [
+          0,
+          0
+        ],
+        "51": [
+          0,
+          0
+        ],
+        "55": [
+          0,
+          2
+        ],
+        "57": [
+          0,
+          2
+        ],
+        "60": [
+          0,
+          2
+        ],
+        "61": [
+          0,
+          0
+        ],
+        "64": [
+          0,
+          0
+        ],
+        "65": [
+          0,
+          0
+        ],
+        "66": [
+          0,
+          2
+        ],
+        "68": [
+          0,
+          1
+        ],
+        "69": [
+          0,
+          1
+        ],
+        "74": [
+          0,
+          1
+        ],
+        "75": [
+          0,
+          0
+        ],
+        "76": [
+          1,
+          1
+        ],
+        "77": [
+          1,
+          1
+        ],
+        "78": [
+          1,
+          1
+        ],
+        "79": [
+          1,
+          1
+        ],
+        "8": [
+          2,
+          9
+        ],
+        "80": [
+          0,
+          0
+        ],
+        "81": [
+          0,
+          0
+        ],
+        "83": [
+          0,
+          0
+        ],
+        "84": [
+          0,
+          0
+        ],
+        "85": [
+          0,
+          0
+        ],
+        "86": [
+          0,
+          0
+        ],
+        "87": [
+          0,
+          0
+        ],
+        "9": [
+          1,
+          9
+        ],
+        "90": [
+          0,
+          0
+        ],
+        "91": [
+          0,
+          0
+        ],
+        "92": [
+          0,
+          0
+        ]
+      },
+      "finalized_features": {
+        "eligible.leader.replicas.version": [
+          1,
+          1
+        ],
+        "group.version": [
+          1,
+          1
+        ],
+        "metadata.version": [
+          27,
+          27
+        ],
+        "share.version": [
+          1,
+          1
+        ],
+        "transaction.version": [
+          2,
+          2
+        ]
+      },
+      "committed_offsets": {
+        "classic": {
+          "0": 8,
+          "1": 8
+        },
+        "cooperative": {
+          "0": 8,
+          "1": 8
+        },
+        "kip848": {
+          "0": 8,
+          "1": 8
+        },
+        "transaction": {
+          "0": 8,
+          "1": 8
+        }
+      },
+      "group_ids": {
+        "classic": "plcompat-4-1-2-classic",
+        "cooperative": "plcompat-4-1-2-cooperative",
+        "kip848": "plcompat-4-1-2-kip848",
+        "transaction": "plcompat-4-1-2-transaction"
+      },
+      "startup_attempts": [
+        {
+          "phase": "setup",
+          "scenario": "classic",
+          "error": "broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator"
+        },
+        {
+          "phase": "setup",
+          "scenario": "transaction",
+          "error": "broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator"
+        },
+        {
+          "phase": "setup",
+          "scenario": "transaction",
+          "error": "broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId"
+        }
+      ],
+      "transaction_visibility": [
+        {
+          "attempt": 0,
+          "elapsed_ms": 4,
+          "error": 88
+        },
+        {
+          "attempt": 1,
+          "elapsed_ms": 34,
+          "offsets": {
+            "0": 8,
+            "1": 8
+          }
+        }
+      ],
+      "source_sha": "9404187d5e9c01be31611de1e4218dddeffc482d",
+      "requested": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "input_topic": "plcompat-4-1-2-input",
+      "output_topic": "plcompat-4-1-2-output",
+      "seed_timestamp": 1790870032479,
+      "transaction_aborted_visible": 0,
+      "share_accepted": 16
+    },
+    "status": "passed"
+  },
+  "parent_driver_log": "broker-compatibility: qualified 4.1.2 digest=sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e scenarios=8 records=16\nLive verifiable scenario: all 25 acknowledgements, deliveries and Java-confirmed offsets passed\n\nFull live verifiable report retained: /workspace/.cloud-setup/kl01-17-live-9404187/verifiable/3795740881244a7ca42da6c4c4102542\n",
+  "container_cleanup": "pl-compat-4-1-2-248754\n",
+  "hosted_ci": {
+    "run_id": 36887782182,
+    "url": "https://github.com/mingley/partitionline/actions/runs/36887782182",
+    "source_sha": "9404187d5e9c01be31611de1e4218dddeffc482d",
+    "observed_status": "pending; no hosted pass claimed"
+  },
+  "history": "The mock-only verifiable-produce-consume-3-9-1 remains unchanged. New live case supersedes that one scenario only. The primary registry still requires all 106 cases; feeding only this report rejects 105 missing cases."
+}

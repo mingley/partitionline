@@ -490,7 +490,7 @@
       "title": "Run the verifiable scenario against a live Apache broker cell",
       "priority": "P2",
       "kind": "conformance",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL01-09",
@@ -510,7 +510,9 @@
         "REQUIRE_BROKER=1 bash scripts/ci-verifiable-scenario.sh",
         "Validate the live scenario case report."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-17.json"
+      ],
       "write_set": [
         "scripts/ci-verifiable-scenario.sh",
         "scripts/report-verifiable-scenario.py",
