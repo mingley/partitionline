@@ -4788,7 +4788,7 @@
       "title": "Add a 1 KiB JSON-like payload family to the codec microbenchmarks",
       "priority": "P1",
       "kind": "benchmark",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL09-04",
@@ -4809,7 +4809,21 @@
         "cargo bench --manifest-path benchmarks/codec/Cargo.toml -- json1k (record command and output)"
       ],
       "evidence": [
-        "docs/plan/evidence/KL10-03.json"
+        "docs/plan/evidence/KL10-03.json",
+        {
+          "source_sha": "2de2cb7",
+          "commands": [
+            "python3 -B -m unittest discover -s tests/ci -p test_*.py (9 passed)",
+            "bash -n scripts/ci-alloc-budget.sh"
+          ],
+          "results": "Long-message failure tails remain visible below hosted annotation limit; original full logs and exact exit status retained. Actual CI allocation job 110421062770 passed on d2e644b with unchanged census budgets. Earlier 6e58f9a census failure retained, cause unknown.",
+          "artifacts": [
+            "docs/plan/evidence/KL10-03.json"
+          ],
+          "limits": [
+            "Later hosted success does not explain the retained earlier failure."
+          ]
+        }
       ],
       "write_set": [
         "scripts/ci-alloc-budget.sh",
