@@ -1661,7 +1661,7 @@
       "title": "Recover incremental Fetch sessions correctly",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL05-06"
@@ -1680,7 +1680,9 @@
         "cargo test --locked --test consumer_fetch_semantics",
         "Run a many-partition live session-reset scenario with a pinned Java reference."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL05-07.json"
+      ],
       "write_set": [
         "src/consumer.rs",
         "tests/consumer_fetch_semantics.rs",
