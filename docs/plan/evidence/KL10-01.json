@@ -1,0 +1,30 @@
+{
+  "id": "KL10-01",
+  "status": "done",
+  "source_sha": "f1e06836a153171527e9d0abea716b4c42a61d45",
+  "baseline_sha": "1fb82ad0b28c192aaffe3a151017d25f604657a6",
+  "commands": [
+    "CARGO_TARGET_DIR=/workspace/.cloud-setup/partitionline-ci-clean cargo test --locked --test verifiable_contract (before prerequisite: exit 101, 0 passed / 5 failed)",
+    "cargo build --locked --example verifiable_producer --example verifiable_consumer; cargo test --locked --all-targets (stable: exit 0, 1662 passed, 0 failed, 2 live-broker tests ignored)",
+    "cargo build --locked --features tracing --example verifiable_producer --example verifiable_consumer; cargo test --locked --all-targets --features tracing (exit 0, 1663 passed, 0 failed, 2 live-broker tests ignored)",
+    "cargo +1.85.0 build --locked --example verifiable_producer --example verifiable_consumer; cargo +1.85.0 test --locked --all-targets (exit 0, 1662 passed, 0 failed, 2 live-broker tests ignored)",
+    "cargo fmt --all -- --check (exit 0)",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings (exit 0)"
+  ],
+  "results": {
+    "failing_first": "All five tests failed because standalone verifiable example binaries were missing in a clean target directory.",
+    "ci": {
+      "test (1.85)": "success",
+      "test (stable)": "success",
+      "features": "success"
+    },
+    "fix": "Build both standalone examples before the test and tracing jobs; locked installs and local prerequisites documented. No assertion removed or test skipped."
+  },
+  "artifacts": [
+    "https://github.com/mingley/partitionline/actions/runs/36815178220"
+  ],
+  "limits": [
+    "Other CI jobs were still completing when these three required lanes were verified; no claim about all workflow jobs.",
+    "Local tests used CARGO_PROFILE_DEV_DEBUG=0, CARGO_PROFILE_TEST_DEBUG=0 and CARGO_INCREMENTAL=0 for bounded disk use; Actions used their normal profiles."
+  ]
+}

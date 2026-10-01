@@ -3518,7 +3518,7 @@
       "title": "Restore green main CI for the verifiable contract tests",
       "priority": "P0",
       "kind": "ci",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [],
       "files": [
@@ -3538,7 +3538,9 @@
         "cargo test --locked --all-targets --features tracing",
         "gh run list --workflow ci --branch main (the fix commit's run is green)"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL10-01.json"
+      ],
       "write_set": [
         ".github/workflows/ci.yml",
         "CONTRIBUTING.md",
@@ -3605,13 +3607,34 @@
     {
       "id": "KL10-07",
       "title": "Specify an owned, eagerly enqueued per-record delivery API",
-      "priority": "P1", "kind": "specification", "status": "pending", "owner": null,
-      "depends_on": ["KL07-10"],
-      "files": ["docs/api-stability.md", "docs/design.md"],
+      "priority": "P1",
+      "kind": "specification",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL07-10"
+      ],
+      "files": [
+        "docs/api-stability.md",
+        "docs/design.md"
+      ],
       "deliverable": "An additive API in which admission (validation, buffer reservation and per-partition ordering) happens before the call returns, and the caller receives an owned Send + 'static completion for that record, in the style of librdkafka send_result and the Java client's send.",
-      "acceptance": ["State precisely what the existing borrowed send() future cannot provide (eager admission at call time, ordering fixed by call order rather than poll order, an owned completion that can cross task boundaries) and when it is sufficient.", "Specify the return type, the distinct buffer-full error (no hidden await), ordering across successive calls from one caller, that dropping the completion never cancels delivery, and interaction with flush, close, interceptors, idempotence and transactions.", "send() and try_send() keep their current behavior and signatures; maintainer sign-off (or rejection, which blocks KL10-08 with the reason) is recorded in evidence."],
-      "validation": ["The specification's examples compile as doctests or are marked as future acceptance commands.", "Review against docs/api-stability.md additive-change rules."],
-      "evidence": []
+      "acceptance": [
+        "State precisely what the existing borrowed send() future cannot provide (eager admission at call time, ordering fixed by call order rather than poll order, an owned completion that can cross task boundaries) and when it is sufficient.",
+        "Specify the return type, the distinct buffer-full error (no hidden await), ordering across successive calls from one caller, that dropping the completion never cancels delivery, and interaction with flush, close, interceptors, idempotence and transactions.",
+        "send() and try_send() keep their current behavior and signatures; maintainer sign-off (or rejection, which blocks KL10-08 with the reason) is recorded in evidence."
+      ],
+      "validation": [
+        "The specification's examples compile as doctests or are marked as future acceptance commands.",
+        "Review against docs/api-stability.md additive-change rules."
+      ],
+      "evidence": [],
+      "write_set": [
+        "docs/api-stability.md",
+        "docs/design.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL10-07.json"
+      ]
     },
     {
       "id": "KL10-08",
