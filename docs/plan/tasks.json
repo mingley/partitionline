@@ -1684,7 +1684,9 @@
         "docs/gaps.md",
         "docs/migrate-from-rdkafka.md",
         "docs/plan/tasks.json",
-        "docs/plan/evidence/KL05-17.json"
+        "docs/plan/evidence/KL05-17.json",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/test_check_protocol_coverage.py"
       ]
     },
     {
