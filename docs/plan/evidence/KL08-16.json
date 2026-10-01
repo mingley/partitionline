@@ -1,0 +1,21 @@
+{
+  "id": "KL08-16",
+  "status": "done",
+  "source_sha": "9a8265ae2de4d46be41d2e64f60ca1a8ad1a1476",
+  "baseline_sha": "1fed028",
+  "commands": [
+    "cargo update --workspace (adds getrandom 0.4.3 and r-efi 6.0.0; preserves all existing root dependency versions)",
+    "cargo test --locked (stable 1.98.1: exit 0, 1673 passed, 0 failed, 2 ignored)",
+    "cargo +1.85.0 test --locked (exit 0, 1673 passed, 0 failed, 2 ignored)",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+    "cargo fmt --all -- --check (exit 0)",
+    "cargo audit --json (exit 0, 0 vulnerabilities, advisory database 9b3a3b73a7f42606494c943e95f8196e9994df46)",
+    "cargo deny check advisories licenses bans sources (exit 0; all four gates pass)",
+    "cargo update --workspace and cargo fetch --locked for benchmarks/codec, benchmarks/runtime, fuzz (exit 0)"
+  ],
+  "results": "All four call sites use getrandom::fill; success handling and existing group error/admin/SCRAM/OIDC fallbacks are unchanged. Ring retains getrandom 0.2.17. Benchmark lockfiles add only the RNG pair and disambiguate getrandom dependencies. The previously stale fuzz lockfile additionally synchronizes existing root manifest requirements (crypto/base64/lz4), retaining unrelated existing versions.",
+  "limits": [
+    "Local x86_64 Linux validation; no cross-platform qualification or fuzz campaign claim.",
+    "Fuzz lock synchronization was necessary to keep the standalone manifest fetchable with --locked; it does not change root dependency policy."
+  ]
+}
