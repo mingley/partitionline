@@ -3661,7 +3661,7 @@
       "title": "Rehearse the complete release and partial-recovery path",
       "priority": "P1",
       "kind": "evidence",
-      "status": "done",
+      "status": "in_progress",
       "owner": "codex",
       "depends_on": [
         "KL08-02",
@@ -3689,16 +3689,9 @@
         "docs/evidence/releases/3109514bc9aa30def679d43fdd823d2c71138ab1-no-publish-rehearsal.json"
       ],
       "write_set": [
-        "scripts/rehearse-partial-release.sh",
-        "scripts/report-release-rehearsal.py",
-        "tests/release/test_rehearsal.py",
         "docs/RELEASE.md",
-        "docs/evidence/releases/",
         "docs/plan/evidence/KL08-07.json",
-        "docs/plan/tasks.json",
-        ".github/workflows/release.yml",
-        "scripts/owner-publish.sh",
-        ".github/workflows/ci.yml"
+        "docs/plan/tasks.json"
       ]
     },
     {
