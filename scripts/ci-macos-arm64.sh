@@ -7,6 +7,10 @@ if [[ "$(uname -s)" != Darwin || "$(uname -m)" != arm64 ]]; then
   echo 'ci-macos-arm64: requires native Darwin arm64' >&2
   exit 1
 fi
+if (( BASH_VERSINFO[0] < 5 )); then
+  echo 'ci-macos-arm64: requires Bash 5+ (Homebrew bash); Apple Bash 3.2 rejects empty arrays under nounset' >&2
+  exit 1
+fi
 toolchain="${PL_MACOS_TOOLCHAIN:-stable}"
 case "$toolchain" in stable|1.85.0) ;; *) echo 'unqualified Rust toolchain' >&2; exit 1 ;; esac
 [[ -z "${CARGO_BUILD_TARGET:-}" ]] || { echo 'unexpected cross target' >&2; exit 1; }

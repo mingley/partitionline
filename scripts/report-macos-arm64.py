@@ -22,6 +22,8 @@ def command(*args):
 
 
 def validate_versions(data):
+    if int(data['bash_version'].split('.')[0]) < 5:
+        raise ValueError('Bash 5+ package-check prerequisite missing')
     if tuple(map(int, data['python_version'].split('.')[:2])) < (3, 11):
         raise ValueError('Python 3.11+ package-check prerequisite missing')
     if (data['system'], data['machine'], data['rustc_host']) != (
@@ -44,6 +46,7 @@ def capture(toolchain):
         'system': platform.system(), 'machine': platform.machine(),
         'macos_version': platform.mac_ver()[0],
         'python_version': platform.python_version(),
+        'bash_version': command('bash', '-c', 'printf "%s" "$BASH_VERSION"'),
         'requested_toolchain': toolchain, 'rustc_verbose': rustc,
         'rustc_release': fields['release'], 'rustc_host': fields['host'],
         'cargo_version': command('cargo', '--version'),

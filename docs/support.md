@@ -33,9 +33,11 @@ KL08-05 adds native macOS arm64 qualification on `macos-15`, for Rust 1.85.0
 and stable, with default/tracing runtime, TLS mock paths and actual packed-crate
 consumers. The support rows above remain Linux-only until both hosted cells
 pass. macOS needs Xcode command-line build tools, Python 3.11+ and Homebrew
-OpenSSL 3 on PATH for ephemeral mock certificates; OpenSSL is a test executable,
+Bash 5+ / OpenSSL 3 on PATH. Apple Bash 3.2 cannot run the package/documentation
+scripts' empty arrays under `set -u`. OpenSSL generates ephemeral mock certificates
+and is a test executable,
 not a crate dependency. The lane records actual OS, architecture, compiler,
-OpenSSL and Python versions with complete logs/package reports. Linux MSRV,
+OpenSSL, Bash and Python versions with complete logs/package reports. Linux MSRV,
 broker and performance lanes remain in place; this card adds no Windows promise.
 
 Each row names its KL05-01

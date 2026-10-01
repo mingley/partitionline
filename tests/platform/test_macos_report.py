@@ -13,7 +13,7 @@ spec.loader.exec_module(report)
 def versions():
     return {'system': 'Darwin', 'machine': 'arm64', 'rustc_host': 'aarch64-apple-darwin',
             'requested_toolchain': '1.85.0', 'rustc_release': '1.85.0',
-            'python_version': '3.13.1',
+            'python_version': '3.13.1', 'bash_version': '5.2.37(1)-release',
             'source_sha': '0' * 40, 'openssl_version': 'OpenSSL 3.5.0 fixture'}
 
 
@@ -45,7 +45,7 @@ class ReportTest(unittest.TestCase):
         for field, value in [('system', 'Linux'), ('machine', 'x86_64'),
                              ('rustc_host', 'x86_64-apple-darwin'), ('rustc_release', '1.86.0'),
                              ('source_sha', ''), ('openssl_version', 'LibreSSL 3.3.6'),
-                             ('python_version', '3.9.6')]:
+                             ('python_version', '3.9.6'), ('bash_version', '3.2.57(1)-release')]:
             with self.subTest(field=field):
                 data = versions(); data[field] = value
                 with self.assertRaises(ValueError): report.validate_versions(data)

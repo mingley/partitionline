@@ -2176,13 +2176,41 @@
     {
       "id": "KL05-26",
       "title": "Add Protobuf message-index framing to the companion",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL05-24"],
-      "files": ["partitionline-schema/src/wire.rs", "new: partitionline-schema/src/protobuf.rs", "new: partitionline-schema/tests/protobuf.rs"],
+      "priority": "P2",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL05-24"
+      ],
+      "files": [
+        "partitionline-schema/src/wire.rs",
+        "new: partitionline-schema/src/protobuf.rs",
+        "new: partitionline-schema/tests/protobuf.rs"
+      ],
       "deliverable": "Correct Confluent-compatible Protobuf framing and a bounded adapter contract.",
-      "acceptance": ["Support message-index paths and the special zero-index encoding; five-byte generic framing alone is not Protobuf support.", "Cover nested messages/references, malformed varints, length limits and unknown schema IDs with independent fixtures.", "Keep serialization-library choice explicit and optional; do not confuse Kafka wire conformance with vendor framing."],
-      "validation": ["cargo test --locked --manifest-path partitionline-schema/Cargo.toml", "Perform bidirectional framing/serialization checks against a pinned independent peer."],
-      "evidence": []
+      "acceptance": [
+        "Support message-index paths and the special zero-index encoding; five-byte generic framing alone is not Protobuf support.",
+        "Cover nested messages/references, malformed varints, length limits and unknown schema IDs with independent fixtures.",
+        "Keep serialization-library choice explicit and optional; do not confuse Kafka wire conformance with vendor framing."
+      ],
+      "validation": [
+        "cargo test --locked --manifest-path partitionline-schema/Cargo.toml",
+        "Perform bidirectional framing/serialization checks against a pinned independent peer."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-schema/src/wire.rs",
+        "partitionline-schema/src/lib.rs",
+        "partitionline-schema/src/protobuf.rs",
+        "partitionline-schema/tests/protobuf.rs",
+        "partitionline-schema/tests/fixtures/protobuf/",
+        "partitionline-schema/tests/oracles/protobuf/",
+        "partitionline-schema/README.md",
+        "docs/schema-companion.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL05-26.json"
+      ]
     },
     {
       "id": "KL05-27",

@@ -111,11 +111,13 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
-      - name: Select OpenSSL 3 for mock certificate fixtures
+      - name: Select Bash 5 and OpenSSL 3 test prerequisites
         shell: bash
         run: |
           test "$(uname -m)" = arm64
           test "$(uname -s)" = Darwin
+          brew list bash >/dev/null || brew install bash
+          echo "$(brew --prefix bash)/bin" >> "$GITHUB_PATH"
           brew list openssl@3 >/dev/null || brew install openssl@3
           echo "$(brew --prefix openssl@3)/bin" >> "$GITHUB_PATH"
       - id: capture
