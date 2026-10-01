@@ -1,0 +1,131 @@
+{
+  "id": "KL05-20",
+  "status": "done",
+  "source_sha": "c5039d4c099df4f3cddab597ece9c46272176856",
+  "acceptance_met": true,
+  "commands": [
+    "cargo test --locked --lib protocol::admin",
+    "cargo test --locked --lib protocol::header",
+    "cargo test --locked --test protocol_oracles",
+    "cargo test --locked --test full_surface add_raft_voter",
+    "cargo test --locked --test client_api",
+    "cargo +1.85.0 test --locked --test full_surface add_raft_voter",
+    "cargo +1.85.0 test --locked --test protocol_oracles add_raft_voter",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings",
+    "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features",
+    "cargo fmt --all -- --check",
+    "python3 -B -m unittest tests.conformance.test_check_protocol_coverage",
+    "python3 -B scripts/check-protocol-coverage.py --self-test",
+    "python3 -B scripts/check-protocol-coverage.py",
+    "JDK 21.0.12.1 javac AddRaftVoterFixtures.java against the recorded 4.1.0 distribution jar; java AddRaftVoterFixtures <same-jar> tests/fixtures/protocol_oracles --verify",
+    "Altered loaded jar and unknown generator option both rejected before fixture output"
+  ],
+  "results": {
+    "runtime": {
+      "passed": 8,
+      "failed": 0
+    },
+    "msrv_runtime": {
+      "passed": 8,
+      "failed": 0
+    },
+    "msrv_oracle": {
+      "passed": 2,
+      "failed": 0
+    },
+    "admin_codec_units": {
+      "passed": 332,
+      "failed": 0
+    },
+    "header_units": {
+      "passed": 71,
+      "failed": 0
+    },
+    "all_protocol_oracles": {
+      "passed": 22,
+      "failed": 0,
+      "ignored": 1,
+      "note": "Pre-existing opt-in live Java test remains ignored; new AddRaftVoter oracle tests both run offline."
+    },
+    "client_api": {
+      "passed": 110,
+      "failed": 0
+    },
+    "coverage_tests": {
+      "passed": 15,
+      "failed": 0
+    },
+    "coverage": {
+      "implemented_apis": 65,
+      "missing_runtime_apis": 1,
+      "unclassified_drift": 0
+    },
+    "strict_clippy": "passed",
+    "strict_rustdoc": "passed",
+    "fmt": "passed",
+    "failing_first": "Original request-header table gave v1 for AddRaftVoter v0 instead of Apache flexible v2; test failed before the fix.",
+    "fixture_cells": 4
+  },
+  "contract": [
+    "Broker bootstrap routes through its connected broker for forwarding, matching pinned Java LeastLoadedBrokerOrActiveKController; no Metadata-controller broker hop.",
+    "Typed voter identity, nonreserved Kafka directory UUID, unique uppercase listener names, unbracketed host/IP and unsigned nonzero port checks run before I/O. This client additionally rejects empty/whitespace hosts and port zero, unlike Java endpoint construction.",
+    "Optional cluster identity is preserved; AddRaftVoter server TimeoutMs uses remaining total budget, including discovery, authentication, ApiVersions, metadata refresh and retries.",
+    "Only NOT_CONTROLLER and eligible transport failures retry. Other broker errors preserve code/message, including authorization, cluster mismatch, duplicate/not-found voter and REQUEST_TIMED_OUT.",
+    "A duplicate outcome after a lost response is an explicit error, not confirmed success. Membership inspection/reconciliation remains the operator responsibility.",
+    "Independent Apache fresh-default, explicit-null, populated and unknown-tag wire cells; strict truncation, required-array null and unsupported-version tests. Success retains throttle time."
+  ],
+  "provenance": {
+    "apache_version": "4.1.0",
+    "upstream_tag_object": "080a42c343d919971985102a38c82dc6da0623d5",
+    "upstream_source_commit": "13f70256db3c994c590e5d262a7cc50b9e973204",
+    "source_hashes": {
+      "AddRaftVoterRequest-410.json": "e98b566e638b8c0e8e920910057cadab5fedd9bfa6da1ae31a05557b2794bd3f",
+      "AddRaftVoterResponse-410.json": "37e24375e28e75db39a9aeb0a7edee27483292980a72a26a7fde42d11612bf6c",
+      "RaftVoterEndpoint-410.java": "1465224db4e781821107c7376f3b18cdc4bd8e43dc33444e78a187436879317d",
+      "KafkaAdminClient-410.java": "b62419cffb95103ccbdc4eecfd8955c6ffabea99efd2a67da69fdcd815a2c5b0"
+    },
+    "jar_origin": "apache/kafka:4.1.0 distribution, not a Maven checksum match",
+    "docker_image_digest": "sha256:bff074a5d0051dbc0bbbcd25b045bb1fe84833ec0d3c7c965d1797dd289ec88f",
+    "jar_sha256": "180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb",
+    "generator": "tests/conformance/java/AddRaftVoterFixtures.java",
+    "generator_sha256": "ceb8565047102a5c004b0a5d23bfefa74542fc6186b4fde620572a28463d1049",
+    "fixture_hashes": {
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_defaults.json": "464091d8a3fd7d3ad7fcc312abcad44cf985392eeb9c953057b6c0409f801a42",
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_defaults_request.bin": "1cab5647fb61c7a41ed993c0688d49a9e63a2f9442cbd09f3d5468d6bb88530c",
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_defaults_response.bin": "30e06038fb18a7cfda688d7bfe8de1ca8fee6002c5b4a498e6993a3592e88893",
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_nullable.json": "63a5af8f7f2bfc15f20a1a8f78b646f1a64539c85152e7318380f761ddee7e67",
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_nullable_request.bin": "d8a524375189c61db6599cd75f68b6e371f0feb77f0ba0cedf86313a92b2497f",
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_nullable_response.bin": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_populated.json": "aebce0f984e0effd7df4be3eab60b4064beb34573e6b4a166d65e11f18da3a55",
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_populated_request.bin": "cdd460e59ba0077aedbc1df8ef3c921c63792427475e14623bbdbc5c6e17bfab",
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_populated_response.bin": "5f819e08a1e93a0f013ebe799f6be0cae366b6f5cdbc8e0541d5dae27b3f36cd",
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_tagged.json": "9b3deead78459a2b9bf2bb508b8beb16b6603fd2db7185224c4a5770d9ddccfd",
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_tagged_request.bin": "3e450a6ca6a1ea6013df02777f2a2b706c572df957ad7bb755a0e84dbba6e219",
+      "tests/fixtures/protocol_oracles/add_raft_voter_v0_tagged_response.bin": "9c321b8328934c434b19b338928560d1d3857bbafaedae765e3f711cc8485d30"
+    }
+  },
+  "artifacts": [
+    "docs/plan/evidence/KL05-20.json",
+    "tests/conformance/java/AddRaftVoterFixtures.java",
+    "tests/conformance/java/README.md",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_defaults.json",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_defaults_request.bin",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_defaults_response.bin",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_nullable.json",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_nullable_request.bin",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_nullable_response.bin",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_populated.json",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_populated_request.bin",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_populated_response.bin",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_tagged.json",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_tagged_request.bin",
+    "tests/fixtures/protocol_oracles/add_raft_voter_v0_tagged_response.bin"
+  ],
+  "limits": [
+    "No real controller membership mutation was performed. The card explicitly gates real changes on isolated-lab operator approval; codec/runtime/mock goals are complete without that campaign.",
+    "AdminConfig supports broker bootstrap; direct controller-bootstrap discovery is not added or qualified. Mock controller movement proves routing/retry behavior, not multi-node live failover.",
+    "No UpdateRaftVoter or broker-internal Raft state-machine APIs, new dependencies, unsafe code or defaults changes.",
+    "Local stable/MSRV and recorded independent fixtures qualify this API. Full remote CI for this exact implementation commit is not claimed before completion."
+  ],
+  "blocked_reason": null
+}

@@ -1970,7 +1970,7 @@
       "title": "Add the client-facing AddRaftVoter operation",
       "priority": "P2",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL05-19"
@@ -1991,7 +1991,13 @@
         "cargo test --locked --lib protocol::admin",
         "cargo test --locked --test full_surface add_raft_voter"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "c5039d4c099df4f3cddab597ece9c46272176856",
+          "artifact": "docs/plan/evidence/KL05-20.json",
+          "validation": "8 runtime tests and 2 independent oracle tests on stable/MSRV; 332 Admin, 71 header, 110 public API and 15 coverage tests; strict Clippy/Rustdoc/fmt passed."
+        }
+      ],
       "write_set": [
         "src/protocol/admin.rs",
         "src/admin.rs",
@@ -2015,13 +2021,49 @@
     {
       "id": "KL05-21",
       "title": "Add the client-facing RemoveRaftVoter operation",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL05-19"],
-      "files": ["src/protocol/admin.rs", "src/admin.rs", "src/protocol/api_keys.rs", "tests/full_surface.rs"],
+      "priority": "P2",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL05-19"
+      ],
+      "files": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "src/protocol/api_keys.rs",
+        "tests/full_surface.rs"
+      ],
       "deliverable": "One typed quorum-membership removal API, not a general broker-internal Raft interface.",
-      "acceptance": ["Verify the pinned Java Admin contract and supported versions/identity fields.", "Preserve explicit controller, authorization and timeout outcomes.", "No real quorum mutation occurs without operator approval; do not add UpdateRaftVoter just because its key exists if it is broker-only."],
-      "validation": ["cargo test --locked --lib protocol::admin", "cargo test --locked --test full_surface remove_raft_voter"],
-      "evidence": []
+      "acceptance": [
+        "Verify the pinned Java Admin contract and supported versions/identity fields.",
+        "Preserve explicit controller, authorization and timeout outcomes.",
+        "No real quorum mutation occurs without operator approval; do not add UpdateRaftVoter just because its key exists if it is broker-only."
+      ],
+      "validation": [
+        "cargo test --locked --lib protocol::admin",
+        "cargo test --locked --test full_surface remove_raft_voter"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "src/lib.rs",
+        "src/protocol/api_keys.rs",
+        "src/protocol/header.rs",
+        "tests/full_surface.rs",
+        "tests/common/mod.rs",
+        "tests/protocol_oracles.rs",
+        "tests/conformance/java/RemoveRaftVoterFixtures.java",
+        "tests/conformance/java/README.md",
+        "tests/fixtures/protocol_oracles/remove_raft_voter*",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "tests/conformance/features.json",
+        "docs/support.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL05-21.json"
+      ]
     },
     {
       "id": "KL05-22",
