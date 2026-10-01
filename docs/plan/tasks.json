@@ -363,13 +363,37 @@
     {
       "id": "KL01-15",
       "title": "Cover verifiable rebalance and commit-failure event scenarios",
-      "priority": "P2", "kind": "test-infrastructure", "status": "pending", "owner": null,
-      "depends_on": ["KL01-09"],
-      "files": ["examples/verifiable_consumer.rs", "tests/verifiable_contract.rs", "tests/conformance/cases.json"],
+      "priority": "P2",
+      "kind": "test-infrastructure",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL01-09"
+      ],
+      "files": [
+        "examples/verifiable_consumer.rs",
+        "tests/verifiable_contract.rs",
+        "tests/conformance/cases.json"
+      ],
       "deliverable": "Validated partitions_revoked/partitions_assigned and offsets_committed failure events from the verifiable consumer adapter.",
-      "acceptance": ["Drive a two-member group so join/leave emits revoked+assigned events with exact partition sets.", "Force an offset-commit failure and validate success:false with the attempted offsets preserved.", "Register the new scenario cases without claiming live-broker or ducktape-suite coverage."],
-      "validation": ["cargo test --locked --test verifiable_contract", "Validate the new scenario event streams against the pinned 3.9.1 contract."],
-      "evidence": []
+      "acceptance": [
+        "Drive a two-member group so join/leave emits revoked+assigned events with exact partition sets.",
+        "Force an offset-commit failure and validate success:false with the attempted offsets preserved.",
+        "Register the new scenario cases without claiming live-broker or ducktape-suite coverage."
+      ],
+      "validation": [
+        "cargo test --locked --test verifiable_contract",
+        "Validate the new scenario event streams against the pinned 3.9.1 contract."
+      ],
+      "evidence": [],
+      "write_set": [
+        "examples/verifiable_consumer.rs",
+        "tests/verifiable_contract.rs",
+        "tests/common/mod.rs",
+        "tests/conformance/cases.json",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL01-15.json"
+      ]
     },
     {
       "id": "KL01-16",
@@ -2447,7 +2471,7 @@
       "title": "Document delivery, cancellation and transaction recipes",
       "priority": "P1",
       "kind": "documentation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL03-07",
@@ -2469,7 +2493,123 @@
         "Run the Markdown example checker.",
         "Run the targeted consumer_close_commit, produce_cancel and transaction examples/tests for the documented contracts."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "2bbc78f0cb7562627040cb1a0170e51a99abf949",
+          "commands": [
+            "python3 -B scripts/check-doc-examples.py --report /workspace/.cloud-setup/kl07-06-clean-report.json",
+            "cargo test --locked --test consumer_close_commit",
+            "cargo test --locked --test produce_cancel",
+            "cargo test --locked --test client_api txn_abort",
+            "cargo test --locked --test full_surface transactional",
+            "cargo test --locked --test consumer_fetch_semantics committed_transaction_after_abort",
+            "cargo clippy --locked --example eos --example produce_cancel --all-features -- -D warnings",
+            "cargo +1.85.0 check --locked --example eos --example produce_cancel",
+            "cargo fmt --check",
+            "python3 -B scripts/check-protocol-coverage.py",
+            "python3 -B -m unittest tests.conformance.test_check_protocol_coverage",
+            "cargo build --locked --example eos --example produce_cancel --example produce",
+            "Run actual extracted Markdown process program, produce_cancel and eos binaries against owned fresh Apache 4.1.0 topics/groups",
+            "kafka-consumer-groups.sh --describe for both owned groups; kafka-console-consumer.sh --consumer-property isolation.level=read_committed --max-messages 2",
+            "Run eos again with its fully committed input group: bounded Timeout and no copied batch"
+          ],
+          "results": {
+            "consumer_close_commit": {
+              "passed": 16,
+              "failed": 0
+            },
+            "produce_cancel": {
+              "passed": 15,
+              "failed": 0
+            },
+            "transaction_api": {
+              "passed": 2,
+              "failed": 0,
+              "scenarios": 12
+            },
+            "transaction_surface": {
+              "passed": 18,
+              "failed": 0
+            },
+            "read_committed_after_abort": {
+              "passed": 1,
+              "failed": 0
+            },
+            "coverage_checker": {
+              "passed": 15,
+              "failed": 0
+            },
+            "packed_markdown": {
+              "passed": 19,
+              "failed": 0,
+              "ignored": 0,
+              "local_links": 43
+            },
+            "clippy": "passed",
+            "msrv_1_85_examples": "passed",
+            "fmt": "passed",
+            "fresh_broker": {
+              "image": "apache/kafka:4.1.0",
+              "digest": "sha256:bff074a5d0051dbc0bbbcd25b045bb1fe84833ec0d3c7c965d1797dd289ec88f",
+              "cancel_stdout": [
+                "send wait cancelled; delivery outcome ambiguous; no resend",
+                "queued work settled and producer closed; cancelled send has no per-record receipt"
+              ],
+              "process_stdout": [
+                "processed pl-recipe-kl0706-input-20261001-0@0",
+                "committed returned batch only"
+              ],
+              "eos_stdout": [
+                "pl-recipe-kl0706-input-20261001-0@0 -> pl-recipe-kl0706-output-20261001",
+                "pl-recipe-kl0706-input-20261001-0@1 -> pl-recipe-kl0706-output-20261001",
+                "one batch committed; producer closed and group left"
+              ],
+              "java_process_group": {
+                "committed_next_offset": 1,
+                "log_end_offset": 2,
+                "lag": 1,
+                "active_members": 0
+              },
+              "java_eos_group": {
+                "committed_next_offset": 2,
+                "log_end_offset": 2,
+                "lag": 0,
+                "active_members": 0
+              },
+              "java_read_committed_output": [
+                "cancel-recipe",
+                "hello from partitionline"
+              ],
+              "actual_markdown_program_sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f",
+              "empty_input": {
+                "exit_code": 1,
+                "elapsed_seconds": 5.08152559500013,
+                "outcome": "bounded Timeout; no batch copied"
+              },
+              "first_attempt": "COORDINATOR_NOT_AVAILABLE (15) during Producer::new before any staging; added bounded startup retry and repeated the full run from a fresh broker successfully."
+            }
+          },
+          "artifacts": [
+            "docs/plan/evidence/KL07-06.json",
+            "docs/guide.md",
+            "examples/produce_cancel.rs",
+            "examples/eos.rs",
+            "docs/plan/evidence/KL03-03.json",
+            "docs/plan/evidence/KL03-04.json",
+            "docs/plan/evidence/KL03-05.json",
+            "docs/plan/evidence/KL03-06.json",
+            "docs/plan/evidence/KL03-07.json",
+            "docs/plan/evidence/KL03-10.json",
+            "docs/plan/evidence/KL02-03.json",
+            "https://github.com/mingley/partitionline/commit/2bbc78f0cb7562627040cb1a0170e51a99abf949"
+          ],
+          "limits": [
+            "Live recipe proof is an isolated single Apache 4.1.0 broker, not controlled production adoption or a multi-broker failover campaign. Targeted faults/fencing/rebalance are covered by named mock regression tests.",
+            "The runnable processing step prints metadata. Real external effects require durable application idempotency/outbox semantics; Kafka transactions cannot atomically include arbitrary external systems.",
+            "No core runtime/dependency/default changes; public ownership/transaction contracts are documented and exercised through examples. Overall deadlines may return Timeout/ambiguity rather than asserting delivery or commit failure."
+          ]
+        }
+      ],
       "write_set": [
         "docs/guide.md",
         "docs/migrate-from-rdkafka.md",

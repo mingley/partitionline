@@ -1,0 +1,232 @@
+{
+  "id": "KL07-06",
+  "status": "done",
+  "source_sha": "2bbc78f0cb7562627040cb1a0170e51a99abf949",
+  "acceptance_met": [
+    "Bounded runnable recipes distinguish admission, acknowledgment, application delivery, stored commit, failure and ambiguity. Producer cancellation retains flush/close results separately; no blind fresh resend after lost receipt.",
+    "Actual Markdown one-record capped poll/pause/process/commit recipe commits only returned next_offsets with leader epoch; explains ownership loss, retained/revoked pending state, delivered vs fetch cursor, external idempotency and restart from stored group offsets.",
+    "EOS example now copies one capped batch, retries coordinator startup before staging, retries the same transaction commit without re-sending data, aborts pre-commit/explicit abort-required failures within a deadline, stops fatal fencing, and leaves/closes. Ambiguous commit never switches to abort.",
+    "Corrected stale migration/gaps/feature rows for already-repaired seek/reset/abort-marker behavior and bounded gzip/Snappy/LZ4 expansion; cites source-pinned/mock evidence without claiming live universal equivalence."
+  ],
+  "commands": [
+    "python3 -B scripts/check-doc-examples.py --report /workspace/.cloud-setup/kl07-06-clean-report.json",
+    "cargo test --locked --test consumer_close_commit",
+    "cargo test --locked --test produce_cancel",
+    "cargo test --locked --test client_api txn_abort",
+    "cargo test --locked --test full_surface transactional",
+    "cargo test --locked --test consumer_fetch_semantics committed_transaction_after_abort",
+    "cargo clippy --locked --example eos --example produce_cancel --all-features -- -D warnings",
+    "cargo +1.85.0 check --locked --example eos --example produce_cancel",
+    "cargo fmt --check",
+    "python3 -B scripts/check-protocol-coverage.py",
+    "python3 -B -m unittest tests.conformance.test_check_protocol_coverage",
+    "cargo build --locked --example eos --example produce_cancel --example produce",
+    "Run actual extracted Markdown process program, produce_cancel and eos binaries against owned fresh Apache 4.1.0 topics/groups",
+    "kafka-consumer-groups.sh --describe for both owned groups; kafka-console-consumer.sh --consumer-property isolation.level=read_committed --max-messages 2",
+    "Run eos again with its fully committed input group: bounded Timeout and no copied batch"
+  ],
+  "results": {
+    "consumer_close_commit": {
+      "passed": 16,
+      "failed": 0
+    },
+    "produce_cancel": {
+      "passed": 15,
+      "failed": 0
+    },
+    "transaction_api": {
+      "passed": 2,
+      "failed": 0,
+      "scenarios": 12
+    },
+    "transaction_surface": {
+      "passed": 18,
+      "failed": 0
+    },
+    "read_committed_after_abort": {
+      "passed": 1,
+      "failed": 0
+    },
+    "coverage_checker": {
+      "passed": 15,
+      "failed": 0
+    },
+    "packed_markdown": {
+      "passed": 19,
+      "failed": 0,
+      "ignored": 0,
+      "local_links": 43
+    },
+    "clippy": "passed",
+    "msrv_1_85_examples": "passed",
+    "fmt": "passed",
+    "fresh_broker": {
+      "image": "apache/kafka:4.1.0",
+      "digest": "sha256:bff074a5d0051dbc0bbbcd25b045bb1fe84833ec0d3c7c965d1797dd289ec88f",
+      "cancel_stdout": [
+        "send wait cancelled; delivery outcome ambiguous; no resend",
+        "queued work settled and producer closed; cancelled send has no per-record receipt"
+      ],
+      "process_stdout": [
+        "processed pl-recipe-kl0706-input-20261001-0@0",
+        "committed returned batch only"
+      ],
+      "eos_stdout": [
+        "pl-recipe-kl0706-input-20261001-0@0 -> pl-recipe-kl0706-output-20261001",
+        "pl-recipe-kl0706-input-20261001-0@1 -> pl-recipe-kl0706-output-20261001",
+        "one batch committed; producer closed and group left"
+      ],
+      "java_process_group": {
+        "committed_next_offset": 1,
+        "log_end_offset": 2,
+        "lag": 1,
+        "active_members": 0
+      },
+      "java_eos_group": {
+        "committed_next_offset": 2,
+        "log_end_offset": 2,
+        "lag": 0,
+        "active_members": 0
+      },
+      "java_read_committed_output": [
+        "cancel-recipe",
+        "hello from partitionline"
+      ],
+      "actual_markdown_program_sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f",
+      "empty_input": {
+        "exit_code": 1,
+        "elapsed_seconds": 5.08152559500013,
+        "outcome": "bounded Timeout; no batch copied"
+      },
+      "first_attempt": "COORDINATOR_NOT_AVAILABLE (15) during Producer::new before any staging; added bounded startup retry and repeated the full run from a fresh broker successfully."
+    }
+  },
+  "packed_report": {
+    "documents": [
+      "README.md",
+      "docs/guide.md",
+      "docs/migrate-from-rdkafka.md"
+    ],
+    "compiled_snippets": 19,
+    "local_links": 43,
+    "ignored_snippets": [],
+    "snippets": [
+      {
+        "document": "README.md",
+        "line": 23,
+        "sha256": "737e8da3b740b661e51f87ee4a98f187b14387bf570a23adbece43a2feb7e73d"
+      },
+      {
+        "document": "README.md",
+        "line": 42,
+        "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+      },
+      {
+        "document": "README.md",
+        "line": 62,
+        "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+      },
+      {
+        "document": "README.md",
+        "line": 86,
+        "sha256": "a990118bd77a2265b6ec3ef1355c1c965ee3232ae75798cca94f2823fad6f39c"
+      },
+      {
+        "document": "README.md",
+        "line": 111,
+        "sha256": "8b3313cd26930fe1023416b6029d56ce67f133460125f7b19a090a0819c03642"
+      },
+      {
+        "document": "README.md",
+        "line": 135,
+        "sha256": "d174cd31ee728c80ba03a9c4167cfe2a93e05a8a0ea753b87c4ed7bf69d64fd8"
+      },
+      {
+        "document": "docs/guide.md",
+        "line": 68,
+        "sha256": "c4c51043849dada85a70ec82aa279bdb056965bf21ec16ec249be11adb9ac0b2"
+      },
+      {
+        "document": "docs/guide.md",
+        "line": 221,
+        "sha256": "813a2ce2c94810da31565021b06811fcce2c413b189c40d38824042aa8aa65cc"
+      },
+      {
+        "document": "docs/guide.md",
+        "line": 245,
+        "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+      },
+      {
+        "document": "docs/guide.md",
+        "line": 262,
+        "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+      },
+      {
+        "document": "docs/guide.md",
+        "line": 303,
+        "sha256": "7318a827710d2914e781b0983e0f0c8e8558e3a1922b4ebdbbff329b4595f516"
+      },
+      {
+        "document": "docs/guide.md",
+        "line": 318,
+        "sha256": "94616599031102ea2ac914c926133a2d4c840711c8d79225385364fa8bd0f892"
+      },
+      {
+        "document": "docs/guide.md",
+        "line": 393,
+        "sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f"
+      },
+      {
+        "document": "docs/migrate-from-rdkafka.md",
+        "line": 91,
+        "sha256": "e225ec7ca4f62c204205edde832851484e166908e8e40f92763e356d4fd93b61"
+      },
+      {
+        "document": "docs/migrate-from-rdkafka.md",
+        "line": 125,
+        "sha256": "57dec7d81e474f1ef1e7dc627500e28223a20a8137abfce4f1396009311a7825"
+      },
+      {
+        "document": "docs/migrate-from-rdkafka.md",
+        "line": 187,
+        "sha256": "6da9b0b031891bb37671bd99124620f8162c67561f01b2716a71a512e1736e64"
+      },
+      {
+        "document": "docs/migrate-from-rdkafka.md",
+        "line": 230,
+        "sha256": "380e427c7cfb1420e2f142fadd87d7a85f0185dce9567c2be5fcacdbf095d86a"
+      },
+      {
+        "document": "docs/migrate-from-rdkafka.md",
+        "line": 258,
+        "sha256": "08e8db4b324f80d0e4ef3dd06bc8751433264d587852196e69b4d990fd7c3723"
+      },
+      {
+        "document": "docs/migrate-from-rdkafka.md",
+        "line": 285,
+        "sha256": "2397317b8f720ad1a34a19e46b7618683bd5e03f38372c7f29c44970f3027723"
+      }
+    ],
+    "package_sha256": "711ba8150dfb009c5f9c8610cf8682bd2af00d6f42f5ab05d3f20d485a7481a1"
+  },
+  "artifacts": [
+    "docs/plan/evidence/KL07-06.json",
+    "docs/guide.md",
+    "examples/produce_cancel.rs",
+    "examples/eos.rs",
+    "docs/plan/evidence/KL03-03.json",
+    "docs/plan/evidence/KL03-04.json",
+    "docs/plan/evidence/KL03-05.json",
+    "docs/plan/evidence/KL03-06.json",
+    "docs/plan/evidence/KL03-07.json",
+    "docs/plan/evidence/KL03-10.json",
+    "docs/plan/evidence/KL02-03.json",
+    "https://github.com/mingley/partitionline/commit/2bbc78f0cb7562627040cb1a0170e51a99abf949"
+  ],
+  "limits": [
+    "Live recipe proof is an isolated single Apache 4.1.0 broker, not controlled production adoption or a multi-broker failover campaign. Targeted faults/fencing/rebalance are covered by named mock regression tests.",
+    "The runnable processing step prints metadata. Real external effects require durable application idempotency/outbox semantics; Kafka transactions cannot atomically include arbitrary external systems.",
+    "No core runtime/dependency/default changes; public ownership/transaction contracts are documented and exercised through examples. Overall deadlines may return Timeout/ambiguity rather than asserting delivery or commit failure."
+  ],
+  "blocked_reason": null
+}
