@@ -2115,7 +2115,8 @@
         "docs/plan/tasks.json",
         "docs/plan/evidence/KL05-22.json",
         "src/protocol/header.rs",
-        "scripts/check-protocol-coverage.py"
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/test_check_protocol_coverage.py"
       ]
     },
     {
@@ -4557,7 +4558,7 @@
       "title": "Add a 1 KiB JSON-like payload family to the codec microbenchmarks",
       "priority": "P1",
       "kind": "benchmark",
-      "status": "done",
+      "status": "in_progress",
       "owner": "codex",
       "depends_on": [
         "KL09-04",
@@ -4586,9 +4587,12 @@
         "docs/plan/tasks.json",
         "docs/plan/evidence/KL10-03.json",
         "docs/evidence/perf/KL10-03/",
-        ".github/workflows/ci.yml"
+        ".github/workflows/ci.yml",
+        "scripts/ci-alloc-budget.sh",
+        "tests/ci/test_alloc_gate.py"
       ],
-      "blocked_reason": null
+      "blocked_reason": null,
+      "follow_up": "Investigate hosted allocation-gate exit 101 at source 5b02bc5 / run 36854758398; retain original benchmark evidence and budgets. Local stable allocation tests pass. Add failure diagnostics before attributing a cause."
     },
     {
       "id": "KL10-04",
