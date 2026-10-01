@@ -7,6 +7,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- KIP-848 heartbeat responses now encode and decode a nullable assignment with
+  Apache's signed byte marker. This fixes closing a consumer and receiving an
+  unchanged assignment from real brokers. Truncated responses missing the final
+  tag count are rejected.
+
 - ListOffsets v11 exposes KIP-1023 earliest pending upload with
   `EARLIEST_PENDING_UPLOAD_TIMESTAMP` and `OffsetSpec::earliest_pending_upload`.
   Each selected leader negotiates its own range; unsupported selectors/isolation

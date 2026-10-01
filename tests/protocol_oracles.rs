@@ -4945,3 +4945,147 @@ fn list_offsets_v11_truncation_and_future_versions_fail_closed() {
         assert_eq!(destination.as_ref(), &[99]);
     }
 }
+
+#[test]
+fn current_group_nullable_assignment_independent_apache_fixtures() {
+    use partitionline::protocol::cgheartbeat::{
+        decode_consumer_group_heartbeat_response, encode_consumer_group_heartbeat_response,
+        TopicPartitions,
+    };
+    macro_rules! cell {
+        ($version:literal, $name:literal) => {
+            (
+                $version,
+                $name,
+                include_bytes!(concat!(
+                    "fixtures/protocol_oracles/current_groups/cgheartbeat_v",
+                    $version,
+                    "_",
+                    $name,
+                    "_response.bin"
+                ))
+                .as_slice(),
+                include_str!(concat!(
+                    "fixtures/protocol_oracles/current_groups/cgheartbeat_v",
+                    $version,
+                    "_",
+                    $name,
+                    ".json"
+                )),
+            )
+        };
+    }
+    let cells = [
+        cell!(0, "null"),
+        cell!(0, "leave"),
+        cell!(0, "error"),
+        cell!(0, "empty"),
+        cell!(0, "populated"),
+        cell!(0, "tagged"),
+        cell!(1, "null"),
+        cell!(1, "leave"),
+        cell!(1, "error"),
+        cell!(1, "empty"),
+        cell!(1, "populated"),
+        cell!(1, "tagged"),
+    ];
+    for (version, name, bytes, metadata) in cells {
+        assert!(metadata.contains("26b251a451ce941d3d7a55e6487bcb7f16b5ad48"));
+        assert!(
+            metadata.contains("dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e")
+        );
+        let mut cursor = bytes;
+        let response = decode_consumer_group_heartbeat_response(&mut cursor, version)
+            .unwrap_or_else(|e| panic!("Apache v{version}/{name}: {e}"));
+        assert!(cursor.is_empty(), "v{version}/{name} trailing body");
+        assert_eq!(response.throttle_time_ms, 37);
+        assert_eq!(response.error_code, if name == "error" { 42 } else { 0 });
+        assert_eq!(
+            response.member_id.as_deref(),
+            if name == "error" { None } else { Some("m1") }
+        );
+        assert_eq!(
+            response.error_message.as_deref(),
+            if name == "error" {
+                Some("invalid")
+            } else {
+                None
+            }
+        );
+        assert_eq!(response.member_epoch, if name == "leave" { -1 } else { 3 });
+        assert_eq!(
+            response.heartbeat_interval_ms,
+            if name == "leave" { 0 } else { 5000 }
+        );
+        let expected = match name {
+            "null" | "leave" | "error" => None,
+            "empty" => Some(Vec::new()),
+            _ => Some(vec![TopicPartitions {
+                topic_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+                partitions: vec![0, 2],
+            }]),
+        };
+        assert_eq!(response.assignment, expected);
+        let mut encoded = BytesMut::new();
+        encode_consumer_group_heartbeat_response(&mut encoded, version, &response).unwrap();
+        if name != "tagged" {
+            assert_eq!(
+                &encoded[..],
+                bytes,
+                "v{version}/{name} Apache canonical bytes"
+            );
+        } else {
+            let mut canonical = &encoded[..];
+            assert_eq!(
+                decode_consumer_group_heartbeat_response(&mut canonical, version).unwrap(),
+                response
+            );
+            assert!(canonical.is_empty());
+        }
+        for prefix in 0..bytes.len() {
+            assert!(
+                decode_consumer_group_heartbeat_response(&mut &bytes[..prefix], version).is_err(),
+                "v{version}/{name} truncated prefix {prefix}"
+            );
+        }
+    }
+}
+
+#[test]
+fn current_group_nullable_struct_marker_matches_apache_signed_byte_semantics() {
+    use partitionline::protocol::cgheartbeat::decode_consumer_group_heartbeat_response;
+    // Apache's generated readByte() branch treats all negative bytes as null
+    // and all nonnegative bytes as present; the canonical writer uses -1 / 1.
+    for version in [0, 1] {
+        let mut null = include_bytes!(
+            "fixtures/protocol_oracles/current_groups/cgheartbeat_v0_null_response.bin"
+        )
+        .to_vec();
+        let marker = null.len() - 2;
+        null[marker] = 0x80;
+        let mut cursor = null.as_slice();
+        assert!(
+            decode_consumer_group_heartbeat_response(&mut cursor, version)
+                .unwrap()
+                .assignment
+                .is_none()
+        );
+        assert!(cursor.is_empty());
+        let mut empty = include_bytes!(
+            "fixtures/protocol_oracles/current_groups/cgheartbeat_v0_empty_response.bin"
+        )
+        .to_vec();
+        empty[marker] = 0;
+        let mut cursor = empty.as_slice();
+        assert_eq!(
+            decode_consumer_group_heartbeat_response(&mut cursor, version)
+                .unwrap()
+                .assignment,
+            Some(Vec::new())
+        );
+        assert!(cursor.is_empty());
+        // A present struct's TopicPartitions field is a nonnullable array.
+        empty[marker + 1] = 0;
+        assert!(decode_consumer_group_heartbeat_response(&mut empty.as_slice(), version).is_err());
+    }
+}

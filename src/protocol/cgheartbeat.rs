@@ -274,9 +274,9 @@ pub fn encode_consumer_group_heartbeat_response(
     buf.put_i32(resp.member_epoch);
     buf.put_i32(resp.heartbeat_interval_ms);
     match &resp.assignment {
-        None => buf::put_unsigned_varint(buf, 0),
+        None => buf.put_i8(-1),
         Some(parts) => {
-            buf::put_unsigned_varint(buf, 1);
+            buf.put_i8(1);
             encode_topic_partitions(buf, Some(parts))?;
             buf::put_empty_tagged_fields(buf);
         }
@@ -299,18 +299,18 @@ pub fn decode_consumer_group_heartbeat_response<B: Buf>(
     let member_id = buf::get_compact_string(buf)?;
     let member_epoch = buf::get_i32(buf)?;
     let heartbeat_interval_ms = buf::get_i32(buf)?;
-    let present = buf::get_unsigned_varint(buf)?;
-    let assignment = if present == 0 {
+    // Nullable structs use a signed byte, unlike compact nullable arrays.
+    // Apache accepts any negative byte as null and any nonnegative one as present.
+    let present = buf::get_i8(buf)?;
+    let assignment = if present < 0 {
         None
     } else {
-        let parts = decode_topic_partitions(buf)?;
+        let parts = decode_topic_partitions(buf)?
+            .ok_or_else(|| Error::protocol("Assignment.TopicPartitions serialized as null"))?;
         buf::skip_tagged_fields(buf)?;
-        parts
+        Some(parts)
     };
-    // Some broker error responses omit trailing tagged fields; accept EOF as empty.
-    if buf.has_remaining() {
-        buf::skip_tagged_fields(buf)?;
-    }
+    buf::skip_tagged_fields(buf)?;
     Ok(ConsumerGroupHeartbeatResponse {
         throttle_time_ms,
         error_code,
@@ -411,9 +411,9 @@ mod tests {
     }
 
     #[test]
-    fn decode_accepts_error_response_without_trailing_tagged_fields() {
-        // Kafka 4.x INVALID_REQUEST bodies may omit the final tagged-fields
-        // length; previously we failed with "need 1 bytes, have 0".
+    fn decode_rejects_error_response_without_trailing_tagged_fields() {
+        // Apache always writes the final tag count. A null struct is -1;
+        // interpreting it as an unsigned varint used to consume that count.
         let mut buf = BytesMut::new();
         buf.put_i32(0); // throttle
         buf.put_i16(42); // INVALID_REQUEST
@@ -421,8 +421,9 @@ mod tests {
         buf::put_compact_string(&mut buf, None).unwrap(); // member_id
         buf.put_i32(0); // member_epoch
         buf.put_i32(5000); // heartbeat_interval_ms
-        buf::put_unsigned_varint(&mut buf, 0); // assignment null
-                                               // intentionally no trailing tagged fields
+        buf.put_i8(-1); // assignment null; intentionally missing final tag count
+        assert!(decode_consumer_group_heartbeat_response(&mut &buf[..], 0).is_err());
+        buf::put_empty_tagged_fields(&mut buf);
         let decoded = decode_consumer_group_heartbeat_response(&mut &buf[..], 0).unwrap();
         assert_eq!(decoded.error_code, 42);
         assert!(decoded.assignment.is_none());
