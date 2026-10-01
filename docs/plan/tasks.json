@@ -365,7 +365,7 @@
       "title": "Cover verifiable rebalance and commit-failure event scenarios",
       "priority": "P2",
       "kind": "test-infrastructure",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL01-09"
@@ -385,7 +385,9 @@
         "cargo test --locked --test verifiable_contract",
         "Validate the new scenario event streams against the pinned 3.9.1 contract."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-15.json"
+      ],
       "write_set": [
         "examples/verifiable_consumer.rs",
         "tests/verifiable_contract.rs",
@@ -394,18 +396,46 @@
         "docs/plan/tasks.json",
         "docs/plan/evidence/KL01-15.json",
         "tests/conformance/test_report.py"
-      ]
+      ],
+      "blocked_reason": null
     },
     {
       "id": "KL01-16",
       "title": "Cover verifiable producer option matrix and consumer reset policies",
-      "priority": "P2", "kind": "test-infrastructure", "status": "pending", "owner": null,
-      "depends_on": ["KL01-09"],
-      "files": ["examples/verifiable_producer.rs", "examples/verifiable_consumer.rs", "tests/verifiable_contract.rs", "tests/conformance/cases.json"],
+      "priority": "P2",
+      "kind": "test-infrastructure",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL01-09"
+      ],
+      "files": [
+        "examples/verifiable_producer.rs",
+        "examples/verifiable_consumer.rs",
+        "tests/verifiable_contract.rs",
+        "tests/conformance/cases.json"
+      ],
       "deliverable": "Validated throughput/create-time/repeating-keys/value-prefix producer runs and earliest/latest/none + autocommit consumer runs.",
-      "acceptance": ["Prove throttled produce timing, create-time sequencing, repeating keys and prefixed values end to end.", "Prove latest/none reset policies and autocommit mode (no offsets_committed events) end to end.", "Register the new scenario cases without claiming live-broker or ducktape-suite coverage."],
-      "validation": ["cargo test --locked --test verifiable_contract", "Validate the new scenario event streams against the pinned 3.9.1 contract."],
-      "evidence": []
+      "acceptance": [
+        "Prove throttled produce timing, create-time sequencing, repeating keys and prefixed values end to end.",
+        "Prove latest/none reset policies and autocommit mode (no offsets_committed events) end to end.",
+        "Register the new scenario cases without claiming live-broker or ducktape-suite coverage."
+      ],
+      "validation": [
+        "cargo test --locked --test verifiable_contract",
+        "Validate the new scenario event streams against the pinned 3.9.1 contract."
+      ],
+      "evidence": [],
+      "write_set": [
+        "examples/verifiable_producer.rs",
+        "examples/verifiable_consumer.rs",
+        "tests/verifiable_contract.rs",
+        "tests/common/mod.rs",
+        "tests/conformance/cases.json",
+        "tests/conformance/test_report.py",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL01-16.json"
+      ]
     },
     {
       "id": "KL01-17",

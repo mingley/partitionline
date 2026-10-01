@@ -1609,6 +1609,34 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "KL01-09: examples/verifiable_producer.rs + verifiable_consumer.rs implement the pinned Apache 3.9.1 CLI/JSON event contract; tests/verifiable_contract.rs runs one produce-consume scenario (25 records, verbose manual-commit consumer) against the mock broker and validates every event (IDs, values, partitions, offsets, maxOffset+1 commits). Local contract-shape proof only: mock broker, not the ducktape suite or a live Apache broker (see KL01-15/KL01-16/KL01-17)."
+    },
+    {
+      "id": "verifiable-rebalance-3-9-1",
+      "api_family": null,
+      "api_version": null,
+      "profile": "ecosystem",
+      "adapter": "verifiable-scenario",
+      "source_pin": "ed4a68eb8034f397751654faccb1c174f5985603",
+      "immutable_source_pin": "ed4a68eb8034f397751654faccb1c174f5985603",
+      "peer_version_pin": "3.9.1",
+      "peer_pin": "3.9.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "KL01-15: verifiable_consumer_two_member_rebalance_events runs two real adapter processes against a shared mock; exact eager Range join, second-member leave, survivor reassignment and close revoke sets plus delivered counts and stored next offsets. Compared with pinned Apache 3.9.1 listener/coordinator source. Local scenario only; identical/empty assignment rejoins, cooperative mode, live brokers and the full ducktape suite are not qualified."
+    },
+    {
+      "id": "verifiable-commit-failure-3-9-1",
+      "api_family": null,
+      "api_version": null,
+      "profile": "ecosystem",
+      "adapter": "verifiable-scenario",
+      "source_pin": "ed4a68eb8034f397751654faccb1c174f5985603",
+      "immutable_source_pin": "ed4a68eb8034f397751654faccb1c174f5985603",
+      "peer_version_pin": "3.9.1",
+      "peer_pin": "3.9.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "KL01-15: verifiable_consumer_failed_commit_preserves_attempted_offsets forces GROUP_AUTHORIZATION_FAILED in the shared mock; validates success:false, error, topic/partition and final attempted next offset 3 while no commit is stored. Compared with pinned Apache 3.9.1 VerifiableConsumer commit callback. Local scenario only; no live-broker or ducktape-suite qualification."
     }
   ]
 }

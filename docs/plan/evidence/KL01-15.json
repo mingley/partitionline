@@ -1,0 +1,68 @@
+{
+  "id": "KL01-15",
+  "status": "done",
+  "source_sha": "ed4a68eb8034f397751654faccb1c174f5985603",
+  "peer": "Apache Kafka 3.9.1 source ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c",
+  "peer_sources": [
+    {
+      "source": "https://github.com/apache/kafka/blob/ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c/tools/src/main/java/org/apache/kafka/tools/VerifiableConsumer.java",
+      "sha256": "9a3c67a574806b12a67a0e09e7ebf0856cd5498590bbe0fed3971128a1e615f6"
+    },
+    {
+      "source": "https://github.com/apache/kafka/blob/ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c/clients/src/main/java/org/apache/kafka/clients/consumer/internals/ConsumerCoordinator.java",
+      "sha256": "18faaf85498d461e0fe3e4af00eb934ce3ac4ff4b5a1c636a49a4fcc94c793e2"
+    },
+    {
+      "source": "https://github.com/apache/kafka/blob/ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c/clients/src/main/java/org/apache/kafka/clients/consumer/internals/ConsumerRebalanceListenerInvoker.java",
+      "sha256": "c4c56467b19c27304d1f1c326175523f55d5e060bda7f960603d08daa142eb03"
+    }
+  ],
+  "acceptance_met": [
+    "Two adapter processes join a shared two-partition mock group. First assignment [0,1], second join causes eager revoke [0,1]/assign [0] and newcomer assign [1]; newcomer consumes/commits 1 then closes/revokes [1]; survivor revokes [0]/assigns [0,1], consumes/commits 2 then closes/revokes [0,1]. Exact event sets, lifecycle, timestamps, delivery counts and stored next offsets checked.",
+    "GROUP_AUTHORIZATION_FAILED forces all attempted commits to fail without persisting offsets. Every failed event preserves attempted topic/partition and final next offset 3 with success:false and an error; shutdown remains bounded.",
+    "Two source-pinned local_consistency cases added; denominator 82 of 102 total cases, 20 explicit exclusions. No claim of independent live qualification."
+  ],
+  "commands": [
+    "cargo build --locked --example verifiable_producer --example verifiable_consumer",
+    "cargo test --locked --test verifiable_contract",
+    "cargo +1.85.0 build --locked --example verifiable_producer --example verifiable_consumer",
+    "cargo +1.85.0 test --locked --test verifiable_contract",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings",
+    "cargo fmt --check",
+    "python3 -B -m unittest discover -s tests/conformance",
+    "python3 -B scripts/check-protocol-coverage.py"
+  ],
+  "results": {
+    "stable_contract_tests": {
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    "msrv_1_85_contract_tests": {
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    "conformance_python_tests": {
+      "passed": 44,
+      "failed": 0
+    },
+    "clippy": "passed",
+    "fmt": "passed",
+    "coverage": "passed",
+    "failing_first": "Two-member test initially received delta revoke [1] rather than pinned eager full-set [0,1] and timed out. Adapter snapshot fixes eager event translation; close now emits owned revocation."
+  },
+  "artifacts": [
+    "examples/verifiable_consumer.rs",
+    "tests/verifiable_contract.rs",
+    "tests/common/mod.rs",
+    "tests/conformance/cases.json",
+    "https://github.com/mingley/partitionline/commit/ed4a68eb8034f397751654faccb1c174f5985603"
+  ],
+  "limits": [
+    "Mock broker exercises local adapter contract, not live Apache or ducktape qualification.",
+    "Core consumer callback reports assignment deltas only when the partition set changes. Identical-set rejoins and empty initial assignments do not have complete Java listener event parity and remain unqualified. Cooperative/consumer protocol event scenarios are not newly qualified.",
+    "Root callback semantics are unchanged; eager event translation and close emission are scoped to the example adapter."
+  ],
+  "blocked_reason": null
+}
