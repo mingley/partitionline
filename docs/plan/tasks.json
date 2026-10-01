@@ -2476,7 +2476,9 @@
         "examples/eos.rs",
         "examples/produce_cancel.rs",
         "docs/plan/tasks.json",
-        "docs/plan/evidence/KL07-06.json"
+        "docs/plan/evidence/KL07-06.json",
+        "tests/conformance/features.json",
+        "docs/gaps.md"
       ]
     },
     {
