@@ -7,6 +7,15 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- `Consumer::fetch` no longer decompresses fetched batches it cannot keep. Each
+  batch is framed and CRC-checked when its response arrives but decoded only
+  when applied, so batches past `buffer_memory` stay compressed and are fetched
+  again later instead of being inflated and dropped. Against a local broker
+  with real gzip, 8 MiB per partition and the default 32 MiB budget, client CPU
+  fell from 15.1 to 4.5 µs per record and peak RSS from 1.33 GB to 308 MB.
+  Framing, CRC and codec errors still fail the whole fetch; errors found only
+  while decompressing now surface when that batch is applied (KL10-16).
+
 - Consumer uses broker-local incremental Fetch sessions on v7–v17, retaining
   full v4–v6 fallback, changed/forgotten partitions and independent epochs.
   Session errors retry within the original deadline, response identities and

@@ -27,14 +27,14 @@ use crate::protocol::epoch::{
     OffsetForLeaderPartition, OffsetForLeaderTopic, OffsetForLeaderTopicResult,
 };
 use crate::protocol::fetch::{
-    decode_fetch_response, encode_fetch_request_with_forgotten, FetchMetadata, FetchPartition,
+    decode_fetch_response_raw, encode_fetch_request_with_forgotten, FetchMetadata, FetchPartition,
     FetchTopic, FetchedTopic, ForgottenTopic, INVALID_LOG_START_OFFSET,
 };
 use crate::protocol::group::Topic;
 use crate::protocol::offsets::{decode_list_offsets_topics_response, encode_list_offsets_request};
 use crate::protocol::records::{
-    write_java_optional, write_java_optional_bytes, write_java_record_headers, Header,
-    TimestampType,
+    split_record_batches, write_java_optional, write_java_optional_bytes,
+    write_java_record_headers, EncodedBatch, Header, TimestampType,
 };
 use crate::protocol::sasl;
 
@@ -1329,7 +1329,11 @@ struct FetchReply {
 }
 
 struct FetchBody {
+    /// Partition metadata; `records` stay empty (see `batches`).
     topics: Vec<FetchedTopic>,
+    /// Framed, CRC-checked batches per `[topic][partition]`, decoded only
+    /// when applied so batches past the buffer budget are never inflated.
+    batches: Vec<Vec<Vec<EncodedBatch>>>,
     endpoints: Vec<crate::protocol::api::NodeEndpoint>,
 }
 
@@ -3233,8 +3237,17 @@ impl Consumer {
                     return Err(error);
                 }
             }
-            let (topics, endpoints, _, _, throttle) =
-                decode_fetch_response(&mut bytes, reply.version)?;
+            let (topics, raw, endpoints, _, _, throttle) =
+                decode_fetch_response_raw(&mut bytes, reply.version)?;
+            let batches = raw
+                .into_iter()
+                .map(|partitions| {
+                    partitions
+                        .into_iter()
+                        .map(split_record_batches)
+                        .collect::<Result<Vec<_>>>()
+                })
+                .collect::<Result<Vec<_>>>()?;
             if reply.version >= 7 {
                 if let Some(session) = session.as_mut() {
                     // Apache treats an empty throttled full response as a
@@ -3252,7 +3265,11 @@ impl Consumer {
                     }
                 }
             }
-            Ok(FetchBody { topics, endpoints })
+            Ok(FetchBody {
+                topics,
+                batches,
+                endpoints,
+            })
         })();
         if body.is_err() {
             if let Some(session) = session {
@@ -3281,11 +3298,15 @@ impl Consumer {
         completed: &mut HashSet<(String, i32)>,
         budget_reached: &mut bool,
     ) -> Result<FetchRetry> {
-        let fetched = body.topics;
-        self.cluster.apply_node_endpoints(&body.endpoints);
+        let FetchBody {
+            topics: fetched,
+            batches,
+            endpoints,
+        } = body;
+        self.cluster.apply_node_endpoints(&endpoints);
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;
-        for topic in fetched {
+        for (topic, topic_batches) in fetched.into_iter().zip(batches) {
             if *budget_reached {
                 break;
             }
@@ -3296,7 +3317,7 @@ impl Consumer {
             } else {
                 continue;
             };
-            for part in topic.partitions {
+            for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
                 if *budget_reached {
                     break;
                 }
@@ -3412,8 +3433,7 @@ impl Consumer {
                 }
                 let part_key = (name.clone(), part.partition);
                 let isolation = self.cfg.isolation_level;
-                let has_txn_headers = part
-                    .records
+                let has_txn_headers = part_batches
                     .iter()
                     .any(|b| b.is_transactional() || b.is_control_batch())
                     || self
@@ -3446,10 +3466,21 @@ impl Consumer {
                 let mut last_epoch = crate::RecordBatch::NO_PARTITION_LEADER_EPOCH;
                 let mut reached_lso = false;
 
-                for batch in part.records {
-                    let is_control = batch.is_control_batch();
+                for encoded in part_batches {
+                    let is_control = encoded.is_control_batch();
                     let is_first_batch = out.is_empty() && self.pending.is_empty();
                     let budget = self.cfg.buffer_memory;
+                    // Already over budget: this batch would be refused below
+                    // whatever its size, so skip it without decompressing.
+                    if budget > 0
+                        && !is_first_batch
+                        && !is_control
+                        && self.buffered_bytes.saturating_add(*out_bytes) > budget
+                    {
+                        *budget_reached = true;
+                        break;
+                    }
+                    let batch = encoded.decode()?;
                     if budget > 0 && !is_first_batch && !is_control {
                         let batch_bytes = batch_records_bytes(&batch.records);
                         let current_total = self.buffered_bytes.saturating_add(*out_bytes);

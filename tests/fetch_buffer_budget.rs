@@ -885,3 +885,82 @@ async fn zero_buffer_memory_allows_unbounded_buffering() {
     consumer.close().await.expect("close succeeds");
     cluster.shutdown().await;
 }
+
+/// 9. KL10-16: batches past the budget stay compressed. The second batch
+/// only fails after decompression (it inflates past the 64 MiB ceiling), so
+/// the first fetch must deliver the first batch instead of decoding the whole
+/// response; the error surfaces once a fetch actually applies that batch.
+#[tokio::test]
+async fn batch_past_budget_is_not_decompressed() {
+    use partitionline::protocol::records::Compression;
+
+    let first = build_batch_with_record_sizes(0, 5, 1000).with_compression(Compression::Gzip);
+    let mut bomb = RecordBatch::from_records(vec![Record {
+        offset: 0,
+        timestamp: 0,
+        key: None,
+        value: Some(Bytes::from(vec![
+            b'z';
+            DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES + 1
+        ])),
+        headers: Vec::new(),
+    }])
+    .with_compression(Compression::Gzip);
+    bomb.base_offset = 5;
+
+    let mut cluster = spawn_cluster(
+        0,
+        0,
+        move |topics, _attempt| {
+            let req = topics
+                .iter()
+                .find(|t| t.topic == "t")?
+                .partitions
+                .iter()
+                .find(|p| p.partition == 0)?;
+            let mut part = FetchedPartition::partition_response(0, 0);
+            part.high_watermark = 6;
+            part.records = match req.fetch_offset {
+                0 => vec![first.clone(), bomb.clone()],
+                5 => vec![bomb.clone()],
+                _ => Vec::new(),
+            };
+            Some(vec![FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0u8; 16],
+                partitions: vec![part],
+            }])
+        },
+        |_topics, _attempt| None,
+    )
+    .await;
+
+    // 5 x 1000 decoded bytes already exceed the 1500-byte budget, so the
+    // second batch is refused without being inflated. The mock gzips the
+    // 64 MiB batch on every fetch in an unoptimized build; give it time.
+    let cfg = cluster
+        .config()
+        .request_timeout(Duration::from_secs(60))
+        .buffer_memory(1500);
+    let mut consumer = Consumer::new(cfg).await.expect("consumer starts");
+    consumer.assign("t", 0, 0).await.expect("assign succeeds");
+
+    let recs = consumer
+        .fetch()
+        .await
+        .expect("the batch past the budget must not be decompressed");
+    assert_eq!(recs.len(), 5);
+    assert_eq!(consumer.fetch_cursor("t", 0).unwrap(), 5);
+
+    let err = consumer
+        .fetch()
+        .await
+        .expect_err("applying the oversized batch reports the decode ceiling");
+    assert!(
+        err.to_string().contains("maximum allowable size"),
+        "expected decode ceiling error, got: {err}"
+    );
+
+    consumer.close().await.expect("close succeeds");
+    cluster.shutdown().await;
+}

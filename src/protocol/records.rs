@@ -2242,6 +2242,76 @@ pub fn decode_record_batches_with_limit<B: Buf>(
     Ok(out)
 }
 
+/// One framed, CRC-checked magic-v2 batch whose records are decoded (and
+/// decompressed) only when [`EncodedBatch::decode`] is called.
+#[derive(Debug)]
+pub(crate) struct EncodedBatch {
+    base_offset: i64,
+    attributes: i16,
+    body: Bytes,
+}
+
+impl EncodedBatch {
+    /// Batch attribute transactional bit.
+    pub(crate) fn is_transactional(&self) -> bool {
+        self.attributes & ATTR_TRANSACTIONAL != 0
+    }
+
+    /// Batch attribute control bit.
+    pub(crate) fn is_control_batch(&self) -> bool {
+        self.attributes & ATTR_CONTROL != 0
+    }
+
+    /// Decompress and decode the records, enforcing
+    /// [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`].
+    pub(crate) fn decode(self) -> Result<RecordBatch> {
+        decode_checked_batch(
+            self.base_offset,
+            self.body,
+            DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+        )
+    }
+}
+
+/// Split consecutive magic-v2 batches like [`decode_record_batches`] (a
+/// trailing partial batch is ignored), checking framing, magic, CRC32-C and
+/// codec without decompressing anything.
+pub(crate) fn split_record_batches(mut buf: Bytes) -> Result<Vec<EncodedBatch>> {
+    let mut out = Vec::new();
+    while buf.remaining() >= 12 {
+        let len_bytes = buf
+            .get(8..12)
+            .ok_or_else(|| Error::protocol("short batch length"))?;
+        let batch_len = i32::from_be_bytes(
+            len_bytes
+                .try_into()
+                .map_err(|_| Error::protocol("short batch length"))?,
+        );
+        if batch_len < 0 {
+            return Err(Error::protocol("negative record batch length"));
+        }
+        let need = 12usize.saturating_add(buf::usize_from_i32(batch_len)?);
+        if buf.remaining() < need {
+            break;
+        }
+        let (base_offset, body) = take_checked_batch(&mut buf)?;
+        let attr_bytes = body
+            .get(9..11)
+            .ok_or_else(|| Error::protocol("short batch attributes"))?;
+        let attributes = i16::from_be_bytes(
+            attr_bytes
+                .try_into()
+                .map_err(|_| Error::protocol("short batch attributes"))?,
+        );
+        out.push(EncodedBatch {
+            base_offset,
+            attributes,
+            body,
+        });
+    }
+    Ok(out)
+}
+
 /// Decode one magic-v2 batch (CRC32-C checked), enforcing [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`].
 ///
 /// Nested records match Java `DefaultRecord.readFrom`: a negative header
@@ -2261,6 +2331,14 @@ pub fn decode_record_batch_with_limit<B: Buf>(
     buf: &mut B,
     max_decode_bytes: usize,
 ) -> Result<RecordBatch> {
+    let (base_offset, body) = take_checked_batch(buf)?;
+    decode_checked_batch(base_offset, body, max_decode_bytes)
+}
+
+/// Frame one magic-v2 batch and check its size, magic, CRC32-C and codec
+/// without decompressing it. Returns the base offset and the batch body from
+/// `partitionLeaderEpoch` on.
+fn take_checked_batch<B: Buf>(buf: &mut B) -> Result<(i64, Bytes)> {
     let base_offset = buf::get_i64(buf)?;
     let batch_len = buf::get_i32(buf)?;
     let size_in_bytes = Records::LOG_OVERHEAD.wrapping_add(batch_len);
@@ -2272,19 +2350,34 @@ pub fn decode_record_batch_with_limit<B: Buf>(
     }
     let batch_len_usize = buf::usize_from_i32(batch_len)?;
     buf::need(buf, batch_len_usize)?;
-    let mut body = buf.copy_to_bytes(batch_len_usize);
-    let partition_leader_epoch = buf::get_i32(&mut body)?;
-    let magic = buf::get_i8(&mut body)?;
+    let body = buf.copy_to_bytes(batch_len_usize);
+    // Peek through slices: cloning a freshly copied `Bytes` would allocate.
+    let mut head: &[u8] = &body;
+    let _partition_leader_epoch = buf::get_i32(&mut head)?;
+    let magic = buf::get_i8(&mut head)?;
     if magic != MAGIC_V2 {
         return Err(Error::protocol(format!("unsupported record magic {magic}")));
     }
-    let crc = buf::get_u32(&mut body)?;
-    let computed = crc32c::crc32c(&body);
+    let crc = buf::get_u32(&mut head)?;
+    let computed = crc32c::crc32c(head);
     if computed != crc {
         return Err(Error::protocol(format!(
             "Record is corrupt (stored crc = {crc}, computed crc = {computed})"
         )));
     }
+    let _codec = Compression::from_attributes(buf::get_i16(&mut head)?)?;
+    Ok((base_offset, body))
+}
+
+/// Decode a body that [`take_checked_batch`] already framed and checked.
+fn decode_checked_batch(
+    base_offset: i64,
+    mut body: Bytes,
+    max_decode_bytes: usize,
+) -> Result<RecordBatch> {
+    let partition_leader_epoch = buf::get_i32(&mut body)?;
+    let magic = buf::get_i8(&mut body)?;
+    let _crc = buf::get_u32(&mut body)?;
     let attributes = buf::get_i16(&mut body)?;
     let compression = Compression::from_attributes(attributes)?;
     let _last_delta = buf::get_i32(&mut body)?;

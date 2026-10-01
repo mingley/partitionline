@@ -1992,6 +1992,37 @@ pub fn decode_fetch_response<B: Buf>(
     i32,
     i32,
 )> {
+    let (mut topics, raw, endpoints, error_code, session_id, throttle_time_ms) =
+        decode_fetch_response_raw(buf, version)?;
+    for (topic, raw_partitions) in topics.iter_mut().zip(raw) {
+        for (part, rec_bytes) in topic.partitions.iter_mut().zip(raw_partitions) {
+            if !rec_bytes.is_empty() {
+                let mut rec_buf = rec_bytes;
+                part.records = records::decode_record_batches(&mut rec_buf)?;
+            }
+        }
+    }
+    Ok((topics, endpoints, error_code, session_id, throttle_time_ms))
+}
+
+/// [`decode_fetch_response`] without decoding record batches: every
+/// partition's `records` is empty and its raw record-set bytes are returned
+/// alongside, indexed `[topic][partition]`, so callers can decode lazily.
+#[expect(
+    clippy::type_complexity,
+    reason = "Fetch response decode returns topics, raw records, endpoints, error, session, and throttle together"
+)]
+pub(crate) fn decode_fetch_response_raw<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(
+    Vec<FetchedTopic>,
+    Vec<Vec<Bytes>>,
+    Vec<super::api::NodeEndpoint>,
+    i16,
+    i32,
+    i32,
+)> {
     let flexible = fetch_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = if version >= 7 { buf::get_i16(buf)? } else { 0 };
@@ -2002,10 +2033,12 @@ pub fn decode_fetch_response<B: Buf>(
     };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
+    let mut raw_records = Vec::with_capacity(n);
     for _ in 0..n {
         let (topic, topic_id) = get_fetch_topic_identity(buf, version, flexible)?;
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
+        let mut raw_partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
@@ -2036,12 +2069,8 @@ pub fn decode_fetch_response<B: Buf>(
             } else {
                 buf::take_classic_bytes(buf)?.unwrap_or_else(Bytes::new)
             };
-            let records = if rec_bytes.is_empty() {
-                Vec::new()
-            } else {
-                let mut rec_buf = rec_bytes;
-                records::decode_record_batches(&mut rec_buf)?
-            };
+            raw_partitions.push(rec_bytes);
+            let records = Vec::new();
             let (
                 diverging_epoch,
                 diverging_end_offset,
@@ -2086,13 +2115,21 @@ pub fn decode_fetch_response<B: Buf>(
             topic_id,
             partitions,
         });
+        raw_records.push(raw_partitions);
     }
     let endpoints = if flexible {
         super::api::decode_top_level_node_endpoints(buf, version >= 16)?
     } else {
         Vec::new()
     };
-    Ok((topics, endpoints, error_code, session_id, throttle_time_ms))
+    Ok((
+        topics,
+        raw_records,
+        endpoints,
+        error_code,
+        session_id,
+        throttle_time_ms,
+    ))
 }
 
 #[cfg(test)]

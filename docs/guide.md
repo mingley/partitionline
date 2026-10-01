@@ -591,10 +591,13 @@ partition queues and brokers (KL02-08):
 - **Across Partitions and Brokers:** The memory budget is aggregate across all
   assigned partitions and distinct broker connections, not merely a per-request
   cap. Once accepted record bytes reach the budget, later batches are not
-  retained and their fetch cursors stay unadvanced. A single Fetch response is
-  fully decoded before that check. Later leaders in the same round are not
-  decoded after the budget is reached, but the round may already have requested
-  every leader.
+  retained and their fetch cursors stay unadvanced. Every fetched batch is framed
+  and CRC-checked when its response arrives, but decompressed and decoded only
+  when it is applied, so batches past the budget (in this or a later leader's
+  response) are never inflated; they stay compressed and are fetched again on a
+  later call (KL10-16). The round may still have requested every leader, so keep
+  `max_partition_fetch_bytes` and `max_bytes` near `buffer_memory` to avoid
+  re-fetching the same bytes.
 - **Oversized First Batch Progress:** In accordance with Kafka protocol rules
   (KIP-74), a valid first batch larger than the soft fetch limit (`max_partition_fetch_bytes`
   or `buffer_memory`) is accepted and delivered to guarantee forward progress,
