@@ -1,0 +1,61 @@
+{
+  "id": "KL05-17",
+  "status": "done",
+  "source_sha": "e979c04dfab51b1566bcc60436247b0622dfa25a",
+  "acceptance_met": [
+    "Typed preferred/unclean options and nullable all/empty partition selections; controller-scoped v0-v2 negotiation with v0 preferred-only fallback.",
+    "Retains successful and terminal partition outcomes while retrying only NOT_CONTROLLER and retriable transport/closed responses; bounded discovery/connect/negotiation/retry deadline.",
+    "Rejects unsupported policy/API versions and invalid negative partitions/clock-overflow/zero deadlines before any election RPC; rejects missing, duplicate or unsolicited partition outcomes.",
+    "Matching runtime inventory/docs and request/response flexible-header boundaries updated. No real unclean election performed."
+  ],
+  "commands": [
+    "cargo test --locked --test full_surface elect_leaders",
+    "cargo test --locked --test client_api",
+    "cargo test --locked --lib elect_leaders",
+    "cargo +1.85.0 test --locked --test full_surface elect_leaders",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings",
+    "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features",
+    "cargo fmt --check",
+    "python3 scripts/check-protocol-coverage.py",
+    "python3 scripts/check-protocol-coverage.py --self-test",
+    "python3 -m unittest tests.conformance.test_check_protocol_coverage"
+  ],
+  "results": {
+    "full_surface": {
+      "passed": 9,
+      "failed": 0
+    },
+    "client_api": {
+      "passed": 110,
+      "failed": 0
+    },
+    "codec_and_header": {
+      "passed": 9,
+      "failed": 0
+    },
+    "msrv_1_85": {
+      "passed": 9,
+      "failed": 0
+    },
+    "coverage_guard": {
+      "passed": 15,
+      "failed": 0,
+      "unclassified_drift": 0
+    },
+    "clippy": "passed",
+    "rustdoc": "passed",
+    "fmt": "passed",
+    "failing_first": "Restoring the old header match table fails elect_leaders_headers_match_apache_flexible_boundary: request version 1 instead of 2."
+  },
+  "artifacts": [
+    "docs/plan/evidence/KL05-17.json",
+    "docs/plan/evidence/KL05-16.json",
+    "https://github.com/mingley/partitionline/commit/e979c04dfab51b1566bcc60436247b0622dfa25a"
+  ],
+  "limits": [
+    "Runtime evidence uses the shared mock; wire schemas are independently pinned by KL05-16 Apache fixtures. No live unclean-election or cluster failover qualification.",
+    "Top-level terminal errors for known selections become outstanding per-partition codes. An all-partition request with no enumerated universe returns Error::Broker. No throttle sleep claim.",
+    "No dependencies, defaults or unsafe code added."
+  ],
+  "blocked_reason": null
+}

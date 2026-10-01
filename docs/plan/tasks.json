@@ -1653,7 +1653,7 @@
       "title": "Expose ElectLeaders through Admin",
       "priority": "P2",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL05-16"
@@ -1673,7 +1673,60 @@
         "cargo test --locked --test full_surface elect_leaders",
         "cargo test --locked --test client_api"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "e979c04dfab51b1566bcc60436247b0622dfa25a",
+          "commands": [
+            "cargo test --locked --test full_surface elect_leaders",
+            "cargo test --locked --test client_api",
+            "cargo test --locked --lib elect_leaders",
+            "cargo +1.85.0 test --locked --test full_surface elect_leaders",
+            "cargo clippy --locked --all-targets --all-features -- -D warnings",
+            "RUSTDOCFLAGS='-D warnings' cargo doc --locked --no-deps --all-features",
+            "cargo fmt --check",
+            "python3 scripts/check-protocol-coverage.py",
+            "python3 scripts/check-protocol-coverage.py --self-test",
+            "python3 -m unittest tests.conformance.test_check_protocol_coverage"
+          ],
+          "results": {
+            "full_surface": {
+              "passed": 9,
+              "failed": 0
+            },
+            "client_api": {
+              "passed": 110,
+              "failed": 0
+            },
+            "codec_and_header": {
+              "passed": 9,
+              "failed": 0
+            },
+            "msrv_1_85": {
+              "passed": 9,
+              "failed": 0
+            },
+            "coverage_guard": {
+              "passed": 15,
+              "failed": 0,
+              "unclassified_drift": 0
+            },
+            "clippy": "passed",
+            "rustdoc": "passed",
+            "fmt": "passed",
+            "failing_first": "Restoring the old header match table fails elect_leaders_headers_match_apache_flexible_boundary: request version 1 instead of 2."
+          },
+          "artifacts": [
+            "docs/plan/evidence/KL05-17.json",
+            "docs/plan/evidence/KL05-16.json",
+            "https://github.com/mingley/partitionline/commit/e979c04dfab51b1566bcc60436247b0622dfa25a"
+          ],
+          "limits": [
+            "Runtime evidence uses the shared mock; wire schemas are independently pinned by KL05-16 Apache fixtures. No live unclean-election or cluster failover qualification.",
+            "Top-level terminal errors for known selections become outstanding per-partition codes. An all-partition request with no enumerated universe returns Error::Broker. No throttle sleep claim.",
+            "No dependencies, defaults or unsafe code added."
+          ]
+        }
+      ],
       "write_set": [
         "src/admin.rs",
         "src/lib.rs",
@@ -1733,13 +1786,44 @@
     {
       "id": "KL05-19",
       "title": "Expose metadata quorum description through Admin",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL05-18"],
-      "files": ["src/admin.rs", "src/lib.rs", "tests/full_surface.rs"],
+      "priority": "P2",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL05-18"
+      ],
+      "files": [
+        "src/admin.rs",
+        "src/lib.rs",
+        "tests/full_surface.rs"
+      ],
       "deliverable": "A typed metadata-quorum inspection operation with correct routing/fallback.",
-      "acceptance": ["Map supported Kafka Admin semantics, deadlines and per-result errors.", "Test controller changes and brokers that omit the API.", "Add a read-only example and accurate feature-matrix evidence; no quorum mutation is bundled."],
-      "validation": ["cargo test --locked --test full_surface describe_quorum", "cargo test --locked --test client_api"],
-      "evidence": []
+      "acceptance": [
+        "Map supported Kafka Admin semantics, deadlines and per-result errors.",
+        "Test controller changes and brokers that omit the API.",
+        "Add a read-only example and accurate feature-matrix evidence; no quorum mutation is bundled."
+      ],
+      "validation": [
+        "cargo test --locked --test full_surface describe_quorum",
+        "cargo test --locked --test client_api"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/admin.rs",
+        "src/lib.rs",
+        "src/protocol/header.rs",
+        "tests/common/mod.rs",
+        "tests/full_surface.rs",
+        "examples/describe_quorum.rs",
+        "tests/conformance/features.json",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "docs/gaps.md",
+        "docs/migrate-from-rdkafka.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL05-19.json"
+      ]
     },
     {
       "id": "KL05-20",
