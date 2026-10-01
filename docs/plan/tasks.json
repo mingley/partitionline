@@ -1613,13 +1613,54 @@
     {
       "id": "KL05-13",
       "title": "Implement the selected ListOffsets v11 delta",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL01-07", "KL05-01"],
-      "files": ["src/protocol/offsets.rs", "src/consumer.rs", "src/admin.rs", "tests/protocol_oracles.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL01-07",
+        "KL05-01"
+      ],
+      "files": [
+        "src/protocol/offsets.rs",
+        "src/consumer.rs",
+        "src/admin.rs",
+        "tests/protocol_oracles.rs"
+      ],
       "deliverable": "Source-pinned ListOffsets v11 fields and high-level behavior with older-peer fallback.",
-      "acceptance": ["Map newly available offset semantics/options to explicit supported APIs.", "Validate errors, isolation, deadlines and boundary timestamps with independent fixtures.", "Keep unsupported broker/option combinations explicit rather than silently downgrading their meaning."],
-      "validation": ["cargo test --locked --test protocol_oracles", "cargo test --locked --test full_surface list_offsets"],
-      "evidence": []
+      "acceptance": [
+        "Map newly available offset semantics/options to explicit supported APIs.",
+        "Validate errors, isolation, deadlines and boundary timestamps with independent fixtures.",
+        "Keep unsupported broker/option combinations explicit rather than silently downgrading their meaning."
+      ],
+      "validation": [
+        "cargo test --locked --test protocol_oracles",
+        "cargo test --locked --test full_surface list_offsets"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/offsets.rs",
+        "src/protocol/header.rs",
+        "src/lib.rs",
+        "src/admin.rs",
+        "src/consumer.rs",
+        "tests/common/mod.rs",
+        "tests/full_surface.rs",
+        "tests/client_api.rs",
+        "tests/protocol_oracles.rs",
+        "tests/conformance/java/ListOffsetsV11Fixtures.java",
+        "tests/conformance/java/README.md",
+        "tests/fixtures/protocol_oracles/list_offsets_v11_*",
+        "tests/conformance/features.json",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "docs/gaps.md",
+        "docs/support.md",
+        "docs/STATUS.md",
+        "CHANGELOG.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL05-13.json"
+      ]
     },
     {
       "id": "KL05-14",
