@@ -39,7 +39,7 @@ v=json.loads(Path(sys.argv[1]).read_text())
 if 'artifact_name' in v:
     label=v['artifact_name']
 else:
-    label=f"macos-arm64-{v['requested_toolchain']}-rust{v['rustc_release']}-os{v['macos_version']}-ssl{v['openssl_version'].split()[1]}-py{v['python_version']}-partial-{v['source_sha']}"
+    label=f"macos-arm64-{v['requested_toolchain']}-rust{v['rustc_release']}-os{v['macos_version']}-ssl{v['openssl_version'].split()[1]}-py{v['python_version']}-bash{v['bash_version'].split('(')[0]}-partial-{v['source_sha']}"
 with open(sys.argv[2], 'a') as output:
     output.write('artifact_name='+re.sub(r'[^A-Za-z0-9_.-]', '_', label)+'\n')
 PYNAME

@@ -128,6 +128,7 @@ def finish(directory):
             raise ValueError('operator lock checksum mismatch')
     label = (f"macos-arm64-{versions['requested_toolchain']}-rust{versions['rustc_release']}"
              f"-os{versions['macos_version']}-ssl{versions['openssl_version'].split()[1]}"
+             f"-py{versions['python_version']}-bash{versions['bash_version'].split('(')[0]}"
              f"-tests{counts['default']['passed']}-{counts['tracing']['passed']}-snips{snippets}")
     return {'status': 'passed', 'versions': versions, 'runtime': counts, 'doctests': doctests,
             'packaged_snippets': snippets, 'operator_cells': 2,

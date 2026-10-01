@@ -2209,7 +2209,8 @@
         "partitionline-schema/README.md",
         "docs/schema-companion.md",
         "docs/plan/tasks.json",
-        "docs/plan/evidence/KL05-26.json"
+        "docs/plan/evidence/KL05-26.json",
+        "tests/conformance/features.json"
       ]
     },
     {
