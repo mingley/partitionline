@@ -2349,14 +2349,34 @@
     },
     {
       "id": "KL07-14",
-      "title": "Latch abort-required state on fenced transaction errors",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL07-10"],
-      "files": ["src/producer.rs", "tests/client_api.rs"],
-      "deliverable": "Abort-required latching for fenced/abortable transaction produce errors.",
-      "acceptance": ["Transactional produce receiving PRODUCER_FENCED, TRANSACTION_ABORTABLE, INVALID_TXN_STATE, or CONCURRENT_TRANSACTIONS fails the send and latches the same epoch-bump-required state as UNKNOWN_PRODUCER_ID.", "commit_transaction without a preceding abort_transaction stays invalid from the latched state.", "Non-transactional and idempotent produce paths are unchanged; mock-backed client_api coverage for at least one fenced and one abortable code."],
-      "validation": ["cargo test --locked --test client_api txn_abort"],
-      "evidence": []
+      "title": "Prove fatal fencing and abort-required transaction latches",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL07-10"
+      ],
+      "files": [
+        "src/producer.rs",
+        "tests/client_api.rs"
+      ],
+      "deliverable": "Mock-backed public-API coverage and accurate caller documentation for the pinned KL03-10 fatal/abortable classification.",
+      "acceptance": [
+        "Pinned KL03-10 supersedes the obsolete recoverable-fencing proposal: PRODUCER_FENCED and INVALID_PRODUCER_ID_MAPPING latch terminal fatal state; TRANSACTION_ABORTABLE, INVALID_TXN_STATE, and CONCURRENT_TRANSACTIONS on failed transactional Produce latch abort-required state like UNKNOWN_PRODUCER_ID.",
+        "commit_transaction remains invalid while either state is latched. Abort clears only abort-required state, using a broker-authorized identity when the coordinator supports epoch recovery; fatal fencing requires a new producer.",
+        "Non-transactional/idempotent production behavior is unchanged; mock-backed client_api tests cover both fatal fencing and abortable codes."
+      ],
+      "validation": [
+        "cargo test --locked --test client_api txn_abort"
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/client_api.rs",
+        "docs/api-stability.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL07-14.json"
+      ]
     },
     {
       "id": "KL07-15",
