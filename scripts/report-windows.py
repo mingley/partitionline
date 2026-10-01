@@ -101,7 +101,7 @@ def main():
     try:
         if len(sys.argv) == 5 and sys.argv[1] == 'diagnose':
             lines = Path(sys.argv[2]).read_text(errors='replace').splitlines()
-            errors = [line for line in lines if re.search(r'error(?:\[|:)|doc-examples:|package-docs:|Traceback|Error:', line)]
+            errors = [line for line in lines if re.search(r'error(?:\[|:)|doc-examples:|package-docs:|ci-crate-consumer:|Traceback|Error:', line)]
             detail = (errors[-1] if errors else (lines[-1] if lines else 'no output'))[:800]
             detail = re.sub(r'https?://[^\s]+', '<url>', detail)
             message = f'{sys.argv[3]} exited {int(sys.argv[4])}: {detail}'

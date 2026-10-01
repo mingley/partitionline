@@ -14,7 +14,11 @@ p = tomllib.loads(Path('Cargo.toml').read_text())['package']
 print(p['name'], p['version'])
 PY
 )
+# Native Windows Python emits CRLF. Bash read/command substitution remove LF
+# while retaining CR, which would become part of the version/archive path.
+ver="${ver%$'\r'}"
 package_target="$(cargo metadata --no-deps --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')"
+package_target="${package_target%$'\r'}"
 report_dir="${PL_PACKAGE_REPORT_DIR:-$package_target/package-check}"
 mkdir -p "$report_dir"
 package_args=()
