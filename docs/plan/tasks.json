@@ -2706,13 +2706,31 @@
     {
       "id": "KL08-17",
       "title": "Land tokio-rustls 0.26.5 patch update",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL08-06"],
-      "files": ["Cargo.lock"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL08-06"
+      ],
+      "files": [
+        "Cargo.lock"
+      ],
       "deliverable": "tokio-rustls 0.26.5 lock bump landed (PR #102 rebased or re-created).",
-      "acceptance": ["Cargo.lock pins tokio-rustls 0.26.5; Cargo.toml range unchanged; no other dependency moves.", "MSRV 1.85 cell passes; audit and deny pass."],
-      "validation": ["cargo update -p tokio-rustls --precise 0.26.5 then cargo test --locked (stable and 1.85)", "cargo audit and cargo deny check on the new lockfile"],
-      "evidence": []
+      "acceptance": [
+        "Cargo.lock pins tokio-rustls 0.26.5; Cargo.toml range unchanged; no other dependency moves.",
+        "MSRV 1.85 cell passes; audit and deny pass."
+      ],
+      "validation": [
+        "cargo update -p tokio-rustls --precise 0.26.5 then cargo test --locked (stable and 1.85)",
+        "cargo audit and cargo deny check on the new lockfile"
+      ],
+      "evidence": [],
+      "write_set": [
+        "Cargo.lock",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL08-17.json"
+      ]
     },
     {
       "id": "KL08-18",
@@ -2762,7 +2780,7 @@
       "title": "Land actions/setup-java v6 workflow update",
       "priority": "P1",
       "kind": "ci",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL08-06"
@@ -2780,7 +2798,9 @@
         "CI broker-smoke (apache/kafka:3.9.1 and 4.1.0) green on the rebased branch",
         "CI conformance-fixtures green; audit/deny green once KL08-19 has landed"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL08-20.json"
+      ],
       "write_set": [
         ".github/workflows/ci.yml",
         "docs/plan/tasks.json",
@@ -3243,7 +3263,8 @@
         "docs/evidence/perf/KL09-34/alloc-candidate.txt",
         "docs/evidence/perf/KL09-34/measurements.json",
         "docs/evidence/perf/KL09-34/instructions-parent.json",
-        "docs/evidence/perf/KL09-34/instructions-candidate.json"
+        "docs/evidence/perf/KL09-34/instructions-candidate.json",
+        "docs/evidence/perf/KL09-34/candidate.patch"
       ]
     },
     {

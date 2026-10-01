@@ -1,0 +1,30 @@
+{
+  "id": "KL08-20",
+  "status": "done",
+  "source_sha": "118de9ee74b894a7920b083fb2533e86e006ac14",
+  "acceptance_met": [
+    "Both Java setup jobs now use actions/setup-java@v6; Temurin Java 21 is unchanged.",
+    "No Rust source, manifest or lockfile changed in commit 118de9e.",
+    "The exact source commit passed all required CI jobs, including both broker-smoke images, conformance-fixtures, auth-smoke, audit and deny."
+  ],
+  "commands": [
+    "gh run view 36817967575 --repo mingley/partitionline --json status,conclusion,jobs"
+  ],
+  "results": {
+    "ci": "success",
+    "broker_smoke_3_9_1": "success",
+    "broker_smoke_4_1_0": "success",
+    "conformance_fixtures": "success",
+    "auth_smoke": "success",
+    "audit": "success",
+    "deny": "success"
+  },
+  "artifacts": [
+    "https://github.com/mingley/partitionline/commit/118de9ee74b894a7920b083fb2533e86e006ac14",
+    "https://github.com/mingley/partitionline/actions/runs/36817967575"
+  ],
+  "limits": [
+    "The optional live conformance workflow was not dispatched; this card requires the two broker-smoke cells and fixture lane, all of which ran successfully."
+  ],
+  "blocked_reason": null
+}
