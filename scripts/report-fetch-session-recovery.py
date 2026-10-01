@@ -127,7 +127,7 @@ def finish(directory, source):
     require(identity['mapped_backend'] == identity['backend'], 'actual broker mapping mismatch')
     require(re.fullmatch(r'sha256:[0-9a-f]{64}', identity['container_image_id'])
             and identity['container_image_id'] == identity['inspected_image_id']
-            and REFERENCE in identity['repo_digests'], 'container image/digest identity mismatch')
+            and 'apache/kafka@' + REFERENCE.split('@', 1)[1] in identity['repo_digests'], 'container image/digest identity mismatch')
     require(re.match(r'4\.1\.2(?:\s|$)', identity['java_cli_version']), 'wrong actual Java peer version')
     require(identity['host_os'] == 'Linux' and identity['host_arch'] == 'x86_64', 'wrong broker qualification host')
     required = {'create', 'start', 'readiness', 'create-topic', 'build', 'runtime', 'java-records', 'broker-logs', 'cleanup'}

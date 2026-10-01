@@ -20,7 +20,7 @@ def fixture(directory):
         'backend': '127.0.0.1:19192', 'proxy': '127.0.0.1:19193', 'mapped_backend': '127.0.0.1:19192',
         'advertised_listeners': 'PLAINTEXT://127.0.0.1:19193,INTERNAL://localhost:9094',
         'container_image_id': 'sha256:' + 'c'*64, 'inspected_image_id': 'sha256:' + 'c'*64,
-        'repo_digests': [REPORT.REFERENCE], 'java_cli_version': '4.1.2', 'host_os': 'Linux', 'host_arch': 'x86_64',
+        'repo_digests': ['apache/kafka@' + REPORT.REFERENCE.split('@', 1)[1]], 'java_cli_version': '4.1.2', 'host_os': 'Linux', 'host_arch': 'x86_64',
         'exit_codes': {name:0 for name in ['create','start','readiness','create-topic','build','runtime','java-records','broker-logs','cleanup']}}
     rows = []
     java = []
@@ -85,6 +85,10 @@ class FetchSessionRecoveryReportTests(unittest.TestCase):
 
     def test_wrong_actual_digest_rejected(self):
         self.identity(lambda x:x.update(actual_reference='apache/kafka:latest'))
+        self.rejected()
+
+    def test_repository_digest_must_match_frozen_content(self):
+        self.identity(lambda x:x.update(repo_digests=["apache/kafka@sha256:"+"d"*64]))
         self.rejected()
 
     def test_missing_process_status_rejected(self):

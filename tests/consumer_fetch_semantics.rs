@@ -3795,7 +3795,7 @@ async fn live_fetch_session_recovery_required() {
     }
     let mut consumer = Consumer::new(
         ConsumerConfig::bootstrap([bootstrap])
-            .connections_max_idle(Duration::from_secs(1))
+            .connections_max_idle(Duration::from_secs(10))
             .request_timeout(Duration::from_secs(3))
             .max_wait_ms(100)
             .max_poll_records(1000),
@@ -3856,7 +3856,7 @@ async fn live_fetch_session_recovery_required() {
         assert_eq!(consumer.position(&topic, p).unwrap(), 2);
     }
     phase.store(5, Ordering::SeqCst);
-    tokio::time::sleep(Duration::from_millis(1500)).await;
+    tokio::time::sleep(Duration::from_secs(11)).await;
     let value = "KL05-07/0/2";
     let ack = producer
         .send(
