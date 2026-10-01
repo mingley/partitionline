@@ -2283,7 +2283,7 @@
       "title": "Reject invalid raw acks at Producer construction",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL07-10"
@@ -2301,7 +2301,9 @@
       "validation": [
         "cargo test --locked --test client_api acks"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL07-12.json"
+      ],
       "write_set": [
         "src/producer.rs",
         "tests/client_api.rs",

@@ -1,0 +1,15 @@
+{
+  "id": "KL07-12",
+  "status": "done",
+  "source_sha": "61984ce1fcba7e1ea9d21c48173d26f51af62814",
+  "baseline_sha": "47d0c33",
+  "commands": [
+    "cargo test --locked --test client_api acks (before: 1 passed, 1 failed; after: 2 passed, 0 failed, 0 ignored)",
+    "cargo fmt --all -- --check (exit 0)",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings (exit 0)"
+  ],
+  "results": "Invalid i16 boundaries and out-of-range values fail with Protocol naming acks before parsing a deliberately invalid bootstrap address. -1/0/1 construct and send against the mock in both normal/idempotent modes; offset availability proves idempotence normalizes acks=0 to broker acknowledgment.",
+  "limits": [
+    "Local mock-backed checks; no new broker qualification claim."
+  ]
+}
