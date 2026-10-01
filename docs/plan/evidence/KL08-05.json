@@ -1,0 +1,268 @@
+{
+  "id": "KL08-05",
+  "status": "done",
+  "source_sha": "a5c0a7f12d8b546ea61267e5fd681e944edcf35f",
+  "acceptance_met": [
+    "Native macOS-15 arm64, Rust 1.85.0 and stable 1.98.1 each run full default/tracing all-target runtime and standalone verifiable binaries; native Python/Rust host guard rejects Intel/Rosetta/cross-target execution. Required public TLS produce/fetch, hostname rejection, mTLS and no-plaintext/deadline paths must appear as passing tests in each report.",
+    "Both toolchains pass strict native rustdoc/doctests and actual extracted-package default/tracing operator consumers plus 19 actual Markdown snippets each. Stable additionally passes strict all-target/all-feature Clippy. Report validates clean exact source VCS, compiler/toolchain/features, fresh archive SHA and actual downstream lock hashes.",
+    "Actual hosted OS/compiler/OpenSSL/Python/Bash identities, full logs and package reports retained in artifacts. Metadata exposes exact versions and final counts. Every existing Linux MSRV/stable/broker/performance CI job remains structurally unchanged from be22ced; support policy only advertises the native mock/runtime/package scope after both cells pass."
+  ],
+  "qualifying_run": {
+    "id": 36849607821,
+    "url": "https://github.com/mingley/partitionline/actions/runs/36849607821",
+    "source_sha": "a5c0a7f12d8b546ea61267e5fd681e944edcf35f",
+    "whole_workflow_status_at_recording": "in_progress",
+    "whole_workflow_conclusion_at_recording": "",
+    "jobs": [
+      {
+        "id": 110328216213,
+        "name": "macos-arm64 (stable)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run dtolnay/rust-toolchain@master",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Select Bash 5 and OpenSSL 3 test prerequisites",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native host and retain exact versions",
+            "conclusion": "success"
+          },
+          {
+            "name": "Native default-feature mock and public API runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Native tracing mock and public API runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Strict stable Clippy",
+            "conclusion": "success"
+          },
+          {
+            "name": "Strict native Rustdoc and doctests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Actual packed-crate default and tracing consumers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate complete platform and package provenance",
+            "conclusion": "success"
+          },
+          {
+            "name": "Retain platform versions, full test logs and package reports",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 110328216346,
+        "name": "macos-arm64 (1.85.0)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run dtolnay/rust-toolchain@master",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Select Bash 5 and OpenSSL 3 test prerequisites",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native host and retain exact versions",
+            "conclusion": "success"
+          },
+          {
+            "name": "Native default-feature mock and public API runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Native tracing mock and public API runtime",
+            "conclusion": "success"
+          },
+          {
+            "name": "Strict stable Clippy",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Strict native Rustdoc and doctests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Actual packed-crate default and tracing consumers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate complete platform and package provenance",
+            "conclusion": "success"
+          },
+          {
+            "name": "Retain platform versions, full test logs and package reports",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v7",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "id": 11155745378,
+        "name": "macos-arm64-1.85.0-rust1.85.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-tests1716-1717-snips38",
+        "size_in_bytes": 64095,
+        "digest": "sha256:af1c3bb4cec999eeb088c8a93bebd729c6e32a20e00635a57fee1a74e26c1144",
+        "expired": false
+      },
+      {
+        "id": 11155432019,
+        "name": "macos-arm64-stable-rust1.98.1-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-tests1716-1717-snips38",
+        "size_in_bytes": 64050,
+        "digest": "sha256:038ede6b10f057481841eba028ab7a41d13d687ec79a75d73e6e9c0aa7940db7",
+        "expired": false
+      }
+    ]
+  },
+  "actual_versions": {
+    "macos": "15.7.9",
+    "machine": "arm64",
+    "rustc_host": "aarch64-apple-darwin",
+    "rustc": [
+      "1.85.0",
+      "1.98.1"
+    ],
+    "python": "3.13.15",
+    "bash": "5.3.15",
+    "openssl": "3.6.4"
+  },
+  "results": {
+    "per_toolchain": {
+      "default_tests_passed": 1716,
+      "tracing_tests_passed": 1717,
+      "failed": 0,
+      "actual_packaged_snippets": 38,
+      "operator_feature_cells": 2,
+      "strict_rustdoc_and_doctests": "passed"
+    },
+    "stable_clippy": "passed",
+    "msrv_clippy": "not selected by design; strict Clippy is the stable lane",
+    "report_unit_tests": 9,
+    "linux_native_guard": "rejects before cargo; local check is not macOS qualification",
+    "yaml_and_shell_syntax": "passed",
+    "existing_ci_jobs": "structurally unchanged"
+  },
+  "commands": [
+    "bash scripts/ci-macos-arm64.sh capture",
+    "bash scripts/ci-macos-arm64.sh default",
+    "bash scripts/ci-macos-arm64.sh tracing",
+    "bash scripts/ci-macos-arm64.sh clippy (stable only)",
+    "bash scripts/ci-macos-arm64.sh docs",
+    "bash scripts/ci-macos-arm64.sh package",
+    "bash scripts/ci-macos-arm64.sh report",
+    "python3 -B -m unittest discover -s tests/platform -p 'test_*.py'",
+    "bash -n scripts/ci-macos-arm64.sh",
+    "bash scripts/check-workflows.sh",
+    "git diff --check"
+  ],
+  "failed_attempts": [
+    {
+      "run_id": 36843644093,
+      "source_sha": "998b990a161adb99865a349630a518bc4c34f5a4",
+      "mac_jobs": [
+        110308851332,
+        110308851341
+      ],
+      "result": "Both failed the combined qualification step with exit 1; child diagnostic unavailable from denied log/artifact download. Do not assign a directly observed cause to this attempt."
+    },
+    {
+      "run_id": 36845448993,
+      "source_sha": "1baabb77ad54c5cc3523a83578f84bcc63ea7faf",
+      "mac_jobs": [
+        110314608148,
+        110314608377
+      ],
+      "result": "Both failed the combined step with exit 1 despite explicitly provisioned Python 3.13.15. Partial artifact names established actual native OS/Rust/OpenSSL/Python; no report-error annotation, so the failed child phase remained unknown."
+    },
+    {
+      "run_id": 36847224970,
+      "source_sha": "efbd3622fa62170d1201f0a5bcfe62e4a03f9e4e",
+      "mac_job": 110320374204,
+      "result": "MSRV default and tracing runtimes passed; strict docs failed. GitHub annotation: docs exited 1: scripts/ci-docs.sh: line 32: CARGO_OFFLINE_FLAG[*]: unbound variable. Apple Bash 3.2 rejects empty arrays under nounset. Explicit Homebrew Bash 5+, guard and version capture repair the test prerequisite."
+    }
+  ],
+  "prior_success": {
+    "run_id": 36847958594,
+    "source_sha": "d79339d13ef265f083efb7cdd488fdcc8dcfde11",
+    "native_jobs": [
+      110322776482,
+      110322777062
+    ],
+    "result": "Both native cells passed default 1716 / tracing 1717 / 38 snippets; this predates exposing exact Python/Bash versions in artifact names. Overall workflow later superseded; no whole-workflow green claim."
+  },
+  "artifacts": [
+    ".github/workflows/ci.yml",
+    "scripts/ci-macos-arm64.sh",
+    "scripts/report-macos-arm64.py",
+    "tests/platform/test_macos_report.py",
+    "docs/support.md",
+    "docs/plan/evidence/KL08-05.json"
+  ],
+  "limits": [
+    "Native mock/runtime and actual package qualification only. Live broker/auth/performance campaigns remain Linux; Windows, Intel macOS and other architectures are not qualified by this card.",
+    "Existing opt-in live tests remain unrun/ignored and are recorded in full reports; report validation prohibits filtered suites or skipping any required TLS test. Required checks were not softened or replaced with compilation-only tests.",
+    "CI artifact/log redirects target a host denied by this environment network policy. This agent inspected job/step conclusions, diagnostic annotations and version/count/digest metadata; it did not download or claim to manually inspect the full raw archives. In-CI strict validators check complete runtime/package reports before the successful artifact is named.",
+    "Artifacts retain full logs and provenance for 30 days. The native CI gate reruns on main; this evidence is an exact-source qualification, not a universal OS/toolchain/broker promise."
+  ],
+  "blocked_reason": null
+}

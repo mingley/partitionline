@@ -2178,7 +2178,7 @@
       "title": "Add Protobuf message-index framing to the companion",
       "priority": "P2",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL05-24"
@@ -2198,7 +2198,9 @@
         "cargo test --locked --manifest-path partitionline-schema/Cargo.toml",
         "Perform bidirectional framing/serialization checks against a pinned independent peer."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL05-26.json"
+      ],
       "write_set": [
         "partitionline-schema/src/wire.rs",
         "partitionline-schema/src/lib.rs",
@@ -2211,7 +2213,8 @@
         "docs/plan/tasks.json",
         "docs/plan/evidence/KL05-26.json",
         "tests/conformance/features.json"
-      ]
+      ],
+      "blocked_reason": null
     },
     {
       "id": "KL05-27",
@@ -3191,7 +3194,7 @@
       "title": "Qualify macOS arm64 while preserving the MSRV matrix",
       "priority": "P1",
       "kind": "ci",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL08-04"
@@ -3211,7 +3214,9 @@
         "Inspect completed platform/MSRV CI cells and their exact versions.",
         "Check required feature combinations and package-consumer artifacts per advertised platform."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL08-05.json"
+      ],
       "write_set": [
         ".github/workflows/ci.yml",
         "scripts/ci-msrv.sh",
@@ -3221,7 +3226,8 @@
         "docs/support.md",
         "docs/plan/tasks.json",
         "docs/plan/evidence/KL08-05.json"
-      ]
+      ],
+      "blocked_reason": null
     },
     {
       "id": "KL08-06",
@@ -3335,13 +3341,41 @@
     {
       "id": "KL08-14",
       "title": "Qualify an explicit Windows support cell",
-      "priority": "P2", "kind": "ci", "status": "pending", "owner": null,
-      "depends_on": ["KL08-04"],
-      "files": [".github/workflows/ci.yml", "tests/common/mod.rs", "docs/support.md"],
+      "priority": "P2",
+      "kind": "ci",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL08-04"
+      ],
+      "files": [
+        ".github/workflows/ci.yml",
+        "tests/common/mod.rs",
+        "docs/support.md"
+      ],
       "deliverable": "One Windows build/runtime support cell with platform-specific prerequisites made explicit.",
-      "acceptance": ["Exercise public produce/consume and TLS mock paths, not compilation alone.", "Resolve filesystem/process/certificate-tool assumptions in narrowly scoped test helpers without weakening assertions on other hosts.", "If required tooling or runtime behavior is unavailable, retain Windows as unsupported with a blocker instead of a green skipped cell."],
-      "validation": ["Inspect the completed Windows CI cell and packaged-consumer artifact.", "Re-run affected mock tests on an existing Linux/macOS cell to preserve their behavior."],
-      "evidence": []
+      "acceptance": [
+        "Exercise public produce/consume and TLS mock paths, not compilation alone.",
+        "Resolve filesystem/process/certificate-tool assumptions in narrowly scoped test helpers without weakening assertions on other hosts.",
+        "If required tooling or runtime behavior is unavailable, retain Windows as unsupported with a blocker instead of a green skipped cell."
+      ],
+      "validation": [
+        "Inspect the completed Windows CI cell and packaged-consumer artifact.",
+        "Re-run affected mock tests on an existing Linux/macOS cell to preserve their behavior."
+      ],
+      "evidence": [],
+      "write_set": [
+        ".github/workflows/ci.yml",
+        "tests/common/mod.rs",
+        "tests/verifiable_contract.rs",
+        "scripts/ci-crate-consumer.sh",
+        "scripts/ci-windows.sh",
+        "scripts/report-windows.py",
+        "tests/platform/test_windows_report.py",
+        "docs/support.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL08-14.json"
+      ]
     },
     {
       "id": "KL08-15",

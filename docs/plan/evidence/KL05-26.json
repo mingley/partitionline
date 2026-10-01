@@ -1,0 +1,236 @@
+{
+  "id": "KL05-26",
+  "status": "done",
+  "source_sha": "a5c0a7f12d8b546ea61267e5fd681e944edcf35f",
+  "acceptance_met": [
+    "Confluent Protobuf indexes follow the generic five-byte header: canonical special [0], signed zigzag count/indexes, top-level and nested declaration-order paths. Independent pinned Confluent MessageIndexes checks exact encode/decode bytes and payload boundary.",
+    "Default 1 MiB frame / 32-index path; validated hard maxima 64 MiB / 1024 indexes. Decode borrows payload and reserves only a bounded path after count/remaining-byte checks. Encode and selected-codec exact length are checked before output reservation. Negative, truncated, overflowing, over-limit and invalid-path errors are structured.",
+    "Adapter binds an explicitly chosen Codec and known writer schema ID/message path. Unknown IDs and other paths fail before payload decoding; codecs receive an exact bounded payload slice for encoding. No serializer dependency, root/companion manifest or lockfile change, implicit registration, descriptor parser or recursive reference fetch.",
+    "Independent Google protoc payloads for top-level strings, empty defaults, and nested Envelope using imported common.Metadata decode via Rust fixture-only codecs; actual Rust-emitted payloads decode with Google and frames decode with Confluent in the reverse direction. Framing-only wide-index boundaries are explicitly separate from descriptor-valid cells."
+  ],
+  "commands": [
+    "cargo test --locked --manifest-path partitionline-schema/Cargo.toml (stable 1.98.1)",
+    "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml",
+    "cargo test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features",
+    "cargo clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings",
+    "RUSTDOCFLAGS='-D warnings' cargo doc --locked --manifest-path partitionline-schema/Cargo.toml --no-deps --all-features",
+    "cargo fmt --manifest-path partitionline-schema/Cargo.toml -- --check",
+    "cargo tree --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --edges normal",
+    "bash scripts/check-schema-companion-scaffold.sh",
+    "python3 -B -m unittest discover -s tests/conformance -p 'test_check_protocol_coverage.py'",
+    "python3 -B scripts/check-doc-examples.py --links-only",
+    "PL_PROTOBUF_ORACLE_OUTPUT=/workspace/.cloud-setup/kl05-26-rust-output cargo test --locked --manifest-path partitionline-schema/Cargo.toml",
+    "python3 -B partitionline-schema/tests/oracles/protobuf/generate.py --source /workspace/.cloud-setup/MessageIndexes-810.java --kafka-jar /tmp/partitionline-conformance/kafka-clients-4.1.0.jar --java-home /workspace/.local/usr/lib/jvm/java-21-openjdk-amd64 --protoc /workspace/.local/bin/protoc --output partitionline-schema/tests/fixtures/protobuf --verify --rust-output /workspace/.cloud-setup/kl05-26-rust-output",
+    "git diff --check"
+  ],
+  "results": {
+    "suites": {
+      "stable": [
+        {
+          "passed": 43,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "msrv": [
+        {
+          "passed": 43,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "no-default": [
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    "stable_and_msrv_each": {
+      "tests": 73,
+      "doctests": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    "no_default_features": {
+      "tests": 17,
+      "doctests": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    "independent_cells": 5,
+    "google_payload_cells": 4,
+    "framing_only_boundary_cells": 1,
+    "parser_sweep_inputs": 11600,
+    "coverage_checker_tests": 15,
+    "local_doc_links": 38,
+    "clippy": "passed",
+    "strict_rustdoc": "passed",
+    "fmt": "passed",
+    "scaffold": "passed",
+    "no_default_normal_dependencies": 0,
+    "wrong_source_pin": "rejected before output-directory creation",
+    "failing_first": "unresolved partitionline_schema::protobuf import before implementation; existing generic decode includes index bytes in payload, explicitly demonstrated by each independent fixture",
+    "core_package_inventory": {
+      "documents": 21,
+      "local_links": 178,
+      "immutable_repository_targets": 95,
+      "license_and_exclusion_inventory": "passed",
+      "archive_mode": "explicit local allow-dirty; this is package navigation/inventory verification, not clean-source platform qualification"
+    }
+  },
+  "oracle_manifest": {
+    "confluent_version": "8.1.0",
+    "confluent_commit": "039a339d824debade488573769ad17b0d9975643",
+    "message_indexes_sha256": "d1e82aa164930437627f8d94723963c43f42ffa427af559ba70f814598c0103c",
+    "source_license": "Confluent Community License; fetched externally, not vendored or a runtime dependency",
+    "kafka_version": "4.1.0",
+    "kafka_jar_origin": "apache/kafka:4.1.0 distribution",
+    "kafka_jar_sha256": "180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb",
+    "jdk": "21.0.12.1",
+    "protoc": "libprotoc 3.21.12",
+    "proto_sha256": {
+      "common.proto": "b54ab6dd32017c4a90686d2b924486772ec42ca8b2bba790d5fe60ea337a0fba",
+      "messages.proto": "07e06064ecb307214d41047afb3cd7a0f47e0b793bd45750c12ccf8484144f80"
+    },
+    "cells": [
+      {
+        "name": "first",
+        "schema_id": 42,
+        "message": "fixture.First",
+        "indexes": [
+          0
+        ],
+        "frame_sha256": "c4c2607675207f882033d58d70714b253a9bae214512be3895706b190e20edbe",
+        "payload_sha256": "50ee8231ac5be6b674d35e806db2900dd4048450d29a8598559a9c0d088cc7e3",
+        "text": "text: \"hello\"",
+        "qualification": "framing and Google payload"
+      },
+      {
+        "name": "outer",
+        "schema_id": 42,
+        "message": "fixture.Outer",
+        "indexes": [
+          1
+        ],
+        "frame_sha256": "74acfc9cc73a8ee3a31565b7ef2e6577e48edb89fdacbcecd72dc7430acac8f0",
+        "payload_sha256": "98c91d6cf27fe52510f9728238b58a0dd279043db5b937ac3bb6fa2c00360372",
+        "text": "label: \"top-level\"",
+        "qualification": "framing and Google payload"
+      },
+      {
+        "name": "nested",
+        "schema_id": 42,
+        "message": "fixture.Outer.Envelope",
+        "indexes": [
+          1,
+          1
+        ],
+        "frame_sha256": "5a1842557468a92397a0f2bc2f8c07d3a300aaaf651d320598279aa3221ba5ca",
+        "payload_sha256": "ef23d8238a2b6108ed4925745b5264b857988db5bf660b6459d8b5fd7be69142",
+        "text": "metadata { id: 300 source: \"reference.proto\" } body: \"hello\"",
+        "qualification": "framing and Google payload"
+      },
+      {
+        "name": "empty",
+        "schema_id": 42,
+        "message": "fixture.First",
+        "indexes": [
+          0
+        ],
+        "frame_sha256": "b635579aa35f21e456a6884d71d9139016c64a5652384dbc8d0c9f5c2c9572e0",
+        "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": "",
+        "qualification": "framing and Google payload"
+      },
+      {
+        "name": "varints",
+        "schema_id": 42,
+        "message": null,
+        "indexes": [
+          0,
+          64,
+          8192,
+          2147483647
+        ],
+        "frame_sha256": "050568c70c6542293c3255775a577915a57a793e8c77282c841d1b03ea97c2c3",
+        "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "text": "",
+        "qualification": "framing-only numeric boundaries"
+      }
+    ]
+  },
+  "log_sha256": {
+    "stable": "39c3570edcf0777a9b2164148a9f62cea4f30c387be1d35522ddc6ca6ac90fb2",
+    "msrv": "18c68159c47ca8eec56394f21f2f9536c8e5259146ae1f93afce388f4a8a1844",
+    "no-default": "fa850b5a083c66b007d3eb68e03474fb5d19f44facbcdd6473c68dd1be36644a",
+    "clippy": "c169079bf921ff67d1d836612af388da1bff833a7534fcff84254b2410796e81",
+    "doc": "d3fe86e757c92ee550c2d4f0bffcb131411339bd99f041e88c0f2146f0bf971f",
+    "scaffold": "c7c38811c7ab66a4fb3b6de83cd9cb6c01a021a7e53e8613950b334fd7b4b786",
+    "failing-first": "4ef33616a4907883ee5902d49e6372689437bbc6e5f101fa08b60c0fdf7b9460"
+  },
+  "artifacts": [
+    "partitionline-schema/src/protobuf.rs",
+    "partitionline-schema/tests/protobuf.rs",
+    "partitionline-schema/tests/fixtures/protobuf/manifest.json",
+    "partitionline-schema/tests/oracles/protobuf/README.md",
+    "docs/plan/evidence/KL05-26.json",
+    "tests/conformance/features.json"
+  ],
+  "limits": [
+    "Codec choice is supplied by the application. Built-in production Protobuf serialization, descriptor discovery/evolution and live Registry/Kafka integration are not claimed. The two small descriptor codecs are test-only fixtures.",
+    "Limits bound input/output framing and index storage, not codec-internal scratch, decoded-object memory, descriptor recursion or process RSS. Applications must configure those bounds in their chosen serializer and resolve references explicitly.",
+    "Companion remains unpublished and workspace-excluded, with unchanged default features/dependencies. Its stable/MSRV checks are local Linux runs; current root CI does not run companion tests.",
+    "Confluent Community License source is checked and compiled in an external temporary oracle; it is not vendored or a shipped/runtime dependency. The checked-in oracle driver currently uses a Unix Java classpath."
+  ],
+  "blocked_reason": null,
+  "notes": [
+    "Existing KL05-23/KL05-24 runtime/cache feature rows were stale; their present dispositions now refer to retained completion evidence. Generic wire helper entrypoint corrected to the public exports. No whole schema-ecosystem/core-integration claim."
+  ]
+}

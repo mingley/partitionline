@@ -21,18 +21,18 @@ and evidence before extending support claims.
 |---|---|---|
 | Crate version | `0.1.0` on crates.io | Installable; do not re-cut `0.1.0` |
 | MSRV | Rust **1.85** (`rust-version` in `Cargo.toml`) | `test (1.85)` and `test (stable)` CI; raising MSRV is a 0.x minor + CHANGELOG note |
-| Host OS (CI) | Linux (GitHub Actions `ubuntu-latest`) | `.github/workflows/ci.yml` |
-| Host arch (CI) | `x86_64` | Actions runners |
+| Host OS (CI) | Linux (`ubuntu-latest`); native macOS (`macos-15`) for mock/runtime and packed consumers | `.github/workflows/ci.yml`; KL08-05 native default/tracing cells |
+| Host arch (CI) | Linux `x86_64`; macOS `arm64` | Native compiler/runtime guards and retained platform reports |
 | Brokers | Apache Kafka **3.9.1** and **4.1.0** (`apache/kafka:3.9.1`, `apache/kafka:4.1.0`) | `broker-smoke` matrix (`KAFKA_IMAGE`) |
 | Default features | Pure Rust (no librdkafka / OpenSSL / libzstd / Cyrus SASL) | `Cargo.toml` defaults + deny/audit lanes |
 | Auth in smoke | SASL PLAIN / SCRAM / OAUTHBEARER + rustls TLS (when auth smoke runs) | `scripts/ci-auth-smoke.sh` (soft-skip without Java/Kafka unless `REQUIRE_AUTH=1`) |
 
 ## Explicitly unsupported / not promised
 
-KL08-05 adds native macOS arm64 qualification on `macos-15`, for Rust 1.85.0
+KL08-05 qualifies native macOS arm64 on `macos-15`, for Rust 1.85.0
 and stable, with default/tracing runtime, TLS mock paths and actual packed-crate
-consumers. The support rows above remain Linux-only until both hosted cells
-pass. macOS needs Xcode command-line build tools, Python 3.11+ and Homebrew
+consumers. Both hosted toolchains passed; broker/performance qualification
+remains in the Linux lanes. macOS needs Xcode command-line build tools, Python 3.11+ and Homebrew
 Bash 5+ / OpenSSL 3 on PATH. Apple Bash 3.2 cannot run the package/documentation
 scripts' empty arrays under `set -u`. OpenSSL generates ephemeral mock certificates
 and is a test executable,
@@ -48,12 +48,12 @@ registry status was re-checked at source `ca50ca1` (KL07-07).
 |---|---|---|
 | Kerberos / GSSAPI | Not in default features; no CI promise | `auth.sasl_gssapi` (`missing`) |
 | zstd (C) as a default dependency | Denied / out of default features (`deny.toml` bans `zstd-sys`) | `codecs.zstd.decode/encode/wire_helper` (`missing`) |
-| Schema Registry as part of this crate | Companion design only (`partitionline-schema` not published) | `schema_ecosystem.registry_client/cache/avro/protobuf/json_schema` (`missing`); `wire_framing` (`partial`) |
+| Schema Registry as part of this crate | Outside core; unpublished companion has bounded read-only lookups/cache and Protobuf indexes with a caller-selected codec. Built-in Avro/JSON serializers remain pending. | `schema_ecosystem.registry_client/cache/protobuf` (`present`, companion scope); `avro/json_schema` (`missing`); generic `wire_framing` (`partial`) |
 | Multi-broker chaos / HA proof | KL-03 still open | `manual_consumer.fetch` (`partial`); heartbeat/throttle scheduling `partial` |
 | Proactive OIDC token refresh | Not implemented | `auth.sasl_oidc_refresh` (`missing`) |
 | Sticky unkeyed partitioner | Not implemented (round-robin instead) | `producer.sticky_partitioner` (`missing`) |
 | Signed Suite HOLD / Lab A | **Unsigned** — Suite HOLD remains | — (qualification gate, not a feature entry) |
-| Windows / macOS / non-x86_64 as CI-guaranteed | May build; not a CI matrix promise today | — (CI dimension, not a feature entry) |
+| Windows / macOS Intel / other host architectures | May build; no CI support promise for these cells | — (CI dimension, not a feature entry) |
 | Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `full_admin.describe_log_dirs_v5`, `producer.v13_wire`, `manual_consumer.v18_wire/list_offsets_v11` (`missing`) |
 
 Source now includes typed `elect_leaders`, read-only `describe_quorum` and

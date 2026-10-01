@@ -104,7 +104,7 @@ Codec-internal allocations, decoded objects and descriptor recursion need the
 chosen library's own limits. No serialization-library dependency or default
 feature is added to either core or companion.
 
-The companion's offline peer (`partitionline-schema/tests/oracles/protobuf/README.md`)
+The companion's [offline peer](https://github.com/mingley/partitionline/blob/a5c0a7f12d8b546ea61267e5fd681e944edcf35f/partitionline-schema/tests/oracles/protobuf/README.md)
 pins Confluent Schema Registry 8.1.0 source, Apache Kafka 4.1.0 distribution
 ByteUtils, JDK 21.0.12.1 and Google protoc 3.21.12. It generates independent
 frames/payloads and checks actual Rust-emitted output in the reverse direction,

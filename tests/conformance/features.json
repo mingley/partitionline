@@ -1372,27 +1372,27 @@
     "profile": "schema ecosystem",
     "layer": "wire_helper",
     "disposition": "partial",
-    "entrypoint": "partitionline_schema::wire",
+    "entrypoint": "partitionline_schema::{encode,decode}",
     "evidence": "partitionline-schema/src/wire.rs",
-    "notes": "Basic 5-byte magic + 4-byte schema ID framing scaffold; not published on crates.io."
+    "notes": "Dependency-free generic five-byte header scaffold; unpublished companion. Generic helpers do not parse Protobuf message indexes; separate protobuf module/Adapter qualified in KL05-26."
   },
   {
     "id": "schema_ecosystem.registry_client",
     "profile": "schema ecosystem",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/schema-companion.md",
-    "notes": "Bounded HTTP client for Schema Registry lookups; companion design, tracked in KL05-23."
+    "disposition": "present",
+    "entrypoint": "partitionline_schema::registry::RegistryClient",
+    "evidence": "docs/plan/evidence/KL05-23.json",
+    "notes": "KL05-23: bounded read-only HTTP/TLS Registry lookups, typed failures, credential redaction and one-level reference resolution. No registration/mutation API; unpublished companion outside core; deterministic loopback qualification."
   },
   {
     "id": "schema_ecosystem.cache",
     "profile": "schema ecosystem",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/schema-companion.md",
-    "notes": "Bounded size and freshness cache for resolved schemas; tracked in KL05-24."
+    "disposition": "present",
+    "entrypoint": "partitionline_schema::registry::{RegistryClient,RegistryCacheConfig}",
+    "evidence": "docs/plan/evidence/KL05-24.json",
+    "notes": "KL05-24: credential-scoped bounded LRU/freshness/negative cache and caller-owned cancellation-safe request coalescing, subject/reference limits and one overall reference-batch deadline. Charged cache bytes exclude caller objects and are not RSS."
   },
   {
     "id": "schema_ecosystem.avro",
