@@ -1,0 +1,778 @@
+{
+  "schema_version": 1,
+  "task": "KL05-06",
+  "status": "qualified",
+  "qualifying_source_sha": "af6543b54d2b612d7a680901eb85512523346e2b",
+  "scope": "Broker-local session creation/change/forget/epoch handling and legacy fallback; broader full-response and fault recovery remains KL05-07. Request-body bytes measured; no throughput/latency claim.",
+  "request_bytes": [
+    {
+      "version": 4,
+      "initial": 2076,
+      "unchanged": 2076,
+      "partitions": 128
+    },
+    {
+      "version": 6,
+      "initial": 3100,
+      "unchanged": 3100,
+      "partitions": 128
+    },
+    {
+      "version": 7,
+      "initial": 3112,
+      "unchanged": 33,
+      "partitions": 128
+    },
+    {
+      "version": 8,
+      "initial": 3112,
+      "unchanged": 33,
+      "partitions": 128
+    },
+    {
+      "version": 11,
+      "initial": 3626,
+      "unchanged": 35,
+      "partitions": 128
+    },
+    {
+      "version": 12,
+      "initial": 4258,
+      "unchanged": 29,
+      "partitions": 128
+    },
+    {
+      "version": 13,
+      "initial": 4272,
+      "unchanged": 29,
+      "partitions": 128
+    },
+    {
+      "version": 17,
+      "initial": 4268,
+      "unchanged": 25,
+      "partitions": 128
+    }
+  ],
+  "independent_apache_4_3_1": {
+    "artifacts": {
+      "compile.stderr.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "text": ""
+      },
+      "compile.stdout.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "text": ""
+      },
+      "execute.stderr.log": {
+        "sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+        "bytes": 210,
+        "text": "SLF4J: Failed to load class \"org.slf4j.impl.StaticLoggerBinder\".\nSLF4J: Defaulting to no-operation (NOP) logger implementation\nSLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.\n"
+      },
+      "execute.stdout.log": {
+        "sha256": "bacdde81fe49cadb8ad5e28f5941a79ab51a993f9c5625a1765ff77815f47aab",
+        "bytes": 6488,
+        "text": "{\"version\":7,\"step\":\"initial\",\"session_id\":0,\"epoch\":0,\"changed\":128,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":3112}\n{\"version\":7,\"step\":\"unchanged\",\"session_id\":91,\"epoch\":1,\"changed\":0,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":33}\n{\"version\":7,\"step\":\"changed-offset\",\"session_id\":91,\"epoch\":2,\"changed\":1,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":64}\n{\"version\":7,\"step\":\"removed\",\"session_id\":91,\"epoch\":3,\"changed\":0,\"forgotten\":1,\"cached_partitions\":127,\"request_bytes\":44}\n{\"version\":7,\"step\":\"replaced-id\",\"session_id\":91,\"epoch\":4,\"changed\":127,\"forgotten\":127,\"cached_partitions\":127,\"request_bytes\":3088}\n{\"version\":7,\"step\":\"invalid-epoch-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":3088}\n{\"version\":7,\"step\":\"not-found-initial\",\"session_id\":0,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":3088}\n{\"version\":7,\"step\":\"connection-error-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":3088}\n{\"version\":8,\"step\":\"initial\",\"session_id\":0,\"epoch\":0,\"changed\":128,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":3112}\n{\"version\":8,\"step\":\"unchanged\",\"session_id\":91,\"epoch\":1,\"changed\":0,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":33}\n{\"version\":8,\"step\":\"changed-offset\",\"session_id\":91,\"epoch\":2,\"changed\":1,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":64}\n{\"version\":8,\"step\":\"removed\",\"session_id\":91,\"epoch\":3,\"changed\":0,\"forgotten\":1,\"cached_partitions\":127,\"request_bytes\":44}\n{\"version\":8,\"step\":\"replaced-id\",\"session_id\":91,\"epoch\":4,\"changed\":127,\"forgotten\":127,\"cached_partitions\":127,\"request_bytes\":3088}\n{\"version\":8,\"step\":\"invalid-epoch-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":3088}\n{\"version\":8,\"step\":\"not-found-initial\",\"session_id\":0,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":3088}\n{\"version\":8,\"step\":\"connection-error-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":3088}\n{\"version\":11,\"step\":\"initial\",\"session_id\":0,\"epoch\":0,\"changed\":128,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":3626}\n{\"version\":11,\"step\":\"unchanged\",\"session_id\":91,\"epoch\":1,\"changed\":0,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":35}\n{\"version\":11,\"step\":\"changed-offset\",\"session_id\":91,\"epoch\":2,\"changed\":1,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":70}\n{\"version\":11,\"step\":\"removed\",\"session_id\":91,\"epoch\":3,\"changed\":0,\"forgotten\":1,\"cached_partitions\":127,\"request_bytes\":46}\n{\"version\":11,\"step\":\"replaced-id\",\"session_id\":91,\"epoch\":4,\"changed\":127,\"forgotten\":127,\"cached_partitions\":127,\"request_bytes\":3598}\n{\"version\":11,\"step\":\"invalid-epoch-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":3598}\n{\"version\":11,\"step\":\"not-found-initial\",\"session_id\":0,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":3598}\n{\"version\":11,\"step\":\"connection-error-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":3598}\n{\"version\":12,\"step\":\"initial\",\"session_id\":0,\"epoch\":0,\"changed\":128,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":4258}\n{\"version\":12,\"step\":\"unchanged\",\"session_id\":91,\"epoch\":1,\"changed\":0,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":29}\n{\"version\":12,\"step\":\"changed-offset\",\"session_id\":91,\"epoch\":2,\"changed\":1,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":66}\n{\"version\":12,\"step\":\"removed\",\"session_id\":91,\"epoch\":3,\"changed\":0,\"forgotten\":1,\"cached_partitions\":127,\"request_bytes\":37}\n{\"version\":12,\"step\":\"replaced-id\",\"session_id\":91,\"epoch\":4,\"changed\":127,\"forgotten\":127,\"cached_partitions\":127,\"request_bytes\":4225}\n{\"version\":12,\"step\":\"invalid-epoch-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":4225}\n{\"version\":12,\"step\":\"not-found-initial\",\"session_id\":0,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":4225}\n{\"version\":12,\"step\":\"connection-error-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":4225}\n{\"version\":13,\"step\":\"initial\",\"session_id\":0,\"epoch\":0,\"changed\":128,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":4272}\n{\"version\":13,\"step\":\"unchanged\",\"session_id\":91,\"epoch\":1,\"changed\":0,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":29}\n{\"version\":13,\"step\":\"changed-offset\",\"session_id\":91,\"epoch\":2,\"changed\":1,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":80}\n{\"version\":13,\"step\":\"removed\",\"session_id\":91,\"epoch\":3,\"changed\":0,\"forgotten\":1,\"cached_partitions\":127,\"request_bytes\":51}\n{\"version\":13,\"step\":\"replaced-id\",\"session_id\":91,\"epoch\":4,\"changed\":127,\"forgotten\":127,\"cached_partitions\":127,\"request_bytes\":4766}\n{\"version\":13,\"step\":\"invalid-epoch-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":4239}\n{\"version\":13,\"step\":\"not-found-initial\",\"session_id\":0,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":4239}\n{\"version\":13,\"step\":\"connection-error-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":4239}\n{\"version\":17,\"step\":\"initial\",\"session_id\":0,\"epoch\":0,\"changed\":128,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":4268}\n{\"version\":17,\"step\":\"unchanged\",\"session_id\":91,\"epoch\":1,\"changed\":0,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":25}\n{\"version\":17,\"step\":\"changed-offset\",\"session_id\":91,\"epoch\":2,\"changed\":1,\"forgotten\":0,\"cached_partitions\":128,\"request_bytes\":76}\n{\"version\":17,\"step\":\"removed\",\"session_id\":91,\"epoch\":3,\"changed\":0,\"forgotten\":1,\"cached_partitions\":127,\"request_bytes\":47}\n{\"version\":17,\"step\":\"replaced-id\",\"session_id\":91,\"epoch\":4,\"changed\":127,\"forgotten\":127,\"cached_partitions\":127,\"request_bytes\":4762}\n{\"version\":17,\"step\":\"invalid-epoch-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":4235}\n{\"version\":17,\"step\":\"not-found-initial\",\"session_id\":0,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":4235}\n{\"version\":17,\"step\":\"connection-error-full\",\"session_id\":91,\"epoch\":0,\"changed\":127,\"forgotten\":0,\"cached_partitions\":127,\"request_bytes\":4235}\n"
+      },
+      "java-version.stderr.log": {
+        "sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20",
+        "bytes": 187,
+        "text": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n"
+      },
+      "java-version.stdout.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "text": ""
+      },
+      "report.json": {
+        "sha256": "ce29e4a208d546157174863f2b4099419369a5d03ee9338650b1a2d1681e73cc",
+        "bytes": 10567,
+        "text": "{\n  \"apache_client_version\": \"4.3.1\",\n  \"kafka_jar_sha256\": \"dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e\",\n  \"slf4j_jar_sha256\": \"d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0\",\n  \"source_sha256\": \"75c4fcfbf6f2a75c4c923972d8fa3698633a4a2cd9780ae8b6c73de26416b254\",\n  \"java_version_log\": \"java-version.stderr.log\",\n  \"rows\": [\n    {\n      \"version\": 7,\n      \"step\": \"initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 128,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 3112\n    },\n    {\n      \"version\": 7,\n      \"step\": \"unchanged\",\n      \"session_id\": 91,\n      \"epoch\": 1,\n      \"changed\": 0,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 33\n    },\n    {\n      \"version\": 7,\n      \"step\": \"changed-offset\",\n      \"session_id\": 91,\n      \"epoch\": 2,\n      \"changed\": 1,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 64\n    },\n    {\n      \"version\": 7,\n      \"step\": \"removed\",\n      \"session_id\": 91,\n      \"epoch\": 3,\n      \"changed\": 0,\n      \"forgotten\": 1,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 44\n    },\n    {\n      \"version\": 7,\n      \"step\": \"replaced-id\",\n      \"session_id\": 91,\n      \"epoch\": 4,\n      \"changed\": 127,\n      \"forgotten\": 127,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3088\n    },\n    {\n      \"version\": 7,\n      \"step\": \"invalid-epoch-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3088\n    },\n    {\n      \"version\": 7,\n      \"step\": \"not-found-initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3088\n    },\n    {\n      \"version\": 7,\n      \"step\": \"connection-error-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3088\n    },\n    {\n      \"version\": 8,\n      \"step\": \"initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 128,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 3112\n    },\n    {\n      \"version\": 8,\n      \"step\": \"unchanged\",\n      \"session_id\": 91,\n      \"epoch\": 1,\n      \"changed\": 0,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 33\n    },\n    {\n      \"version\": 8,\n      \"step\": \"changed-offset\",\n      \"session_id\": 91,\n      \"epoch\": 2,\n      \"changed\": 1,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 64\n    },\n    {\n      \"version\": 8,\n      \"step\": \"removed\",\n      \"session_id\": 91,\n      \"epoch\": 3,\n      \"changed\": 0,\n      \"forgotten\": 1,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 44\n    },\n    {\n      \"version\": 8,\n      \"step\": \"replaced-id\",\n      \"session_id\": 91,\n      \"epoch\": 4,\n      \"changed\": 127,\n      \"forgotten\": 127,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3088\n    },\n    {\n      \"version\": 8,\n      \"step\": \"invalid-epoch-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3088\n    },\n    {\n      \"version\": 8,\n      \"step\": \"not-found-initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3088\n    },\n    {\n      \"version\": 8,\n      \"step\": \"connection-error-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3088\n    },\n    {\n      \"version\": 11,\n      \"step\": \"initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 128,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 3626\n    },\n    {\n      \"version\": 11,\n      \"step\": \"unchanged\",\n      \"session_id\": 91,\n      \"epoch\": 1,\n      \"changed\": 0,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 35\n    },\n    {\n      \"version\": 11,\n      \"step\": \"changed-offset\",\n      \"session_id\": 91,\n      \"epoch\": 2,\n      \"changed\": 1,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 70\n    },\n    {\n      \"version\": 11,\n      \"step\": \"removed\",\n      \"session_id\": 91,\n      \"epoch\": 3,\n      \"changed\": 0,\n      \"forgotten\": 1,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 46\n    },\n    {\n      \"version\": 11,\n      \"step\": \"replaced-id\",\n      \"session_id\": 91,\n      \"epoch\": 4,\n      \"changed\": 127,\n      \"forgotten\": 127,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3598\n    },\n    {\n      \"version\": 11,\n      \"step\": \"invalid-epoch-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3598\n    },\n    {\n      \"version\": 11,\n      \"step\": \"not-found-initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3598\n    },\n    {\n      \"version\": 11,\n      \"step\": \"connection-error-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 3598\n    },\n    {\n      \"version\": 12,\n      \"step\": \"initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 128,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 4258\n    },\n    {\n      \"version\": 12,\n      \"step\": \"unchanged\",\n      \"session_id\": 91,\n      \"epoch\": 1,\n      \"changed\": 0,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 29\n    },\n    {\n      \"version\": 12,\n      \"step\": \"changed-offset\",\n      \"session_id\": 91,\n      \"epoch\": 2,\n      \"changed\": 1,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 66\n    },\n    {\n      \"version\": 12,\n      \"step\": \"removed\",\n      \"session_id\": 91,\n      \"epoch\": 3,\n      \"changed\": 0,\n      \"forgotten\": 1,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 37\n    },\n    {\n      \"version\": 12,\n      \"step\": \"replaced-id\",\n      \"session_id\": 91,\n      \"epoch\": 4,\n      \"changed\": 127,\n      \"forgotten\": 127,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4225\n    },\n    {\n      \"version\": 12,\n      \"step\": \"invalid-epoch-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4225\n    },\n    {\n      \"version\": 12,\n      \"step\": \"not-found-initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4225\n    },\n    {\n      \"version\": 12,\n      \"step\": \"connection-error-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4225\n    },\n    {\n      \"version\": 13,\n      \"step\": \"initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 128,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 4272\n    },\n    {\n      \"version\": 13,\n      \"step\": \"unchanged\",\n      \"session_id\": 91,\n      \"epoch\": 1,\n      \"changed\": 0,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 29\n    },\n    {\n      \"version\": 13,\n      \"step\": \"changed-offset\",\n      \"session_id\": 91,\n      \"epoch\": 2,\n      \"changed\": 1,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 80\n    },\n    {\n      \"version\": 13,\n      \"step\": \"removed\",\n      \"session_id\": 91,\n      \"epoch\": 3,\n      \"changed\": 0,\n      \"forgotten\": 1,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 51\n    },\n    {\n      \"version\": 13,\n      \"step\": \"replaced-id\",\n      \"session_id\": 91,\n      \"epoch\": 4,\n      \"changed\": 127,\n      \"forgotten\": 127,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4766\n    },\n    {\n      \"version\": 13,\n      \"step\": \"invalid-epoch-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4239\n    },\n    {\n      \"version\": 13,\n      \"step\": \"not-found-initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4239\n    },\n    {\n      \"version\": 13,\n      \"step\": \"connection-error-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4239\n    },\n    {\n      \"version\": 17,\n      \"step\": \"initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 128,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 4268\n    },\n    {\n      \"version\": 17,\n      \"step\": \"unchanged\",\n      \"session_id\": 91,\n      \"epoch\": 1,\n      \"changed\": 0,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 25\n    },\n    {\n      \"version\": 17,\n      \"step\": \"changed-offset\",\n      \"session_id\": 91,\n      \"epoch\": 2,\n      \"changed\": 1,\n      \"forgotten\": 0,\n      \"cached_partitions\": 128,\n      \"request_bytes\": 76\n    },\n    {\n      \"version\": 17,\n      \"step\": \"removed\",\n      \"session_id\": 91,\n      \"epoch\": 3,\n      \"changed\": 0,\n      \"forgotten\": 1,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 47\n    },\n    {\n      \"version\": 17,\n      \"step\": \"replaced-id\",\n      \"session_id\": 91,\n      \"epoch\": 4,\n      \"changed\": 127,\n      \"forgotten\": 127,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4762\n    },\n    {\n      \"version\": 17,\n      \"step\": \"invalid-epoch-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4235\n    },\n    {\n      \"version\": 17,\n      \"step\": \"not-found-initial\",\n      \"session_id\": 0,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4235\n    },\n    {\n      \"version\": 17,\n      \"step\": \"connection-error-full\",\n      \"session_id\": 91,\n      \"epoch\": 0,\n      \"changed\": 127,\n      \"forgotten\": 0,\n      \"cached_partitions\": 127,\n      \"request_bytes\": 4235\n    }\n  ],\n  \"status\": \"passed\",\n  \"scope\": \"Executed Apache FetchSessionHandler state transitions and official serialized Fetch request sizes; no throughput claim.\"\n}\n"
+      }
+    },
+    "source": "import java.util.*;\nimport org.apache.kafka.clients.FetchSessionHandler;\nimport org.apache.kafka.common.TopicPartition;\nimport org.apache.kafka.common.Uuid;\nimport org.apache.kafka.common.message.FetchResponseData;\nimport org.apache.kafka.common.protocol.Errors;\nimport org.apache.kafka.common.protocol.MessageUtil;\nimport org.apache.kafka.common.requests.FetchMetadata;\nimport org.apache.kafka.common.requests.FetchRequest;\nimport org.apache.kafka.common.requests.FetchResponse;\nimport org.apache.kafka.common.utils.LogContext;\n\n/** Executed reference: Apache 4.3.1 FetchSessionHandler, not a reimplementation. */\npublic final class FetchSessionOracle {\n    static final Uuid FIRST = new Uuid(0x0101010101010101L, 0x0101010101010101L);\n    static final Uuid SECOND = new Uuid(0x0202020202020202L, 0x0202020202020202L);\n    static LinkedHashMap<TopicPartition, FetchRequest.PartitionData> partitions(Uuid id, boolean changed, boolean removed) {\n        var result = new LinkedHashMap<TopicPartition, FetchRequest.PartitionData>();\n        for (int p=0; p<128; p++) {\n            if (removed && p==17) continue;\n            result.put(new TopicPartition(\"t\", p), new FetchRequest.PartitionData(id,\n                changed && p==63 ? 1L : 0L, -1L, 1048576, Optional.of(0), Optional.empty()));\n        }\n        return result;\n    }\n    static FetchSessionHandler.FetchRequestData request(FetchSessionHandler handler,\n            LinkedHashMap<TopicPartition, FetchRequest.PartitionData> desired) {\n        var builder = handler.newBuilder();\n        desired.forEach(builder::add);\n        return builder.build();\n    }\n    static FetchResponse response(int session, short error, Uuid id, Collection<TopicPartition> partitions) {\n        var responses = new ArrayList<FetchResponseData.FetchableTopicResponse>();\n        if (!partitions.isEmpty()) {\n            var rows = new ArrayList<FetchResponseData.PartitionData>();\n            for (var partition: partitions) rows.add(new FetchResponseData.PartitionData()\n                .setPartitionIndex(partition.partition()).setErrorCode((short)0)\n                .setHighWatermark(0).setLastStableOffset(0).setLogStartOffset(0));\n            responses.add(new FetchResponseData.FetchableTopicResponse().setTopic(\"t\").setTopicId(id).setPartitions(rows));\n        }\n        return FetchResponse.of(new FetchResponseData().setSessionId(session).setErrorCode(error).setResponses(responses));\n    }\n    static void row(short version, String step, FetchSessionHandler.FetchRequestData data) {\n        var wire = FetchRequest.Builder.forConsumer(version, 500, 1, data.toSend())\n            .metadata(data.metadata()).removed(data.toForget()).replaced(data.toReplace())\n            .setMaxBytes(52428800).rackId(\"\").build(version);\n        int bytes = MessageUtil.toByteBufferAccessor(wire.data(), version).buffer().remaining();\n        System.out.println(\"{\\\"version\\\":\"+version+\",\\\"step\\\":\\\"\"+step+\"\\\",\\\"session_id\\\":\"+data.metadata().sessionId()\n            +\",\\\"epoch\\\":\"+data.metadata().epoch()+\",\\\"changed\\\":\"+data.toSend().size()\n            +\",\\\"forgotten\\\":\"+(data.toForget().size()+data.toReplace().size())\n            +\",\\\"cached_partitions\\\":\"+data.sessionPartitions().size()+\",\\\"request_bytes\\\":\"+bytes+\"}\");\n    }\n    static void check(boolean value) { if (!value) throw new AssertionError(\"Apache handler rejected valid response\"); }\n    public static void main(String[] args) {\n        for (short version: new short[]{7,8,11,12,13,17}) {\n            var handler = new FetchSessionHandler(new LogContext(), 1);\n            var desired = partitions(FIRST, false, false);\n            row(version, \"initial\", request(handler, desired));\n            check(handler.handleResponse(response(91, (short)0, FIRST, desired.keySet()), version));\n            row(version, \"unchanged\", request(handler, desired));\n            check(handler.handleResponse(response(91, (short)0, FIRST, List.of()), version));\n            desired = partitions(FIRST, true, false);\n            row(version, \"changed-offset\", request(handler, desired));\n            check(handler.handleResponse(response(91, (short)0, FIRST, List.of(new TopicPartition(\"t\",63))), version));\n            desired = partitions(FIRST, true, true);\n            row(version, \"removed\", request(handler, desired));\n            check(handler.handleResponse(response(91, (short)0, FIRST, List.of()), version));\n            desired = partitions(SECOND, true, true);\n            row(version, \"replaced-id\", request(handler, desired));\n            check(handler.handleResponse(response(91, (short)0, SECOND, desired.keySet()), version));\n            check(!handler.handleResponse(response(0, Errors.INVALID_FETCH_SESSION_EPOCH.code(), SECOND, List.of()), version));\n            row(version, \"invalid-epoch-full\", request(handler, desired));\n            check(handler.handleResponse(response(91, (short)0, SECOND, desired.keySet()), version));\n            check(!handler.handleResponse(response(0, Errors.FETCH_SESSION_ID_NOT_FOUND.code(), SECOND, List.of()), version));\n            row(version, \"not-found-initial\", request(handler, desired));\n            check(handler.handleResponse(response(91, (short)0, SECOND, desired.keySet()), version));\n            handler.handleError(new java.io.IOException(\"isolated reference connection loss\"));\n            row(version, \"connection-error-full\", request(handler, desired));\n        }\n        check(new FetchMetadata(91, Integer.MAX_VALUE).nextIncremental().epoch()==1);\n    }\n}\n",
+    "driver": "#!/usr/bin/env python3\n\"\"\"Execute the pinned Apache session handler and retain every frame-size observation.\"\"\"\nimport argparse\nimport hashlib\nimport json\nfrom pathlib import Path\nimport subprocess\n\nPIN='dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e'\nSOURCE=Path(__file__).with_name('FetchSessionOracle.java')\n\n\ndef main():\n    parser=argparse.ArgumentParser(description=__doc__)\n    parser.add_argument('--kafka-jar',type=Path,required=True)\n    parser.add_argument('--slf4j-jar',type=Path,required=True)\n    parser.add_argument('--java-bin',type=Path,required=True)\n    parser.add_argument('--output',type=Path,required=True)\n    args=parser.parse_args()\n    assert hashlib.sha256(args.kafka_jar.read_bytes()).hexdigest()==PIN,'wrong Apache 4.3.1 jar'\n    args.output.mkdir(parents=True,exist_ok=False)\n    classpath=str(args.kafka_jar.resolve())+':'+str(args.slf4j_jar.resolve())\n    def run(phase,command):\n        result=subprocess.run(command,capture_output=True,text=True,timeout=30,check=False)\n        (args.output/(phase+'.stdout.log')).write_text(result.stdout)\n        (args.output/(phase+'.stderr.log')).write_text(result.stderr)\n        assert result.returncode==0,f'{phase} failed: {result.stderr}'\n        return result.stdout\n    version=run('java-version',[str(args.java_bin/'java'),'-version'])\n    run('compile',[str(args.java_bin/'javac'),'--release','21','-cp',classpath,'-d',str(args.output),str(SOURCE)])\n    text=run('execute',[str(args.java_bin/'java'),'-cp',str(args.output.resolve())+':'+classpath,'FetchSessionOracle'])\n    rows=[json.loads(line) for line in text.splitlines()]\n    assert len(rows)==48\n    expected={\n        'initial':(0,0,128,0,128),'unchanged':(91,1,0,0,128),\n        'changed-offset':(91,2,1,0,128),'removed':(91,3,0,1,127),\n        'replaced-id':(91,4,127,127,127),'invalid-epoch-full':(91,0,127,0,127),\n        'not-found-initial':(0,0,127,0,127),'connection-error-full':(91,0,127,0,127)}\n    sizes={7:(3112,33),8:(3112,33),11:(3626,35),12:(4258,29),13:(4272,29),17:(4268,25)}\n    for version in sizes:\n        selected=[row for row in rows if row['version']==version]\n        assert len(selected)==8 and {r['step'] for r in selected}==set(expected)\n        for row in selected:\n            assert tuple(row[k] for k in ['session_id','epoch','changed','forgotten','cached_partitions'])==expected[row['step']],row\n            if row['step']=='initial': assert row['request_bytes']==sizes[version][0],row\n            if row['step']=='unchanged': assert row['request_bytes']==sizes[version][1],row\n    identity={'apache_client_version':'4.3.1','kafka_jar_sha256':PIN,\n        'slf4j_jar_sha256':hashlib.sha256(args.slf4j_jar.read_bytes()).hexdigest(),\n        'source_sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),\n        'java_version_log':'java-version.stderr.log','rows':rows,'status':'passed',\n        'scope':'Executed Apache FetchSessionHandler state transitions and official serialized Fetch request sizes; no throughput claim.'}\n    (args.output/'report.json').write_text(json.dumps(identity,indent=2)+'\\n')\n    print('Apache 4.3.1 session reference: 48 transitions and all six request-size pairs passed')\n\n\nif __name__=='__main__':main()\n"
+  },
+  "validation": {
+    "kl05-06-session-tests.log": "   Compiling partitionline v0.1.0 (/workspace/partitionline)\n    Finished `test` profile [unoptimized] target(s) in 8.58s\n     Running tests/consumer_fetch_semantics.rs (/workspace/.cloud-setup/partitionline-ci-clean/debug/deps/consumer_fetch_semantics-d29a01e3b766cd0b)\n\nrunning 4 tests\ntest incremental_fetch_sessions_are_broker_local_with_legacy_peer_fallback ... ok\nKL05-06 Fetch v4: initial=2076 bytes unchanged=2076 bytes partitions=128 epochs=[-1, -1, -1]\ntest incremental_fetch_sessions_deliver_new_records_and_only_send_changed_offsets ... ok\nKL05-06 Fetch v6: initial=3100 bytes unchanged=3100 bytes partitions=128 epochs=[-1, -1, -1]\ntest incremental_fetch_sessions_forget_paused_partitions_and_add_resumed_partitions ... ok\nKL05-06 Fetch v7: initial=3112 bytes unchanged=33 bytes partitions=128 epochs=[0, 1, 2]\nKL05-06 Fetch v8: initial=3112 bytes unchanged=33 bytes partitions=128 epochs=[0, 1, 2]\nKL05-06 Fetch v11: initial=3626 bytes unchanged=35 bytes partitions=128 epochs=[0, 1, 2]\nKL05-06 Fetch v12: initial=4258 bytes unchanged=29 bytes partitions=128 epochs=[0, 1, 2]\nKL05-06 Fetch v13: initial=4272 bytes unchanged=29 bytes partitions=128 epochs=[0, 1, 2]\nKL05-06 Fetch v17: initial=4268 bytes unchanged=25 bytes partitions=128 epochs=[0, 1, 2]\ntest incremental_fetch_sessions_reduce_unchanged_request_bytes_across_versions ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.05s\n\n",
+    "kl05-06-session-unit-tests.log": "   Compiling partitionline v0.1.0 (/workspace/partitionline)\n    Finished `test` profile [unoptimized] target(s) in 34.77s\n     Running unittests src/lib.rs (/workspace/.cloud-setup/partitionline-ci-clean/debug/deps/partitionline-0262461f25451ca4)\n\nrunning 4 tests\ntest consumer::tests::fetch_session_abandoned_request_requires_full_map_and_closes_known_session ... ok\ntest consumer::tests::fetch_session_failure_or_malformed_header_resets_before_partition_application ... ok\ntest consumer::tests::fetch_session_topic_id_replacement_forgets_old_identity ... ok\ntest consumer::tests::fetch_session_decline_version_change_and_epoch_wrap ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1096 filtered out; finished in 0.00s\n\n",
+    "kl05-06-consumer-final.log": "    Blocking waiting for file lock on package cache\n   Compiling partitionline v0.1.0 (/workspace/partitionline)\n    Finished `test` profile [unoptimized] target(s) in 9.49s\n     Running tests/consumer_fetch_semantics.rs (/workspace/.cloud-setup/partitionline-ci-clean/debug/deps/consumer_fetch_semantics-d29a01e3b766cd0b)\n\nrunning 47 tests\ntest committed_transaction_after_abort_for_same_pid_must_be_visible ... ok\ntest control_scenario_aligned_batch_delivers_and_shuts_down ... ok\ntest fetch_mixed_version_both_bootstrap_leader_orders ... ok\ntest fetch_mixed_version_multi_partition_distinct_leaders ... ok\ntest fetch_mixed_version_preferred_replica_uses_replica_version ... ok\ntest aborted_transaction_spanning_across_fetches_must_return_subsequent_committed_record ... ok\ntest control_only_batch_advances_delivered_position_and_fetch_cursor ... ok\ntest fetch_mixed_version_leader_movement_and_reconnect ... ok\ntest fetch_offset_filter_multiple_partitions ... ok\ntest fetch_offset_filter_must_not_bypass_aborted_or_control_filtering ... ok\ntest fetch_offset_filter_must_not_regress_position_or_lose_later_records ... ok\ntest fetch_offset_filter_sparse_and_compacted_offsets ... ok\ntest fetch_throttle_delivers_pending_records_and_bounds_one_shot_wait ... ok\ntest fetch_offset_filter_compressed_batches ... ok\ntest fetch_throttle_caller_cancellation_does_not_mutate_default_wait ... ok\ntest fetch_throttle_delays_next_request_without_delaying_returned_records ... ok\ntest fetch_throttle_preserves_interval_during_idle_reconnection ... ok\ntest fetch_throttle_interval_starts_at_each_response_completion ... ok\ntest fetch_throttle_wait_consumes_request_deadline ... ok\ntest fetch_throttle_wakeup_preserves_positions_and_quota ... ok\ntest fixture_broker_drop_aborts_tasks ... ok\ntest fixture_broker_wire_handshake_and_bounded_shutdown ... ok\ntest fixture_builds_abort_then_commit_control_marker_sequence ... ok\ntest fixture_builds_one_partition_retry_beside_successful_partition ... ok\ntest fixture_builds_out_of_range_partition_response ... ok\ntest fixture_builds_whole_batch_with_records_before_requested_offset_without_prefiltering ... ok\ntest incremental_fetch_sessions_are_broker_local_with_legacy_peer_fallback ... ok\ntest incremental_fetch_sessions_deliver_new_records_and_only_send_changed_offsets ... ok\ntest incremental_fetch_sessions_forget_paused_partitions_and_add_resumed_partitions ... ok\ntest fetch_throttle_observes_peer_body_discarded_at_buffer_limit ... ok\ntest incremental_fetch_sessions_reduce_unchanged_request_bytes_across_versions ... ok\ntest mixed_partition_retry_aborted_must_not_advance_positions_for_discarded_records ... ok\ntest max_poll_records_distinguishes_delivered_position_and_fetch_cursor ... ok\ntest fetch_throttle_other_broker_progress_and_legacy_version ... ok\ntest mixed_partition_retry_must_preserve_successful_records ... ok\ntest mixed_partition_retry_with_preferred_replica_redirect_must_preserve_successful_records ... ok\ntest mixed_partition_retry_with_transport_failure_must_preserve_successful_records ... ok\ntest nontransactional_records_sharing_aborted_pid_must_be_visible ... ok\ntest fetch_throttle_version_boundary_zero_and_invalid_values ... ok\ntest out_of_range_preferred_replica_resets_if_leader_also_out_of_range ... ok\ntest out_of_range_preferred_replica_retries_at_leader_before_destructive_reset ... ok\ntest out_of_range_with_reset_earliest_resolves_log_start_and_clears_stale_state ... ok\ntest out_of_range_with_reset_latest_resolves_high_watermark_and_clears_stale_state ... ok\ntest out_of_range_with_reset_none_must_fail_without_advancing ... ok\ntest read_committed_multiple_aborted_intervals_and_pids ... ok\ntest read_committed_stops_at_last_stable_offset_boundary ... ok\ntest seek_inside_batch_must_not_return_earlier_records ... ok\n\ntest result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.21s\n\n",
+    "kl05-06-msrv-consumer.log": "    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on package cache\n   Compiling partitionline v0.1.0 (/workspace/partitionline)\n    Finished `test` profile [unoptimized] target(s) in 51.09s\n     Running tests/consumer_fetch_semantics.rs (/workspace/.cloud-setup/partitionline-msrv/debug/deps/consumer_fetch_semantics-26b95a36b4e93abf)\n\nrunning 47 tests\ntest committed_transaction_after_abort_for_same_pid_must_be_visible ... ok\ntest control_scenario_aligned_batch_delivers_and_shuts_down ... ok\ntest fetch_mixed_version_both_bootstrap_leader_orders ... ok\ntest fetch_mixed_version_multi_partition_distinct_leaders ... ok\ntest fetch_mixed_version_preferred_replica_uses_replica_version ... ok\ntest control_only_batch_advances_delivered_position_and_fetch_cursor ... ok\ntest aborted_transaction_spanning_across_fetches_must_return_subsequent_committed_record ... ok\ntest fetch_mixed_version_leader_movement_and_reconnect ... ok\ntest fetch_offset_filter_multiple_partitions ... ok\ntest fetch_offset_filter_must_not_bypass_aborted_or_control_filtering ... ok\ntest fetch_offset_filter_must_not_regress_position_or_lose_later_records ... ok\ntest fetch_offset_filter_sparse_and_compacted_offsets ... ok\ntest fetch_throttle_delivers_pending_records_and_bounds_one_shot_wait ... ok\ntest fetch_offset_filter_compressed_batches ... ok\ntest fetch_throttle_caller_cancellation_does_not_mutate_default_wait ... ok\ntest fetch_throttle_delays_next_request_without_delaying_returned_records ... ok\ntest fetch_throttle_preserves_interval_during_idle_reconnection ... ok\ntest fetch_throttle_interval_starts_at_each_response_completion ... ok\ntest fetch_throttle_wait_consumes_request_deadline ... ok\ntest fetch_throttle_wakeup_preserves_positions_and_quota ... ok\ntest fixture_broker_drop_aborts_tasks ... ok\ntest fixture_broker_wire_handshake_and_bounded_shutdown ... ok\ntest fixture_builds_abort_then_commit_control_marker_sequence ... ok\ntest fixture_builds_one_partition_retry_beside_successful_partition ... ok\ntest fixture_builds_out_of_range_partition_response ... ok\ntest fixture_builds_whole_batch_with_records_before_requested_offset_without_prefiltering ... ok\ntest incremental_fetch_sessions_are_broker_local_with_legacy_peer_fallback ... ok\ntest incremental_fetch_sessions_deliver_new_records_and_only_send_changed_offsets ... ok\ntest incremental_fetch_sessions_forget_paused_partitions_and_add_resumed_partitions ... ok\ntest fetch_throttle_observes_peer_body_discarded_at_buffer_limit ... ok\ntest incremental_fetch_sessions_reduce_unchanged_request_bytes_across_versions ... ok\ntest mixed_partition_retry_aborted_must_not_advance_positions_for_discarded_records ... ok\ntest fetch_throttle_other_broker_progress_and_legacy_version ... ok\ntest max_poll_records_distinguishes_delivered_position_and_fetch_cursor ... ok\ntest mixed_partition_retry_must_preserve_successful_records ... ok\ntest mixed_partition_retry_with_preferred_replica_redirect_must_preserve_successful_records ... ok\ntest mixed_partition_retry_with_transport_failure_must_preserve_successful_records ... ok\ntest nontransactional_records_sharing_aborted_pid_must_be_visible ... ok\ntest fetch_throttle_version_boundary_zero_and_invalid_values ... ok\ntest out_of_range_preferred_replica_resets_if_leader_also_out_of_range ... ok\ntest out_of_range_preferred_replica_retries_at_leader_before_destructive_reset ... ok\ntest out_of_range_with_reset_earliest_resolves_log_start_and_clears_stale_state ... ok\ntest out_of_range_with_reset_none_must_fail_without_advancing ... ok\ntest out_of_range_with_reset_latest_resolves_high_watermark_and_clears_stale_state ... ok\ntest read_committed_multiple_aborted_intervals_and_pids ... ok\ntest read_committed_stops_at_last_stable_offset_boundary ... ok\ntest seek_inside_batch_must_not_return_earlier_records ... ok\n\ntest result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.20s\n\n",
+    "kl05-06-msrv-session-unit.log": "   Compiling partitionline v0.1.0 (/workspace/partitionline)\n    Finished `test` profile [unoptimized] target(s) in 58.41s\n     Running unittests src/lib.rs (/workspace/.cloud-setup/partitionline-msrv/debug/deps/partitionline-e6dc13345ae67a7b)\n\nrunning 4 tests\ntest consumer::tests::fetch_session_decline_version_change_and_epoch_wrap ... ok\ntest consumer::tests::fetch_session_abandoned_request_requires_full_map_and_closes_known_session ... ok\ntest consumer::tests::fetch_session_failure_or_malformed_header_resets_before_partition_application ... ok\ntest consumer::tests::fetch_session_topic_id_replacement_forgets_old_identity ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1096 filtered out; finished in 0.00s\n\n",
+    "kl05-06-msrv-fetch-protocol.log": "    Finished `test` profile [unoptimized] target(s) in 0.15s\n     Running unittests src/lib.rs (/workspace/.cloud-setup/partitionline-msrv/debug/deps/partitionline-e6dc13345ae67a7b)\n\nrunning 56 tests\ntest protocol::fetch::tests::fetch_error_code_session_id_matches_java ... ok\ntest protocol::fetch::tests::decode_fetch_response_keeps_log_start_on_offset_out_of_range ... ok\ntest protocol::fetch::tests::decode_fetch_response_from_bytes_shares_record_value ... ok\ntest protocol::fetch::tests::fetch_metadata_matches_java ... ok\ntest protocol::fetch::tests::fetch_json_version_gates_match_java ... ok\ntest protocol::fetch::tests::decode_fetch_response_uses_record_batch_decoder_on_partition_bytes ... ok\ntest protocol::fetch::tests::fetch_partition_data_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_error_response_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_cluster_id_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_builder_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_encode_error_response_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_for_consumer_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_fetch_data_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_for_replica_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_forgotten_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_forgotten_topics_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_max_wait_ms_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_log_start_offset_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_min_bytes_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_rack_id_is_empty_string_not_null ... ok\ntest protocol::fetch::tests::fetch_request_replica_for_build_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_replica_directory_id_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_replica_id_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_replica_id_sentinels_match_java ... ok\ntest protocol::fetch::tests::fetch_request_forgotten_from_removed_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_replica_state_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_session_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_sends_current_leader_epoch ... ok\ntest protocol::fetch::tests::fetch_request_sends_rack_id ... ok\ntest protocol::fetch::tests::fetch_request_simple_builder_build_matches_java ... ok\ntest protocol::fetch::tests::fetch_response_error_counts_matches_java ... ok\ntest protocol::fetch::tests::fetch_response_of_with_endpoints_matches_java ... ok\ntest protocol::fetch::tests::fetch_response_of_matches_java ... ok\ntest protocol::fetch::tests::fetch_request_topics_from_fetch_data_matches_java ... ok\ntest protocol::fetch::tests::fetch_response_preserves_aborted_transactions ... ok\ntest protocol::fetch::tests::fetch_response_records_size_matches_java ... ok\ntest protocol::fetch::tests::fetch_response_response_data_matches_java ... ok\ntest protocol::fetch::tests::fetch_response_size_of_matches_java ... ok\ntest protocol::fetch::tests::fetch_response_throttle_time_ms_matches_java ... ok\ntest protocol::fetch::tests::fetch_response_snapshot_id_matches_java ... ok\ntest protocol::fetch::tests::fetch_response_to_message_matches_java ... ok\ntest protocol::fetch::tests::fetch_response_topic_ids_matches_java ... ok\ntest protocol::fetch::tests::fetch_v12_request_matches_compact_layout ... ok\ntest protocol::fetch::tests::fetch_v12_roundtrip_is_leftover_empty ... ok\ntest protocol::fetch::tests::fetch_v11_roundtrip ... ok\ntest protocol::fetch::tests::fetch_v14_request_matches_topic_id_layout ... ok\ntest protocol::fetch::tests::fetch_v14_roundtrip_is_leftover_empty ... ok\ntest protocol::fetch::tests::fetch_v15_request_omits_untagged_replica_id ... ok\ntest protocol::fetch::tests::fetch_v15_roundtrip_is_leftover_empty ... ok\ntest protocol::fetch::tests::fetch_v16_current_leader_tagged_is_leftover_empty ... ok\ntest protocol::fetch::tests::fetch_v16_diverging_epoch_tagged_is_leftover_empty ... ok\ntest protocol::fetch::tests::fetch_v16_node_endpoints_tagged_is_leftover_empty ... ok\ntest protocol::fetch::tests::fetch_v17_roundtrip_matches_v16 ... ok\ntest protocol::fetch::tests::fetch_v14_forgotten_topic_id_is_leftover_empty ... ok\ntest protocol::fetch::tests::fetch_v16_roundtrip_is_leftover_empty ... ok\ntest protocol::fetch::tests::fetched_partition_invalid_sentinels_match_java ... ok\n\ntest result: ok. 56 passed; 0 failed; 0 ignored; 0 measured; 1044 filtered out; finished in 0.01s\n\n",
+    "kl05-06-clippy-199-fixed.log": "    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on package cache\n    Checking partitionline v0.1.0 (/workspace/partitionline)\n    Finished `dev` profile [unoptimized] target(s) in 20.14s\n",
+    "kl05-06-doc-tests-199.log": "    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on build directory\n   Compiling rustls v0.23.45\n   Compiling tokio-rustls v0.26.5\n   Compiling partitionline v0.1.0 (/workspace/partitionline)\n    Finished `test` profile [unoptimized] target(s) in 37.35s\n   Doc-tests partitionline\n\nrunning 4 tests\ntest src/lib.rs - (line 3066) - compile ... ok\ntest src/lib.rs - (line 1536) - compile ... ok\ntest src/lib.rs - (line 10) - compile ... ok\ntest src/config.rs - config::Sasl (line 469) ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s\n\n",
+    "kl05-06-rustdoc-199.log": " Documenting partitionline v0.1.0 (/workspace/partitionline)\n    Finished `dev` profile [unoptimized] target(s) in 6.14s\n   Generated /workspace/.cloud-setup/partitionline-199-docs/doc/partitionline/index.html\n",
+    "kl05-06-conformance-tests-fixed.log": "..........................................................\n----------------------------------------------------------------------\nRan 58 tests in 0.842s\n\nOK\n",
+    "kl05-06-doc-tests.log": "..................\n----------------------------------------------------------------------\nRan 18 tests in 0.160s\n\nOK\n",
+    "kl05-06-example-build.log": "    Blocking waiting for file lock on package cache\n    Blocking waiting for file lock on package cache\n   Compiling partitionline v0.1.0 (/workspace/partitionline)\n    Finished `dev` profile [unoptimized] target(s) in 36.70s\n",
+    "kl05-06-live-af6543b-driver.log": "broker-compatibility: qualified 4.1.2 digest=sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e scenarios=8 records=16\nLive verifiable scenario: all 25 acknowledgements, deliveries and Java-confirmed offsets passed\n\nFull live verifiable report retained: /workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76\n"
+  },
+  "full_stable_suite": {
+    "passed": 1761,
+    "failed": 0,
+    "ignored": 3,
+    "test_result_lines": 46,
+    "raw_log_sha256": "c846f0ad105230c13881bd017843b2b701881626c3da2a1702be2d6af3f8ac44",
+    "raw_log_bytes": 141691,
+    "summaries": [
+      "test result: ok. 1100 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s",
+      "test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.28s",
+      "test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.60s",
+      "test result: ok. 110 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.30s",
+      "test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s",
+      "test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.14s",
+      "test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.86s",
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+      "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s",
+      "test result: ok. 324 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.88s",
+      "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+      "test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s",
+      "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s",
+      "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s",
+      "test result: ok. 30 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.19s",
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+      "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.07s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+    ],
+    "source_note": "Complete implementation before a nonsemantic named tuple alias cleanup in the mock fixture; final exact implementation also passes all 47 consumer tests and strict all-target Clippy after the alias."
+  },
+  "failures_preserved": {
+    "kl05-06-session-tests-first.log": "   Compiling partitionline v0.1.0 (/workspace/partitionline)\nerror[E0369]: binary operation `==` cannot be applied to type `Result<i64, partitionline::Error>`\n    --> tests/consumer_fetch_semantics.rs:3047:5\n     |\n3047 |     assert_eq!(consumer.position(\"t\", 2), Some(1));\n     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n     |     |\n     |     Result<i64, partitionline::Error>\n     |     Option<{integer}>\n     |\nnote: `Result<i64, partitionline::Error>` does not implement `PartialEq<Option<{integer}>>`\n    --> /rustc/48a229ceaefd4985c50990b14116b6d856af0985/library/core/src/result.rs:557:0\n     |\n     = note: `Result<i64, partitionline::Error>` is defined in another crate\n\nFor more information about this error, try `rustc --explain E0369`.\nerror: could not compile `partitionline` (test \"consumer_fetch_semantics\") due to 1 previous error\n",
+    "kl05-06-clippy-199.log": "    Checking partitionline v0.1.0 (/workspace/partitionline)\nerror: very complex type used. Consider factoring parts into `type` definitions\n   --> tests/common/mod.rs:558:29\n    |\n558 |       fetch_session_requests: Vec<(\n    |  _____________________________^\n559 | |         i32,\n560 | |         i16,\n561 | |         usize,\n...   |\n564 | |         Vec<ForgottenTopic>,\n565 | |     )>,\n    | |______^\n    |\n    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity\n    = note: `-D clippy::type-complexity` implied by `-D warnings`\n    = help: to override `-D warnings` add `#[allow(clippy::type_complexity)]`\n\nerror: very complex type used. Consider factoring parts into `type` definitions\n    --> tests/common/mod.rs:2154:10\n     |\n2154 |       ) -> Vec<(\n     |  __________^\n2155 | |         i32,\n2156 | |         i16,\n2157 | |         usize,\n...    |\n2160 | |         Vec<ForgottenTopic>,\n2161 | |     )> {\n     | |______^\n     |\n     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity\n\nerror: could not compile `partitionline` (test \"roundtrip\") due to 2 previous errors\nwarning: build failed, waiting for other jobs to finish...\n",
+    "kl05-06-conformance-tests.log": "...............F..........................................\n======================================================================\nFAIL: test_do_not_claim_uncovered_apis_implemented (test_check_protocol_coverage.TestProtocolCoverageChecker.test_do_not_claim_uncovered_apis_implemented)\nVerify that uncovered APIs and features are not claimed as implemented:\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/partitionline/tests/conformance/test_check_protocol_coverage.py\", line 253, in test_do_not_claim_uncovered_apis_implemented\n    self.assertIn(\"manual_consumer.incremental_fetch_runtime\", missing_features)\nAssertionError: 'manual_consumer.incremental_fetch_runtime' not found in {'codecs.zstd.decode', 'producer.sticky_partitioner', 'schema_ecosystem.json_schema', 'auth.sasl_gssapi', 'codecs.zstd.encode', 'share.v2_runtime', 'schema_ecosystem.avro', 'auth.sasl_oidc_refresh'}\n\n----------------------------------------------------------------------\nRan 58 tests in 0.847s\n\nFAILED (failures=1)\n",
+    "kl05-06-java-first-driver.log": "Traceback (most recent call last):\n  File \"/workspace/partitionline/tests/oracles/java/generate_fetch_session.py\", line 56, in <module>\n    if __name__=='__main__':main()\n                            ^^^^^^\n  File \"/workspace/partitionline/tests/oracles/java/generate_fetch_session.py\", line 30, in main\n    run('compile',[str(args.java_bin/'javac'),'--release','21','-cp',classpath,'-d',str(args.output),str(SOURCE)])\n  File \"/workspace/partitionline/tests/oracles/java/generate_fetch_session.py\", line 27, in run\n    assert result.returncode==0,f'{phase} failed: {result.stderr}'\n           ^^^^^^^^^^^^^^^^^^^^\nAssertionError: compile failed: /workspace/partitionline/tests/oracles/java/FetchSessionOracle.java:47: error: cannot find symbol\n        int bytes = MessageUtil.toByteBuffer(wire.data(), version).remaining();\n                               ^\n  symbol:   method toByteBuffer(FetchRequestData,short)\n  location: class MessageUtil\n1 error\n\n"
+  },
+  "first_java_compile": {
+    "compile.stderr.log": {
+      "sha256": "ccce3d8286ebdd52201ef0e454d01ffe73f494dfcde5d4a99d94e7ecf42dfdd5",
+      "bytes": 305,
+      "text": "/workspace/partitionline/tests/oracles/java/FetchSessionOracle.java:47: error: cannot find symbol\n        int bytes = MessageUtil.toByteBuffer(wire.data(), version).remaining();\n                               ^\n  symbol:   method toByteBuffer(FetchRequestData,short)\n  location: class MessageUtil\n1 error\n"
+    },
+    "compile.stdout.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "text": ""
+    },
+    "java-version.stderr.log": {
+      "sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20",
+      "bytes": 187,
+      "text": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n"
+    },
+    "java-version.stdout.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "text": ""
+    }
+  },
+  "live_broker": {
+    "report": {
+      "schema_version": 1,
+      "source_sha": "af6543b54d2b612d7a680901eb85512523346e2b",
+      "cell": {
+        "version": "4.1.2",
+        "image": "apache/kafka:4.1.2",
+        "digest": "sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+        "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+        "host": "linux-x86_64",
+        "required_scenarios": [
+          "admin",
+          "produce",
+          "manual",
+          "classic",
+          "cooperative",
+          "kip848",
+          "share",
+          "transaction"
+        ],
+        "records_per_partition": 8,
+        "partitions": 2,
+        "replication_factor": 1,
+        "qualification": "passed",
+        "qualifying_source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+        "ci_run_id": 36869103809
+      },
+      "identity": {
+        "requested": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+        "actual_reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+        "container_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+        "inspected_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+        "repo_digests": [
+          "apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+        ],
+        "kafka_cli_version": "4.1.2\n",
+        "host_os": "Linux",
+        "host_arch": "x86_64",
+        "rustc_host": "x86_64-unknown-linux-gnu",
+        "rustc_release": "1.98.1"
+      },
+      "runtime": {
+        "scenarios": {
+          "admin": {
+            "records": 0,
+            "duplicates": 0,
+            "missing": 0,
+            "corrupt": 0,
+            "status": "passed"
+          },
+          "classic": {
+            "records": 16,
+            "duplicates": 0,
+            "missing": 0,
+            "corrupt": 0,
+            "status": "passed"
+          },
+          "cooperative": {
+            "records": 16,
+            "duplicates": 0,
+            "missing": 0,
+            "corrupt": 0,
+            "status": "passed"
+          },
+          "kip848": {
+            "records": 16,
+            "duplicates": 0,
+            "missing": 0,
+            "corrupt": 0,
+            "status": "passed"
+          },
+          "manual": {
+            "records": 16,
+            "duplicates": 0,
+            "missing": 0,
+            "corrupt": 0,
+            "status": "passed"
+          },
+          "produce": {
+            "records": 16,
+            "duplicates": 0,
+            "missing": 0,
+            "corrupt": 0,
+            "status": "passed"
+          },
+          "share": {
+            "records": 16,
+            "duplicates": 0,
+            "missing": 0,
+            "corrupt": 0,
+            "status": "passed"
+          },
+          "transaction": {
+            "records": 16,
+            "duplicates": 0,
+            "missing": 0,
+            "corrupt": 0,
+            "status": "passed"
+          }
+        },
+        "api_ranges": {
+          "0": [
+            0,
+            13
+          ],
+          "1": [
+            4,
+            18
+          ],
+          "10": [
+            0,
+            6
+          ],
+          "11": [
+            0,
+            9
+          ],
+          "12": [
+            0,
+            4
+          ],
+          "13": [
+            0,
+            5
+          ],
+          "14": [
+            0,
+            5
+          ],
+          "15": [
+            0,
+            6
+          ],
+          "16": [
+            0,
+            5
+          ],
+          "17": [
+            0,
+            1
+          ],
+          "18": [
+            0,
+            4
+          ],
+          "19": [
+            2,
+            7
+          ],
+          "2": [
+            1,
+            10
+          ],
+          "20": [
+            1,
+            6
+          ],
+          "21": [
+            0,
+            2
+          ],
+          "22": [
+            0,
+            5
+          ],
+          "23": [
+            2,
+            4
+          ],
+          "24": [
+            0,
+            5
+          ],
+          "25": [
+            0,
+            4
+          ],
+          "26": [
+            0,
+            5
+          ],
+          "27": [
+            1,
+            1
+          ],
+          "28": [
+            0,
+            5
+          ],
+          "29": [
+            1,
+            3
+          ],
+          "3": [
+            0,
+            13
+          ],
+          "30": [
+            1,
+            3
+          ],
+          "31": [
+            1,
+            3
+          ],
+          "32": [
+            1,
+            4
+          ],
+          "33": [
+            0,
+            2
+          ],
+          "34": [
+            1,
+            2
+          ],
+          "35": [
+            1,
+            4
+          ],
+          "36": [
+            0,
+            2
+          ],
+          "37": [
+            0,
+            3
+          ],
+          "38": [
+            1,
+            3
+          ],
+          "39": [
+            1,
+            2
+          ],
+          "40": [
+            1,
+            2
+          ],
+          "41": [
+            1,
+            3
+          ],
+          "42": [
+            0,
+            2
+          ],
+          "43": [
+            0,
+            2
+          ],
+          "44": [
+            0,
+            1
+          ],
+          "45": [
+            0,
+            1
+          ],
+          "46": [
+            0,
+            0
+          ],
+          "47": [
+            0,
+            0
+          ],
+          "48": [
+            0,
+            1
+          ],
+          "49": [
+            0,
+            1
+          ],
+          "50": [
+            0,
+            0
+          ],
+          "51": [
+            0,
+            0
+          ],
+          "55": [
+            0,
+            2
+          ],
+          "57": [
+            0,
+            2
+          ],
+          "60": [
+            0,
+            2
+          ],
+          "61": [
+            0,
+            0
+          ],
+          "64": [
+            0,
+            0
+          ],
+          "65": [
+            0,
+            0
+          ],
+          "66": [
+            0,
+            2
+          ],
+          "68": [
+            0,
+            1
+          ],
+          "69": [
+            0,
+            1
+          ],
+          "74": [
+            0,
+            1
+          ],
+          "75": [
+            0,
+            0
+          ],
+          "76": [
+            1,
+            1
+          ],
+          "77": [
+            1,
+            1
+          ],
+          "78": [
+            1,
+            1
+          ],
+          "79": [
+            1,
+            1
+          ],
+          "8": [
+            2,
+            9
+          ],
+          "80": [
+            0,
+            0
+          ],
+          "81": [
+            0,
+            0
+          ],
+          "83": [
+            0,
+            0
+          ],
+          "84": [
+            0,
+            0
+          ],
+          "85": [
+            0,
+            0
+          ],
+          "86": [
+            0,
+            0
+          ],
+          "87": [
+            0,
+            0
+          ],
+          "9": [
+            1,
+            9
+          ],
+          "90": [
+            0,
+            0
+          ],
+          "91": [
+            0,
+            0
+          ],
+          "92": [
+            0,
+            0
+          ]
+        },
+        "finalized_features": {
+          "eligible.leader.replicas.version": [
+            1,
+            1
+          ],
+          "group.version": [
+            1,
+            1
+          ],
+          "metadata.version": [
+            27,
+            27
+          ],
+          "share.version": [
+            1,
+            1
+          ],
+          "transaction.version": [
+            2,
+            2
+          ]
+        },
+        "committed_offsets": {
+          "classic": {
+            "0": 8,
+            "1": 8
+          },
+          "cooperative": {
+            "0": 8,
+            "1": 8
+          },
+          "kip848": {
+            "0": 8,
+            "1": 8
+          },
+          "transaction": {
+            "0": 8,
+            "1": 8
+          }
+        },
+        "group_ids": {
+          "classic": "plcompat-4-1-2-classic",
+          "cooperative": "plcompat-4-1-2-cooperative",
+          "kip848": "plcompat-4-1-2-kip848",
+          "transaction": "plcompat-4-1-2-transaction"
+        },
+        "startup_attempts": [
+          {
+            "phase": "setup",
+            "scenario": "classic",
+            "error": "broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator"
+          },
+          {
+            "phase": "setup",
+            "scenario": "transaction",
+            "error": "broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator"
+          },
+          {
+            "phase": "setup",
+            "scenario": "transaction",
+            "error": "broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId"
+          }
+        ],
+        "transaction_visibility": [
+          {
+            "attempt": 0,
+            "elapsed_ms": 1,
+            "error": 88
+          },
+          {
+            "attempt": 1,
+            "elapsed_ms": 55,
+            "offsets": {
+              "0": 8,
+              "1": 8
+            }
+          }
+        ],
+        "source_sha": "af6543b54d2b612d7a680901eb85512523346e2b",
+        "requested": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+        "input_topic": "plcompat-4-1-2-input",
+        "output_topic": "plcompat-4-1-2-output",
+        "seed_timestamp": 1790872740637,
+        "transaction_aborted_visible": 0,
+        "share_accepted": 16
+      },
+      "status": "passed"
+    },
+    "raw_runtime_log": "    Finished `test` profile [unoptimized] target(s) in 0.05s\n     Running tests/broker_compatibility.rs (/workspace/.cloud-setup/partitionline-ci-clean/debug/deps/broker_compatibility-05dea03a3d45e28a)\n\nrunning 1 test\ncompatibility phase: admin-connect\ncompatibility phase: admin-features\ncompatibility phase: admin-create-topics\ncompatibility phase: admin-offsets\ncompatibility phase: produce\ncompatibility phase: manual\ncompatibility phase: groups\ncompatibility group phase: classic join\ncoordinator startup classic: broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator\ncompatibility group phase: classic poll\ncompatibility group phase: classic commit\ncompatibility group phase: classic committed\ncompatibility group phase: classic close\ncompatibility group phase: cooperative join\ncompatibility group phase: cooperative poll\ncompatibility group phase: cooperative commit\ncompatibility group phase: cooperative committed\ncompatibility group phase: cooperative close\ncompatibility group phase: kip848 join\ncompatibility group phase: kip848 poll\ncompatibility group phase: kip848 commit\ncompatibility group phase: kip848 committed\ncompatibility group phase: kip848 close\ncompatibility phase: share\ncompatibility phase: transaction\ntransaction coordinator startup: broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator\ntransaction coordinator startup: broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId\ntransaction offset visibility: 1ms None\ntransaction offset visibility: 55ms Some({\"0\": 8, \"1\": 8})\nPL_COMPAT_SOURCE\taf6543b54d2b612d7a680901eb85512523346e2b\nPL_COMPAT_REFERENCE\tapache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\nPL_COMPAT_INPUT_TOPIC\tplcompat-4-1-2-input\nPL_COMPAT_OUTPUT_TOPIC\tplcompat-4-1-2-output\nPL_COMPAT_SEED_TIMESTAMP\t1790872740637\nPL_COMPAT_SCENARIO\tadmin\tpassed\t0\t0\t0\t0\nPL_COMPAT_SCENARIO\tclassic\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tcooperative\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tkip848\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tmanual\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tproduce\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\tshare\tpassed\t16\t0\t0\t0\nPL_COMPAT_SCENARIO\ttransaction\tpassed\t16\t0\t0\t0\nPL_COMPAT_API\t0\t0\t13\nPL_COMPAT_API\t1\t4\t18\nPL_COMPAT_API\t10\t0\t6\nPL_COMPAT_API\t11\t0\t9\nPL_COMPAT_API\t12\t0\t4\nPL_COMPAT_API\t13\t0\t5\nPL_COMPAT_API\t14\t0\t5\nPL_COMPAT_API\t15\t0\t6\nPL_COMPAT_API\t16\t0\t5\nPL_COMPAT_API\t17\t0\t1\nPL_COMPAT_API\t18\t0\t4\nPL_COMPAT_API\t19\t2\t7\nPL_COMPAT_API\t2\t1\t10\nPL_COMPAT_API\t20\t1\t6\nPL_COMPAT_API\t21\t0\t2\nPL_COMPAT_API\t22\t0\t5\nPL_COMPAT_API\t23\t2\t4\nPL_COMPAT_API\t24\t0\t5\nPL_COMPAT_API\t25\t0\t4\nPL_COMPAT_API\t26\t0\t5\nPL_COMPAT_API\t27\t1\t1\nPL_COMPAT_API\t28\t0\t5\nPL_COMPAT_API\t29\t1\t3\nPL_COMPAT_API\t3\t0\t13\nPL_COMPAT_API\t30\t1\t3\nPL_COMPAT_API\t31\t1\t3\nPL_COMPAT_API\t32\t1\t4\nPL_COMPAT_API\t33\t0\t2\nPL_COMPAT_API\t34\t1\t2\nPL_COMPAT_API\t35\t1\t4\nPL_COMPAT_API\t36\t0\t2\nPL_COMPAT_API\t37\t0\t3\nPL_COMPAT_API\t38\t1\t3\nPL_COMPAT_API\t39\t1\t2\nPL_COMPAT_API\t40\t1\t2\nPL_COMPAT_API\t41\t1\t3\nPL_COMPAT_API\t42\t0\t2\nPL_COMPAT_API\t43\t0\t2\nPL_COMPAT_API\t44\t0\t1\nPL_COMPAT_API\t45\t0\t1\nPL_COMPAT_API\t46\t0\t0\nPL_COMPAT_API\t47\t0\t0\nPL_COMPAT_API\t48\t0\t1\nPL_COMPAT_API\t49\t0\t1\nPL_COMPAT_API\t50\t0\t0\nPL_COMPAT_API\t51\t0\t0\nPL_COMPAT_API\t55\t0\t2\nPL_COMPAT_API\t57\t0\t2\nPL_COMPAT_API\t60\t0\t2\nPL_COMPAT_API\t61\t0\t0\nPL_COMPAT_API\t64\t0\t0\nPL_COMPAT_API\t65\t0\t0\nPL_COMPAT_API\t66\t0\t2\nPL_COMPAT_API\t68\t0\t1\nPL_COMPAT_API\t69\t0\t1\nPL_COMPAT_API\t74\t0\t1\nPL_COMPAT_API\t75\t0\t0\nPL_COMPAT_API\t76\t1\t1\nPL_COMPAT_API\t77\t1\t1\nPL_COMPAT_API\t78\t1\t1\nPL_COMPAT_API\t79\t1\t1\nPL_COMPAT_API\t8\t2\t9\nPL_COMPAT_API\t80\t0\t0\nPL_COMPAT_API\t81\t0\t0\nPL_COMPAT_API\t83\t0\t0\nPL_COMPAT_API\t84\t0\t0\nPL_COMPAT_API\t85\t0\t0\nPL_COMPAT_API\t86\t0\t0\nPL_COMPAT_API\t87\t0\t0\nPL_COMPAT_API\t9\t1\t9\nPL_COMPAT_API\t90\t0\t0\nPL_COMPAT_API\t91\t0\t0\nPL_COMPAT_API\t92\t0\t0\nPL_COMPAT_FEATURE\teligible.leader.replicas.version\t1\t1\nPL_COMPAT_FEATURE\tgroup.version\t1\t1\nPL_COMPAT_FEATURE\tmetadata.version\t27\t27\nPL_COMPAT_FEATURE\tshare.version\t1\t1\nPL_COMPAT_FEATURE\ttransaction.version\t2\t2\nPL_COMPAT_COMMITTED\tclassic\t0\t8\nPL_COMPAT_COMMITTED\tclassic\t1\t8\nPL_COMPAT_COMMITTED\tcooperative\t0\t8\nPL_COMPAT_COMMITTED\tcooperative\t1\t8\nPL_COMPAT_COMMITTED\tkip848\t0\t8\nPL_COMPAT_COMMITTED\tkip848\t1\t8\nPL_COMPAT_COMMITTED\ttransaction\t0\t8\nPL_COMPAT_COMMITTED\ttransaction\t1\t8\nPL_COMPAT_GROUP\tclassic\tplcompat-4-1-2-classic\nPL_COMPAT_GROUP\tcooperative\tplcompat-4-1-2-cooperative\nPL_COMPAT_GROUP\tkip848\tplcompat-4-1-2-kip848\nPL_COMPAT_GROUP\ttransaction\tplcompat-4-1-2-transaction\nPL_COMPAT_STARTUP\tclassic\tYnJva2VyIGVycm9yIDE1IChDT09SRElOQVRPUl9OT1RfQVZBSUxBQkxFKTogRmluZENvb3JkaW5hdG9y\nPL_COMPAT_STARTUP\ttransaction\tYnJva2VyIGVycm9yIDE1IChDT09SRElOQVRPUl9OT1RfQVZBSUxBQkxFKTogRmluZENvb3JkaW5hdG9y\nPL_COMPAT_STARTUP\ttransaction\tYnJva2VyIGVycm9yIDE0IChDT09SRElOQVRPUl9MT0FEX0lOX1BST0dSRVNTKTogSW5pdFByb2R1Y2VySWQ=\nPL_COMPAT_VISIBILITY_ERROR\t0\t1\t88\nPL_COMPAT_VISIBILITY\t1\t55\t8\t8\nPL_COMPAT_ABORTED_VISIBLE\t0\nPL_COMPAT_SHARE_ACCEPTED\t16\nPL_COMPAT_COMPLETE\ntest live_compatibility_required ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.98s\n\n",
+    "validation": "broker-compatibility: qualified 4.1.2 digest=sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e scenarios=8 records=16\n",
+    "cleanup": "pl-compat-4-1-2-263987\n"
+  },
+  "live_adapter_scenario": {
+    "build.log": {
+      "sha256": "da617cec9cb409cc7d90040e129ad90b46ac0d3bfc0d87a5184fe72f43403805",
+      "bytes": 60,
+      "text": "    Finished `dev` profile [unoptimized] target(s) in 0.05s\n"
+    },
+    "build.stdout.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "text": ""
+    },
+    "cargo.log": {
+      "sha256": "9950bbb2d5c3417b1a068f0e81f6d3cac991a363193bdf2a22d447f5acf8b503",
+      "bytes": 36,
+      "text": "cargo 1.98.1 (797e8a9bc 2026-08-05)\n"
+    },
+    "consumer.jsonl": {
+      "sha256": "1f68eec59f9e6ccdd705e9793d364559253a0bbda4ea55ab507cb7efd45fc088",
+      "bytes": 4783,
+      "text": "{\"timestamp\":1790872765539,\"name\":\"startup_complete\"}\n{\"timestamp\":1790872765565,\"name\":\"partitions_assigned\",\"partitions\":[{\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0}]}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"0\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":0}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"1\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":1}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"2\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":2}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"3\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":3}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"4\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":4}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"5\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":5}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"6\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":6}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"7\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":7}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"8\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":8}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"9\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":9}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"10\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":10}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"11\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":11}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"12\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":12}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"13\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":13}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"14\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":14}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"15\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":15}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"16\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":16}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"17\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":17}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"18\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":18}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"19\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":19}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"20\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":20}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"21\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":21}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"22\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":22}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"23\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":23}\n{\"timestamp\":1790872765570,\"name\":\"record_data\",\"key\":null,\"value\":\"24\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":24}\n{\"timestamp\":1790872765570,\"name\":\"records_consumed\",\"count\":25,\"partitions\":[{\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"count\":25,\"minOffset\":0,\"maxOffset\":24}]}\n{\"timestamp\":1790872765579,\"name\":\"offsets_committed\",\"offsets\":[{\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":25}],\"success\":true}\n{\"timestamp\":1790872765579,\"name\":\"partitions_revoked\",\"partitions\":[{\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0}]}\n{\"timestamp\":1790872765588,\"name\":\"shutdown_complete\"}\n"
+    },
+    "consumer.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "text": ""
+    },
+    "create-topic.log": {
+      "sha256": "9bd22dda622a94d4434fa5798ba7f1e161590f7029bf56ae3f6c3d90e5c72589",
+      "bytes": 67,
+      "text": "Created topic plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76.\n"
+    },
+    "create-topic.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "text": ""
+    },
+    "identity.json": {
+      "sha256": "01cd77eb3772af53bb07b2389db29f134149b3f066b30152ce574b379a6a1522",
+      "bytes": 1145,
+      "text": "{\n  \"candidate_source_sha\": \"af6543b54d2b612d7a680901eb85512523346e2b\",\n  \"profile_sha256\": \"9e7ddf87aeafff5ffd6a4566b6859a636db9f61531593dd6615babb784b3df01\",\n  \"broker_reference\": \"apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n  \"broker_version\": \"4.1.2\",\n  \"container\": \"pl-compat-4-1-2-263987\",\n  \"container_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n  \"bootstrap\": \"127.0.0.1:19092\",\n  \"inspected_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n  \"repo_digests\": [\n    \"apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\"\n  ],\n  \"kafka_cli_version\": \"4.1.2\",\n  \"topic\": \"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\n  \"group\": \"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76-group\",\n  \"started_ms\": 1790872762734,\n  \"exit_codes\": {\n    \"producer\": 0,\n    \"consumer\": 0,\n    \"java-records\": 0,\n    \"java-offsets\": 0\n  },\n  \"phase\": \"validate-complete-history\",\n  \"ended_ms\": 1790872771448,\n  \"prerequisite_exit_codes\": {\n    \"build\": 0,\n    \"create-topic\": 0\n  }\n}\n"
+    },
+    "java-offsets.log": {
+      "sha256": "49579e747c84e9fad50bd55186bfd6e59ecb4ecc5e0a9f4cf5261210dd508837",
+      "bytes": 415,
+      "text": "\nGROUP                                                     TOPIC                                               PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nplverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76-group plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76 0          25              25              0               -               -               -\n"
+    },
+    "java-offsets.stderr.log": {
+      "sha256": "6197c1d6822dac6f6b425073761cf81db11ab83d3bdd4cc82e07af874539cd92",
+      "bytes": 99,
+      "text": "\nConsumer group 'plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76-group' has no active members.\n"
+    },
+    "java-records.log": {
+      "sha256": "ec74ff428015931e7571a497ebf99c284a04ae181fe96e60e8b9fc671804afd2",
+      "bytes": 730,
+      "text": "Partition:0\tOffset:0\tnull\t0\nPartition:0\tOffset:1\tnull\t1\nPartition:0\tOffset:2\tnull\t2\nPartition:0\tOffset:3\tnull\t3\nPartition:0\tOffset:4\tnull\t4\nPartition:0\tOffset:5\tnull\t5\nPartition:0\tOffset:6\tnull\t6\nPartition:0\tOffset:7\tnull\t7\nPartition:0\tOffset:8\tnull\t8\nPartition:0\tOffset:9\tnull\t9\nPartition:0\tOffset:10\tnull\t10\nPartition:0\tOffset:11\tnull\t11\nPartition:0\tOffset:12\tnull\t12\nPartition:0\tOffset:13\tnull\t13\nPartition:0\tOffset:14\tnull\t14\nPartition:0\tOffset:15\tnull\t15\nPartition:0\tOffset:16\tnull\t16\nPartition:0\tOffset:17\tnull\t17\nPartition:0\tOffset:18\tnull\t18\nPartition:0\tOffset:19\tnull\t19\nPartition:0\tOffset:20\tnull\t20\nPartition:0\tOffset:21\tnull\t21\nPartition:0\tOffset:22\tnull\t22\nPartition:0\tOffset:23\tnull\t23\nPartition:0\tOffset:24\tnull\t24\n"
+    },
+    "java-records.stderr.log": {
+      "sha256": "bddb7ea0e285e0078b79ac392a1e694454bb3f375816425028544e03f0661706",
+      "bytes": 33,
+      "text": "Processed a total of 25 messages\n"
+    },
+    "producer.jsonl": {
+      "sha256": "dd2998b0245e444da6cfc206d9549440662116726ebeb24f17babef1e5070950",
+      "bytes": 4491,
+      "text": "{\"timestamp\":1790872765274,\"name\":\"startup_complete\"}\n{\"timestamp\":1790872765291,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"0\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":0}\n{\"timestamp\":1790872765300,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"1\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":1}\n{\"timestamp\":1790872765308,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"2\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":2}\n{\"timestamp\":1790872765316,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"3\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":3}\n{\"timestamp\":1790872765325,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"4\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":4}\n{\"timestamp\":1790872765333,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"5\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":5}\n{\"timestamp\":1790872765342,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"6\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":6}\n{\"timestamp\":1790872765349,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"7\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":7}\n{\"timestamp\":1790872765357,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"8\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":8}\n{\"timestamp\":1790872765366,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"9\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":9}\n{\"timestamp\":1790872765374,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"10\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":10}\n{\"timestamp\":1790872765382,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"11\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":11}\n{\"timestamp\":1790872765391,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"12\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":12}\n{\"timestamp\":1790872765399,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"13\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":13}\n{\"timestamp\":1790872765407,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"14\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":14}\n{\"timestamp\":1790872765416,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"15\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":15}\n{\"timestamp\":1790872765424,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"16\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":16}\n{\"timestamp\":1790872765433,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"17\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":17}\n{\"timestamp\":1790872765441,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"18\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":18}\n{\"timestamp\":1790872765449,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"19\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":19}\n{\"timestamp\":1790872765458,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"20\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":20}\n{\"timestamp\":1790872765466,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"21\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":21}\n{\"timestamp\":1790872765474,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"22\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":22}\n{\"timestamp\":1790872765482,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"23\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":23}\n{\"timestamp\":1790872765490,\"name\":\"producer_send_success\",\"key\":null,\"value\":\"24\",\"topic\":\"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\"partition\":0,\"offset\":24}\n{\"timestamp\":1790872765491,\"name\":\"shutdown_complete\"}\n{\"timestamp\":1790872765491,\"name\":\"tool_data\",\"sent\":25,\"acked\":25,\"target_throughput\":-1,\"avg_throughput\":115.74074074074075}\n"
+    },
+    "producer.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "text": ""
+    },
+    "report-validation.log": {
+      "sha256": "42c4e42bef1ff26e3410c8683081fe51e3d1dfbdbeb2ab5efb4afc1fcb5943ab",
+      "bytes": 96,
+      "text": "Live verifiable scenario: all 25 acknowledgements, deliveries and Java-confirmed offsets passed\n"
+    },
+    "report.json": {
+      "sha256": "b0a637cd2816df29b367f5e8bc7e711ac88e870bcffcb02f199126708803ea92",
+      "bytes": 8446,
+      "text": "{\n  \"schema_version\": 1,\n  \"scope\": \"One frozen live verifiable producer-consumer scenario on current Apache 4.1.2; this profile does not cover the full SDK case registry or ducktape suite.\",\n  \"candidate_source_sha\": \"af6543b54d2b612d7a680901eb85512523346e2b\",\n  \"identity\": {\n    \"candidate_source_sha\": \"af6543b54d2b612d7a680901eb85512523346e2b\",\n    \"profile_sha256\": \"9e7ddf87aeafff5ffd6a4566b6859a636db9f61531593dd6615babb784b3df01\",\n    \"broker_reference\": \"apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n    \"broker_version\": \"4.1.2\",\n    \"container\": \"pl-compat-4-1-2-263987\",\n    \"container_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n    \"bootstrap\": \"127.0.0.1:19092\",\n    \"inspected_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n    \"repo_digests\": [\n      \"apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\"\n    ],\n    \"kafka_cli_version\": \"4.1.2\",\n    \"topic\": \"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\n    \"group\": \"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76-group\",\n    \"started_ms\": 1790872762734,\n    \"exit_codes\": {\n      \"producer\": 0,\n      \"consumer\": 0,\n      \"java-records\": 0,\n      \"java-offsets\": 0\n    },\n    \"phase\": \"validate-complete-history\",\n    \"ended_ms\": 1790872771448,\n    \"prerequisite_exit_codes\": {\n      \"build\": 0,\n      \"create-topic\": 0\n    }\n  },\n  \"producer\": {\n    \"events\": 28,\n    \"acknowledged\": 25\n  },\n  \"consumer\": {\n    \"events\": 31,\n    \"delivered\": 25,\n    \"polls\": 1,\n    \"commits\": 1,\n    \"final_committed_offset\": 25\n  },\n  \"java\": {\n    \"records\": 25,\n    \"committed_offset\": 25,\n    \"end_offset\": 25,\n    \"lag\": 0\n  },\n  \"cases\": [\n    {\n      \"id\": \"verifiable-produce-consume-live-4-1-2\",\n      \"source_pin\": \"ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c\",\n      \"peer_pin\": \"4.1.2\",\n      \"peer_identity\": \"docker:apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n      \"status\": \"independent_pass\",\n      \"artifacts\": [\n        \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/identity.json\",\n        \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/producer.jsonl\",\n        \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/consumer.jsonl\",\n        \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/java-records.log\",\n        \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/java-offsets.log\"\n      ]\n    }\n  ],\n  \"case_summary\": {\n    \"schema_version\": 1,\n    \"audited_source\": \"ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c\",\n    \"peer_identity\": {\n      \"candidate_source_sha\": \"af6543b54d2b612d7a680901eb85512523346e2b\",\n      \"profile_sha256\": \"9e7ddf87aeafff5ffd6a4566b6859a636db9f61531593dd6615babb784b3df01\",\n      \"broker_reference\": \"apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n      \"broker_version\": \"4.1.2\",\n      \"container\": \"pl-compat-4-1-2-263987\",\n      \"container_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n      \"bootstrap\": \"127.0.0.1:19092\",\n      \"inspected_image_id\": \"sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6\",\n      \"repo_digests\": [\n        \"apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\"\n      ],\n      \"kafka_cli_version\": \"4.1.2\",\n      \"topic\": \"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76\",\n      \"group\": \"plverifiable-4-1-2-55fe35d4b5cb451cb032d9bd0707bf76-group\",\n      \"started_ms\": 1790872762734,\n      \"exit_codes\": {\n        \"producer\": 0,\n        \"consumer\": 0,\n        \"java-records\": 0,\n        \"java-offsets\": 0\n      },\n      \"phase\": \"validate-complete-history\",\n      \"ended_ms\": 1790872771448,\n      \"prerequisite_exit_codes\": {\n        \"build\": 0,\n        \"create-topic\": 0\n      }\n    },\n    \"peer_identities\": [\n      \"docker:apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\"\n    ],\n    \"negotiated_api_versions\": {},\n    \"total_cases\": 1,\n    \"denominator_cases\": 1,\n    \"excluded_cases\": 0,\n    \"status_counts\": {\n      \"not_run\": 0,\n      \"unsupported\": 0,\n      \"not_applicable\": 0,\n      \"failed\": 0,\n      \"blocked\": 0,\n      \"local_consistency\": 0,\n      \"independent_pass\": 1\n    },\n    \"total_attempts\": 1,\n    \"passed_cases_count\": 1,\n    \"failing_cases\": [],\n    \"blocked_cases\": [],\n    \"not_run_cases\": [],\n    \"unsupported_cases\": [],\n    \"flaky_cases\": [],\n    \"dispositions\": {\n      \"verifiable-produce-consume-live-4-1-2\": \"independent_pass\"\n    },\n    \"cases\": {\n      \"verifiable-produce-consume-live-4-1-2\": {\n        \"id\": \"verifiable-produce-consume-live-4-1-2\",\n        \"in_denominator\": true,\n        \"final_status\": \"independent_pass\",\n        \"first_status\": \"independent_pass\",\n        \"attempts_count\": 1,\n        \"attempts\": [\n          {\n            \"case_id\": \"verifiable-produce-consume-live-4-1-2\",\n            \"attempt\": 1,\n            \"status\": \"independent_pass\",\n            \"artifacts\": [\n              \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/identity.json\",\n              \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/producer.jsonl\",\n              \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/consumer.jsonl\",\n              \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/java-records.log\",\n              \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/java-offsets.log\"\n            ],\n            \"source_pin\": \"ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c\",\n            \"peer_pin\": \"4.1.2\",\n            \"peer_identity\": \"docker:apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n            \"reason\": \"KL01-17 frozen live scenario: both Rust adapter binaries, 25 null-key string IDs, one fresh partition, all acknowledgements/deliveries and manual next-offset commits, independently corroborated with the digest-pinned current Apache 4.1.2 broker Java CLI. source_pin names the normative Apache 3.9.1 CLI source; each execution separately records and verifies the actual clean candidate source SHA. No full ducktape or full SDK-profile passage.\",\n            \"report_source\": \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76\"\n          }\n        ],\n        \"passed\": true,\n        \"notes\": []\n      }\n    },\n    \"preserved_attempt_log\": [\n      {\n        \"case_id\": \"verifiable-produce-consume-live-4-1-2\",\n        \"attempt\": 1,\n        \"status\": \"independent_pass\",\n        \"artifacts\": [\n          \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/identity.json\",\n          \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/producer.jsonl\",\n          \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/consumer.jsonl\",\n          \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/java-records.log\",\n          \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76/java-offsets.log\"\n        ],\n        \"source_pin\": \"ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c\",\n        \"peer_pin\": \"4.1.2\",\n        \"peer_identity\": \"docker:apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e\",\n        \"reason\": \"KL01-17 frozen live scenario: both Rust adapter binaries, 25 null-key string IDs, one fresh partition, all acknowledgements/deliveries and manual next-offset commits, independently corroborated with the digest-pinned current Apache 4.1.2 broker Java CLI. source_pin names the normative Apache 3.9.1 CLI source; each execution separately records and verifies the actual clean candidate source SHA. No full ducktape or full SDK-profile passage.\",\n        \"report_source\": \"/workspace/.cloud-setup/kl05-06-live-af6543b/verifiable/55fe35d4b5cb451cb032d9bd0707bf76\"\n      }\n    ],\n    \"success\": true,\n    \"exit_code\": 0\n  }\n}\n"
+    },
+    "rustc.log": {
+      "sha256": "778fbc643a806f0dd123c056e66201d7e8a56a61928ec0a33171be8d6c2d5a37",
+      "bytes": 196,
+      "text": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n"
+    }
+  },
+  "hosted_ci": {
+    "run_id": 36893505306,
+    "url": "https://github.com/mingley/partitionline/actions/runs/36893505306",
+    "source_sha": "af6543b54d2b612d7a680901eb85512523346e2b",
+    "observed_status": "pending; no hosted pass claimed"
+  },
+  "remaining": "Session faults return typed errors and force a full next request. Comprehensive automatic recovery, full/extra response partition validation, reconnect/leader movement/topic recreation/close and many-partition live-reset proof remain KL05-07; feature disposition stays partial."
+}

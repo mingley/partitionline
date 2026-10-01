@@ -1614,7 +1614,7 @@
       "title": "Use incremental Fetch sessions in the consumer",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL03-06",
@@ -1636,7 +1636,9 @@
         "cargo test --locked --test consumer_fetch_semantics",
         "cargo test --locked --lib protocol::fetch"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL05-06.json"
+      ],
       "write_set": [
         "src/consumer.rs",
         "src/protocol/fetch.rs",
