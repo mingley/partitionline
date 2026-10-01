@@ -1852,13 +1852,53 @@
     {
       "id": "KL05-11",
       "title": "Implement the selected Produce v13 delta",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL01-04", "KL05-01"],
-      "files": ["src/protocol/api.rs", "src/producer.rs", "tests/protocol_oracles.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL01-04",
+        "KL05-01"
+      ],
+      "files": [
+        "src/protocol/api.rs",
+        "src/producer.rs",
+        "tests/protocol_oracles.rs"
+      ],
       "deliverable": "Source-pinned Produce v13 wire/runtime support where required by the feature matrix.",
-      "acceptance": ["Enumerate the exact Apache schema/semantic delta before raising any version cap.", "Check independent request/response fixtures and preserved v3-v12 fallback.", "A field without runtime behavior is not sufficient to advertise its associated feature."],
-      "validation": ["cargo test --locked --test protocol_oracles", "cargo test --locked --test full_surface produce"],
-      "evidence": []
+      "acceptance": [
+        "Enumerate the exact Apache schema/semantic delta before raising any version cap.",
+        "Check independent request/response fixtures and preserved v3-v12 fallback.",
+        "A field without runtime behavior is not sufficient to advertise its associated feature."
+      ],
+      "validation": [
+        "cargo test --locked --test protocol_oracles",
+        "cargo test --locked --test full_surface produce"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/api.rs",
+        "src/producer.rs",
+        "src/cluster.rs",
+        "src/error.rs",
+        "tests/protocol_oracles.rs",
+        "tests/full_surface.rs",
+        "tests/common/mod.rs",
+        "tests/fixtures/protocol_oracles/",
+        "tests/conformance/java/ProduceV13Fixtures.java",
+        "tests/conformance/java/generate_produce_v13.py",
+        "tests/conformance/produce-v13-delta.json",
+        "tests/conformance/features.json",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "scripts/check-protocol-coverage.py",
+        "docs/guide.md",
+        "docs/gaps.md",
+        "docs/support.md",
+        "docs/api-stability.md",
+        "CHANGELOG.md",
+        "docs/plan/evidence/KL05-11.json",
+        "docs/plan/tasks.json"
+      ]
     },
     {
       "id": "KL05-12",
