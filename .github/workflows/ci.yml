@@ -146,6 +146,82 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  # KL08-14: native Windows MSVC runtime and exact extracted-package evidence.
+  windows:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: windows-2025
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ['1.85.0', stable]
+    defaults:
+      run:
+        shell: bash
+    env:
+      PL_WINDOWS_TOOLCHAIN: ${{ matrix.rust }}
+      RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Select an actual OpenSSL 3 certificate-tool executable
+        shell: pwsh
+        run: |
+          $candidates = @(
+            "$env:ProgramFiles\OpenSSL\bin\openssl.exe",
+            "$env:ProgramFiles\OpenSSL-Win64\bin\openssl.exe",
+            "$env:ProgramFiles\Git\usr\bin\openssl.exe"
+          )
+          $selected = $null
+          foreach ($candidate in $candidates) {
+            if (Test-Path $candidate) {
+              $version = (& $candidate version | Out-String).Trim()
+              if ($LASTEXITCODE -eq 0 -and $version -match '^OpenSSL 3\.') {
+                $selected = $candidate
+                break
+              }
+            }
+          }
+          if (-not $selected) { throw 'OpenSSL 3 fixture prerequisite unavailable; Windows remains unqualified' }
+          Split-Path $selected -Parent | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & $selected version
+      - id: capture
+        name: Verify native Windows MSVC host and exact prerequisites
+        run: bash scripts/ci-windows.sh capture
+      - name: Native default-feature mock and public API runtime
+        run: bash scripts/ci-windows.sh default
+      - name: Native tracing mock and public API runtime
+        run: bash scripts/ci-windows.sh tracing
+      - name: Strict stable Clippy
+        if: matrix.rust == 'stable'
+        run: bash scripts/ci-windows.sh clippy
+      - name: Strict native Rustdoc and doctests
+        run: bash scripts/ci-windows.sh docs
+      - name: Actual packed-crate default and tracing consumers
+        run: bash scripts/ci-windows.sh package
+      - id: report
+        name: Validate complete native runtime and package provenance
+        run: bash scripts/ci-windows.sh report
+      - name: Retain native versions, full logs and package reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.report.outputs.artifact_name || steps.capture.outputs.artifact_name || format('windows-{0}-failed-{1}', matrix.rust, github.sha) }}
+          path: target/windows/${{ matrix.rust }}/
+          if-no-files-found: error
+          retention-days: 30
+
   audit:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
