@@ -156,10 +156,14 @@ def compile_against_package(archive, selected, work, feature_mode="tracing", too
     consumer = work / 'consumer'
     (consumer / 'src').mkdir(parents=True)
     package_info = tomllib.loads(manifests[0].read_text())
-    declared = set(package_info.get('features', {})) - {'default'}
-    if not declared.issubset({'tracing'}):
+    feature_table = package_info.get('features', {})
+    defaults = set(feature_table.get('default', []))
+    declared = set(feature_table) - {'default'}
+    # zlib-rs is the approved default gzip backend (KL10-05); tracing is the
+    # only approved opt-in feature.
+    if not defaults.issubset({'zlib-rs'}) or not (declared - defaults).issubset({'tracing'}):
         raise CheckError('packaged optional-feature matrix needs an explicit update')
-    features = [] if feature_mode == 'default' else sorted(declared)
+    features = [] if feature_mode == 'default' else sorted(declared - defaults)
     cargo = ['cargo'] + ([f'+{toolchain}'] if toolchain else [])
     dependency = json.dumps(str(manifests[0].parent))
     (consumer / 'Cargo.toml').write_text(f'''[package]

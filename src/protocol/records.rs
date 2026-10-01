@@ -184,7 +184,8 @@ pub enum Compression {
     /// Uncompressed.
     #[default]
     None = 0,
-    /// gzip (`flate2` Rust backend).
+    /// gzip (`flate2`; zlib-rs with the default `zlib-rs` feature, otherwise
+    /// miniz_oxide). See `docs/gzip-backend.md`.
     Gzip = 1,
     /// Snappy.
     Snappy = 2,

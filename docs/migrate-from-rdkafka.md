@@ -222,7 +222,7 @@ correctness results, not universal Java or live compatibility qualification.
 | Codec | partitionline | Java | librdkafka |
 |---|---|---|---|
 | none | default (`Compression::None`, `src/protocol/records.rs:183`) | default — same | `none` default — same |
-| gzip | `Compression::Gzip` (`flate2` Rust backend) | same wire format | same wire format |
+| gzip | `Compression::Gzip` (`flate2`; zlib-rs by default) | same wire format | same wire format |
 | snappy | `Compression::Snappy` (`snap`; snappy-java framing on produce, raw on fetch) | same wire format | same wire format |
 | lz4 | `Compression::Lz4` (`lz4_flex` frame, independent 64 KiB blocks) | same wire format | same wire format |
 | zstd | **not supported** (`codecs.zstd.decode/encode/wire_helper`, missing) | `zstd` | `zstd` |

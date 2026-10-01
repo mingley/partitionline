@@ -47,6 +47,10 @@ fn seeded_json1k_payloads_and_allocation_baselines() {
             "ratio drift in {}",
             actual["cell"]
         );
+        if expected["cell"].as_str().unwrap().contains(":gzip:") {
+            let bytes = expected["allocated_bytes"].as_u64().unwrap();
+            expected["allocated_bytes"] = (bytes - codec::ZLIB_RS_STATE_BYTES_BELOW_X86_64).into();
+        }
         assert_eq!(actual, expected, "new-cell input/output/allocation drift");
     }
     assert_eq!(measured, baseline);

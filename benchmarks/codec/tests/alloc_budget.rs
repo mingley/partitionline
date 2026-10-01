@@ -39,7 +39,7 @@ const SEED: u64 = 0xC0DEC;
 const BUDGETS: &[(&str, u64, u64)] = &[
     ("micro-encode/1", 6, 504),
     ("micro-encode/1000", 15, 262_136),
-    ("micro-compress/gzip", 21, 529_468),
+    ("micro-compress/gzip", 16, 590_162),
     ("micro-compress/snappy", 14, 261_187),
     ("micro-compress/lz4", 16, 344_593),
     ("micro-request/v9", 17, 70_766),
@@ -148,8 +148,11 @@ fn alloc_budgets() {
     let mut table = String::from("cell allocs bytes budget_allocs budget_bytes\n");
     let mut mismatches = 0usize;
     for (i, (name, allocs, bytes)) in rows.iter().enumerate() {
-        let (want_name, want_allocs, want_bytes) = BUDGETS[i];
+        let (want_name, want_allocs, mut want_bytes) = BUDGETS[i];
         assert_eq!(*name, want_name, "cell order drift at row {i}");
+        if want_name == "micro-compress/gzip" {
+            want_bytes -= codec::ZLIB_RS_STATE_BYTES_BELOW_X86_64;
+        }
         table.push_str(&format!(
             "{name} {allocs} {bytes} {want_allocs} {want_bytes}\n"
         ));

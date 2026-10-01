@@ -11,7 +11,7 @@ static ALLOC: CountingAlloc = CountingAlloc;
 #[test]
 fn decompression_census_preserves_every_record() {
     for (name, compression, max_allocations, max_bytes) in [
-        ("gzip", Compression::Gzip, 8, 250_968),
+        ("gzip", Compression::Gzip, 8, 255_224),
         ("snappy", Compression::Snappy, 4, 178_768),
         ("lz4", Compression::Lz4, 8, 305_976),
     ] {

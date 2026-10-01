@@ -13,6 +13,16 @@ use sha2::Digest;
 
 pub mod json1k;
 
+/// Allocation baselines are recorded on x86_64, the CI gate host. zlib-rs
+/// keeps a 64-byte PCLMULQDQ CRC fold accumulator in each stream state only on
+/// x86_64, so other targets allocate this much less per zlib-rs stream.
+pub const ZLIB_RS_STATE_BYTES_BELOW_X86_64: u64 =
+    if cfg!(all(feature = "zlib-rs", not(target_arch = "x86_64"))) {
+        64
+    } else {
+        0
+    };
+
 /// Splitmix64 stream (matches the repo's other deterministic harnesses).
 pub fn splitmix64(state: &mut u64) -> u64 {
     *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);

@@ -379,7 +379,10 @@ topics.
 
 ## Compression
 
-gzip uses `flate2` with its Rust backend. snappy uses the `snap` crate
+gzip uses `flate2`: zlib-rs by default (pure Rust; `unsafe` and SIMD inside the
+dependency), or miniz_oxide with `default-features = false`. Both decode each
+other's output and the Java and librdkafka fixtures; compressed bytes differ.
+See [gzip-backend.md](gzip-backend.md). snappy uses the `snap` crate
 (snappy-java framing on produce, raw snappy accepted on fetch). lz4 uses
 `lz4_flex` LZ4 frames (independent 64KiB blocks, proper header checksum for
 magic ≥ 1). zstd is not implemented; the Kafka ecosystem codec is typically C

@@ -75,7 +75,10 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = []
+default = ["zlib-rs"]
+# gzip through zlib-rs: pure Rust, but it uses unsafe and SIMD internally.
+# Without it, gzip falls back to miniz_oxide (no unsafe). docs/gzip-backend.md
+zlib-rs = ["flate2/zlib-rs"]
 # Optional OpenTelemetry-friendly spans on produce-ack, fetch, rebalance, and txn boundaries.
 tracing = ["dep:tracing"]
 
@@ -83,7 +86,7 @@ tracing = ["dep:tracing"]
 base64 = "0.23"
 bytes = "1"
 crc32c = "0.6"
-flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+flate2 = { version = "1", default-features = false, features = ["rust_backend", "runtime_detection"] }
 getrandom = "0.4"
 hmac = "0.13"
 lz4_flex = "0.14"

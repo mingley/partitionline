@@ -631,6 +631,19 @@ exactly-once equivalence. Regression evidence:
 `full_surface` transactional cases, and
 `consumer_fetch_semantics::committed_transaction_after_abort_for_same_pid_must_be_visible`.
 
+## gzip backend (default feature)
+
+The default `zlib-rs` feature compresses and decompresses gzip with zlib-rs.
+To build without any dependency that uses `unsafe` for gzip, disable default
+features; gzip then uses miniz_oxide, which is slower:
+
+```toml
+partitionline = { version = "0.1", default-features = false }
+```
+
+Both backends speak the same wire format. See
+[gzip-backend.md](gzip-backend.md) for measurements and the safety trade-off.
+
 ## Tracing (optional feature)
 
 Enable spans without changing default builds:

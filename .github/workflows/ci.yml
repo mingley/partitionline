@@ -330,6 +330,8 @@ jobs:
       - run: cargo clippy --all-targets --features tracing -- -D warnings
       - run: cargo build --locked --features tracing --example verifiable_producer --example verifiable_consumer
       - run: cargo test --locked --all-targets --features tracing
+      # gzip fallback without the default zlib-rs feature (docs/gzip-backend.md).
+      - run: cargo test --locked --no-default-features --lib --test protocol_oracles --test fuzz_decode_smoke --test fetch_buffer_budget
 
   # libFuzzer smoke (nightly). Short wall-clock per target.
   fuzz-smoke:

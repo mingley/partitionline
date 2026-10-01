@@ -45,3 +45,7 @@ samples and instruction output are in [KL10-03 evidence](../../docs/evidence/per
 Wall times are local unsigned measurements, not a fastest-client claim.
 Historical allocation and instruction baseline files remain unchanged. Raising
 an allocation budget requires the existing separate baseline-change review.
+Gzip cells use the default zlib-rs backend (KL10-06; re-baselined by KL10-15).
+Their allocated bytes are recorded on x86_64, the CI gate host; other targets
+allocate 64 bytes less per zlib-rs stream, which the tests apply through
+`codec::ZLIB_RS_STATE_BYTES_BELOW_X86_64`.

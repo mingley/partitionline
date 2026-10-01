@@ -21,6 +21,15 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ### Changed
 
+- gzip now uses zlib-rs by default through the new default `zlib-rs` feature.
+  On the json1k gzip cells this gives up to 1.7× compress and up to 2×
+  decompress throughput on arm64 and x86_64. Decoding incompressible gzip on
+  arm64 is 11.5% slower. `default-features = false` keeps miniz_oxide (no
+  `unsafe` in the gzip path). flate2 `runtime_detection` is now on, so generic
+  x86_64 and aarch64 Linux builds use hardware CRC-32. Compressed bytes differ
+  from earlier releases; the wire format and decode limits are unchanged. See
+  [docs/gzip-backend.md](docs/gzip-backend.md).
+
 - DescribeLogDirs now supports v5's `IsCordoned` state, with broker routing and
   v1–v4 fallback preserved. The evolving `DescribeLogDirsResult` type adds
   `is_cordoned`; struct-literal callers must initialize it. Its existing
