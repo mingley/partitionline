@@ -1,0 +1,138 @@
+{
+  "id": "KL05-13",
+  "status": "done",
+  "source_sha": "30b09ac11441f634be9165c40ad63ae63c7b0e79",
+  "acceptance_met": [
+    "Apache 4.3.1 source-pinned KIP-1023 earliest pending upload is explicitly exposed as EARLIEST_PENDING_UPLOAD_TIMESTAMP=-6 and OffsetSpec::earliest_pending_upload; new six-flag builder helper requires v11.",
+    "Six independent Apache size/write/read fixtures cover both isolation levels, timeout, errors 31/78, unknown tags at all levels, selectors -6..-1 and timestamp 0/i64::MAX. Existing v1-v10 oracle fixtures remain valid.",
+    "Each selected leader negotiates its own range; unsupported pending upload and earlier special selectors/read-committed fail before a ListOffsets RPC. Ordinary older-leader fallback remains. Metadata/connect/capability/RPC/retries share the caller deadline; remaining wire TimeoutMs never resets the budget."
+  ],
+  "upstream": {
+    "version": "4.3.1",
+    "tag_object": "a07059eb9b5bac1bfdbb1e74313f2fae4ca20fd9",
+    "source_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+    "distribution_jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+    "image_digest": "sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+    "jdk": "21.0.12.1",
+    "source_sha256": {
+      "ListOffsetsRequest-431.json": "7949a78fdbf56d0436c34239475b04be2db24007b2942aa016f37408aa3ea13b",
+      "ListOffsetsResponse-431.json": "7ab8384fb66fc588169e15d49d0a098e43186f17bdfefddc7c3cde056f158eeb",
+      "ListOffsetsRequest-431.java": "8e511e8c6660814d1be2476a14cefe8902ce2eca7453c3724684f981068253a4",
+      "ListOffsetsResponse-431.java": "432b19605b61cdafd5e644d334c19325951c24ef81cfc22ab1e9a563fe63b00d"
+    }
+  },
+  "schema_delta": "v11 fields/defaults/header versions are identical to v10. The new -6 operation selector requires v11 per Apache Java Builder.forConsumer. Java message writers can emit identical -6 syntax at v10, but that is a layout comparison and does not qualify its older-server semantics.",
+  "public_contract": {
+    "new_surfaces": [
+      "EARLIEST_PENDING_UPLOAD_TIMESTAMP",
+      "OffsetSpec::earliest_pending_upload",
+      "ListOffsetsRequest::for_consumer_with_pending_upload"
+    ],
+    "compatibility": "Existing signatures retained; historical five-flag for_consumer keeps all-false 0, while new Apache 4.3 helper baseline is v1 and pending-upload precedence v11. No new dependency/default feature.",
+    "minimum_versions": {
+      "pending_upload": 11,
+      "latest_tiered": 9,
+      "earliest_local": 8,
+      "max_timestamp": 7,
+      "read_committed": 2,
+      "ordinary": 1
+    },
+    "deadline_scope": "One overall caller budget for Admin multi-leader queries or a manual-consumer query, including refresh/connect/auth/current ApiVersions/RPC/retries. Zero timeout returns Timeout; checked deadline overflow errors before network. Wire TimeoutMs carries remaining budget.",
+    "tradeoff": "Adds one read-only ApiVersions control RPC per selected-leader attempt, avoiding stale bootstrap capabilities. No additional cache or background task.",
+    "response_validation": "Trailing bodies reject. Manual consumer matches requested topic/partition instead of blindly using first result; missing/duplicate requested rows reject. Admin keeps ordered duplicate-query matching and typed errors."
+  },
+  "fixtures": {
+    "cells": 6,
+    "files": 18,
+    "manifest_sha256": "adf20b0d4e71f0dc0308a7f1001249d6e1371f6ef383c996a7582a47b6600e2a",
+    "generator": "tests/conformance/java/ListOffsetsV11Fixtures.java",
+    "verification": "Apache self-roundtrip and v10/v11 exact syntax comparisons pass; --verify regenerates all committed bytes/metadata. Wrong-jar identity and invalid argument reject before output. Rust canonical encoding equals Apache bytes; tagged cases canonicalize without unknown tags. All truncated prefixes and future-version writes reject; failing writes preserve destination."
+  },
+  "results": [
+    {
+      "toolchain": "1.98.1",
+      "suite": "lib",
+      "summary": [
+        "test result: ok. 1094 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s"
+      ],
+      "log_sha256": "a1b5ec2f60fcdee4a0e0f3f4463a2705494e192deed13e5541aabe36f2b6b44c"
+    },
+    {
+      "toolchain": "1.98.1",
+      "suite": "oracles",
+      "summary": [
+        "test result: ok. 28 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.16s"
+      ],
+      "log_sha256": "5bb5bf5d051b752f70ec3b6f352937e0f2fc4f68804b327251b869c11a028e6a"
+    },
+    {
+      "toolchain": "1.98.1",
+      "suite": "full-surface",
+      "summary": [
+        "test result: ok. 316 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.93s"
+      ],
+      "log_sha256": "381e5e0426f6be502d8fc04702b92dcf08af06e98c06e2cc34d5cf3eec13b972"
+    },
+    {
+      "toolchain": "1.85.0",
+      "suite": "lib",
+      "summary": [
+        "test result: ok. 1094 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s"
+      ],
+      "log_sha256": "245c8476efb20cdf138fbaa6d94bb05892b18545cd05a55ecb3b79ad5b8d2bc7"
+    },
+    {
+      "toolchain": "1.85.0",
+      "suite": "oracles",
+      "summary": [
+        "test result: ok. 28 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.25s"
+      ],
+      "log_sha256": "a22d16df82126fdf46a70f828cc75fc1861a45197a2b853f49785e77704fd9fd"
+    },
+    {
+      "toolchain": "1.85.0",
+      "suite": "runtime",
+      "summary": [
+        "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 304 filtered out; finished in 0.22s"
+      ],
+      "log_sha256": "5b436e8fc020853749654eb9b173e2b9e4a68c19a15d9b320ef116aca86e6b7c"
+    }
+  ],
+  "other_checks": {
+    "strict_all_target_all_feature_clippy": "passed",
+    "strict_rustdoc": "passed",
+    "fmt_and_diff": "passed",
+    "coverage_python": "15 passed; 0 failed; synthetic unclassified API/version tests retained",
+    "coverage": "66 implemented APIs, 0 missing runtime APIs, 38 classified version gaps, 0 unclassified drift"
+  },
+  "failed_attempts": [
+    {
+      "log_sha256": "72df1d097916120ba64c26b55c21281a08c3a39b5903a945fe2bb7016b33d9b7",
+      "observed": "New independent v11 request fails before cap lift: ListOffsets version 11 is not implemented."
+    },
+    {
+      "observed": "Existing future-cap assertion still rejected v11 after implementing it; updated that unsupported boundary to v12 while preserving field-order/mutation/truncation failures."
+    },
+    {
+      "observed": "Initial raw-wire mock did not advertise the Unicode fixture topic; returned UnknownTopic. Added the fixture topic to mock Metadata, preserving unknown-topic rejection."
+    }
+  ],
+  "commands": [
+    "javac/java ListOffsetsV11Fixtures with pinned 4.3.1 distribution jar, then --verify",
+    "cargo test --offline --locked --lib (stable and 1.85.0)",
+    "cargo test --offline --locked --test protocol_oracles (stable and 1.85.0)",
+    "cargo test --offline --locked --test full_surface (stable)",
+    "cargo +1.85.0 test --offline --locked --test full_surface list_offsets",
+    "cargo clippy --offline --locked --all-targets --all-features -- -D warnings",
+    "RUSTDOCFLAGS=-Dwarnings cargo doc --offline --locked --no-deps --all-features",
+    "python3 -B -m unittest discover -s tests/conformance -p test_check_protocol_coverage.py",
+    "python3 -B scripts/check-protocol-coverage.py",
+    "cargo fmt --all -- --check",
+    "git diff --check"
+  ],
+  "limits": [
+    "Wire fixtures are synthetic responses, not a live tiered-storage pending-upload boundary. No remote-storage backend, upload lifecycle, storage maintenance operation or Kafka 4.3.1 live semantic qualification is claimed.",
+    "The two historical 3.9.1/4.1.0 matrix denominators remain v1-v10; v11 is a separate 4.3.1 extension fixture suite. One existing opt-in Java/live oracle remains ignored; new fixtures run offline without Java.",
+    "Stable full_surface opportunistic live Admin test ran against the owned Kafka 4.1.0 broker. The card does not qualify all Kafka API versions or lift Suite HOLD."
+  ]
+}

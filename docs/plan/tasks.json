@@ -1644,7 +1644,7 @@
       "title": "Implement the selected ListOffsets v11 delta",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL01-07",
@@ -1666,7 +1666,35 @@
         "cargo test --locked --test protocol_oracles",
         "cargo test --locked --test full_surface list_offsets"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "30b09ac11441f634be9165c40ad63ae63c7b0e79",
+          "commands": [
+            "javac/java ListOffsetsV11Fixtures with pinned 4.3.1 distribution jar, then --verify",
+            "cargo test --offline --locked --lib (stable and 1.85.0)",
+            "cargo test --offline --locked --test protocol_oracles (stable and 1.85.0)",
+            "cargo test --offline --locked --test full_surface (stable)",
+            "cargo +1.85.0 test --offline --locked --test full_surface list_offsets",
+            "cargo clippy --offline --locked --all-targets --all-features -- -D warnings",
+            "RUSTDOCFLAGS=-Dwarnings cargo doc --offline --locked --no-deps --all-features",
+            "python3 -B -m unittest discover -s tests/conformance -p test_check_protocol_coverage.py",
+            "python3 -B scripts/check-protocol-coverage.py",
+            "cargo fmt --all -- --check",
+            "git diff --check"
+          ],
+          "results": "Stable/MSRV each 1094 lib + 28 oracle passed (1 pre-existing ignored). Stable all 316 Admin runtime tests pass; MSRV 12 ListOffsets runtime tests pass. Six independent v11 fixture cells regenerate exactly. Strict Clippy/rustdoc and 15 coverage tests pass.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-13.json",
+            "tests/conformance/java/ListOffsetsV11Fixtures.java",
+            "tests/fixtures/protocol_oracles/list_offsets_v11_*"
+          ],
+          "limits": [
+            "Wire fixtures are synthetic responses, not a live tiered-storage pending-upload boundary. No remote-storage backend, upload lifecycle, storage maintenance operation or Kafka 4.3.1 live semantic qualification is claimed.",
+            "The two historical 3.9.1/4.1.0 matrix denominators remain v1-v10; v11 is a separate 4.3.1 extension fixture suite. One existing opt-in Java/live oracle remains ignored; new fixtures run offline without Java.",
+            "Stable full_surface opportunistic live Admin test ran against the owned Kafka 4.1.0 broker. The card does not qualify all Kafka API versions or lift Suite HOLD."
+          ]
+        }
+      ],
       "write_set": [
         "src/protocol/offsets.rs",
         "src/protocol/header.rs",
