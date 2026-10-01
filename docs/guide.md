@@ -8,12 +8,213 @@ one authoritative location for each kind of information.
 authoritative. Java client/method names appear only as porting
 cross-references; they never substitute for the Rust semantics.
 
-Runnable paths assume a broker on `KAFKA_BOOTSTRAP` (default
-`127.0.0.1:9092`). Docker `apache/kafka:3.9.1` is enough for local smoke.
+## Fresh package quickstart
+
+This exercise produces one record, verifies application processing, commits
+its next offset, and leaves the group. It uses a freshly extracted `.crate`
+outside the checkout. The package built from this revision is **unpublished
+HEAD**, even when its manifest still says `0.1.0`; it is not proof that a
+crates.io release contains every HEAD feature. The recorded run used Apache
+Kafka 4.1.0 and Rust 1.98.1. The library declares Rust 1.85 as its MSRV.
+
+Prerequisites: Rust/Cargo, Bash, GNU `timeout`, Docker, a temporary directory,
+and an unused loopback port 9092. Start these commands in the clean repository
+root. They create their own broker, topic and group. Cleanup removes only this
+exercise's container and temporary directory.
 
 ```bash
-cargo run --release --example roundtrip
+set -euo pipefail
+quick_tmp=$(mktemp -d)
+quick_broker="pl-quickstart-$(date +%s)-$$"
+export KAFKA_BOOTSTRAP=127.0.0.1:9092
+export KAFKA_TOPIC="$quick_broker" KAFKA_GROUP="$quick_broker"
+timeout 180s docker pull apache/kafka:4.1.0
+timeout 30s docker run -d --name "$quick_broker" \
+  -p 127.0.0.1:9092:9092 apache/kafka:4.1.0
+trap 'docker rm -f "$quick_broker" >/dev/null; rm -rf "$quick_tmp"' EXIT
+ready_until=$((SECONDS + 60))
+until timeout 5s docker exec "$quick_broker" /opt/kafka/bin/kafka-topics.sh \
+    --bootstrap-server localhost:9092 --list >/dev/null 2>&1; do
+  if (( SECONDS >= ready_until )); then exit 1; fi
+  sleep 1
+done
+timeout 30s docker exec "$quick_broker" /opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server localhost:9092 --create --topic "$KAFKA_TOPIC" \
+  --partitions 1 --replication-factor 1
+
+# The downstream dependency is the extracted package, never the checkout.
+CARGO_TARGET_DIR="$quick_tmp/package-build" timeout 120s cargo package --locked --no-verify
+package=$(ls "$quick_tmp"/package-build/package/partitionline-*.crate)
+tar -xzf "$package" -C "$quick_tmp"
+packed_dirs=("$quick_tmp"/partitionline-*)
+packed=${packed_dirs[0]}
+mkdir -p "$quick_tmp/client/src"
+cat > "$quick_tmp/client/Cargo.toml" <<TOML
+[package]
+name = "partitionline-quickstart"
+version = "0.0.0"
+edition = "2021"
+publish = false
+[dependencies]
+partitionline = { path = "$packed" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+TOML
 ```
+
+Save this program as `$quick_tmp/client/src/main.rs` (the same program is
+emitted by `pl_write_quickstart_consumer_main` in
+`scripts/lib/adopter-consumer-main.sh` for automated downstream checks):
+
+```rust,no_run
+use partitionline::{
+    Acks, ConsumerConfig, ConsumerGroup, Error, ProduceRecord, Producer, ProducerConfig,
+};
+use std::time::Duration;
+
+async fn run() -> partitionline::Result<()> {
+    let bootstrap = std::env::var("KAFKA_BOOTSTRAP").unwrap_or_else(|_| "127.0.0.1:9092".into());
+    let topic =
+        std::env::var("KAFKA_TOPIC").map_err(|_| Error::protocol("KAFKA_TOPIC is required"))?;
+    let group_id =
+        std::env::var("KAFKA_GROUP").map_err(|_| Error::protocol("KAFKA_GROUP is required"))?;
+    let payload = b"hello from packed partitionline";
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([bootstrap.clone()])
+            .acks(Acks::All)
+            .linger(Duration::ZERO)
+            .request_timeout(Duration::from_secs(5))
+            .delivery_timeout(Duration::from_secs(10)),
+    )
+    .await?;
+    // send resolves after the broker ack. try_send would only admit to a queue.
+    let md = producer
+        .send(
+            ProduceRecord::to(topic.clone())
+                .partition(0)
+                .value(&payload[..]),
+        )
+        .await?;
+    println!("ack partition={} offset={}", md.partition, md.offset);
+    producer.close().await?;
+    let cfg = ConsumerConfig::bootstrap([bootstrap])
+        .auto_commit(false)
+        .max_wait_ms(100)
+        .request_timeout(Duration::from_secs(5));
+    // A fresh broker may still be loading its group coordinator. Retry the
+    // join, never the already acknowledged produce, within the outer deadline.
+    let join_until = tokio::time::Instant::now() + Duration::from_secs(10);
+    let mut group = loop {
+        match ConsumerGroup::join_topics(cfg.clone(), group_id.clone(), [topic.clone()]).await {
+            Ok(group) => break group,
+            Err(err) if err.is_retriable() && tokio::time::Instant::now() < join_until => {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+            Err(err) => return Err(err),
+        }
+    };
+    let outcome = async {
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+        loop {
+            if tokio::time::Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            let records = group.poll_timeout(Duration::from_secs(2)).await?;
+            if records.is_empty() {
+                continue;
+            }
+            for record in &records {
+                // Application processing succeeds before any offset is committed.
+                if record.topic != topic
+                    || record.partition != md.partition
+                    || record.offset != md.offset
+                    || record.value.as_deref() != Some(&payload[..])
+                {
+                    return Err(Error::protocol(
+                        "unexpected record in isolated tutorial topic",
+                    ));
+                }
+                println!(
+                    "processed partition={} offset={} bytes={}",
+                    record.partition,
+                    record.offset,
+                    payload.len()
+                );
+            }
+            group
+                .commit_with_metadata_timeout(records.next_offsets(), Duration::from_secs(5))
+                .await?;
+            let committed = group.committed_timeout(Duration::from_secs(5)).await?;
+            let expected_next = md.offset + 1;
+            if !committed.iter().any(|(tp, offset)| {
+                tp.topic == topic
+                    && tp.partition == md.partition
+                    && offset.offset() == expected_next
+            }) {
+                return Err(Error::protocol(
+                    "committed position did not match processed record",
+                ));
+            }
+            println!("committed next_offset={expected_next}");
+            return Ok(());
+        }
+    }
+    .await;
+    // Explicitly leave on processing errors as well; auto commit is disabled.
+    group.leave().await?;
+    outcome?;
+    println!("closed producer and left group");
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> partitionline::Result<()> {
+    tokio::time::timeout(Duration::from_secs(30), run())
+        .await
+        .map_err(|_| Error::Timeout)?
+}
+```
+
+Build first so compilation time is separate from the 35-second process cap:
+
+```bash
+timeout 300s cargo build --manifest-path "$quick_tmp/client/Cargo.toml"
+timeout 35s cargo run --locked --manifest-path "$quick_tmp/client/Cargo.toml"
+# Leaving this shell runs the cleanup trap. To clean up immediately:
+docker rm -f "$quick_broker"
+rm -rf "$quick_tmp"
+trap - EXIT
+```
+
+For this fresh, one-partition topic the output is:
+
+```text
+ack partition=0 offset=0
+processed partition=0 offset=0 bytes=31
+committed next_offset=1
+closed producer and left group
+```
+
+`send().await` waits for an acknowledgement; `try_send()` returns after queue
+admission and can return `QueueFull`. Handle backpressure by waiting for
+completion or using bounded `send` admission rather than spinning. `flush()`
+waits for queued work and reports delivery errors; `acks=0` cannot prove an
+acknowledged offset. A timeout after sending can leave delivery ambiguous.
+
+Polling advances delivered positions, not the group's committed recovery
+position. This program disables auto commit and commits only after every
+record in the returned batch has been processed successfully. Commit uses
+**offset + 1** and preserves leader epochs through `next_offsets()`. If
+processing fails, the program leaves without committing the batch; a later
+member may receive it again. Group join retries transient coordinator errors
+within a deadline without repeating the already acknowledged produce. Keep
+processing idempotent when it changes
+external state. Transactions are the separate recipe below when broker
+records and consumed offsets need one atomic outcome.
+
+The repository's smaller examples also use `KAFKA_BOOTSTRAP` and
+`KAFKA_TOPIC`; `roundtrip` is a one-record smoke, while `consume` is the manual
+assignment loop. Use this packed-package exercise when checking the actual
+downstream surface and process/commit/shutdown ordering.
 
 ## Produce
 
