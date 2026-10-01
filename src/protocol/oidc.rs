@@ -1471,7 +1471,7 @@ impl JitterSource for RandomJitter {
             return Duration::ZERO;
         }
         let mut b = [0u8; 8];
-        if getrandom::getrandom(&mut b).is_ok() {
+        if getrandom::fill(&mut b).is_ok() {
             let n = u64::from_ne_bytes(b);
             let nanos = max_jitter.as_nanos();
             if nanos > 0 {
