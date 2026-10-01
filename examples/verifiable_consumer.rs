@@ -13,6 +13,10 @@
 //!
 //! Behavioral notes (vs the Java tool):
 //!
+//! - Eager Range/Sticky events report full revoke/assign sets; cooperative
+//!   events report deltas. Closing revokes the owned assignment before shutdown.
+//!   Core callbacks fire for assignment changes; identical-set rejoins and empty
+//!   initial assignments are not qualified by the event scenarios.
 //! - Committed offsets are `maxOffset + 1` of each consumed poll (manual sync
 //!   commit by default); with `--enable-autocommit` no `offsets_committed`
 //!   events print, as in Java.
@@ -434,20 +438,35 @@ async fn main() {
     };
     let use_autocommit = cfg.enable_auto_commit;
 
-    // Rebalance listener: revoked then assigned, skipping empty sets (Java
-    // only invokes the listener entry that has partitions on first join).
-    cfg = cfg.on_rebalance(|revoked: &[TopicPartition], assigned: &[TopicPartition]| {
-        if !revoked.is_empty() {
-            let mut ev = Event::new("partitions_revoked");
-            ev.raw_field("partitions", &partitions_json(revoked));
-            ev.emit();
-        }
-        if !assigned.is_empty() {
-            let mut ev = Event::new("partitions_assigned");
-            ev.raw_field("partitions", &partitions_json(assigned));
-            ev.emit();
-        }
-    });
+    // The core callback reports partition deltas. Java's eager protocol
+    // revokes the full old assignment before assigning the full new one;
+    // cooperative/consumer protocols report only revoked/new partitions.
+    let eager = !consumer_protocol && assignor != Assignor::CooperativeSticky;
+    let assignment = parking_lot::Mutex::new(Vec::<TopicPartition>::new());
+    cfg = cfg.on_rebalance(
+        move |revoked: &[TopicPartition], added: &[TopicPartition]| {
+            let mut current = assignment.lock();
+            let old = current.clone();
+            current.retain(|tp| !revoked.contains(tp));
+            for tp in added {
+                if !current.contains(tp) {
+                    current.push(tp.clone());
+                }
+            }
+            current.sort_by(|a, b| a.topic.cmp(&b.topic).then(a.partition.cmp(&b.partition)));
+            let reported_revoked = if eager { old.as_slice() } else { revoked };
+            if !reported_revoked.is_empty() {
+                let mut event = Event::new("partitions_revoked");
+                event.raw_field("partitions", &partitions_json(reported_revoked));
+                event.emit();
+            }
+            // Java invokes onPartitionsAssigned even when the new set is empty.
+            let reported_assigned = if eager { current.as_slice() } else { added };
+            let mut event = Event::new("partitions_assigned");
+            event.raw_field("partitions", &partitions_json(reported_assigned));
+            event.emit();
+        },
+    );
 
     Event::new("startup_complete").emit();
     let mut group = join_group(cfg, &group_id, topic, consumer_protocol, assignor)
@@ -584,6 +603,14 @@ async fn main() {
         }
     }
 
+    // Java ConsumerCoordinator.onLeavePrepare revokes the owned assignment
+    // before close. The core close callback is intentionally not synthesized.
+    let closing = group.assignment();
+    if !closing.is_empty() {
+        let mut event = Event::new("partitions_revoked");
+        event.raw_field("partitions", &partitions_json(&closing));
+        event.emit();
+    }
     if let Err(e) = group.close().await {
         eprintln!("verifiable_consumer: error: close failed: {e}");
         std::process::exit(1);

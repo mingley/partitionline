@@ -694,7 +694,7 @@ async fn verifiable_produce_consume_roundtrip() {
         Some("shutdown_complete")
     );
 
-    // Assignment: the single member owns t-0; nothing revoked.
+    // Assignment: the single member owns t-0; close revokes it once.
     let assigned = named(&events, "partitions_assigned");
     assert_eq!(assigned.len(), 1, "one assignment expected");
     let parts = assigned[0]
@@ -704,7 +704,9 @@ async fn verifiable_produce_consume_roundtrip() {
     assert_eq!(parts.len(), 1);
     assert_eq!(parts[0].get("topic").and_then(Json::as_str), Some("t"));
     assert_eq!(parts[0].get("partition").and_then(Json::as_i64), Some(0));
-    assert!(named(&events, "partitions_revoked").is_empty());
+    let revoked = named(&events, "partitions_revoked");
+    assert_eq!(revoked.len(), 1, "Java close revokes the owned assignment");
+    assert_eq!(event_partitions(revoked[0]).unwrap(), [0]);
 
     // record_data reproduces every produced ID at its position.
     let records = named(&events, "record_data");
@@ -892,4 +894,373 @@ async fn verifiable_producer_config_file_wins_over_cli() {
             "acks=0 from the file must win over CLI --acks -1: {ev:?}"
         );
     }
+}
+
+/// Streaming child for rebalance barriers; stdio is drained on owned threads.
+/// Every child has a bounded message count and is killed/reaped if a test fails.
+struct StreamingExample {
+    child: std::process::Child,
+    lines: std::sync::mpsc::Receiver<String>,
+    stdout: Option<std::thread::JoinHandle<Result<String, String>>>,
+    stderr: Option<std::thread::JoinHandle<Result<String, String>>>,
+    events: Vec<Json>,
+}
+
+impl StreamingExample {
+    fn start(bin: &Path, args: &[&str]) -> Result<Self, String> {
+        use std::io::{BufRead, Read};
+        let mut child = std::process::Command::new(bin)
+            .args(args)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|error| format!("spawn {}: {error}", bin.display()))?;
+        let pipes = child.stdout.take().zip(child.stderr.take());
+        let Some((stdout, mut stderr)) = pipes else {
+            drop(child.kill());
+            drop(child.wait());
+            return Err("child lacks piped stdio".to_string());
+        };
+        let (tx, lines) = std::sync::mpsc::channel();
+        let stdout = std::thread::spawn(move || {
+            let mut output = String::new();
+            for line in std::io::BufReader::new(stdout).lines() {
+                let line = line.map_err(|error| format!("read stdout: {error}"))?;
+                output.push_str(&line);
+                output.push('\n');
+                if tx.send(line).is_err() {
+                    break;
+                }
+            }
+            Ok(output)
+        });
+        let stderr = std::thread::spawn(move || {
+            let mut output = String::new();
+            let _bytes = stderr
+                .read_to_string(&mut output)
+                .map_err(|error| format!("read stderr: {error}"))?;
+            Ok(output)
+        });
+        Ok(Self {
+            child,
+            lines,
+            stdout: Some(stdout),
+            stderr: Some(stderr),
+            events: Vec::new(),
+        })
+    }
+
+    async fn partition_event_after(
+        &mut self,
+        after: usize,
+        name: &str,
+        expected: &[i64],
+    ) -> Result<(), String> {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        loop {
+            for line in self.lines.try_iter() {
+                self.events.push(parse_json(&line)?);
+            }
+            for event in self.events.iter().skip(after) {
+                if event.name() == Some(name) && event_partitions(event)? == expected {
+                    return Ok(());
+                }
+            }
+            if Instant::now() >= deadline {
+                return Err(format!("missing {name} {expected:?}: {:?}", self.events));
+            }
+            if self
+                .child
+                .try_wait()
+                .map_err(|error| error.to_string())?
+                .is_some()
+            {
+                return Err(format!("child exited before {name}: {:?}", self.events));
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    }
+
+    async fn finish(mut self) -> Result<Run, String> {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let status = loop {
+            if let Some(status) = self.child.try_wait().map_err(|error| error.to_string())? {
+                break status
+                    .code()
+                    .ok_or_else(|| "child died by signal".to_string())?;
+            }
+            if Instant::now() >= deadline {
+                return Err("child did not stop after bounded messages".to_string());
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        };
+        let stdout = self
+            .stdout
+            .take()
+            .ok_or_else(|| "missing stdout reader".to_string())?
+            .join()
+            .map_err(|_| "stdout reader panicked".to_string())??;
+        let stderr = self
+            .stderr
+            .take()
+            .ok_or_else(|| "missing stderr reader".to_string())?
+            .join()
+            .map_err(|_| "stderr reader panicked".to_string())??;
+        Ok(Run {
+            status,
+            stdout,
+            stderr,
+        })
+    }
+}
+
+impl Drop for StreamingExample {
+    fn drop(&mut self) {
+        drop(self.child.kill());
+        drop(self.child.wait());
+        if let Some(reader) = self.stdout.take() {
+            drop(reader.join());
+        }
+        if let Some(reader) = self.stderr.take() {
+            drop(reader.join());
+        }
+    }
+}
+
+fn event_partitions(event: &Json) -> Result<Vec<i64>, String> {
+    let entries = event
+        .get("partitions")
+        .and_then(Json::as_arr)
+        .ok_or_else(|| format!("missing partitions in {event:?}"))?;
+    let mut partitions = Vec::new();
+    for partition in entries {
+        if partition.get("topic").and_then(Json::as_str) != Some("t") {
+            return Err(format!("unexpected topic in {event:?}"));
+        }
+        partitions.push(
+            partition
+                .get("partition")
+                .and_then(Json::as_i64)
+                .ok_or_else(|| format!("missing partition id in {event:?}"))?,
+        );
+    }
+    partitions.sort_unstable();
+    if partitions
+        .iter()
+        .zip(partitions.iter().skip(1))
+        .any(|(a, b)| a == b)
+    {
+        return Err(format!("duplicate partition in {event:?}"));
+    }
+    Ok(partitions)
+}
+
+#[tokio::test]
+async fn verifiable_consumer_two_member_rebalance_events() {
+    use partitionline::{ProduceRecord, Producer, ProducerConfig};
+    let bin = example_bin("verifiable_consumer").unwrap();
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    let mut first = StreamingExample::start(
+        &bin,
+        &[
+            "--topic",
+            "t",
+            "--group-id",
+            "verifiable-rebalance",
+            "--bootstrap-server",
+            &mock.addr,
+            "--max-messages",
+            "2",
+            "--verbose",
+        ],
+    )
+    .unwrap();
+    first
+        .partition_event_after(0, "partitions_assigned", &[0, 1])
+        .await
+        .unwrap();
+    let mut second = StreamingExample::start(
+        &bin,
+        &[
+            "--topic",
+            "t",
+            "--group-id",
+            "verifiable-rebalance",
+            "--bootstrap-server",
+            &mock.addr,
+            "--max-messages",
+            "1",
+            "--verbose",
+        ],
+    )
+    .unwrap();
+    second
+        .partition_event_after(0, "partitions_assigned", &[1])
+        .await
+        .unwrap();
+    first
+        .partition_event_after(0, "partitions_revoked", &[0, 1])
+        .await
+        .unwrap();
+    first
+        .partition_event_after(0, "partitions_assigned", &[0])
+        .await
+        .unwrap();
+    let after_join = first.events.len();
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _metadata = producer
+        .send(
+            ProduceRecord::to("t")
+                .partition(1)
+                .value(&b"second-member"[..]),
+        )
+        .await
+        .unwrap();
+    let second = second.finish().await.unwrap();
+    first
+        .partition_event_after(after_join, "partitions_revoked", &[0])
+        .await
+        .unwrap();
+    first
+        .partition_event_after(after_join, "partitions_assigned", &[0, 1])
+        .await
+        .unwrap();
+    let _metadata = producer
+        .send_all([
+            ProduceRecord::to("t").partition(0).value(&b"first-0"[..]),
+            ProduceRecord::to("t").partition(0).value(&b"first-1"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let first = first.finish().await.unwrap();
+    for (label, run, expected_count) in [("first", &first, 2), ("second", &second, 1)] {
+        assert_eq!(run.status, 0, "{label}: {}", run.stderr);
+        assert!(run.stderr.is_empty(), "{label}: {}", run.stderr);
+        let events = parse_events(label, &run.stdout).unwrap();
+        assert_timestamps(&events, label);
+        assert_eq!(
+            events.first().and_then(Json::name),
+            Some("startup_complete")
+        );
+        assert_eq!(
+            events.last().and_then(Json::name),
+            Some("shutdown_complete")
+        );
+        assert_eq!(named(&events, "record_data").len(), expected_count);
+        assert!(named(&events, "offsets_committed")
+            .iter()
+            .all(|event| event.get("success").and_then(Json::as_bool) == Some(true)));
+    }
+    let events = parse_events("first", &first.stdout).unwrap();
+    assert_eq!(
+        named(&events, "partitions_assigned")
+            .iter()
+            .map(|event| event_partitions(event).unwrap())
+            .collect::<Vec<_>>(),
+        [vec![0, 1], vec![0], vec![0, 1]]
+    );
+    assert_eq!(
+        named(&events, "partitions_revoked")
+            .iter()
+            .map(|event| event_partitions(event).unwrap())
+            .collect::<Vec<_>>(),
+        [vec![0, 1], vec![0], vec![0, 1]]
+    );
+    let events = parse_events("second", &second.stdout).unwrap();
+    assert_eq!(
+        named(&events, "partitions_assigned")
+            .iter()
+            .map(|event| event_partitions(event).unwrap())
+            .collect::<Vec<_>>(),
+        [vec![1]]
+    );
+    assert_eq!(
+        named(&events, "partitions_revoked")
+            .iter()
+            .map(|event| event_partitions(event).unwrap())
+            .collect::<Vec<_>>(),
+        [vec![1]]
+    );
+    assert_eq!(
+        mock.committed_offset("verifiable-rebalance", "t", 0),
+        Some(2)
+    );
+    assert_eq!(
+        mock.committed_offset("verifiable-rebalance", "t", 1),
+        Some(1)
+    );
+}
+
+#[tokio::test]
+async fn verifiable_consumer_failed_commit_preserves_attempted_offsets() {
+    use partitionline::{error, ProduceRecord, Producer};
+    let bin = example_bin("verifiable_consumer").unwrap();
+    let mock = common::Mock::start().await;
+    let producer = Producer::connect(&mock.addr).await.unwrap();
+    let _metadata = producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"zero"[..]),
+            ProduceRecord::to("t").value(&b"one"[..]),
+            ProduceRecord::to("t").value(&b"two"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    mock.set_offset_commit_error(error::GROUP_AUTHORIZATION_FAILED);
+    let run = run_example(
+        &bin,
+        &[
+            "--topic",
+            "t",
+            "--group-id",
+            "verifiable-commit-failure",
+            "--bootstrap-server",
+            &mock.addr,
+            "--max-messages",
+            "3",
+            "--verbose",
+        ],
+        TIMEOUT,
+    )
+    .await
+    .unwrap();
+    assert_eq!(run.status, 0, "{}", run.stderr);
+    assert!(run.stderr.is_empty(), "{}", run.stderr);
+    let events = parse_events("failed-commit", &run.stdout).unwrap();
+    assert_timestamps(&events, "failed-commit");
+    assert_eq!(named(&events, "record_data").len(), 3);
+    let commits = named(&events, "offsets_committed");
+    assert!(!commits.is_empty());
+    for event in &commits {
+        assert_eq!(event.get("success").and_then(Json::as_bool), Some(false));
+        assert!(event
+            .get("error")
+            .and_then(Json::as_str)
+            .is_some_and(|error| error.contains("GROUP_AUTHORIZATION_FAILED")));
+        let offsets = event.get("offsets").and_then(Json::as_arr).unwrap();
+        assert_eq!(offsets.len(), 1);
+        assert_eq!(offsets[0].get("topic").and_then(Json::as_str), Some("t"));
+        assert_eq!(offsets[0].get("partition").and_then(Json::as_i64), Some(0));
+    }
+    let last = commits
+        .last()
+        .unwrap()
+        .get("offsets")
+        .and_then(Json::as_arr)
+        .unwrap();
+    assert_eq!(last[0].get("offset").and_then(Json::as_i64), Some(3));
+    assert_eq!(
+        mock.committed_offset("verifiable-commit-failure", "t", 0),
+        None
+    );
+    assert_eq!(
+        events.last().and_then(Json::name),
+        Some("shutdown_complete")
+    );
 }

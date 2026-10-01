@@ -584,6 +584,7 @@ struct State {
     cg_heartbeat_acks: Vec<(String, i32, Option<Vec<i32>>)>,
     last_share_group_heartbeat_version: Option<i16>,
     offset_commit_not_coordinator: u32,
+    offset_commit_error: Option<i16>,
     offset_commit_load_left: u32,
     offset_commit_load_in_progress: u32,
     add_partitions_to_txn_calls: u32,
@@ -1005,6 +1006,7 @@ fn new_state(
         cg_heartbeat_acks: Vec::new(),
         last_share_group_heartbeat_version: None,
         offset_commit_not_coordinator: 0,
+        offset_commit_error: None,
         offset_commit_load_left: 0,
         offset_commit_load_in_progress: 0,
         add_partitions_to_txn_calls: 0,
@@ -3049,6 +3051,11 @@ impl Mock {
     /// (no assignment echo). Partition lists are sorted (KL03-15).
     pub fn cg_heartbeat_acks(&self) -> Vec<(String, i32, Option<Vec<i32>>)> {
         self.state.lock().cg_heartbeat_acks.clone()
+    }
+
+    /// Force OffsetCommit to fail without persisting the attempted offsets.
+    pub fn set_offset_commit_error(&self, code: i16) {
+        self.state.lock().offset_commit_error = Some(code);
     }
 
     /// Member id carried by the last OffsetCommit request (KL03-15).
@@ -7200,7 +7207,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_offset_commit_version = Some(header.api_version);
                 st.last_offset_commit_member = Some(member);
                 st.last_offset_commit_generation = Some(generation);
-                if st.offset_commit_load_left > 0 {
+                if let Some(code) = st.offset_commit_error {
+                    encode_offset_commit_response(&mut body, header.api_version, &topics, code)
+                        .unwrap();
+                } else if st.offset_commit_load_left > 0 {
                     st.offset_commit_load_left = st.offset_commit_load_left.saturating_sub(1);
                     st.offset_commit_load_in_progress =
                         st.offset_commit_load_in_progress.saturating_add(1);
