@@ -25,6 +25,12 @@ The library talks Kafka's network protocol itself. There is no C Kafka library i
 5. Several Produce requests can be in flight on the same socket.
 6. `flush` waits for those responses and returns the first broker error. `try_send` Ok only means queued.
 
+The [KL10-07 owned delivery proposal](api-stability.md#proposed-owned-delivery-api-kl10-07-awaiting-maintainer-review)
+adds synchronous nonblocking admission with an owned per-record completion.
+It is awaiting maintainer review and is not implemented. The proposed queue
+path shares `try_send` validation/routing and `send` terminal ownership;
+completion polling never controls admission or cancels an accepted record.
+
 `ProducerConfig`, `ConsumerConfig`, and `AdminConfig` accept chainable
 builders (`acks`, `sasl`, `tls`, `isolation`, `delivery_timeout`, `max_block`,
 `buffer_memory`, `max_request_size`, `retry_backoff`, `reconnect_backoff`, `connections_max_idle`, `transaction_timeout`, `metadata_max_age`, …). The raw fields remain writable.

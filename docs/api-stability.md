@@ -53,6 +53,79 @@ a single deployment need before it hardens, mark it in rustdoc with
 
 ## Error categories (KL07-10)
 
+### Proposed owned delivery API (KL10-07; awaiting maintainer review)
+
+This is an additive proposal, not an available API. The existing `send`,
+`send_all`, and `try_send` signatures and behavior remain stable. KL10-08
+must wait for recorded maintainer approval of this contract.
+
+Proposed signatures (future implementation acceptance commands):
+
+```text
+Producer::try_send_with_delivery(&self, record: ProduceRecord) -> Result<Delivery>
+Delivery: Future<Output = Result<RecordMetadata>> + Send + 'static
+```
+
+`Delivery` is an opaque owned future. It contains no borrow of `Producer`
+or the record and can be moved into another task. Returning it admits the
+record eagerly: validation, partition selection, byte reservation, and
+enqueueing finish before the synchronous call returns. There is no hidden
+wait for `max_block`, metadata, a connection, or buffer capacity.
+
+Admission errors return synchronously. `QueueFull` means no admission:
+buffer/queue capacity or a ready metadata/leader route was unavailable.
+The latter may nudge background metadata/connection setup, as `try_send`
+does today. Oversized records return `RecordTooLarge`; invalid usage returns
+`Protocol`; closed and fatally fenced producers retain their existing
+errors. A failed enqueue releases its byte reservation. Rejected calls do
+not count as queued records or create a completion. The record is consumed
+on both success and failure, matching `try_send`; callers that need a retry
+copy retain a clone before calling, rather than assuming a returned record.
+
+For consecutive successful calls from one caller to the same partition,
+admission order is call order, regardless of when completions are polled.
+There is no ordering promise between concurrent callers or across
+partitions. Wire retries and broker ordering retain the existing
+idempotence/in-flight guarantees; admission order alone cannot eliminate
+non-idempotent retry reordering. Records still pass through the configured
+partitioner and ordered `on_send` interceptors before admission. Interceptor
+callbacks run synchronously and can themselves consume caller CPU time;
+"no hidden wait" refers to client admission waits, not arbitrary callbacks.
+
+Every accepted record has exactly one terminal completion: metadata for the
+configured acknowledgment mode, or the actual terminal delivery error.
+With `acks=0`, completion reports a successful write with offset `-1`,
+never broker acknowledgment. A broker acknowledgment inside a transaction
+does not establish a committed transaction. Request/delivery deadlines
+continue to bound retries, and produce timeouts remain ambiguous delivery.
+
+Dropping or never polling `Delivery` does not cancel the accepted record,
+release its byte budget early, or suppress delivery/error interceptors.
+Its reservation ends on the existing terminal ownership path. `flush`
+includes accepted records even if their completions are dropped; observing
+a completion does not remove the record from flush/error accounting.
+`close` and `close_timeout` drain or terminate accepted work under their
+existing contracts and resolve outstanding completions; dropping the last
+producer still stops its workers. A shutdown error without an acknowledgment
+does not prove the broker failed to append the record.
+
+Idempotent sequences are assigned by the existing worker path. Transaction
+admission uses the same guards as `try_send`; the new API cannot begin,
+commit, abort, recover, or clear fencing implicitly. Transaction commit
+continues to drain accepted work. Dropping its record completions neither
+commits nor aborts the transaction. Existing borrowed `send()` remains
+sufficient when the caller can poll bounded futures in its own task and
+needs admission to wait for metadata/capacity. Its async body admits on
+poll, so an unpolled future fixes neither admission time nor queue order
+and cannot be moved into a `'static` task without retaining its producer.
+
+KL10-08 acceptance must compile a `Send + 'static` trait assertion and a
+spawned owned completion; pin call-order versus reverse-poll order; test
+buffer-full/route-unavailable/closed rejection without admission; prove
+dropped completions retain byte ownership until delivery; and exercise
+flush, bounded close, interceptors, idempotence, transaction commit/abort,
+and fatal fencing. Those are future checks, not executed evidence.
+
 Every public operation resolves to at most one `Error`, classified below.
 The mapping is normative for 0.x callers: match the category, not the
 `Display` text. `Display` strings are human diagnostics and may change on
