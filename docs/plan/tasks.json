@@ -4759,7 +4759,7 @@
       "title": "Add a 1 KiB JSON-like payload family to the codec microbenchmarks",
       "priority": "P1",
       "kind": "benchmark",
-      "status": "done",
+      "status": "in_progress",
       "owner": "codex",
       "depends_on": [
         "KL09-04",
@@ -4783,17 +4783,14 @@
         "docs/plan/evidence/KL10-03.json"
       ],
       "write_set": [
-        "benchmarks/codec/",
-        "docs/plan/performance-leadership.md",
-        "docs/plan/tasks.json",
-        "docs/plan/evidence/KL10-03.json",
-        "docs/evidence/perf/KL10-03/",
-        ".github/workflows/ci.yml",
         "scripts/ci-alloc-budget.sh",
-        "tests/ci/test_alloc_gate.py"
+        "tests/ci/test_alloc_gate.py",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL10-03.json"
       ],
       "blocked_reason": null,
-      "follow_up": "Hosted allocation gate succeeded at 14cd70e, run 36858000776 / job 110355531950. Original failed attempt preserved in evidence; cause unknown. Census budgets unchanged; strict diagnostics retain future failures."
+      "follow_up": "Hosted allocation gate succeeded at 14cd70e, run 36858000776 / job 110355531950. Original failed attempt preserved in evidence; cause unknown. Census budgets unchanged; strict diagnostics retain future failures.",
+      "followup": "The hosted allocation error annotation truncates at ~4380 decoded characters before reaching its failure tail. Retain the complete raw artifact and make the annotation small enough to reveal failures; do not change census baselines."
     },
     {
       "id": "KL10-04",
