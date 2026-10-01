@@ -190,7 +190,41 @@
   "ci": {
     "source_sha": "db1979e2388c7136ad3d8ed0561c861850297b9c",
     "run_url": "https://github.com/mingley/partitionline/actions/runs/36881387120",
-    "status_at_recording": "not claimed green solely from local qualification; inspect full job conclusions separately"
+    "status_at_recording": "not claimed green solely from local qualification; inspect full job conclusions separately",
+    "observed_jobs": {
+      "test (stable)": {
+        "id": 110433731237,
+        "conclusion": "success"
+      },
+      "test (1.85)": {
+        "id": 110433731362,
+        "conclusion": "success"
+      },
+      "clippy": {
+        "id": 110433731261,
+        "conclusion": "success"
+      },
+      "docs": {
+        "id": 110433731223,
+        "conclusion": "success"
+      },
+      "alloc-budget": {
+        "id": 110433731822,
+        "conclusion": "success"
+      },
+      "broker-current (4.1.2)": {
+        "id": 110433731957,
+        "conclusion": "success"
+      },
+      "broker-current (4.2.1)": {
+        "id": 110433732058,
+        "conclusion": "success"
+      },
+      "broker-current (4.3.1)": {
+        "id": 110433731176,
+        "conclusion": "success"
+      }
+    }
   },
   "limits": [
     "Deterministic loopback scheduling plus an executed pinned Java reference, not a live broker quota deployment or performance claim.",

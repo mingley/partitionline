@@ -488,13 +488,42 @@
     {
       "id": "KL01-17",
       "title": "Run the verifiable scenario against a live Apache broker cell",
-      "priority": "P2", "kind": "conformance", "status": "pending", "owner": null,
-      "depends_on": ["KL01-09", "KL01-10"],
-      "files": ["tests/conformance/cases.json", "scripts/ci-verifiable-scenario.sh"],
+      "priority": "P2",
+      "kind": "conformance",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL01-09",
+        "KL01-10"
+      ],
+      "files": [
+        "tests/conformance/cases.json",
+        "scripts/ci-verifiable-scenario.sh"
+      ],
       "deliverable": "The KL01-09 produce-consume scenario executed against a pinned live Apache broker with a validated case report.",
-      "acceptance": ["Run both example binaries against the KL01-10 broker cell and validate the full event streams.", "Promote or supersede the mock-only case with the live result, preserving the failed-attempt history.", "Do not claim ducktape-suite passage; one scenario only."],
-      "validation": ["REQUIRE_BROKER=1 bash scripts/ci-verifiable-scenario.sh", "Validate the live scenario case report."],
-      "evidence": []
+      "acceptance": [
+        "Run both example binaries against the KL01-10 broker cell and validate the full event streams.",
+        "Promote or supersede the mock-only case with the live result, preserving the failed-attempt history.",
+        "Do not claim ducktape-suite passage; one scenario only."
+      ],
+      "validation": [
+        "REQUIRE_BROKER=1 bash scripts/ci-verifiable-scenario.sh",
+        "Validate the live scenario case report."
+      ],
+      "evidence": [],
+      "write_set": [
+        "scripts/ci-verifiable-scenario.sh",
+        "scripts/report-verifiable-scenario.py",
+        "scripts/ci-broker-compatibility.sh",
+        ".github/workflows/ci.yml",
+        "tests/conformance/test_verifiable_scenario.py",
+        "tests/conformance/test_report.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/verifiable-live-profile.json",
+        "docs/support.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL01-17.json"
+      ]
     },
     {
       "id": "KL02-01",
