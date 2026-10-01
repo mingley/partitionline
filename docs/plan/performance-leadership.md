@@ -232,6 +232,7 @@ reports medians with bootstrap 95% CIs. Artifacts must pass
 | Cell | Built by | Workload | Metrics |
 |---|---|---|---|
 | `micro-encode`, `micro-decode`, `micro-request`, `micro-compress:<codec>`, `micro-decompress:<codec>` | KL04-09, KL09-04/05 | Codec microbenches with realistic sizes, entropy and header counts | ns/record, bytes/s, allocations, instructions |
+| `micro-compress:<codec>:json1k/{16,256}k`, `micro-decompress:<codec>:json1k/{16,256}k`, `raw-compress:<codec>:json1k/{16,256}k`, `raw-decompress:<codec>:json1k/{16,256}k` | KL10-03 | Seeded valid JSON values of exactly 1 KiB; 16/256 records; gzip, lz4, snappy. Raw cells process the identical serialized record section in one backend call, excluding Kafka record serialization/header/CRC. [Scope and commands](../../benchmarks/codec/JSON1K.md) | ns/record, value bytes/s, allocations, instructions, compressed/section ratio |
 | `micro-share-ranges` | KL09-51 (added to the codec bench crate) | 1,000 short share acquisition ranges | ns/record |
 | `nb-produce-bulk` | KL09-09 | Null broker; 6 partitions; 100 B seeded payload; acks=1; linger 5 ms; `try_send`+`flush` | rec/s, CPU-ns/record, allocations/record, peak RSS |
 | `nb-produce-idem` | KL09-09 | As bulk, idempotent acks=all, max in-flight 5 | As bulk |

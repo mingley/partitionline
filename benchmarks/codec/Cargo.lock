@@ -182,10 +182,13 @@ dependencies = [
  "bytes",
  "crc32c",
  "criterion",
+ "flate2",
  "iai-callgrind",
+ "lz4_flex",
  "partitionline",
  "serde_json",
  "sha2 0.10.9",
+ "snap",
 ]
 
 [[package]]

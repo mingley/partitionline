@@ -136,6 +136,52 @@ fn bench_transforms(c: &mut Criterion) {
     group.finish();
 }
 
+// Separate family: existing cells and inputs remain unchanged.
+fn bench_json1k(c: &mut Criterion) {
+    use codec::json1k::{
+        batch, raw_compress, raw_decompress, section, wire, CODECS, COUNTS, VALUE_BYTES,
+    };
+    for count in COUNTS {
+        let input = section(count);
+        for (name, compression) in CODECS {
+            let batch = batch(count, compression);
+            let encoded = wire(&batch);
+            let packed = raw_compress(compression, &input);
+            for operation in [
+                "micro-compress",
+                "micro-decompress",
+                "raw-compress",
+                "raw-decompress",
+            ] {
+                let mut group = c.benchmark_group(format!("{operation}:{name}:json1k"));
+                group.throughput(Throughput::Bytes((count * VALUE_BYTES) as u64));
+                group.bench_function(format!("{}k", count), |b| match operation {
+                    "micro-compress" => b.iter(|| {
+                        let mut output = BytesMut::new();
+                        encode_record_batch(&mut output, black_box(&batch)).unwrap();
+                        black_box(output);
+                    }),
+                    "micro-decompress" => b.iter_batched(
+                        || encoded.clone(),
+                        |mut input| {
+                            black_box(decode_record_batch(black_box(&mut input)).unwrap());
+                        },
+                        BatchSize::SmallInput,
+                    ),
+                    "raw-compress" => b.iter(|| {
+                        black_box(raw_compress(compression, black_box(&input)));
+                    }),
+                    "raw-decompress" => b.iter(|| {
+                        black_box(raw_decompress(compression, black_box(&packed)));
+                    }),
+                    _ => unreachable!(),
+                });
+                group.finish();
+            }
+        }
+    }
+}
+
 criterion_group!(
     benches,
     bench_encode,
@@ -143,6 +189,7 @@ criterion_group!(
     bench_crc,
     bench_compress,
     bench_decompress,
-    bench_transforms
+    bench_transforms,
+    bench_json1k
 );
 criterion_main!(benches);

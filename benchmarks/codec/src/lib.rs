@@ -11,6 +11,8 @@ use partitionline::protocol::records::{
 };
 use sha2::Digest;
 
+pub mod json1k;
+
 /// Splitmix64 stream (matches the repo's other deterministic harnesses).
 pub fn splitmix64(state: &mut u64) -> u64 {
     *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);

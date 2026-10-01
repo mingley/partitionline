@@ -11,6 +11,9 @@ bytes = "1"
 serde_json = "1"
 sha2 = "0.10"
 crc32c = "0.6"
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+lz4_flex = "0.14"
+snap = "1"
 
 [dev-dependencies]
 criterion = "0.8"
@@ -24,6 +27,10 @@ harness = false
 name = "iai"
 harness = false
 
+[[bench]]
+name = "json1k_iai"
+harness = false
+
 [[bin]]
 name = "codec-preflight"
 path = "src/main.rs"
@@ -34,3 +41,7 @@ path = "src/main.rs"
 # do not apply. Explicit allow beats the config-implied enable.
 disallowed_methods = "allow"
 disallowed_types = "allow"
+
+[[bin]]
+name = "json1k-census"
+path = "src/json1k-census.rs"

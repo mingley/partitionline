@@ -106,7 +106,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --locked --manifest-path benchmarks/codec/Cargo.toml --test alloc_budget
+      - run: cargo test --locked --manifest-path benchmarks/codec/Cargo.toml --test alloc_budget --test json1k
 
   # KL09-05 deterministic instruction-count gate. Linux-only (valgrind);
   # on PRs it runs only when codec-adjacent paths changed, on main and
