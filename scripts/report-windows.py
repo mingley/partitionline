@@ -26,6 +26,8 @@ def validate_versions(data):
         raise ValueError('MSRV compiler mismatch')
     if tuple(map(int, data['python_version'].split('.')[:2])) < (3, 11):
         raise ValueError('Python 3.11+ package-check prerequisite missing')
+    if data['python_utf8_mode'] != 1:
+        raise ValueError('native Python UTF-8 mode required for packaged Markdown')
     if int(data['bash_version'].split('.')[0]) < 5:
         raise ValueError('Bash 5+ package-check prerequisite missing')
     if not data['openssl_version'].startswith('OpenSSL 3.'):
@@ -47,6 +49,7 @@ def capture(toolchain):
         'pointer_bits': struct.calcsize('P') * 8,
         'windows_release': platform.release(), 'windows_version': platform.version(),
         'python_version': platform.python_version(),
+        'python_utf8_mode': sys.flags.utf8_mode,
         # Windows PATH can resolve bare bash to the WSL launcher. Use the exact
         # native Git Bash executable selected by the running driver instead.
         'bash_version': BASE.command(bash_executable, '-c', 'printf "%s" "$BASH_VERSION"'),
@@ -65,7 +68,7 @@ def capture(toolchain):
 def artifact_name(versions, suffix):
     label = (f"windows-{versions['requested_toolchain']}-rust{versions['rustc_release']}"
              f"-os{versions['windows_version']}-ssl{versions['openssl_version'].split()[1]}"
-             f"-py{versions['python_version']}-bash{versions['bash_version'].split('(')[0]}-{suffix}")
+             f"-py{versions['python_version']}-utf8{versions['python_utf8_mode']}-bash{versions['bash_version'].split('(')[0]}-{suffix}")
     return re.sub(r'[^A-Za-z0-9_.-]', '_', label)
 
 

@@ -44,7 +44,7 @@ KL08-14 adds a native `windows-2025` x86_64 MSVC qualification lane for Rust
 1.85.0 and stable, with the same default/tracing runtime, mandatory public TLS
 paths and actual packed-consumer checks. Windows remains unsupported until both
 cells pass. Prerequisites are MSVC C build tools for Ring, native 64-bit Python
-3.11+, Git Bash 5+ and OpenSSL 3 on PATH. The driver maps package scripts'
+3.11+ in UTF-8 mode (`PYTHONUTF8=1`), Git Bash 5+ and OpenSSL 3 on PATH. The driver maps package scripts'
 `python3` calls to setup-python's native `python.exe` and records the actual
 certificate executable/version. No cross-build, WSL, skipped-runtime or
 compilation-only result qualifies this cell.

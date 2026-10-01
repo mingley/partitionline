@@ -160,6 +160,7 @@ jobs:
         shell: bash
     env:
       PL_WINDOWS_TOOLCHAIN: ${{ matrix.rust }}
+      PYTHONUTF8: '1'
       RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
       CARGO_BUILD_JOBS: '2'
       CARGO_PROFILE_DEV_DEBUG: '0'

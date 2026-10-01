@@ -13,6 +13,7 @@ def versions():
     return {'system': 'Windows', 'machine': 'AMD64', 'pointer_bits': 64,
             'rustc_host': 'x86_64-pc-windows-msvc', 'requested_toolchain': '1.85.0',
             'rustc_release': '1.85.0', 'python_version': '3.13.1',
+            'python_utf8_mode': 1,
             'bash_version': '5.2.37(1)-release', 'openssl_version': 'OpenSSL 3.5.0 fixture',
             'openssl_executable': r'C:\fixture\openssl.exe',
             'bash_executable': r'C:\fixture\bash.exe',
@@ -24,7 +25,7 @@ class WindowsReportTest(unittest.TestCase):
         data = versions()
         REPORT.validate_versions(data)
         name = REPORT.artifact_name(data, 'tests4-4-snips2')
-        self.assertIn('rust1.85.0-os10.0.fixture-ssl3.5.0-py3.13.1-bash5.2.37', name)
+        self.assertIn('rust1.85.0-os10.0.fixture-ssl3.5.0-py3.13.1-utf81-bash5.2.37', name)
         self.assertIn('tests4-4-snips2', name)
 
     def test_cross_build_emulation_wrong_arch_or_compiler_rejected(self):
@@ -36,7 +37,7 @@ class WindowsReportTest(unittest.TestCase):
                 with self.assertRaises(ValueError): REPORT.validate_versions(data)
 
     def test_missing_prerequisite_or_identity_is_not_a_green_skip(self):
-        for field, value in [('python_version', '3.9.1'), ('bash_version', '3.2.1'),
+        for field, value in [('python_version', '3.9.1'), ('python_utf8_mode', 0), ('bash_version', '3.2.1'),
                              ('openssl_version', 'LibreSSL 3.3.6'), ('source_sha', ''),
                              ('windows_version', ''), ('openssl_executable', ''),
                              ('bash_executable', '')]:
