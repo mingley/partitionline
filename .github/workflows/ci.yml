@@ -359,6 +359,41 @@ jobs:
           KAFKA_IMAGE: ${{ matrix.kafka_image }}
         run: bash scripts/ci-broker-smoke.sh
 
+  # KL01-10: current versions qualify exact histories, not progress strings.
+  broker-current:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['4.1.2', '4.2.1', '4.3.1']
+    env:
+      PL_CURRENT_BROKER_CELL: ${{ matrix.version }}
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Fail-closed broker report negative tests
+        run: python3 -B -m unittest discover -s tests/conformance -p test_broker_compatibility.py
+      - id: qualified
+        name: Fresh digest-pinned broker and complete required histories
+        run: bash scripts/ci-broker-smoke.sh
+      - name: Retain identity, all startup attempts and complete histories
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: broker-current-${{ matrix.version }}-${{ github.sha }}-rust${{ steps.qualified.outputs.rust }}-scenarios${{ steps.qualified.outputs.scenarios }}-records${{ steps.qualified.outputs.records }}-${{ steps.qualified.outputs.features }}-${{ steps.qualified.outputs.digest }}
+          path: target/broker-compatibility/${{ matrix.version }}/
+          if-no-files-found: error
+          retention-days: 30
+
   # Produce-ack p99 relative gate (unsigned, not vs C).
   latency-gate:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'

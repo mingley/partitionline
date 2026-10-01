@@ -15,6 +15,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Current cells require exact histories and immutable peer identity.
+# The historical 3.9.1/4.1.0 examples below retain their existing scope.
+if [[ -n "${PL_CURRENT_BROKER_CELL:-}" ]]; then
+  exec bash "$ROOT/scripts/ci-broker-compatibility.sh" "$PL_CURRENT_BROKER_CELL"
+fi
+
 # shellcheck source=scripts/lib/pl-timeout.sh
 source "$ROOT/scripts/lib/pl-timeout.sh"
 # shellcheck source=scripts/lib/broker-identity.sh
