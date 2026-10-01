@@ -4,6 +4,7 @@ use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
 
+use super::api_keys::DESCRIBE_QUORUM;
 use super::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
     ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_REPLICA_LOG_DIRS,
@@ -304,6 +305,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // GroupInstanceId. v8 Reason and v9 SkipAssignment keep the v6
         // header. v0–v1 and v10+ are not spoken.
         JOIN_GROUP if api_version >= 6 => 2,
+        DESCRIBE_QUORUM => 2,
         ELECT_LEADERS if api_version >= 2 => 2,
         // CreateTopics is classic through v4; flexible from v5
         // (Apache JSON flexibleVersions: "5+"). Kafka 4.0 validVersions
@@ -450,6 +452,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         HEARTBEAT if api_version >= 4 => 1,
         SYNC_GROUP if api_version >= 4 => 1,
         JOIN_GROUP if api_version >= 6 => 1,
+        DESCRIBE_QUORUM => 1,
         ELECT_LEADERS if api_version >= 2 => 1,
         CREATE_TOPICS if api_version >= 5 => 1,
         DELETE_TOPICS if api_version >= 4 => 1,
@@ -563,6 +566,14 @@ pub fn decode_response_header<B: Buf>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn describe_quorum_headers_are_always_flexible() {
+        for version in 0..=2 {
+            assert_eq!(request_header_version(DESCRIBE_QUORUM, version), 2);
+            assert_eq!(response_header_version(DESCRIBE_QUORUM, version), 1);
+        }
+    }
 
     #[test]
     fn elect_leaders_headers_match_apache_flexible_boundary() {

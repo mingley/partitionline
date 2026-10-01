@@ -14061,3 +14061,205 @@ async fn elect_leaders_duplicate_and_unrequested_results_fail_closed() {
         admin.close().await.unwrap();
     }
 }
+
+fn metadata_quorum_response(
+    code: i16,
+    message: Option<&str>,
+) -> partitionline::protocol::admin::DescribeQuorumResponse {
+    use partitionline::protocol::admin::{
+        DescribeQuorumPartition, DescribeQuorumResponse, DescribeQuorumResult,
+    };
+    DescribeQuorumResponse::new(
+        0,
+        None,
+        vec![DescribeQuorumResult {
+            topic: "__cluster_metadata".into(),
+            partitions: vec![DescribeQuorumPartition {
+                partition_index: 0,
+                error_code: code,
+                error_message: message.map(str::to_owned),
+                leader_id: 2,
+                leader_epoch: 9,
+                high_watermark: 100,
+                current_voters: vec![],
+                observers: vec![],
+            }],
+        }],
+        vec![],
+    )
+}
+
+#[tokio::test]
+async fn describe_quorum_versions_preserve_available_state() {
+    use partitionline::protocol::api_keys::DESCRIBE_QUORUM;
+    for version in 0..=2 {
+        let mock = common::Mock::start().await;
+        mock.set_api_max(DESCRIBE_QUORUM, version);
+        let mut admin = Admin::connect(&mock.addr).await.unwrap();
+        let info: partitionline::QuorumInfo = admin.describe_quorum().await.unwrap();
+        assert_eq!(
+            (info.leader_id, info.leader_epoch, info.high_watermark),
+            (1, 9, 123)
+        );
+        assert_eq!(info.voters.len(), 1);
+        assert_eq!(info.observers[0].log_end_offset, 120);
+        assert_eq!(
+            info.voters[0].last_fetch_timestamp,
+            if version >= 1 { 1000 } else { -1 }
+        );
+        assert_eq!(info.voters[0].last_caught_up_timestamp, -1);
+        assert_eq!(
+            info.voters[0].replica_directory_id,
+            if version >= 2 { [7; 16] } else { [0; 16] }
+        );
+        assert_eq!(info.nodes.len(), if version >= 2 { 1 } else { 0 });
+        if version == 2 {
+            assert_eq!(info.nodes[0].listeners[0].port, 9093);
+        }
+        let requests = mock.describe_quorum_requests();
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].1, version);
+        assert_eq!(
+            requests[0].2,
+            partitionline::protocol::admin::DescribeQuorumRequest::singleton(
+                "__cluster_metadata",
+                0
+            )
+        );
+        admin.close().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn describe_quorum_broker_forwarding_survives_controller_movement() {
+    let mock = common::Mock::start_two_node().await;
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    assert_eq!(admin.describe_quorum().await.unwrap().leader_id, 1);
+    mock.set_controller(2);
+    mock.queue_describe_quorum_response(
+        partitionline::protocol::admin::DescribeQuorumResponse::new(
+            error::NOT_CONTROLLER,
+            Some("controller moved".into()),
+            vec![],
+            vec![],
+        ),
+    );
+    let info = admin.describe_quorum().await.unwrap();
+    assert_eq!(info.leader_id, 2);
+    assert!(
+        mock.describe_quorum_requests()
+            .iter()
+            .all(|request| request.0 == 1),
+        "broker bootstrap must forward; controller listener addresses are distinct"
+    );
+    assert_eq!(mock.describe_quorum_requests().len(), 3);
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn describe_quorum_partition_controller_error_retries_but_authorization_does_not() {
+    let mock = common::Mock::start().await;
+    mock.queue_describe_quorum_response(metadata_quorum_response(
+        error::NOT_CONTROLLER,
+        Some("moved"),
+    ));
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    admin.describe_quorum().await.unwrap();
+    assert_eq!(mock.describe_quorum_requests().len(), 2);
+    for top_level in [false, true] {
+        let message = "quorum inspection denied";
+        let response = if top_level {
+            partitionline::protocol::admin::DescribeQuorumResponse::new(
+                error::CLUSTER_AUTHORIZATION_FAILED,
+                Some(message.into()),
+                vec![],
+                vec![],
+            )
+        } else {
+            metadata_quorum_response(error::CLUSTER_AUTHORIZATION_FAILED, Some(message))
+        };
+        mock.queue_describe_quorum_response(response);
+        let before = mock.describe_quorum_requests().len();
+        assert!(
+            matches!(admin.describe_quorum().await.unwrap_err(), Error::Broker {code, message: actual} if code == error::CLUSTER_AUTHORIZATION_FAILED && actual == message)
+        );
+        assert_eq!(mock.describe_quorum_requests().len(), before + 1);
+    }
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn describe_quorum_absent_api_and_invalid_deadlines_are_explicit() {
+    let mock = common::Mock::start().await;
+    mock.hide_api(partitionline::protocol::api_keys::DESCRIBE_QUORUM);
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    assert!(matches!(
+        admin.describe_quorum().await.unwrap_err(),
+        Error::Unsupported(_)
+    ));
+    assert!(matches!(
+        admin
+            .describe_quorum_timeout(Duration::ZERO)
+            .await
+            .unwrap_err(),
+        Error::Timeout
+    ));
+    assert!(matches!(
+        admin
+            .describe_quorum_timeout(Duration::MAX)
+            .await
+            .unwrap_err(),
+        Error::Protocol(_)
+    ));
+    assert!(mock.describe_quorum_requests().is_empty());
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn describe_quorum_reconnect_renegotiates_and_deadline_is_total() {
+    let mock = common::Mock::start().await;
+    mock.drop_describe_quorum_responses(1);
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    admin
+        .describe_quorum_timeout(Duration::from_secs(2))
+        .await
+        .unwrap();
+    assert_eq!(mock.describe_quorum_requests().len(), 2);
+    mock.set_api_max(partitionline::protocol::api_keys::DESCRIBE_QUORUM, 0);
+    admin.describe_quorum().await.unwrap();
+    assert_eq!(mock.describe_quorum_requests()[2].1, 0);
+    mock.set_describe_quorum_delay(Duration::from_secs(2));
+    let started = Instant::now();
+    assert!(matches!(
+        admin
+            .describe_quorum_timeout(Duration::from_millis(100))
+            .await
+            .unwrap_err(),
+        Error::Timeout
+    ));
+    assert!(started.elapsed() < Duration::from_secs(1));
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn describe_quorum_malformed_singleton_responses_fail_closed() {
+    for case in 0..5 {
+        let mock = common::Mock::start().await;
+        let mut response = metadata_quorum_response(0, None);
+        match case {
+            0 => response.topics.clear(),
+            1 => response.topics[0].topic = "unrelated".into(),
+            2 => response.topics[0].partitions.clear(),
+            3 => response.topics[0].partitions[0].partition_index = 1,
+            _ => response.topics.push(response.topics[0].clone()),
+        }
+        mock.queue_describe_quorum_response(response);
+        let mut admin = Admin::connect(&mock.addr).await.unwrap();
+        assert!(matches!(
+            admin.describe_quorum().await.unwrap_err(),
+            Error::Protocol(_)
+        ));
+        assert_eq!(mock.describe_quorum_requests().len(), 1);
+        admin.close().await.unwrap();
+    }
+}

@@ -159,7 +159,27 @@ pub use crate::protocol::admin::{
     SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UNKNOWN_VOLUME_BYTES, UPGRADE_TYPE_SAFE_DOWNGRADE,
     UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
 };
+pub use crate::protocol::admin::{
+    DescribeQuorumListener, DescribeQuorumNode, DescribeQuorumReplicaState,
+};
 pub use crate::protocol::group::OffsetDeleteResult;
+
+/// Metadata quorum state returned by [`Admin::describe_quorum`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuorumInfo {
+    /// Current leader id, or -1 when unknown.
+    pub leader_id: i32,
+    /// Current leader epoch.
+    pub leader_epoch: i32,
+    /// Committed metadata high watermark.
+    pub high_watermark: i64,
+    /// Voting replicas; unknown timestamps are -1, absent directory IDs zero.
+    pub voters: Vec<DescribeQuorumReplicaState>,
+    /// Observers, using the same unknown sentinels as voters.
+    pub observers: Vec<DescribeQuorumReplicaState>,
+    /// Controller node listeners (v2+); empty on older peers.
+    pub nodes: Vec<DescribeQuorumNode>,
+}
 
 /// Leader-election policy (Apache `ElectionType`, KIP-460).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -3013,6 +3033,150 @@ fn partitions_from_new(topics: &[NewPartitions]) -> Vec<CreatePartitionsTopic> {
 }
 
 impl Admin {
+    /// Inspect the metadata quorum (`__cluster_metadata`, partition 0).
+    ///
+    /// Matches Java `describeMetadataQuorum` for broker-bootstrap clients:
+    /// the connected broker forwards to the active controller. Negotiates
+    /// DescribeQuorum v0–v2 on the connected peer, including after reconnect.
+    /// v0 has no fetch timestamps; v1 has no directory IDs or node endpoints.
+    /// Their documented unknown sentinels are retained in the typed result.
+    /// Top-level and partition errors retain the broker's code and message.
+    /// NOT_CONTROLLER refreshes metadata; retriable broker/transport errors
+    /// share one deadline. No quorum membership is changed.
+    pub async fn describe_quorum(&mut self) -> Result<QuorumInfo> {
+        self.describe_quorum_timeout(self.cfg.request_timeout).await
+    }
+
+    /// [`Self::describe_quorum`] with a total operation deadline, including
+    /// reconnect, authentication, capability negotiation and retries.
+    pub async fn describe_quorum_timeout(&mut self, timeout: Duration) -> Result<QuorumInfo> {
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("quorum timeout exceeds clock range"))?;
+        tokio::time::timeout(timeout, self.describe_quorum_until(deadline))
+            .await
+            .map_err(|_| Error::Timeout)?
+    }
+
+    async fn describe_quorum_until(&mut self, deadline: Instant) -> Result<QuorumInfo> {
+        let mut attempt = 0;
+        let mut reconnect = false;
+        let mut refresh = false;
+        loop {
+            let result = async {
+                if reconnect {
+                    let addr = self.conn.addr().to_owned();
+                    self.conn = self.open_node_conn(&addr).await?;
+                    reconnect = false;
+                }
+                self.ensure_bootstrap().await?;
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                let capabilities =
+                    crate::protocol::api::negotiate_api_versions(&mut self.conn, remaining).await?;
+                let version = capabilities
+                    .api_keys
+                    .iter()
+                    .find(|api| api.api_key == crate::protocol::api_keys::DESCRIBE_QUORUM)
+                    .and_then(|api| pick_version(api.min_version, api.max_version, 0, 2))
+                    .ok_or_else(|| {
+                        Error::Unsupported("broker does not support DescribeQuorum v0-2".into())
+                    })?;
+                if refresh {
+                    self.refresh_metadata(None).await?;
+                    refresh = false;
+                }
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                let request = crate::protocol::admin::DescribeQuorumRequest::singleton(
+                    "__cluster_metadata",
+                    0,
+                );
+                let mut body = self
+                    .conn
+                    .roundtrip(
+                        crate::protocol::api_keys::DESCRIBE_QUORUM,
+                        version,
+                        |buf| {
+                            crate::protocol::admin::encode_describe_quorum_request(
+                                buf, version, &request,
+                            )
+                        },
+                        remaining,
+                    )
+                    .await?;
+                let response =
+                    crate::protocol::admin::decode_describe_quorum_response(&mut body, version)?;
+                if !body.is_empty() {
+                    return Err(Error::protocol("trailing DescribeQuorum response bytes"));
+                }
+                if response.error_code != 0 {
+                    return Err(Error::broker(
+                        response.error_code,
+                        response
+                            .error_message
+                            .unwrap_or_else(|| "DescribeQuorum".into()),
+                    ));
+                }
+                let mut topics = response.topics.into_iter();
+                let topic = match (topics.next(), topics.next()) {
+                    (Some(topic), None) if topic.topic == "__cluster_metadata" => topic,
+                    _ => {
+                        return Err(Error::protocol(
+                            "DescribeQuorum must return only __cluster_metadata",
+                        ))
+                    }
+                };
+                let mut partitions = topic.partitions.into_iter();
+                let partition = match (partitions.next(), partitions.next()) {
+                    (Some(partition), None) if partition.partition_index == 0 => partition,
+                    _ => {
+                        return Err(Error::protocol(
+                            "DescribeQuorum must return only metadata partition 0",
+                        ))
+                    }
+                };
+                if partition.error_code != 0 {
+                    return Err(Error::broker(
+                        partition.error_code,
+                        partition
+                            .error_message
+                            .unwrap_or_else(|| "DescribeQuorum partition 0".into()),
+                    ));
+                }
+                Ok(QuorumInfo {
+                    leader_id: partition.leader_id,
+                    leader_epoch: partition.leader_epoch,
+                    high_watermark: partition.high_watermark,
+                    voters: partition.current_voters,
+                    observers: partition.observers,
+                    nodes: response.nodes,
+                })
+            }
+            .await;
+            match result {
+                Err(err) if err.is_retriable() || matches!(err, Error::Closed) => {
+                    if err.broker_code() == Some(error::NOT_CONTROLLER) {
+                        self.cluster.invalidate_controller();
+                        refresh = true;
+                    }
+                    if matches!(err, Error::Io(_) | Error::Closed | Error::Timeout) {
+                        reconnect = true;
+                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
+                }
+                result => return result,
+            }
+        }
+    }
+
     /// Elect leaders with typed policy and partition selection (KIP-460).
     ///
     /// Routes to the Metadata controller and negotiates v0–v2 on that node,

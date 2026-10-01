@@ -170,6 +170,7 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     49: list(range(0, 2)),   # AlterClientQuotas: 0-1
     50: [0],                 # DescribeUserScramCredentials: 0
     51: [0],                 # AlterUserScramCredentials: 0
+    55: list(range(0, 3)),   # DescribeQuorum: 0-2 (Admin::describe_quorum)
     57: list(range(0, 3)),   # UpdateFeatures: 0-2
     60: list(range(0, 3)),   # DescribeCluster: 0-2
     61: [0],                 # DescribeProducers: 0
@@ -232,11 +233,6 @@ CLASSIFIED_OUT_OF_SCOPE_FRAMEWORKS: Dict[str, str] = {
 # Client APIs tracked as missing runtime wiring in features.json
 # (do not count a key name as an implemented client operation).
 CLASSIFIED_MISSING_RUNTIME_APIS: Dict[int, Dict[str, Any]] = {
-    55: {
-        "name": "DescribeQuorum",
-        "feature_id": "full_admin.describe_quorum",
-        "reason": "DescribeQuorum api_key exists in api_keys.rs, but client runtime method Admin::describe_quorum is missing (entrypoint: none in features.json).",
-    },
     80: {
         "name": "AddRaftVoter",
         "feature_id": "full_admin.add_raft_voter",
@@ -729,7 +725,7 @@ def run_self_tests() -> int:
     res = evaluate_protocol_coverage()
     assert res["summary"]["exit_code"] == 0, "Frozen pins must exit 0"
     assert len(res["unclassified_drift"]) == 0, "Frozen pins must have 0 unclassified drift"
-    assert res["gap_counts"]["missing_runtime_wiring_apis"] == 3, "Expected 3 missing runtime APIs"
+    assert res["gap_counts"]["missing_runtime_wiring_apis"] == 2, "Expected 2 missing runtime APIs"
     assert res["gap_counts"]["excluded_broker_internal_apis"] == 22, "Expected 22 excluded broker internal APIs"
     print("  [ok] Frozen pins evaluated cleanly (exit 0, 0 unclassified drift)")
 

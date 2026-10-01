@@ -103,6 +103,11 @@ use partitionline::protocol::admin::{
     RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
 use partitionline::protocol::admin::{
+    decode_describe_quorum_request, encode_describe_quorum_response, DescribeQuorumListener,
+    DescribeQuorumNode, DescribeQuorumPartition, DescribeQuorumReplicaState, DescribeQuorumRequest,
+    DescribeQuorumResponse, DescribeQuorumResult,
+};
+use partitionline::protocol::admin::{
     ElectLeadersPartitionResult, ElectLeadersRequest, ElectLeadersResponse, ElectLeadersResult,
     ElectLeadersTopic,
 };
@@ -112,7 +117,6 @@ use partitionline::protocol::api::{
     ApiVersionsResponse, Broker, FinalizedFeatureKey, MetadataRequestTopic, MetadataResponse,
     NodeEndpoint, PartitionMetadata, ProducePartitionResponse, SupportedFeatureKey, TopicMetadata,
 };
-use partitionline::protocol::api_keys::ELECT_LEADERS;
 use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
     ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_REPLICA_LOG_DIRS,
@@ -131,6 +135,7 @@ use partitionline::protocol::api_keys::{
     SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
     WRITE_TXN_MARKERS,
 };
+use partitionline::protocol::api_keys::{DESCRIBE_QUORUM, ELECT_LEADERS};
 use partitionline::protocol::cgheartbeat::{
     decode_consumer_group_heartbeat_request, encode_consumer_group_heartbeat_response,
     ConsumerGroupHeartbeatResponse, TopicPartitions,
@@ -401,6 +406,10 @@ struct State {
     elect_leaders_responses: VecDeque<ElectLeadersResponse>,
     elect_leaders_delay: Option<Duration>,
     elect_leaders_drop: u32,
+    describe_quorum_requests: Vec<(i32, i16, DescribeQuorumRequest)>,
+    describe_quorum_responses: VecDeque<DescribeQuorumResponse>,
+    describe_quorum_delay: Option<Duration>,
+    describe_quorum_drop: u32,
     last_unregister_broker_node: Option<i32>,
     unregister_broker_not_controller: u32,
     last_unregistered_broker_id: Option<i32>,
@@ -819,6 +828,10 @@ fn new_state(
         elect_leaders_responses: VecDeque::new(),
         elect_leaders_delay: None,
         elect_leaders_drop: 0,
+        describe_quorum_requests: Vec::new(),
+        describe_quorum_responses: VecDeque::new(),
+        describe_quorum_delay: None,
+        describe_quorum_drop: 0,
         last_unregister_broker_node: None,
         unregister_broker_not_controller: 0,
         last_unregistered_broker_id: None,
@@ -2514,6 +2527,22 @@ impl Mock {
         self.state.lock().describe_user_scram_not_controller
     }
 
+    pub fn describe_quorum_requests(&self) -> Vec<(i32, i16, DescribeQuorumRequest)> {
+        self.state.lock().describe_quorum_requests.clone()
+    }
+    pub fn queue_describe_quorum_response(&self, response: DescribeQuorumResponse) {
+        self.state
+            .lock()
+            .describe_quorum_responses
+            .push_back(response);
+    }
+    pub fn set_describe_quorum_delay(&self, delay: Duration) {
+        self.state.lock().describe_quorum_delay = Some(delay);
+    }
+    pub fn drop_describe_quorum_responses(&self, count: u32) {
+        self.state.lock().describe_quorum_drop = count;
+    }
+
     pub fn elect_leaders_requests(&self) -> Vec<(i32, i16, ElectLeadersRequest)> {
         self.state.lock().elect_leaders_requests.clone()
     }
@@ -3991,6 +4020,7 @@ fn versions(st: &State, node_id: i32) -> ApiVersionsResponse {
         (DESCRIBE_USER_SCRAM_CREDENTIALS, 0, 0),
         (UNREGISTER_BROKER, 0, 0),
         (ELECT_LEADERS, 0, 2),
+        (DESCRIBE_QUORUM, 0, 2),
         (DESCRIBE_CLIENT_QUOTAS, 0, 1),
         (ALTER_CLIENT_QUOTAS, 0, 1),
         (ALLOCATE_PRODUCER_IDS, 0, 0),
@@ -5155,6 +5185,62 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     )
                     .unwrap();
                 }
+            }
+            DESCRIBE_QUORUM => {
+                let request =
+                    decode_describe_quorum_request(&mut frame, header.api_version).unwrap();
+                let delay = state.lock().describe_quorum_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
+                let mut st = state.lock();
+                st.describe_quorum_requests
+                    .push((node_id, header.api_version, request));
+                if st.describe_quorum_drop > 0 {
+                    st.describe_quorum_drop -= 1;
+                    break;
+                }
+                // Broker bootstrap forwards inspection to the current controller.
+                let response = st.describe_quorum_responses.pop_front().unwrap_or_else(|| {
+                    DescribeQuorumResponse::new(
+                        0,
+                        None,
+                        vec![DescribeQuorumResult {
+                            topic: "__cluster_metadata".into(),
+                            partitions: vec![DescribeQuorumPartition {
+                                partition_index: 0,
+                                error_code: 0,
+                                error_message: None,
+                                leader_id: st.controller_node,
+                                leader_epoch: 9,
+                                high_watermark: 123,
+                                current_voters: vec![DescribeQuorumReplicaState {
+                                    replica_id: st.controller_node,
+                                    replica_directory_id: [7; 16],
+                                    log_end_offset: 125,
+                                    last_fetch_timestamp: 1000,
+                                    last_caught_up_timestamp: -1,
+                                }],
+                                observers: vec![DescribeQuorumReplicaState {
+                                    replica_id: 42,
+                                    replica_directory_id: [8; 16],
+                                    log_end_offset: 120,
+                                    last_fetch_timestamp: 900,
+                                    last_caught_up_timestamp: 850,
+                                }],
+                            }],
+                        }],
+                        vec![DescribeQuorumNode {
+                            node_id: st.controller_node,
+                            listeners: vec![DescribeQuorumListener {
+                                name: "CONTROLLER".into(),
+                                host: "localhost".into(),
+                                port: 9093,
+                            }],
+                        }],
+                    )
+                });
+                encode_describe_quorum_response(&mut body, header.api_version, &response).unwrap();
             }
             ELECT_LEADERS => {
                 let request = decode_elect_leaders_request(&mut frame, header.api_version).unwrap();
