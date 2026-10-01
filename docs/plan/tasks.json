@@ -2760,13 +2760,32 @@
     {
       "id": "KL08-20",
       "title": "Land actions/setup-java v6 workflow update",
-      "priority": "P1", "kind": "ci", "status": "pending", "owner": null,
-      "depends_on": ["KL08-06"],
-      "files": [".github/workflows/ci.yml"],
+      "priority": "P1",
+      "kind": "ci",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL08-06"
+      ],
+      "files": [
+        ".github/workflows/ci.yml"
+      ],
       "deliverable": "setup-java v6 workflow bump landed after rebase (PR #105 rebased or re-created).",
-      "acceptance": ["ci.yml uses actions/setup-java@v6 in both jobs on current main; no Java version/distribution change.", "broker-smoke (both images) and conformance-fixtures pass on the rebased branch.", "No Rust source/lockfile changes in this card."],
-      "validation": ["CI broker-smoke (apache/kafka:3.9.1 and 4.1.0) green on the rebased branch", "CI conformance-fixtures green; audit/deny green once KL08-19 has landed"],
-      "evidence": []
+      "acceptance": [
+        "ci.yml uses actions/setup-java@v6 in both jobs on current main; no Java version/distribution change.",
+        "broker-smoke (both images) and conformance-fixtures pass on the rebased branch.",
+        "No Rust source/lockfile changes in this card."
+      ],
+      "validation": [
+        "CI broker-smoke (apache/kafka:3.9.1 and 4.1.0) green on the rebased branch",
+        "CI conformance-fixtures green; audit/deny green once KL08-19 has landed"
+      ],
+      "evidence": [],
+      "write_set": [
+        ".github/workflows/ci.yml",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL08-20.json"
+      ]
     },
     {
       "id": "KL08-21",
