@@ -5,7 +5,8 @@
 //! as subprocesses: CLI validation without a broker, a full
 //! produce-consume roundtrip against the mock broker with every stdout
 //! event validated, deterministic `producer_send_error` events via mock
-//! fault injection, and the Java `--producer.config` file-wins quirk.
+//! fault injection, the Java `--producer.config` file-wins quirk, two-member
+//! rebalances, failed commits, producer options, reset policies and auto-commit.
 
 mod common;
 
@@ -957,13 +958,31 @@ impl StreamingExample {
         name: &str,
         expected: &[i64],
     ) -> Result<(), String> {
+        self.event_matching_after(after, name, Some(expected)).await
+    }
+
+    async fn event_after(&mut self, after: usize, name: &str) -> Result<(), String> {
+        self.event_matching_after(after, name, None).await
+    }
+
+    async fn event_matching_after(
+        &mut self,
+        after: usize,
+        name: &str,
+        expected: Option<&[i64]>,
+    ) -> Result<(), String> {
         let deadline = Instant::now() + Duration::from_secs(10);
         loop {
             for line in self.lines.try_iter() {
                 self.events.push(parse_json(&line)?);
             }
             for event in self.events.iter().skip(after) {
-                if event.name() == Some(name) && event_partitions(event)? == expected {
+                if event.name() == Some(name) {
+                    if let Some(partitions) = expected {
+                        if event_partitions(event)? != partitions {
+                            continue;
+                        }
+                    }
                     return Ok(());
                 }
             }
@@ -1262,5 +1281,361 @@ async fn verifiable_consumer_failed_commit_preserves_attempted_offsets() {
     assert_eq!(
         events.last().and_then(Json::name),
         Some("shutdown_complete")
+    );
+}
+
+/// One paced option run, observed through both wire timestamps and adapter events.
+#[tokio::test]
+async fn verifiable_producer_options_and_earliest_consumer() {
+    use partitionline::{Consumer, TimestampType};
+    const BASE: i64 = 1_650_000_000_000;
+    let mock = common::Mock::start().await;
+    let bin = example_bin("verifiable_producer").unwrap();
+    let started = Instant::now();
+    let run = run_example(
+        &bin,
+        &[
+            "--topic",
+            "t",
+            "--bootstrap-server",
+            &mock.addr,
+            "--max-messages",
+            "6",
+            "--throughput",
+            "5",
+            "--message-create-time",
+            "1650000000000",
+            "--repeating-keys",
+            "2",
+            "--value-prefix",
+            "42",
+        ],
+        Duration::from_secs(15),
+    )
+    .await
+    .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(run.status, 0, "{}", run.stderr);
+    assert!(run.stderr.is_empty(), "{}", run.stderr);
+    // Six records at five per second includes the final throttle interval.
+    assert!(
+        elapsed >= Duration::from_millis(1150),
+        "unpaced run: {elapsed:?}"
+    );
+    let events = parse_events("options", &run.stdout).unwrap();
+    assert_timestamps(&events, "options");
+    let successes = named(&events, "producer_send_success");
+    assert_eq!(successes.len(), 6);
+    assert!(named(&events, "producer_send_error").is_empty());
+    let startup = events
+        .first()
+        .unwrap()
+        .get("timestamp")
+        .and_then(Json::as_i64)
+        .unwrap();
+    assert_eq!(
+        events.first().and_then(Json::name),
+        Some("startup_complete")
+    );
+    assert_eq!(
+        events.iter().rev().nth(1).and_then(Json::name),
+        Some("shutdown_complete")
+    );
+    let tool = events.last().unwrap();
+    assert_eq!(tool.name(), Some("tool_data"));
+    assert_eq!(tool.get("sent").and_then(Json::as_i64), Some(6));
+    assert_eq!(tool.get("acked").and_then(Json::as_i64), Some(6));
+    assert_eq!(
+        tool.get("target_throughput").and_then(Json::as_i64),
+        Some(5)
+    );
+    assert!(tool
+        .get("avg_throughput")
+        .and_then(Json::as_f64)
+        .is_some_and(|rate| rate > 0.0 && rate <= 5.1));
+
+    let mut consumer = Consumer::connect(&mock.addr).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let records = consumer
+        .fetch_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(records.len(), 6);
+    assert_eq!(records[0].timestamp, BASE);
+    let first_ack = successes[0]
+        .get("timestamp")
+        .and_then(Json::as_i64)
+        .unwrap();
+    for (i, record) in records.iter().enumerate() {
+        assert_eq!(record.timestamp_type, TimestampType::CreateTime);
+        assert_eq!(record.offset, i64::try_from(i).unwrap());
+        assert_eq!(record.key.as_deref(), Some((i % 2).to_string().as_bytes()));
+        assert_eq!(record.value.as_deref(), Some(format!("42.{i}").as_bytes()));
+        if let Some(next) = records.get(i + 1) {
+            // Java advances the *next* create time by elapsed runtime before
+            // this send. That instant lies between the previous and current ack;
+            // startup lies before the first ack. These bounds tolerate scheduling.
+            let current_ack = successes[i]
+                .get("timestamp")
+                .and_then(Json::as_i64)
+                .unwrap();
+            let lower = i
+                .checked_sub(1)
+                .map_or(0, |previous| {
+                    successes[previous]
+                        .get("timestamp")
+                        .and_then(Json::as_i64)
+                        .unwrap()
+                        - first_ack
+                })
+                .max(0);
+            let delta = next.timestamp - record.timestamp;
+            assert!(
+                delta >= lower.saturating_sub(1) && delta <= current_ack - startup + 1,
+                "create-time delta {delta} outside [{lower}, {}] at {i}",
+                current_ack - startup
+            );
+        }
+    }
+    assert!(
+        records[5].timestamp >= BASE + 1700,
+        "create-time must accumulate elapsed time, not advance at a fixed step"
+    );
+    consumer.close().await.unwrap();
+
+    let bin = example_bin("verifiable_consumer").unwrap();
+    let run = run_example(
+        &bin,
+        &[
+            "--topic",
+            "t",
+            "--group-id",
+            "verifiable-options",
+            "--bootstrap-server",
+            &mock.addr,
+            "--max-messages",
+            "6",
+            "--reset-policy",
+            "earliest",
+            "--verbose",
+        ],
+        Duration::from_secs(10),
+    )
+    .await
+    .unwrap();
+    assert_eq!(run.status, 0, "{}", run.stderr);
+    assert!(run.stderr.is_empty(), "{}", run.stderr);
+    let events = parse_events("earliest-options", &run.stdout).unwrap();
+    assert_timestamps(&events, "earliest-options");
+    let consumed = named(&events, "record_data");
+    assert_eq!(consumed.len(), 6);
+    for (i, event) in consumed.iter().enumerate() {
+        assert_eq!(event.get("topic").and_then(Json::as_str), Some("t"));
+        assert_eq!(event.get("partition").and_then(Json::as_i64), Some(0));
+        assert_eq!(
+            event.get("offset").and_then(Json::as_i64),
+            Some(i64::try_from(i).unwrap())
+        );
+        assert_eq!(
+            event.get("key").and_then(Json::as_str),
+            Some((i % 2).to_string().as_str())
+        );
+        assert_eq!(
+            event.get("value").and_then(Json::as_str),
+            Some(format!("42.{i}").as_str())
+        );
+    }
+    assert_eq!(mock.committed_offset("verifiable-options", "t", 0), Some(6));
+}
+
+#[tokio::test]
+async fn verifiable_consumer_latest_and_none_reset_policies() {
+    use partitionline::{ProduceRecord, Producer};
+    let mock = common::Mock::start().await;
+    let producer = Producer::connect(&mock.addr).await.unwrap();
+    let _metadata = producer
+        .send(ProduceRecord::to("t").value("old"))
+        .await
+        .unwrap();
+    let bin = example_bin("verifiable_consumer").unwrap();
+    let mut latest = StreamingExample::start(
+        &bin,
+        &[
+            "--topic",
+            "t",
+            "--group-id",
+            "verifiable-reset",
+            "--bootstrap-server",
+            &mock.addr,
+            "--max-messages",
+            "1",
+            "--reset-policy",
+            "latest",
+            "--verbose",
+        ],
+    )
+    .unwrap();
+    latest
+        .partition_event_after(0, "partitions_assigned", &[0])
+        .await
+        .unwrap();
+    let _metadata = producer
+        .send(ProduceRecord::to("t").value("new"))
+        .await
+        .unwrap();
+    let latest = latest.finish().await.unwrap();
+    assert_eq!(latest.status, 0, "{}", latest.stderr);
+    assert!(latest.stderr.is_empty(), "{}", latest.stderr);
+    let events = parse_events("latest", &latest.stdout).unwrap();
+    assert_timestamps(&events, "latest");
+    let records = named(&events, "record_data");
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].get("offset").and_then(Json::as_i64), Some(1));
+    assert_eq!(records[0].get("value").and_then(Json::as_str), Some("new"));
+    assert_eq!(mock.committed_offset("verifiable-reset", "t", 0), Some(2));
+
+    let missing = run_example(
+        &bin,
+        &[
+            "--topic",
+            "t",
+            "--group-id",
+            "verifiable-no-offset",
+            "--bootstrap-server",
+            &mock.addr,
+            "--max-messages",
+            "1",
+            "--reset-policy",
+            "none",
+            "--verbose",
+        ],
+        Duration::from_secs(10),
+    )
+    .await
+    .unwrap();
+    assert_eq!(missing.status, 1);
+    assert!(
+        missing.stderr.contains("no committed offset for t-0"),
+        "{}",
+        missing.stderr
+    );
+    let events = parse_events("none-missing", &missing.stdout).unwrap();
+    assert_timestamps(&events, "none-missing");
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0].name(), Some("startup_complete"));
+    assert_eq!(mock.committed_offset("verifiable-no-offset", "t", 0), None);
+
+    let _metadata = producer
+        .send(ProduceRecord::to("t").value("after-commit"))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let resumed = run_example(
+        &bin,
+        &[
+            "--topic",
+            "t",
+            "--group-id",
+            "verifiable-reset",
+            "--bootstrap-server",
+            &mock.addr,
+            "--max-messages",
+            "1",
+            "--reset-policy",
+            "none",
+            "--verbose",
+        ],
+        Duration::from_secs(10),
+    )
+    .await
+    .unwrap();
+    assert_eq!(resumed.status, 0, "{}", resumed.stderr);
+    assert!(resumed.stderr.is_empty(), "{}", resumed.stderr);
+    let events = parse_events("none-committed", &resumed.stdout).unwrap();
+    assert_timestamps(&events, "none-committed");
+    let records = named(&events, "record_data");
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].get("offset").and_then(Json::as_i64), Some(2));
+    assert_eq!(
+        records[0].get("value").and_then(Json::as_str),
+        Some("after-commit")
+    );
+    assert_eq!(mock.committed_offset("verifiable-reset", "t", 0), Some(3));
+}
+
+#[tokio::test]
+async fn verifiable_consumer_autocommit_has_no_manual_commit_events() {
+    use partitionline::{ProduceRecord, Producer};
+    let mock = common::Mock::start().await;
+    let producer = Producer::connect(&mock.addr).await.unwrap();
+    let _metadata = producer
+        .send(ProduceRecord::to("t").value("first"))
+        .await
+        .unwrap();
+    let bin = example_bin("verifiable_consumer").unwrap();
+    let mut consumer = StreamingExample::start(
+        &bin,
+        &[
+            "--topic",
+            "t",
+            "--group-id",
+            "verifiable-autocommit",
+            "--bootstrap-server",
+            &mock.addr,
+            "--max-messages",
+            "2",
+            "--enable-autocommit",
+            "--verbose",
+        ],
+    )
+    .unwrap();
+    consumer.event_after(0, "records_consumed").await.unwrap();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while mock.committed_offset("verifiable-autocommit", "t", 0) != Some(1) {
+        assert!(
+            Instant::now() < deadline,
+            "interval auto-commit did not persist delivered offset"
+        );
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    let _metadata = producer
+        .send(ProduceRecord::to("t").value("second"))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let run = consumer.finish().await.unwrap();
+    assert_eq!(run.status, 0, "{}", run.stderr);
+    assert!(run.stderr.is_empty(), "{}", run.stderr);
+    let events = parse_events("autocommit", &run.stdout).unwrap();
+    assert_timestamps(&events, "autocommit");
+    assert_eq!(
+        events.first().and_then(Json::name),
+        Some("startup_complete")
+    );
+    assert_eq!(
+        events.last().and_then(Json::name),
+        Some("shutdown_complete")
+    );
+    let records = named(&events, "record_data");
+    assert_eq!(records.len(), 2);
+    for (i, event) in records.iter().enumerate() {
+        assert_eq!(
+            event.get("offset").and_then(Json::as_i64),
+            Some(i64::try_from(i).unwrap())
+        );
+        assert_eq!(
+            event.get("value").and_then(Json::as_str),
+            Some(if i == 0 { "first" } else { "second" })
+        );
+    }
+    assert!(
+        named(&events, "offsets_committed").is_empty(),
+        "Java suppresses manual commit callbacks in auto mode"
+    );
+    // The interval stored the first delivered offset. Closing flushes async
+    // commits but does not promise a new automatic commit of the final poll.
+    assert_eq!(
+        mock.committed_offset("verifiable-autocommit", "t", 0),
+        Some(1)
     );
 }
