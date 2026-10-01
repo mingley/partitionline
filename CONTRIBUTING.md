@@ -14,10 +14,18 @@ and [SECURITY.md](SECURITY.md).
 ```
 cargo fmt
 cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-targets
+cargo build --locked --example verifiable_producer --example verifiable_consumer
+cargo test --locked --all-targets
 cargo test --doc --all-features
 RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --all-features
 ```
+
+The verifiable CLI contract tests execute the standalone producer and consumer
+examples. Build those binaries before testing a clean target directory;
+`cargo test --all-targets` builds example test harnesses, which have different
+filenames. The CI test and tracing jobs run this prerequisite explicitly.
+For a focused run, use the same `CARGO_TARGET_DIR` for the example build and
+`cargo test --locked --test verifiable_contract`.
 
 Or run the documentation gate directly:
 

@@ -69,7 +69,9 @@ jobs:
           toolchain: ${{ matrix.rust }}
       # Mock TLS fixtures shell out to openssl (no rcgen/time in the graph).
       - run: openssl version
-      - run: cargo test --all-targets
+      # verifiable_contract launches standalone examples, not test harnesses.
+      - run: cargo build --locked --example verifiable_producer --example verifiable_consumer
+      - run: cargo test --locked --all-targets
 
   audit:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
@@ -155,7 +157,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo clippy --all-targets --features tracing -- -D warnings
-      - run: cargo test --all-targets --features tracing
+      - run: cargo build --locked --features tracing --example verifiable_producer --example verifiable_consumer
+      - run: cargo test --locked --all-targets --features tracing
 
   # libFuzzer smoke (nightly). Short wall-clock per target.
   fuzz-smoke:

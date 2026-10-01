@@ -329,8 +329,9 @@ fn parse_events(tag: &str, stdout: &str) -> Result<Vec<Json>, String> {
 
 /// Locate a built example binary next to the test executable.
 ///
-/// `cargo test` builds examples; a focused `cargo test --test` run after a
-/// clean tree does not, so fail closed with the exact rebuild command.
+/// `cargo test --all-targets` builds example test harnesses rather than these
+/// standalone binaries. CI and CONTRIBUTING.md build them explicitly first;
+/// fail closed with the exact rebuild command when that prerequisite is missing.
 fn example_bin(name: &str) -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
     let deps = exe
