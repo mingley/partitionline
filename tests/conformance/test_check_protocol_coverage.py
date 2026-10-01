@@ -75,8 +75,8 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         self.assertEqual(len(results["unclassified_drift"]), 0)
         self.assertEqual(results["summary"]["total_pinned_apis"], 88)
         self.assertEqual(results["summary"]["total_catalog_keys"], 91)
-        self.assertEqual(results["summary"]["implemented_client_apis_count"], 62)
-        self.assertEqual(results["gap_counts"]["missing_runtime_wiring_apis"], 4)
+        self.assertEqual(results["summary"]["implemented_client_apis_count"], 63)
+        self.assertEqual(results["gap_counts"]["missing_runtime_wiring_apis"], 3)
         self.assertEqual(results["gap_counts"]["excluded_broker_internal_apis"], 22)
         self.assertEqual(results["gap_counts"]["unclassified_drift"], 0)
 
@@ -92,7 +92,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         """
         Acceptance rule: Do not count a key name or helper type as an implemented client operation.
         Verify that key names in api_keys.rs that lack client runtime methods
-        (ElectLeaders 43, DescribeQuorum 55, AddRaftVoter 80, RemoveRaftVoter 81)
+        (DescribeQuorum 55, AddRaftVoter 80, RemoveRaftVoter 81)
         and broker-internal APIs (4, 5, 6, 7, 52, etc.) are strictly NOT in
         implemented_client_operations.
         """
@@ -100,7 +100,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         implemented_keys = {op["api_key"] for op in results["implemented_client_operations"]}
 
         # Extended admin keys that are names in the catalog only (no client runtime method)
-        for missing_key in (43, 55, 80, 81):
+        for missing_key in (55, 80, 81):
             self.assertNotIn(
                 missing_key,
                 implemented_keys,
@@ -117,7 +117,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
 
         # Verify missing admin keys appear under missing_runtime_wiring.unimplemented_apis
         unimpl_keys = {ma["api_key"] for ma in results["missing_runtime_wiring"]["unimplemented_apis"]}
-        self.assertEqual(unimpl_keys, {43, 55, 80, 81})
+        self.assertEqual(unimpl_keys, {55, 80, 81})
 
     def test_synthetic_unclassified_api_fails_check(self):
         """
@@ -220,10 +220,10 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         # 2. Missing runtime wiring
         self.assertIn("missing_runtime_wiring", results)
         unimpl_apis = results["missing_runtime_wiring"]["unimplemented_apis"]
-        self.assertEqual(len(unimpl_apis), 4)
+        self.assertEqual(len(unimpl_apis), 3)
         for item in unimpl_apis:
             self.assertFalse(item["has_runtime_operation"])
-            self.assertIn("ElectLeaders" if item["api_key"] == 43 else "Raft" if item["api_key"] in (80, 81) else "DescribeQuorum", item["name"])
+            self.assertIn("Raft" if item["api_key"] in (80, 81) else "DescribeQuorum", item["name"])
 
         # 3. Excluded broker-internal APIs
         self.assertIn("excluded_broker_internal", results)
@@ -241,13 +241,13 @@ class TestProtocolCoverageChecker(unittest.TestCase):
     def test_do_not_claim_uncovered_apis_implemented(self):
         """
         Verify that uncovered APIs and features are not claimed as implemented:
-        ZSTD, GSSAPI, ElectLeaders, DescribeQuorum, AddRaftVoter, RemoveRaftVoter.
+        ZSTD, GSSAPI, DescribeQuorum, AddRaftVoter, RemoveRaftVoter.
         """
         results = cpc.evaluate_protocol_coverage()
         implemented_keys = {op["api_key"] for op in results["implemented_client_operations"]}
 
         # Unimplemented admin APIs
-        self.assertNotIn(43, implemented_keys)
+        self.assertIn(43, implemented_keys)  # Runtime wiring proven by KL05-17.
         self.assertNotIn(55, implemented_keys)
         self.assertNotIn(80, implemented_keys)
         self.assertNotIn(81, implemented_keys)

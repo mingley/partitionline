@@ -13,13 +13,14 @@ use super::api_keys::{
     DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
     DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS,
     DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
-    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
-    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
-    INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
-    OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
-    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
-    TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
+    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, ELECT_LEADERS, END_TXN,
+    EXPIRE_DELEGATION_TOKEN, FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES,
+    LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
+    OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY,
+    RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
+    SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER,
+    UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use super::buf;
 use crate::error::{Error, Result};
@@ -303,6 +304,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // GroupInstanceId. v8 Reason and v9 SkipAssignment keep the v6
         // header. v0–v1 and v10+ are not spoken.
         JOIN_GROUP if api_version >= 6 => 2,
+        ELECT_LEADERS if api_version >= 2 => 2,
         // CreateTopics is classic through v4; flexible from v5
         // (Apache JSON flexibleVersions: "5+"). Kafka 4.0 validVersions
         // is 2-7. This crate speaks 0–7. v5 returns configs (KIP-525);
@@ -448,6 +450,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         HEARTBEAT if api_version >= 4 => 1,
         SYNC_GROUP if api_version >= 4 => 1,
         JOIN_GROUP if api_version >= 6 => 1,
+        ELECT_LEADERS if api_version >= 2 => 1,
         CREATE_TOPICS if api_version >= 5 => 1,
         DELETE_TOPICS if api_version >= 4 => 1,
         DESCRIBE_CONFIGS if api_version >= 4 => 1,
@@ -560,6 +563,16 @@ pub fn decode_response_header<B: Buf>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn elect_leaders_headers_match_apache_flexible_boundary() {
+        for version in [0, 1] {
+            assert_eq!(request_header_version(ELECT_LEADERS, version), 1);
+            assert_eq!(response_header_version(ELECT_LEADERS, version), 0);
+        }
+        assert_eq!(request_header_version(ELECT_LEADERS, 2), 2);
+        assert_eq!(response_header_version(ELECT_LEADERS, 2), 1);
+    }
 
     #[test]
     fn api_versions_response_header_never_flexible() {

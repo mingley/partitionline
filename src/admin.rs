@@ -105,6 +105,7 @@ use crate::protocol::txn::{
     decode_write_txn_markers_response, encode_write_txn_markers_request, TransactionResult,
     WritableTxnMarker, WritableTxnMarkerTopic,
 };
+use crate::TopicPartition;
 
 pub use crate::protocol::acl::{
     AccessControlEntry, AccessControlEntryFilter, AclBinding, AclBindingFilter, AclCreationResult,
@@ -136,6 +137,7 @@ pub use crate::protocol::admin::{
     DescribedDelegationTokenRenewer, DescribedGroup, DescribedGroupMember, DescribedShareGroup,
     DescribedShareGroupOffsets, DescribedShareGroupOffsetsPartition,
     DescribedShareGroupOffsetsTopic, DescribedTopicPartition, DescribedTopicPartitions,
+    ElectLeadersPartitionResult, ElectLeadersResponse, ElectLeadersResult, ElectLeadersTopic,
     EndpointType, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
     GetTelemetrySubscriptionsResponse, GroupState, GroupType, ListedConfigResource, ListedGroup,
     Node, PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
@@ -158,6 +160,38 @@ pub use crate::protocol::admin::{
     UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
 };
 pub use crate::protocol::group::OffsetDeleteResult;
+
+/// Leader-election policy (Apache `ElectionType`, KIP-460).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum ElectionType {
+    /// Elect the preferred replica; supported by ElectLeaders v0 and later.
+    #[default]
+    Preferred,
+    /// Elect a live replica even when it is outside the ISR. This can lose data.
+    /// Requires ElectLeaders v1 or later.
+    Unclean,
+}
+
+impl ElectionType {
+    fn wire(self) -> i8 {
+        match self {
+            Self::Preferred => crate::protocol::admin::ELECTION_PREFERRED,
+            Self::Unclean => crate::protocol::admin::ELECTION_UNCLEAN,
+        }
+    }
+}
+
+/// Selection, policy and total deadline for [`Admin::elect_leaders`].
+#[derive(Debug, Clone, Default)]
+pub struct ElectLeadersOptions {
+    /// Preferred or unclean election. Defaults to preferred.
+    pub election_type: ElectionType,
+    /// `None` selects all partitions; `Some(vec![])` selects no partitions.
+    pub partitions: Option<Vec<TopicPartition>>,
+    /// Total operation deadline, including discovery, connects and retries.
+    /// `None` uses [`AdminConfig::request_timeout`].
+    pub timeout: Option<Duration>,
+}
 
 /// Bootstrap, identity, SASL, and TLS for [`Admin`].
 #[derive(Clone)]
@@ -2979,6 +3013,222 @@ fn partitions_from_new(topics: &[NewPartitions]) -> Vec<CreatePartitionsTopic> {
 }
 
 impl Admin {
+    /// Elect leaders with typed policy and partition selection (KIP-460).
+    ///
+    /// Routes to the Metadata controller and negotiates v0–v2 on that node,
+    /// including after a controller change. v0 supports preferred elections
+    /// only; an unclean request never silently downgrades to preferred.
+    /// Successful and terminal partition results survive retries of other
+    /// partitions. Only NOT_CONTROLLER and retriable transport failures retry.
+    ///
+    /// The response retains individual broker codes/messages. A top-level
+    /// error on a known selection becomes each outstanding partition's error;
+    /// when selecting all partitions and the broker cannot enumerate them,
+    /// that error is returned as [`Error::Broker`]. A deadline failure can be
+    /// ambiguous: an election may have happened before the response was lost.
+    /// Unclean election can lose data; use it only with explicit operator intent.
+    pub async fn elect_leaders(
+        &mut self,
+        options: ElectLeadersOptions,
+    ) -> Result<ElectLeadersResponse> {
+        if let Some(partitions) = &options.partitions {
+            if partitions.iter().any(|tp| tp.partition < 0) {
+                return Err(Error::protocol("election partition must be nonnegative"));
+            }
+        }
+        let timeout = options.timeout.unwrap_or(self.cfg.request_timeout);
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("election timeout exceeds clock range"))?;
+        tokio::time::timeout(timeout, self.elect_leaders_until(options, deadline))
+            .await
+            .map_err(|_| Error::Timeout)?
+    }
+
+    async fn elect_leaders_until(
+        &mut self,
+        options: ElectLeadersOptions,
+        deadline: Instant,
+    ) -> Result<ElectLeadersResponse> {
+        let mut order = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        let mut pending = options.partitions.map(|partitions| {
+            partitions
+                .into_iter()
+                .filter(|tp| {
+                    if seen.insert(tp.clone()) {
+                        order.push(tp.clone());
+                        true
+                    } else {
+                        false
+                    }
+                })
+                .collect::<Vec<_>>()
+        });
+        let mut finished = HashMap::new();
+        let mut throttle_time_ms = 0;
+        let mut attempt = 0;
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing ElectLeaders controller connection"))?;
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(Error::Timeout);
+            }
+            // Bootstrap capabilities cannot select the schema of another controller.
+            let capabilities =
+                match crate::protocol::api::negotiate_api_versions(conn, remaining).await {
+                    Ok(capabilities) => capabilities,
+                    Err(err) if err.is_retriable() || matches!(err, Error::Closed) => {
+                        let _ = self.conns.remove(&node);
+                        self.cluster.invalidate_controller();
+                        self.wait_retry(&mut attempt, deadline).await?;
+                        continue;
+                    }
+                    Err(err) => return Err(err),
+                };
+            let version = capabilities
+                .api_keys
+                .iter()
+                .find(|api| api.api_key == crate::protocol::api_keys::ELECT_LEADERS)
+                .and_then(|api| pick_version(api.min_version, api.max_version, 0, 2))
+                .ok_or_else(|| {
+                    Error::Unsupported("controller does not support ElectLeaders v0-2".into())
+                })?;
+            if version == 0 && options.election_type == ElectionType::Unclean {
+                return Err(Error::Unsupported(
+                    "unclean election requires ElectLeaders v1+".into(),
+                ));
+            }
+            let topics = pending.as_ref().map(|partitions| {
+                let mut topics: Vec<ElectLeadersTopic> = Vec::new();
+                for tp in partitions {
+                    if let Some(topic) = topics.iter_mut().find(|topic| topic.topic == tp.topic) {
+                        topic.partitions.push(tp.partition);
+                    } else {
+                        topics.push(ElectLeadersTopic::new(tp.topic.clone(), vec![tp.partition]));
+                    }
+                }
+                topics
+            });
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(Error::Timeout);
+            }
+            let request = crate::protocol::admin::ElectLeadersRequest {
+                election_type: options.election_type.wire(),
+                topics,
+                timeout_ms: crate::consumer::duration_millis_i32(remaining),
+            };
+            let body = conn
+                .roundtrip(
+                    crate::protocol::api_keys::ELECT_LEADERS,
+                    version,
+                    |buf| {
+                        crate::protocol::admin::encode_elect_leaders_request(buf, version, &request)
+                    },
+                    remaining,
+                )
+                .await;
+            let body = match body {
+                Ok(body) => body,
+                Err(err) if err.is_retriable() || matches!(err, Error::Closed) => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(err) => return Err(err),
+            };
+            let mut response =
+                crate::protocol::admin::decode_elect_leaders_response(&mut body.clone(), version)?;
+            throttle_time_ms = throttle_time_ms.max(response.throttle_time_ms);
+            if response.error_code == error::NOT_CONTROLLER {
+                let _ = self.conns.remove(&node);
+                self.cluster.invalidate_controller();
+                self.wait_retry(&mut attempt, deadline).await?;
+                continue;
+            }
+            if response.error_code != 0 {
+                let Some(partitions) = &pending else {
+                    return Err(Error::broker(response.error_code, "ElectLeaders"));
+                };
+                // Keep earlier results when a retry receives a terminal global error.
+                response.results = partitions
+                    .iter()
+                    .map(|tp| ElectLeadersResult {
+                        topic: tp.topic.clone(),
+                        partitions: vec![ElectLeadersPartitionResult {
+                            partition_id: tp.partition,
+                            error_code: response.error_code,
+                            error_message: None,
+                        }],
+                    })
+                    .collect();
+            }
+            let mut returned = std::collections::HashSet::new();
+            let mut retry = Vec::new();
+            for topic in response.results {
+                for partition in topic.partitions {
+                    let tp = TopicPartition::new(topic.topic.clone(), partition.partition_id);
+                    if !returned.insert(tp.clone())
+                        || pending.as_ref().is_some_and(|ps| !ps.contains(&tp))
+                    {
+                        return Err(Error::protocol(
+                            "unexpected or duplicate ElectLeaders partition result",
+                        ));
+                    }
+                    if seen.insert(tp.clone()) {
+                        order.push(tp.clone());
+                    }
+                    if partition.error_code == error::NOT_CONTROLLER {
+                        retry.push(tp);
+                    } else {
+                        let _ = finished.insert(tp, partition);
+                    }
+                }
+            }
+            if pending
+                .as_ref()
+                .is_some_and(|ps| ps.iter().any(|tp| !returned.contains(tp)))
+            {
+                return Err(Error::protocol("missing ElectLeaders partition result"));
+            }
+            if !retry.is_empty() {
+                pending = Some(retry);
+                let _ = self.conns.remove(&node);
+                self.cluster.invalidate_controller();
+                self.wait_retry(&mut attempt, deadline).await?;
+                continue;
+            }
+            let mut results: Vec<ElectLeadersResult> = Vec::new();
+            for tp in order {
+                let partition = finished
+                    .remove(&tp)
+                    .ok_or_else(|| Error::protocol("missing final ElectLeaders result"))?;
+                if let Some(topic) = results.iter_mut().find(|topic| topic.topic == tp.topic) {
+                    topic.partitions.push(partition);
+                } else {
+                    results.push(ElectLeadersResult {
+                        topic: tp.topic,
+                        partitions: vec![partition],
+                    });
+                }
+            }
+            return Ok(ElectLeadersResponse::new(throttle_time_ms, 0, results));
+        }
+    }
+
     /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
         Self::new(AdminConfig::bootstrap([bootstrap.into()])).await

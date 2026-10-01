@@ -1335,10 +1335,10 @@
     "id": "full_admin.elect_leaders",
     "profile": "full admin",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/ROADMAP.md:KL-05",
-    "notes": "ElectLeaders api 43 is not exposed in Admin; tracked in KL05-16, KL05-17."
+    "disposition": "present",
+    "entrypoint": "partitionline::admin::Admin::elect_leaders",
+    "evidence": "docs/plan/evidence/KL05-17.json",
+    "notes": "Typed preferred/unclean options, nullable all/empty selection, per-controller v0-v2 negotiation, total deadline, and preserved per-partition outcomes. Pinned wire fixtures plus mock runtime checks; no live unclean-election qualification."
   },
   {
     "id": "full_admin.describe_quorum",

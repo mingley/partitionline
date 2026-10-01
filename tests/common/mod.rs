@@ -46,26 +46,27 @@ use partitionline::protocol::admin::{
     decode_describe_log_dirs_request, decode_describe_producers_topics_request,
     decode_describe_share_group_offsets_request, decode_describe_topic_partitions_request,
     decode_describe_transactions_request, decode_describe_user_scram_credentials_request,
-    decode_expire_delegation_token_request, decode_get_telemetry_subscriptions_request,
-    decode_incremental_alter_configs_resources_request, decode_list_config_resources_request,
-    decode_list_groups_request, decode_list_partition_reassignments_request,
-    decode_list_transactions_request, decode_push_telemetry_request,
-    decode_renew_delegation_token_request, decode_share_group_describe_request,
-    decode_unregister_broker_request, decode_update_features_request,
-    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
-    encode_alter_configs_resource_results, encode_alter_partition_reassignments_response,
-    encode_alter_replica_log_dirs_response, encode_alter_share_group_offsets_response,
-    encode_alter_user_scram_credentials_response, encode_assign_replicas_to_dirs_response,
-    encode_consumer_group_describe_response, encode_create_delegation_token_response,
-    encode_create_partitions_response, encode_create_topics_response,
-    encode_delete_groups_response, encode_delete_records_topics_response,
-    encode_delete_share_group_offsets_response, encode_delete_topics_response,
-    encode_describe_client_quotas_response, encode_describe_cluster_response,
-    encode_describe_configs_response, encode_describe_delegation_token_response,
-    encode_describe_groups_response, encode_describe_log_dirs_response,
-    encode_describe_producers_response, encode_describe_share_group_offsets_response,
-    encode_describe_topic_partitions_response, encode_describe_transactions_response,
-    encode_describe_user_scram_credentials_response, encode_expire_delegation_token_response,
+    decode_elect_leaders_request, decode_expire_delegation_token_request,
+    decode_get_telemetry_subscriptions_request, decode_incremental_alter_configs_resources_request,
+    decode_list_config_resources_request, decode_list_groups_request,
+    decode_list_partition_reassignments_request, decode_list_transactions_request,
+    decode_push_telemetry_request, decode_renew_delegation_token_request,
+    decode_share_group_describe_request, decode_unregister_broker_request,
+    decode_update_features_request, encode_allocate_producer_ids_response,
+    encode_alter_client_quotas_response, encode_alter_configs_resource_results,
+    encode_alter_partition_reassignments_response, encode_alter_replica_log_dirs_response,
+    encode_alter_share_group_offsets_response, encode_alter_user_scram_credentials_response,
+    encode_assign_replicas_to_dirs_response, encode_consumer_group_describe_response,
+    encode_create_delegation_token_response, encode_create_partitions_response,
+    encode_create_topics_response, encode_delete_groups_response,
+    encode_delete_records_topics_response, encode_delete_share_group_offsets_response,
+    encode_delete_topics_response, encode_describe_client_quotas_response,
+    encode_describe_cluster_response, encode_describe_configs_response,
+    encode_describe_delegation_token_response, encode_describe_groups_response,
+    encode_describe_log_dirs_response, encode_describe_producers_response,
+    encode_describe_share_group_offsets_response, encode_describe_topic_partitions_response,
+    encode_describe_transactions_response, encode_describe_user_scram_credentials_response,
+    encode_elect_leaders_response, encode_expire_delegation_token_response,
     encode_get_telemetry_subscriptions_response, encode_incremental_alter_configs_resource_results,
     encode_list_config_resources_response, encode_list_groups_response,
     encode_list_partition_reassignments_response, encode_list_transactions_response,
@@ -101,12 +102,17 @@ use partitionline::protocol::admin::{
     CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, RESOURCE_BROKER,
     RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
+use partitionline::protocol::admin::{
+    ElectLeadersPartitionResult, ElectLeadersRequest, ElectLeadersResponse, ElectLeadersResult,
+    ElectLeadersTopic,
+};
 use partitionline::protocol::api::{
     decode_metadata_request_topics, decode_produce_request, encode_api_versions_response,
     encode_metadata_response, encode_produce_response_with_endpoints, ApiVersion,
     ApiVersionsResponse, Broker, FinalizedFeatureKey, MetadataRequestTopic, MetadataResponse,
     NodeEndpoint, PartitionMetadata, ProducePartitionResponse, SupportedFeatureKey, TopicMetadata,
 };
+use partitionline::protocol::api_keys::ELECT_LEADERS;
 use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
     ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_REPLICA_LOG_DIRS,
@@ -178,7 +184,7 @@ use partitionline::protocol::txn::{
     encode_end_txn_response, encode_txn_offset_commit_response, encode_write_txn_markers_response,
     WritableTxnMarker,
 };
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
@@ -391,6 +397,10 @@ struct State {
     last_describe_user_scram_node: Option<i32>,
     last_describe_user_scram_users: Option<Option<Vec<String>>>,
     describe_user_scram_not_controller: u32,
+    elect_leaders_requests: Vec<(i32, i16, ElectLeadersRequest)>,
+    elect_leaders_responses: VecDeque<ElectLeadersResponse>,
+    elect_leaders_delay: Option<Duration>,
+    elect_leaders_drop: u32,
     last_unregister_broker_node: Option<i32>,
     unregister_broker_not_controller: u32,
     last_unregistered_broker_id: Option<i32>,
@@ -805,6 +815,10 @@ fn new_state(
         last_describe_user_scram_node: None,
         last_describe_user_scram_users: None,
         describe_user_scram_not_controller: 0,
+        elect_leaders_requests: Vec::new(),
+        elect_leaders_responses: VecDeque::new(),
+        elect_leaders_delay: None,
+        elect_leaders_drop: 0,
         last_unregister_broker_node: None,
         unregister_broker_not_controller: 0,
         last_unregistered_broker_id: None,
@@ -2500,6 +2514,22 @@ impl Mock {
         self.state.lock().describe_user_scram_not_controller
     }
 
+    pub fn elect_leaders_requests(&self) -> Vec<(i32, i16, ElectLeadersRequest)> {
+        self.state.lock().elect_leaders_requests.clone()
+    }
+    pub fn queue_elect_leaders_response(&self, response: ElectLeadersResponse) {
+        self.state
+            .lock()
+            .elect_leaders_responses
+            .push_back(response);
+    }
+    pub fn set_elect_leaders_delay(&self, delay: Duration) {
+        self.state.lock().elect_leaders_delay = Some(delay);
+    }
+    pub fn drop_elect_leaders_responses(&self, count: u32) {
+        self.state.lock().elect_leaders_drop = count;
+    }
+
     pub fn last_unregister_broker_node(&self) -> Option<i32> {
         self.state.lock().last_unregister_broker_node
     }
@@ -3960,6 +3990,7 @@ fn versions(st: &State, node_id: i32) -> ApiVersionsResponse {
         (ALTER_USER_SCRAM_CREDENTIALS, 0, 0),
         (DESCRIBE_USER_SCRAM_CREDENTIALS, 0, 0),
         (UNREGISTER_BROKER, 0, 0),
+        (ELECT_LEADERS, 0, 2),
         (DESCRIBE_CLIENT_QUOTAS, 0, 1),
         (ALTER_CLIENT_QUOTAS, 0, 1),
         (ALLOCATE_PRODUCER_IDS, 0, 0),
@@ -5124,6 +5155,60 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     )
                     .unwrap();
                 }
+            }
+            ELECT_LEADERS => {
+                let request = decode_elect_leaders_request(&mut frame, header.api_version).unwrap();
+                let delay = state.lock().elect_leaders_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
+                let mut st = state.lock();
+                st.elect_leaders_requests
+                    .push((node_id, header.api_version, request.clone()));
+                if st.elect_leaders_drop > 0 {
+                    st.elect_leaders_drop -= 1;
+                    break;
+                }
+                let code = if node_id == st.controller_node {
+                    0
+                } else {
+                    error::NOT_CONTROLLER
+                };
+                let topics = request.topics.unwrap_or_else(|| {
+                    st.created_topics
+                        .iter()
+                        .map(|(name, spec)| {
+                            ElectLeadersTopic::new(name.clone(), (0..spec.num_partitions).collect())
+                        })
+                        .collect()
+                });
+                let response = if code == 0 {
+                    st.elect_leaders_responses.pop_front()
+                } else {
+                    None
+                }
+                .unwrap_or_else(|| {
+                    ElectLeadersResponse::new(
+                        0,
+                        if header.api_version >= 1 { code } else { 0 },
+                        topics
+                            .into_iter()
+                            .map(|topic| ElectLeadersResult {
+                                topic: topic.topic,
+                                partitions: topic
+                                    .partitions
+                                    .into_iter()
+                                    .map(|partition_id| ElectLeadersPartitionResult {
+                                        partition_id,
+                                        error_code: code,
+                                        error_message: None,
+                                    })
+                                    .collect(),
+                            })
+                            .collect(),
+                    )
+                });
+                encode_elect_leaders_response(&mut body, header.api_version, &response).unwrap();
             }
             UNREGISTER_BROKER => {
                 let broker_id = decode_unregister_broker_request(&mut frame).unwrap();

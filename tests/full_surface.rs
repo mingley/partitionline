@@ -13719,3 +13719,345 @@ async fn kip848_decode_failure_surfaces_in_poll() {
     }
     g.leave().await.unwrap();
 }
+
+#[tokio::test]
+async fn elect_leaders_versions_and_typed_policy_roundtrip() {
+    for version in [0, 1, 2] {
+        let mock = common::Mock::start().await;
+        mock.set_api_max(partitionline::protocol::api_keys::ELECT_LEADERS, version);
+        let mut admin = Admin::connect(&mock.addr).await.unwrap();
+        let selection = vec![TopicPartition::new("t", 0)];
+        let result = admin
+            .elect_leaders(partitionline::ElectLeadersOptions {
+                election_type: if version == 0 {
+                    partitionline::ElectionType::Preferred
+                } else {
+                    partitionline::ElectionType::Unclean
+                },
+                partitions: Some(selection),
+                timeout: Some(Duration::from_secs(2)),
+            })
+            .await
+            .unwrap();
+        assert_eq!(result.error_code, 0);
+        assert_eq!(result.results[0].partitions[0].error_code, 0);
+        let requests = mock.elect_leaders_requests();
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].1, version);
+        assert_eq!(
+            requests[0].2.election_type,
+            if version == 0 { 0 } else { 1 }
+        );
+        assert_eq!(requests[0].2.topics.as_ref().unwrap()[0].partitions, [0]);
+        assert!((1..=2000).contains(&requests[0].2.timeout_ms));
+        admin.close().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn elect_leaders_unsupported_and_invalid_options_issue_no_election_rpc() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(partitionline::protocol::api_keys::ELECT_LEADERS, 0);
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    let err = admin
+        .elect_leaders(partitionline::ElectLeadersOptions {
+            election_type: partitionline::ElectionType::Unclean,
+            ..Default::default()
+        })
+        .await
+        .unwrap_err();
+    assert!(matches!(err, Error::Unsupported(_)));
+    assert!(mock.elect_leaders_requests().is_empty());
+    assert!(matches!(
+        admin
+            .elect_leaders(partitionline::ElectLeadersOptions {
+                partitions: Some(vec![TopicPartition::new("t", -1)]),
+                ..Default::default()
+            })
+            .await
+            .unwrap_err(),
+        Error::Protocol(_)
+    ));
+    assert!(matches!(
+        admin
+            .elect_leaders(partitionline::ElectLeadersOptions {
+                timeout: Some(Duration::ZERO),
+                ..Default::default()
+            })
+            .await
+            .unwrap_err(),
+        Error::Timeout
+    ));
+    assert!(matches!(
+        admin
+            .elect_leaders(partitionline::ElectLeadersOptions {
+                timeout: Some(Duration::MAX),
+                ..Default::default()
+            })
+            .await
+            .unwrap_err(),
+        Error::Protocol(_)
+    ));
+    assert!(mock.elect_leaders_requests().is_empty());
+    admin.close().await.unwrap();
+    let absent = common::Mock::start().await;
+    absent.hide_api(partitionline::protocol::api_keys::ELECT_LEADERS);
+    let mut admin = Admin::connect(&absent.addr).await.unwrap();
+    assert!(matches!(
+        admin.elect_leaders(Default::default()).await.unwrap_err(),
+        Error::Unsupported(_)
+    ));
+    assert!(absent.elect_leaders_requests().is_empty());
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn elect_leaders_null_and_empty_selections_are_distinct() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    let all = admin.elect_leaders(Default::default()).await.unwrap();
+    assert!(!all.results.is_empty());
+    let empty = admin
+        .elect_leaders(partitionline::ElectLeadersOptions {
+            partitions: Some(Vec::new()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert!(empty.results.is_empty());
+    let requests = mock.elect_leaders_requests();
+    assert!(requests[0].2.topics.is_none());
+    assert_eq!(requests[1].2.topics, Some(Vec::new()));
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn elect_leaders_renegotiates_on_controller_movement() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_node_api_max(2, partitionline::protocol::api_keys::ELECT_LEADERS, 0);
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    let options = partitionline::ElectLeadersOptions {
+        partitions: Some(vec![TopicPartition::new("t", 0)]),
+        ..Default::default()
+    };
+    admin.elect_leaders(options.clone()).await.unwrap();
+    mock.set_controller(2);
+    admin.elect_leaders(options).await.unwrap();
+    let requests = mock.elect_leaders_requests();
+    assert_eq!(
+        requests
+            .iter()
+            .map(|(node, version, _)| (*node, *version))
+            .collect::<Vec<_>>(),
+        [(1, 2), (1, 2), (2, 0)]
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn elect_leaders_mixed_results_retry_only_not_controller_partitions() {
+    use partitionline::{
+        ElectLeadersPartitionResult as Partition, ElectLeadersResponse, ElectLeadersResult,
+    };
+    let mock = common::Mock::start().await;
+    mock.queue_elect_leaders_response(ElectLeadersResponse::new(
+        17,
+        0,
+        vec![ElectLeadersResult {
+            topic: "t".into(),
+            partitions: vec![
+                Partition {
+                    partition_id: 0,
+                    error_code: 0,
+                    error_message: None,
+                },
+                Partition {
+                    partition_id: 1,
+                    error_code: error::TOPIC_AUTHORIZATION_FAILED,
+                    error_message: Some("denied".into()),
+                },
+                Partition {
+                    partition_id: 2,
+                    error_code: error::NOT_CONTROLLER,
+                    error_message: Some("moved".into()),
+                },
+            ],
+        }],
+    ));
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    let result = admin
+        .elect_leaders(partitionline::ElectLeadersOptions {
+            partitions: Some((0..3).map(|p| TopicPartition::new("t", p)).collect()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(result.throttle_time_ms, 17);
+    let partitions = &result.results[0].partitions;
+    assert_eq!(
+        partitions
+            .iter()
+            .map(|p| (p.partition_id, p.error_code))
+            .collect::<Vec<_>>(),
+        [(0, 0), (1, error::TOPIC_AUTHORIZATION_FAILED), (2, 0)]
+    );
+    assert_eq!(partitions[1].error_message.as_deref(), Some("denied"));
+    let requests = mock.elect_leaders_requests();
+    assert_eq!(requests.len(), 2);
+    assert_eq!(requests[1].2.topics.as_ref().unwrap()[0].partitions, [2]);
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn elect_leaders_transport_retry_and_deadline_are_bounded() {
+    let mock = common::Mock::start().await;
+    mock.drop_elect_leaders_responses(1);
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    admin
+        .elect_leaders(partitionline::ElectLeadersOptions {
+            partitions: Some(vec![TopicPartition::new("t", 0)]),
+            timeout: Some(Duration::from_secs(2)),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(mock.elect_leaders_requests().len(), 2);
+    mock.set_elect_leaders_delay(Duration::from_secs(2));
+    let started = Instant::now();
+    assert!(matches!(
+        admin
+            .elect_leaders(partitionline::ElectLeadersOptions {
+                timeout: Some(Duration::from_millis(100)),
+                ..Default::default()
+            })
+            .await
+            .unwrap_err(),
+        Error::Timeout
+    ));
+    assert!(
+        started.elapsed() < Duration::from_secs(1),
+        "operation reset its deadline"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn elect_leaders_missing_partition_result_fails_closed() {
+    let mock = common::Mock::start().await;
+    mock.queue_elect_leaders_response(partitionline::ElectLeadersResponse::new(0, 0, Vec::new()));
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    assert!(matches!(
+        admin
+            .elect_leaders(partitionline::ElectLeadersOptions {
+                partitions: Some(vec![TopicPartition::new("t", 0)]),
+                ..Default::default()
+            })
+            .await
+            .unwrap_err(),
+        Error::Protocol(_)
+    ));
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn elect_leaders_global_error_preserves_earlier_partition_success() {
+    use partitionline::{
+        ElectLeadersPartitionResult as Partition, ElectLeadersResponse, ElectLeadersResult,
+    };
+    let mock = common::Mock::start().await;
+    mock.queue_elect_leaders_response(ElectLeadersResponse::new(
+        0,
+        0,
+        vec![ElectLeadersResult {
+            topic: "t".into(),
+            partitions: vec![
+                Partition {
+                    partition_id: 0,
+                    error_code: 0,
+                    error_message: None,
+                },
+                Partition {
+                    partition_id: 1,
+                    error_code: error::NOT_CONTROLLER,
+                    error_message: None,
+                },
+            ],
+        }],
+    ));
+    mock.queue_elect_leaders_response(ElectLeadersResponse::new(
+        0,
+        error::CLUSTER_AUTHORIZATION_FAILED,
+        Vec::new(),
+    ));
+    let mut admin = Admin::connect(&mock.addr).await.unwrap();
+    let result = admin
+        .elect_leaders(partitionline::ElectLeadersOptions {
+            partitions: Some(vec![
+                TopicPartition::new("t", 0),
+                TopicPartition::new("t", 1),
+            ]),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(result.results[0].partitions[0].error_code, 0);
+    assert_eq!(
+        result.results[0].partitions[1].error_code,
+        error::CLUSTER_AUTHORIZATION_FAILED
+    );
+    assert_eq!(
+        mock.elect_leaders_requests()[1].2.topics.as_ref().unwrap()[0].partitions,
+        [1]
+    );
+    mock.queue_elect_leaders_response(ElectLeadersResponse::new(
+        0,
+        error::CLUSTER_AUTHORIZATION_FAILED,
+        Vec::new(),
+    ));
+    assert_eq!(
+        admin
+            .elect_leaders(Default::default())
+            .await
+            .unwrap_err()
+            .broker_code(),
+        Some(error::CLUSTER_AUTHORIZATION_FAILED)
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn elect_leaders_duplicate_and_unrequested_results_fail_closed() {
+    use partitionline::{
+        ElectLeadersPartitionResult as Partition, ElectLeadersResponse, ElectLeadersResult,
+    };
+    for ids in [vec![0, 0], vec![0, 1]] {
+        let mock = common::Mock::start().await;
+        mock.queue_elect_leaders_response(ElectLeadersResponse::new(
+            0,
+            0,
+            vec![ElectLeadersResult {
+                topic: "t".into(),
+                partitions: ids
+                    .into_iter()
+                    .map(|partition_id| Partition {
+                        partition_id,
+                        error_code: 0,
+                        error_message: None,
+                    })
+                    .collect(),
+            }],
+        ));
+        let mut admin = Admin::connect(&mock.addr).await.unwrap();
+        assert!(matches!(
+            admin
+                .elect_leaders(partitionline::ElectLeadersOptions {
+                    partitions: Some(vec![TopicPartition::new("t", 0)]),
+                    ..Default::default()
+                })
+                .await
+                .unwrap_err(),
+            Error::Protocol(_)
+        ));
+        admin.close().await.unwrap();
+    }
+}

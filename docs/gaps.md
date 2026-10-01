@@ -97,7 +97,8 @@ narrows the runtime claim for these rows; every entry names its entrypoint:
 | SASL OIDC (token endpoint) | `auth.sasl_oidc_refresh` | `missing` — no proactive refresh before expiry |
 | Produce / Fetch (throttle) | `quotas.producer_throttle`, `quotas.consumer_throttle` | `partial` — `throttle_time_ms` decoded but never slept on |
 | Custom partitioner | `producer.sticky_partitioner` | `missing` — unkeyed records round-robin instead of sticky batching |
-| Admin (full) | `full_admin.elect_leaders`, `full_admin.describe_quorum`, `full_admin.add_raft_voter`, `full_admin.remove_raft_voter`, `full_admin.describe_log_dirs_v5` | `missing` — not exposed on `Admin` |
+| Admin leader election | `full_admin.elect_leaders` | `present` — typed `Admin::elect_leaders`, pinned v0–v2 fixtures and mock routing/error/deadline checks; no live unclean-election qualification |
+| Admin (full) | `full_admin.describe_quorum`, `full_admin.add_raft_voter`, `full_admin.remove_raft_voter`, `full_admin.describe_log_dirs_v5` | `missing` — not exposed on `Admin` |
 | Schema Registry | `schema_ecosystem.registry_client/cache/avro/protobuf/json_schema` | `missing`; `schema_ecosystem.wire_framing` is `partial` (unpublished scaffold) |
 
 Out of scope in both documents: `streams.runtime`, `connect.framework`,

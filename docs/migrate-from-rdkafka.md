@@ -341,7 +341,8 @@ No equivalent exists today; do not port these call sites as-is:
 | Fetch v18, ListOffsets v11 | `manual_consumer.v18_wire`, `manual_consumer.list_offsets_v11` (missing) | Fetch v4–v17, ListOffsets v1–v10 |
 | Incremental fetch sessions | `manual_consumer.incremental_fetch_runtime` (missing) | Always sends `FetchMetadata::LEGACY` |
 | Schema Registry client | `schema_ecosystem.registry_client/cache/avro/protobuf/json_schema` (missing) | Companion design only; `partitionline-schema` not published |
-| ElectLeaders / DescribeQuorum / Raft voters | `full_admin.elect_leaders/describe_quorum/add_raft_voter/remove_raft_voter` (missing) | Not exposed on `Admin` |
+| ElectLeaders | `full_admin.elect_leaders` (present) | `Admin::elect_leaders(ElectLeadersOptions)` preserves per-partition results, routes to the controller and enforces one deadline; unclean requires v1+ |
+| DescribeQuorum / Raft voters | `full_admin.describe_quorum/add_raft_voter/remove_raft_voter` (missing) | Not exposed on `Admin` |
 | Kafka Streams / Connect / C ABI | `streams.runtime`, `connect.framework`, `c_abi.librdkafka` (out of scope) | Never planned for this crate |
 | Broker-internal replication APIs | `broker_internal.*` (out of scope) | Not client surface |
 

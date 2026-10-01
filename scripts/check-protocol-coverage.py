@@ -161,6 +161,7 @@ CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     40: list(range(1, 3)),   # ExpireDelegationToken: 1-2
     41: list(range(1, 4)),   # DescribeDelegationToken: 1-3
     42: list(range(0, 3)),   # DeleteGroups: 0-2
+    43: list(range(0, 3)),   # ElectLeaders: 0-2 (Admin::elect_leaders)
     44: list(range(0, 2)),   # IncrementalAlterConfigs: 0-1
     45: [0],                 # AlterPartitionReassignments: 0
     46: [0],                 # ListPartitionReassignments: 0
@@ -231,11 +232,6 @@ CLASSIFIED_OUT_OF_SCOPE_FRAMEWORKS: Dict[str, str] = {
 # Client APIs tracked as missing runtime wiring in features.json
 # (do not count a key name as an implemented client operation).
 CLASSIFIED_MISSING_RUNTIME_APIS: Dict[int, Dict[str, Any]] = {
-    43: {
-        "name": "ElectLeaders",
-        "feature_id": "full_admin.elect_leaders",
-        "reason": "ElectLeaders api_key exists in api_keys.rs, but client runtime method Admin::elect_leaders is missing (entrypoint: none in features.json).",
-    },
     55: {
         "name": "DescribeQuorum",
         "feature_id": "full_admin.describe_quorum",
@@ -584,7 +580,7 @@ def evaluate_protocol_coverage(
     # Record non-API runtime feature gaps from features.json
     feature_runtime_gaps: List[Dict[str, Any]] = []
     for f in missing_features_runtime:
-        # Avoid duplicating the 4 admin APIs already in missing_runtime_wiring
+        # Avoid duplicating the admin APIs already in missing_runtime_wiring
         ev = f.get("evidence", "")
         if any(f"api_keys.rs:{k}" in ev for k in missing_runtime_apis):
             continue
@@ -733,7 +729,7 @@ def run_self_tests() -> int:
     res = evaluate_protocol_coverage()
     assert res["summary"]["exit_code"] == 0, "Frozen pins must exit 0"
     assert len(res["unclassified_drift"]) == 0, "Frozen pins must have 0 unclassified drift"
-    assert res["gap_counts"]["missing_runtime_wiring_apis"] == 4, "Expected 4 missing runtime APIs"
+    assert res["gap_counts"]["missing_runtime_wiring_apis"] == 3, "Expected 3 missing runtime APIs"
     assert res["gap_counts"]["excluded_broker_internal_apis"] == 22, "Expected 22 excluded broker internal APIs"
     print("  [ok] Frozen pins evaluated cleanly (exit 0, 0 unclassified drift)")
 
