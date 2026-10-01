@@ -2281,13 +2281,34 @@
     {
       "id": "KL07-12",
       "title": "Reject invalid raw acks at Producer construction",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL07-10"],
-      "files": ["src/producer.rs", "tests/client_api.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL07-10"
+      ],
+      "files": [
+        "src/producer.rs",
+        "tests/client_api.rs"
+      ],
       "deliverable": "Constructor rejection of invalid raw ProducerConfig.acks values.",
-      "acceptance": ["Producer::new returns Error::protocol before any network I/O when cfg.acks is outside {0, 1, -1}.", "The acks(..) builder, idempotent normalization (acks=-1), and struct-update construction are unchanged.", "client_api gains a no-I/O test asserting the rejection and a positive test that -1/0/1 still construct against the mock."],
-      "validation": ["cargo test --locked --test client_api acks"],
-      "evidence": []
+      "acceptance": [
+        "Producer::new returns Error::protocol before any network I/O when cfg.acks is outside {0, 1, -1}.",
+        "The acks(..) builder, idempotent normalization (acks=-1), and struct-update construction are unchanged.",
+        "client_api gains a no-I/O test asserting the rejection and a positive test that -1/0/1 still construct against the mock."
+      ],
+      "validation": [
+        "cargo test --locked --test client_api acks"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/producer.rs",
+        "tests/client_api.rs",
+        "docs/api-stability.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL07-12.json"
+      ]
     },
     {
       "id": "KL07-13",
