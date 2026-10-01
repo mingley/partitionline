@@ -67,6 +67,113 @@ async fn valid_raw_acks_still_construct_and_idempotence_normalizes_them() {
     }
 }
 
+#[tokio::test]
+async fn txn_abort_fatal_fencing_is_terminal_across_coordinator_versions() {
+    for end_version in [4, 5] {
+        for code in [error::PRODUCER_FENCED, error::INVALID_PRODUCER_ID_MAPPING] {
+            let mock = common::Mock::start().await;
+            mock.set_api_max(partitionline::protocol::api_keys::END_TXN, end_version);
+            let cfg = ProducerConfig::bootstrap([mock.addr.clone()])
+                .transactional_id(format!("txn-fatal-{end_version}-{code}"))
+                .linger(Duration::ZERO);
+            let producer = Producer::new(cfg).await.unwrap();
+            producer.begin_transaction().await.unwrap();
+            mock.set_produce_error_times(code, 1);
+            let failed = producer
+                .send(ProduceRecord::to("t").value(&b"fenced"[..]))
+                .await
+                .unwrap_err();
+            assert_eq!(failed.broker_code(), Some(code));
+            for result in [
+                producer.commit_transaction().await,
+                producer.abort_transaction().await,
+                producer.begin_transaction().await,
+            ] {
+                assert_eq!(result.unwrap_err().broker_code(), Some(code));
+            }
+            // init_transactions only checks the already initialized identity;
+            // it cannot clear terminal fencing or issue a replacement RPC.
+            producer.init_transactions().await.unwrap();
+            assert_eq!(
+                producer
+                    .send(ProduceRecord::to("t").value(&b"late"[..]))
+                    .await
+                    .unwrap_err()
+                    .broker_code(),
+                Some(code)
+            );
+            assert_eq!(mock.end_txn_calls(), 0, "fatal state sends no EndTxn");
+            assert_eq!(mock.init_producer_id_nodes().len(), 1);
+            assert_eq!(producer.__test_producer_epoch(), 0);
+            producer.close().await.unwrap();
+        }
+    }
+}
+
+#[tokio::test]
+async fn txn_abort_required_codes_block_commit_and_recover_only_after_abort() {
+    for end_version in [4, 5] {
+        for code in [
+            error::UNKNOWN_PRODUCER_ID,
+            error::TRANSACTION_ABORTABLE,
+            error::INVALID_TXN_STATE,
+            error::CONCURRENT_TRANSACTIONS,
+        ] {
+            let mock = common::Mock::start().await;
+            mock.set_api_max(partitionline::protocol::api_keys::END_TXN, end_version);
+            let cfg = ProducerConfig::bootstrap([mock.addr.clone()])
+                .transactional_id(format!("txn-abort-{end_version}-{code}"))
+                .linger(Duration::ZERO);
+            let producer = Producer::new(cfg).await.unwrap();
+            producer.begin_transaction().await.unwrap();
+            mock.set_produce_error_times(code, 1);
+            assert_eq!(
+                producer
+                    .send(ProduceRecord::to("t").value(&b"failed"[..]))
+                    .await
+                    .unwrap_err()
+                    .broker_code(),
+                Some(code)
+            );
+            // Repeated commit attempts cannot clear the sticky state.
+            for _ in 0..2 {
+                assert_eq!(
+                    producer
+                        .commit_transaction()
+                        .await
+                        .unwrap_err()
+                        .broker_code(),
+                    Some(code)
+                );
+            }
+            assert_eq!(mock.end_txn_calls(), 0);
+            assert_eq!(producer.__test_producer_epoch(), 0);
+            producer.abort_transaction().await.unwrap();
+            assert_eq!(mock.end_txn_calls(), 1);
+            assert_eq!(mock.last_end_txn_committed(), Some(false));
+            assert_eq!(producer.__test_producer_epoch(), 1);
+            assert_eq!(
+                mock.init_producer_id_nodes().len(),
+                if end_version == 4 { 2 } else { 1 }
+            );
+            if end_version == 4 {
+                assert_eq!(mock.last_init_producer_id_producer_id(), Some(1000));
+                assert_eq!(mock.last_init_producer_id_producer_epoch(), Some(0));
+            }
+            producer.begin_transaction().await.unwrap();
+            producer
+                .send(ProduceRecord::to("t").value(&b"recovered"[..]))
+                .await
+                .unwrap();
+            assert_eq!(mock.last_produce_producer_epoch(), Some(1));
+            producer.commit_transaction().await.unwrap();
+            assert_eq!(mock.end_txn_calls(), 2);
+            assert_eq!(mock.last_end_txn_committed(), Some(true));
+            producer.close().await.unwrap();
+        }
+    }
+}
+
 async fn assert_negative_fetch_bound(
     field: &str,
     set: impl Fn(&mut ConsumerConfig, i32),

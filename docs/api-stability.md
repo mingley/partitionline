@@ -134,8 +134,8 @@ any release.
 | Category | Meaning | Caller action |
 |---|---|---|
 | Retryable | Transient broker or transport state; the same call may succeed later. `Error::is_retriable()` is exactly this set: `Io`, `Timeout`, and broker codes `NOT_LEADER_OR_FOLLOWER`, `LEADER_NOT_AVAILABLE`, `NOT_ENOUGH_REPLICAS`, `NOT_ENOUGH_REPLICAS_AFTER_APPEND`, `REQUEST_TIMED_OUT`, `COORDINATOR_LOAD_IN_PROGRESS`, `COORDINATOR_NOT_AVAILABLE`, `NOT_COORDINATOR`, `NOT_CONTROLLER`, `UNKNOWN_TOPIC_OR_PARTITION`, `SHARE_SESSION_NOT_FOUND`, `INVALID_SHARE_SESSION_EPOCH`. | Retry with backoff, or let the client's internal loops retry (produce, fetch, admin and coordinator RPCs already do, bounded by the configured timeouts). |
-| Abort-required | A transactional send failed in a way that poisons the open transaction: `UNKNOWN_PRODUCER_ID`, `INVALID_PRODUCER_ID_MAPPING` or `INVALID_PRODUCER_EPOCH` on transactional produce. The send is failed and an epoch bump is latched. | Call `abort_transaction()` before any further transactional send; `commit_transaction()` without an abort is not valid from this state. Producing outside a transaction is rejected with a usage (`Protocol`) error instead. |
-| Fatal | The client or handshake cannot proceed as configured: `Closed` (client shut down), constructor failures (bootstrap, TLS, SASL handshake, ApiVersions), and authentication failures such as `SASL_AUTHENTICATION_FAILED`. | Fix configuration/credentials and construct a new client. Do not retry the same instance in a hot loop. |
+| Abort-required | A failed transactional Produce poisons the open transaction: `UNKNOWN_PRODUCER_ID`, `INVALID_PRODUCER_EPOCH`, `TRANSACTION_ABORTABLE`, `INVALID_TXN_STATE` or `CONCURRENT_TRANSACTIONS`. Commit stays invalid until abort; recovery uses a broker-authorized epoch when supported. | Abort before starting the next transaction. Existing sends may still enter the poisoned open transaction, so stop sending until abort; they cannot make it committable. Producing outside a transaction is a usage (`Protocol`) error. |
+| Fatal | The client or handshake cannot proceed: `Closed`, constructor/authentication failures, or terminal transactional Produce errors such as `PRODUCER_FENCED`, `INVALID_PRODUCER_ID_MAPPING` and `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`. | Fix configuration/credentials or ownership and construct a new client. A fenced producer cannot recover through abort or a locally invented epoch. |
 | Unsupported | Broker or feature lacks a required capability: `Error::Unsupported` from ApiVersions negotiation (constructor fails), per-operation version gates, or a SASL mechanism the broker did not advertise. | Upgrade the broker, enable the API, or stop calling the operation. Blind retry cannot succeed. |
 | Timeout | A configured deadline expired: `request_timeout` (one RPC), `delivery_timeout` (queue until ack), `max_block` (send admission), or join/assignment waits. `Timeout` never names which deadline; the caller knows which wait it issued. | Treat produce timeouts as ambiguous delivery (next row). Other timeouts are retryable once the stall clears. |
 | Ambiguous-delivery | The record may or may not have been appended: any produce `Timeout` after retries, dropping a `send` future after the record entered `buffer_memory`, or `acks=0` (no ack by design). Non-idempotent retries may duplicate. | Reconcile out of band (offsets, idempotency keys) or enable idempotence so retries deduplicate. Idempotent produce re-inits the epoch on `UNKNOWN_PRODUCER_ID` and requeues rather than failing. |
@@ -153,13 +153,17 @@ metadata-query helpers when the cache has no entry; treat them as
 retry-after-refresh. They are intentionally outside `is_retriable()`, which
 covers only wire/transport outcomes.
 
-Known classification gaps (bounded repair cards proposed in
-[KL07-10 evidence](plan/evidence/KL07-10.json), not fixed here):
-`PRODUCER_FENCED`, `TRANSACTION_ABORTABLE`, `INVALID_TXN_STATE` and
-`CONCURRENT_TRANSACTIONS` currently fail the send like any other
-non-retriable broker error instead of latching abort-required state.
-(`Error::Closed` now displays the client-neutral `client closed` on all
-paths, including consumer/admin/net.)
+Transactional classification follows the operation-specific Apache handler
+tables pinned by [KL03-10](plan/evidence/KL03-10.json). A Produce fencing
+error is terminal; abort-required errors clear through abort. Classic
+coordinators recover using InitProducerId with the last authorized identity;
+transaction V2 uses the EndTxn response identity without a second re-init.
+Repeating `init_transactions()` only checks initialization; it neither clears
+these states nor obtains a new identity.
+The [KL07-14 public-API checks](plan/evidence/KL07-14.json) cover both paths.
+These categories describe client state separately from `is_retriable()`;
+a broker code's disposition can differ between Produce and EndTxn.
+`Error::Closed` displays the client-neutral `client closed` on all paths.
 
 ## Configuration contract (KL07-10)
 
