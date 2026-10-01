@@ -1,5 +1,12 @@
 # STATUS
 
+**2026-10-01 source update (KL05-13):** ListOffsets v11 adds the explicit
+KIP-1023 earliest pending upload selector (`-6`); its fields match v10. Admin and
+manual consumers negotiate each selected leader, preserve older-selector fallback,
+and reject unsupported selector/isolation combinations. Independent Apache 4.3.1
+fixtures and mock runtime/deadline checks are the scope; live tiered storage and
+Suite HOLD remain unqualified.
+
 **2026-10-01 source update (KL05-22):** DescribeLogDirs api 35 now supports
 v1–v5. The v5 response adds typed `IsCordoned`; v1–v4 keep their existing bytes
 and default false. Independent Apache 4.3.1 fixtures precede the version-cap

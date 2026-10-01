@@ -2430,7 +2430,7 @@
 //! (`coordinatorEpoch` / `currentTransactionStartOffset` are `None` when
 //! the wire value is negative).
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`] /
-//! [`OffsetSpec`]; one RPC per leader; ListOffsets v1–v10;
+//! [`OffsetSpec`]; one RPC per leader; ListOffsets v1–v11;
 //! request ReplicaId is JSON `0+` (decode returns it last;
 //! [`protocol::offsets::encode_list_offsets_topics_request_with_replica_id`];
 //! convenience encode still writes [`protocol::offsets::CONSUMER_REPLICA_ID`];
@@ -2472,14 +2472,19 @@
 //! `Builder.forConsumer` / `Builder.forReplica` (oldest and latest are
 //! the arguments; ReplicaId is the argument; isolation `0` is
 //! READ_UNCOMMITTED; `forConsumer` is the oldest-version half, then
-//! that helper with latest 10 and [`protocol::offsets::CONSUMER_REPLICA_ID`];
+//! that helper with latest 11 and [`protocol::offsets::CONSUMER_REPLICA_ID`];
 //! `forReplica` is that helper with oldest `0` and isolation `0`;
 //! `forConsumer` else-if first match: tiered v9, earliest-local v8,
 //! max-timestamp v7, `READ_COMMITTED` v2, timestamp v1; all false is `0`).
+//! [`protocol::offsets::ListOffsetsRequest::for_consumer_with_pending_upload`]
+//! adds Apache 4.3's pending-upload flag, requiring v11; its no-flag baseline is
+//! v1 while the historical five-flag helper retains its all-false v0 result.
+//! [`OffsetSpec::earliest_pending_upload`] and [`EARLIEST_PENDING_UPLOAD_TIMESTAMP`]
+//! expose `-6` to Admin and manual consumers; older peers return unsupported.
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]
-//! are Java `ListOffsetsOptions.timeoutMs` (RPC deadline and ListOffsets v10 TimeoutMs).
+//! are Java `ListOffsetsOptions.timeoutMs` (total caller deadline and remaining ListOffsets v10+ TimeoutMs).
 //! [`Admin::list_transactions_with_duration`] is Java `listTransactions`
 //! plus `ListTransactionsOptions.filterOnDuration` (ListTransactions v1;
 //! v0 with a non-negative DurationFilter is Java
@@ -3263,8 +3268,8 @@ pub use protocol::acl::{
 };
 pub use protocol::admin::{CreatedTopicConfig, DescribeConfigsResult, TopicResult};
 pub use protocol::offsets::{
-    OffsetSpec, EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP,
-    LATEST_TIMESTAMP, MAX_TIMESTAMP,
+    OffsetSpec, EARLIEST_LOCAL_TIMESTAMP, EARLIEST_PENDING_UPLOAD_TIMESTAMP, EARLIEST_TIMESTAMP,
+    LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, MAX_TIMESTAMP,
 };
 pub use protocol::oidc::OidcConfig;
 pub use protocol::records::{

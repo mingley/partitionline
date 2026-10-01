@@ -1,4 +1,4 @@
-//! ListOffsets (api key 2). v1–v5 classic; v6–v10 flexible.
+//! ListOffsets (api key 2). v1–v5 classic; v6–v11 flexible.
 
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -19,6 +19,20 @@ pub const MAX_TIMESTAMP: i64 = -3;
 pub const EARLIEST_LOCAL_TIMESTAMP: i64 = -4;
 /// Last offset in tiered/remote storage (KIP-1005). ListOffsets v9+.
 pub const LATEST_TIERED_TIMESTAMP: i64 = -5;
+/// Earliest offset awaiting tiered-storage upload (KIP-1023). ListOffsets v11+.
+pub const EARLIEST_PENDING_UPLOAD_TIMESTAMP: i64 = -6;
+
+/// Minimum version retaining the requested selector and isolation semantics.
+pub(crate) const fn minimum_version_for_timestamp(timestamp: i64, isolation: i8) -> i16 {
+    match timestamp {
+        EARLIEST_PENDING_UPLOAD_TIMESTAMP => 11,
+        LATEST_TIERED_TIMESTAMP => 9,
+        EARLIEST_LOCAL_TIMESTAMP => 8,
+        MAX_TIMESTAMP => 7,
+        _ if isolation == 1 => 2,
+        _ => 1,
+    }
+}
 /// Java `ListOffsetsRequest.CONSUMER_REPLICA_ID`. ReplicaId is request-level.
 pub const CONSUMER_REPLICA_ID: i32 = -1;
 /// Java `ListOffsetsRequest.DEBUGGING_REPLICA_ID`.
@@ -28,7 +42,8 @@ pub const DEBUGGING_REPLICA_ID: i32 = -2;
 ///
 /// Converts to the ListOffsets Timestamp INT64:
 /// [`EARLIEST_TIMESTAMP`], [`LATEST_TIMESTAMP`], [`MAX_TIMESTAMP`],
-/// [`EARLIEST_LOCAL_TIMESTAMP`], [`LATEST_TIERED_TIMESTAMP`], or a
+/// [`EARLIEST_LOCAL_TIMESTAMP`], [`LATEST_TIERED_TIMESTAMP`],
+/// [`EARLIEST_PENDING_UPLOAD_TIMESTAMP`], or a
 /// millisecond Unix timestamp from [`Self::for_timestamp`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct OffsetSpec {
@@ -73,6 +88,15 @@ impl OffsetSpec {
     pub const fn latest_tiered() -> Self {
         Self {
             timestamp: LATEST_TIERED_TIMESTAMP,
+        }
+    }
+
+    /// Java `OffsetSpec.earliestPendingUpload()` (`-6`, ListOffsets v11+).
+    /// Requires a broker supporting KIP-1023; it is never downgraded to earliest.
+    #[must_use]
+    pub const fn earliest_pending_upload() -> Self {
+        Self {
+            timestamp: EARLIEST_PENDING_UPLOAD_TIMESTAMP,
         }
     }
 
@@ -181,7 +205,7 @@ pub struct ListOffsetsPartitionRequest {
     /// Current leader epoch (v4+), or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub current_leader_epoch: i32,
     /// Timestamp to search (`-2` earliest, `-1` latest, `-3` max
-    /// timestamp, `-4` earliest local, `-5` latest tiered, or milliseconds).
+    /// timestamp, `-4` earliest local, `-5` latest tiered, `-6` earliest pending upload, or milliseconds).
     pub timestamp: i64,
 }
 
@@ -368,10 +392,10 @@ impl ListOffsetsRequest {
     /// `isolation` (`0` is READ_UNCOMMITTED, `1` is READ_COMMITTED) so this
     /// module does not import [`crate::IsolationLevel`].
     /// [`Self::for_consumer`] is the oldest-version half; callers pass that
-    /// oldest, latest 10, [`CONSUMER_REPLICA_ID`], and isolation into this
+    /// oldest, latest 11, [`CONSUMER_REPLICA_ID`], and isolation into this
     /// helper. [`Self::for_replica`] is this helper with oldest `0` and
     /// isolation `0`. Encode still writes ReplicaId and isolation
-    /// independently of this Builder range. This crate speaks 1–10.
+    /// independently of this Builder range. This crate speaks 1–11.
     /// This is not [`Self::duplicate_partitions`] / [`Self::error_response`]
     /// / Fetch `Builder`.
     #[must_use]
@@ -396,10 +420,10 @@ impl ListOffsetsRequest {
     /// (v8) over max-timestamp (v7) over `READ_COMMITTED` (v2) over
     /// timestamp (v1). All false is `0` (Java still returns `0` even
     /// though Kafka 4.0 `validVersions` is `1-10`; this crate speaks
-    /// 1–10). Isolation is a `bool` (`true` is `READ_COMMITTED`) so
+    /// 1–11). Isolation is a `bool` (`true` is `READ_COMMITTED`) so
     /// this module does not import [`crate::IsolationLevel`]. ReplicaId
     /// is always [`CONSUMER_REPLICA_ID`]. Java then calls
-    /// [`Self::builder`] with this oldest, latest 10, that replica id,
+    /// [`Self::builder`] with this oldest, latest 11, that replica id,
     /// and isolation. The two-argument Java `forConsumer` is this call
     /// with the last three flags `false`. This is not [`Self::for_replica`].
     #[must_use]
@@ -425,10 +449,43 @@ impl ListOffsetsRequest {
         }
     }
 
+    /// Apache 4.3 `forConsumer` with the KIP-1023 pending-upload flag.
+    ///
+    /// A pending-upload selector requires v11 even when another flag is set.
+    /// Otherwise uses the existing selector precedence, with the current Apache
+    /// baseline v1. The older five-flag helper retains its historical v0 result
+    /// when all flags are false.
+    #[must_use]
+    pub const fn for_consumer_with_pending_upload(
+        require_timestamp: bool,
+        read_committed: bool,
+        require_max_timestamp: bool,
+        require_earliest_local_timestamp: bool,
+        require_tiered_storage_timestamp: bool,
+        require_earliest_pending_upload_timestamp: bool,
+    ) -> i16 {
+        if require_earliest_pending_upload_timestamp {
+            11
+        } else {
+            let minimum = Self::for_consumer(
+                require_timestamp,
+                read_committed,
+                require_max_timestamp,
+                require_earliest_local_timestamp,
+                require_tiered_storage_timestamp,
+            );
+            if minimum < 1 {
+                1
+            } else {
+                minimum
+            }
+        }
+    }
+
     /// Java `ListOffsetsRequest.Builder.forReplica`.
     ///
     /// Oldest allowed version is `0` (Java still uses `0` even though
-    /// Kafka 4.0 `validVersions` is `1-10`; this crate speaks 1–10).
+    /// Kafka 4.0 `validVersions` is `1-10`; this crate speaks 1–11).
     /// Latest is `allowed_version`. ReplicaId is the argument. Isolation
     /// is `READ_UNCOMMITTED` (`0`) so this module does not import
     /// [`crate::IsolationLevel`]. This is [`Self::builder`] with those
@@ -518,7 +575,7 @@ impl ListOffsetsResponse {
     }
 }
 
-/// ListOffsets v1–v5 (classic) or v6–v10 (flexible). Isolation is v2+.
+/// ListOffsets v1–v5 (classic) or v6–v11 (flexible). Isolation is v2+.
 /// `current_leader_epoch` is v4+. v10 `TimeoutMs` (KIP-1075) follows Topics.
 #[expect(
     clippy::too_many_arguments,
@@ -552,22 +609,22 @@ pub fn encode_list_offsets_request(
 
 /// `true` when ListOffsets `version` is flexible (v6+).
 ///
-/// v0–v5 are classic. v6–v10 are compact arrays/strings plus tagged
+/// v0–v5 are classic. v6–v11 are compact arrays/strings plus tagged
 /// fields (Apache JSON `flexibleVersions: "6+"`). v7 is MAX_TIMESTAMP
 /// (KIP-734). v8 is EARLIEST_LOCAL (KIP-405). v9 is LATEST_TIERED
 /// (KIP-1005). v10 adds TimeoutMs after Topics (KIP-1075). Kafka 4.0
-/// `validVersions` is `1-10`. This crate speaks 1–10. v11+ is not spoken.
+/// `validVersions` is `1-10`. This crate speaks 1–11. v11 adds EARLIEST_PENDING_UPLOAD (KIP-1023); v12+ is not spoken.
 fn list_offsets_flexible(version: i16) -> Result<bool> {
     match version {
         0..=5 => Ok(false),
-        6..=10 => Ok(true),
+        6..=11 => Ok(true),
         other => Err(Error::protocol(format!(
             "ListOffsets version {other} is not implemented"
         ))),
     }
 }
 
-/// Encode ListOffsets with one or more topics (v1–v5 classic, v6–v10 flexible).
+/// Encode ListOffsets with one or more topics (v1–v5 classic, v6–v11 flexible).
 /// `timeout_ms` is written at v10+ (KIP-1075); ignored below.
 /// ReplicaId is still [`CONSUMER_REPLICA_ID`].
 pub fn encode_list_offsets_topics_request(
@@ -661,7 +718,7 @@ pub fn decode_list_offsets_request<B: Buf>(
     ))
 }
 
-/// Decode ListOffsets topics (v1–v5 classic, v6–v10 flexible).
+/// Decode ListOffsets topics (v1–v5 classic, v6–v11 flexible).
 ///
 /// Returns `(isolation_level, topics, timeout_ms, replica_id)`. Isolation
 /// is `0` below v2. `timeout_ms` is `Some` at v10+ (KIP-1075) and `None`
@@ -735,7 +792,7 @@ pub fn encode_list_offsets_response(
     )
 }
 
-/// Encode ListOffsets with one or more topics (v1–v5 classic, v6–v10 flexible).
+/// Encode ListOffsets with one or more topics (v1–v5 classic, v6–v11 flexible).
 ///
 /// Throttle is the JSON default (`0`) on v2+.
 pub fn encode_list_offsets_topics_response(
@@ -746,7 +803,7 @@ pub fn encode_list_offsets_topics_response(
     encode_list_offsets_topics_response_with_throttle(buf, version, topics, 0)
 }
 
-/// Encode ListOffsets v1–v10 with ThrottleTimeMs.
+/// Encode ListOffsets v1–v11 with ThrottleTimeMs.
 ///
 /// Below v2 ThrottleTimeMs is omitted even when the body has a non-zero
 /// value. Decode fills `0`. v4+ writes LeaderEpoch. v6+ is flexible.
@@ -814,7 +871,7 @@ pub fn decode_list_offsets_response<B: Buf>(
     })
 }
 
-/// Decode ListOffsets topics (v1–v5 classic, v6–v10 flexible). Partition errors stay on the row.
+/// Decode ListOffsets topics (v1–v5 classic, v6–v11 flexible). Partition errors stay on the row.
 ///
 /// Returns `(topics, throttle_time_ms)`. Below v2 ThrottleTimeMs is
 /// omitted; decode fills `0`.
@@ -879,6 +936,24 @@ mod tests {
         assert_eq!(
             i64::from(OffsetSpec::latest_tiered()),
             LATEST_TIERED_TIMESTAMP
+        );
+        assert_eq!(OffsetSpec::earliest_pending_upload().timestamp(), -6);
+        assert_eq!(EARLIEST_PENDING_UPLOAD_TIMESTAMP, -6);
+        assert_eq!(
+            ListOffsetsRequest::for_consumer_with_pending_upload(
+                true, true, true, true, true, true
+            ),
+            11
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer_with_pending_upload(
+                false, false, false, false, false, false
+            ),
+            1
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(false, false, false, false, false),
+            0
         );
         assert_eq!(
             OffsetSpec::for_timestamp(1_700_000_000_000).timestamp(),
@@ -1195,8 +1270,8 @@ mod tests {
         assert_eq!(timeout, Some(1500));
         req.clear();
         assert!(
-            encode_list_offsets_request(&mut req, 11, 0, "t", 0, 0, LATEST_TIMESTAMP, 0).is_err(),
-            "ListOffsets v11+ is not spoken"
+            encode_list_offsets_request(&mut req, 12, 0, "t", 0, 0, LATEST_TIMESTAMP, 0).is_err(),
+            "ListOffsets v12+ is not spoken"
         );
     }
 
@@ -1560,7 +1635,7 @@ mod tests {
         // (INT32 first field). Official Java ListOffsetsRequest.replicaId()
         // / ListOffsetsRequestData.replicaId read it. Encode previously
         // always wrote CONSUMER_REPLICA_ID; decode discarded it. This crate
-        // speaks 1–10. This is not Fetch ReplicaId / OffsetForLeaderEpoch
+        // speaks 1–11. This is not Fetch ReplicaId / OffsetForLeaderEpoch
         // ReplicaId.
         let topics = [ListOffsetsTopicRequest::new(
             "t",
@@ -1669,7 +1744,7 @@ mod tests {
         // from IsolationLevel.id(). Official Java
         // ListOffsetsRequest.Builder(short, short, int, IsolationLevel).
         // forConsumer is the oldest-version half, then this helper with
-        // latest 10, CONSUMER_REPLICA_ID, and isolation. forReplica is
+        // latest 11, CONSUMER_REPLICA_ID, and isolation. forReplica is
         // this helper with oldest 0 and isolation 0. Encode still writes
         // ReplicaId and isolation independently. This crate speaks 1-10.
         // This is not forConsumer / forReplica / getErrorResponse /

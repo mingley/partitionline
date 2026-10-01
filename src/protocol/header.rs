@@ -267,7 +267,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         LEAVE_GROUP if api_version >= 4 => 2,
         // ListOffsets is classic through v5; flexible from v6
         // (Apache JSON flexibleVersions: "6+"). Kafka 4.0 removed v0;
-        // this crate speaks 1–10. v10 TimeoutMs (KIP-1075) follows Topics.
+        // this crate speaks 1–11. v10+ TimeoutMs follows Topics; v11 adds the -6 selector.
         LIST_OFFSETS if api_version >= 6 => 2,
         // OffsetCommit is classic through v7; flexible from v8
         // (Apache JSON flexibleVersions: "8+"). Kafka 4.0 validVersions
@@ -1022,9 +1022,9 @@ mod tests {
 
     #[test]
     fn list_offsets_v6_is_flexible_v5_is_not() {
-        // Official JSON: validVersions 1-10, flexibleVersions 6+.
+        // Apache 4.3.1 JSON: validVersions 1-11, flexibleVersions 6+.
         // Kafka 4.0 removed v0. HeaderVersion is 1 / 0 at v1–5 and
-        // 2 / 1 at v6+. This crate speaks 1–10.
+        // 2 / 1 at v6+. This crate speaks 1–11.
         assert_eq!(request_header_version(LIST_OFFSETS, 1), 1);
         assert_eq!(response_header_version(LIST_OFFSETS, 1), 0);
         assert_eq!(request_header_version(LIST_OFFSETS, 5), 1);
@@ -1033,6 +1033,8 @@ mod tests {
         assert_eq!(response_header_version(LIST_OFFSETS, 6), 1);
         assert_eq!(request_header_version(LIST_OFFSETS, 10), 2);
         assert_eq!(response_header_version(LIST_OFFSETS, 10), 1);
+        assert_eq!(request_header_version(LIST_OFFSETS, 11), 2);
+        assert_eq!(response_header_version(LIST_OFFSETS, 11), 1);
     }
 
     #[test]

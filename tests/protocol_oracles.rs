@@ -3724,15 +3724,15 @@ fn list_offsets_version_gate_and_field_order_mutations_fail() {
         0
     );
 
-    // Unimplemented versions (< 0 or > 10) have explicit Error::Protocol outcomes:
+    // Unimplemented versions (< 0 or > 11) have explicit Error::Protocol outcomes:
     let mut buf = BytesMut::new();
     assert!(
         encode_list_offsets_request(&mut buf, -1, 0, "t", 0, 0, -1, 0).is_err(),
         "v-1 is not implemented"
     );
     assert!(
-        encode_list_offsets_request(&mut buf, 11, 0, "t", 0, 0, -1, 0).is_err(),
-        "v11 is not implemented"
+        encode_list_offsets_request(&mut buf, 12, 0, "t", 0, 0, -1, 0).is_err(),
+        "v12 is not implemented"
     );
     let mut empty = &[][..];
     assert!(
@@ -3740,16 +3740,16 @@ fn list_offsets_version_gate_and_field_order_mutations_fail() {
         "v-1 decode is not implemented"
     );
     assert!(
-        decode_list_offsets_topics_request(&mut empty, 11).is_err(),
-        "v11 decode is not implemented"
+        decode_list_offsets_topics_request(&mut empty, 12).is_err(),
+        "v12 decode is not implemented"
     );
     assert!(
         decode_list_offsets_topics_response(&mut empty, -1).is_err(),
         "v-1 resp decode is not implemented"
     );
     assert!(
-        decode_list_offsets_topics_response(&mut empty, 11).is_err(),
-        "v11 resp decode is not implemented"
+        decode_list_offsets_topics_response(&mut empty, 12).is_err(),
+        "v12 resp decode is not implemented"
     );
 }
 
@@ -4809,5 +4809,139 @@ fn describe_log_dirs_v5_truncation_and_version_bounds_fail_closed() {
         assert_eq!(bytes.as_ref(), &[99]);
         assert!(encode_describe_log_dirs_response(&mut bytes, version, &response).is_err());
         assert_eq!(bytes.as_ref(), &[99]);
+    }
+}
+
+#[test]
+fn list_offsets_v11_independent_apache_fixtures() {
+    macro_rules! cell {
+        ($name:literal, $canonical:literal) => {
+            (
+                $name,
+                include_bytes!(concat!(
+                    "fixtures/protocol_oracles/list_offsets_v11_",
+                    $name,
+                    "_request.bin"
+                ))
+                .as_slice(),
+                include_bytes!(concat!(
+                    "fixtures/protocol_oracles/list_offsets_v11_",
+                    $name,
+                    "_response.bin"
+                ))
+                .as_slice(),
+                include_bytes!(concat!(
+                    "fixtures/protocol_oracles/list_offsets_v11_",
+                    $canonical,
+                    "_request.bin"
+                ))
+                .as_slice(),
+                include_bytes!(concat!(
+                    "fixtures/protocol_oracles/list_offsets_v11_",
+                    $canonical,
+                    "_response.bin"
+                ))
+                .as_slice(),
+            )
+        };
+    }
+    for (name, request, response, canonical_request, canonical_response) in [
+        cell!("defaults", "defaults"),
+        cell!("empty", "empty"),
+        cell!("uncommitted", "uncommitted"),
+        cell!("committed", "committed"),
+        cell!("errors", "errors"),
+        cell!("tagged", "committed"),
+    ] {
+        let mut cursor = request;
+        let (isolation, topics, timeout, replica) =
+            decode_list_offsets_topics_request(&mut cursor, 11).unwrap();
+        assert!(cursor.is_empty(), "{name} request");
+        assert_eq!(replica, if name == "defaults" { 0 } else { -1 });
+        assert_eq!(timeout, Some(if name == "defaults" { 0 } else { 1500 }));
+        assert_eq!(isolation, i8::from(name == "committed" || name == "tagged"));
+        let populated = name != "defaults" && name != "empty";
+        assert_eq!(topics.len(), usize::from(populated));
+        if populated {
+            assert_eq!(topics[0].name, "béta");
+            assert_eq!(topics[0].partitions.len(), 8);
+            for (partition, timestamp) in
+                topics[0]
+                    .partitions
+                    .iter()
+                    .zip([-6, -5, -4, -3, -2, -1, 0, i64::MAX])
+            {
+                assert_eq!(partition.timestamp, timestamp);
+                assert_eq!(partition.current_leader_epoch, 17);
+            }
+        }
+        let mut encoded = BytesMut::new();
+        partitionline::protocol::offsets::encode_list_offsets_topics_request_with_replica_id(
+            &mut encoded,
+            11,
+            isolation,
+            &topics,
+            timeout.unwrap(),
+            replica,
+        )
+        .unwrap();
+        assert_eq!(encoded.as_ref(), canonical_request, "{name} request bytes");
+        cursor = response;
+        let (results, throttle) = decode_list_offsets_topics_response(&mut cursor, 11).unwrap();
+        assert!(cursor.is_empty(), "{name} response");
+        assert_eq!(throttle, if populated { 37 } else { 0 });
+        assert_eq!(results.len(), usize::from(populated));
+        if populated {
+            assert_eq!(results[0].name, "béta");
+            for (index, partition) in results[0].partitions.iter().enumerate() {
+                assert_eq!(partition.partition_index, i32::try_from(index).unwrap());
+                if name == "errors" {
+                    assert_eq!(partition.error_code, if index == 0 { 31 } else { 78 });
+                    assert_eq!(
+                        (
+                            partition.timestamp,
+                            partition.offset,
+                            partition.leader_epoch
+                        ),
+                        (-1, -1, -1)
+                    );
+                } else {
+                    assert_eq!(partition.error_code, 0);
+                    assert_eq!(partition.offset, 100 + i64::try_from(index).unwrap());
+                    assert_eq!(partition.leader_epoch, 17);
+                }
+            }
+        }
+        encoded.clear();
+        encode_list_offsets_topics_response_with_throttle(&mut encoded, 11, &results, throttle)
+            .unwrap();
+        assert_eq!(
+            encoded.as_ref(),
+            canonical_response,
+            "{name} response bytes"
+        );
+    }
+}
+
+#[test]
+fn list_offsets_v11_truncation_and_future_versions_fail_closed() {
+    let request = include_bytes!("fixtures/protocol_oracles/list_offsets_v11_tagged_request.bin");
+    let response = include_bytes!("fixtures/protocol_oracles/list_offsets_v11_tagged_response.bin");
+    for end in 0..request.len() {
+        assert!(
+            decode_list_offsets_topics_request(&mut &request[..end], 11).is_err(),
+            "request prefix {end}"
+        );
+    }
+    for end in 0..response.len() {
+        assert!(
+            decode_list_offsets_topics_response(&mut &response[..end], 11).is_err(),
+            "response prefix {end}"
+        );
+    }
+    for version in [-1, 12] {
+        let mut destination = BytesMut::from(&[99][..]);
+        assert!(encode_list_offsets_topics_request(&mut destination, version, 0, &[], 0).is_err());
+        assert_eq!(destination.as_ref(), &[99]);
     }
 }

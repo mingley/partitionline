@@ -111,3 +111,25 @@ its ignorable-field omission and reader false default. Version projections are
 applied after serialization, preserving original unknown tags. Rust decodes
 all cells, reproduces canonical bytes exactly, skips unknown tags, and rejects
 truncation/unsupported versions. This generator performs no network operation.
+
+## ListOffsets v11 oracle (KL05-13)
+
+`ListOffsetsV11Fixtures.java` uses the same source, distribution jar hash and
+JDK pin as the DescribeLogDirs oracle above. Apache 4.3.1 `ListOffsetsRequest`
+adds `EARLIEST_PENDING_UPLOAD_TIMESTAMP=-6` and a `forConsumer` flag requiring
+v11. The request/response fields and defaults are identical to v10; this is a
+new operation selector, not a new field. Compile and verify with:
+
+```bash
+mkdir -p /tmp/list-offsets-fixtures
+javac -cp "$KAFKA_CLIENT_JAR" -d /tmp/list-offsets-fixtures tests/conformance/java/ListOffsetsV11Fixtures.java
+java -cp "/tmp/list-offsets-fixtures:$KAFKA_CLIENT_JAR" ListOffsetsV11Fixtures "$KAFKA_CLIENT_JAR" tests/fixtures/protocol_oracles --verify
+```
+
+Six cells cover fresh defaults, empty arrays, both isolation levels, v10+
+TimeoutMs, selectors -6 through -1, zero/i64-max timestamp boundaries, error
+31/78 sentinels, and unknown tags at every level. Apache self-read and v10/v11
+identical serialization verify the layout; emitting -6 syntax at v10 is only a
+layout comparison and does not qualify that selector on older servers. Rust
+canonical bytes match Apache exactly. These are synthetic wire responses, not
+an observed tiered-storage upload boundary. No broker or network is contacted.

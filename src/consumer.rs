@@ -31,7 +31,7 @@ use crate::protocol::fetch::{
     INVALID_LOG_START_OFFSET,
 };
 use crate::protocol::group::Topic;
-use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets_request};
+use crate::protocol::offsets::{decode_list_offsets_topics_response, encode_list_offsets_request};
 use crate::protocol::records::{
     write_java_optional, write_java_optional_bytes, write_java_record_headers, Header,
     TimestampType,
@@ -3119,11 +3119,14 @@ impl Consumer {
     /// ListOffsets timestamp: [`crate::EARLIEST_TIMESTAMP`] (`-2`),
     /// [`crate::LATEST_TIMESTAMP`] (`-1`), [`crate::MAX_TIMESTAMP`] (`-3`),
     /// [`crate::EARLIEST_LOCAL_TIMESTAMP`] (`-4`),
-    /// [`crate::LATEST_TIERED_TIMESTAMP`] (`-5`), or milliseconds.
+    /// [`crate::LATEST_TIERED_TIMESTAMP`] (`-5`),
+    /// [`crate::EARLIEST_PENDING_UPLOAD_TIMESTAMP`] (`-6`, requires v11), or milliseconds.
     ///
-    /// Negotiates ListOffsets v1–v10 (v6–v10 flexible; v10 TimeoutMs). Waits up to
-    /// [`ConsumerConfig::request_timeout`]. For a one-shot timeout, use
-    /// [`Self::list_offsets_timeout`].
+    /// Negotiates ListOffsets v1–v11 (v6+ flexible; v10+ TimeoutMs). Waits up to
+    /// [`ConsumerConfig::request_timeout`]. Each attempt refreshes the selected
+    /// leader's range (one ApiVersions RPC); unsupported selector/isolation
+    /// combinations fail explicitly. Metadata, connection, lookup and retries
+    /// share that budget. For a one-shot timeout, use [`Self::list_offsets_timeout`].
     pub async fn list_offsets(
         &mut self,
         topic: impl Into<String>,
@@ -3180,89 +3183,111 @@ impl Consumer {
         timestamp: i64,
         timeout: Duration,
     ) -> Result<(i64, i64, i32)> {
-        let deadline = Instant::now() + timeout;
-        loop {
-            if self.cluster.leader(topic, partition).is_err() {
-                let topics = [topic.to_string()];
-                self.refresh_metadata_timeout(Some(&topics), timeout)
-                    .await?;
-            }
-            let (node, _) = self.cluster.leader(topic, partition)?;
-            self.connect_node(node).await?;
-            let version = self
-                .versions
-                .get(&LIST_OFFSETS)
-                .and_then(|v| pick_version(v.min_version, v.max_version, 1, 10))
-                .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
-            let isolation = self.cfg.isolation_level.as_i8();
-            let current_leader_epoch = self.cluster.leader_epoch(topic, partition);
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing list_offsets conn"))?;
-                conn.roundtrip(
-                    LIST_OFFSETS,
-                    version,
-                    |buf| {
-                        encode_list_offsets_request(
-                            buf,
-                            version,
-                            isolation,
-                            topic,
-                            partition,
-                            current_leader_epoch,
-                            timestamp,
-                            duration_millis_i32(timeout),
-                        )
-                    },
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
-                    continue;
-                }
-                Err(e) => return Err(e),
-            };
-            match decode_list_offsets_response(&mut body.clone(), version) {
-                Ok(got) => return Ok((got.offset, got.timestamp, got.leader_epoch)),
-                Err(e)
-                    if matches!(
-                        &e,
-                        Error::Broker {
-                            code: error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH,
-                            ..
-                        }
-                    ) =>
-                {
-                    self.recover_leader_epoch(topic, partition).await?;
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
-                    continue;
-                }
-                Err(e) if e.is_retriable() => {
-                    // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
-                    self.cluster.invalidate_topic(topic);
-                    let _ = self.conns.remove(&node);
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("ListOffsets deadline overflow"))?;
+        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
+            loop {
+                if self.cluster.leader(topic, partition).is_err() {
                     let topics = [topic.to_string()];
                     self.refresh_metadata_timeout(Some(&topics), timeout)
                         .await?;
-                    continue;
                 }
-                Err(e) => return Err(e),
+                let (node, _) = self.cluster.leader(topic, partition)?;
+                self.connect_node(node).await?;
+                let isolation = self.cfg.isolation_level.as_i8();
+                let minimum = crate::protocol::offsets::minimum_version_for_timestamp(timestamp, isolation);
+                let capabilities = crate::protocol::api::negotiate_api_versions(
+                    self.conns.get_mut(&node).ok_or_else(|| Error::protocol("missing list_offsets conn"))?,
+                    deadline.saturating_duration_since(Instant::now()),
+                ).await?;
+                let version = capabilities.api_keys.iter().find(|v| v.api_key == LIST_OFFSETS)
+                    .and_then(|v| pick_version(v.min_version, v.max_version, minimum, 11))
+                    .ok_or_else(|| Error::Unsupported(format!("broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)")))?;
+                let timeout = deadline.saturating_duration_since(Instant::now());
+                let current_leader_epoch = self.cluster.leader_epoch(topic, partition);
+                let body = {
+                    let conn = self
+                        .conns
+                        .get_mut(&node)
+                        .ok_or_else(|| Error::protocol("missing list_offsets conn"))?;
+                    conn.roundtrip(
+                        LIST_OFFSETS,
+                        version,
+                        |buf| {
+                            encode_list_offsets_request(
+                                buf,
+                                version,
+                                isolation,
+                                topic,
+                                partition,
+                                current_leader_epoch,
+                                timestamp,
+                                duration_millis_i32(timeout),
+                            )
+                        },
+                        timeout,
+                    )
+                    .await
+                };
+                let body = match body {
+                    Ok(b) => b,
+                    Err(e) if e.is_retriable() => {
+                        let _ = self.conns.remove(&node);
+                        if Instant::now() >= deadline {
+                            return Err(Error::Timeout);
+                        }
+                        continue;
+                    }
+                    Err(e) => return Err(e),
+                };
+                let decoded = (|| {
+                    let mut cursor = body.as_ref();
+                    let (topics, _) = decode_list_offsets_topics_response(&mut cursor, version)?;
+                    if !cursor.is_empty() { return Err(Error::protocol("trailing ListOffsets response bytes")); }
+                    let mut matching = topics.into_iter().filter(|t| t.name == topic)
+                        .flat_map(|t| t.partitions).filter(|p| p.partition_index == partition);
+                    let result = matching.next().ok_or_else(|| Error::protocol("ListOffsets missing requested partition"))?;
+                    if matching.next().is_some() { return Err(Error::protocol("duplicate ListOffsets result")); }
+                    if result.error_code != 0 { return Err(Error::broker(result.error_code, "ListOffsets")); }
+                    Ok(result)
+                })();
+                match decoded {
+                    Ok(got) => return Ok((got.offset, got.timestamp, got.leader_epoch)),
+                    Err(e)
+                        if matches!(
+                            &e,
+                            Error::Broker {
+                                code: error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH,
+                                ..
+                            }
+                        ) =>
+                    {
+                        self.recover_leader_epoch(topic, partition).await?;
+                        if Instant::now() >= deadline {
+                            return Err(Error::Timeout);
+                        }
+                        continue;
+                    }
+                    Err(e) if e.is_retriable() => {
+                        // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
+                        self.cluster.invalidate_topic(topic);
+                        let _ = self.conns.remove(&node);
+                        if Instant::now() >= deadline {
+                            return Err(Error::Timeout);
+                        }
+                        let topics = [topic.to_string()];
+                        self.refresh_metadata_timeout(Some(&topics), timeout)
+                            .await?;
+                        continue;
+                    }
+                    Err(e) => return Err(e),
+                }
             }
-        }
+            }).await.map_err(|_| Error::Timeout)?
     }
 
     /// Set the next fetch offset for an assigned partition (Java

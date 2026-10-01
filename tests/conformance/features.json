@@ -308,11 +308,11 @@
   {
     "id": "manual_consumer.list_offsets_v11",
     "profile": "manual consumer",
-    "layer": "wire_helper",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/ROADMAP.md:KL-05",
-    "notes": "ListOffsets v11 delta is not implemented; tracked in KL05-13."
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::consumer::Consumer::list_offsets",
+    "evidence": "docs/plan/evidence/KL05-13.json",
+    "notes": "KIP-1023 earliest pending upload (-6) exposed through the public constant and OffsetSpec for Admin. Each selected leader negotiates its own range; older peers reject unsupported selectors/isolation instead of changing meaning. Independent Apache 4.3.1 fixtures and mock deadlines; no live tiered-storage qualification."
   },
   {
     "id": "manual_consumer.seek",

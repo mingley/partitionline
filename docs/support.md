@@ -64,7 +64,14 @@ registry status was re-checked at source `ca50ca1` (KL07-07).
 | Sticky unkeyed partitioner | Not implemented (round-robin instead) | `producer.sticky_partitioner` (`missing`) |
 | Signed Suite HOLD / Lab A | **Unsigned** — Suite HOLD remains | — (qualification gate, not a feature entry) |
 | macOS Intel / other host architectures | May build; no CI support promise for these cells | — (CI dimension, not a feature entry) |
-| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `producer.v13_wire`, `manual_consumer.v18_wire/list_offsets_v11` (`missing`) |
+| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `producer.v13_wire`, `manual_consumer.v18_wire` (`missing`) |
+
+ListOffsets now supports v1–v11 with explicit KIP-1023 earliest pending upload
+(`-6`, `OffsetSpec::earliest_pending_upload`). Admin and manual consumers refresh
+each selected leader’s range and reject unsupported selectors/isolation before
+the ListOffsets request; caller deadlines cover metadata/connect/negotiation/RPC
+and retries. Independent Apache bytes and mock paths qualify the delta. No live
+tiered-storage deployment or pending-upload boundary is qualified.
 
 DescribeLogDirs now negotiates each selected broker’s v1–v5 range and exposes
 typed `IsCordoned` at v5 (older versions default to false). Each attempt adds one

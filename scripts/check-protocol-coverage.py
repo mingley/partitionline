@@ -124,7 +124,7 @@ PINNED_APACHE_APIS: Dict[int, Dict[str, Any]] = {
 CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     0: list(range(3, 13)),   # Produce: 3-12
     1: list(range(4, 18)),   # Fetch: 4-17
-    2: list(range(1, 11)),   # ListOffsets: 1-10
+    2: list(range(1, 12)),   # ListOffsets: 1-11
     3: list(range(1, 14)),   # Metadata: 1-13
     8: list(range(2, 10)),   # OffsetCommit: 2-9
     9: list(range(1, 10)),   # OffsetFetch: 1-9
@@ -258,7 +258,6 @@ CLASSIFIED_VERSION_GAPS: Dict[Tuple[int, int], Dict[str, Any]] = {
     # ListOffsets (2)
     (2, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "ListOffsets v0 legacy format removed in Kafka 4.0; client starts at v1"},
     (2, 10): {"pin": "3.9.1", "direction": "client_only", "reason": "ListOffsets v10 adds TimeoutMs (KIP-1075); Kafka 3.9.1 max is v9 (Kafka 4.0+ only, cases.json)"},
-    (2, 11): {"pin": "4.3.1", "direction": "upstream_cap", "reason": "ListOffsets v11 in Kafka 4.3.1; client capped at v10 (manual_consumer.list_offsets_v11 missing in features.json, cases.json)"},
 
     # Metadata (3)
     (3, 0): {"pin": "3.9.1/4.1.0+", "direction": "pin_only", "reason": "Metadata v0 legacy format; client starts at v1 (v0 rejected by builder)"},

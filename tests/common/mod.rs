@@ -332,6 +332,8 @@ struct State {
     list_offsets_calls: u32,
     list_offsets_not_leader: u32,
     last_list_offsets_version: Option<i16>,
+    list_offsets_queries: Vec<(i32, i16, String, i32, i64)>,
+    list_offsets_raw_responses: HashMap<i32, VecDeque<Vec<u8>>>,
     last_delete_records_node: Option<i32>,
     last_delete_records_version: Option<i16>,
     last_delete_records_timeout: Option<i32>,
@@ -768,6 +770,8 @@ fn new_state(
         list_offsets_calls: 0,
         list_offsets_not_leader: 0,
         last_list_offsets_version: None,
+        list_offsets_queries: Vec::new(),
+        list_offsets_raw_responses: HashMap::new(),
         last_delete_records_node: None,
         last_delete_records_version: None,
         last_delete_records_timeout: None,
@@ -2225,6 +2229,19 @@ impl Mock {
 
     pub fn list_offsets_not_leader(&self) -> u32 {
         self.state.lock().list_offsets_not_leader
+    }
+
+    pub fn list_offsets_queries(&self) -> Vec<(i32, i16, String, i32, i64)> {
+        self.state.lock().list_offsets_queries.clone()
+    }
+
+    pub fn queue_list_offsets_raw_response(&self, node: i32, response: Vec<u8>) {
+        self.state
+            .lock()
+            .list_offsets_raw_responses
+            .entry(node)
+            .or_default()
+            .push_back(response);
     }
 
     pub fn last_list_offsets_version(&self) -> Option<i16> {
@@ -5731,32 +5748,55 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_list_offsets_timeout = timeout_ms;
                 st.list_offsets_calls = st.list_offsets_calls.saturating_add(1);
                 st.last_list_offsets_version = Some(header.api_version);
-                let mut n = 0usize;
-                let mut any_leader = false;
-                let mut resp_topics = Vec::with_capacity(topics.len());
-                for t in &topics {
-                    let mut parts = Vec::with_capacity(t.partitions.len());
-                    for p in &t.partitions {
-                        n = n.saturating_add(1);
-                        let (on_leader, part) = list_offsets_partition_result(
-                            &mut st,
+                for topic in &topics {
+                    for partition in &topic.partitions {
+                        st.list_offsets_queries.push((
                             node_id,
-                            &t.name,
-                            p.partition,
-                            p.current_leader_epoch,
-                            p.timestamp,
-                        );
-                        any_leader = any_leader || on_leader;
-                        parts.push(part);
+                            header.api_version,
+                            topic.name.clone(),
+                            partition.partition,
+                            partition.timestamp,
+                        ));
                     }
-                    resp_topics.push(ListOffsetsTopicResponse::new(t.name.clone(), parts));
                 }
-                st.last_list_offsets_n = Some(n);
-                if any_leader {
-                    st.last_list_offsets_node = Some(node_id);
-                }
-                encode_list_offsets_topics_response(&mut body, header.api_version, &resp_topics)
+                let raw = st
+                    .list_offsets_raw_responses
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                if let Some(raw) = raw {
+                    body.extend_from_slice(&raw);
+                } else {
+                    let mut n = 0usize;
+                    let mut any_leader = false;
+                    let mut resp_topics = Vec::with_capacity(topics.len());
+                    for t in &topics {
+                        let mut parts = Vec::with_capacity(t.partitions.len());
+                        for p in &t.partitions {
+                            n = n.saturating_add(1);
+                            let (on_leader, part) = list_offsets_partition_result(
+                                &mut st,
+                                node_id,
+                                &t.name,
+                                p.partition,
+                                p.current_leader_epoch,
+                                p.timestamp,
+                            );
+                            any_leader = any_leader || on_leader;
+                            parts.push(part);
+                        }
+                        resp_topics.push(ListOffsetsTopicResponse::new(t.name.clone(), parts));
+                    }
+                    st.last_list_offsets_n = Some(n);
+                    if any_leader {
+                        st.last_list_offsets_node = Some(node_id);
+                    }
+                    encode_list_offsets_topics_response(
+                        &mut body,
+                        header.api_version,
+                        &resp_topics,
+                    )
                     .unwrap();
+                }
             }
             INIT_PRODUCER_ID => {
                 let (tid, txn_timeout, producer_id, producer_epoch) =
