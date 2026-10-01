@@ -39,7 +39,7 @@ must not enable auto-release; command is `release-pr`). Do not re-cut `0.1.0`.
 
 ## No-publish recovery rehearsal (KL08-07)
 
-The [executed source `3109514` report](evidence/releases/3109514bc9aa30def679d43fdd823d2c71138ab1-no-publish-rehearsal.json)
+The [executed source `3109514` report](https://github.com/mingley/partitionline/blob/90ebae57bf87a420d5fa69bd14fe7cdfa7553ac9/docs/evidence/releases/3109514bc9aa30def679d43fdd823d2c71138ab1-no-publish-rehearsal.json)
 records all 15 cases passing with six actual release stages left as owner actions.
 
 From a clean committed checkout, run:
