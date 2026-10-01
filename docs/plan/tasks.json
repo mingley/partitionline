@@ -1605,7 +1605,7 @@
       "title": "Honor producer broker throttle intervals",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL02-06",
@@ -1626,7 +1626,35 @@
         "cargo test --locked --test full_surface produce",
         "Use deterministic delayed-peer assertions to check broker-specific scheduling."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "6e58f9af46687525942e223649ffde3cb257e8e4",
+          "commands": [
+            "cargo test --locked --lib throttle (stable 1.98.1 and MSRV 1.85.0)",
+            "cargo test --locked --test full_surface produce (48 passed on stable 1.98.1 and MSRV 1.85.0)",
+            "cargo test --locked --test produce_cancel --test buffer_ownership (15 + 12 passed)",
+            "cargo build --locked --example verifiable_producer --example verifiable_consumer; cargo test --locked --all-targets (1743 passed, zero failed, 3 explicit ignored broker/oracle profiles)",
+            "cargo +1.99.0 clippy --locked --all-targets --all-features -- -D warnings",
+            "RUSTUP_TOOLCHAIN=1.99.0 scripts/ci-docs.sh (strict rustdoc and 4 doctests)",
+            "RUSTUP_TOOLCHAIN=1.99.0 bash scripts/ci-alloc-budget.sh (both serial census tests passed; budgets unchanged by this card)",
+            "python3 -B -m unittest discover -s tests/conformance -p test_*.py (49 passed)",
+            "python3 -B -m unittest discover -s tests/docs -p test_*.py after sourcing /workspace/.cloud-setup/env.sh (18 passed)",
+            "python3 -B scripts/check-protocol-coverage.py (66 implemented APIs, 38 classified gaps, zero unclassified drift)",
+            "JDK 21 javac/java ProduceThrottleReference against checksum-verified Apache kafka-clients 4.3.1"
+          ],
+          "results": "1743 full-suite tests passed; 48 producer tests on stable and MSRV; lifecycle 27, unit 71 per toolchain, strict Rust 1.99 Clippy/docs passed. Hosted tests and all three current brokers passed; unrelated census failure remains diagnostic follow-up.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-08.json"
+          ],
+          "limits": [
+            "Deterministic loopback quota scheduling plus executed pinned Java reference, not a live broker quota deployment or throughput/latency claim.",
+            "Only Produce is covered. Fetch, Admin and group quotas remain separate work.",
+            "Per-broker state prunes inactive expired entries when connections are created; outstanding intervals survive a disconnected socket. Metrics retain no per-response history.",
+            "Hosted artifacts were not downloaded through a denied artifact host; CI observations use authenticated job/check-run metadata. Unexplained hosted allocation failure is preserved rather than reported as green.",
+            "No producer defaults, acknowledgements, error classifications, sequence rules, dependency policy or allocation budgets were changed by this card."
+          ]
+        }
+      ],
       "write_set": [
         "src/producer.rs",
         "src/metrics.rs",
