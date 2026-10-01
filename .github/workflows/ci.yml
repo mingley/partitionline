@@ -252,7 +252,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --locked --manifest-path benchmarks/codec/Cargo.toml --test alloc_budget --test json1k
+      - name: Allocation gate failure-preservation tests
+        run: python3 -B -m unittest discover -s tests/ci -p test_alloc_gate.py
+      - name: Both serial allocation census tests (unchanged budgets)
+        run: bash scripts/ci-alloc-budget.sh
+      - name: Retain compiler identity and complete allocation failure
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: alloc-budget-${{ github.sha }}
+          path: artifacts/alloc-budget/
+          if-no-files-found: error
+          retention-days: 30
 
   # KL09-05 deterministic instruction-count gate. Linux-only (valgrind);
   # on PRs it runs only when codec-adjacent paths changed, on main and
