@@ -2,6 +2,7 @@
 """Retain native platform/toolchain and fail closed on incomplete qualification."""
 import hashlib
 import json
+import os
 import platform
 import re
 import subprocess
@@ -21,6 +22,8 @@ def command(*args):
 
 
 def validate_versions(data):
+    if tuple(map(int, data['python_version'].split('.')[:2])) < (3, 11):
+        raise ValueError('Python 3.11+ package-check prerequisite missing')
     if (data['system'], data['machine'], data['rustc_host']) != (
             'Darwin', 'arm64', 'aarch64-apple-darwin'):
         raise ValueError('native Darwin arm64 compiler/runtime required')
@@ -149,6 +152,9 @@ def main():
         return 0
     except (ValueError, KeyError, TypeError, OSError, subprocess.CalledProcessError) as exc:
         print('macos-arm64 qualification: '+str(exc), file=sys.stderr)
+        if os.environ.get('GITHUB_ACTIONS') == 'true':
+            message = str(exc).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+            print('::error title=macOS qualification report::'+message)
         return 1
 
 

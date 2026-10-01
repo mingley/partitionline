@@ -15,6 +15,16 @@ export CARGO_TERM_COLOR=never
 report="${PL_MACOS_REPORT_DIR:-$ROOT/target/macos-arm64/$toolchain}"
 mkdir -p "$report"
 python3 -B scripts/report-macos-arm64.py capture "$report" "$toolchain"
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+  python3 - "$report/versions.json" "$GITHUB_OUTPUT" <<'PY'
+import json,re,sys
+from pathlib import Path
+v=json.loads(Path(sys.argv[1]).read_text())
+label=f"macos-arm64-{v['requested_toolchain']}-rust{v['rustc_release']}-os{v['macos_version']}-ssl{v['openssl_version'].split()[1]}-py{v['python_version']}-partial-{v['source_sha']}"
+with open(sys.argv[2], 'a') as output:
+    output.write('artifact_name='+re.sub(r'[^A-Za-z0-9_.-]', '_', label)+'\n')
+PY
+fi
 python3 -B -m unittest discover -s tests/platform -p 'test_*.py' 2>&1 | tee "$report/parser-tests.log"
 cargo build --locked --example verifiable_producer --example verifiable_consumer 2>&1 | tee "$report/build-default.log"
 cargo test --locked --all-targets 2>&1 | tee "$report/default-tests.log"
