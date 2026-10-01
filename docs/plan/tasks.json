@@ -1603,13 +1603,42 @@
     {
       "id": "KL05-08",
       "title": "Honor producer broker throttle intervals",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL02-06", "KL03-11"],
-      "files": ["src/producer.rs", "src/metrics.rs", "tests/full_surface.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL02-06",
+        "KL03-11"
+      ],
+      "files": [
+        "src/producer.rs",
+        "src/metrics.rs",
+        "tests/full_surface.rs"
+      ],
       "deliverable": "Version-aware per-broker scheduling from Produce throttle responses.",
-      "acceptance": ["Do not discard throttle_time_ms or sleep unrelated brokers.", "Throttle waiting consumes the existing delivery deadline and remains interruptible by shutdown.", "Expose bounded throttle counters/time and test changing/zero/invalid values without weakening durability."],
-      "validation": ["cargo test --locked --test full_surface produce", "Use deterministic delayed-peer assertions to check broker-specific scheduling."],
-      "evidence": []
+      "acceptance": [
+        "Do not discard throttle_time_ms or sleep unrelated brokers.",
+        "Throttle waiting consumes the existing delivery deadline and remains interruptible by shutdown.",
+        "Expose bounded throttle counters/time and test changing/zero/invalid values without weakening durability."
+      ],
+      "validation": [
+        "cargo test --locked --test full_surface produce",
+        "Use deterministic delayed-peer assertions to check broker-specific scheduling."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/producer.rs",
+        "src/metrics.rs",
+        "tests/full_surface.rs",
+        "tests/common/mod.rs",
+        "docs/guide.md",
+        "docs/support.md",
+        "tests/conformance/features.json",
+        "CHANGELOG.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL05-08.json"
+      ]
     },
     {
       "id": "KL05-09",
