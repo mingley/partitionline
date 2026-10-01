@@ -67,6 +67,66 @@ async fn valid_raw_acks_still_construct_and_idempotence_normalizes_them() {
     }
 }
 
+async fn assert_negative_fetch_bound(
+    field: &str,
+    set: impl Fn(&mut ConsumerConfig, i32),
+) -> Result<(), String> {
+    for value in [-1, i32::MIN] {
+        let mut cfg = ConsumerConfig::bootstrap(["invalid bootstrap address"]);
+        set(&mut cfg, value);
+        let err = Consumer::new(cfg)
+            .await
+            .err()
+            .ok_or_else(|| format!("{field} accepted negative value {value}"))?;
+        assert!(matches!(err, Error::Protocol(_)), "{field}: {err}");
+        assert!(err.to_string().contains(field), "{field}: {err}");
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn fetch_bounds_reject_negative_max_wait_ms_before_network_io() {
+    assert_negative_fetch_bound("max_wait_ms", |cfg, n| cfg.max_wait_ms = n)
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn fetch_bounds_reject_negative_min_bytes_before_network_io() {
+    assert_negative_fetch_bound("min_bytes", |cfg, n| cfg.min_bytes = n)
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn fetch_bounds_reject_negative_max_bytes_before_network_io() {
+    assert_negative_fetch_bound("max_bytes", |cfg, n| cfg.max_bytes = n)
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn fetch_bounds_reject_negative_partition_bytes_before_network_io() {
+    assert_negative_fetch_bound("max_partition_fetch_bytes", |cfg, n| {
+        cfg.max_partition_fetch_bytes = n;
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn fetch_bounds_accept_zero_and_positive_values() {
+    let mock = common::Mock::start().await;
+    for n in [0, 1] {
+        let cfg = ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(n)
+            .min_bytes(n)
+            .max_bytes(n);
+        let consumer = Consumer::new(cfg).await.unwrap();
+        consumer.close().await.unwrap();
+    }
+}
+
 #[tokio::test]
 async fn send_all_queues_then_returns_offsets() {
     let mock = common::Mock::start().await;

@@ -178,6 +178,7 @@ ships as `0.MINOR` plus a CHANGELOG note.
 | More than one of `sasl_plain`, `sasl_scram`, `sasl_scram_sha512`, `sasl_oauthbearer`, `sasl_oauthbearer_oidc` set (raw fields; the `sasl(..)` builder replaces) | `Protocol` error: set only one |
 | Empty bootstrap list, or every entry blank/unparseable | `Protocol` error: no bootstrap servers |
 | Raw producer `acks` outside `{0, 1, -1}` | `Protocol` error before bootstrap validation or network I/O |
+| Negative consumer `max_wait_ms`, `min_bytes`, `max_bytes`, or `max_partition_fetch_bytes` | `Protocol` naming the field before bootstrap validation or network I/O; zero remains valid |
 | Empty `group.id` at group/share join | `Protocol` error naming `group.id` |
 | Join or poll with no topics and no subscription/assignment | `Protocol` error: no topics / not subscribed |
 | Broker lacks a required ApiVersions range (e.g. no usable Produce/Fetch/Metadata) | `Unsupported` naming the API |
@@ -194,10 +195,10 @@ closes idle connections. `metadata_max_age` zero refreshes on every lookup.
 
 ### Passed through, not validated (caller/broker enforced)
 
-Negative consumer fetch bounds are sent raw.
 `transaction_timeout` above the broker's `transaction.max.timeout.ms`
 fails broker-side with `INVALID_TRANSACTION_TIMEOUT`. Bounded constructor
-validation for the client-side cases is proposed in the KL07-10 evidence.
+validation for raw acknowledgments and consumer fetch bounds is enforced
+under KL07-12 and KL07-15.
 
 ### Defaults that differ from Java
 

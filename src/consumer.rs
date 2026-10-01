@@ -1343,6 +1343,16 @@ impl Consumer {
     /// Connect using `cfg`. Negotiates ApiVersions and optional SASL/TLS.
     pub async fn new(cfg: ConsumerConfig) -> Result<Self> {
         let mut cfg = cfg;
+        for (field, value) in [
+            ("max_wait_ms", cfg.max_wait_ms),
+            ("min_bytes", cfg.min_bytes),
+            ("max_bytes", cfg.max_bytes),
+            ("max_partition_fetch_bytes", cfg.max_partition_fetch_bytes),
+        ] {
+            if value < 0 {
+                return Err(Error::protocol(format!("{field} must be nonnegative")));
+            }
+        }
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let mut conn = BrokerConn::connect_tls_any(
             &cfg.bootstrap,
