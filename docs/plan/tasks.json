@@ -3189,13 +3189,43 @@
     {
       "id": "KL09-34",
       "title": "Decompress fetch batches into validated, pre-sized output",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL09-04", "KL09-05"],
-      "files": ["src/protocol/records.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL09-04",
+        "KL09-05"
+      ],
+      "files": [
+        "src/protocol/records.rs"
+      ],
       "deliverable": "Decompression writes into output sized from validated hints (capped by the 64 MiB decode bound), and framed Snappy decodes without per-chunk allocation and copy.",
-      "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "KL02-03 decompression-bomb and decoded-byte limit tests are unchanged and green."],
-      "validation": ["cargo test --locked --test protocol_oracles", "cargo test --locked --test fuzz_decode_smoke", "cargo test --locked --test fetch_buffer_budget", "bash scripts/ci-protocol-oracles.sh", "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml", "A/B cell micro-decompress:{lz4,gzip,snappy} (allocations, bytes/s): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": []
+      "acceptance": [
+        "Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.",
+        "KL02-03 decompression-bomb and decoded-byte limit tests are unchanged and green."
+      ],
+      "validation": [
+        "cargo test --locked --test protocol_oracles",
+        "cargo test --locked --test fuzz_decode_smoke",
+        "cargo test --locked --test fetch_buffer_budget",
+        "bash scripts/ci-protocol-oracles.sh",
+        "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml",
+        "A/B cell micro-decompress:{lz4,gzip,snappy} (allocations, bytes/s): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/records.rs",
+        "benchmarks/codec/tests/decompress_budget.rs",
+        "benchmarks/codec/benches/iai.rs",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL09-34.json",
+        "docs/evidence/perf/KL09-34/alloc-parent.txt",
+        "docs/evidence/perf/KL09-34/alloc-candidate.txt",
+        "docs/evidence/perf/KL09-34/measurements.json",
+        "docs/evidence/perf/KL09-34/instructions-parent.json",
+        "docs/evidence/perf/KL09-34/instructions-candidate.json"
+      ]
     },
     {
       "id": "KL09-35",
