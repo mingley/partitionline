@@ -1,5 +1,6 @@
 """Incomplete, corrupted or substituted broker cells cannot qualify."""
-import copy
+import contextlib
+import io
 import importlib.util
 import json
 from pathlib import Path
@@ -73,7 +74,8 @@ class BrokerCompatibility(unittest.TestCase):
             (directory/'identity.json').write_text(json.dumps(identity))
             (directory/'runtime.log').write_text(runtime_text(result))
             java_files(directory,result)
-            report.finish(directory,CELL['version'],SOURCE)
+            with contextlib.redirect_stdout(io.StringIO()):
+                report.finish(directory,CELL['version'],SOURCE)
             self.assertEqual(json.loads((directory/'report.json').read_text())['status'],'passed')
 
     def test_substitution_or_incomplete_scenarios_fail(self):

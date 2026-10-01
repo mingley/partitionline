@@ -160,6 +160,7 @@ async fn run() -> partitionline::Result<()> {
     assert!(requested.contains("@sha256:"));
     let input = format!("{prefix}-input");
     let output = format!("{prefix}-output");
+    eprintln!("compatibility phase: admin-connect");
     let mut admin = Admin::connect(bootstrap.clone()).await?;
     let api_ranges: BTreeMap<_, _> = admin
         .versions()
@@ -172,6 +173,7 @@ async fn run() -> partitionline::Result<()> {
             "required API {key} absent"
         );
     }
+    eprintln!("compatibility phase: admin-features");
     let features = admin.describe_features().await?;
     let finalized_features: BTreeMap<_, _> = features
         .finalized_features
@@ -196,6 +198,7 @@ async fn run() -> partitionline::Result<()> {
             "required feature {name} disabled"
         );
     }
+    eprintln!("compatibility phase: admin-create-topics");
     for result in admin
         .create_topics(
             &[NewTopic::new(&input, 2, 1), NewTopic::new(&output, 1, 1)],
@@ -210,6 +213,7 @@ async fn run() -> partitionline::Result<()> {
             result.name, result.error_message
         );
     }
+    eprintln!("compatibility phase: admin-offsets");
     let mut scenarios = BTreeSet::new();
     assert_eq!(
         admin
@@ -222,6 +226,7 @@ async fn run() -> partitionline::Result<()> {
         2
     );
     assert!(scenarios.insert("admin"));
+    eprintln!("compatibility phase: produce");
     let producer = Producer::new(producer_config(&bootstrap)).await?;
     let timestamp = i64::try_from(
         SystemTime::now()
@@ -269,6 +274,7 @@ async fn run() -> partitionline::Result<()> {
     producer.flush().await?;
     producer.close().await?;
     assert!(scenarios.insert("produce"));
+    eprintln!("compatibility phase: manual");
     let mut manual = Consumer::new(consumer_config(&bootstrap)).await?;
     manual
         .assign_many([((&input[..], 0), 0), ((&input[..], 1), 0)])
@@ -294,6 +300,7 @@ async fn run() -> partitionline::Result<()> {
     let mut attempts = Vec::new();
     let mut committed_offsets = BTreeMap::new();
     let mut group_ids = BTreeMap::new();
+    eprintln!("compatibility phase: groups");
     for kind in ["classic", "cooperative", "kip848"] {
         let id = format!("{prefix}-{kind}");
         let mut group = join_group(&bootstrap, &id, &input, kind, &mut attempts).await?;
@@ -312,6 +319,7 @@ async fn run() -> partitionline::Result<()> {
         assert!(group_ids.insert(kind, id).is_none());
         assert!(scenarios.insert(kind));
     }
+    eprintln!("compatibility phase: share");
     let share_id = format!("{prefix}-share");
     let changes = [ConfigResourceUpdate::new(
         ConfigResource::group(&share_id),
@@ -340,6 +348,7 @@ async fn run() -> partitionline::Result<()> {
     expected.complete(&seen);
     share.close_timeout(Duration::from_secs(3)).await?;
     assert!(scenarios.insert("share"));
+    eprintln!("compatibility phase: transaction");
     let id = format!("{prefix}-transaction");
     let txn = new_transactional(&bootstrap, &id, &mut attempts).await?;
     let mut group = join_group(&bootstrap, &id, &input, "classic", &mut attempts).await?;
