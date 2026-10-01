@@ -1698,7 +1698,8 @@
         "docs/support.md",
         "CHANGELOG.md",
         "docs/plan/evidence/KL05-07.json",
-        "docs/plan/tasks.json"
+        "docs/plan/tasks.json",
+        "src/group.rs"
       ]
     },
     {
