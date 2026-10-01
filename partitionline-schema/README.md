@@ -11,6 +11,9 @@ features leaves dependency-free wire framing.
 ## Now
 
 - `encode` / `decode`: magic byte `0` + big-endian schema id + payload
+- `protobuf`: bounded Confluent message-index framing (including the special
+  `[0]` encoding), plus `Adapter<Codec>` for an explicitly selected serializer
+  and known writer schema ID. No serializer dependency is selected implicitly.
 - `registry::RegistryClient` (default feature `registry`): bounded
   read-only Schema Registry lookups (by id, by subject/version, plus
   reference resolution). No registration or mutation APIs.
@@ -47,9 +50,33 @@ caller-owned result clones/futures are separate. Applications must bound their
 own callers and retained results. Configuration limits and maximums are in the
 Rustdoc for `RegistryCacheConfig`.
 
-## Later (demand-gated)
+## Protobuf bounds and schema selection
 
-Avro / Protobuf / JSON codecs — see
+Generic five-byte `encode` / `decode` do **not** parse Protobuf indexes. Use
+`protobuf::encode` / `protobuf::decode` for that format. Defaults bound the
+complete frame to 1 MiB and its index path to 32 entries; `Limits::new` permits
+6 bytes–64 MiB and 1–1024 indexes. Payload decoding borrows the original data;
+only a bounded index vector is allocated. Encoding checks every limit before
+reserving output. Negative fields, truncated/overflowing varints, invalid paths
+and size errors are structured failures. Valid nonminimal varints are readable.
+
+`Adapter` captures one codec's descriptor path and writer schema ID, rejecting
+unknown IDs or different selected messages before invoking the decoder. It
+asks for exact encoded length, allocates one bounded frame and gives the codec
+only its payload slice. The application chooses and configures the serializer,
+writer descriptor and imported schemas explicitly. Registry lookups/reference
+resolution are separate; no lookup, registration, compatibility assumption or
+recursive reference fetch is hidden in the adapter. Codec-internal scratch and
+decoded-object/recursion limits remain the chosen codec's responsibility; the
+frame bound is not an RSS or decoded-object bound.
+
+The pinned [offline oracle](tests/oracles/protobuf/README.md) checks Confluent
+8.1.0 indexes and Google protoc 3.21.12 payloads in both directions, including a
+nested message with an imported schema. No live registry/broker is claimed.
+
+## Later (demand-gated libraries)
+
+Built-in Avro / Protobuf / JSON serialization libraries — see
 [`docs/schema-companion.md`](../docs/schema-companion.md) and survey
 [#85](https://github.com/mingley/partitionline/issues/85).
 

@@ -1,0 +1,9 @@
+syntax = "proto3";
+package fixture;
+import "common.proto";
+message First { string text = 1; }
+message Outer {
+  message Inner { int32 value = 1; }
+  message Envelope { fixture.common.Metadata metadata = 1; bytes body = 2; }
+  string label = 1;
+}

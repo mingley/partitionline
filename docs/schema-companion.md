@@ -78,6 +78,40 @@ returns an error without a partial vector; successful earlier individual
 lookups may remain cached. Deterministic loopback tests cover cancellation,
 coalescing, eviction, expiry and failed fetches; no live registry is claimed.
 
+## Protobuf message indexes and adapter (KL05-26)
+
+The dependency-free `protobuf` module adds the Confluent message-index path
+after the five-byte header. `[0]` has its special one-byte zero encoding; other
+paths encode a zigzag length followed by nonnegative zigzag indexes. Generic
+five-byte framing alone is not Protobuf framing, and neither vendor framing nor
+payload serialization establishes Kafka protocol conformance.
+
+Complete frames default to 1 MiB and paths to 32 entries. Validated limits permit
+6 bytes–64 MiB and 1–1024 indexes. Decode borrows payload data and owns only a
+bounded index vector; encode checks size/depth before reserving output. Negative
+counts/indexes, truncated or overflowing five-byte varints, invalid paths and
+over-limit frames have structured errors. Valid nonminimal varints and explicit
+length-one `[0]` remain readable; emitted `[0]` is canonical.
+
+`Adapter<Codec>` selects one known writer schema ID and captures the codec's
+message path. Unknown IDs or different messages fail before payload decoding.
+Applications explicitly choose their serializer, writer descriptor and imported
+schemas. The codec reports exact encoded length and writes into the adapter's
+bounded slice, avoiding a second library-owned payload buffer. Registry lookup
+and reference resolution remain separate operations with their own documented
+bounds; no hidden registration, recursive fetch or compatibility policy exists.
+Codec-internal allocations, decoded objects and descriptor recursion need the
+chosen library's own limits. No serialization-library dependency or default
+feature is added to either core or companion.
+
+The companion's offline peer (`partitionline-schema/tests/oracles/protobuf/README.md`)
+pins Confluent Schema Registry 8.1.0 source, Apache Kafka 4.1.0 distribution
+ByteUtils, JDK 21.0.12.1 and Google protoc 3.21.12. It generates independent
+frames/payloads and checks actual Rust-emitted output in the reverse direction,
+including an imported-schema nested message. The fixture-only descriptor codecs
+do not promise a production built-in Protobuf serializer. Live Schema Registry
+and Kafka integration are not qualified by these offline checks.
+
 ## Why a companion
 
 Operators often need Confluent-compatible wire (Avro / Protobuf / JSON Schema

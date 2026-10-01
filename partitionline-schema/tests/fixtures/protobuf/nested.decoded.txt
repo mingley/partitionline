@@ -1,0 +1,5 @@
+metadata {
+  id: 300
+  source: "reference.proto"
+}
+body: "hello"

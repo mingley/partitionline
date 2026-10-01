@@ -1407,10 +1407,10 @@
     "id": "schema_ecosystem.protobuf",
     "profile": "schema ecosystem",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/schema-companion.md",
-    "notes": "Confluent-compatible Protobuf message-index framing adapter; companion crate, tracked in KL05-26."
+    "disposition": "present",
+    "entrypoint": "partitionline_schema::protobuf::{encode,decode,Adapter}",
+    "evidence": "partitionline-schema/tests/protobuf.rs",
+    "notes": "KL05-26: bounded Confluent message-index framing, special [0], and a known-writer/schema-path Adapter with caller-selected Codec. Independent Confluent 8.1.0 and Google protoc 3.21.12 fixtures in both directions. No built-in serializer, hidden registration/reference fetch or live-registry qualification; companion remains unpublished and outside core."
   },
   {
     "id": "schema_ecosystem.json_schema",

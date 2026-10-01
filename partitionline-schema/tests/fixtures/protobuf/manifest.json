@@ -1,0 +1,81 @@
+{
+  "confluent_version": "8.1.0",
+  "confluent_commit": "039a339d824debade488573769ad17b0d9975643",
+  "message_indexes_sha256": "d1e82aa164930437627f8d94723963c43f42ffa427af559ba70f814598c0103c",
+  "source_license": "Confluent Community License; fetched externally, not vendored or a runtime dependency",
+  "kafka_version": "4.1.0",
+  "kafka_jar_origin": "apache/kafka:4.1.0 distribution",
+  "kafka_jar_sha256": "180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb",
+  "jdk": "21.0.12.1",
+  "protoc": "libprotoc 3.21.12",
+  "proto_sha256": {
+    "common.proto": "b54ab6dd32017c4a90686d2b924486772ec42ca8b2bba790d5fe60ea337a0fba",
+    "messages.proto": "07e06064ecb307214d41047afb3cd7a0f47e0b793bd45750c12ccf8484144f80"
+  },
+  "cells": [
+    {
+      "name": "first",
+      "schema_id": 42,
+      "message": "fixture.First",
+      "indexes": [
+        0
+      ],
+      "frame_sha256": "c4c2607675207f882033d58d70714b253a9bae214512be3895706b190e20edbe",
+      "payload_sha256": "50ee8231ac5be6b674d35e806db2900dd4048450d29a8598559a9c0d088cc7e3",
+      "text": "text: \"hello\"",
+      "qualification": "framing and Google payload"
+    },
+    {
+      "name": "outer",
+      "schema_id": 42,
+      "message": "fixture.Outer",
+      "indexes": [
+        1
+      ],
+      "frame_sha256": "74acfc9cc73a8ee3a31565b7ef2e6577e48edb89fdacbcecd72dc7430acac8f0",
+      "payload_sha256": "98c91d6cf27fe52510f9728238b58a0dd279043db5b937ac3bb6fa2c00360372",
+      "text": "label: \"top-level\"",
+      "qualification": "framing and Google payload"
+    },
+    {
+      "name": "nested",
+      "schema_id": 42,
+      "message": "fixture.Outer.Envelope",
+      "indexes": [
+        1,
+        1
+      ],
+      "frame_sha256": "5a1842557468a92397a0f2bc2f8c07d3a300aaaf651d320598279aa3221ba5ca",
+      "payload_sha256": "ef23d8238a2b6108ed4925745b5264b857988db5bf660b6459d8b5fd7be69142",
+      "text": "metadata { id: 300 source: \"reference.proto\" } body: \"hello\"",
+      "qualification": "framing and Google payload"
+    },
+    {
+      "name": "empty",
+      "schema_id": 42,
+      "message": "fixture.First",
+      "indexes": [
+        0
+      ],
+      "frame_sha256": "b635579aa35f21e456a6884d71d9139016c64a5652384dbc8d0c9f5c2c9572e0",
+      "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": "",
+      "qualification": "framing and Google payload"
+    },
+    {
+      "name": "varints",
+      "schema_id": 42,
+      "message": null,
+      "indexes": [
+        0,
+        64,
+        8192,
+        2147483647
+      ],
+      "frame_sha256": "050568c70c6542293c3255775a577915a57a793e8c77282c841d1b03ea97c2c3",
+      "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": "",
+      "qualification": "framing-only numeric boundaries"
+    }
+  ]
+}

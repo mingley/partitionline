@@ -1,0 +1,3 @@
+syntax = "proto3";
+package fixture.common;
+message Metadata { uint64 id = 1; string source = 2; }

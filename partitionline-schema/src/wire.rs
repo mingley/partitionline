@@ -1,6 +1,9 @@
 //! Confluent wire framing: magic `0` + BE `u32` schema id + payload.
 //!
 //! Spec: Confluent Schema Registry wire format (single-record embedding).
+//! Protobuf also requires a message-index path before its payload; use
+//! [`crate::protobuf`] for that format. These generic helpers only parse the
+//! five-byte header and do not claim Protobuf compatibility on their own.
 
 /// Confluent magic byte for schema-registry-framed payloads.
 pub const MAGIC: u8 = 0;

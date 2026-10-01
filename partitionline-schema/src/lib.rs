@@ -7,13 +7,16 @@
 //! ([`registry::RegistryClient`]). There is intentionally no schema
 //! registration or mutation API here.
 //!
-//! Avro/Protobuf/JSON codecs wait on adopter demand
+//! [`protobuf`] also offers bounded message-index framing and a caller-selected
+//! codec contract, without adding a serialization dependency. Built-in
+//! Avro/Protobuf/JSON serialization libraries wait on adopter demand
 //! (survey [#85](https://github.com/mingley/partitionline/issues/85)); see
 //! `docs/schema-companion.md`.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod protobuf;
 #[cfg(feature = "registry")]
 pub mod registry;
 mod wire;
