@@ -1,0 +1,112 @@
+{
+  "id": "KL07-04",
+  "status": "done",
+  "source_sha": "c719a5609eaa022e514be6fe91dfcb4363a9289e",
+  "acceptance_met": [
+    "Guide states prerequisites, creates its own broker/topic/group, bounds setup/build/runtime commands, and removes only the exercise container/temp directory.",
+    "A fresh downstream crate depends exclusively on a clean packed .crate extracted outside the repository. Guide source, emitter output and the standalone main.rs are identical.",
+    "The program acknowledges one record, checks processing/payload/offset, commits next_offsets only after all processing succeeds with auto commit disabled, checks committed position, closes producer and leaves group. Kafka CLI independently reports committed=1, log-end=1, lag=0, no active members.",
+    "Guide covers admission/ack, QueueFull/backpressure, timeout ambiguity, delivered/committed positions, offset+1, idempotent processing and cleanup. Artifact is labeled unpublished HEAD, not a crates.io release."
+  ],
+  "commands": [
+    "CARGO_TARGET_DIR=/workspace/.cloud-setup/quickstart-package cargo package --locked --no-verify",
+    "tar -xzf /workspace/.cloud-setup/quickstart-package/package/partitionline-0.1.0.crate -C /tmp/partitionline-quickstart-final",
+    "source scripts/lib/adopter-consumer-main.sh; pl_write_quickstart_consumer_main /tmp/partitionline-quickstart-final/client/src/main.rs",
+    "CARGO_TARGET_DIR=/workspace/.cloud-setup/quickstart-target cargo build --manifest-path /tmp/partitionline-quickstart-final/client/Cargo.toml",
+    "docker run -d --name partitionline-plan-kafka -p 127.0.0.1:9092:9092 apache/kafka:4.1.0 (owned isolated container only)",
+    "timeout 30s docker exec partitionline-plan-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic pl-quickstart-final-20261001 --partitions 1 --replication-factor 1",
+    "KAFKA_TOPIC=pl-quickstart-final-20261001 KAFKA_GROUP=pl-quickstart-final-20261001 KAFKA_BOOTSTRAP=127.0.0.1:9092 timeout 35s /workspace/.cloud-setup/quickstart-target/debug/partitionline-quickstart-final",
+    "timeout 30s docker exec partitionline-plan-kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group pl-quickstart-final-20261001",
+    "cargo +1.85.0 check --locked --manifest-path /tmp/partitionline-quickstart-proof/client/Cargo.toml (same program and dependency resolution, passed)",
+    "bash -n scripts/lib/adopter-consumer-main.sh; cargo fmt --check",
+    "Byte comparison of guide/emitter/downstream program and exact expected output"
+  ],
+  "package": {
+    "name": "partitionline",
+    "version": "0.1.0",
+    "source_sha": "c719a5609eaa022e514be6fe91dfcb4363a9289e",
+    "dirty": false,
+    "sha256": "79f52f9e9d15d45ef251bc0ef8f2f5e9e0c0406fea222cc39c8350d31a4c10c7",
+    "publication": "unpublished HEAD"
+  },
+  "broker": {
+    "requested": "apache/kafka:4.1.0",
+    "actual_version": "4.1.0 (Kafka CLI --version)",
+    "digest": "apache/kafka@sha256:bff074a5d0051dbc0bbbcd25b045bb1fe84833ec0d3c7c965d1797dd289ec88f",
+    "scope": "Task-owned loopback-only container; synthetic topic/group names"
+  },
+  "results": {
+    "stdout": [
+      "ack partition=0 offset=0",
+      "processed partition=0 offset=0 bytes=31",
+      "committed next_offset=1",
+      "closed producer and left group"
+    ],
+    "offset_audit": [
+      "",
+      "Consumer group 'pl-quickstart-final-20261001' has no active members.",
+      "",
+      "GROUP                        TOPIC                        PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID",
+      "pl-quickstart-final-20261001 pl-quickstart-final-20261001 0          1               1               0               -               -               -"
+    ],
+    "downstream_build": "passed",
+    "fresh_broker_run": "passed",
+    "clean_packed_snapshot_run": "passed",
+    "downstream_msrv_check": "passed"
+  },
+  "downstream_dependencies": {
+    "tokio": [
+      "1.53.1"
+    ],
+    "tokio-rustls": [
+      "0.26.6"
+    ],
+    "rustls": [
+      "0.23.45"
+    ],
+    "snap": [
+      "1.1.2"
+    ],
+    "flate2": [
+      "1.1.10"
+    ],
+    "getrandom": [
+      "0.2.17",
+      "0.4.3"
+    ]
+  },
+  "retained_attempts": [
+    {
+      "attempt": 1,
+      "outcome": "failed",
+      "reason": "Fresh broker returned NOT_COORDINATOR while loading offsets partitions after the produce was acknowledged; caller retry was absent."
+    },
+    {
+      "attempt": 2,
+      "outcome": "failed-as-expected",
+      "reason": "Reused first-attempt topic: the strict check rejected leftover records and no batch offset was committed."
+    },
+    {
+      "attempt": 3,
+      "outcome": "passed",
+      "reason": "Bounded join retries without repeating produce, fresh cold broker/topic/group, processed one record and committed next offset 1."
+    },
+    {
+      "attempt": 4,
+      "outcome": "passed",
+      "reason": "Exact clean package, second fresh downstream crate and fresh topic/group; Java offset audit confirms outcome."
+    }
+  ],
+  "artifacts": [
+    "docs/plan/evidence/KL07-04.json",
+    "docs/guide.md",
+    "scripts/lib/adopter-consumer-main.sh",
+    "https://github.com/mingley/partitionline/commit/c719a5609eaa022e514be6fe91dfcb4363a9289e"
+  ],
+  "limits": [
+    "One local exercise; does not satisfy the two independent newcomer exercises in KL07-09.",
+    "Downstream resolves its own semver dependencies rather than inheriting the library Cargo.lock; the resolved versions above also passed a Rust 1.85 check.",
+    "Owned tutorial topics/groups are cleaned after the exercise; the isolated broker remains available for subsequent planned checks."
+  ],
+  "blocked_reason": null
+}

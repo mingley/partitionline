@@ -2163,7 +2163,7 @@
       "title": "Write and run a fresh-package quickstart",
       "priority": "P1",
       "kind": "documentation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL07-03",
@@ -2185,7 +2185,9 @@
         "Run the tutorial from a fresh downstream crate against an approved isolated broker.",
         "Record complete commands and expected output without credentials or private topic names."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL07-04.json"
+      ],
       "write_set": [
         "docs/guide.md",
         "examples/produce.rs",
