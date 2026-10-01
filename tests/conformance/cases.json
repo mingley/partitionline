@@ -1637,6 +1637,48 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "KL01-15: verifiable_consumer_failed_commit_preserves_attempted_offsets forces GROUP_AUTHORIZATION_FAILED in the shared mock; validates success:false, error, topic/partition and final attempted next offset 3 while no commit is stored. Compared with pinned Apache 3.9.1 VerifiableConsumer commit callback. Local scenario only; no live-broker or ducktape-suite qualification."
+    },
+    {
+      "id": "verifiable-producer-options-3-9-1",
+      "api_family": null,
+      "api_version": null,
+      "profile": "ecosystem",
+      "adapter": "verifiable-scenario",
+      "source_pin": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+      "immutable_source_pin": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+      "peer_version_pin": "3.9.1",
+      "peer_pin": "3.9.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "KL01-16: verifiable_producer_options_and_earliest_consumer produces six records at five/second with explicit create time, repeating keys and value prefix; checks paced elapsed time, accumulated wire timestamps bounded by ack events, earliest adapter delivery of all keys/values/offsets and stored next offset 6. Pinned Apache 3.9.1 source contract, mock broker only; no live or ducktape qualification."
+    },
+    {
+      "id": "verifiable-consumer-reset-policies-3-9-1",
+      "api_family": null,
+      "api_version": null,
+      "profile": "ecosystem",
+      "adapter": "verifiable-scenario",
+      "source_pin": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+      "immutable_source_pin": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+      "peer_version_pin": "3.9.1",
+      "peer_pin": "3.9.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "KL01-16: verifiable_consumer_latest_and_none_reset_policies seeds an old record before join, then validates latest delivers only new offset 1 and stores 2; none without stored offset exits with explicit error and no delivery/commit; none with stored offset resumes at 2 and stores 3. Local mock contract only; no live or ducktape qualification."
+    },
+    {
+      "id": "verifiable-consumer-autocommit-3-9-1",
+      "api_family": null,
+      "api_version": null,
+      "profile": "ecosystem",
+      "adapter": "verifiable-scenario",
+      "source_pin": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+      "immutable_source_pin": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+      "peer_version_pin": "3.9.1",
+      "peer_pin": "3.9.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "KL01-16: verifiable_consumer_autocommit_has_no_manual_commit_events delivers offset 0, waits for interval auto-commit to store next offset 1, then delivers offset 1 and exits; every stdout line validated and no offsets_committed events. Final poll is not automatically committed on close by current root contract. Local mock proof only; no Java close-parity, live or ducktape qualification."
     }
   ]
 }

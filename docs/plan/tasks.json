@@ -404,7 +404,7 @@
       "title": "Cover verifiable producer option matrix and consumer reset policies",
       "priority": "P2",
       "kind": "test-infrastructure",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL01-09"
@@ -425,7 +425,9 @@
         "cargo test --locked --test verifiable_contract",
         "Validate the new scenario event streams against the pinned 3.9.1 contract."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/plan/evidence/KL01-16.json"
+      ],
       "write_set": [
         "examples/verifiable_producer.rs",
         "examples/verifiable_consumer.rs",
@@ -435,7 +437,8 @@
         "tests/conformance/test_report.py",
         "docs/plan/tasks.json",
         "docs/plan/evidence/KL01-16.json"
-      ]
+      ],
+      "blocked_reason": null
     },
     {
       "id": "KL01-17",
@@ -4250,13 +4253,36 @@
     {
       "id": "KL10-03",
       "title": "Add a 1 KiB JSON-like payload family to the codec microbenchmarks",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
-      "depends_on": ["KL09-04", "KL09-05"],
-      "files": ["benchmarks/codec/", "docs/plan/performance-leadership.md"],
+      "priority": "P1",
+      "kind": "benchmark",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL09-04",
+        "KL09-05"
+      ],
+      "files": [
+        "benchmarks/codec/",
+        "docs/plan/performance-leadership.md"
+      ],
       "deliverable": "micro-compress:<codec>:json1k and micro-decompress:<codec>:json1k cells (gzip, lz4, snappy) over seeded JSON-like 1 KiB records at 16 KiB and 256 KiB batches, plus a raw-backend baseline that compresses the same bytes in one call, so client feed overhead is separable from backend speed.",
-      "acceptance": ["Allocation and instruction baselines are recorded for the new cells; existing baselines are unchanged.", "The cells are listed in performance-leadership.md section 4 with their builder card.", "Payloads are seeded and deterministic; the report includes the compression ratio per cell."],
-      "validation": ["cargo test --locked --manifest-path benchmarks/codec/Cargo.toml", "cargo bench --manifest-path benchmarks/codec/Cargo.toml -- json1k (record command and output)"],
-      "evidence": []
+      "acceptance": [
+        "Allocation and instruction baselines are recorded for the new cells; existing baselines are unchanged.",
+        "The cells are listed in performance-leadership.md section 4 with their builder card.",
+        "Payloads are seeded and deterministic; the report includes the compression ratio per cell."
+      ],
+      "validation": [
+        "cargo test --locked --manifest-path benchmarks/codec/Cargo.toml",
+        "cargo bench --manifest-path benchmarks/codec/Cargo.toml -- json1k (record command and output)"
+      ],
+      "evidence": [],
+      "write_set": [
+        "benchmarks/codec/",
+        "docs/plan/performance-leadership.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL10-03.json",
+        "docs/evidence/perf/KL10-03/"
+      ]
     },
     {
       "id": "KL10-04",

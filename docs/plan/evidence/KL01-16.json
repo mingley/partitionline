@@ -1,0 +1,61 @@
+{
+  "id": "KL01-16",
+  "status": "done",
+  "source_sha": "3e1803560e081d44f8e5ae4a3e4b449f69ff0a54",
+  "peer_sources": [
+    {
+      "source": "https://github.com/apache/kafka/blob/ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c/tools/src/main/java/org/apache/kafka/tools/VerifiableProducer.java",
+      "sha256": "abd0b6cbca72e32d9bd2dde91c7e5010a79b81048b21179ede94292761c675d6"
+    },
+    {
+      "source": "https://github.com/apache/kafka/blob/ce24d9b6aedca74f53c26f1ad2b2cc8ad950a03c/tools/src/main/java/org/apache/kafka/tools/VerifiableConsumer.java",
+      "sha256": "9a3c67a574806b12a67a0e09e7ebf0856cd5498590bbe0fed3971128a1e615f6"
+    }
+  ],
+  "acceptance_met": [
+    "Six-record five/second producer proves throttle interval (at least 1150ms including final wait), sent/acked/target/average summary, exact alternating keys and prefixed values. Wire readback proves explicit initial create time and cumulative elapsed-time sequencing within observable event bounds. Earliest adapter readback matches all records and commits 6.",
+    "Latest ignores pre-join record, delivers post-join offset 1 and stores 2. None without commit rejects join without resetting/delivering; none with stored commit resumes offset 2 and stores 3.",
+    "Auto-commit run proves interval stores the first delivered next offset while JSON suppresses manual commit callbacks; second record ends bounded run. Three source-pinned local_consistency registry cases added (105 total, 85 denominator, 20 exclusions)."
+  ],
+  "commands": [
+    "cargo test --locked --test verifiable_contract",
+    "cargo +1.85.0 test --locked --test verifiable_contract",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings",
+    "cargo fmt --check",
+    "python3 -B -m unittest discover -s tests/conformance",
+    "python3 -B scripts/check-protocol-coverage.py"
+  ],
+  "results": {
+    "stable": {
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 5.07
+    },
+    "msrv_1_85": {
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 5.06
+    },
+    "conformance_python": {
+      "passed": 44,
+      "failed": 0
+    },
+    "fmt": "passed",
+    "clippy": "passed",
+    "coverage": "passed"
+  },
+  "artifacts": [
+    "tests/verifiable_contract.rs",
+    "tests/conformance/cases.json",
+    "https://github.com/mingley/partitionline/commit/3e1803560e081d44f8e5ae4a3e4b449f69ff0a54"
+  ],
+  "limits": [
+    "Mock broker is not an independent live Apache oracle or a full ducktape run. Producer adapter sends sequentially, unlike Java asynchronous callbacks; pacing is its documented approximate rate contract.",
+    "Creation-time checks assume the local wall clock does not jump backwards; timing bounds allow scheduler delay and do not assert controlled performance.",
+    "None rejects during join with exit 1; this test does not claim Java error lifecycle parity.",
+    "Current group close flushes existing async commits but does not automatically commit the final delivered poll. Auto mode proves interval commit and callback suppression, not final close commit parity with Java."
+  ],
+  "blocked_reason": null
+}
