@@ -2370,7 +2370,7 @@
       "title": "Compile actual Markdown snippets and check links",
       "priority": "P1",
       "kind": "test-infrastructure",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "depends_on": [
         "KL07-02",
@@ -2391,7 +2391,49 @@
         "Run the documentation checker's own negative tests.",
         "Compile all registered public snippets against the packed crate in CI."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "452d34dd2f08c33e9ea5c040107b1fb6034a7389",
+          "commands": [
+            "python3 -B -m unittest discover -s tests/docs -p 'test_*.py'",
+            "python3 -B scripts/check-doc-examples.py --report /workspace/.cloud-setup/kl07-05-clean-report.json",
+            "cargo package --locked --no-verify (checker child command, clean tree)",
+            "cargo generate-lockfile --manifest-path <temporary standalone consumer>/Cargo.toml",
+            "cargo test --locked --doc --manifest-path <temporary standalone consumer>/Cargo.toml"
+          ],
+          "results": {
+            "checker_tests": {
+              "passed": 11,
+              "failed": 0
+            },
+            "packed_snippets": {
+              "passed": 18,
+              "failed": 0,
+              "ignored": 0
+            },
+            "local_links": 42,
+            "ci_docs_job": {
+              "run_id": 36825464670,
+              "head_sha": "452d34dd2f08c33e9ea5c040107b1fb6034a7389",
+              "conclusion": "success",
+              "url": "https://github.com/mingley/partitionline/actions/runs/36825464670"
+            }
+          },
+          "artifacts": [
+            "scripts/check-doc-examples.py",
+            "tests/docs/registry.json",
+            "tests/docs/test_check_doc_examples.py",
+            "tests/docs/README.md",
+            "docs/plan/evidence/KL07-05.json",
+            "https://github.com/mingley/partitionline/commit/452d34dd2f08c33e9ea5c040107b1fb6034a7389"
+          ],
+          "limits": [
+            "Initial registration covers README, operator guide and migration document; it does not claim every archived/research document is compiled. Adding Rust fences to registered documents automatically expands the gate.",
+            "Navigation checker supports documented flat backtick/tilde fences, ATX heading anchors and explicit HTML anchors. No external HTTP link checking or broker-dependent snippet execution.",
+            "Ignored Rust fences require adjacent documented reasons and never count as compiled; the current public registration has zero ignored snippets."
+          ]
+        }
+      ],
       "write_set": [
         "scripts/check-doc-examples.py",
         "tests/docs/",
@@ -2403,13 +2445,39 @@
     {
       "id": "KL07-06",
       "title": "Document delivery, cancellation and transaction recipes",
-      "priority": "P1", "kind": "documentation", "status": "pending", "owner": null,
-      "depends_on": ["KL03-07", "KL03-10", "KL02-05"],
-      "files": ["docs/guide.md", "examples/eos.rs", "docs/migrate-from-rdkafka.md"],
+      "priority": "P1",
+      "kind": "documentation",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL03-07",
+        "KL03-10",
+        "KL02-05"
+      ],
+      "files": [
+        "docs/guide.md",
+        "examples/eos.rs",
+        "docs/migrate-from-rdkafka.md"
+      ],
       "deliverable": "Recipes tied to the repaired contracts for processing/commit, retry, shutdown and exactly-once boundaries.",
-      "acceptance": ["State when work is accepted, acknowledged, delivered, committed, failed or ambiguous.", "Explain capped polls, pause/rebalance, external side effects, abort/fencing and safe restart offsets.", "Every recipe has a bounded runnable example and named regression evidence; do not claim universal Java equivalence."],
-      "validation": ["Run the Markdown example checker.", "Run the targeted consumer_close_commit, produce_cancel and transaction examples/tests for the documented contracts."],
-      "evidence": []
+      "acceptance": [
+        "State when work is accepted, acknowledged, delivered, committed, failed or ambiguous.",
+        "Explain capped polls, pause/rebalance, external side effects, abort/fencing and safe restart offsets.",
+        "Every recipe has a bounded runnable example and named regression evidence; do not claim universal Java equivalence."
+      ],
+      "validation": [
+        "Run the Markdown example checker.",
+        "Run the targeted consumer_close_commit, produce_cancel and transaction examples/tests for the documented contracts."
+      ],
+      "evidence": [],
+      "write_set": [
+        "docs/guide.md",
+        "docs/migrate-from-rdkafka.md",
+        "examples/eos.rs",
+        "examples/produce_cancel.rs",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL07-06.json"
+      ]
     },
     {
       "id": "KL07-07",
