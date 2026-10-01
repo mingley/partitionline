@@ -60,6 +60,10 @@ fi
 # shellcheck source=scripts/lib/crates-io.sh
 source "$ROOT/scripts/lib/crates-io.sh"
 pl_crates_probe_version "$name" "$ver" "partitionline-owner-publish/1"
+if [[ "${PL_CRATES_PROBE_STATUS}" == "unknown" ]]; then
+  echo "owner-publish: registry unavailable or version status unknown (${PL_CRATES_PROBE_DETAIL}) — refusing publish" >&2
+  exit 1
+fi
 if [[ "${PL_CRATES_PROBE_STATUS}" == "present" ]]; then
   echo "owner-publish: ${name} ${ver} already on crates.io — skipping cargo publish (idempotent; not a re-cut)"
 else

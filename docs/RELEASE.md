@@ -36,6 +36,39 @@ releases use the canonical `.github/workflows/release.yml` or `scripts/owner-cut
 
 **release-plz** opens version PRs only — it must not publish to crates.io (token presence
 must not enable auto-release; command is `release-pr`). Do not re-cut `0.1.0`.
+
+## No-publish recovery rehearsal (KL08-07)
+
+From a clean committed checkout, run:
+
+```sh
+bash scripts/rehearse-partial-release.sh --self-test
+bash scripts/rehearse-partial-release.sh --run target/release-rehearsal
+```
+
+Each execution creates a fresh artifact directory named with the candidate's
+exact source SHA and a unique attempt ID. Its report retains all 15 scenario
+outcomes, raw stdout/stderr, command histories, source-file hashes and unchanged
+tag-reference checks. The `release-rehearsal` CI job executes the same profile
+and retains its reports for 30 days.
+
+The driver executes the checked-in workflow shell and local publisher in
+isolated copies. Local substitutes model an already-published version, a truly
+absent version, registry outages, an API-visible version missing from the sparse
+index, missing exact-source CI, interruption during confirmation, confirmation
+resumption and repeated release-note creation. Both publishers refuse an unknown
+registry status before publication. The confirmation and note stages are
+exercised separately after a simulated prior publication; that simulation is
+explicit in every report.
+
+The artifact reports six actual release stages as owner actions: complete
+candidate CI/package qualification, next-version authorization, authentication
+and upload, tag publication, real registry confirmation and GitHub release notes.
+Passing the rehearsal does not complete a release. The substitutes cannot invoke
+the real publication tools, read credentials or request an OIDC token; a new
+unexpected command fails the rehearsal. No tags, uploads, permissions or secret
+changes occur.
+
 ## Cadence
 
 Cut a crates.io release when there is a user-facing batch (fix, feature, or

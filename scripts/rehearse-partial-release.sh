@@ -9,6 +9,7 @@
 #
 # Usage:
 #   bash scripts/rehearse-partial-release.sh --self-test
+#   bash scripts/rehearse-partial-release.sh --run [ARTIFACT_BASE]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -16,10 +17,14 @@ cd "$ROOT"
 
 MODE="${1:-}"
 VALIDATE_FILE="${2:-}"
+if [[ "$MODE" == --run ]]; then
+  python3 -B scripts/report-release-rehearsal.py --run "${VALIDATE_FILE:-target/release-rehearsal}"
+  exit $?
+fi
 case "$MODE" in
   ""|--self-test|--validate-release|--validate-owner-publish) ;;
   *)
-    echo "usage: bash scripts/rehearse-partial-release.sh --self-test" >&2
+    echo "usage: bash scripts/rehearse-partial-release.sh --self-test | --run [ARTIFACT_BASE]" >&2
     echo "rehearse-partial-release: refuses other args (never publishes)" >&2
     exit 1
     ;;
@@ -316,4 +321,5 @@ echo "  would: DRY_RUN=1 bash scripts/owner-post-installable-handoff.sh"
 echo "  would not: cargo publish / version bump / re-cut 0.1.0"
 
 echo "rehearse-partial-release: --self-test OK — 0.1.0 stays; release-plz PR-only; canonical release.yml + owner-cut-release; actions: read; skip-gated Authenticate/Publish; owner-publish skips existing version; day1/handoff DRY_RUN not another publish"
+python3 -B scripts/report-release-rehearsal.py --self-test
 exit 0

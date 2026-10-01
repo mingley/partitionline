@@ -149,12 +149,16 @@ jobs:
           set -euo pipefail
           ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           name="$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1)"
-          if curl -fsSA 'partitionline-ci/1' \
-            "https://crates.io/api/v1/crates/${name}/${ver}" >/tmp/pl-crate-probe.json; then
+          source scripts/lib/crates-io.sh
+          pl_crates_probe_version "$name" "$ver" 'partitionline-ci/1'
+          if [[ "$PL_CRATES_PROBE_STATUS" == present ]]; then
             echo "release: ${name} ${ver} already on crates.io — skipping publish (idempotent)"
             echo "skip=1" >>"$GITHUB_OUTPUT"
-          else
+          elif [[ "$PL_CRATES_PROBE_STATUS" == absent ]]; then
             echo "skip=0" >>"$GITHUB_OUTPUT"
+          else
+            echo "release: registry unavailable or version status unknown ($PL_CRATES_PROBE_DETAIL) — refusing publish" >&2
+            exit 1
           fi
 
       - name: Authenticate to crates.io (OIDC trusted publishing)

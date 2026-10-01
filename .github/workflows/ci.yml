@@ -243,6 +243,27 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+  release-rehearsal:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Release gate and recovery negative tests
+        run: python3 -B -m unittest discover -s tests/release -p 'test_*.py'
+      - name: Exact-source offline release recovery rehearsal
+        run: bash scripts/rehearse-partial-release.sh --run target/release-rehearsal
+      - name: Retain all scenario outputs and substituted commands
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-rehearsal-${{ github.sha }}
+          path: target/release-rehearsal/
+          if-no-files-found: error
+          retention-days: 30
+
   # cargo-deny: advisories + licenses + no-C bans + crates.io-only sources.
   deny:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
