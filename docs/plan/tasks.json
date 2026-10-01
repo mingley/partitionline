@@ -274,13 +274,42 @@
     {
       "id": "KL01-10",
       "title": "Add current Apache broker compatibility cells",
-      "priority": "P1", "kind": "ci", "status": "pending", "owner": null,
-      "depends_on": ["KL01-02"],
-      "files": [".github/workflows/ci.yml", "scripts/ci-broker-smoke.sh", "docs/support.md"],
+      "priority": "P1",
+      "kind": "ci",
+      "status": "in_progress",
+      "owner": "codex",
+      "depends_on": [
+        "KL01-02"
+      ],
+      "files": [
+        ".github/workflows/ci.yml",
+        "scripts/ci-broker-smoke.sh",
+        "docs/support.md"
+      ],
       "deliverable": "Explicit 4.1.2, 4.2.1 and 4.3.1 target cells, with an intentional older-version policy.",
-      "acceptance": ["Pin image digests and report requested/actual identity and feature levels.", "Separate API absence from broken behavior; no progress-string-only success for newly qualified cases.", "Retain 3.9.1/4.1.0 evidence as historical; advertise new cells only after their required scenarios pass."],
-      "validation": ["Run the broker smoke/report path for each added cell in CI.", "Inspect failed/unsupported-cell reporting and ensure the required profile does not become green."],
-      "evidence": []
+      "acceptance": [
+        "Pin image digests and report requested/actual identity and feature levels.",
+        "Separate API absence from broken behavior; no progress-string-only success for newly qualified cases.",
+        "Retain 3.9.1/4.1.0 evidence as historical; advertise new cells only after their required scenarios pass."
+      ],
+      "validation": [
+        "Run the broker smoke/report path for each added cell in CI.",
+        "Inspect failed/unsupported-cell reporting and ensure the required profile does not become green."
+      ],
+      "evidence": [],
+      "write_set": [
+        ".github/workflows/ci.yml",
+        "scripts/ci-broker-smoke.sh",
+        "scripts/ci-broker-compatibility.sh",
+        "scripts/report-broker-compatibility.py",
+        "tests/broker_compatibility.rs",
+        "tests/conformance/test_broker_compatibility.py",
+        "tests/conformance/current-broker-cells.json",
+        "tests/conformance/cases.json",
+        "docs/support.md",
+        "docs/plan/tasks.json",
+        "docs/plan/evidence/KL01-10.json"
+      ]
     },
     {
       "id": "KL01-11",
