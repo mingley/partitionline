@@ -4743,13 +4743,14 @@
     {
       "id": "KL10-05",
       "title": "Decide the gzip backend policy",
-      "priority": "P1", "kind": "decision", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "decision", "status": "in_progress", "owner": "mingley",
       "depends_on": ["KL10-03", "KL05-01"],
       "files": ["new: docs/gzip-backend.md", "Cargo.toml", "deny.toml"],
       "deliverable": "A reviewed decision on the gzip backend: keep miniz_oxide, add zlib-rs (pure Rust, but it uses unsafe and SIMD internally) as an opt-in cargo feature, or change the default, with measured, licensing, MSRV (1.85), maintenance and safety evidence.",
       "acceptance": ["Measure compress and decompress separately on the KL10-03 cells on both x86_64 and arm64, with ratios; gateway-adoption.md section 2 numbers are context, not the evidence.", "Audit each candidate's unsafe and SIMD use, fuzzing and maintenance against the dependency policy in performance-leadership.md section 9; partitionline's own unsafe_code = forbid is unchanged.", "Any manifest change requires explicit maintainer approval recorded in evidence. 'Keep miniz_oxide' is a complete outcome: KL10-06 is then marked blocked with that reason and nothing downstream waits on it."],
       "validation": ["Record candidate versions, licenses, MSRV and the measured table.", "Review the proposed feature and dependency graph (cargo tree) before any manifest change."],
-      "evidence": []
+      "evidence": [],
+      "write_set": ["docs/plan/tasks.json", "docs/plan/evidence/KL10-05.json", "docs/gzip-backend.md", "docs/evidence/perf/KL10-05/README.md", "docs/evidence/perf/KL10-05/measurements.json"]
     },
     {
       "id": "KL10-06",
