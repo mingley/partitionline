@@ -33,7 +33,9 @@ cleanup() {
 from pathlib import Path
 import sys
 root=Path(sys.argv[1]); details=[]
-for name in ('runtime.log','build.log','readiness.log','features.log','report-validation.log','broker.log'):
+names=('runtime.log','build.log','readiness.log','features.log','report-validation.log','broker.log')
+if sys.argv[2]=='required-live-verifiable-scenario': names=('verifiable-validation.log',)
+for name in names:
  path=root/name
  if path.is_file(): details.append(name+':\n'+path.read_text(encoding='utf-8',errors='replace')[-4000:])
 message=f'{sys.argv[2]} exited {sys.argv[3]}\n'+'\n'.join(details)

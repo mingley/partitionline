@@ -43,7 +43,7 @@ def fixture():
                 'broker_reference': PROFILE['broker_reference'], 'broker_version': '4.1.2',
                 'container_image_id': 'sha256:' + '3'*64, 'inspected_image_id': 'sha256:' + '3'*64,
                 'repo_digests': ['apache/kafka@' + PROFILE['broker_reference'].split('@')[1]],
-                'kafka_cli_version': '4.1.2 (Commit:fixture)',
+                'kafka_cli_version': '4.1.2',
                 'prerequisite_exit_codes': {'build': 0, 'create-topic': 0},
                 'topic': TOPIC, 'group': GROUP, 'started_ms': 1000, 'ended_ms': stamp,
                 'exit_codes': dict.fromkeys(['producer', 'consumer', 'java-records', 'java-offsets'], 0)}
@@ -62,6 +62,15 @@ def write_fixture(directory, identity, producer, consumer):
 
 
 class VerifiableScenario(unittest.TestCase):
+    def test_actual_cli_bare_version_or_commit_suffix_qualifies(self):
+        for version in ['4.1.2', '4.1.2 (Commit:fixture)']:
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as temporary:
+                identity, producer, consumer = fixture()
+                identity['kafka_cli_version'] = version
+                directory = Path(temporary)
+                write_fixture(directory, identity, producer, consumer)
+                report.validate(directory, SOURCE)
+
     def test_complete_history_qualifies_exactly_one_case(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)

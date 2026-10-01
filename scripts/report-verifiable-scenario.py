@@ -195,7 +195,7 @@ def validate(root, expected_source, profile_path=PROFILE):
             and image == identity["inspected_image_id"], "wrong container/image identity")
     digest = profile["broker_reference"].split("@", 1)[1]
     require("apache/kafka@" + digest in identity["repo_digests"], "missing frozen repository digest")
-    require(identity["kafka_cli_version"].startswith(profile["broker_version"] + " "),
+    require(re.match(re.escape(profile["broker_version"]) + r"(?:\s|$)", identity["kafka_cli_version"]),
             "wrong actual Java CLI version")
     require(identity["prerequisite_exit_codes"] == {"build": 0, "create-topic": 0}
             and all(integer(v) for v in identity["prerequisite_exit_codes"].values()),

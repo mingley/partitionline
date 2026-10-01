@@ -79,7 +79,7 @@ def run(phase, args, stdout, stderr, timeout):
         raise ValueError(f'{phase} exited {code}; full logs retained in {report}')
 
 try:
-    if not identity['kafka_cli_version'].startswith(profile['broker_version'] + ' '):
+    if not re.match(re.escape(profile['broker_version']) + r'(?:\s|$)', identity['kafka_cli_version']):
         raise ValueError('actual Java CLI version differs from frozen broker cell')
     (report / 'rustc.log').write_text(command('rustc', '-Vv') + '\n')
     (report / 'cargo.log').write_text(command('cargo', '-V') + '\n')
