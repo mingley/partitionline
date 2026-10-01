@@ -1697,7 +1697,10 @@
       "supersedes_mock_case": "verifiable-produce-consume-3-9-1",
       "reason": "KL01-17 frozen live scenario: both Rust adapter binaries, 25 null-key string IDs, one fresh partition, all acknowledgements/deliveries and manual next-offset commits, independently corroborated with the digest-pinned current Apache 4.1.2 broker Java CLI. source_pin names the normative Apache 3.9.1 CLI source; each execution separately records and verifies the actual clean candidate source SHA. No full ducktape or full SDK-profile passage.",
       "qualifying_source_sha": "9404187d5e9c01be31611de1e4218dddeffc482d",
-      "evidence": "docs/plan/evidence/KL01-17.json"
+      "evidence": "docs/plan/evidence/KL01-17.json",
+      "artifacts": [
+        "docs/plan/evidence/KL01-17.json"
+      ]
     }
   ]
 }
