@@ -308,7 +308,14 @@
         "tests/conformance/cases.json",
         "docs/support.md",
         "docs/plan/tasks.json",
-        "docs/plan/evidence/KL01-10.json"
+        "docs/plan/evidence/KL01-10.json",
+        "src/group.rs",
+        "src/protocol/group.rs",
+        "tests/protocol_oracles.rs",
+        "tests/full_surface/group.rs",
+        "tests/conformance/fixtures/current-groups",
+        "tests/conformance/java/CurrentGroupFixtures.java",
+        "CHANGELOG.md"
       ]
     },
     {
