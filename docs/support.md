@@ -29,6 +29,15 @@ and evidence before extending support claims.
 
 ## Explicitly unsupported / not promised
 
+KL08-05 adds native macOS arm64 qualification on `macos-15`, for Rust 1.85.0
+and stable, with default/tracing runtime, TLS mock paths and actual packed-crate
+consumers. The support rows above remain Linux-only until both hosted cells
+pass. macOS needs Xcode command-line build tools, Python 3.11+ and Homebrew
+OpenSSL 3 on PATH for ephemeral mock certificates; OpenSSL is a test executable,
+not a crate dependency. The lane records actual OS, architecture, compiler,
+OpenSSL and Python versions with complete logs/package reports. Linux MSRV,
+broker and performance lanes remain in place; this card adds no Windows promise.
+
 Each row names its KL05-01
 [feature-registry](../tests/conformance/features.json) entry where one exists;
 registry status was re-checked at source `ca50ca1` (KL07-07).

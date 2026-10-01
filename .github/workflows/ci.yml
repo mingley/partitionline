@@ -81,6 +81,48 @@ jobs:
       - run: cargo build --locked --example verifiable_producer --example verifiable_consumer
       - run: cargo test --locked --all-targets
 
+  # KL08-05: native macOS arm64 runtime + actual packed-consumer evidence.
+  # The driver rejects Intel/Rosetta hosts and a nonnative Rust compiler.
+  macos-arm64:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: macos-15
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ['1.85.0', stable]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy
+      - name: Select OpenSSL 3 for mock certificate fixtures
+        shell: bash
+        run: |
+          test "$(uname -m)" = arm64
+          test "$(uname -s)" = Darwin
+          brew list openssl@3 >/dev/null || brew install openssl@3
+          echo "$(brew --prefix openssl@3)/bin" >> "$GITHUB_PATH"
+      - id: qualification
+        name: Native default/tracing runtime and packed crate consumers
+        shell: bash
+        env:
+          PL_MACOS_TOOLCHAIN: ${{ matrix.rust }}
+          CARGO_BUILD_JOBS: '2'
+          CARGO_PROFILE_DEV_DEBUG: '0'
+          CARGO_PROFILE_TEST_DEBUG: '0'
+          CARGO_INCREMENTAL: '0'
+        run: bash scripts/ci-macos-arm64.sh
+      - name: Retain platform versions, full test logs and package reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.qualification.outputs.artifact_name || format('macos-arm64-{0}-failed-{1}', matrix.rust, github.sha) }}
+          path: target/macos-arm64/${{ matrix.rust }}/
+          if-no-files-found: error
+          retention-days: 30
+
   audit:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
