@@ -9,3 +9,6 @@
 
 pub mod journal;
 pub mod transport;
+
+#[cfg(feature = "tls")]
+pub mod security;

@@ -7,9 +7,15 @@ license = "MIT OR Apache-2.0"
 publish = false
 description = "Experimental Rust Kafka broker; production qualification tracked in KL11"
 
+[features]
+default = []
+tls = ["dep:rustls", "dep:tokio-rustls"]
+
 [dependencies]
 bytes = "1"
 crc32c = "0.6"
+rustls = { version = "0.23", optional = true, default-features = false, features = ["ring", "std", "tls12"] }
+tokio-rustls = { version = "0.26", optional = true, default-features = false, features = ["ring", "tls12"] }
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
 
 [lints.rust]

@@ -16,17 +16,71 @@
 //!
 //! Limits bound transport-owned request buffers, response wire sizes and work
 //! admission, not arbitrary handler allocation, OS socket buffers or process
-//! RSS. This module provides no Kafka header/API validation, authentication,
+//! RSS. Optional TLS/mTLS uses the same admission cap and joined shutdown,
+//! without plaintext fallback. This module provides no Kafka API validation,
+//! application authorization,
 //! storage, broker readiness or production qualification.
 
 use std::{future::Future, io, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     net::{TcpListener, TcpStream},
     sync::{oneshot, watch, Semaphore},
     task::{JoinError, JoinHandle, JoinSet},
     time::{timeout_at, Instant},
 };
+
+/// Connection metadata supplied to handlers, without implying authorization.
+#[derive(Debug, Clone)]
+pub struct Peer {
+    address: SocketAddr,
+    #[cfg(feature = "tls")]
+    tls: Option<crate::security::tls::VerifiedPeer>,
+}
+
+impl Peer {
+    /// Remote TCP address; not an authenticated principal.
+    pub fn address(&self) -> SocketAddr {
+        self.address
+    }
+
+    /// Verified TLS handshake metadata, absent for the explicit plaintext listener.
+    #[cfg(feature = "tls")]
+    pub fn tls(&self) -> Option<&crate::security::tls::VerifiedPeer> {
+        self.tls.as_ref()
+    }
+}
+
+enum Security {
+    Plaintext,
+    #[cfg(feature = "tls")]
+    Tls(crate::security::tls::Acceptor),
+}
+
+enum Session {
+    Plaintext,
+    #[cfg(feature = "tls")]
+    Tls {
+        snapshot: Arc<crate::security::tls::Snapshot>,
+        deadline: Instant,
+    },
+}
+
+impl Security {
+    fn admit(&self) -> Session {
+        match self {
+            Self::Plaintext => Session::Plaintext,
+            #[cfg(feature = "tls")]
+            Self::Tls(acceptor) => {
+                let snapshot = acceptor.snapshot();
+                Session::Tls {
+                    deadline: Instant::now() + snapshot.limits.handshake_timeout,
+                    snapshot,
+                }
+            }
+        }
+    }
+}
 
 /// Validated admission, frame and absolute operation deadline configuration.
 #[derive(Debug, Clone, Copy)]
@@ -153,6 +207,18 @@ pub trait Handler: Send + Sync {
         &self,
         request: Vec<u8>,
     ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send;
+
+    /// Handle with connection metadata; defaults to [`Handler::handle`].
+    ///
+    /// Handlers needing verified client identity can override this method.
+    /// Authentication metadata alone makes no authorization decision.
+    fn handle_with_peer(
+        &self,
+        _peer: &Peer,
+        request: Vec<u8>,
+    ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+        self.handle(request)
+    }
 }
 
 impl<F, Fut, E> Handler for F
@@ -235,6 +301,10 @@ pub struct Report {
     pub worker_failures: u64,
     /// Connections stopped by the transport shutdown signal.
     pub shutdown_connections: u64,
+    /// TLS handshake, verification or peer bound failures (zero for plaintext).
+    pub tls_handshake_errors: u64,
+    /// Absolute TLS handshake deadlines exceeded (zero for plaintext).
+    pub tls_handshake_deadlines: u64,
 }
 
 enum Exit {
@@ -247,6 +317,10 @@ enum Exit {
     PeerClosed,
     Io,
     Shutdown,
+    #[cfg(feature = "tls")]
+    TlsError,
+    #[cfg(feature = "tls")]
+    TlsDeadline,
 }
 
 impl Report {
@@ -262,6 +336,10 @@ impl Report {
             Ok(Exit::PeerClosed) => &mut self.peer_closes,
             Ok(Exit::Io) => &mut self.io_errors,
             Ok(Exit::Shutdown) => &mut self.shutdown_connections,
+            #[cfg(feature = "tls")]
+            Ok(Exit::TlsError) => &mut self.tls_handshake_errors,
+            #[cfg(feature = "tls")]
+            Ok(Exit::TlsDeadline) => &mut self.tls_handshake_deadlines,
             Err(_) => &mut self.worker_failures,
         };
         *counter = counter.saturating_add(1);
@@ -283,10 +361,34 @@ impl Transport {
         config: Config,
         handler: Arc<H>,
     ) -> Result<Self, Error> {
+        Self::bind_with(addr, config, handler, Security::Plaintext).await
+    }
+
+    /// Bind a TLS-only listener with bounded, cancellable handshakes.
+    ///
+    /// Handshakes occupy the same connection cap as established sessions.
+    /// Identity/trust is captured at admission; rotation affects later sockets.
+    /// No plaintext fallback or protocol sniffing is performed.
+    #[cfg(feature = "tls")]
+    pub async fn bind_tls<H: Handler + 'static>(
+        addr: SocketAddr,
+        config: Config,
+        handler: Arc<H>,
+        acceptor: crate::security::tls::Acceptor,
+    ) -> Result<Self, Error> {
+        Self::bind_with(addr, config, handler, Security::Tls(acceptor)).await
+    }
+
+    async fn bind_with<H: Handler + 'static>(
+        addr: SocketAddr,
+        config: Config,
+        handler: Arc<H>,
+        security: Security,
+    ) -> Result<Self, Error> {
         let listener = TcpListener::bind(addr).await.map_err(Error::Bind)?;
         let addr = listener.local_addr().map_err(Error::Bind)?;
         let (shutdown, signal) = oneshot::channel();
-        let runner = tokio::spawn(run(listener, config, handler, signal));
+        let runner = tokio::spawn(run(listener, config, handler, signal, security));
         Ok(Self {
             addr,
             shutdown: Some(shutdown),
@@ -336,6 +438,7 @@ async fn run<H: Handler + 'static>(
     config: Config,
     handler: Arc<H>,
     mut signal: oneshot::Receiver<()>,
+    security: Security,
 ) -> Result<Report, Error> {
     let handlers = Arc::new(Semaphore::new(config.max_handlers));
     let (stop, _) = watch::channel(false);
@@ -347,7 +450,7 @@ async fn run<H: Handler + 'static>(
             _ = &mut signal => break None,
             Some(result) = workers.join_next(), if !workers.is_empty() => report.joined(result),
             accepted = listener.accept() => {
-                let (socket, _) = match accepted {
+                let (socket, address) = match accepted {
                     Ok(socket) => socket,
                     Err(error) => break Some(Error::Accept(error)),
                 };
@@ -357,7 +460,8 @@ async fn run<H: Handler + 'static>(
                     continue;
                 }
                 report.accepted_connections = report.accepted_connections.saturating_add(1);
-                workers.spawn(connection(socket, config, handler.clone(), handlers.clone(), stop.subscribe()));
+                let peer = Peer { address, #[cfg(feature = "tls")] tls: None };
+                workers.spawn(connection(socket, config, handler.clone(), handlers.clone(), stop.subscribe(), peer, security.admit()));
                 report.peak_connections = report.peak_connections.max(workers.len());
             }
         }
@@ -386,11 +490,48 @@ async fn connection<H: Handler>(
     handler: Arc<H>,
     handlers: Arc<Semaphore>,
     mut stop: watch::Receiver<bool>,
+    peer: Peer,
+    session: Session,
 ) -> Exit {
     tokio::select! {
         biased;
         _ = cancelled(&mut stop) => Exit::Shutdown,
-        result = exchange(socket, config, handler, handlers) => result,
+        result = establish(socket, config, handler, handlers, peer, session) => result,
+    }
+}
+
+async fn establish<H: Handler>(
+    socket: TcpStream,
+    config: Config,
+    handler: Arc<H>,
+    handlers: Arc<Semaphore>,
+    peer: Peer,
+    session: Session,
+) -> Exit {
+    match session {
+        Session::Plaintext => exchange(socket, config, handler, handlers, peer).await,
+        #[cfg(feature = "tls")]
+        Session::Tls { snapshot, deadline } => {
+            let stream = match timeout_at(
+                deadline,
+                tokio_rustls::TlsAcceptor::from(snapshot.server.clone()).accept(socket),
+            )
+            .await
+            {
+                Ok(Ok(stream)) => stream,
+                Ok(Err(_)) => return Exit::TlsError,
+                Err(_) => return Exit::TlsDeadline,
+            };
+            let mut peer = peer;
+            peer.tls = match crate::security::tls::VerifiedPeer::new(
+                &snapshot,
+                stream.get_ref().1.peer_certificates(),
+            ) {
+                Ok(verified) => Some(verified),
+                Err(_) => return Exit::TlsError,
+            };
+            exchange(stream, config, handler, handlers, peer).await
+        }
     }
 }
 
@@ -402,7 +543,7 @@ fn read_error(error: io::Error) -> Exit {
     }
 }
 
-async fn read_frame(socket: &mut TcpStream, config: Config) -> Result<Vec<u8>, Exit> {
+async fn read_frame<S: AsyncRead + Unpin>(socket: &mut S, config: Config) -> Result<Vec<u8>, Exit> {
     let deadline = Instant::now() + config.read_timeout;
     timeout_at(deadline, async {
         let mut prefix = [0; 4];
@@ -423,11 +564,12 @@ async fn read_frame(socket: &mut TcpStream, config: Config) -> Result<Vec<u8>, E
     .map_err(|_| Exit::ReadDeadline)?
 }
 
-async fn exchange<H: Handler>(
-    mut socket: TcpStream,
+async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
+    mut socket: S,
     config: Config,
     handler: Arc<H>,
     handlers: Arc<Semaphore>,
+    peer: Peer,
 ) -> Exit {
     loop {
         let request = match read_frame(&mut socket, config).await {
@@ -438,7 +580,7 @@ async fn exchange<H: Handler>(
         let response = match timeout_at(deadline, async {
             let permit = handlers.acquire().await.map_err(|_| Exit::Shutdown)?;
             let response = handler
-                .handle(request)
+                .handle_with_peer(&peer, request)
                 .await
                 .map_err(|_| Exit::HandlerError);
             drop(permit);
