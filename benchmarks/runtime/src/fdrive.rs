@@ -39,6 +39,16 @@ pub struct FetchOutcome {
     pub paused_backlog_records: u64,
     /// Buffered key/value/header bytes immediately after the prefill poll.
     pub prefill_buffered_bytes: usize,
+    /// Records returned by the consumer, including the unverified tail past the target.
+    pub returned_records: u64,
+    /// Exact verified committed history: partition, inclusive start, exclusive end.
+    pub committed_history: Vec<(i32, i64, i64)>,
+    /// Aborted offsets skipped between adjacent verified committed records.
+    pub committed_abort_gap_records: u64,
+    /// Aborted offsets unexpectedly delivered by the committed cell.
+    pub committed_aborted_deliveries: u64,
+    /// Fetch cursor for every assigned partition after the committed response.
+    pub committed_partition_cursors: Vec<(i32, i64)>,
     /// The drive hit the cell timeout.
     pub timed_out: bool,
 }
@@ -61,6 +71,15 @@ fn record_error(out: &mut FetchOutcome, err: String) {
 
 fn micros(d: Duration) -> u64 {
     d.as_micros().min(u128::from(u64::MAX)) as u64
+}
+
+fn committed_expected_offset(cell: &FetchCellDef, ordinal: u64) -> Result<u64, String> {
+    let batch = u64::from(cell.synth_records_per_batch);
+    let committed_group = batch.saturating_mul(cell.synth_abort_every.saturating_sub(1));
+    if committed_group == 0 {
+        return Err("committed history requires a nonempty committed batch group".to_owned());
+    }
+    Ok(ordinal.saturating_add((ordinal / committed_group).saturating_mul(batch)))
 }
 
 /// Build the consumer for `cell` over `bootstrap` endpoints.
@@ -144,8 +163,55 @@ pub async fn drive_fetch(consumer: &mut Consumer, cell: &FetchCellDef, out: &mut
                 continue;
             }
             empties = 0;
+            out.returned_records += batch.len() as u64;
             for rec in batch.iter() {
-                *out.per_partition.entry(rec.partition).or_default() += 1;
+                let delivered = out.per_partition.entry(rec.partition).or_default();
+                let ordinal = *delivered;
+                *delivered += 1;
+                if cell.id == "nb-fetch-committed-aborts" {
+                    let expected = match committed_expected_offset(cell, ordinal) {
+                        Ok(expected) => expected,
+                        Err(e) => {
+                            record_error(out, e);
+                            return;
+                        }
+                    };
+                    if u64::try_from(rec.offset).ok() != Some(expected) {
+                        let batch_index = u64::try_from(rec.offset)
+                            .ok()
+                            .map(|offset| offset / u64::from(cell.synth_records_per_batch));
+                        if batch_index
+                            .is_some_and(|index| (index + 1) % cell.synth_abort_every == 0)
+                        {
+                            out.committed_aborted_deliveries += 1;
+                        }
+                        out.mismatched += 1;
+                        record_error(
+                            out,
+                            format!(
+                                "committed history p{}: offset {} != expected {expected}",
+                                rec.partition, rec.offset
+                            ),
+                        );
+                        return;
+                    }
+                    let committed_group =
+                        u64::from(cell.synth_records_per_batch) * (cell.synth_abort_every - 1);
+                    if ordinal > 0 && ordinal % committed_group == 0 {
+                        out.committed_abort_gap_records += u64::from(cell.synth_records_per_batch);
+                    }
+                    match out.committed_history.last_mut() {
+                        Some((partition, _, end))
+                            if *partition == rec.partition && *end == rec.offset =>
+                        {
+                            *end = rec.offset + 1;
+                        }
+                        _ => {
+                            out.committed_history
+                                .push((rec.partition, rec.offset, rec.offset + 1))
+                        }
+                    }
+                }
                 if cell.paused_partitions.contains(&rec.partition) {
                     *out.paused_delivered.entry(rec.partition).or_default() += 1;
                 }
@@ -155,7 +221,9 @@ pub async fn drive_fetch(consumer: &mut Consumer, cell: &FetchCellDef, out: &mut
                         out.latencies_us.push(elapsed_us);
                         out.bytes_delivered += rec.key.as_ref().map_or(0, |k| k.len() as u64)
                             + rec.value.as_ref().map_or(0, |v| v.len() as u64);
-                        if out.verified >= cell.target_records {
+                        if out.verified >= cell.target_records
+                            && cell.id != "nb-fetch-committed-aborts"
+                        {
                             break;
                         }
                     }
@@ -163,6 +231,34 @@ pub async fn drive_fetch(consumer: &mut Consumer, cell: &FetchCellDef, out: &mut
                         out.mismatched += 1;
                         record_error(out, e);
                     }
+                }
+            }
+            if cell.id == "nb-fetch-committed-aborts" {
+                let batch_records = u64::from(cell.synth_records_per_batch);
+                let group_records = batch_records * cell.synth_abort_every;
+                let committed_group = group_records - batch_records;
+                for partition in 0..cell.partitions {
+                    let cursor = match consumer.fetch_cursor(cell.topic, partition) {
+                        Ok(cursor) if cursor >= 0 => cursor,
+                        result => {
+                            record_error(out, format!("committed history cursor: {result:?}"));
+                            return;
+                        }
+                    };
+                    let end = cursor as u64;
+                    let expected_count = (end / group_records) * committed_group
+                        + (end % group_records).min(committed_group);
+                    if out.per_partition.get(&partition).copied().unwrap_or(0) != expected_count {
+                        out.mismatched += 1;
+                        record_error(
+                            out,
+                            format!(
+                                "incomplete committed history p{partition} at cursor {cursor}: expected {expected_count} verified records"
+                            ),
+                        );
+                        return;
+                    }
+                    out.committed_partition_cursors.push((partition, cursor));
                 }
             }
             if pause_after_prefill && out.rounds == 1 {

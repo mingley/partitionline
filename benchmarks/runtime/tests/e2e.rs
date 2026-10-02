@@ -169,3 +169,40 @@ fn capped_paused_cell_prefills_real_client_held_backlog() {
     );
     let _ = std::fs::remove_dir_all(&out_dir);
 }
+
+#[test]
+fn committed_aborts_cell_verifies_exact_offset_history() {
+    let (doc, out_dir) = run_cell("nb-fetch-committed-aborts");
+    assert_eq!(doc["outcomes"]["consumed"], 108_000);
+    assert_eq!(doc["execution"]["target_records"], 20_000);
+    assert_eq!(doc["integrity"]["record_ids"]["verified_count"], 108_000);
+    assert_eq!(doc["execution"]["fetch_rounds"], 1);
+    assert_eq!(doc["execution"]["fetched_records"], 134_500);
+    assert_eq!(doc["execution"]["returned_records"], 108_000);
+    assert_eq!(doc["execution"]["filtered_records"], 26_500);
+    assert_eq!(doc["execution"]["committed_aborted_deliveries"], 0);
+    assert_eq!(doc["execution"]["committed_abort_gap_records"], 25_500);
+    assert_eq!(
+        doc["execution"]["committed_partition_cursors"],
+        serde_json::json!([
+            (0, 50_000),
+            (1, 50_000),
+            (2, 33_000),
+            (3, 500),
+            (4, 500),
+            (5, 500)
+        ])
+    );
+    let mut history: Vec<(i32, i64, i64)> = [(0, 20), (1, 20), (2, 13)]
+        .into_iter()
+        .flat_map(|(partition, groups)| {
+            (0..groups).map(move |group| (partition, group * 2_500, group * 2_500 + 2_000))
+        })
+        .collect();
+    history.extend([(2, 32_500, 33_000), (3, 0, 500), (4, 0, 500), (5, 0, 500)]);
+    assert_eq!(
+        doc["execution"]["committed_history"],
+        serde_json::json!(history)
+    );
+    let _ = std::fs::remove_dir_all(&out_dir);
+}

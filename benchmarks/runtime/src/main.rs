@@ -650,8 +650,19 @@ fn run_fetch(
         ))
         .map_err(|e| format!("consumer connect: {e}"))?;
     let mut fout = runtime::fdrive::FetchOutcome::default();
+    let verify_capacity = if cell.id == "nb-fetch-committed-aborts" {
+        cell.synth_records_per_partition
+            .saturating_mul(cell.partitions as u64)
+    } else {
+        cell.target_records
+    };
     fout.latencies_us
-        .reserve(cell.target_records.min(1_000_000) as usize);
+        .reserve(verify_capacity.min(1_000_000) as usize);
+    if cell.id == "nb-fetch-committed-aborts" {
+        fout.committed_history.reserve(64);
+        fout.committed_partition_cursors
+            .reserve(cell.partitions as usize);
+    }
     let phase = measured_phase(|| {
         rt.block_on(runtime::fdrive::drive_fetch(&mut consumer, cell, &mut fout));
     });
@@ -670,7 +681,18 @@ fn run_fetch(
         timed_out: fout.timed_out,
         ..runtime::drive::DriveOutcome::default()
     };
-    let extra_failed = fout.mismatched > 0 || !fout.paused_delivered.is_empty();
+    let extra_failed = fout.mismatched > 0
+        || !fout.paused_delivered.is_empty()
+        || (cell.id == "nb-fetch-committed-aborts"
+            && (fout.verified != fout.returned_records
+                || fout.verified < cell.target_records
+                || fout
+                    .committed_partition_cursors
+                    .iter()
+                    .map(|(_, cursor)| *cursor as u64)
+                    .sum::<u64>()
+                    != counts.fetched_records
+                || !outcome.errors.is_empty()));
 
     let cpu_total_us = phase.cpu_us.0 + phase.cpu_us.1;
     let mut extra = serde_json::Map::new();
@@ -710,6 +732,36 @@ fn run_fetch(
         extra.insert(
             "prefill_buffered_bytes".to_owned(),
             serde_json::Value::from(fout.prefill_buffered_bytes),
+        );
+    }
+    if cell.id == "nb-fetch-committed-aborts" {
+        extra.insert(
+            "target_records".to_owned(),
+            serde_json::Value::from(cell.target_records),
+        );
+        extra.insert(
+            "returned_records".to_owned(),
+            serde_json::Value::from(fout.returned_records),
+        );
+        extra.insert(
+            "committed_history".to_owned(),
+            serde_json::json!(fout.committed_history),
+        );
+        extra.insert(
+            "committed_partition_cursors".to_owned(),
+            serde_json::json!(fout.committed_partition_cursors),
+        );
+        extra.insert(
+            "committed_abort_gap_records".to_owned(),
+            serde_json::Value::from(fout.committed_abort_gap_records),
+        );
+        extra.insert(
+            "committed_aborted_deliveries".to_owned(),
+            serde_json::Value::from(fout.committed_aborted_deliveries),
+        );
+        extra.insert(
+            "filtered_records".to_owned(),
+            serde_json::Value::from(counts.fetched_records.saturating_sub(fout.returned_records)),
         );
     }
     extra.insert(
@@ -770,7 +822,11 @@ fn run_fetch(
 
     let ctx = RunContext {
         cell_id: cell.id,
-        offered: cell.target_records,
+        offered: if cell.id == "nb-fetch-committed-aborts" {
+            fout.returned_records
+        } else {
+            cell.target_records
+        },
         seed: cell.seed,
         profile: "fetch",
         consumed: fout.verified,
