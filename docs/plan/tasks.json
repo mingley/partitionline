@@ -5736,13 +5736,13 @@
     {
       "id": "KL09-57",
       "title": "Dial bootstrap and broker connections in bounded parallel",
-      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "codex-goal-20261002",
-      "depends_on": ["KL09-10", "KL09-11"],
+      "priority": "P1", "kind": "analysis", "status": "pending", "owner": null,
+      "depends_on": ["KL09-71", "KL09-72"],
       "files": ["src/net.rs"],
       "deliverable": "connect_tls_any and multi-broker connection setup dial with bounded concurrency instead of strictly sequentially.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "The concurrency bound is documented; per-broker negotiation, SASL and retry policy are preserved; losing dials are closed cleanly.", "A test with one unreachable bootstrap host shows setup no longer waiting for its full connect timeout."],
       "validation": ["cargo test --locked --test network_deadlines", "cargo test --locked --test auth_lifecycle", "cargo test --locked --test full_surface", "A/B cell nb-connect (ms to first ack with an unreachable bootstrap host): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "write_set": ["src/net.rs", "benchmarks/runtime/src/main.rs", "benchmarks/runtime/src/stalled_dial.rs", "benchmarks/runtime/src/lib.rs", "benchmarks/runtime/tests/e2e.rs", "tests/bootstrap_dials.rs", "docs/plan/evidence/KL09-57.json", "docs/evidence/perf/KL09-57/", "docs/plan/tasks.json"],
+      "write_set": [],
       "evidence": []
     },
     {
@@ -6167,6 +6167,78 @@
       "deliverable": "Batches past buffer_memory stay in a per-partition queue of framed, still-compressed batches (Java Fetcher CompletedFetch model) and are decoded as application consumption drains the budget, so the consumer stops re-fetching them. After KL10-16 the nb-fetch-gzip-overfetch cell still fetches about 13x the consumed bytes and the real-broker gateway probe sits at 4.5 us/record against librdkafka's 2.35.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Retained compressed bytes have a documented cap and accounting in resource-contract.md; seek, pause, resume, revocation, assignment changes and leader changes drop or keep retained batches exactly as they do decoded pending records.", "Delivered records, order, positions, KIP-74 progress, read_committed filtering and the KL02-03 decode limits are unchanged; fetched/consumed bytes on nb-fetch-gzip-overfetch fall toward 1."],
       "validation": ["cargo test --locked --test fetch_buffer_budget", "cargo test --locked --test consumer_fetch_semantics", "A/B cells nb-fetch-gzip-overfetch and nb-fetch-bulk: >=5 interleaved repetitions on the same host, medians with 95% CI"],
+      "evidence": []
+    },
+    {
+      "id": "KL09-71",
+      "title": "Dial bootstrap addresses with bounded parallelism",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-goal-20261002",
+      "depends_on": [
+        "KL09-10",
+        "KL09-11"
+      ],
+      "files": [
+        "src/net.rs"
+      ],
+      "deliverable": "Bounded parallel first-success bootstrap dialing, measured against a loopback stalled TCP connect; preserve live and refused-first bootstrap behavior.",
+      "acceptance": [
+        "Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.",
+        "The concurrency bound is documented; per-broker negotiation, SASL and retry policy are preserved; losing dials are closed cleanly.",
+        "A test with one unreachable bootstrap host shows setup no longer waiting for its full connect timeout."
+      ],
+      "validation": [
+        "cargo test --locked --test network_deadlines",
+        "cargo test --locked --test auth_lifecycle",
+        "cargo test --locked --test full_surface",
+        "A/B cell nb-connect (ms to first ack with an unreachable bootstrap host): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)",
+        "Run nb-connect --connect-stalled-first with a validated real pending TCP connect, at least five paired repetitions and durable validated artifacts."
+      ],
+      "write_set": [
+        "src/net.rs",
+        "benchmarks/runtime/src/main.rs",
+        "benchmarks/runtime/src/stalled_dial.rs",
+        "benchmarks/runtime/src/lib.rs",
+        "benchmarks/runtime/tests/e2e.rs",
+        "tests/bootstrap_dials.rs",
+        "docs/plan/evidence/KL09-57.json",
+        "docs/evidence/perf/KL09-57/",
+        "docs/plan/tasks.json"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL09-72",
+      "title": "Open multi-broker connection sets in bounded parallel",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL09-71",
+        "KL09-10",
+        "KL09-11"
+      ],
+      "files": [
+        "src/consumer.rs",
+        "src/producer.rs",
+        "src/net.rs"
+      ],
+      "deliverable": "Complete the multi-broker portion of KL09-57 using bounded concurrent connection setup in necessary callers, preserving negotiation, SASL, deadlines, retries and cancellation.",
+      "acceptance": [
+        "Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.",
+        "The concurrency bound is documented; per-broker negotiation, SASL and retry policy are preserved; losing dials are closed cleanly.",
+        "Prove multi-broker setup overlaps independent dials and closes losing/cancelled dials without exceeding the declared bound."
+      ],
+      "validation": [
+        "cargo test --locked --test network_deadlines",
+        "cargo test --locked --test auth_lifecycle",
+        "cargo test --locked --test full_surface",
+        "A/B cell nb-connect (ms to first ack with an unreachable bootstrap host): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"
+      ],
+      "write_set": [],
       "evidence": []
     }
   ]
