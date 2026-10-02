@@ -14,8 +14,8 @@ unsupported in partitionline. The complete-codec profile stays incomplete
 until KL05-03, KL05-04 and KL05-05 supply the implementation and qualification.
 
 The recommendation requests no native, unsafe or default-feature policy
-exception. [The plan](plan/README.md) requires maintainer approval before
-policy changes; [gateway boundaries](plan/gateway-adoption.md#6-boundaries)
+exception. [The plan](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/plan/README.md) requires maintainer approval before
+policy changes; [gateway boundaries](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/plan/gateway-adoption.md#6-boundaries)
 also require it before making a backend default or adding a backend that uses
 unsafe internally. Neither action is proposed here, and no maintainer approval
 is invented or recorded by this spike. Any future change to those boundaries
@@ -47,8 +47,8 @@ repository from both `ruzstd` and the native-binding crate `zstd`.
 
 Exact archive SHA-256 checksums, VCS revisions, release dates, licenses,
 manifests and dependency metadata are retained in
-[candidates.json](evidence/codecs/KL05-02/candidates.json) and
-[peer-and-transitive.json](evidence/codecs/KL05-02/peer-and-transitive.json).
+[candidates.json](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/evidence/codecs/KL05-02/candidates.json) and
+[peer-and-transitive.json](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/evidence/codecs/KL05-02/peer-and-transitive.json).
 The proposed backend pin is archive checksum
 `41514ccc30389f95bb9e6ab6d5634f17121c7b4fead6722a5fceec1c7891d78f`,
 VCS revision `bac4c37d86e5307537c145823a106f7ed8f386d7`.
@@ -82,7 +82,7 @@ codec projects use native `zstd` as a **dev** dependency for upstream interop;
 dependency dev tooling is absent from this spike's active graph. The independent
 peer here is the installed CLI, never a partitionline runtime dependency.
 The measured tree and build results are in
-[build-graph.json](evidence/codecs/KL05-02/build-graph.json).
+[build-graph.json](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/evidence/codecs/KL05-02/build-graph.json).
 
 `ruzstd` has a public repository history from 2019, recent releases through
 July 2026, upstream fuzz regression tests and Miri checks for its unsafe ring
@@ -94,7 +94,7 @@ and [release run 36490837566](https://github.com/Avarok-Cybersecurity/zstd-rs/ac
 completed successfully. Those results establish a release gate, not a long-term
 maintenance or security-response commitment. Sanitized upstream metadata and
 the exact workflow contents are retained in
-[upstream.json](evidence/codecs/KL05-02/upstream.json).
+[upstream.json](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/evidence/codecs/KL05-02/upstream.json).
 
 Neither a security audit, an upstream response SLA nor sustained downstream
 adoption was established. Keep the initial feature optional and the version
@@ -104,10 +104,10 @@ No supply-chain pass for an unapplied graph is claimed here.
 
 ## Independent bounded frame evaluation
 
-The retained [standalone harness](evidence/codecs/KL05-02/harness/Cargo.toml)
+The retained [standalone harness](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/evidence/codecs/KL05-02/harness/Cargo.toml)
 uses unmodified, checksum-pinned registry sources and an independent
 **Zstandard CLI / libzstd 1.5.7** peer. It does not call partitionline codec
-code. [evaluate.py](evidence/codecs/KL05-02/evaluate.py) deterministically
+code. [evaluate.py](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/evidence/codecs/KL05-02/evaluate.py) deterministically
 generates six payloads: empty, one byte, runs, synthetic JSON records,
 incompressible bytes, and mixed data; maximum **393,216 bytes**. Three
 reference profiles use levels 1/3/19, checksums present/absent, known/unknown
@@ -127,9 +127,9 @@ Results were identical on **Rust 1.85.0** and **stable 1.99.0**:
 Each toolchain evaluation ran **144 subprocess commands**. The reference
 corpus has 18 frames; the two candidates contribute 36 decode checks and 24
 encoder/peer checks per toolchain. Raw results, hashes and individual commands
-are in [results-msrv.json](evidence/codecs/KL05-02/results-msrv.json),
-[results-stable.json](evidence/codecs/KL05-02/results-stable.json) and
-[commands.json](evidence/codecs/KL05-02/commands.json). Six compact reference
+are in [results-msrv.json](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/evidence/codecs/KL05-02/results-msrv.json),
+[results-stable.json](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/evidence/codecs/KL05-02/results-stable.json) and
+[commands.json](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/evidence/codecs/KL05-02/commands.json). Six compact reference
 fixtures total 265 bytes; the remaining frames can be regenerated. No Kafka,
 Java/librdkafka, broker, throughput, RSS or architecture qualification was run.
 
