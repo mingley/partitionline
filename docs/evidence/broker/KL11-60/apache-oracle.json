@@ -1,0 +1,1123 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-60",
+  "apache_version": "4.3.1",
+  "distribution_provenance": {
+    "version": "4.3.1",
+    "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz",
+    "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+    "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+    "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+    "jar_build_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+    "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+  },
+  "classpath": [
+    {
+      "name": "kafka-clients-4.3.1.jar",
+      "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+      "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+    },
+    {
+      "name": "slf4j-api-1.7.36.jar",
+      "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+    },
+    {
+      "name": "snappy-java-1.1.10.5.jar",
+      "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+      "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+    },
+    {
+      "name": "lz4-java-1.8.0.jar",
+      "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+      "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+    },
+    {
+      "name": "zstd-jni-1.5.6-4.jar",
+      "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+      "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+    }
+  ],
+  "java_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n",
+  "oracle_source": "docs/evidence/broker/KL11-60/RecordsOracle.java",
+  "oracle_source_sha256": "0e103c41b332d3b7a78f22c21664f9fc38caf265ab0c4339f8a7b779628520c1",
+  "oracle_class_sha256": "fbca1926be7990d35c1ac187252c3122adc6fae61c754c4437d9ec92e2bd2591",
+  "runner": "docs/evidence/broker/KL11-60/run-apache-oracle.py",
+  "runner_sha256": "e79d5900d7d2a6c808b17cbd363478fc03efd1b47708dd927b568a26b6b04a33",
+  "commands": [
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "-d",
+        "/workspace/work/broker-records/reproduction/classes",
+        "/workspace/partitionline/docs/evidence/broker/KL11-60/RecordsOracle.java"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/apache-compile.log"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/broker-records/reproduction/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "RecordsOracle",
+        "/workspace/work/broker-records/reproduction/execute"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/apache-execute.log"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/broker-records/reproduction/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "RecordsOracle",
+        "/workspace/work/broker-records/reproduction/reproduce"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/apache-reproduce.log"
+    }
+  ],
+  "jvm_heap_max_bytes": 67108864,
+  "execution_timeout_seconds": 45,
+  "fixtures": [
+    {
+      "fixture": "valid-basic",
+      "bytes": 74,
+      "expected_rust": "accepted",
+      "origin": "Apache MemoryRecords.withRecords",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/valid-basic.bin",
+      "sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28",
+      "admission_relation": "supported-and-accepted"
+    },
+    {
+      "fixture": "valid-nulls-empty",
+      "bytes": 114,
+      "expected_rust": "accepted",
+      "origin": "Apache builder: null/empty fields, duplicate/Unicode headers, unordered timestamps",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 114,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 3,
+        "headers": 4
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/valid-nulls-empty.bin",
+      "sha256": "97cb1bdaff5e5439097b2e409da80b453a84aeb44e4da2c7fa58dafbf3091dad",
+      "admission_relation": "supported-and-accepted"
+    },
+    {
+      "fixture": "valid-multiple-batches",
+      "bytes": 188,
+      "expected_rust": "accepted",
+      "origin": "Concatenated two independently Apache-built batches, both base offset zero",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 188,
+        "full_input_consumed": true,
+        "batches": 2,
+        "records": 4,
+        "headers": 5
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/valid-multiple-batches.bin",
+      "sha256": "f757b5cfd489b3ac17ff26941cffb09a95e48abab863a63479699f78546ae30a",
+      "admission_relation": "supported-and-accepted"
+    },
+    {
+      "fixture": "valid-negative-timestamp-delta",
+      "bytes": 78,
+      "expected_rust": "accepted",
+      "origin": "Apache builder with negative timestamp delta",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 78,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 2,
+        "headers": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/valid-negative-timestamp-delta.bin",
+      "sha256": "658295f4c2ba372ab3a82327ba5b9b868dca50035a6f79d93029b795a46c2456",
+      "admission_relation": "supported-and-accepted"
+    },
+    {
+      "fixture": "valid-offset-boundary",
+      "bytes": 77,
+      "expected_rust": "accepted",
+      "origin": "Apache builder reaching signed next offset Long.MAX_VALUE",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 77,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 2,
+        "headers": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/valid-offset-boundary.bin",
+      "sha256": "183a58d5ca64ab09a67a4456af167d6e99a2b3d0ab908a09b7ab12ac761feb8b",
+      "admission_relation": "supported-and-accepted"
+    },
+    {
+      "fixture": "valid-no-timestamp",
+      "bytes": 72,
+      "expected_rust": "accepted",
+      "origin": "Apache builder with NO_TIMESTAMP sentinel",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 72,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/valid-no-timestamp.bin",
+      "sha256": "9f8287c0fc141baaa449bbc51d7b8ac33ddc5729cd5f8cd9cf4411c1c60534af",
+      "admission_relation": "supported-and-accepted"
+    },
+    {
+      "fixture": "feature-legacy-v0",
+      "bytes": 32,
+      "expected_rust": "legacy0",
+      "origin": "Apache legacy magic0 builder",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 32,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/feature-legacy-v0.bin",
+      "sha256": "e3e1cacc043bb4b0e42215855cc3c165b6a8d7acaf0ed625a2cb2356a53b4299",
+      "admission_relation": "unsupported-feature"
+    },
+    {
+      "fixture": "feature-legacy-v1",
+      "bytes": 36,
+      "expected_rust": "legacy1",
+      "origin": "Apache legacy magic1 builder",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 36,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/feature-legacy-v1.bin",
+      "sha256": "94aae985b1fceaaf3e65076da3dd00bad832f2365999d237810d99a2c6b48010",
+      "admission_relation": "unsupported-feature"
+    },
+    {
+      "fixture": "feature-gzip",
+      "bytes": 94,
+      "expected_rust": "compression1",
+      "origin": "Apache builder with actual gzip compression",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 94,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/feature-gzip.bin",
+      "sha256": "cfecfa114a286bf04aa2bf206cc1ba72c90f32cc2ef66db36bf8bc5bfb8d7d96",
+      "admission_relation": "unsupported-feature"
+    },
+    {
+      "fixture": "feature-snappy",
+      "bytes": 96,
+      "expected_rust": "compression2",
+      "origin": "Apache builder with actual snappy compression",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 96,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/feature-snappy.bin",
+      "sha256": "d21e0aca29589d97863cd68ade16577bb9e2749de6877d28803e1e4321066882",
+      "admission_relation": "unsupported-feature"
+    },
+    {
+      "fixture": "feature-lz4",
+      "bytes": 89,
+      "expected_rust": "compression3",
+      "origin": "Apache builder with actual lz4 compression",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 89,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/feature-lz4.bin",
+      "sha256": "019c814a67e8fe0a3135264da0bc4c17fd0c94ff3eaf0651c7c5bd64a6298c97",
+      "admission_relation": "unsupported-feature"
+    },
+    {
+      "fixture": "feature-zstd",
+      "bytes": 86,
+      "expected_rust": "compression4",
+      "origin": "Apache builder with actual zstd compression",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 86,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/feature-zstd.bin",
+      "sha256": "83c2858cb3646b31a8c1a7f95b26d80faff4e95d497a3e2b78da6f57fefc8865",
+      "admission_relation": "unsupported-feature"
+    },
+    {
+      "fixture": "feature-idempotent",
+      "bytes": 74,
+      "expected_rust": "idempotent",
+      "origin": "Apache idempotent builder",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/feature-idempotent.bin",
+      "sha256": "410a123abe3e1702dd307550404c7a58c821cba938276448428e697477fbe5e9",
+      "admission_relation": "unsupported-feature"
+    },
+    {
+      "fixture": "feature-transactional",
+      "bytes": 74,
+      "expected_rust": "transactional",
+      "origin": "Apache transactional builder",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/feature-transactional.bin",
+      "sha256": "1e6b979dd6a2ebdd40c8aa6c2ecbab13ac975a4b20b113bd2c7417a8fd24043f",
+      "admission_relation": "unsupported-feature"
+    },
+    {
+      "fixture": "feature-control",
+      "bytes": 78,
+      "expected_rust": "control",
+      "origin": "Apache transaction control marker builder",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 78,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/feature-control.bin",
+      "sha256": "5622fe9d6f9c88a2080411ede29ef085020aeb43985f5a6ee7c5c9fe4250b6ce",
+      "admission_relation": "unsupported-feature"
+    },
+    {
+      "fixture": "feature-log-append-time",
+      "bytes": 74,
+      "expected_rust": "logappend",
+      "origin": "Apache LOG_APPEND_TIME builder",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/feature-log-append-time.bin",
+      "sha256": "f5712f54524acf3919c052638802043aac4e36bbaddf0e240fc9b6965deae560",
+      "admission_relation": "unsupported-feature"
+    },
+    {
+      "fixture": "feature-delete-horizon",
+      "bytes": 74,
+      "expected_rust": "deletehorizon",
+      "origin": "Protected delete-horizon bit mutation of Apache batch",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/feature-delete-horizon.bin",
+      "sha256": "c798bb4e8ad0d3afa60d36fe4c40b138690c2a16303bde63e0518951277b9a79",
+      "admission_relation": "unsupported-feature"
+    },
+    {
+      "fixture": "bad-crc",
+      "bytes": 74,
+      "expected_rust": "checksum",
+      "origin": "Payload mutation without CRC repair",
+      "upstream": {
+        "status": "rejected",
+        "phase": "batch.ensureValid",
+        "exception": "org.apache.kafka.common.errors.CorruptRecordException",
+        "message": "Record is corrupt (stored crc = 2245301103, computed crc = 3299839699)",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-crc.bin",
+      "sha256": "6041823b39d9215108f2aba14c2bdd22c471d0ffb6118576317fba4a7eb9f371",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-magic",
+      "bytes": 74,
+      "expected_rust": "magic",
+      "origin": "Unprotected magic mutation",
+      "upstream": {
+        "status": "rejected",
+        "phase": "validBytes",
+        "exception": "org.apache.kafka.common.errors.CorruptRecordException",
+        "message": "Invalid magic found in record: 3",
+        "valid_bytes": -1,
+        "batches": 0,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-magic.bin",
+      "sha256": "d3594ed5536bdc771d8bad2bd3b53aa11425b33841b0b7d332c99e5b7dcac345",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-negative-batch-length",
+      "bytes": 74,
+      "expected_rust": "length",
+      "origin": "Unprotected batch-length mutation",
+      "upstream": {
+        "status": "rejected",
+        "phase": "validBytes",
+        "exception": "org.apache.kafka.common.errors.CorruptRecordException",
+        "message": "Record size -1 is less than the minimum record overhead (14)",
+        "valid_bytes": -1,
+        "batches": 0,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-negative-batch-length.bin",
+      "sha256": "19658eedaf876637de383d8565bfa922bd8393ac10140e38913991f030eb78b6",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-huge-batch-length",
+      "bytes": 74,
+      "expected_rust": "batchbudget",
+      "origin": "Unprotected batch-length bomb",
+      "upstream": {
+        "status": "rejected",
+        "phase": "validBytes",
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "newLimit < 0: (-2147483637 < 0)",
+        "valid_bytes": -1,
+        "batches": 0,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-huge-batch-length.bin",
+      "sha256": "ed595e530c1d523a6004855054bddcc2076d0f4403cfa6265918cf9cc3e15dce",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-truncated",
+      "bytes": 73,
+      "expected_rust": "truncated",
+      "origin": "Truncated Apache-produced batch",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 0,
+        "full_input_consumed": false,
+        "batches": 0,
+        "records": 0,
+        "headers": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-truncated.bin",
+      "sha256": "e151e0c5e28f45de73a15e810b91a8dae9fa3e78ddeee5ac44a67e46c3bb93d9",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-trailing-input",
+      "bytes": 75,
+      "expected_rust": "truncated",
+      "origin": "Trailing incomplete batch prefix",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": false,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-trailing-input.bin",
+      "sha256": "4471f4fcbb84c7fb2daad9273fae49e5a866884d9b008ee8fd05c9f849e89993",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-negative-count",
+      "bytes": 74,
+      "expected_rust": "empty",
+      "origin": "Protected negative record count",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Found invalid record count -1 in magic v2 batch",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-negative-count.bin",
+      "sha256": "0c8706360f38fd55cc094a840ebad018c2b95f6052bca133ad60a2283456163d",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-zero-count",
+      "bytes": 74,
+      "expected_rust": "empty",
+      "origin": "Protected empty declared record count with retained payload",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 0,
+        "headers": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-zero-count.bin",
+      "sha256": "85d9f4c53602f8797e29555c631e8d1b61ed49951ee1ea51a64cbbac161dd83b",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-huge-count",
+      "bytes": 74,
+      "expected_rust": "recordbudget",
+      "origin": "Protected record-count bomb",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Incorrect declared batch size, premature EOF reached",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-huge-count.bin",
+      "sha256": "31cc3d56bbafd96cc355b2a26927392f23d952e9c940ce18c452de026e0b71d1",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-count-mismatch",
+      "bytes": 74,
+      "expected_rust": "length",
+      "origin": "Protected coherent count/delta but missing second record",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Incorrect declared batch size, premature EOF reached",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-count-mismatch.bin",
+      "sha256": "6017b2921278fcd264ab6196fd1a2cf1a0890dc034d56dc60f690128b14f3f61",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-last-delta",
+      "bytes": 74,
+      "expected_rust": "offset",
+      "origin": "Protected noncontiguous last offset delta",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-last-delta.bin",
+      "sha256": "f7f7b6d982792aec4d223bd9ccd5d09ac419bf27cfc5ef843a772477c05d1314",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-negative-last-delta",
+      "bytes": 74,
+      "expected_rust": "offset",
+      "origin": "Protected negative last offset delta",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-negative-last-delta.bin",
+      "sha256": "7b4c18e74283184001433d1c5dcdf2a66cac760a31a5a1a8bf110eba38017960",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-offset-overflow",
+      "bytes": 74,
+      "expected_rust": "offset",
+      "origin": "Unprotected offset addition overflow",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-offset-overflow.bin",
+      "sha256": "d81d92206c47d9cb3ffcc5f7baf5aa3bb808dda3607ff5da24ad278cda7c699d",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-negative-base-offset",
+      "bytes": 74,
+      "expected_rust": "offset",
+      "origin": "Unprotected negative base offset",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-negative-base-offset.bin",
+      "sha256": "4d2eb8b7ac3721c486a274c07033134a5db7c4a5e4354f9db3099a905c695e07",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-leader-epoch",
+      "bytes": 74,
+      "expected_rust": "metadata",
+      "origin": "Unprotected invalid leader epoch",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-leader-epoch.bin",
+      "sha256": "84135dd3cf856bb4c16b8327c9c5655345b9d3fac18e884530542ae5d7090c8e",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-producer-sentinel",
+      "bytes": 74,
+      "expected_rust": "metadata",
+      "origin": "Protected incoherent producer metadata",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-producer-sentinel.bin",
+      "sha256": "89507ecff03acec5626f8265f59ad5568c4cbc4c894dd814b6eb5def31293e52",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-max-timestamp",
+      "bytes": 74,
+      "expected_rust": "timestamp",
+      "origin": "Protected maximum timestamp mismatch",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-max-timestamp.bin",
+      "sha256": "6491ba57ac827e318dcf37cd5b1650dec2bf4731cba3c68912c2d49e26915959",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-reserved-attributes",
+      "bytes": 74,
+      "expected_rust": "attributes",
+      "origin": "Protected reserved batch bit",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-reserved-attributes.bin",
+      "sha256": "a5c6a29aabdb10f1577b0353583c8661330048b55bf47b0ef4aa38bb482bd6a9",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-unknown-codec",
+      "bytes": 74,
+      "expected_rust": "attributes",
+      "origin": "Protected unknown codec ID",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "Unknown compression type id: 7",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-unknown-codec.bin",
+      "sha256": "b9b2994a6a7b173447245255b8f0043b63927372a617c47c8b2997e1bf511ee9",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-record-attributes",
+      "bytes": 74,
+      "expected_rust": "recordattributes",
+      "origin": "Protected reserved record bit",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-record-attributes.bin",
+      "sha256": "67367025a272a8858e2a4975356896239bc64894d7743c6562e65827267d36c9",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-record-offset",
+      "bytes": 74,
+      "expected_rust": "offset",
+      "origin": "Protected record offset delta2 for record0",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-record-offset.bin",
+      "sha256": "9c1efc7ac648b00458eeddc47408d2febd3287675f6f2e18b393776243e235a1",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-record-short-length",
+      "bytes": 74,
+      "expected_rust": "length",
+      "origin": "Protected undersized record body",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Invalid record size: expected to read 1 bytes in record payload, but instead read 12",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-record-short-length.bin",
+      "sha256": "002ae1f35e5fe408c576d90977fe4d9e67eac6b339b496778c5f6b54a78c5269",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-record-long-length",
+      "bytes": 74,
+      "expected_rust": "truncated",
+      "origin": "Protected record body extends beyond batch",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Invalid record size: expected 32 bytes in record payload, but instead the buffer has only 12 remaining bytes.",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-record-long-length.bin",
+      "sha256": "fbc24cf18c6e620a9045661285a4b334982b927cc718fbe232a067fc06084896",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-record-trailing",
+      "bytes": 75,
+      "expected_rust": "trailing",
+      "origin": "Protected unconsumed record byte",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Invalid record size: expected to read 13 bytes in record payload, but instead read 12",
+        "valid_bytes": 75,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-record-trailing.bin",
+      "sha256": "e9edabfbd92ab5306f4bf5516dcff14a4791c57dc5637c24106c72108c5d9478",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-batch-trailing",
+      "bytes": 75,
+      "expected_rust": "trailing",
+      "origin": "Protected unconsumed batch byte",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Incorrect declared batch size, records still remaining in file",
+        "valid_bytes": 75,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-batch-trailing.bin",
+      "sha256": "68851b8569a6b64ae1e19014825bfb7e7de080aea24c0969a34b67d4e4974e29",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-key-negative",
+      "bytes": 74,
+      "expected_rust": "length",
+      "origin": "Protected invalid nullable-key sentinel",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Found invalid record structure",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-key-negative.bin",
+      "sha256": "8c64715efefaf1161e6fe83b6ec64794b33bb3da25c75220c3abaf78a4ff158f",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-value-negative",
+      "bytes": 74,
+      "expected_rust": "length",
+      "origin": "Protected invalid nullable-value sentinel",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Found invalid number of record headers. 59 is larger than the remaining size of the buffer",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-value-negative.bin",
+      "sha256": "c076b488940e141cd89754787b326069ddff33411b8568cf2e9ae9ce2b933f55",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-key-length-bomb",
+      "bytes": 78,
+      "expected_rust": "fieldbudget",
+      "origin": "Protected key-length bomb",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Found invalid record structure",
+        "valid_bytes": 78,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-key-length-bomb.bin",
+      "sha256": "41dac4e6621c435ba27ee649516db3af2ea98608c1a553f5e5e92f7ead8392f9",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-value-length-bomb",
+      "bytes": 78,
+      "expected_rust": "fieldbudget",
+      "origin": "Protected value-length bomb",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Found invalid record structure",
+        "valid_bytes": 78,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-value-length-bomb.bin",
+      "sha256": "b53bec0244596f88336ee82e313eff402223604c64a50d33254ca3a03399c165",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-header-negative-count",
+      "bytes": 74,
+      "expected_rust": "length",
+      "origin": "Protected negative header count",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Found invalid number of record headers -1",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-header-negative-count.bin",
+      "sha256": "c82eb297ae4125f48035437acf1e3acf90a138eb74bdb024825bce087716bbf5",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-header-count-bomb",
+      "bytes": 78,
+      "expected_rust": "headerbudget",
+      "origin": "Protected header-count bomb",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Found invalid number of record headers. 2147483647 is larger than the remaining size of the buffer",
+        "valid_bytes": 78,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-header-count-bomb.bin",
+      "sha256": "851533e1355cf8a2be241144af59ab5156340c12b7a1bb5205cd614c4dcbc29b",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-header-key-null",
+      "bytes": 74,
+      "expected_rust": "length",
+      "origin": "Protected nullable header key",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Invalid negative header key size -1",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-header-key-null.bin",
+      "sha256": "8e19519fc75f831a28f9cf55a4d5d5d6d1b0b39c5cbb239d51d3922490db4966",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-header-key-bomb",
+      "bytes": 78,
+      "expected_rust": "fieldbudget",
+      "origin": "Protected header-key length bomb",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Found invalid record structure",
+        "valid_bytes": 78,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-header-key-bomb.bin",
+      "sha256": "e9e588cdfcb98d17f5c6df46b3c2867f7bbb8495dfb95f0925961615df8a14ec",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-header-value-negative",
+      "bytes": 74,
+      "expected_rust": "length",
+      "origin": "Protected invalid nullable-header-value sentinel",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Invalid record size: expected to read 12 bytes in record payload, but instead read 11",
+        "valid_bytes": 74,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-header-value-negative.bin",
+      "sha256": "dbf9ca0d903f8a273a3f91374a107dd57e7527873dda9091ce3d2fa75c608386",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-header-utf8",
+      "bytes": 74,
+      "expected_rust": "headerkey",
+      "origin": "Protected non-UTF8 header key",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-header-utf8.bin",
+      "sha256": "e09472d66f7d349613915241e4a419ac55be3476bfd28a398994b325a81110da",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-varint-overflow",
+      "bytes": 78,
+      "expected_rust": "varintoverflow",
+      "origin": "Protected 32-bit record-length varint overflow",
+      "upstream": {
+        "status": "rejected",
+        "phase": "record.iterator",
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Invalid record size: expected to read -134217728 bytes in record payload, but instead read 12",
+        "valid_bytes": 78,
+        "batches": 1,
+        "records": 0
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-varint-overflow.bin",
+      "sha256": "8202f7fef98da243b7eeb7f1cb3ea008dc2465f50f2c9fcc6b3fea8dbfea3491",
+      "admission_relation": "both-reject"
+    },
+    {
+      "fixture": "bad-varlong-overflow",
+      "bytes": 83,
+      "expected_rust": "varintoverflow",
+      "origin": "Protected 64-bit timestamp varint overflow",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 83,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-varlong-overflow.bin",
+      "sha256": "467153eb336e971e084d28b3e26bb7928c04027b15821be6fc2e95d7440a423a",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "strict-noncanonical-record-length",
+      "bytes": 75,
+      "expected_rust": "noncanonical",
+      "origin": "Protected overlong but numerically valid record-length varint",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 75,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/strict-noncanonical-record-length.bin",
+      "sha256": "91eed9f938125862245b1dbedda29b4f4ba4ff418e2e9a3ee0b63fbc804381d6",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "strict-noncanonical-timestamp",
+      "bytes": 75,
+      "expected_rust": "noncanonical",
+      "origin": "Protected overlong zero timestamp delta",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 75,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/strict-noncanonical-timestamp.bin",
+      "sha256": "1f7bf7a42a47b11b200b241bb6448ef1d4e064788aa952d8a64c02bb8c487b42",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "strict-noncanonical-offset",
+      "bytes": 75,
+      "expected_rust": "noncanonical",
+      "origin": "Protected overlong zero offset delta",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 75,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/strict-noncanonical-offset.bin",
+      "sha256": "791691232d3eab899fdbac5cffd466b445e73e5bc7c24e65381313e46c7ab6a8",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    },
+    {
+      "fixture": "bad-timestamp-overflow",
+      "bytes": 74,
+      "expected_rust": "timestamp",
+      "origin": "Protected timestamp addition overflow",
+      "upstream": {
+        "status": "accepted",
+        "valid_bytes": 74,
+        "full_input_consumed": true,
+        "batches": 1,
+        "records": 1,
+        "headers": 1
+      },
+      "fixture_path": "partitionline-broker/tests/fixtures/records/bad-timestamp-overflow.bin",
+      "sha256": "95186b54a3896baf862e1dd97977aa44ce3951363aa214a1e55baf28f38c56c2",
+      "admission_relation": "strict-admission-rejection-upstream-accepts"
+    }
+  ],
+  "counts": {
+    "fixtures": 58,
+    "supported_and_accepted": 6,
+    "unsupported_features": 11,
+    "upstream_rejected": 22,
+    "upstream_accepted": 36,
+    "stricter_admission_rejections": 19
+  },
+  "reproduction": "Two fresh executions reproduced all 58 retained fixture bytes and identical parser outcomes.",
+  "scope": "Official Apache MemoryRecords builders, validBytes, batch.ensureValid and complete record iteration/record.ensureValid. No running broker, LogValidator or Produce handler is exercised."
+}
