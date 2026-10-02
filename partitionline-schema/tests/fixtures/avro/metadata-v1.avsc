@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "Metadata",
+  "namespace": "common",
+  "fields": [
+    {
+      "name": "source",
+      "type": "string"
+    }
+  ]
+}

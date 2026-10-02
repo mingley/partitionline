@@ -1,0 +1,115 @@
+{
+  "peer": "Apache Avro Python",
+  "version": "1.12.1",
+  "license": "Apache-2.0",
+  "python": "3.12.14",
+  "distribution": "avro-1.12.1-py2.py3-none-any.whl",
+  "distribution_sha256": "970475dd6457924533966fe761be607c759d5a48390cc8fbed472f7c9a8868f2",
+  "source_sha256": {
+    "avro/__init__.py": "85557220215e230aec669f44bda3f58f988a647cdf109ada3c824c2b520dabf9",
+    "avro/__main__.py": "2b8dc5fabeed0f360454c2f206a8206d7ece26ca32b89621346ec128b62a82b4",
+    "avro/codecs.py": "fbe0ac4eb2af2cb7ec3f803430ff3f21d82982e7cd673a75899ec4e126f0114b",
+    "avro/compatibility.py": "565fbf011554fff5ef774556556ade4e16741d3f9695f8b98b80f0f30f1095da",
+    "avro/constants.py": "1388b68b63c99da6e54df019abad2a7c86af255388dc522f55c28940f94e1086",
+    "avro/datafile.py": "1898521205c1cdd192b5e7fcb1c48a27ad132206e96161bc9054a27cd2d6ece7",
+    "avro/errors.py": "f80cb96d7d4abd6b5e7d145bb2c731068bfcdbd8402f912c913914e025bf9975",
+    "avro/io.py": "c38e54a31cbfdab203cb65df9ed651b8e41ce2245f331936fc7a7f87b9a8217e",
+    "avro/ipc.py": "d00ea8933b04db7dd14adcc217a825e8e9b48b1b04381088c4975252c24c1c07",
+    "avro/name.py": "f484ad7b97f5f8737cc92253704fd70e38d012ef09a51275a07d8d793de8c111",
+    "avro/protocol.py": "11754bfb033ddde25077b8fa89280e829cc95ddcb5c31d4a52e27038e0140838",
+    "avro/schema.py": "7f6b1b9ca64dc2955d4cac96a610c8c0dd1954da4274535ba47f885b5c81ed8f",
+    "avro/test/__init__.py": "de167c519304725e129edad15f2255acbbaa1d38b8950fa641b1f2611e735142",
+    "avro/test/gen_interop_data.py": "517d232f56c348c8f08e70fe5726b4d07e13a46085bdd97410ad754ec47d513f",
+    "avro/test/mock_tether_parent.py": "4140dc27fb8a95e14f2580ed2185e4cb06270eac4e73445637328eeacc345bd7",
+    "avro/test/sample_http_client.py": "a4eceeb55235982cd517aa60475a4720b24beefd5898cf0ada71a6fcddd2e453",
+    "avro/test/sample_http_server.py": "e0c15ceb8f0eb179acaaf8ef44db76c09b64827b329e48ec14392b354b484dc1",
+    "avro/test/test_bench.py": "c7525366cebf85210dccedaac1a3e70e17e57bdd17439249281583834e54ba78",
+    "avro/test/test_compatibility.py": "48e1f565c5fa2878a4abd6e408ff558d201eec5ef24b8489bb13894b7f635039",
+    "avro/test/test_datafile.py": "7625388f871e9603fce558f0cdd8a16ac582fe9d72c8b535216d821131f75df3",
+    "avro/test/test_datafile_interop.py": "d9826eed141162331b9c1c93c00e632f6a2653b17c7a01a06d41dcdaae88b6e3",
+    "avro/test/test_init.py": "1cce1d578f4f963c9dd159c19449a4d3f108ae666b31f0a1ebdc5872e8dc0610",
+    "avro/test/test_io.py": "7c37a2fde03bfb48d67780b207db051e47f9f0c498ff1cc00546cfa18fbe285c",
+    "avro/test/test_ipc.py": "b7eb51e11147e7a5811ac89d47a57b8273c8d16e1cdb75b51041409ceb30aec6",
+    "avro/test/test_name.py": "0ea9c6d28fe685289488684aa0f6f00f4754e876be6ff9d23f783e0a722316fb",
+    "avro/test/test_protocol.py": "6b9be3a18c02472a60e16edc987c988e9aa0b4be66e4baf5f2acd24359c95005",
+    "avro/test/test_schema.py": "0eefb56edaa630521579593ec40a6fca3b3143655d714d47d9dd6de8feccdebc",
+    "avro/test/test_script.py": "3f6babeff37a5005fdc9d733c7d454517f33a3e96f1c88d6eefaabe0f5fd6126",
+    "avro/test/test_tether_task.py": "0b9bfc97441677a848c80833231008a40fa6ba6fd675786c0a01c9a84d670a08",
+    "avro/test/test_tether_task_runner.py": "704076b7a0cf474aaf263f13f68d768bcae7adfbabd45aa8d8cbaa9420d6627d",
+    "avro/test/test_tether_word_count.py": "5ab2f24b6e3ba179fe22f1e53badef955d60a016ade06a50422f17101a0e1cfc",
+    "avro/test/word_count_task.py": "c0a292e4c3a983dcd952efb247695e661b25473cc8cce9a254ed43bc0fa6f036",
+    "avro/tether/__init__.py": "0a71224675e2c8ad212b74e198a2e7ab468303c8aa6f6c3c2002c13ec8b4eb9e",
+    "avro/tether/tether_task.py": "0a7e4f01669868d5474b159888bb5a1dfbfe8179585e6790451772419101aab2",
+    "avro/tether/tether_task_runner.py": "75486b04aae37551eea61d5839e73292e4ecb7056208cc42b861b8d010f6541c",
+    "avro/tether/util.py": "a5fc73d07968a261f7f6a08172154e15c2d249782e009b5754db6b9fb56de1d6",
+    "avro/timezones.py": "0a8a5f1ed03f4c0f113acf7c8744fa8914006007277af928a8875e918e7a0f21",
+    "avro/tool.py": "69bfe04983ffa5fea2aad510d6569047fdd867fa6eeabaf4eb8beed8af1158dc",
+    "avro/utils.py": "86910600a7b9942bc533a781d7c5c9980961b11c2e8b9ea85be7eff6fc843f1a"
+  },
+  "wire": "Confluent magic 0 + u32 big-endian writer ID 42 + raw binary datum",
+  "schema_resolution": [
+    "named common.Metadata resolved independently in writer/reader namespaces",
+    "field order changes and int-to-long promotion",
+    "reader-added string, null-union and referenced boolean defaults",
+    "null and present string union branches, UTF-8, int32 min/max",
+    "int-to-string and required-field-without-default reject at datum decode",
+    "unresolved named reference rejects at schema parse"
+  ],
+  "inputs": {
+    "null": {
+      "id": 1,
+      "metadata": {
+        "source": "reference.avsc"
+      },
+      "note": null
+    },
+    "present": {
+      "id": 300,
+      "metadata": {
+        "source": "producer"
+      },
+      "note": "hello 雪"
+    },
+    "negative": {
+      "id": -2147483648,
+      "metadata": {
+        "source": "雪"
+      },
+      "note": ""
+    },
+    "intmax": {
+      "id": 2147483647,
+      "metadata": {
+        "source": "boundary"
+      },
+      "note": "large"
+    }
+  },
+  "artifacts_sha256": {
+    "incompatible.avsc": "6159a819333567172783c4510b244749a6e4fc0d59dfcaf5a049fd23716576e4",
+    "intmax.frame.bin": "c0af3ddc0fc087795124845ec5ea604b038b36b8c15e96c819ff389d33c935ab",
+    "intmax.payload.bin": "abe80d6472a50e9acb3e325d5002a208349db105d903b87ab18ae6004457d9bc",
+    "intmax.reader.json": "2018133044a517076e8485281d024af74169c4a3a673a3c2e9f4048a171aaea8",
+    "intmax.writer.json": "c91c80ae811abc0fd27f3641938e42780327bdbc6ffec45c87ad1a260b3ddf87",
+    "metadata-v1.avsc": "7ca1db6833f67438ba6e755da722a82238a2107521c8089cc57069d1fb98f68c",
+    "metadata-v2.avsc": "80e7726b1bd8492cb5faf64eb26c9fd89f4e88ddfdd5e40522fd996bcdfbb758",
+    "negative.frame.bin": "86bf6198a67de61cdf48dde30fa568f539b7124f1ddd035fc8d06136af7a6ddc",
+    "negative.payload.bin": "df1741be011af5eba0238447d43ba6fac22143118e24229f0ee54904fb4674f9",
+    "negative.reader.json": "0d8088dd17c57abd279df7a4a7c6ba17b69839c5f7f07bc9644825373633050d",
+    "negative.writer.json": "1a29abe47427c15fca19c703663915050f42da10ea06d73b737c37a694e3e637",
+    "null.frame.bin": "601b4e40e7b5c662fcadd5d670e7011becc4fb5850f402ebf7e9296e2512633b",
+    "null.payload.bin": "50ac7bcccb909b9f5a544b7f60a1109a56e9ffe9484847a74febad22b085ba7a",
+    "null.reader.json": "9290c972b629d949235674c5d9e7c938b5e2b3aa56b92d3793635d4a3eb33cb7",
+    "null.writer.json": "fbc88ccec79f1d4b516f64792fa0b40d7a51251486b7a925220cdfb6b9efa940",
+    "present.frame.bin": "e2236e9c3403363c02e05dead0f8b7787a6bd6bc8a07141fb97a9dbbc6ce6a91",
+    "present.payload.bin": "2803fb1e6951f7a803050140bdb8be5702d72ea8bbf6675ca10b5c47b7cd07b0",
+    "present.reader.json": "5f81946cc9024cb948c45034e08808b15fcb1c64a075b6cb42409a6922909fda",
+    "present.writer.json": "5e5c8478f4ffe9ed46142271a2ed9f41cd67099d60e21346c124e4146e554943",
+    "reader.avsc": "2f404be172b979be46226b760d76b8403cfd0625017cc2737ddde178b47d8271",
+    "required.avsc": "666130fb394058ccf8fe754243b8227d54f781ad746c552b3bf32d34e6a2122d",
+    "root-null.frame.bin": "c9fbac009d8eda5d25c9aabb2b6794bc9a801afd17adef7878c6539204eb0f82",
+    "root-null.payload.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "writer.avsc": "9244c289b9fb6deaf82a453563275d14d69487befd719737583e40f0dbee935d"
+  },
+  "scope": "offline datum interoperability; fixture-only Rust codec; no registry/broker"
+}

@@ -8,7 +8,9 @@
 //! registration or mutation API here.
 //!
 //! [`protobuf`] also offers bounded message-index framing and a caller-selected
-//! codec contract, without adding a serialization dependency. Built-in
+//! codec contract, without adding a serialization dependency. The opt-in `avro`
+//! module similarly selects explicit writer/reader schemas and references.
+//! Built-in
 //! Avro/Protobuf/JSON serialization libraries wait on adopter demand
 //! (survey [#85](https://github.com/mingley/partitionline/issues/85)); see
 //! `docs/schema-companion.md`.
@@ -16,6 +18,8 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+#[cfg(feature = "avro")]
+pub mod avro;
 pub mod protobuf;
 #[cfg(feature = "registry")]
 pub mod registry;

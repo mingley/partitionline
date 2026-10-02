@@ -12,6 +12,9 @@ categories = ["encoding", "network-programming"]
 
 [features]
 default = ["registry"]
+# Explicit schema selection and bounded Avro framing/codec contract. The
+# application supplies its serialization library; this feature adds no deps.
+avro = []
 # Bounded Schema Registry lookup client (GET-only HTTP/1.1 over tokio +
 # rustls with webpki roots). It is a default feature so the card's plain
 # `cargo test` exercises it, and stays optional so

@@ -1,0 +1,36 @@
+{
+  "type": "record",
+  "name": "Event",
+  "namespace": "example",
+  "fields": [
+    {
+      "name": "metadata",
+      "type": "common.Metadata"
+    },
+    {
+      "name": "id",
+      "type": "long"
+    },
+    {
+      "name": "note",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "default": "new"
+    },
+    {
+      "name": "tag",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    }
+  ]
+}

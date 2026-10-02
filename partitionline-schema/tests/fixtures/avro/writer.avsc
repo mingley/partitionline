@@ -1,0 +1,23 @@
+{
+  "type": "record",
+  "name": "Event",
+  "namespace": "example",
+  "fields": [
+    {
+      "name": "id",
+      "type": "int"
+    },
+    {
+      "name": "metadata",
+      "type": "common.Metadata"
+    },
+    {
+      "name": "note",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    }
+  ]
+}

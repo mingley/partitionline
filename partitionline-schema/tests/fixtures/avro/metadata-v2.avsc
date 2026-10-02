@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "Metadata",
+  "namespace": "common",
+  "fields": [
+    {
+      "name": "source",
+      "type": "string"
+    },
+    {
+      "name": "active",
+      "type": "boolean",
+      "default": true
+    }
+  ]
+}

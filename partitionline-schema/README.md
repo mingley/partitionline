@@ -14,6 +14,9 @@ features leaves dependency-free wire framing.
 - `protobuf`: bounded Confluent message-index framing (including the special
   `[0]` encoding), plus `Adapter<Codec>` for an explicitly selected serializer
   and known writer schema ID. No serializer dependency is selected implicitly.
+- `avro` (opt-in feature): bounded Avro datum framing and `Adapter<Codec>` with
+  explicitly selected writer/reader schemas and resolved named references.
+  The application supplies its serializer; the feature adds no dependencies.
 - `registry::RegistryClient` (default feature `registry`): bounded
   read-only Schema Registry lookups (by id, by subject/version, plus
   reference resolution). No registration or mutation APIs.
@@ -74,6 +77,44 @@ The pinned [offline oracle](tests/oracles/protobuf/README.md) checks Confluent
 8.1.0 indexes and Google protoc 3.21.12 payloads in both directions, including a
 nested message with an imported schema. No live registry/broker is claimed.
 
+## Opt-in Avro adapter
+
+Enable `features = ["avro"]` to use `avro::Adapter<Codec>`. This is a codec
+contract and bounded Confluent framing, with no built-in Avro serialization
+library. Supply a known writer schema ID, separate writer/reader `Schema`
+values, their already-fetched named references, and a caller-selected codec.
+Construction checks input bounds before asking `Codec::resolve` to validate
+and select the schemas once. Writer and reader reference sets are independent;
+duplicate names within either set fail. Supply transitive references explicitly.
+JSON validation, name resolution, defaults, union branches, promotions and
+incompatible-schema decisions are the codec's responsibility. Schema Registry
+lookup/reference fetching remains a separate read-only operation.
+
+Encoding asks the codec for an exact writer-schema datum length and gives it
+one bounded output slice, without a second adapter-owned payload buffer. Decode
+borrows frame data, rejects unknown writer IDs before entering the codec, and
+requires the codec to report complete consumption of one datum. Partial writes,
+trailing data, overflows, oversized inputs and malformed headers are structured
+adapter errors; schema/datum failures retain the codec's error type. The
+five-byte frame with no payload is valid for a primitive Avro null. These are
+raw binary datums, not Avro object containers or single-object encodings.
+
+Defaults permit a 1 MiB complete frame, 2 MiB combined writer/reader schema
+text (including every reference name and JSON), and 64 combined references.
+`Limits::new` permits 5 bytes–64 MiB frames, 1 byte–64 MiB schema input and
+0–1024 references. Schema text is borrowed and never copied by the adapter.
+The selected codec must separately bound schema parsing, retained schemas,
+recursion, scratch and decoded values; input bounds do not bound their memory
+or process RSS. No registration, lookup or network operation is implicit.
+
+The pinned [Apache Avro Python 1.12.1 oracle](tests/oracles/avro/README.md)
+checks peer-produced bytes and actual Rust adapter output in both directions.
+It covers writer/reader field order, int-to-long promotion, evolved named
+references, added string/null/boolean defaults, null/present union branches,
+UTF-8 and int32 boundaries, plus incompatible and missing-default failures.
+The checked-in Rust codec handles only those fixture schemas; these tests do
+not qualify a production built-in serializer, live registry or Kafka broker.
+
 ## Later (demand-gated libraries)
 
 Built-in Avro / Protobuf / JSON serialization libraries — see
@@ -82,4 +123,5 @@ Built-in Avro / Protobuf / JSON serialization libraries — see
 
 ```bash
 cargo test --manifest-path partitionline-schema/Cargo.toml
+cargo test --manifest-path partitionline-schema/Cargo.toml --features avro
 ```
