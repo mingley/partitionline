@@ -44,8 +44,8 @@ def main():
         actual = run(runtime, repo, logs / f'generate-{version}.txt')
         with tempfile.TemporaryDirectory(prefix='metadata-replay-', dir=args.scratch) as tmp:
             repeated = run(runtime[:-1] + [tmp], repo, logs / f'replay-{version}.txt')
-            original = {p.name: sha(p) for p in dest.iterdir() if p.is_file()}
-            replay = {p.name: sha(p) for p in Path(tmp).iterdir() if p.is_file()}
+            original = {str(p.relative_to(dest)): sha(p) for p in dest.rglob('*') if p.is_file()}
+            replay = {str(p.relative_to(Path(tmp))): sha(p) for p in Path(tmp).rglob('*') if p.is_file()}
             assert original == replay, (version, 'nondeterministic fixture output')
         manifest = json.loads((dest / 'goldens.json').read_text())
         pairs = {(c['api_key'], c['api_version']) for c in manifest['cases']}
@@ -56,9 +56,13 @@ def main():
         for case in manifest['cases']:
             for direction in ['request', 'response']:
                 path = dest / f"{case['name']}.{direction}.bin"
+                if case[f'{direction}_hex'] is None:
+                    assert direction == 'response' and case['handler_policy'] == 'reject_neither_identity'
+                    assert not path.exists()
+                    continue
                 assert path.read_bytes().hex() == case[f'{direction}_hex']
                 assert sha(path) == case[f'{direction}_sha256']
-        summary['releases'].append({'version': version, 'source_sha': source_sha, 'jar_sha256': jar_hash, 'slf4j_sha256': SLF4J, 'compile': compiled, 'runtime': actual, 'replay': repeated, 'case_count': len(manifest['cases']), 'advertised_pairs': len(pairs), 'fixture_hashes': original})
+        summary['releases'].append({'version': version, 'source_sha': source_sha, 'jar_sha256': jar_hash, 'slf4j_sha256': SLF4J, 'compile': compiled, 'runtime': actual, 'replay': repeated, 'case_count': len(manifest['cases']), 'response_golden_count': sum(c['response_hex'] is not None for c in manifest['cases']), 'deliberate_rejection_count': sum(c['response_hex'] is None for c in manifest['cases']), 'advertised_pairs': len(pairs), 'fixture_hashes': original})
     manifests = [json.loads((args.output / v / 'goldens.json').read_text())['cases'] for v in RELEASES]
     assert manifests[0] == manifests[1] == manifests[2], 'cross-release generated cases differ'
     summary['all_release_cases_byte_identical'] = True

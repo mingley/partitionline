@@ -55,9 +55,29 @@ MAX_MEMBER_BYTES = 512 * 1024
 MAX_MEMBERS = 256
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 SCOPE = "Pinned upstream broker protocol inventory; no implementation or advertisement claim"
-IMPLEMENTED = [{"api_key": 18, "min_version": 0, "max_version": 4}]
+IMPLEMENTED = [
+    {"api_key": 3, "min_version": 0, "max_version": 13},
+    {"api_key": 18, "min_version": 0, "max_version": 4},
+    {"api_key": 19, "min_version": 2, "max_version": 4},
+    {"api_key": 20, "min_version": 1, "max_version": 6},
+]
+IMPLEMENTED_BY_KEY = {row["api_key"]: row for row in IMPLEMENTED}
+SOURCE_PATHS = {
+    "protocol_source": "partitionline-broker/src/protocol.rs",
+    "test_source": "partitionline-broker/tests/protocol.rs",
+    "metadata_source": "partitionline-broker/src/metadata.rs",
+    "metadata_test_source": "partitionline-broker/tests/metadata.rs",
+}
+METADATA_MANIFEST_SHA256 = {'4.1.2': '1ce4e69689096b0e8497d00556c43cfad40d3ad02cd3b6382c67fa5cf48e1f1d', '4.2.1': 'a9860bbb0002c40b5c27c69f82b475064dcba3dbe8f169bc234416329e0494f2', '4.3.1': 'd3bb310c0353fee92f4ff389f366352034f47a41adfd32a95120ead659dbcc4d'}
+SCHEMA_ONLY_MANIFEST_SHA256 = {'4.1.2': '2dab8a229f45dd0e627004f2cbfb3bd368b360a252d25a732f81135baeeddfe8', '4.2.1': '9cf6ba0c67ab68a7e13cda4974c4d7ffb183af3f65d414a73f1385c47b64cc39', '4.3.1': '3174c0e93ce395178cdfe1c8740c346a6a5c546cd7250b286ed206a9adb13390'}
+
+IMPLEMENTED_NOTES = {
+    3: "Metadata0-13 persistent single-node catalog and Apache wire goldens; automatic creation disabled; qualification not_run.",
+    18: "ApiVersions0-4 standalone18-only or composed tested registry; qualification not_run.",
+    19: "CreateTopics2-4 journal-backed single-node administration; nonempty overrides INVALID_CONFIG; versions5-7 missing; qualification not_run.",
+    20: "DeleteTopics1-6 journal-backed tombstones with name/UUID validation and Apache wire goldens; qualification not_run.",
+}
 REGISTRY_PATH = "tests/conformance/broker/implemented-api-versions.json"
-IMPLEMENTED_NOTE = "ApiVersions0-4 header/body handler verified against Apache goldens; other broker APIs and production qualification remain missing."
 # Independent Apache generator outputs. Changing a registry's hashes alone
 # cannot bless changed wire bytes or fabricated upstream observations.
 GOLDEN_MANIFEST_SHA256 = {'4.1.2': 'ca8d4a2e1badf53a829b8286e19775b57f5361b9ba608819321102444ba1a040', '4.2.1': 'ca8d4a2e1badf53a829b8286e19775b57f5361b9ba608819321102444ba1a040', '4.3.1': 'ca8d4a2e1badf53a829b8286e19775b57f5361b9ba608819321102444ba1a040'}
@@ -71,20 +91,25 @@ def checked_implemented(value):
     return value
 
 
-def verify_implementation(registry_path, repository_root, inventories, handler_report=None):
+def verify_implementation(registry_path, repository_root, inventories, handler_report=None, metadata_handler_report=None):
     registry = load_json(registry_path)
     require(registry.get("schema_version") == 1 and
             registry.get("scope") == "Checked local handler registry; production qualification remains not_run" and
-            registry.get("implementation_gate") == "KL11-04" and
+            registry.get("implementation_gate") == "KL11-05" and
             registry.get("qualification") == "not_run", "invalid implementation registry scope/gate")
     checked_implemented(registry.get("implemented_api_versions"))
+    require(registry.get("standalone_api_versions") == [IMPLEMENTED_BY_KEY[18]],
+            "standalone handler advertisement mismatch")
     for version, inventory in inventories.items():
-        row = inventory[18]
-        require(row["disposition"] == "active" and "broker" in row["listeners"] and
-                all(row[kind]["valid_versions"] == "0-4" for kind in ("request", "response")),
-                f"{version}: implementation outside upstream contract")
-    for label, expected in (("protocol_source", "partitionline-broker/src/protocol.rs"),
-                            ("test_source", "partitionline-broker/tests/protocol.rs")):
+        for implemented in IMPLEMENTED:
+            row = inventory[implemented["api_key"]]
+            require(row["disposition"] == "active" and "broker" in row["listeners"],
+                    f"{version}: implementation outside upstream contract")
+            for kind in ("request", "response"):
+                require(set(range(implemented["min_version"], implemented["max_version"] + 1)) <=
+                        set(expand_versions(row[kind]["valid_versions"])),
+                        f"{version}: implementation outside upstream version range")
+    for label, expected in SOURCE_PATHS.items():
         require(registry.get(label) == expected, "unexpected implementation source path")
         require(registry.get(label + "_sha256") == digest((repository_root / expected).read_bytes()),
                 f"{label}: implementation source checksum mismatch")
@@ -119,6 +144,11 @@ def verify_implementation(registry_path, repository_root, inventories, handler_r
                     expected_paths.add(path)
                     require((root / path).read_bytes() == bytes.fromhex(value), "golden byte mismatch")
     require(actual.keys() == expected_paths, "missing/extra implementation fixtures")
+    metadata_expected = verify_metadata_fixtures(registry, repository_root)
+    metadata_checked = False
+    if metadata_handler_report is not None:
+        verify_compiled_report(metadata_handler_report, registry, metadata_expected, ("metadata_source", "metadata_test_source"))
+        metadata_checked = True
     report_checked = False
     if handler_report is not None:
         report = load_json(handler_report)
@@ -141,8 +171,109 @@ def verify_implementation(registry_path, repository_root, inventories, handler_r
     return registry, {"implemented_api_versions": IMPLEMENTED,
                       "source_and_fixture_hashes_checked": True,
                       "golden_cases": len(expected_results),
+                      "metadata_golden_cases": len(metadata_expected),
+                      "metadata_response_cases": sum(value is not None for value in metadata_expected.values()),
+                      "metadata_local_rejections": sum(value is None for value in metadata_expected.values()),
+                      "compiled_metadata_report_checked": metadata_checked,
                       "compiled_handler_report_checked": report_checked,
                       "qualification": "not_run"}
+
+
+def expand_versions(value):
+    require(isinstance(value, str) and re.fullmatch(r"[0-9]+(?:-[0-9]+)?", value), "invalid implemented upstream range")
+    pieces = value.split("-")
+    lower, upper = int(pieces[0]), int(pieces[-1])
+    require(lower <= upper <= 32767, "invalid upstream range endpoints")
+    return range(lower, upper + 1)
+
+
+def verify_metadata_fixtures(registry, repository_root):
+    require(registry.get("metadata_fixture_root") == "partitionline-broker/tests/fixtures/metadata",
+            "unexpected metadata fixture path")
+    root = repository_root / registry["metadata_fixture_root"]
+    files = [path for path in sorted(root.rglob("*")) if path.is_file()]
+    require(1 <= len(files) <= 4096 and all(not path.is_symlink() and path.stat().st_size <= 512 * 1024
+                                           for path in files), "unbounded/symlink metadata fixtures")
+    actual = {str(path.relative_to(root)): digest(path.read_bytes()) for path in files}
+    require(registry.get("metadata_fixtures_sha256") == actual, "metadata fixture checksum map mismatch")
+    paths, results = set(), {}
+    required_pairs = {(row["api_key"], version) for row in IMPLEMENTED
+                      for version in range(row["min_version"], row["max_version"] + 1)}
+    for release in TARGETS:
+        manifest = root / release / "goldens.json"
+        require(digest(manifest.read_bytes()) == METADATA_MANIFEST_SHA256[release],
+                f"{release}: independent metadata golden manifest checksum mismatch")
+        golden = load_json(manifest)
+        cases = golden.get("cases")
+        require(isinstance(cases, list) and 28 <= len(cases) <= 512, "missing metadata golden cases")
+        paths.update({f"{release}/goldens.json", f"{release}/cases.tsv"})
+        coverage, rows = set(), []
+        for case in cases:
+            name, key, version, seed = (case.get(field) for field in ("name", "api_key", "api_version", "seed"))
+            require(isinstance(name, str) and re.fullmatch(r"[a-z0-9-]+", name) and
+                    (release, name) not in results and type(key) is int and type(version) is int and
+                    (key, version) in required_pairs and seed in ("empty", "fixture"), "invalid/duplicate metadata golden case")
+            coverage.add((key, version))
+            rows.append(f"{name}\t{key}\t{version}\t{seed}\n")
+            results[(release, name)] = case.get("response_hex")
+            for direction in ("request", "response"):
+                value = case.get(direction + "_hex")
+                if direction == "response" and value is None:
+                    require(key == 3 and version in (12, 13) and name == f"metadata-v{version}-null-zero" and
+                            case.get("handler_policy") == "reject_neither_identity", "unreviewed metadata rejection policy")
+                    continue
+                require(isinstance(value, str) and re.fullmatch(r"(?:[0-9a-f]{2})*", value), "invalid metadata golden bytes")
+                path = f"{release}/{name}.{direction}.bin"
+                paths.add(path)
+                require((root / path).read_bytes() == bytes.fromhex(value), "metadata golden byte mismatch")
+        require(coverage == required_pairs, f"{release}: missing advertised API/version golden")
+        schema_root = root / release / "schema-only"
+        historical_path = schema_root / "goldens.json"
+        require(digest(historical_path.read_bytes()) == SCHEMA_ONLY_MANIFEST_SHA256[release],
+                f"{release}: independent schema-only manifest checksum mismatch")
+        historical = load_json(historical_path)
+        require(historical.get("release") == release and historical.get("qualification") ==
+                "Excluded from positive router comparisons; historical malformed field combinations only",
+                "schema-only diagnostics cannot become positive qualification")
+        old_cases = historical.get("cases")
+        require(isinstance(old_cases, list) and len(old_cases) == 2 and
+                {case.get("name") for case in old_cases} == {"metadata-v12-null-zero", "metadata-v13-null-zero"},
+                "unexpected schema-only diagnostic cases")
+        paths.add(f"{release}/schema-only/goldens.json")
+        for case in old_cases:
+            name = case["name"]
+            require(case.get("api_key") == 3 and case.get("api_version") in (12, 13) and
+                    results[(release, name)] is None, "historical malformed response is not a handler golden")
+            current = next(value for value in cases if value["name"] == name)
+            require(case.get("request_hex") == current["request_hex"], "schema-only request history mismatch")
+            for direction in ("request", "response"):
+                value = case.get(direction + "_hex")
+                require(isinstance(value, str) and re.fullmatch(r"(?:[0-9a-f]{2})*", value), "invalid schema-only bytes")
+                path = f"{release}/schema-only/{name}.{direction}.bin"
+                paths.add(path)
+                content = (root / path).read_bytes()
+                require(content == bytes.fromhex(value) and digest(content) == case.get(direction + "_sha256"),
+                        "schema-only historical byte checksum mismatch")
+        require((root / release / "cases.tsv").read_text(encoding="utf-8") == "".join(rows), "metadata golden index mismatch")
+    require(actual.keys() == paths, "missing/extra metadata implementation fixtures")
+    return results
+
+
+def verify_compiled_report(path, registry, expected, labels):
+    report = load_json(path)
+    checked_implemented(report.get("implemented_api_versions"))
+    require(report.get("schema_version") == 1 and
+            all(report.get(label + "_sha256") == registry[label + "_sha256"] for label in labels),
+            "compiled metadata report/source/registry mismatch")
+    rows = report.get("case_results")
+    require(isinstance(rows, list) and len(rows) == len(expected), "incomplete compiled metadata report")
+    observed = {}
+    for row in rows:
+        require(isinstance(row, dict) and row.keys() == {"release", "case", "response_hex"}, "invalid compiled metadata case shape")
+        pair = (row.get("release"), row.get("case"))
+        require(pair not in observed, "duplicate compiled metadata case")
+        observed[pair] = row.get("response_hex")
+    require(observed == expected, "compiled metadata/golden response mismatch")
 
 
 def require(condition, message):
@@ -466,7 +597,7 @@ def projected_feature(row_by_version):
 
 
 def verify(matrix_path, features_path, upstream_dir=None, registry_path=None,
-           repository_root=None, handler_report=None):
+           repository_root=None, handler_report=None, metadata_handler_report=None):
     matrix, features = load_json(matrix_path), load_json(features_path)
     require(matrix.get("schema_version") == 1 and matrix.get("scope") == SCOPE and
             matrix.get("implementation_claim") is False, "invalid broker inventory schema/scope")
@@ -503,7 +634,7 @@ def verify(matrix_path, features_path, upstream_dir=None, registry_path=None,
             features.get("upstream_pin_gate") == "KL11-57", "features release/inventory gate mismatch")
     registry, implementation = verify_implementation(
         registry_path or ROOT / REGISTRY_PATH, repository_root or ROOT,
-        inventories, handler_report)
+        inventories, handler_report, metadata_handler_report)
     checked_implemented(features.get("implemented_api_versions"))
     require(features.get("implemented_api_versions") == registry["implemented_api_versions"] and
             features.get("implementation_registry") == REGISTRY_PATH,
@@ -521,17 +652,19 @@ def verify(matrix_path, features_path, upstream_dir=None, registry_path=None,
             api_features[key] = row
     require(api_features.keys() == EXPECTED_KEYS, "missing API features")
     for key, row in api_features.items():
-        require(row.get("id") == f"api.{key}" and row.get("implementation") == ("implemented" if key == 18 else "missing") and
+        require(row.get("id") == f"api.{key}" and row.get("implementation") == (("partial" if key == 19 else "implemented") if key in IMPLEMENTED_BY_KEY else "missing") and
                 row.get("qualification") == "not_run", f"API {key}: unsupported implementation/qualification claim")
-        if key == 18:
-            require(row.get("implemented_versions") == "0-4" and row.get("implementation_gate") == "KL11-04",
-                    "API18 implementation version/gate mismatch")
+        if key in IMPLEMENTED_BY_KEY:
+            implemented = IMPLEMENTED_BY_KEY[key]
+            expected_range = f"{implemented['min_version']}-{implemented['max_version']}"
+            require(row.get("implemented_versions") == expected_range and row.get("implementation_gate") == "KL11-05",
+                    f"API{key} implementation version/gate mismatch")
         else:
             require("implemented_versions" not in row and "implementation_gate" not in row,
                     f"API {key}: forged implementation metadata")
         projection = projected_feature({version: inventory[key] for version, inventory in inventories.items()})
-        if key == 18:
-            projection["note"] = IMPLEMENTED_NOTE
+        if key in IMPLEMENTED_BY_KEY:
+            projection["note"] = IMPLEMENTED_NOTES[key]
         require(all(row.get(field) == value for field, value in projection.items()), f"API {key}: feature/source classification mismatch")
     return {"schema_version": 1, "verdict": "passed", "implementation_claim": False,
             "releases": reports, "local_implementation": implementation, "checks": ["immutable source pins", "bounded archives without extraction",
@@ -551,10 +684,12 @@ def main():
     parser.add_argument("--registry", type=Path, default=ROOT / REGISTRY_PATH)
     parser.add_argument("--handler-report", type=Path,
                         help="JSON emitted by the compiled Rust protocol golden test")
+    parser.add_argument("--metadata-handler-report", type=Path,
+                        help="JSON emitted by the compiled Rust metadata/admin golden test")
     args = parser.parse_args()
     try:
         report = verify(args.matrix, args.features, registry_path=args.registry,
-                        handler_report=args.handler_report)
+                        handler_report=args.handler_report, metadata_handler_report=args.metadata_handler_report)
     except (ValueError, KeyError, TypeError, OSError, EOFError, tarfile.TarError) as error:
         report = {"schema_version": 1, "verdict": "failed", "implementation_claim": False, "error": str(error)}
     if args.report:

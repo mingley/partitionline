@@ -105,13 +105,16 @@ Tier selection never supplies measurements, sample floors or qualification.
 PROFILE=group/share SCENARIO_ID=share-exp-kip932-concurrency \
 python3 benchmarks/peers/rust/run.py unsupported \
   --binary /workspace/work/rust-peer-build/rust-peer --result work/fresh-unsupported.json \
-  --reason 'librdkafka 2.15.0 has no KIP-932 share protocol; this adapter has no share driver'
+  --reason 'Wrapper/sys bindings and this adapter lack a share lifecycle; native 2.15.0 has preview KIP-932; Kafka 3.9.1 fixture is ineligible'
 ```
 
 The driver does not implement scheduled open-loop latency, standalone fetch,
 transactions, KIP-848 group lifecycles or share consumption. Native library
-support is distinct from driver support: native 2.15.0 does support traditional
-groups, KIP-848 and transactions; the adapter does not exercise them. Generic
+support is distinct from driver support: native 2.15.0 supports traditional
+groups, KIP-848, transactions and preview KIP-932. The pinned wrapper/sys binding
+API and this adapter expose no share lifecycle; the Kafka 3.9.1 validation
+fixture also cannot run the share cell. The adapter does not exercise group or
+transaction lifecycles. Generic
 producer settings include TLS/mTLS and PLAIN/SCRAM, but frozen TLS cipher/version,
 rehandshake and SCRAM semantics have no adapter validation. OAuth/GSSAPI and
 custom TLS server-name override are rejected. Null-key/constant payload produce

@@ -9,9 +9,24 @@
   "upstream_pin_gate": "KL11-57",
   "implemented_api_versions": [
     {
+      "api_key": 3,
+      "min_version": 0,
+      "max_version": 13
+    },
+    {
       "api_key": 18,
       "min_version": 0,
       "max_version": 4
+    },
+    {
+      "api_key": 19,
+      "min_version": 2,
+      "max_version": 4
+    },
+    {
+      "api_key": 20,
+      "min_version": 1,
+      "max_version": 6
     }
   ],
   "features": [
@@ -163,7 +178,7 @@
       "id": "api.3",
       "api_key": 3,
       "name": "METADATA",
-      "implementation": "missing",
+      "implementation": "implemented",
       "qualification": "not_run",
       "version_ranges": {
         "4.1.2": {
@@ -189,7 +204,7 @@
         }
       },
       "owner_task": "KL11-04",
-      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "note": "Metadata0-13 persistent single-node catalog and Apache wire goldens; automatic creation disabled; qualification not_run.",
       "upstream_disposition": "active",
       "upstream_applicability": "required",
       "upstream_listeners": {
@@ -204,7 +219,9 @@
         ]
       },
       "inventory_gate": "KL11-57",
-      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json",
+      "implementation_gate": "KL11-05",
+      "implemented_versions": "0-13"
     },
     {
       "id": "api.4",
@@ -873,7 +890,7 @@
         }
       },
       "owner_task": "KL11-04",
-      "note": "ApiVersions0-4 header/body handler verified against Apache goldens; other broker APIs and production qualification remain missing.",
+      "note": "ApiVersions0-4 standalone18-only or composed tested registry; qualification not_run.",
       "upstream_disposition": "active",
       "upstream_applicability": "required",
       "upstream_listeners": {
@@ -893,13 +910,13 @@
       "inventory_gate": "KL11-57",
       "upstream_matrix": "tests/conformance/broker/api-matrix.json",
       "implemented_versions": "0-4",
-      "implementation_gate": "KL11-04"
+      "implementation_gate": "KL11-05"
     },
     {
       "id": "api.19",
       "api_key": 19,
       "name": "CREATE_TOPICS",
-      "implementation": "missing",
+      "implementation": "partial",
       "qualification": "not_run",
       "version_ranges": {
         "4.1.2": {
@@ -925,7 +942,7 @@
         }
       },
       "owner_task": "KL11-04",
-      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "note": "CreateTopics2-4 journal-backed single-node administration; nonempty overrides INVALID_CONFIG; versions5-7 missing; qualification not_run.",
       "upstream_disposition": "active",
       "upstream_applicability": "required",
       "upstream_listeners": {
@@ -943,13 +960,15 @@
         ]
       },
       "inventory_gate": "KL11-57",
-      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json",
+      "implementation_gate": "KL11-05",
+      "implemented_versions": "2-4"
     },
     {
       "id": "api.20",
       "api_key": 20,
       "name": "DELETE_TOPICS",
-      "implementation": "missing",
+      "implementation": "implemented",
       "qualification": "not_run",
       "version_ranges": {
         "4.1.2": {
@@ -975,7 +994,7 @@
         }
       },
       "owner_task": "KL11-04",
-      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "note": "DeleteTopics1-6 journal-backed tombstones with name/UUID validation and Apache wire goldens; qualification not_run.",
       "upstream_disposition": "active",
       "upstream_applicability": "required",
       "upstream_listeners": {
@@ -993,7 +1012,9 @@
         ]
       },
       "inventory_gate": "KL11-57",
-      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json",
+      "implementation_gate": "KL11-05",
+      "implemented_versions": "1-6"
     },
     {
       "id": "api.21",

@@ -398,7 +398,7 @@ async fn compiled_registry_and_all_apache_goldens() -> Result<(), Box<dyn StdErr
         .flat_map(|v| [v.api_key, v.min_version, v.max_version])
         .collect();
     assert_eq!(compiled, numbers);
-    assert_eq!(compiled, [18, 0, 4]);
+    assert_eq!(compiled, [3, 0, 13, 18, 0, 4, 19, 2, 4, 20, 1, 6]);
     let handler = ApiVersionsHandler::default();
     let mut results = Vec::new();
     for (release, cases) in [
@@ -443,7 +443,17 @@ async fn compiled_registry_and_all_apache_goldens() -> Result<(), Box<dyn StdErr
     }
     assert_eq!(results.len(), 99);
     if let Some(path) = std::env::var_os("PARTITIONLINE_WIRE_REPORT") {
-        let data = format!("{{\"schema_version\":1,\"protocol_source_sha256\":\"{}\",\"test_source_sha256\":\"{}\",\"implemented_api_versions\":[{{\"api_key\":18,\"min_version\":0,\"max_version\":4}}],\"case_results\":[{}]}}\n", registry_string("protocol_source_sha256"), registry_string("test_source_sha256"), results.join(","));
+        let implemented = IMPLEMENTED_API_VERSIONS
+            .iter()
+            .map(|api| {
+                format!(
+                    "{{\"api_key\":{},\"min_version\":{},\"max_version\":{}}}",
+                    api.api_key, api.min_version, api.max_version
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let data = format!("{{\"schema_version\":1,\"protocol_source_sha256\":\"{}\",\"test_source_sha256\":\"{}\",\"implemented_api_versions\":[{}],\"case_results\":[{}]}}\n", registry_string("protocol_source_sha256"), registry_string("test_source_sha256"), implemented, results.join(","));
         tokio::task::spawn_blocking(move || {
             // Optional test evidence is written on the blocking pool, never on
             // the executor or in the production handler.

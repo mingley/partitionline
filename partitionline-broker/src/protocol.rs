@@ -1,9 +1,10 @@
-//! Bounded Kafka request headers and the implemented ApiVersions negotiation.
+//! Bounded Kafka request headers and implementation-specific ApiVersions negotiation.
 //!
 //! Apache Kafka 4.1.2/4.2.1/4.3.1 golden bytes pin this initial API18/0..4
 //! contract. ApiVersions always uses response header0, including flexible bodies.
 //! Unknown APIs close the connection through the transport handler error path.
-//! This module makes no storage, authentication or production qualification claim.
+//! The composed metadata router selects the expanded compiled registry; standalone
+//! negotiation advertises only API18. Inventory alone never confers support.
 //!
 //! Parsing borrows a transport-bounded request; it never allocates from peer
 //! string, tag or count fields. Strings use strict UTF8, nullable strings accept
@@ -24,12 +25,31 @@ pub struct ApiVersion {
     pub max_version: i16,
 }
 
-/// Immutable advertisement; upstream inventory alone does not confer support.
-pub const IMPLEMENTED_API_VERSIONS: [ApiVersion; 1] = [ApiVersion {
-    api_key: 18,
-    min_version: 0,
-    max_version: 4,
-}];
+/// Composed-router advertisement; standalone negotiation selects only API18.
+/// Upstream inventory alone does not confer support.
+pub const IMPLEMENTED_API_VERSIONS: [ApiVersion; 4] = [
+    ApiVersion {
+        api_key: 3,
+        min_version: 0,
+        max_version: 13,
+    },
+    ApiVersion {
+        api_key: 18,
+        min_version: 0,
+        max_version: 4,
+    },
+    ApiVersion {
+        api_key: 19,
+        min_version: 2,
+        max_version: 4,
+    },
+    ApiVersion {
+        api_key: 20,
+        min_version: 1,
+        max_version: 6,
+    },
+];
+const NEGOTIATION_ONLY: [ApiVersion; 1] = [IMPLEMENTED_API_VERSIONS[1]];
 
 /// Positive request bound and per-block tag-count bound.
 ///
@@ -237,14 +257,29 @@ impl<'a> Reader<'a> {
 }
 
 /// Header/ApiVersions-only handler; no other API is advertised or dispatched.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct ApiVersionsHandler {
     limits: Limits,
+    advertised: &'static [ApiVersion],
+}
+impl Default for ApiVersionsHandler {
+    fn default() -> Self {
+        Self::new(Limits::default())
+    }
 }
 impl ApiVersionsHandler {
     /// Use validated parsing caps, independently of transport admission caps.
     pub fn new(limits: Limits) -> Self {
-        Self { limits }
+        Self {
+            limits,
+            advertised: &NEGOTIATION_ONLY,
+        }
+    }
+    pub(crate) fn composed(limits: Limits) -> Self {
+        Self {
+            limits,
+            advertised: &IMPLEMENTED_API_VERSIONS,
+        }
     }
     /// Parsing caps used by this handler.
     pub fn limits(self) -> Limits {
@@ -273,7 +308,7 @@ impl ApiVersionsHandler {
         let (header, body) =
             RequestHeader::parse(request, if version >= 3 { 2 } else { 1 }, self.limits)?;
         if !(0..=4).contains(&version) {
-            return response(header.correlation_id, 0, 35, true);
+            return response(header.correlation_id, 0, 35, self.advertised);
         }
         let mut reader = Reader {
             remaining: body,
@@ -294,7 +329,7 @@ impl ApiVersionsHandler {
             header.correlation_id,
             version,
             if valid { 0 } else { 42 },
-            valid,
+            if valid { self.advertised } else { &[] },
         )
     }
 }
@@ -319,22 +354,27 @@ fn valid_software(value: &str) -> bool {
     }
 }
 
-fn response(correlation: i32, version: i16, error: i16, advertise: bool) -> Result<Vec<u8>, Error> {
-    // Fixed upper bound20 bytes for the sole registry entry. No peer field can
-    // enlarge it, and every response uses header0 (correlation ID only).
+fn response(
+    correlation: i32,
+    version: i16,
+    error: i16,
+    advertised: &[ApiVersion],
+) -> Result<Vec<u8>, Error> {
+    // At most four locally compiled entries; peer fields cannot enlarge this.
+    // Every ApiVersions response uses header0 (correlation ID only).
     let mut output = Vec::new();
     output
-        .try_reserve_exact(20)
+        .try_reserve_exact(48)
         .map_err(|_| Error::Allocation)?;
     output.extend_from_slice(&correlation.to_be_bytes());
     output.extend_from_slice(&error.to_be_bytes());
     if version >= 3 {
-        output.push(if advertise { 2 } else { 1 });
+        output.push((advertised.len() + 1) as u8);
     } else {
-        output.extend_from_slice(&(if advertise { 1i32 } else { 0i32 }).to_be_bytes());
+        output.extend_from_slice(&(advertised.len() as i32).to_be_bytes());
     }
-    if advertise {
-        for api in IMPLEMENTED_API_VERSIONS {
+    {
+        for api in advertised {
             output.extend_from_slice(&api.api_key.to_be_bytes());
             output.extend_from_slice(&api.min_version.to_be_bytes());
             output.extend_from_slice(&api.max_version.to_be_bytes());

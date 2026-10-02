@@ -1,0 +1,17 @@
+$ taskset -c 0-2,4 java --add-modules jdk.compiler com.sun.tools.javac.Main -Xlint:all -Werror -cp /workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar -d /workspace/work/broker-metadata/classes docs/evidence/broker/KL11-63/TopicPolicyProbe.java
+compile_exit=0
+$ taskset -c 0-2,4 java -cp /workspace/work/broker-metadata/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar TopicPolicyProbe
+{"name":"alpha","outcome":"accepted","is_internal":false}
+{"name":"__consumer_offsets","outcome":"accepted","is_internal":true}
+{"name":"","outcome":"InvalidTopicException","message":"Topic name is invalid: the empty string is not allowed"}
+{"name":".","outcome":"InvalidTopicException","message":"Topic name is invalid: '.' is not allowed"}
+{"name":"..","outcome":"InvalidTopicException","message":"Topic name is invalid: '..' is not allowed"}
+{"name":"bad/name","outcome":"InvalidTopicException","message":"Topic name is invalid: 'bad/name' contains one or more characters other than ASCII alphanumerics, '.', '_' and '-'"}
+{"name":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","outcome":"accepted","is_internal":false}
+{"name":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","outcome":"InvalidTopicException","message":"Topic name is invalid: the length of 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is longer than the max allowed length 249"}
+{"name":"hyphen-name","outcome":"accepted","is_internal":false}
+{"name":"dot.name","outcome":"accepted","is_internal":false}
+{"name":"under_name","outcome":"accepted","is_internal":false}
+{"name":null,"outcome":"NullPointerException","message":"Cannot invoke \"String.isEmpty()\" because \"name\" is null"}
+{"collision_pair":["dot.name","dot_name"],"collides":true}
+exit=0

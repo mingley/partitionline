@@ -1,0 +1,6 @@
+Initial strict C compile used -I for the pinned upstream header and failed before runtime:
+In file included from docs/evidence/broker/KL11-63/metadata-peer.c:2:
+/workspace/work/c-peer/source/src/rdkafka.h:9532:1: error: type qualifiers ignored on function return type [-Werror=ignored-qualifiers]
+9532 | const int rd_kafka_TopicPartitionInfo_partition(
+cc1: all warnings being treated as errors
+Resolution: mark the unmodified pinned upstream header directory -isystem. Peer source retains -std=c11 -Wall -Wextra -Werror -pedantic.

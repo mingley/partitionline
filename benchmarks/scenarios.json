@@ -1286,7 +1286,7 @@
       "target_capability": "KIP-932 ShareConsume / ShareAcknowledge",
       "peer": "rust-rdkafka",
       "peer_version": "wrapper 0.39.0 / native 2.15.0",
-      "missing_capability": "Native 2.15.0 lacks KIP-932; adapter has no share lifecycle",
+      "missing_capability": "Native 2.15.0 includes preview KIP-932, but wrapper 0.39.0/sys header 2.12.1 expose no share lifecycle and this adapter has no share driver; Kafka 3.9.1 fixture is ineligible",
       "status": "specified",
       "disposition": "unsupported",
       "rule": "Excluded; never scored as a win."
@@ -1298,11 +1298,11 @@
       "target_capability": "KIP-932 Share Groups (ShareConsume / ShareAcknowledge protocol)",
       "peer": "librdkafka",
       "peer_version": "2.15.0",
-      "missing_capability": "KIP-932 Share Groups (ShareConsume and ShareAcknowledge protocol RPCs for concurrent partitionless record acquisition)",
+      "missing_capability": "Current C benchmark peer has no share lifecycle driver or validated KIP-932 scenario; native librdkafka 2.15.0 itself provides preview rd_kafka_share_* APIs",
       "status": "specified",
       "disposition": "unsupported",
       "rule": "Must not be scored as a win. A benchmark comparison where a peer client lacks the required protocol capability is invalid as a performance victory. It must be explicitly reported as unsupported_peer.",
-      "note": "librdkafka 2.15.0 implements traditional consumer group rebalances (KIP-345/KIP-429) but does not implement KIP-932 Share Groups. Comparing partitionline's share group consumer against librdkafka cannot produce a comparative score."
+      "note": "Pinned librdkafka 2.15.0 includes preview KIP-932 (CHANGELOG, public rdkafka.h and installed exported symbols). Current C peer driver does not exercise share APIs, and its Kafka 3.9.1 fixture is ineligible. This row records unavailable driver validation, not absent native library capability; no comparative score or win follows."
     }
   ],
   "client_ceiling": {

@@ -1,0 +1,252 @@
+{
+  "probe_sha256": "e5de930d6281bfc5581737b7e8b8b4bdc83a22ece9b77e82490a841f31d53aea",
+  "scope": "Executed actual Apache Topic.validate/isInternal/hasCollision methods; controller request handling not executed. Local generic name-error messages deliberately differ from detailed upstream exception messages.",
+  "results": [
+    {
+      "release": "4.1.2",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/broker-metadata/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "TopicPolicyProbe"
+      ],
+      "exit_code": 0,
+      "cases": [
+        {
+          "name": "alpha",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "__consumer_offsets",
+          "outcome": "accepted",
+          "is_internal": true
+        },
+        {
+          "name": "",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: the empty string is not allowed"
+        },
+        {
+          "name": ".",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: '.' is not allowed"
+        },
+        {
+          "name": "..",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: '..' is not allowed"
+        },
+        {
+          "name": "bad/name",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: 'bad/name' contains one or more characters other than ASCII alphanumerics, '.', '_' and '-'"
+        },
+        {
+          "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: the length of 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is longer than the max allowed length 249"
+        },
+        {
+          "name": "hyphen-name",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "dot.name",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "under_name",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": null,
+          "outcome": "NullPointerException",
+          "message": "Cannot invoke \"String.isEmpty()\" because \"name\" is null"
+        },
+        {
+          "collision_pair": [
+            "dot.name",
+            "dot_name"
+          ],
+          "collides": true
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/broker-metadata/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "TopicPolicyProbe"
+      ],
+      "exit_code": 0,
+      "cases": [
+        {
+          "name": "alpha",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "__consumer_offsets",
+          "outcome": "accepted",
+          "is_internal": true
+        },
+        {
+          "name": "",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: the empty string is not allowed"
+        },
+        {
+          "name": ".",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: '.' is not allowed"
+        },
+        {
+          "name": "..",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: '..' is not allowed"
+        },
+        {
+          "name": "bad/name",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: 'bad/name' contains one or more characters other than ASCII alphanumerics, '.', '_' and '-'"
+        },
+        {
+          "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: the length of 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is longer than the max allowed length 249"
+        },
+        {
+          "name": "hyphen-name",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "dot.name",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "under_name",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": null,
+          "outcome": "NullPointerException",
+          "message": "Cannot invoke \"String.isEmpty()\" because \"name\" is null"
+        },
+        {
+          "collision_pair": [
+            "dot.name",
+            "dot_name"
+          ],
+          "collides": true
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/broker-metadata/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "TopicPolicyProbe"
+      ],
+      "exit_code": 0,
+      "cases": [
+        {
+          "name": "alpha",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "__consumer_offsets",
+          "outcome": "accepted",
+          "is_internal": true
+        },
+        {
+          "name": "",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: the empty string is not allowed"
+        },
+        {
+          "name": ".",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: '.' is not allowed"
+        },
+        {
+          "name": "..",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: '..' is not allowed"
+        },
+        {
+          "name": "bad/name",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: 'bad/name' contains one or more characters other than ASCII alphanumerics, '.', '_' and '-'"
+        },
+        {
+          "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "outcome": "InvalidTopicException",
+          "message": "Topic name is invalid: the length of 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is longer than the max allowed length 249"
+        },
+        {
+          "name": "hyphen-name",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "dot.name",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": "under_name",
+          "outcome": "accepted",
+          "is_internal": false
+        },
+        {
+          "name": null,
+          "outcome": "NullPointerException",
+          "message": "Cannot invoke \"String.isEmpty()\" because \"name\" is null"
+        },
+        {
+          "collision_pair": [
+            "dot.name",
+            "dot_name"
+          ],
+          "collides": true
+        }
+      ]
+    }
+  ]
+}

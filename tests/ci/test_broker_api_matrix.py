@@ -312,16 +312,17 @@ class BrokerApiMatrix(unittest.TestCase):
             self.assertIn("immutable source pin mismatch", result["error"])
 
 
-    def implementation_mutation(self, mutate_registry=None, mutate_files=None, mutate_report=None):
+    def implementation_mutation(self, mutate_registry=None, mutate_files=None, mutate_report=None, mutate_metadata_report=None):
         """Synthetic report exercises validation; Rust tests prove real behavior."""
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             registry = MATRIX.load_json(ROOT / MATRIX.REGISTRY_PATH)
-            for label in ("protocol_source", "test_source"):
+            for label in MATRIX.SOURCE_PATHS:
                 target = root / registry[label]
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT / registry[label], target)
             shutil.copytree(ROOT / registry["fixture_root"], root / registry["fixture_root"])
+            shutil.copytree(ROOT / registry["metadata_fixture_root"], root / registry["metadata_fixture_root"])
             report = {"schema_version": 1, "implemented_api_versions": copy.deepcopy(MATRIX.IMPLEMENTED),
                       "protocol_source_sha256": registry["protocol_source_sha256"],
                       "test_source_sha256": registry["test_source_sha256"], "case_results": []}
@@ -329,6 +330,15 @@ class BrokerApiMatrix(unittest.TestCase):
                 golden = MATRIX.load_json(root / registry["fixture_root"] / version / "goldens.json")
                 report["case_results"].extend({"release": version, "case": case["name"],
                                                "response_hex": case["response_hex"]} for case in golden["cases"])
+            metadata_report = {"schema_version": 1, "implemented_api_versions": copy.deepcopy(MATRIX.IMPLEMENTED),
+                               "metadata_source_sha256": registry["metadata_source_sha256"],
+                               "metadata_test_source_sha256": registry["metadata_test_source_sha256"], "case_results": []}
+            for version in MATRIX.TARGETS:
+                golden = MATRIX.load_json(root / registry["metadata_fixture_root"] / version / "goldens.json")
+                metadata_report["case_results"].extend({"release": version, "case": case["name"],
+                                                        "response_hex": case["response_hex"]} for case in golden["cases"])
+            if mutate_metadata_report:
+                mutate_metadata_report(metadata_report)
             if mutate_registry:
                 mutate_registry(registry)
             if mutate_files:
@@ -338,14 +348,18 @@ class BrokerApiMatrix(unittest.TestCase):
             registry_path, report_path = root / "registry.json", root / "report.json"
             registry_path.write_text(json.dumps(registry), encoding="utf-8")
             report_path.write_text(json.dumps(report), encoding="utf-8")
+            metadata_path = root / "metadata-report.json"
+            metadata_path.write_text(json.dumps(metadata_report), encoding="utf-8")
             inventories = {row["version"]: row["inventory"] for row in self.matrix["releases"]}
-            return MATRIX.verify_implementation(registry_path, root, inventories, report_path)
+            return MATRIX.verify_implementation(registry_path, root, inventories, report_path, metadata_path)
 
     def test_checked_registry_and_synthetic_report_gate(self):
         registry, report = self.implementation_mutation()
         self.assertEqual(registry["implemented_api_versions"], MATRIX.IMPLEMENTED)
         self.assertTrue(report["compiled_handler_report_checked"])
         self.assertEqual(report["golden_cases"], 99)
+        self.assertTrue(report["compiled_metadata_report_checked"])
+        self.assertGreaterEqual(report["metadata_golden_cases"], 84)
         self.assertEqual(report["qualification"], "not_run")
 
     def test_registry_forged_extra_or_out_of_range_claims_fail(self):
@@ -362,7 +376,7 @@ class BrokerApiMatrix(unittest.TestCase):
     def test_registry_cannot_claim_qualification_or_unchecked_source(self):
         for field, value in (("qualification", "passed"), ("implementation_gate", "none"),
                              ("protocol_source", "../outside"), ("test_source_sha256", "0" * 64),
-                             ("fixture_root", "../outside")):
+                             ("fixture_root", "../outside"), ("standalone_api_versions", MATRIX.IMPLEMENTED)):
             with self.subTest(field=field), self.assertRaises(ValueError):
                 self.implementation_mutation(lambda r: r.__setitem__(field, value))
         with self.assertRaisesRegex(ValueError, "source checksum"):
@@ -401,6 +415,45 @@ class BrokerApiMatrix(unittest.TestCase):
         for mutate in mutations:
             with self.assertRaises(ValueError):
                 self.implementation_mutation(mutate_report=mutate)
+
+    def test_metadata_missing_changed_and_self_rehashed_fixtures_fail(self):
+        def remove(root, registry):
+            target = next(path for path in (root / registry["metadata_fixture_root"] / "4.3.1").glob("*.response.bin"))
+            target.unlink()
+        def corrupt(root, registry):
+            target = next(path for path in (root / registry["metadata_fixture_root"] / "4.3.1").glob("*.request.bin"))
+            target.write_bytes(b"corrupt")
+        def rewrite(root, registry):
+            target = root / registry["metadata_fixture_root"] / "4.3.1/goldens.json"
+            golden = MATRIX.load_json(target)
+            golden["cases"].pop()
+            target.write_text(json.dumps(golden), encoding="utf-8")
+            registry["metadata_fixtures_sha256"]["4.3.1/goldens.json"] = MATRIX.digest(target.read_bytes())
+        def index(root, registry):
+            target = root / registry["metadata_fixture_root"] / "4.3.1/cases.tsv"
+            target.write_text("forged\t3\t13\tfixture\n", encoding="utf-8")
+            registry["metadata_fixtures_sha256"]["4.3.1/cases.tsv"] = MATRIX.digest(target.read_bytes())
+        for mutate in (remove, corrupt, rewrite, index):
+            with self.assertRaises(ValueError):
+                self.implementation_mutation(mutate_files=mutate)
+
+    def test_metadata_source_and_report_cannot_forge_runtime_coverage(self):
+        for field, value in (("metadata_source", "../outside"), ("metadata_test_source_sha256", "0" * 64),
+                             ("metadata_fixture_root", "../outside")):
+            with self.assertRaises(ValueError):
+                self.implementation_mutation(lambda registry: registry.__setitem__(field, value))
+        for mutate in (
+            lambda report: report.__setitem__("metadata_source_sha256", "0" * 64),
+            lambda report: report["case_results"].pop(),
+            lambda report: report["case_results"].__setitem__(0, report["case_results"][1]),
+            lambda report: report["case_results"][0].__setitem__("response_hex", "00"),
+            lambda report: report["case_results"][0].__setitem__("release", "unreviewed"),
+            lambda report: report["implemented_api_versions"][2].__setitem__("max_version", 7),
+            lambda report: next(row for row in report["case_results"] if row["response_hex"] is None).__setitem__("response_hex", "00"),
+        ):
+            with self.assertRaises(ValueError):
+                self.implementation_mutation(mutate_metadata_report=mutate)
+
 
     def test_feature_versions_and_local_gate_cannot_be_forged(self):
         for mutate in (

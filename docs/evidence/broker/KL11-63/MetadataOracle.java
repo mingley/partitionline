@@ -21,6 +21,7 @@ public final class MetadataOracle {
     private static final Uuid INTERNAL = new Uuid(0, 3);
     private static final Uuid MISSING = new Uuid(0, 99);
     private static final List<String> CASES = new ArrayList<>();
+    private static final List<String> SCHEMA_ONLY = new ArrayList<>();
     private static final StringBuilder TSV = new StringBuilder();
     private static Path output;
     private MetadataOracle() { }
@@ -168,8 +169,26 @@ public final class MetadataOracle {
                     topic(version, "alpha", ALPHA, (short) 0, true));
                 metadataCase("duplicate-ids", version, List.of(target(null, ALPHA), target(null, ALPHA)), false,
                     topic(version, "alpha", ALPHA, (short) 0, false));
-                metadataCase("null-zero", version, List.of(target(null, ZERO)), false,
-                    topic(version, null, ZERO, (short) 3, false));
+                Path positiveOutput = output;
+                output = output.resolve("schema-only");
+                Files.createDirectories(output);
+                MetadataResponseData malformedResponse = metadataResponse(version, false);
+                malformedResponse.topics().add(topic(version, null, ZERO, (short) 3, false));
+                emit("metadata-v" + version + "-null-zero", ApiKeys.METADATA, version, "fixture",
+                    metadataRequest(version, List.of(target(null, ZERO)), false), malformedResponse,
+                    "MALFORMED SCHEMA-ONLY: official serializer/parser accepts null-name plus zero-ID fields, but selector/response identity semantics are invalid. Previously policy-assembled error3 response retained only as superseded diagnostic, never a positive router golden. Actual Apache Topic.validate(null) throws NullPointerException; KafkaApis/controller runtime not executed. Local router deliberately rejects selector before response encoding.");
+                String diagnostic = CASES.get(CASES.size() - 1);
+                SCHEMA_ONLY.add(diagnostic);
+                String rejection = diagnostic.replaceFirst("\"response_hex\":\"[0-9a-f]+\"", "\"response_hex\":null")
+                    .replaceFirst("\"response_sha256\":\"[0-9a-f]+\"", "\"response_sha256\":null")
+                    .replace("\"apache_parsed_response\":", "\"apache_schema_only_parsed_response\":");
+                rejection = rejection.substring(0, rejection.length() - 1)
+                    + ",\"handler_policy\":\"reject_neither_identity\"}";
+                CASES.set(CASES.size() - 1, rejection);
+                Files.copy(output.resolve("metadata-v" + version + "-null-zero.request.bin"),
+                    positiveOutput.resolve("metadata-v" + version + "-null-zero.request.bin"),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                output = positiveOutput;
             }
             if (version >= 9) {
                 MetadataRequestData request = metadataRequest(version, List.of(target("alpha", ZERO)), false);
@@ -287,6 +306,9 @@ public final class MetadataOracle {
         String manifest = "{\"release\":" + quote(args[0]) + ",\"wire\":\"Kafka header plus body, without length prefix\",\"seed\":{\"node_id\":0,\"host\":\"127.0.0.1\",\"port\":19095,\"cluster_id\":\"partitionline-fixture\",\"alpha_id\":\"00000000000000000000000000000002\",\"internal_id\":\"00000000000000000000000000000003\"},\"cases\":[\n" + String.join(",\n", CASES) + "\n]}\n";
         Files.writeString(output.resolve("goldens.json"), manifest, StandardCharsets.UTF_8);
         Files.writeString(output.resolve("cases.tsv"), TSV.toString(), StandardCharsets.UTF_8);
+        Files.writeString(output.resolve("schema-only/goldens.json"), "{\"release\":" + quote(args[0])
+            + ",\"qualification\":\"Excluded from positive router comparisons; historical malformed field combinations only\",\"cases\":[\n"
+            + String.join(",\n", SCHEMA_ONLY) + "\n]}\n", StandardCharsets.UTF_8);
         System.out.println("{\"release\":" + quote(args[0]) + ",\"cases\":" + CASES.size() + ",\"manifest_sha256\":" + quote(hash(manifest.getBytes(StandardCharsets.UTF_8))) + "}");
     }
 }
