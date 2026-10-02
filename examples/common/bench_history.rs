@@ -83,7 +83,13 @@ pub(crate) fn key(seed: u64, partition: i32) -> Bytes {
 }
 
 pub(crate) fn hex(value: &[u8]) -> String {
-    value.iter().map(|byte| format!("{byte:02x}")).collect()
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(value.len().saturating_mul(2));
+    for byte in value {
+        out.push(char::from(HEX[usize::from(byte >> 4)]));
+        out.push(char::from(HEX[usize::from(byte & 15)]));
+    }
+    out
 }
 
 pub(crate) fn hash(value: &[u8]) -> String {
