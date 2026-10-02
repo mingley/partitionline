@@ -4730,13 +4730,58 @@
     {
       "id": "KL05-12",
       "title": "Implement the selected Fetch v18 delta",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL01-05", "KL05-07"],
-      "files": ["src/protocol/fetch.rs", "src/consumer.rs", "tests/protocol_oracles.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL01-05",
+        "KL05-07"
+      ],
+      "files": [
+        "src/protocol/fetch.rs",
+        "src/consumer.rs",
+        "tests/protocol_oracles.rs"
+      ],
       "deliverable": "Source-pinned Fetch v18 support integrated with session and delivery state.",
-      "acceptance": ["Record exact schema/runtime changes and independent fixtures; do not merely increase the cap.", "Retain lower-version topic-name/ID and session fallbacks.", "Re-run all five maintained consumer regression cases at the new negotiated version where applicable."],
-      "validation": ["cargo test --locked --test protocol_oracles", "cargo test --locked --test consumer_fetch_semantics"],
-      "evidence": []
+      "acceptance": [
+        "Record exact schema/runtime changes and independent fixtures; do not merely increase the cap.",
+        "Retain lower-version topic-name/ID and session fallbacks.",
+        "Re-run all five maintained consumer regression cases at the new negotiated version where applicable.",
+        "KIP1166 request partition HighWatermark tag1 has defaulti64MAX (featureunsupported) and unknown sentinel-1; ordinary consumers omitdefault and never infer replication acknowledgment semantics. No response-schema change.",
+        "Preserve existing public FetchPartition layout and encoder/decoder signatures; any explicit replica high-watermark representation uses added overload/sidecar APIs. Validate known tagged-field length/default/unknown behavior with authentic Apache implementation.",
+        "Exact-source default/all-feature wholeclient/strict toolchain gates, threecurrentApachefixtures and actual Rust\u2192Java parsing; keep existing lower-version/UUID/session/duplicate/leader/receipt regression behavior."
+      ],
+      "validation": [
+        "cargo test --locked --test protocol_oracles",
+        "cargo test --locked --test consumer_fetch_semantics"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/fetch.rs",
+        "src/consumer.rs",
+        "src/net.rs",
+        "tests/protocol_oracles.rs",
+        "tests/consumer_fetch_semantics.rs",
+        "tests/full_surface.rs",
+        "tests/common/mod.rs",
+        "tests/fixtures/protocol_oracles/",
+        "tests/conformance/java/FetchV18Fixtures.java",
+        "tests/conformance/java/generate_fetch_v18.py",
+        "tests/conformance/fetch-v18-delta.json",
+        "tests/conformance/features.json",
+        "tests/conformance/cases.json",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "docs/guide.md",
+        "docs/gaps.md",
+        "docs/support.md",
+        "CHANGELOG.md",
+        "docs/evidence/client/KL05-12/",
+        "docs/plan/evidence/KL05-12.json",
+        "docs/plan/tasks.json"
+      ],
+      "integration_coordinator": "Root owns coreFetch18 implementation/tests/oracles and atomic plan updates. No core records/buf or resource-contract edits held underKL09-32. docs/api-stability.md remains KL10-07 ownership; public API compatibility preserved and documented in guide/gaps/support/CHANGELOG. Broker workers have separate crate ownership."
     },
     {
       "id": "KL05-13",
