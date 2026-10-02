@@ -1,0 +1,439 @@
+{
+  "distribution_provenance": [
+    {
+      "version": "4.1.2",
+      "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz",
+      "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+      "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "jar_build_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c"
+    },
+    {
+      "version": "4.2.1",
+      "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.2.1/kafka_2.13-4.2.1.tgz",
+      "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+      "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "jar_build_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58"
+    },
+    {
+      "version": "4.3.1",
+      "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz",
+      "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+      "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "jar_build_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+    }
+  ],
+  "snapshots": [
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/core/src/main/scala/kafka/server/ControllerApis.scala",
+      "upstream_path": "core/src/main/scala/kafka/server/ControllerApis.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/core/src/main/scala/kafka/server/ControllerApis.scala",
+      "sha256": "e3358b93467655047cf32777d09b5591481e9910ce6ba05b3346321f65354ea8",
+      "bytes": 55857
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/core/src/main/scala/kafka/server/KafkaApis.scala",
+      "upstream_path": "core/src/main/scala/kafka/server/KafkaApis.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/core/src/main/scala/kafka/server/KafkaApis.scala",
+      "sha256": "130b24805702460598f3f0cedcf33cd149f607e351018d5e9d391ee7fb69439d",
+      "bytes": 207723
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/core/src/main/scala/kafka/server/AuthHelper.scala",
+      "upstream_path": "core/src/main/scala/kafka/server/AuthHelper.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/core/src/main/scala/kafka/server/AuthHelper.scala",
+      "sha256": "88105f18e8aacecc5e9b69a1525b07443f77b5f6490995596c4e8360eb678d57",
+      "bytes": 8420
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+      "upstream_path": "metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+      "sha256": "7b96bde9e51fabe32afcc9986b216cc8b3d1ae5fc616a6be9f91f51255c419eb",
+      "bytes": 124599
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/MetadataRequest.java",
+      "upstream_path": "clients/src/main/java/org/apache/kafka/common/requests/MetadataRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/requests/MetadataRequest.java",
+      "sha256": "b50636effec2a3085d687f2b28b059fcda768b6564fd301df0a287fce8150f68",
+      "bytes": 9400
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/CreateTopicsRequest.java",
+      "upstream_path": "clients/src/main/java/org/apache/kafka/common/requests/CreateTopicsRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/requests/CreateTopicsRequest.java",
+      "sha256": "b2dc92de0eb7a30aa35e292bd2496b959d9c87cf9a196863c22ba1789b18aade",
+      "bytes": 4526
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/DeleteTopicsRequest.java",
+      "upstream_path": "clients/src/main/java/org/apache/kafka/common/requests/DeleteTopicsRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/requests/DeleteTopicsRequest.java",
+      "sha256": "4f89b6c2d043b2de4eb892faa9c7a130c30266957e27828fe840aa2c3192f196",
+      "bytes": 4406
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/MetadataRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/MetadataRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/resources/common/message/MetadataRequest.json",
+      "sha256": "4dd85dfe9585b9f59210ba78bc60b5c86d7684614c3a8829b8dea343f22a1d36",
+      "bytes": 2958
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/MetadataResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/MetadataResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/resources/common/message/MetadataResponse.json",
+      "sha256": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8",
+      "bytes": 6026
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/CreateTopicsRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/CreateTopicsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/resources/common/message/CreateTopicsRequest.json",
+      "sha256": "decf707610f04693c50357f10f9afc9128856f04dc0a3ca6fa53091091455725",
+      "bytes": 3626
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/CreateTopicsResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/CreateTopicsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/resources/common/message/CreateTopicsResponse.json",
+      "sha256": "d41587291449d365b7db4c662fb91ac38c7b99ddeaac41e54a27bcd92b840eac",
+      "bytes": 4103
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/DeleteTopicsRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/DeleteTopicsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/resources/common/message/DeleteTopicsRequest.json",
+      "sha256": "0b65293e9f8e2ca7595c28adf6e273447cb7a4e66bf17477a3c9867a949bf5d4",
+      "bytes": 2141
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/DeleteTopicsResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/DeleteTopicsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/resources/common/message/DeleteTopicsResponse.json",
+      "sha256": "280988d68ecb4cc7b6f51d102cb046759a0081809873a4e23bfaa12402f2e018",
+      "bytes": 2775
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/ApiVersionsRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/ApiVersionsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/resources/common/message/ApiVersionsRequest.json",
+      "sha256": "7bf47ae26c37fa46156d0362b756c275fef012e0e1397f72ce286a0ef816f90c",
+      "bytes": 1535
+    },
+    {
+      "version": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/ApiVersionsResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/ApiVersionsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/resources/common/message/ApiVersionsResponse.json",
+      "sha256": "49c1f9064680f2d27291a21a0c469fd0314945fbe2f8463a6f3204266937f008",
+      "bytes": 4478
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/core/src/main/scala/kafka/server/ControllerApis.scala",
+      "upstream_path": "core/src/main/scala/kafka/server/ControllerApis.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/core/src/main/scala/kafka/server/ControllerApis.scala",
+      "sha256": "e9173e74dd8c0a7bfd7a46f036e2f0eb2d3a9df00e037ebb1207dad03ccca955",
+      "bytes": 55950
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/core/src/main/scala/kafka/server/KafkaApis.scala",
+      "upstream_path": "core/src/main/scala/kafka/server/KafkaApis.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/core/src/main/scala/kafka/server/KafkaApis.scala",
+      "sha256": "16907072bbddf8884557db74460bacf3ff2521ac4e7e948110dc77d52c538ac2",
+      "bytes": 214734
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/core/src/main/scala/kafka/server/AuthHelper.scala",
+      "upstream_path": "core/src/main/scala/kafka/server/AuthHelper.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/core/src/main/scala/kafka/server/AuthHelper.scala",
+      "sha256": "88105f18e8aacecc5e9b69a1525b07443f77b5f6490995596c4e8360eb678d57",
+      "bytes": 8420
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+      "upstream_path": "metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+      "sha256": "db6074b91880707e51351bd3c25efa3a21dca8f1e9543854f6475edd68ed3be6",
+      "bytes": 124722
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/MetadataRequest.java",
+      "upstream_path": "clients/src/main/java/org/apache/kafka/common/requests/MetadataRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/requests/MetadataRequest.java",
+      "sha256": "b50636effec2a3085d687f2b28b059fcda768b6564fd301df0a287fce8150f68",
+      "bytes": 9400
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/CreateTopicsRequest.java",
+      "upstream_path": "clients/src/main/java/org/apache/kafka/common/requests/CreateTopicsRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/requests/CreateTopicsRequest.java",
+      "sha256": "b2dc92de0eb7a30aa35e292bd2496b959d9c87cf9a196863c22ba1789b18aade",
+      "bytes": 4526
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/DeleteTopicsRequest.java",
+      "upstream_path": "clients/src/main/java/org/apache/kafka/common/requests/DeleteTopicsRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/requests/DeleteTopicsRequest.java",
+      "sha256": "4f89b6c2d043b2de4eb892faa9c7a130c30266957e27828fe840aa2c3192f196",
+      "bytes": 4406
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/MetadataRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/MetadataRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/resources/common/message/MetadataRequest.json",
+      "sha256": "4dd85dfe9585b9f59210ba78bc60b5c86d7684614c3a8829b8dea343f22a1d36",
+      "bytes": 2958
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/MetadataResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/MetadataResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/resources/common/message/MetadataResponse.json",
+      "sha256": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8",
+      "bytes": 6026
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/CreateTopicsRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/CreateTopicsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/resources/common/message/CreateTopicsRequest.json",
+      "sha256": "decf707610f04693c50357f10f9afc9128856f04dc0a3ca6fa53091091455725",
+      "bytes": 3626
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/CreateTopicsResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/CreateTopicsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/resources/common/message/CreateTopicsResponse.json",
+      "sha256": "d41587291449d365b7db4c662fb91ac38c7b99ddeaac41e54a27bcd92b840eac",
+      "bytes": 4103
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/DeleteTopicsRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/DeleteTopicsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/resources/common/message/DeleteTopicsRequest.json",
+      "sha256": "0b65293e9f8e2ca7595c28adf6e273447cb7a4e66bf17477a3c9867a949bf5d4",
+      "bytes": 2141
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/DeleteTopicsResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/DeleteTopicsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/resources/common/message/DeleteTopicsResponse.json",
+      "sha256": "280988d68ecb4cc7b6f51d102cb046759a0081809873a4e23bfaa12402f2e018",
+      "bytes": 2775
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/ApiVersionsRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/ApiVersionsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/resources/common/message/ApiVersionsRequest.json",
+      "sha256": "7bf47ae26c37fa46156d0362b756c275fef012e0e1397f72ce286a0ef816f90c",
+      "bytes": 1535
+    },
+    {
+      "version": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/ApiVersionsResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/ApiVersionsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/resources/common/message/ApiVersionsResponse.json",
+      "sha256": "49c1f9064680f2d27291a21a0c469fd0314945fbe2f8463a6f3204266937f008",
+      "bytes": 4478
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/core/src/main/scala/kafka/server/ControllerApis.scala",
+      "upstream_path": "core/src/main/scala/kafka/server/ControllerApis.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/core/src/main/scala/kafka/server/ControllerApis.scala",
+      "sha256": "2236d3af2deb1833902b3efdd8d0a11aca539261d67dad79eaaa5f892d0e99cb",
+      "bytes": 56028
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/core/src/main/scala/kafka/server/KafkaApis.scala",
+      "upstream_path": "core/src/main/scala/kafka/server/KafkaApis.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/core/src/main/scala/kafka/server/KafkaApis.scala",
+      "sha256": "f93449b57e580b8460fd5179d64c192efe7c3dc009bb3a454610e2fb232f83ca",
+      "bytes": 215750
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/core/src/main/scala/kafka/server/AuthHelper.scala",
+      "upstream_path": "core/src/main/scala/kafka/server/AuthHelper.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/core/src/main/scala/kafka/server/AuthHelper.scala",
+      "sha256": "88105f18e8aacecc5e9b69a1525b07443f77b5f6490995596c4e8360eb678d57",
+      "bytes": 8420
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+      "upstream_path": "metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java",
+      "sha256": "431b9de2300b73deb754cc5da2f38e6a03e2f1e8bb0ba52591fb8b0e10487c0f",
+      "bytes": 129110
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/MetadataRequest.java",
+      "upstream_path": "clients/src/main/java/org/apache/kafka/common/requests/MetadataRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/requests/MetadataRequest.java",
+      "sha256": "b50636effec2a3085d687f2b28b059fcda768b6564fd301df0a287fce8150f68",
+      "bytes": 9400
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/CreateTopicsRequest.java",
+      "upstream_path": "clients/src/main/java/org/apache/kafka/common/requests/CreateTopicsRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/requests/CreateTopicsRequest.java",
+      "sha256": "b2dc92de0eb7a30aa35e292bd2496b959d9c87cf9a196863c22ba1789b18aade",
+      "bytes": 4526
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/DeleteTopicsRequest.java",
+      "upstream_path": "clients/src/main/java/org/apache/kafka/common/requests/DeleteTopicsRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/requests/DeleteTopicsRequest.java",
+      "sha256": "4f89b6c2d043b2de4eb892faa9c7a130c30266957e27828fe840aa2c3192f196",
+      "bytes": 4406
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/MetadataRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/MetadataRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/resources/common/message/MetadataRequest.json",
+      "sha256": "4dd85dfe9585b9f59210ba78bc60b5c86d7684614c3a8829b8dea343f22a1d36",
+      "bytes": 2958
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/MetadataResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/MetadataResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/resources/common/message/MetadataResponse.json",
+      "sha256": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8",
+      "bytes": 6026
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/CreateTopicsRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/CreateTopicsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/resources/common/message/CreateTopicsRequest.json",
+      "sha256": "decf707610f04693c50357f10f9afc9128856f04dc0a3ca6fa53091091455725",
+      "bytes": 3626
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/CreateTopicsResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/CreateTopicsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/resources/common/message/CreateTopicsResponse.json",
+      "sha256": "d41587291449d365b7db4c662fb91ac38c7b99ddeaac41e54a27bcd92b840eac",
+      "bytes": 4103
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/DeleteTopicsRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/DeleteTopicsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/resources/common/message/DeleteTopicsRequest.json",
+      "sha256": "0b65293e9f8e2ca7595c28adf6e273447cb7a4e66bf17477a3c9867a949bf5d4",
+      "bytes": 2141
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/DeleteTopicsResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/DeleteTopicsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/resources/common/message/DeleteTopicsResponse.json",
+      "sha256": "280988d68ecb4cc7b6f51d102cb046759a0081809873a4e23bfaa12402f2e018",
+      "bytes": 2775
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/ApiVersionsRequest.json",
+      "upstream_path": "clients/src/main/resources/common/message/ApiVersionsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/resources/common/message/ApiVersionsRequest.json",
+      "sha256": "7bf47ae26c37fa46156d0362b756c275fef012e0e1397f72ce286a0ef816f90c",
+      "bytes": 1535
+    },
+    {
+      "version": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/ApiVersionsResponse.json",
+      "upstream_path": "clients/src/main/resources/common/message/ApiVersionsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/resources/common/message/ApiVersionsResponse.json",
+      "sha256": "49c1f9064680f2d27291a21a0c469fd0314945fbe2f8463a6f3204266937f008",
+      "bytes": 4478
+    }
+  ],
+  "scope": "Exact source/schema snapshots. ControllerApis/KafkaApis/ReplicationControlManager are inspected; this evidence does not assert their execution."
+}

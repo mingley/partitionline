@@ -1,0 +1,1 @@
+Initial generator compile failed before execution: CreateableTopicConfig was misspelled; upstream class is CreatableTopicConfig. Corrected spelling; no emitted fixture bytes arose from this failure.

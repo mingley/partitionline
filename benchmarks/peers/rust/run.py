@@ -20,6 +20,12 @@ cpeer=importlib.util.module_from_spec(spec); spec.loader.exec_module(cpeer)
 def write(path,data):
     with Path(path).open('x') as f: json.dump(data,f,indent=2); f.write('\n')
 
+def tier():
+    value=os.environ.get('TIER','exploratory')
+    if value not in ('required','exploratory'):
+        raise ValueError('TIER must be required|exploratory')
+    return value
+
 def zero_raw(c):
     phase=dict(offered=0,accepted=0,acknowledged=0,rejected=0,timed_out=0,unknown=0,
                callback_failures=0,queue_full_retries=0,elapsed_s=0,errors=[])
@@ -97,7 +103,7 @@ def result(c,raw,manifest,pin,binary,paths,start,end,disposition,reason,exit_cod
     outcomes={k:timed[k] for k in ('offered','accepted','acknowledged','rejected','timed_out','unknown')}; outcomes['consumed']=v['verified_ids']
     return dict(schema_version='1.0.0',contract_version='1.1.0',
       suite_hold=dict(status='active',policy='Unsigned adapter samples do not lift Suite HOLD',note='No comparison, qualification, or performance claim'),
-      scenario=dict(scenario_id=os.environ.get('SCENARIO_ID','rust-rdkafka-peer-smoke'),profile=os.environ.get('PROFILE','bulk'),tier='exploratory',peer='peer-adapter',cell_disposition=disposition,
+      scenario=dict(scenario_id=os.environ.get('SCENARIO_ID','rust-rdkafka-peer-smoke'),profile=os.environ.get('PROFILE','bulk'),tier=tier(),peer='peer-adapter',cell_disposition=disposition,
         equal_semantics=dict(durability=dict(replication_factor=d['replication_factor'],min_insync_replicas=d['min_insync_replicas']),acks=c['acks'],idempotence=c['idempotence'],isolation=c['isolation_level'],security=dict(protocol=c['security_protocol'],mechanism=c['sasl_mechanism'] or 'NONE'),note=reason)),
       provenance=dict(source=dict(git_commit=cpeer.output(['git','-C',str(ROOT),'rev-parse','HEAD']),git_branch=cpeer.output(['git','-C',str(ROOT),'branch','--show-current']),repo_url='https://github.com/mingley/partitionline',clean=not cpeer.output(['git','-C',str(ROOT),'status','--porcelain'],''),tree_hash=cpeer.output(['git','-C',str(ROOT),'rev-parse','HEAD^{tree}']),peer='rust-rdkafka',wrapper_pin=pin['wrapper'],binding_pin=pin['bindings'],native_pin=pin['native'],source_sha256=manifest['source_sha256'],note='Standalone native wrapper; its instrumentation/API cost belongs to this bar, never the C-only bar'),
         binary=dict(name='rust-rdkafka-BaseProducer-peer',path=str(binary),sha256=cpeer.sha(binary)),
@@ -121,7 +127,7 @@ def main():
     p.add_argument('--result',type=Path,default=Path('rust-peer-result.json'))
     p.add_argument('--kafka-home',type=Path)
     p.add_argument('--reason',default='')
-    a=p.parse_args(); c=cpeer.settings(); binary=a.binary.resolve(); manifest,pin=verify_build(binary)
+    a=p.parse_args(); c=cpeer.settings(); tier(); binary=a.binary.resolve(); manifest,pin=verify_build(binary)
     if a.command in ('unsupported','not-run') and not a.reason: raise ValueError('explicit disposition reason required')
     if a.command=='roundtrip' and not all(os.environ.get(k) for k in ('BROKER_IMAGE','BROKER_VERSION')):
         raise ValueError('roundtrip requires inspected BROKER_IMAGE and BROKER_VERSION')

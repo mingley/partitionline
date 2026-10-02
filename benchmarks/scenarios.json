@@ -1018,7 +1018,7 @@
           "native_version": "2.15.0",
           "native_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
           "driver": "benchmarks/peers/rust/run.py (independent workspace)",
-          "invocation": "COUNT=8000000 WARMUP=10000 TOTAL_REPETITIONS=5 PAYLOAD_BYTES=100 ACKS=-1 LINGER_MS=5 BATCH_BYTES=1048576 BATCH_RECORDS=32768 IDEMPOTENT=1 MAX_IN_FLIGHT=5 ISOLATION=read_committed KAFKA_BOOTSTRAP=127.0.0.1:9092 KAFKA_TOPIC=plbench-matched SCENARIO_ID=matched-bulk-acks-all-6p-uncompressed python3 benchmarks/peers/rust/run.py roundtrip --binary \"$RUST_PEER_BUILD/rust-peer\" --kafka-home \"$KAFKA_HOME\" --result \"$FRESH_RESULT_PATH\"",
+          "invocation": "TIER=required RTT_MS=0.1 COUNT=8000000 WARMUP=10000 TOTAL_REPETITIONS=5 PAYLOAD_BYTES=100 ACKS=-1 LINGER_MS=5 BATCH_BYTES=1048576 BATCH_RECORDS=32768 IDEMPOTENT=1 MAX_IN_FLIGHT=5 ISOLATION=read_committed KAFKA_BOOTSTRAP=127.0.0.1:9092 KAFKA_TOPIC=plbench-matched SCENARIO_ID=matched-bulk-acks-all-6p-uncompressed python3 benchmarks/peers/rust/run.py roundtrip --binary \"$RUST_PEER_BUILD/rust-peer\" --kafka-home \"$KAFKA_HOME\" --result \"$FRESH_RESULT_PATH\"",
           "config_properties": {
             "acks": -1,
             "enable.idempotence": "true",

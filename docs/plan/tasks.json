@@ -18703,7 +18703,8 @@
         "docs/plan/evidence/KL11-62.json",
         "docs/evidence/client/KL11-62/",
         "docs/plan/tasks.json",
-        "examples/common/bench_history.rs"
+        "examples/common/bench_history.rs",
+        "tests/client_api.rs"
       ]
     },
     {

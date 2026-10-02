@@ -96,6 +96,11 @@ configuration under that exact scenario ID with zero measurements and an
 explicit reason. `unsupported` files an actual unsupported-cell artifact;
 neither disposition can be counted as a win:
 
+`TIER=required|exploratory` selects registry metadata and defaults to exploratory;
+invalid values fail before traffic. For the frozen named `not-run` filing use
+`TIER=required RTT_MS=0.1`, alongside its unchanged counts and other settings.
+Tier selection never supplies measurements, sample floors or qualification.
+
 ```sh
 PROFILE=group/share SCENARIO_ID=share-exp-kip932-concurrency \
 python3 benchmarks/peers/rust/run.py unsupported \
