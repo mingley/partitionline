@@ -338,7 +338,7 @@ fn independent_writer_reader_resolution_references_defaults_nulls_bidirectional(
             let frame = adapter.encode(&expected).unwrap();
             assert_eq!(frame, bytes);
             assert_eq!(decode(&frame, Limits::default()).unwrap().payload, payload);
-            retain(name, &frame, payload);
+            retain(name, &frame, &frame[5..]);
         }
         assert_eq!(calls.get(), 9);
     }
