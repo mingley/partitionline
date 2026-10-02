@@ -25,6 +25,74 @@ unsigned** (rust-rdkafka 0.39.0, not C 2.15.0). Produce-ack and fetch-request
 latency is **this-VM 2026-08-28, unsigned** (same rust-rdkafka 0.39.0, not
 C 2.15.0, not Lab A). Suite HOLD: [STATUS.md](STATUS.md).
 
+## Record-history correctness gate (KL04-07)
+
+Run `scripts/lab-a-integrity.sh` to require complete deterministic record
+histories before accepting a benchmark attempt's correctness. It now retains
+producer and independent consumer JSONL journals, stdout/stderr, command exit
+statuses, normalized history, a checker verdict, and checksums in an exclusive
+`ARTIFACT_DIR`. A failed attempt stays available. Reusing an artifact directory
+or journal path fails instead of overwriting it.
+
+```sh
+COUNT=128 PARTITIONS=2 RUNS=1 PAYLOAD_BYTES=100 ACKS=1 WARMUP_SECS=0 \
+KAFKA_BOOTSTRAP=127.0.0.1:19092 KAFKA_HOME=/path/to/kafka \
+BROKER_BACKEND=native TOPIC=pl-history ARTIFACT_DIR=work/history-attempt-1 \
+bash scripts/lab-a-integrity.sh
+```
+
+The harness uses a fresh empty topic and zero warmup for exact application
+record accounting. Invalid or zero `COUNT`, `RUNS`, and `PARTITIONS` fail before
+broker operations. `ACKS=0` cannot pass this acknowledged-producer harness.
+`BENCH_PRODUCE_BINARY` and `BENCH_FETCH_BINARY` can select existing binaries;
+otherwise it builds both release examples. A custom native bootstrap always
+uses native topic/offset tools for that endpoint.
+
+The examples enable history instrumentation with `RECORD_HISTORY=<new-path>`.
+Producer history mode requires an explicit positive `COUNT` and
+`PAYLOAD_BYTES>=24`. Its payload contains `PLBENCH1`, a big-endian 64-bit seed,
+a global 64-bit ID, and deterministic SplitMix filler, keeping the requested
+payload size. IDs span warmup and measurement without resetting. Records route
+round robin to explicit partitions, with one stable seeded key per partition.
+The journals record every locally accepted application's ID, actual value
+SHA-256, key, partition, phase, and independent consumed offset. Producer
+completion and delivery counters establish whether accepted rows can be
+normalized as broker acknowledged. A teardown error seals a failed journal.
+
+The consumer reads to an independent snapshot of every partition's end offset,
+then checks the complete application ID set, generator bytes, keys, and order.
+It detects duplicates or extra records even after `COUNT` records have already
+been reached. Record IDs are independent of Kafka offsets: transactional
+control markers and aborted records can consume offsets without becoming
+application records. The gate accepts legitimate offset gaps and rejects
+exposed control markers. The harness's additional `HW delta == acked` audit is
+restricted to its explicitly non-transactional producer.
+
+`scripts/bench-record-history.py` independently regenerates expected payloads
+in Python and invokes the existing KL03-18 checker for ID/hash/key/order,
+visibility, and control-record rules. Matching totals cannot hide a
+missing/duplicate swap or payload corruption. A failed verdict sets
+`performance_claims_invalidated=true`; the raw attempt remains intact.
+The adapter retains all records in memory while checking a run.
+
+With `ACKS=0`, `bench_produce` reports `acked=0`, `acked_rec_s=null`, and explicit
+local completion counts. Independent receipt can validate such a diagnostic's
+records, but never promotes it to acknowledged throughput. Malformed numeric
+settings and zero work counts fail explicitly. `IDEMPOTENT=1` requires
+`ACKS=-1` rather than silently changing the requested acknowledgment semantics.
+
+Examples without `RECORD_HISTORY` retain their constant-value/null-key workload
+and are labeled unverified. The existing null-broker `VERIFY=1` format remains
+separate from the native history format. SHA generation, journaling, and
+independent validation add work to history runs; compare only matched workloads
+and instrumentation. The retained 128-record isolated Kafka 3.9.1 smoke verifies
+every ID/hash across two partitions. A native Java transaction additionally
+produced three application records and one commit marker: the Rust consumer
+verified three records against an end offset of four. Direct `acks=0` evidence
+retains received IDs with zero acknowledged records. These are correctness
+checks, with no
+throughput qualification, controlled-host signoff, or Suite HOLD lift.
+
 ## Methodology
 
 Lock these on **both** binaries:

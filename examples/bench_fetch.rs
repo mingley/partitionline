@@ -1,11 +1,15 @@
-//! Locked fetch throughput example.
+//! Fetch throughput diagnostics with independent deterministic record verification.
+
 //!
 //! Against the null broker (`benchmarks/nullbroker`, KL09-07), `VERIFY=1`
 //! checks every record's seeded ID, hash, key and headers: `SEED` must match
 //! the server's `--fetch-seed`, `VERIFY_HEADERS` its `--fetch-headers`.
 //! `ISOLATION` selects `read_uncommitted` (default) or `read_committed`.
 
-use std::collections::HashMap;
+#[path = "common/bench_history.rs"]
+mod history;
+
+use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
 use partitionline::{Consumer, ConsumerConfig, TlsConfig};
@@ -52,32 +56,35 @@ fn be_u32(bytes: Option<&[u8]>) -> Option<u32> {
 async fn main() -> partitionline::Result<()> {
     let bootstrap = std::env::var("KAFKA_BOOTSTRAP").unwrap_or_else(|_| "127.0.0.1:9092".into());
     let topic = std::env::var("KAFKA_TOPIC").unwrap_or_else(|_| "plbench".into());
-    let count: u64 = std::env::var("COUNT")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(8_000_000);
-    let verify = std::env::var("VERIFY").is_ok_and(|v| v == "1");
-    let seed: u64 = std::env::var("SEED")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(0x5EED_0001);
-    let verify_headers: usize = std::env::var("VERIFY_HEADERS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(0);
-    let read_committed = std::env::var("ISOLATION").is_ok_and(|v| v == "read_committed");
-    let max_wait_ms = std::env::var("MAX_WAIT_MS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(100i32);
-    let max_bytes = std::env::var("MAX_BYTES")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(16_777_216i32);
-    let min_bytes = std::env::var("MIN_BYTES")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(1i32);
+    let count = history::setting("COUNT", 8_000_000u64)?;
+    history::positive("COUNT", count)?;
+    let verify = history::flag("VERIFY", false)?;
+    let seed = history::setting("SEED", 0x5EED_0001u64)?;
+    let payload_size = history::setting("PAYLOAD_BYTES", 100usize)?;
+    let verify_headers = history::setting("VERIFY_HEADERS", 0usize)?;
+    let isolation = std::env::var("ISOLATION").unwrap_or_else(|_| "read_uncommitted".into());
+    if isolation != "read_uncommitted" && isolation != "read_committed" {
+        return Err(partitionline::Error::protocol(
+            "ISOLATION must be read_uncommitted or read_committed",
+        ));
+    }
+    let read_committed = isolation == "read_committed";
+    let max_wait_ms = history::setting("MAX_WAIT_MS", 100i32)?;
+    let max_bytes = history::setting("MAX_BYTES", 16_777_216i32)?;
+    let min_bytes = history::setting("MIN_BYTES", 1i32)?;
+    if max_wait_ms < 0 || max_bytes <= 0 || min_bytes <= 0 || min_bytes > max_bytes {
+        return Err(partitionline::Error::protocol(
+            "invalid MAX_WAIT_MS/MAX_BYTES/MIN_BYTES",
+        ));
+    }
+    let history_path = std::env::var("RECORD_HISTORY").ok();
+    if history_path.is_some() && (verify || payload_size < history::MIN_PAYLOAD) {
+        return Err(partitionline::Error::protocol("RECORD_HISTORY requires PAYLOAD_BYTES >= 24 and VERIFY=0 (VERIFY=1 is the null-broker fixture format)"));
+    }
+    let mut journal = history_path
+        .as_deref()
+        .map(history::Journal::create)
+        .transpose()?;
 
     let mut cfg = ConsumerConfig::bootstrap([bootstrap]);
     cfg.max_wait_ms = max_wait_ms;
@@ -122,7 +129,26 @@ async fn main() -> partitionline::Result<()> {
 
     let mut consumer = Consumer::new(cfg).await?;
     consumer.assign_topic(&topic, 0).await?;
-    let assigned = consumer.assignment().len();
+    let mut assignment = consumer.assignment();
+    assignment.sort_by_key(|tp| tp.partition());
+    let assigned = assignment.len();
+    if assigned == 0 {
+        return Err(partitionline::Error::protocol("empty consumer assignment"));
+    }
+    let fence = if journal.is_some() {
+        consumer.end_offsets(assignment.clone()).await?
+    } else {
+        Vec::new()
+    };
+    if let Some(ref mut journal) = journal {
+        let offsets = fence
+            .iter()
+            .map(|(tp, offset)| format!("{{\"partition\":{},\"offset\":{offset}}}", tp.partition()))
+            .collect::<Vec<_>>()
+            .join(",");
+        journal.line(&format!("{{\"kind\":\"config\",\"schema_version\":1,\"role\":\"consumer\",\"topic\":{},\"isolation_level\":{},\"seed\":{seed},\"payload_bytes\":{payload_size},\"partitions\":{assigned},\"count\":{count},\"end_offsets\":[{offsets}]}}", history::quote(&topic), history::quote(&isolation)))?;
+        journal.checkpoint()?;
+    }
     let start = Instant::now();
     let mut got = 0u64;
     let mut empty = 0u32;
@@ -130,17 +156,81 @@ async fn main() -> partitionline::Result<()> {
     let mut verified = 0u64;
     let mut mismatches = 0u64;
     let mut gaps = 0u64;
-    while got < count {
-        let recs = consumer.fetch().await?;
+    let mut seen = HashSet::new();
+    let mut last_id = HashMap::new();
+    let mut failure = None;
+    loop {
+        if journal.is_some() {
+            let positions = consumer.positions();
+            if fence
+                .iter()
+                .all(|(tp, end)| positions.iter().any(|(p, offset)| p == tp && offset >= end))
+            {
+                break;
+            }
+        } else if got >= count {
+            break;
+        }
+        let recs = match consumer.fetch().await {
+            Ok(records) => records,
+            Err(error) => {
+                failure = Some(error);
+                break;
+            }
+        };
         if recs.is_empty() {
             empty += 1;
             if empty > 600 {
-                return Err(partitionline::Error::Timeout);
+                failure = Some(partitionline::Error::Timeout);
+                break;
             }
             continue;
         }
         empty = 0;
-        if verify {
+        if let Some(ref mut journal) = journal {
+            for rec in recs.as_ref() {
+                let value = rec.value().unwrap_or(&[]);
+                let identity = history::identity(value);
+                let identity_text = identity
+                    .map(|(s, id)| format!("{s:016x}:{id}"))
+                    .unwrap_or_else(|| format!("malformed:{}:{}", rec.partition(), rec.offset()));
+                journal.record(
+                    &identity_text,
+                    rec.topic(),
+                    rec.partition(),
+                    Some(rec.offset()),
+                    rec.key(),
+                    value,
+                    "consume",
+                    "accepted",
+                )?;
+                let mut ok = false;
+                if let Some((record_seed, id)) = identity {
+                    let partition_index =
+                        usize::try_from(id % u64::try_from(assigned).unwrap_or(1)).unwrap_or(0);
+                    let partition = assignment.get(partition_index).map(|tp| tp.partition());
+                    ok = record_seed == seed
+                        && id < count
+                        && seen.insert(id)
+                        && Some(rec.partition()) == partition
+                        && rec.value() == Some(history::payload(seed, id, payload_size)?.as_ref())
+                        && rec.key() == Some(history::key(seed, rec.partition()).as_ref());
+                    if last_id
+                        .get(&rec.partition())
+                        .is_some_and(|previous| id <= *previous)
+                    {
+                        ok = false;
+                    }
+                    let _old = last_id.insert(rec.partition(), id);
+                }
+                if ok {
+                    verified += 1;
+                } else {
+                    mismatches += 1;
+                }
+            }
+            journal.checkpoint()?;
+        } else if verify {
             for rec in recs.as_ref() {
                 let partition = rec.partition();
                 let offset = u64::try_from(rec.offset()).unwrap_or(u64::MAX);
@@ -206,15 +296,34 @@ async fn main() -> partitionline::Result<()> {
         }
         got += recs.len() as u64;
     }
+    if journal.is_some()
+        && (got != count || u64::try_from(seen.len()).unwrap_or(0) != count || mismatches > 0)
+        && failure.is_none()
+    {
+        failure = Some(partitionline::Error::protocol(format!("history integrity mismatch: consumed={got}, expected={count}, unique_ids={}, mismatches={mismatches}", seen.len())));
+    }
+    if verify && mismatches > 0 && failure.is_none() {
+        failure = Some(partitionline::Error::protocol(format!(
+            "{mismatches} verify mismatches of {got}"
+        )));
+    }
+    let disposition = if failure.is_some() {
+        "failed"
+    } else {
+        "executed"
+    };
+    if let Some(ref mut journal) = journal {
+        journal.line(&format!("{{\"kind\":\"summary\",\"role\":\"consumer\",\"completed\":{},\"run_disposition\":\"{disposition}\",\"consumed\":{got},\"verified\":{verified},\"verify_mismatches\":{mismatches},\"unique_ids\":{}}}", failure.is_none(), seen.len()))?;
+        journal.checkpoint()?;
+    }
     let elapsed = start.elapsed().as_secs_f64();
     let rec_s = got as f64 / elapsed.max(1e-9);
     println!(
-        "{{\"consumed\":{got},\"elapsed_s\":{elapsed:.6},\"consumed_rec_s\":{rec_s:.3},\"partitions\":{assigned},\"max_wait_ms\":{max_wait_ms},\"max_bytes\":{max_bytes},\"verified\":{verified},\"verify_mismatches\":{mismatches},\"verify_gaps\":{gaps}}}"
+        "{{\"consumed\":{got},\"elapsed_s\":{elapsed:.6},\"consumed_rec_s\":{rec_s:.3},\"partitions\":{assigned},\"max_wait_ms\":{max_wait_ms},\"max_bytes\":{max_bytes},\"verified\":{verified},\"verify_mismatches\":{mismatches},\"verify_gaps\":{gaps},\"record_history\":{},\"integrity_verified\":{},\"performance_claims_valid\":false,\"run_disposition\":\"{disposition}\"}}"
+        , journal.is_some(), (journal.is_some() || verify) && failure.is_none()
     );
-    if verify && mismatches > 0 {
-        return Err(partitionline::Error::protocol(format!(
-            "{mismatches} verify mismatches of {got}"
-        )));
+    if let Some(error) = failure {
+        return Err(error);
     }
     Ok(())
 }
