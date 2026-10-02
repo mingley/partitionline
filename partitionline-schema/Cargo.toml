@@ -15,6 +15,9 @@ default = ["registry"]
 # Explicit schema selection and bounded Avro framing/codec contract. The
 # application supplies its serialization library; this feature adds no deps.
 avro = []
+# Versioned Draft 2020-12 profile and bounded JSON Schema framing/codec
+# contract; validation and serialization are caller-selected, with no deps.
+json-schema = []
 # Bounded Schema Registry lookup client (GET-only HTTP/1.1 over tokio +
 # rustls with webpki roots). It is a default feature so the card's plain
 # `cargo test` exercises it, and stays optional so

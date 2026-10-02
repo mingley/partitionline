@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:partitionline:json-schema:writer",
+  "anyOf": [
+    {
+      "type": "null"
+    },
+    {
+      "$ref": "urn:partitionline:json-schema:int64"
+    }
+  ]
+}

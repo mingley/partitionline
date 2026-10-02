@@ -17,6 +17,9 @@ features leaves dependency-free wire framing.
 - `avro` (opt-in feature): bounded Avro datum framing and `Adapter<Codec>` with
   explicitly selected writer/reader schemas and resolved named references.
   The application supplies its serializer; the feature adds no dependencies.
+- `json-schema` (opt-in feature): versioned Draft 2020-12
+  `json_schema::Adapter<Codec>` with explicit offline schemas/references and a
+  caller-selected JSON serializer/validator. The feature adds no dependencies.
 - `registry::RegistryClient` (default feature `registry`): bounded
   read-only Schema Registry lookups (by id, by subject/version, plus
   reference resolution). No registration or mutation APIs.
@@ -115,6 +118,46 @@ UTF-8 and int32 boundaries, plus incompatible and missing-default failures.
 The checked-in Rust codec handles only those fixture schemas; these tests do
 not qualify a production built-in serializer, live registry or Kafka broker.
 
+## Opt-in JSON Schema adapter
+
+Enable `features = ["json-schema"]` for profile
+`partitionline.json-schema.draft2020-12.v1`. The supported explicit dialect is
+`https://json-schema.org/draft/2020-12/schema`; other dialect selections fail
+before invoking the codec. Supply a known writer ID, writer/reader `Schema`
+texts, all flattened `Reference` resources and an application-selected `Codec`.
+The codec parses/meta-validates schemas and resolves `$id`, `$ref`, anchors and
+dynamic references offline. It must reject missing resources, inconsistent
+`$schema` declarations and unsupported required vocabularies. The adapter has
+no built-in schema parser, JSON serializer or JSON Schema validator.
+
+Encoding serializes into one bounded output slice and validates the actual
+UTF-8 document against the writer before returning a frame. Decoding rejects
+unknown writer IDs first, validates the same JSON instance against writer and
+reader, then deserializes it. These checks make no global backward/forward
+compatibility claim: an individual instance must satisfy both selections.
+There is no coercion, default insertion or rewriting; `default` and `format`
+are annotations in this profile. JSON null is the four-byte document `null`,
+not an empty payload or a Kafka tombstone.
+
+`Limits` defaults to 1 MiB per complete frame, 2 MiB combined writer/reader
+schema/reference text (including URI and dialect bytes), and 64 references.
+Configuration permits 6 bytes–64 MiB frames, 1 byte–64 MiB schema input and
+0–1024 combined references. Duplicate resource URIs within one selection fail;
+shared references in writer and reader count independently. Bounds precede
+codec preparation and output allocation. The codec must separately cap schema
+parsing, recursion, scratch, retained schemas and decoded objects, and preserve
+numeric precision at its schemas' boundaries. These limits do not cap RSS.
+No lookup, registration, mutation or implicit reference fetch occurs.
+
+The pinned [Python jsonschema 4.26.0 oracle](tests/oracles/json_schema/README.md)
+checks 27 valid/invalid cases and independently validates actual Rust-emitted
+frames. It covers null/default annotations, offline references, int64 bounds,
+integers beyond f64's exact range, decimal/exponent integer spellings,
+fractions, overflow, NaN/infinity and malformed/trailing JSON. The Rust test
+codec recognizes only those fixture schemas. This is evidence for the adapter
+contract and framing, not production built-in validation, live registry/broker
+interop or ecosystem-profile qualification.
+
 ## Later (demand-gated libraries)
 
 Built-in Avro / Protobuf / JSON serialization libraries — see
@@ -124,4 +167,5 @@ Built-in Avro / Protobuf / JSON serialization libraries — see
 ```bash
 cargo test --manifest-path partitionline-schema/Cargo.toml
 cargo test --manifest-path partitionline-schema/Cargo.toml --features avro
+cargo test --manifest-path partitionline-schema/Cargo.toml --features json-schema
 ```

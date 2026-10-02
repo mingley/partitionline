@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:partitionline:json-schema:int64",
+  "type": "integer",
+  "minimum": -9223372036854775808,
+  "maximum": 9223372036854775807
+}

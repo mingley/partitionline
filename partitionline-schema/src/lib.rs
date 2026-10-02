@@ -10,6 +10,8 @@
 //! [`protobuf`] also offers bounded message-index framing and a caller-selected
 //! codec contract, without adding a serialization dependency. The opt-in `avro`
 //! module similarly selects explicit writer/reader schemas and references.
+//! The opt-in `json-schema` module provides a versioned Draft 2020-12
+//! validation/serialization contract through a caller-selected codec.
 //! Built-in
 //! Avro/Protobuf/JSON serialization libraries wait on adopter demand
 //! (survey [#85](https://github.com/mingley/partitionline/issues/85)); see
@@ -20,6 +22,8 @@
 
 #[cfg(feature = "avro")]
 pub mod avro;
+#[cfg(feature = "json-schema")]
+pub mod json_schema;
 pub mod protobuf;
 #[cfg(feature = "registry")]
 pub mod registry;
