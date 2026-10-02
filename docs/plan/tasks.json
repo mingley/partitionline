@@ -8625,13 +8625,34 @@
     {
       "id": "KL09-47",
       "title": "Index read_committed aborted intervals per partition",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL09-41"],
-      "files": ["src/consumer.rs"],
+      "priority": "P2",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL09-41"
+      ],
+      "files": [
+        "src/consumer.rs"
+      ],
       "deliverable": "read_committed filtering uses a partition-local interval cursor instead of sorting and hashing aborted-transaction state on every response.",
-      "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Repeated transactions from one PID, ABORT markers spanning responses, control records and LSO behavior pass the KL03-03 suite."],
-      "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test full_surface", "A/B cell nb-fetch-committed-aborts (CPU-ns/record): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": []
+      "acceptance": [
+        "Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.",
+        "Repeated transactions from one PID, ABORT markers spanning responses, control records and LSO behavior pass the KL03-03 suite."
+      ],
+      "validation": [
+        "cargo test --locked --test consumer_fetch_semantics",
+        "cargo test --locked --test full_surface",
+        "A/B cell nb-fetch-committed-aborts (CPU-ns/record): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/consumer.rs",
+        "tests/consumer_fetch_semantics.rs",
+        "docs/plan/evidence/KL09-47.json",
+        "docs/evidence/perf/KL09-47/",
+        "docs/plan/tasks.json"
+      ]
     },
     {
       "id": "KL09-48",
@@ -11318,8 +11339,8 @@
       "title": "Pin Kafka broker APIs and implement request headers/ApiVersions",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-02",
         "KL11-57"
@@ -11338,7 +11359,20 @@
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/protocol.rs",
+        "partitionline-broker/tests/protocol.rs",
+        "partitionline-broker/tests/fixtures/protocol/",
+        "tests/conformance/broker/implemented-api-versions.json",
+        "tests/conformance/broker/features.json",
+        "scripts/check-broker-api-matrix.py",
+        "tests/ci/test_broker_api_matrix.py",
+        "docs/plan/evidence/KL11-04.json",
+        "docs/evidence/broker/KL11-04/",
+        "docs/plan/tasks.json"
+      ],
+      "integration_coordinator": "Root exclusively owns shared lib.rs exports; source/backend matrix integration coordinated with TLS."
     },
     {
       "id": "KL11-05",
