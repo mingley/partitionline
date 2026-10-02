@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "task": "KL11-01",
+  "source_sha": "632180ea3adec95cfbf05b0a4d18f01f9cb52631",
+  "commands": [
+    "cargo +1.85.0 check --locked --manifest-path partitionline-broker/Cargo.toml",
+    "cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets -- -D warnings",
+    "cargo fmt --check --manifest-path partitionline-broker/Cargo.toml",
+    "Python validation: root client dependency/features/package equality against 6c67f704; all 148 broker features missing/not_run; unique task IDs, valid dependency references, acyclic task graph"
+  ],
+  "results": {
+    "msrv_check": "passed",
+    "strict_clippy": "passed",
+    "format": "passed",
+    "client_graph": "unchanged",
+    "feature_entries": 148,
+    "implemented_broker_apis": 0,
+    "task_graph": "passed",
+    "behavioral_case_count": 0
+  },
+  "failed_attempts": [
+    "Initial format check reported one trailing blank line in documentation-only lib.rs; removed and rerun successfully."
+  ],
+  "limitations": [
+    "This card defines the crate boundary and completion contracts only. No broker handler/storage implementation or production/performance qualification is claimed.",
+    "Exact current upstream protocol pins and API classification remain KL11-04; initial keys 0\u201392 are an envelope.",
+    "Existing external client claims and Suite HOLD remain intact."
+  ]
+}
