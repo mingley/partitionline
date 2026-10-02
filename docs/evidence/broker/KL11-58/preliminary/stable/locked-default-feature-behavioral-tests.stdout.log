@@ -1,0 +1,62 @@
+
+running 11 tests
+test journal::tests::bounded_index_capacity_and_rejections_never_write ... ok
+test journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed ... ok
+test journal::tests::early_zero_read_does_not_become_a_successful_tail_repair ... ok
+test journal::tests::complete_recovery_sync_failure_never_reports_durable_state ... ok
+test journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair ... ok
+test journal::tests::success_synchronizes_complete_bytes_before_return ... ok
+test journal::tests::partial_header_and_payload_writes_poison_without_advancing ... ok
+test journal::tests::tail_repair_truncate_and_sync_errors_never_report_success ... ok
+test journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss ... ok
+test journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery ... ok
+test journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 15 tests
+test actual_file_matches_documented_checksums_and_can_be_retained_for_oracle ... ok
+test complete_payload_and_header_corruption_never_truncate ... ok
+test durable_restart_preserves_explicit_record_counts_and_logical_ranges ... ok
+test failed_open_releases_ownership_and_positive_limits_are_validated ... ok
+test external_file_growth_poisons_append_without_offset_advance ... ok
+test fetch_output_charges_entry_storage_and_never_returns_partial_failure ... ok
+test file_and_index_budgets_hold_on_append_and_recovery ... ok
+test interior_missing_payload_with_later_entry_is_not_a_torn_final_entry ... ok
+test file_header_identity_and_partial_prefix_damage_fail_closed ... ok
+test invalid_append_and_offset_overflow_leave_committed_state_unchanged ... ok
+test live_inode_aliases_are_rejected_and_guard_releases_after_drop ... ok
+test simultaneous_new_file_open_rejects_a_second_live_handle ... ok
+test protected_invalid_lengths_counts_and_offset_gaps_fail_closed ... ok
+test every_incomplete_tail_prefix_repairs_to_last_complete_entry ... ok
+test process_exit_without_destructors_recovers_durable_and_incomplete_entries ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 16 tests
+test cancelled_shutdown_await_can_be_retried_and_still_joins ... ok
+test dropping_transport_requests_socket_and_handler_cleanup ... ok
+test connection_overload_rejects_without_spawning_handler ... ok
+test adversarial_lengths_close_before_payload_or_handler_and_isolate_peers ... ok
+test handler_error_and_oversized_response_close_only_their_connections ... ok
+test handler_work_is_bounded_and_shutdown_joins_active_and_queued_requests ... ok
+test hanging_handler_times_out_and_its_future_is_dropped ... ok
+test idle_connection_has_an_absolute_read_deadline ... ok
+test fragmented_prefix_body_empty_and_exact_limit_roundtrip ... ok
+test rejects_zero_and_out_of_range_configuration_without_io ... ok
+test pipelined_no_reply_sends_no_frame_and_keeps_connection_usable ... ok
+test truncated_prefix_and_body_never_invoke_handler ... ok
+test pipelined_requests_keep_wire_and_handler_order ... ok
+test slowloris_progress_does_not_reset_prefix_plus_body_deadline ... ok
+test unread_large_response_hits_absolute_write_deadline_and_joins ... ok
+test handler_deadline_includes_waiting_for_concurrency_permit ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+

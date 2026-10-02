@@ -1,0 +1,19 @@
+{
+  "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+  "yaml_parser": "PyYAML 6.0.3",
+  "yaml_syntax": "passed",
+  "workflow_contract": "passed",
+  "events": [
+    "main push",
+    "pull_request",
+    "workflow_dispatch"
+  ],
+  "rust_toolchains": [
+    "1.85.0",
+    "stable"
+  ],
+  "shell_steps_per_rust_toolchain": 8,
+  "inventory_shell_steps": 2,
+  "qualification_claim": false,
+  "hosted_actions_executed_locally": false
+}

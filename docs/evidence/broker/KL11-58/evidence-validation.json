@@ -1,0 +1,9 @@
+{
+  "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+  "verdict": "passed",
+  "local_workflow_shell_executions": 18,
+  "local_inventory_negative_tests": 24,
+  "hosted_successful_jobs": 3,
+  "source_file_hashes_verified": 65,
+  "production_qualification": false
+}

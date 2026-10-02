@@ -1,0 +1,265 @@
+{
+  "observed_at_utc": "2026-10-02 20:04:49 UTC",
+  "source": "GitHub connector GET, independently observed",
+  "request_url": "https://api.github.com/repos/mingley/partitionline/actions/runs?head_sha=39bd19a2f824a2c25b847eecfd3b3484aa5ca338&per_page=20",
+  "run": {
+    "id": 37057864310,
+    "head_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+    "name": "broker",
+    "path": ".github/workflows/broker.yml",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/mingley/partitionline/actions/runs/37057864310",
+    "created_at": "2026-10-02T20:01:10Z",
+    "updated_at": "2026-10-02T20:01:57Z",
+    "run_attempt": 1
+  },
+  "jobs": [
+    {
+      "id": 111006890110,
+      "name": "broker (1.85.0)",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 37057864310,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@master",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Independent TLS peer prerequisite",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Broker format",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Locked default-feature behavioral tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Locked all-feature behavioral tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7
+        },
+        {
+          "name": "Strict all-feature broker Clippy",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8
+        },
+        {
+          "name": "Strict all-feature broker Rustdoc",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9
+        },
+        {
+          "name": "Strict default-feature broker doctests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Strict all-feature broker doctests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23
+        }
+      ]
+    },
+    {
+      "id": 111006890337,
+      "name": "broker (stable)",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 37057864310,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@master",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Independent TLS peer prerequisite",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Broker format",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Locked default-feature behavioral tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Locked all-feature behavioral tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7
+        },
+        {
+          "name": "Strict all-feature broker Clippy",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8
+        },
+        {
+          "name": "Strict all-feature broker Rustdoc",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9
+        },
+        {
+          "name": "Strict default-feature broker doctests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Strict all-feature broker doctests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23
+        }
+      ]
+    },
+    {
+      "id": 111006890360,
+      "name": "pinned Apache API inventory and negative controls",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 37057864310,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-python@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Verify retained pinned Apache API inventory",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Reject corrupted pins, inventories and unsupported claims",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Retain upstream inventory verdict, including failures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/setup-python@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    }
+  ],
+  "production_qualification": false,
+  "direct_gh_observation": {
+    "status": "failed",
+    "error": "Get https://api.github.com/repos/mingley/partitionline/actions/workflows/broker.yml: Forbidden; connector GET fallback succeeded"
+  }
+}

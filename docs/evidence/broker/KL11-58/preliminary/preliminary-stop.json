@@ -1,0 +1,16 @@
+{
+  "reason": "Coordinator requested reuse of peer exact-source full broker logs to avoid duplicate builds",
+  "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+  "owned_runner_pids": [
+    141304
+  ],
+  "owned_descendant_pids_signalled": [
+    142928,
+    142927,
+    142920,
+    142795,
+    141304
+  ],
+  "signal": "SIGTERM",
+  "recorded_at_utc": "2026-10-02T20:02:13.342118+00:00"
+}

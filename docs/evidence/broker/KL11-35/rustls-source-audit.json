@@ -1,0 +1,18 @@
+{
+  "crate": "rustls",
+  "version": "0.23.45",
+  "crate_checksum": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634",
+  "source_sha256": {
+    "src/msgs/deframer/handshake.rs": "8b72e2864ef0de161b47c23c1c7bd50d4d39c2354813be920af66f13139b638d",
+    "src/msgs/deframer/buffers.rs": "48bb18eff4e5859ec56aba8910488a791457afabc79feba0b09375e11bcca459",
+    "src/server/builder.rs": "4ec5532bbaaf9d60ae2fb577e8f463e2f3f6915aa80d0f11627829214fa7eb8c",
+    "src/server/handy.rs": "85ce7ea135eb5582703cb41eb8a5ec7d1d6b9266a130935d291eb71c1327394d"
+  },
+  "observations": [
+    "Handshake coalescing rejects spans above MAX_HANDSHAKE_SIZE=0xffff, and deframer buffer growth is capped at 0xffff while joining handshake messages.",
+    "The pinned server builder uses NeverProducesTickets; this adapter explicitly disables session storage, TLS1.3 tickets and early data.",
+    "with_single_cert validates supported key DER and checks end-entity certificate/public-key matching.",
+    "The adapter uses stock WebPkiClientVerifier Required policy with the explicit ring provider; no custom verifier is provided."
+  ],
+  "limits": "These are specific parser/configuration bounds and source observations; no whole-process RSS or asynchronous runtime preemption claim."
+}

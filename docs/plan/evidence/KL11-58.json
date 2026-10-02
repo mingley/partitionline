@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "task": "KL11-58",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+  "tested_source": "Exact git archive of pushed workflow, independent broker crate, pinned API inventory and negative tests; uncommitted protocol changes excluded. Source hashes are retained and verified against the commit.",
+  "commands": [
+    "bash scripts/check-workflows.sh (exact archived snapshot; PyYAML 6.0.3 available, not skipped)",
+    "openssl version on stable and Rust1.85.0 workflow lanes",
+    "cargo +{stable,1.85.0} fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+    "cargo +{stable,1.85.0} test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets",
+    "cargo +{stable,1.85.0} test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features",
+    "cargo +{stable,1.85.0} clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings",
+    "RUSTDOCFLAGS='-D warnings' cargo +{stable,1.85.0} doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps",
+    "RUSTDOCFLAGS='-D warnings' cargo +{stable,1.85.0} test --locked --manifest-path partitionline-broker/Cargo.toml --doc",
+    "RUSTDOCFLAGS='-D warnings' cargo +{stable,1.85.0} test --locked --manifest-path partitionline-broker/Cargo.toml --doc --all-features",
+    "python3 -B scripts/check-broker-api-matrix.py --report target/broker-ci/api-matrix.json",
+    "python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v",
+    "python3 -B docs/evidence/broker/KL11-58/validate-evidence.py",
+    "GitHub connector GET commit workflow runs and broker run37057864310 jobs (independent hosted observation)",
+    "sha256sum --check SHA256SUMS from docs/evidence/broker/KL11-58"
+  ],
+  "validation_attribution": {
+    "workflow_yaml_inventory_negative_controls_and_hosted_observation": "/root/open_loop",
+    "final_rust_matrix": "/root/zstd_decision, KL11-35; exact-source finalized logs copied under rust-matrix and mapped to workflow commands",
+    "toolchain_equivalence": "Peer commands select cargo +stable/+1.85.0; workflow selects identical compilers using RUSTUP_TOOLCHAIN, with all remaining command arguments identical.",
+    "environment_difference": "Peer CARGO_BUILD_JOBS=1 versus workflow2; both disable incremental compilation, strict docs use -D warnings, and local CPU affinity is0-2,4. Package clean recorded before each peer lane."
+  },
+  "results": {
+    "events": ["main push", "pull_request", "workflow_dispatch"],
+    "yaml_syntax_and_workflow_contract": "passed",
+    "independent_excluded_crate_checked": true,
+    "dependency_graph": "broker Cargo.lock enforced by --locked for every build/test/lint/doc command",
+    "local_workflow_shell_executions_covered": 18,
+    "stable": {
+      "rustc": "1.99.0",
+      "default_feature_tests_passed": 42,
+      "all_feature_tests_passed": 57,
+      "test_failures": 0,
+      "format_strict_clippy_strict_rustdoc": "passed",
+      "strict_default_and_all_feature_doctest_builds": "passed",
+      "doctests_present": 0
+    },
+    "rust1.85.0": {
+      "default_feature_tests_passed": 42,
+      "all_feature_tests_passed": 57,
+      "test_failures": 0,
+      "format_strict_clippy_strict_rustdoc": "passed",
+      "strict_default_and_all_feature_doctest_builds": "passed",
+      "doctests_present": 0
+    },
+    "pinned_api_inventory": {
+      "releases": ["4.1.2", "4.2.1", "4.3.1"],
+      "assigned_api_keys_per_release": 93,
+      "verdict": "passed",
+      "implementation_claim": false,
+      "negative_tests_passed": 24,
+      "negative_tests_failed": 0,
+      "failed_verdict_retention_in_workflow": "always() upload-artifact step"
+    },
+    "hosted": {
+      "independently_observed": true,
+      "observed_at_utc": "2026-10-02 20:04:49 UTC",
+      "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+      "run_id": 37057864310,
+      "url": "https://github.com/mingley/partitionline/actions/runs/37057864310",
+      "status": "completed",
+      "conclusion": "success",
+      "successful_jobs": 3,
+      "every_shell_step_successful": true
+    },
+    "production_qualification": false
+  },
+  "retained_interrupted_attempts": [
+    {
+      "context": "Workflow worker initially began its own exact-source Rust matrix before coordinator requested shared finalized TLS-worker results to avoid duplicate builds and disk use.",
+      "completed": "API verifier and24negative tests, all Rust1.85.0 workflow steps, stable OpenSSL/fmt/default tests",
+      "interrupted": "stable all-feature compilation; only verified owned runner and descendants sent SIGTERM",
+      "raw_logs_and_stop_record": "docs/evidence/broker/KL11-58/preliminary/",
+      "disposition": "Interrupted command has no successful verdict; final completed Rust matrix uses explicitly attributed exact-source peer logs."
+    }
+  ],
+  "artifacts": [
+    ".github/workflows/broker.yml",
+    "docs/evidence/broker/KL11-58/README.md",
+    "docs/evidence/broker/KL11-58/broker.yml",
+    "docs/evidence/broker/KL11-58/source-hashes.json",
+    "docs/evidence/broker/KL11-58/workflow-contract.json",
+    "docs/evidence/broker/KL11-58/workflow-yaml-check.log",
+    "docs/evidence/broker/KL11-58/api-matrix-verification.json",
+    "docs/evidence/broker/KL11-58/api-inventory/",
+    "docs/evidence/broker/KL11-58/rust-matrix/",
+    "docs/evidence/broker/KL11-58/rust-matrix-attribution.json",
+    "docs/evidence/broker/KL11-58/command-coverage.json",
+    "docs/evidence/broker/KL11-58/validate-evidence.py",
+    "docs/evidence/broker/KL11-58/evidence-validation.json",
+    "docs/evidence/broker/KL11-58/hosted-run.json",
+    "docs/evidence/broker/KL11-58/preliminary/",
+    "docs/evidence/broker/KL11-58/SHA256SUMS"
+  ],
+  "limitations": [
+    "Continuous CI covers the implemented independent crate at the pinned source; it does not establish production qualification or unimplemented Kafka API support.",
+    "All-feature gates currently exercise the optional TLS feature; future features automatically enter the all-feature lane.",
+    "Both strict doctest builds pass, but the broker crate currently contains zero executable doctests.",
+    "Local source checks ran on a shared Linux host with Python3.12 and OpenSSL3.5.7; hosted inventory requests Python3.13. Exact local runtime versions and hosted step statuses are retained separately.",
+    "Direct gh hosted-status access was Forbidden; the GitHub connector GET succeeded and independently confirmed all three jobs. No hosted conclusion is inferred from local tests.",
+    "The inventory verifier and tests are owned by KL11-04; this card changes only its workflow and evidence."
+  ],
+  "blocked_reason": null
+}

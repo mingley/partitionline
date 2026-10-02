@@ -1,0 +1,675 @@
+{
+  "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+  "baseline_sha": "36bca0a94e5a87bf1c1c5fa122b5bf3cfe392233",
+  "platform": "x86_64-unknown-linux-gnu",
+  "default_has_no_tls_activation": true,
+  "baseline_default_package_versions_preserved": true,
+  "no_openssl_aws_lc_or_native_kafka_package": true,
+  "core_graph_inputs": {
+    "Cargo.toml": {
+      "baseline_sha256": "3c793ef93d218be93d187910e42bb9d53137708c5c324280b3159e3db082538a",
+      "source_sha256": "b07fc38a514ab0e14954ff1261701b6a878e35ae7d9b91b081a19e14704d3c13",
+      "bytes_unchanged": false,
+      "graph_sections_unchanged": [
+        "dependencies",
+        "dev-dependencies",
+        "build-dependencies",
+        "target",
+        "features",
+        "patch",
+        "replace",
+        "workspace"
+      ],
+      "non_graph_change": "An independently committed package include exclusion for /tests/conformance/broker/**; dependency/features sections unchanged."
+    },
+    "Cargo.lock": {
+      "baseline_sha256": "d35e6ba903c4f8b811997d06b9edf4e3612c3636dede83d07dda86570eddbca9",
+      "source_sha256": "d35e6ba903c4f8b811997d06b9edf4e3612c3636dede83d07dda86570eddbca9",
+      "unchanged": true
+    }
+  },
+  "graphs": {
+    "default": {
+      "command": [
+        "cargo",
+        "+stable",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--filter-platform",
+        "x86_64-unknown-linux-gnu",
+        "--no-default-features"
+      ],
+      "packages": [
+        {
+          "name": "bytes",
+          "version": "1.12.1",
+          "license": "MIT",
+          "rust_version": "1.57",
+          "checksum": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04",
+          "features": [
+            "default",
+            "std"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "crc32c",
+          "version": "0.6.8",
+          "license": "Apache-2.0/MIT",
+          "rust_version": null,
+          "checksum": "3a47af21622d091a8f0fb295b88bc886ac74efcc613efc19f5d0b21de5c89e47",
+          "features": [],
+          "dependencies": [
+            "rustc_version@0.4.1"
+          ]
+        },
+        {
+          "name": "libc",
+          "version": "0.2.189",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.65",
+          "checksum": "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2",
+          "features": [
+            "default",
+            "std"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "mio",
+          "version": "1.2.3",
+          "license": "MIT",
+          "rust_version": "1.71",
+          "checksum": "4b18443e9c262bfe8fa82f51666e2642c53393f7e5c27b3e1aeab922cff5b9d8",
+          "features": [
+            "net",
+            "os-ext",
+            "os-poll"
+          ],
+          "dependencies": [
+            "libc@0.2.189"
+          ]
+        },
+        {
+          "name": "partitionline-broker",
+          "version": "0.1.0",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.85",
+          "checksum": null,
+          "features": [],
+          "dependencies": [
+            "bytes@1.12.1",
+            "crc32c@0.6.8",
+            "tokio@1.53.1"
+          ]
+        },
+        {
+          "name": "pin-project-lite",
+          "version": "0.2.17",
+          "license": "Apache-2.0 OR MIT",
+          "rust_version": "1.37",
+          "checksum": "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd",
+          "features": [],
+          "dependencies": []
+        },
+        {
+          "name": "proc-macro2",
+          "version": "1.0.107",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.71",
+          "checksum": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9",
+          "features": [
+            "default",
+            "proc-macro"
+          ],
+          "dependencies": [
+            "unicode-ident@1.0.26"
+          ]
+        },
+        {
+          "name": "quote",
+          "version": "1.0.47",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.71",
+          "checksum": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001",
+          "features": [
+            "default",
+            "proc-macro"
+          ],
+          "dependencies": [
+            "proc-macro2@1.0.107"
+          ]
+        },
+        {
+          "name": "rustc_version",
+          "version": "0.4.1",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.32",
+          "checksum": "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92",
+          "features": [],
+          "dependencies": [
+            "semver@1.0.28"
+          ]
+        },
+        {
+          "name": "semver",
+          "version": "1.0.28",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.68",
+          "checksum": "8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd",
+          "features": [
+            "default",
+            "std"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "socket2",
+          "version": "0.6.5",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.70",
+          "checksum": "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4",
+          "features": [
+            "all"
+          ],
+          "dependencies": [
+            "libc@0.2.189"
+          ]
+        },
+        {
+          "name": "syn",
+          "version": "3.0.6",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.71",
+          "checksum": "8593e8e72159ed2257d083c7a454a85cbf854f37a0966d8d483aff8c8a3ebcee",
+          "features": [
+            "clone-impls",
+            "default",
+            "derive",
+            "full",
+            "parsing",
+            "printing",
+            "proc-macro"
+          ],
+          "dependencies": [
+            "proc-macro2@1.0.107",
+            "quote@1.0.47",
+            "unicode-ident@1.0.26"
+          ]
+        },
+        {
+          "name": "tokio",
+          "version": "1.53.1",
+          "license": "MIT",
+          "rust_version": "1.71",
+          "checksum": "202caea871b69668250d242070849eb495be178ed697a3e98aebce5bc81a0bed",
+          "features": [
+            "bytes",
+            "default",
+            "io-util",
+            "libc",
+            "macros",
+            "mio",
+            "net",
+            "rt",
+            "rt-multi-thread",
+            "socket2",
+            "sync",
+            "time",
+            "tokio-macros",
+            "windows-sys"
+          ],
+          "dependencies": [
+            "bytes@1.12.1",
+            "libc@0.2.189",
+            "mio@1.2.3",
+            "pin-project-lite@0.2.17",
+            "socket2@0.6.5",
+            "tokio-macros@2.7.2"
+          ]
+        },
+        {
+          "name": "tokio-macros",
+          "version": "2.7.2",
+          "license": "MIT",
+          "rust_version": "1.71",
+          "checksum": "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e",
+          "features": [],
+          "dependencies": [
+            "proc-macro2@1.0.107",
+            "quote@1.0.47",
+            "syn@3.0.6"
+          ]
+        },
+        {
+          "name": "unicode-ident",
+          "version": "1.0.26",
+          "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+          "rust_version": "1.71",
+          "checksum": "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954",
+          "features": [],
+          "dependencies": []
+        }
+      ]
+    },
+    "tls": {
+      "command": [
+        "cargo",
+        "+stable",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--filter-platform",
+        "x86_64-unknown-linux-gnu",
+        "--all-features"
+      ],
+      "packages": [
+        {
+          "name": "bytes",
+          "version": "1.12.1",
+          "license": "MIT",
+          "rust_version": "1.57",
+          "checksum": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04",
+          "features": [
+            "default",
+            "std"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "cc",
+          "version": "1.5.1",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.65.0",
+          "checksum": "f360145194ee8e21db5ee7f3fcd4fe52210864c75c985dae33218202c8bbe040",
+          "features": [],
+          "dependencies": [
+            "find-msvc-tools@0.1.14",
+            "shlex@2.0.1"
+          ]
+        },
+        {
+          "name": "cfg-if",
+          "version": "1.0.5",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.32",
+          "checksum": "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600",
+          "features": [],
+          "dependencies": []
+        },
+        {
+          "name": "crc32c",
+          "version": "0.6.8",
+          "license": "Apache-2.0/MIT",
+          "rust_version": null,
+          "checksum": "3a47af21622d091a8f0fb295b88bc886ac74efcc613efc19f5d0b21de5c89e47",
+          "features": [],
+          "dependencies": [
+            "rustc_version@0.4.1"
+          ]
+        },
+        {
+          "name": "find-msvc-tools",
+          "version": "0.1.14",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.65.0",
+          "checksum": "aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484",
+          "features": [],
+          "dependencies": []
+        },
+        {
+          "name": "getrandom",
+          "version": "0.2.17",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": null,
+          "checksum": "ff2abc00be7fca6ebc474524697ae276ad847ad0a6b3faa4bcb027e9a4614ad0",
+          "features": [],
+          "dependencies": [
+            "cfg-if@1.0.5",
+            "libc@0.2.189"
+          ]
+        },
+        {
+          "name": "libc",
+          "version": "0.2.189",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.65",
+          "checksum": "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2",
+          "features": [
+            "default",
+            "std"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "mio",
+          "version": "1.2.3",
+          "license": "MIT",
+          "rust_version": "1.71",
+          "checksum": "4b18443e9c262bfe8fa82f51666e2642c53393f7e5c27b3e1aeab922cff5b9d8",
+          "features": [
+            "net",
+            "os-ext",
+            "os-poll"
+          ],
+          "dependencies": [
+            "libc@0.2.189"
+          ]
+        },
+        {
+          "name": "once_cell",
+          "version": "1.21.4",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.65",
+          "checksum": "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50",
+          "features": [
+            "alloc",
+            "race",
+            "std"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "partitionline-broker",
+          "version": "0.1.0",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.85",
+          "checksum": null,
+          "features": [
+            "default",
+            "tls"
+          ],
+          "dependencies": [
+            "bytes@1.12.1",
+            "crc32c@0.6.8",
+            "rustls@0.23.45",
+            "tokio-rustls@0.26.6",
+            "tokio@1.53.1"
+          ]
+        },
+        {
+          "name": "pin-project-lite",
+          "version": "0.2.17",
+          "license": "Apache-2.0 OR MIT",
+          "rust_version": "1.37",
+          "checksum": "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd",
+          "features": [],
+          "dependencies": []
+        },
+        {
+          "name": "proc-macro2",
+          "version": "1.0.107",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.71",
+          "checksum": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9",
+          "features": [
+            "default",
+            "proc-macro"
+          ],
+          "dependencies": [
+            "unicode-ident@1.0.26"
+          ]
+        },
+        {
+          "name": "quote",
+          "version": "1.0.47",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.71",
+          "checksum": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001",
+          "features": [
+            "default",
+            "proc-macro"
+          ],
+          "dependencies": [
+            "proc-macro2@1.0.107"
+          ]
+        },
+        {
+          "name": "ring",
+          "version": "0.17.14",
+          "license": "Apache-2.0 AND ISC",
+          "rust_version": "1.66.0",
+          "checksum": "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7",
+          "features": [
+            "alloc",
+            "default",
+            "dev_urandom_fallback"
+          ],
+          "dependencies": [
+            "cc@1.5.1",
+            "cfg-if@1.0.5",
+            "getrandom@0.2.17",
+            "untrusted@0.9.0"
+          ]
+        },
+        {
+          "name": "rustc_version",
+          "version": "0.4.1",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.32",
+          "checksum": "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92",
+          "features": [],
+          "dependencies": [
+            "semver@1.0.28"
+          ]
+        },
+        {
+          "name": "rustls",
+          "version": "0.23.45",
+          "license": "Apache-2.0 OR ISC OR MIT",
+          "rust_version": "1.71",
+          "checksum": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634",
+          "features": [
+            "ring",
+            "std",
+            "tls12"
+          ],
+          "dependencies": [
+            "once_cell@1.21.4",
+            "ring@0.17.14",
+            "rustls-pki-types@1.15.1",
+            "rustls-webpki@0.103.15",
+            "subtle@2.6.1",
+            "zeroize@1.9.0"
+          ]
+        },
+        {
+          "name": "rustls-pki-types",
+          "version": "1.15.1",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.60",
+          "checksum": "2f4925028c7eb5d1fcdaf196971378ed9d2c1c4efc7dc5d011256f76c99c0a96",
+          "features": [
+            "alloc",
+            "default",
+            "std"
+          ],
+          "dependencies": [
+            "zeroize@1.9.0"
+          ]
+        },
+        {
+          "name": "rustls-webpki",
+          "version": "0.103.15",
+          "license": "ISC",
+          "rust_version": "1.71",
+          "checksum": "f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2",
+          "features": [
+            "alloc",
+            "ring",
+            "std"
+          ],
+          "dependencies": [
+            "ring@0.17.14",
+            "rustls-pki-types@1.15.1",
+            "untrusted@0.9.0"
+          ]
+        },
+        {
+          "name": "semver",
+          "version": "1.0.28",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.68",
+          "checksum": "8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd",
+          "features": [
+            "default",
+            "std"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "shlex",
+          "version": "2.0.1",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.46.0",
+          "checksum": "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba",
+          "features": [
+            "default",
+            "std"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "socket2",
+          "version": "0.6.5",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.70",
+          "checksum": "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4",
+          "features": [
+            "all"
+          ],
+          "dependencies": [
+            "libc@0.2.189"
+          ]
+        },
+        {
+          "name": "subtle",
+          "version": "2.6.1",
+          "license": "BSD-3-Clause",
+          "rust_version": null,
+          "checksum": "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292",
+          "features": [],
+          "dependencies": []
+        },
+        {
+          "name": "syn",
+          "version": "3.0.6",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.71",
+          "checksum": "8593e8e72159ed2257d083c7a454a85cbf854f37a0966d8d483aff8c8a3ebcee",
+          "features": [
+            "clone-impls",
+            "default",
+            "derive",
+            "full",
+            "parsing",
+            "printing",
+            "proc-macro"
+          ],
+          "dependencies": [
+            "proc-macro2@1.0.107",
+            "quote@1.0.47",
+            "unicode-ident@1.0.26"
+          ]
+        },
+        {
+          "name": "tokio",
+          "version": "1.53.1",
+          "license": "MIT",
+          "rust_version": "1.71",
+          "checksum": "202caea871b69668250d242070849eb495be178ed697a3e98aebce5bc81a0bed",
+          "features": [
+            "bytes",
+            "default",
+            "io-util",
+            "libc",
+            "macros",
+            "mio",
+            "net",
+            "rt",
+            "rt-multi-thread",
+            "socket2",
+            "sync",
+            "time",
+            "tokio-macros",
+            "windows-sys"
+          ],
+          "dependencies": [
+            "bytes@1.12.1",
+            "libc@0.2.189",
+            "mio@1.2.3",
+            "pin-project-lite@0.2.17",
+            "socket2@0.6.5",
+            "tokio-macros@2.7.2"
+          ]
+        },
+        {
+          "name": "tokio-macros",
+          "version": "2.7.2",
+          "license": "MIT",
+          "rust_version": "1.71",
+          "checksum": "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e",
+          "features": [],
+          "dependencies": [
+            "proc-macro2@1.0.107",
+            "quote@1.0.47",
+            "syn@3.0.6"
+          ]
+        },
+        {
+          "name": "tokio-rustls",
+          "version": "0.26.6",
+          "license": "MIT OR Apache-2.0",
+          "rust_version": "1.71",
+          "checksum": "c9cc2678c2cdd569ef8215e2afd7954ada2ae20b4fdd2c5fe6139a3b02d105db",
+          "features": [
+            "ring",
+            "tls12"
+          ],
+          "dependencies": [
+            "rustls@0.23.45",
+            "tokio@1.53.1"
+          ]
+        },
+        {
+          "name": "unicode-ident",
+          "version": "1.0.26",
+          "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+          "rust_version": "1.71",
+          "checksum": "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954",
+          "features": [],
+          "dependencies": []
+        },
+        {
+          "name": "untrusted",
+          "version": "0.9.0",
+          "license": "ISC",
+          "rust_version": null,
+          "checksum": "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1",
+          "features": [],
+          "dependencies": []
+        },
+        {
+          "name": "zeroize",
+          "version": "1.9.0",
+          "license": "Apache-2.0 OR MIT",
+          "rust_version": "1.85",
+          "checksum": "e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e",
+          "features": [
+            "alloc",
+            "default"
+          ],
+          "dependencies": []
+        }
+      ]
+    }
+  },
+  "limits": "Activated normal/build graph for the retained Linux target. Ring uses its approved bundled native cryptography and cc build tool; this is not a claim of an entirely pure-Rust cryptographic graph."
+}

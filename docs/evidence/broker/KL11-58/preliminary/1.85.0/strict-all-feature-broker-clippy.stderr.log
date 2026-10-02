@@ -1,0 +1,20 @@
+    Checking libc v0.2.189
+    Checking cfg-if v1.0.5
+    Checking zeroize v1.9.0
+    Checking untrusted v0.9.0
+    Checking rustls-pki-types v1.15.1
+    Checking pin-project-lite v0.2.17
+    Checking bytes v1.12.1
+    Checking once_cell v1.21.4
+    Checking subtle v2.6.1
+    Checking crc32c v0.6.8
+    Checking getrandom v0.2.17
+    Checking mio v1.2.3
+    Checking ring v0.17.14
+    Checking socket2 v0.6.5
+    Checking tokio v1.53.1
+    Checking rustls-webpki v0.103.15
+    Checking rustls v0.23.45
+    Checking tokio-rustls v0.26.6
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-ci/snapshots/39bd19a2f824a2c25b847eecfd3b3484aa5ca338/source/partitionline-broker)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.60s

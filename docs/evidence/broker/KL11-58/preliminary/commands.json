@@ -1,0 +1,132 @@
+[
+  {
+    "lane": "api-inventory",
+    "step": "Verify retained pinned Apache API inventory",
+    "command": "python3 -B scripts/check-broker-api-matrix.py --report target/broker-ci/api-matrix.json",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:01:28.989801+00:00",
+    "seconds": 0.321,
+    "stdout": "api-inventory/verify-retained-pinned-apache-api-inventory.stdout.log",
+    "stderr": "api-inventory/verify-retained-pinned-apache-api-inventory.stderr.log"
+  },
+  {
+    "lane": "api-inventory",
+    "step": "Reject corrupted pins, inventories and unsupported claims",
+    "command": "python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:01:29.311445+00:00",
+    "seconds": 3.378,
+    "stdout": "api-inventory/reject-corrupted-pins-inventories-and-unsupported-claims.stdout.log",
+    "stderr": "api-inventory/reject-corrupted-pins-inventories-and-unsupported-claims.stderr.log"
+  },
+  {
+    "lane": "1.85.0",
+    "step": "Independent TLS peer prerequisite",
+    "command": "openssl version",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:01:32.690108+00:00",
+    "seconds": 0.008,
+    "stdout": "1.85.0/independent-tls-peer-prerequisite.stdout.log",
+    "stderr": "1.85.0/independent-tls-peer-prerequisite.stderr.log"
+  },
+  {
+    "lane": "1.85.0",
+    "step": "Broker format",
+    "command": "cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:01:32.698543+00:00",
+    "seconds": 0.114,
+    "stdout": "1.85.0/broker-format.stdout.log",
+    "stderr": "1.85.0/broker-format.stderr.log"
+  },
+  {
+    "lane": "1.85.0",
+    "step": "Locked default-feature behavioral tests",
+    "command": "cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:01:32.813204+00:00",
+    "seconds": 10.058,
+    "stdout": "1.85.0/locked-default-feature-behavioral-tests.stdout.log",
+    "stderr": "1.85.0/locked-default-feature-behavioral-tests.stderr.log"
+  },
+  {
+    "lane": "1.85.0",
+    "step": "Locked all-feature behavioral tests",
+    "command": "cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:01:42.871612+00:00",
+    "seconds": 13.783,
+    "stdout": "1.85.0/locked-all-feature-behavioral-tests.stdout.log",
+    "stderr": "1.85.0/locked-all-feature-behavioral-tests.stderr.log"
+  },
+  {
+    "lane": "1.85.0",
+    "step": "Strict all-feature broker Clippy",
+    "command": "cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:01:56.655118+00:00",
+    "seconds": 4.639,
+    "stdout": "1.85.0/strict-all-feature-broker-clippy.stdout.log",
+    "stderr": "1.85.0/strict-all-feature-broker-clippy.stderr.log"
+  },
+  {
+    "lane": "1.85.0",
+    "step": "Strict all-feature broker Rustdoc",
+    "command": "cargo doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:02:01.294752+00:00",
+    "seconds": 0.619,
+    "stdout": "1.85.0/strict-all-feature-broker-rustdoc.stdout.log",
+    "stderr": "1.85.0/strict-all-feature-broker-rustdoc.stderr.log"
+  },
+  {
+    "lane": "1.85.0",
+    "step": "Strict default-feature broker doctests",
+    "command": "cargo test --locked --manifest-path partitionline-broker/Cargo.toml --doc",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:02:01.914604+00:00",
+    "seconds": 0.118,
+    "stdout": "1.85.0/strict-default-feature-broker-doctests.stdout.log",
+    "stderr": "1.85.0/strict-default-feature-broker-doctests.stderr.log"
+  },
+  {
+    "lane": "1.85.0",
+    "step": "Strict all-feature broker doctests",
+    "command": "cargo test --locked --manifest-path partitionline-broker/Cargo.toml --doc --all-features",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:02:02.033486+00:00",
+    "seconds": 0.148,
+    "stdout": "1.85.0/strict-all-feature-broker-doctests.stdout.log",
+    "stderr": "1.85.0/strict-all-feature-broker-doctests.stderr.log"
+  },
+  {
+    "lane": "stable",
+    "step": "Independent TLS peer prerequisite",
+    "command": "openssl version",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:02:02.181799+00:00",
+    "seconds": 0.016,
+    "stdout": "stable/independent-tls-peer-prerequisite.stdout.log",
+    "stderr": "stable/independent-tls-peer-prerequisite.stderr.log"
+  },
+  {
+    "lane": "stable",
+    "step": "Broker format",
+    "command": "cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:02:02.198590+00:00",
+    "seconds": 0.116,
+    "stdout": "stable/broker-format.stdout.log",
+    "stderr": "stable/broker-format.stderr.log"
+  },
+  {
+    "lane": "stable",
+    "step": "Locked default-feature behavioral tests",
+    "command": "cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets",
+    "exit_code": 0,
+    "started_at_utc": "2026-10-02T20:02:02.314962+00:00",
+    "seconds": 9.757,
+    "stdout": "stable/locked-default-feature-behavioral-tests.stdout.log",
+    "stderr": "stable/locked-default-feature-behavioral-tests.stderr.log"
+  }
+]

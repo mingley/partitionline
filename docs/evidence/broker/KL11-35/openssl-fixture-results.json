@@ -1,0 +1,143 @@
+{
+  "openssl": "OpenSSL 3.5.7 9 Jun 2026 (Library: OpenSSL 3.5.7 9 Jun 2026)",
+  "sha256_checked": 42,
+  "cases": [
+    {
+      "name": "valid-server",
+      "expected_valid": true,
+      "command": [
+        "openssl",
+        "verify",
+        "-CAfile",
+        "ca1.cert.pem",
+        "-purpose",
+        "sslserver",
+        "-verify_hostname",
+        "localhost",
+        "server1.cert.pem"
+      ],
+      "exit_code": 0,
+      "agrees": true,
+      "output": "server1.cert.pem: OK\n"
+    },
+    {
+      "name": "valid-client",
+      "expected_valid": true,
+      "command": [
+        "openssl",
+        "verify",
+        "-CAfile",
+        "ca1.cert.pem",
+        "-purpose",
+        "sslclient",
+        "client1.cert.pem"
+      ],
+      "exit_code": 0,
+      "agrees": true,
+      "output": "client1.cert.pem: OK\n"
+    },
+    {
+      "name": "valid-intermediate-chain",
+      "expected_valid": true,
+      "command": [
+        "openssl",
+        "verify",
+        "-CAfile",
+        "ca1.cert.pem",
+        "-purpose",
+        "sslclient",
+        "-untrusted",
+        "intermediate.cert.pem",
+        "client-chain.cert.pem"
+      ],
+      "exit_code": 0,
+      "agrees": true,
+      "output": "client-chain.cert.pem: OK\n"
+    },
+    {
+      "name": "untrusted-client",
+      "expected_valid": false,
+      "command": [
+        "openssl",
+        "verify",
+        "-CAfile",
+        "ca1.cert.pem",
+        "-purpose",
+        "sslclient",
+        "client2.cert.pem"
+      ],
+      "exit_code": 2,
+      "agrees": true,
+      "output": "CN=KL11-public-test-client2\nerror 20 at 0 depth lookup: unable to get local issuer certificate\nerror client2.cert.pem: verification failed\n"
+    },
+    {
+      "name": "expired-client",
+      "expected_valid": false,
+      "command": [
+        "openssl",
+        "verify",
+        "-CAfile",
+        "ca1.cert.pem",
+        "-purpose",
+        "sslclient",
+        "client-expired.cert.pem"
+      ],
+      "exit_code": 2,
+      "agrees": true,
+      "output": "CN=KL11-public-test-client-expired\nerror 10 at 0 depth lookup: certificate has expired\nerror client-expired.cert.pem: verification failed\n"
+    },
+    {
+      "name": "wrong-client-purpose",
+      "expected_valid": false,
+      "command": [
+        "openssl",
+        "verify",
+        "-CAfile",
+        "ca1.cert.pem",
+        "-purpose",
+        "sslclient",
+        "client-wrong-purpose.cert.pem"
+      ],
+      "exit_code": 2,
+      "agrees": true,
+      "output": "CN=KL11-public-test-client-wrong-purpose\nerror 26 at 0 depth lookup: unsuitable certificate purpose\nerror client-wrong-purpose.cert.pem: verification failed\n"
+    },
+    {
+      "name": "wrong-server-name",
+      "expected_valid": false,
+      "command": [
+        "openssl",
+        "verify",
+        "-CAfile",
+        "ca1.cert.pem",
+        "-purpose",
+        "sslserver",
+        "-verify_hostname",
+        "localhost",
+        "server-wrong-name.cert.pem"
+      ],
+      "exit_code": 2,
+      "agrees": true,
+      "output": "CN=KL11-public-test-server-wrong-name\nerror 62 at 0 depth lookup: hostname mismatch\nerror server-wrong-name.cert.pem: verification failed\n"
+    },
+    {
+      "name": "expired-server",
+      "expected_valid": false,
+      "command": [
+        "openssl",
+        "verify",
+        "-CAfile",
+        "ca1.cert.pem",
+        "-purpose",
+        "sslserver",
+        "-verify_hostname",
+        "localhost",
+        "server-expired.cert.pem"
+      ],
+      "exit_code": 2,
+      "agrees": true,
+      "output": "CN=KL11-public-test-server-expired\nerror 10 at 0 depth lookup: certificate has expired\nerror server-expired.cert.pem: verification failed\n"
+    }
+  ],
+  "passed": true
+}

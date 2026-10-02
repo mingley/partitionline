@@ -1,0 +1,11 @@
+{
+  "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+  "executing_agent": "/root/zstd_decision",
+  "card": "KL11-35",
+  "source_directory": "docs/evidence/broker/KL11-35",
+  "reused_by": "KL11-58",
+  "coordinator_requested_reuse": true,
+  "copy_method": "Frozen structured results and corresponding full logs copied byte-for-byte",
+  "toolchain_selection": "Peer commands use cargo +TOOLCHAIN; workflow uses RUSTUP_TOOLCHAIN with identical remaining arguments",
+  "environment_difference": "Peer CARGO_BUILD_JOBS=1; workflow requests2. Both use CARGO_INCREMENTAL=0 and strict RUSTDOCFLAGS; CPU0-2,4 locally. Package clean was recorded before each peer lane."
+}

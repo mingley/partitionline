@@ -1,0 +1,5 @@
+check-workflows: ok .github/workflows/broker.yml
+check-workflows: ok .github/workflows/ci.yml
+check-workflows: ok .github/workflows/first-publish.yml
+check-workflows: ok .github/workflows/release-plz.yml
+check-workflows: ok .github/workflows/release.yml

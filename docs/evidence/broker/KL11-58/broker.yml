@@ -1,0 +1,89 @@
+name: broker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: broker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# The broker is excluded from the published client workspace. These explicit
+# manifest checks exercise that independent crate; passing CI is not production
+# qualification or permission to advertise unimplemented Kafka APIs.
+jobs:
+  broker:
+    name: broker (${{ matrix.rust }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ['1.85.0', stable]
+    defaults:
+      run:
+        shell: bash
+    env:
+      RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
+      CARGO_TARGET_DIR: target/broker-ci/${{ matrix.rust }}
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: rustfmt, clippy
+      - name: Independent TLS peer prerequisite
+        run: openssl version
+      - name: Broker format
+        run: cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+      - name: Locked default-feature behavioral tests
+        run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets
+      - name: Locked all-feature behavioral tests
+        run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features
+      - name: Strict all-feature broker Clippy
+        run: cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Strict all-feature broker Rustdoc
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps
+      - name: Strict default-feature broker doctests
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --doc
+      - name: Strict all-feature broker doctests
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --doc --all-features
+
+  api-inventory:
+    name: pinned Apache API inventory and negative controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Verify retained pinned Apache API inventory
+        run: python3 -B scripts/check-broker-api-matrix.py --report target/broker-ci/api-matrix.json
+      - name: Reject corrupted pins, inventories and unsupported claims
+        run: python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v
+      - name: Retain upstream inventory verdict, including failures
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: broker-api-inventory-${{ github.sha }}
+          path: target/broker-ci/api-matrix.json
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,84 @@
+{
+  "task": "KL11-35",
+  "scope": "Developmental candidates, not counted as final pinned-source validation",
+  "events": [
+    {
+      "context": "Isolated scratch crate with approved optional dependency proposal",
+      "command": "cargo +stable test --offline --manifest-path <scratch>/Cargo.toml --all-features --test tls",
+      "exit_code": 101,
+      "result": "Test compile E0308: plaintext helper passed &Result<Vec<u8>, Box<Error>> to write_all instead of &[u8].",
+      "resolution": "Added the missing ? to the framed test helper. Production TLS/transport already compiled."
+    },
+    {
+      "context": "Same scratch candidate",
+      "command": "cargo +stable test --offline --locked --manifest-path <scratch>/Cargo.toml --all-features --test tls",
+      "exit_code": 101,
+      "passed_tests": 13,
+      "failed_tests": 2,
+      "result": "plaintext_never_falls_back_on_tls_listener and oversized_tls_record_and_handshake_lengths_fail_closed assumed raw TCP rejection emitted no bytes; Rustls correctly emitted fatal TLS alerts before closure.",
+      "resolution": "Drain at most 256 alert bytes under one absolute 2s test deadline before checking EOF; independent handler-observation assertions still require zero application dispatch. No production fallback was present."
+    },
+    {
+      "context": "Corrected scratch test helper",
+      "command": "cargo +stable test --offline --locked --manifest-path <scratch>/Cargo.toml --all-features --test tls",
+      "exit_code": 0,
+      "passed_tests": 15,
+      "failed_tests": 0
+    },
+    {
+      "context": "Scratch all-target strict lint",
+      "command": "cargo +stable clippy --offline --locked --manifest-path <scratch>/Cargo.toml --all-features --all-targets -- -D warnings",
+      "exit_code": 101,
+      "result": "clippy::needless_question_mark on independent OpenSSL helper Ok(spawn_blocking(...).await??).",
+      "resolution": "Return spawn_blocking(...).await? directly."
+    },
+    {
+      "context": "Shared candidate before root restored existing libc lock pin",
+      "command": "cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features",
+      "exit_code": 0,
+      "passed_tests": 57,
+      "failed_tests": 0,
+      "dependency_difference": "Temporary regenerated lock selected libc 0.2.190; final committed source preserves libc 0.2.189."
+    },
+    {
+      "context": "Shared candidate",
+      "command": "cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-features --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "context": "Shared candidate default features",
+      "command": "cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml",
+      "exit_code": 0,
+      "passed_tests": 42,
+      "failed_tests": 0
+    },
+    {
+      "context": "Strengthened invalid-rotation check using a fresh post-failure connection",
+      "command": "cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --test tls",
+      "exit_code": 0,
+      "passed_tests": 15,
+      "failed_tests": 0
+    },
+    {
+      "context": "Shared all-target lint during parallel protocol implementation",
+      "command": "cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-features --all-targets -- -D warnings",
+      "exit_code": 101,
+      "result": "Sibling uncommitted tests/protocol.rs referenced protocol before its module export, causing unresolved import and cascading inference errors.",
+      "resolution": "Focused lib+TLS+transport lint passed. Final full gates use the committed Git archive, excluding unrelated uncommitted protocol work."
+    },
+    {
+      "context": "Frozen owned candidate",
+      "command": "cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-features --lib --test tls --test transport -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "context": "First dependency-proof helper",
+      "command": "python3 docs/evidence/broker/KL11-35/dependency-proof.py --source-sha 39bd19a2f824a2c25b847eecfd3b3484aa5ca338 --snapshot-dir <snapshot>",
+      "exit_code": 1,
+      "result": "Asserted complete core Cargo.toml byte equality against claim base; an independent package include exclusion had changed metadata.",
+      "resolution": "Compare dependency, feature, target, workspace and patch sections exactly, retain both full file hashes and the packaging-only difference. Core Cargo.lock remains byte-identical. Final proof passes."
+    }
+  ],
+  "final_source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+  "final_validation": "See stable-results.json and 1.85.0-results.json: both complete matrices pass; no final failures."
+}

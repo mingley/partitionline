@@ -1,0 +1,20 @@
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.14
+   Compiling cc v1.5.1
+   Compiling cfg-if v1.0.5
+   Compiling getrandom v0.2.17
+   Compiling zeroize v1.9.0
+   Compiling untrusted v0.9.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling rustls v0.23.45
+   Compiling once_cell v1.21.4
+   Compiling subtle v2.6.1
+   Compiling ring v0.17.14
+   Compiling rustls-webpki v0.103.15
+   Compiling tokio-rustls v0.26.6
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-ci/snapshots/39bd19a2f824a2c25b847eecfd3b3484aa5ca338/source/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.86s
+     Running unittests src/lib.rs (target/broker-ci/1.85.0/debug/deps/partitionline_broker-5b70752211803b60)
+     Running tests/journal.rs (target/broker-ci/1.85.0/debug/deps/journal-7c755c95dc261c4f)
+     Running tests/tls.rs (target/broker-ci/1.85.0/debug/deps/tls-36f0a42c542430f1)
+     Running tests/transport.rs (target/broker-ci/1.85.0/debug/deps/transport-f67a3bf8e16b37fd)
