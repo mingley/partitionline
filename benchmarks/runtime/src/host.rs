@@ -25,7 +25,7 @@ pub struct HostInfo {
     pub cpu_model: String,
     /// Physical cores (unique core ids where topology exists, else logical).
     pub physical_cores: u64,
-    /// Logical cores.
+    /// Online logical CPUs, independent of this process's affinity or quota.
     pub logical_cores: u64,
     /// Nominal MHz.
     pub frequency_mhz: f64,
@@ -60,7 +60,12 @@ pub fn probe() -> Result<HostInfo, String> {
             cstr_to_string(&u.version),
         )
     };
-    let logical_cores = std::thread::available_parallelism().map_or(1, |n| n.get() as u64);
+    let online_cpus = unsafe { libc::sysconf(libc::_SC_NPROCESSORS_ONLN) };
+    let logical_cores = if online_cpus > 0 {
+        online_cpus as u64
+    } else {
+        std::thread::available_parallelism().map_or(1, |n| n.get() as u64)
+    };
     #[cfg(target_os = "macos")]
     let (cpu_model, physical_cores, frequency_mhz, memory_total_bytes) = macos_cpu_mem()?;
     #[cfg(target_os = "linux")]

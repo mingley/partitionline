@@ -135,7 +135,7 @@ fn linux_rss_now() -> u64 {
         if b.is_ascii_whitespace() {
             if in_number {
                 field += 1;
-                if field == 1 {
+                if field == 2 {
                     break;
                 }
                 in_number = false;
