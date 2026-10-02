@@ -31,7 +31,9 @@ use runtime::measure::{cpu_now, peak_rss_bytes, rss_now, RssSampler};
 static ALLOC: CountingAlloc = CountingAlloc;
 
 fn usage() -> ! {
-    eprintln!("usage: runtime --cell <id|all> --out <dir> [--repetitions <n>]");
+    eprintln!(
+        "usage: runtime --cell <id|all> --out <dir> [--repetitions <n>] [--connect-stalled-first]"
+    );
     std::process::exit(2);
 }
 
@@ -830,6 +832,7 @@ fn open_sockets() -> (u64, &'static str) {
 struct ConnectCase {
     partitions: i32,
     dead_first: bool,
+    stalled_first: bool,
 }
 
 fn run_connect(
@@ -839,36 +842,66 @@ fn run_connect(
     out_dir: &Path,
     repo_root: &Path,
     harness_exe: &Path,
+    include_stalled: bool,
 ) -> Result<(PathBuf, bool), String> {
     const CELL_ID: &str = "nb-connect";
     const SEED: u64 = 0xC0DE_0001;
     let tag = format!("{CELL_ID}-rep{repetition}");
-    let cases = [
+    let mut cases = vec![
         ConnectCase {
             partitions: 1,
             dead_first: false,
+            stalled_first: false,
         },
         ConnectCase {
             partitions: 1,
             dead_first: true,
+            stalled_first: false,
         },
         ConnectCase {
             partitions: 6,
             dead_first: false,
+            stalled_first: false,
         },
         ConnectCase {
             partitions: 6,
             dead_first: true,
+            stalled_first: false,
         },
         ConnectCase {
             partitions: 64,
             dead_first: false,
+            stalled_first: false,
         },
         ConnectCase {
             partitions: 64,
             dead_first: true,
+            stalled_first: false,
         },
     ];
+    const STALLED_CONNECT_TIMEOUT: Duration = Duration::from_millis(200);
+    if include_stalled {
+        cases.extend([1, 6, 64].map(|partitions| ConnectCase {
+            partitions,
+            dead_first: true,
+            stalled_first: true,
+        }));
+    }
+    // Fixture construction and the actual pending-TCP verification are outside
+    // the measured phase. Keep all fixtures alive across every matrix case so
+    // their sockets contribute equally to each open-socket observation.
+    let stalled = if include_stalled {
+        let mut fixtures = Vec::with_capacity(3);
+        for _ in 0..3 {
+            fixtures.push(
+                rt.block_on(runtime::stalled_dial::StalledDial::new())
+                    .map_err(|e| format!("stalled TCP fixture unavailable: {e}"))?,
+            );
+        }
+        fixtures
+    } else {
+        Vec::new()
+    };
     // Spawn all brokers up front (outside the census); each case gets
     // a fresh partition layout.
     let mut brokers = Vec::with_capacity(cases.len());
@@ -886,17 +919,35 @@ fn run_connect(
     let phase = measured_phase(|| {
         for (i, case) in cases.iter().enumerate() {
             let mut bootstrap = brokers[i].endpoints.clone();
-            if case.dead_first {
+            let fixture = if case.stalled_first {
+                stalled.get(i - 6)
+            } else {
+                None
+            };
+            if case.stalled_first && fixture.is_none() {
+                outcome
+                    .errors
+                    .push("missing verified stalled TCP fixture".to_owned());
+                break;
+            }
+            if let Some(fixture) = fixture {
+                bootstrap.insert(0, fixture.addr().to_string());
+            } else if case.dead_first {
                 // Refused-fast stand-in for an unreachable host.
                 bootstrap.insert(0, "127.0.0.1:1".to_owned());
             }
             let start = Instant::now();
             let acked = (|| -> Result<i64, String> {
                 let producer = rt
-                    .block_on(Producer::new(
-                        ProducerConfig::bootstrap(bootstrap.iter().cloned())
-                            .client_id(format!("runtime-{CELL_ID}-c{i}")),
-                    ))
+                    .block_on(Producer::new({
+                        let cfg = ProducerConfig::bootstrap(bootstrap.iter().cloned())
+                            .client_id(format!("runtime-{CELL_ID}-c{i}"));
+                        if case.stalled_first {
+                            cfg.connect_timeout(STALLED_CONNECT_TIMEOUT)
+                        } else {
+                            cfg
+                        }
+                    }))
                     .map_err(|e| format!("connect: {e}"))?;
                 let mut rec = partitionline::producer::ProduceRecord::to("nb-connect");
                 rec.partition = Some(0);
@@ -928,6 +979,9 @@ fn run_connect(
             case_rows.push(serde_json::json!({
                 "partitions": case.partitions,
                 "dead_bootstrap_first": case.dead_first,
+                "bootstrap_kind": if case.stalled_first { "stalled_tcp" } else if case.dead_first { "refused" } else { "live" },
+                "connect_timeout_ms": if case.stalled_first { STALLED_CONNECT_TIMEOUT.as_millis() } else { ProducerConfig::default().connect_timeout.as_millis() },
+                "verified_tcp_stall_us": fixture.map(|f| f.verified_stall().as_micros()),
                 "first_ack_us": elapsed_us,
                 "open_sockets": sockets,
                 "ok": ok,
@@ -985,6 +1039,9 @@ fn run_connect(
             "idempotence": false,
             "cases": "1/6/64 partitions x live-first/dead-first bootstrap",
             "dead_host": "127.0.0.1:1 (refused-fast unreachable stand-in)",
+            "connect_stalled_first": include_stalled,
+            "stalled_connect_timeout_ms": STALLED_CONNECT_TIMEOUT.as_millis(),
+            "stalled_host": "loopback listen(1), two held unaccepted connections; verified pending TCP connect before census",
         }),
         equal_semantics: serde_json::json!({"acks": 1}),
         drive_mode: "connect-first-ack".to_owned(),
@@ -1019,6 +1076,7 @@ fn main() {
     let mut cell_filter: Option<String> = None;
     let mut out_dir: Option<PathBuf> = None;
     let mut repetitions: u32 = 1;
+    let mut connect_stalled_first = false;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -1031,10 +1089,14 @@ fn main() {
                     .parse()
                     .unwrap_or_else(|_| usage());
             }
+            "--connect-stalled-first" => connect_stalled_first = true,
             _ => usage(),
         }
     }
     let cell_filter = cell_filter.unwrap_or_else(|| usage());
+    if connect_stalled_first && cell_filter != "nb-connect" && cell_filter != "all" {
+        usage();
+    }
     let out_dir = out_dir.unwrap_or_else(|| usage());
     if repetitions == 0 {
         usage();
@@ -1146,9 +1208,15 @@ fn main() {
                     &repo_root,
                     &harness_exe,
                 ),
-                Job::Connect => {
-                    run_connect(&rt, &nb_serve, rep, &out_dir, &repo_root, &harness_exe)
-                }
+                Job::Connect => run_connect(
+                    &rt,
+                    &nb_serve,
+                    rep,
+                    &out_dir,
+                    &repo_root,
+                    &harness_exe,
+                    connect_stalled_first,
+                ),
             };
             match outcome {
                 Ok((path, failed)) => {

@@ -12,3 +12,4 @@ pub mod fcells;
 pub mod fdrive;
 pub mod host;
 pub mod measure;
+pub mod stalled_dial;

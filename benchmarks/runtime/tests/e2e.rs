@@ -10,6 +10,10 @@ use std::path::PathBuf;
 use std::process::Command;
 
 fn run_cell(cell: &str) -> (serde_json::Value, PathBuf) {
+    run_cell_with_args(cell, &[])
+}
+
+fn run_cell_with_args(cell: &str, extra: &[&str]) -> (serde_json::Value, PathBuf) {
     let runtime_bin = PathBuf::from(env!("CARGO_BIN_EXE_runtime"));
     let nb_serve_bin = PathBuf::from(env!("CARGO_BIN_EXE_nb-serve"));
     assert!(runtime_bin.is_file());
@@ -34,6 +38,7 @@ fn run_cell(cell: &str) -> (serde_json::Value, PathBuf) {
             "--repetitions",
             "1",
         ])
+        .args(extra)
         .env("NB_SERVE", &nb_serve_bin)
         .status()
         .expect("spawn runtime");
@@ -123,5 +128,28 @@ fn connect_matrix_reports_six_cases() {
     }
     // Six broker artifacts plus the latency sidecar.
     assert_eq!(doc["provenance"]["artifacts"].as_array().unwrap().len(), 7);
+    let _ = std::fs::remove_dir_all(&out_dir);
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn connect_matrix_verifies_stalled_tcp_cases() {
+    let (doc, out_dir) = run_cell_with_args("nb-connect", &["--connect-stalled-first"]);
+    assert_eq!(doc["outcomes"]["offered"], 9);
+    assert_eq!(doc["outcomes"]["acknowledged"], 9);
+    let cases = doc["execution"]["connect_cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 9);
+    let stalled = cases
+        .iter()
+        .filter(|case| case["bootstrap_kind"] == "stalled_tcp")
+        .collect::<Vec<_>>();
+    assert_eq!(stalled.len(), 3);
+    for case in stalled {
+        assert_eq!(case["ok"], true);
+        assert_eq!(case["connect_timeout_ms"], 200);
+        assert!(case["verified_tcp_stall_us"].as_u64().unwrap() >= 45_000);
+        assert!(case["first_ack_us"].as_u64().unwrap() > 0);
+    }
+    assert_eq!(doc["provenance"]["artifacts"].as_array().unwrap().len(), 10);
     let _ = std::fs::remove_dir_all(&out_dir);
 }
