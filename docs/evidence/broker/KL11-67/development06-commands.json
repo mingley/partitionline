@@ -1,0 +1,69 @@
+[
+  {
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "/workspace/work/broker-codecs-dev01/partitionline-broker/Cargo.toml",
+      "--target-dir",
+      "/workspace/work/target-broker-codecs",
+      "--features",
+      "codecs",
+      "--test",
+      "codecs"
+    ],
+    "exit_code": 0,
+    "log": "development06-stable-test.log",
+    "log_sha256": "161235d20ad5a1a2763cab07298a96a7683cfce1a73f5f066327cfffae711348"
+  },
+  {
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "clippy",
+      "--locked",
+      "--manifest-path",
+      "/workspace/work/broker-codecs-dev01/partitionline-broker/Cargo.toml",
+      "--target-dir",
+      "/workspace/work/target-broker-codecs",
+      "--all-targets",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "log": "development06-stable-clippy.log",
+    "log_sha256": "2420b54fdc46b5dd32ee7189b8064e005931cd82e332db5ae420feda7b247bb1"
+  },
+  {
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "/workspace/work/broker-codecs-dev01/partitionline-broker/Cargo.toml",
+      "--target-dir",
+      "/workspace/work/target-broker-codecs",
+      "--features",
+      "codecs",
+      "--test",
+      "codecs"
+    ],
+    "exit_code": 0,
+    "log": "development06-1.85.0-test.log",
+    "log_sha256": "f078b408210aa12558e9ca434077d61c9a626ce1ab5d72ceb4b3a7d778803028"
+  }
+]

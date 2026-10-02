@@ -1,0 +1,45 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling libc v0.2.189
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling crc32fast v1.5.2
+   Compiling cfg-if v1.0.5
+   Compiling syn v3.0.6
+   Compiling crc32c v0.6.8
+   Compiling snap v1.1.2
+   Compiling adler2 v2.0.1
+   Compiling simd-adler32 v0.3.10
+   Compiling getrandom v0.4.3
+   Compiling miniz_oxide v0.9.1
+   Compiling tokio-macros v2.7.2
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling twox-hash v2.1.4
+   Compiling pin-project-lite v0.2.17
+   Compiling bytes v1.12.1
+   Compiling tokio v1.53.1
+   Compiling lz4_flex v0.14.0
+   Compiling flate2 v1.1.10
+   Compiling zstd-rs v0.1.0
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-codecs-dev01/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 12.48s
+     Running tests/codecs.rs (/workspace/work/target-broker-codecs/debug/deps/codecs-263c109eea97acaa)
+
+running 12 tests
+test advertised_window_and_content_size_bombs_fail_without_decoding ... ok
+test codec_units_are_aggregate_across_preflighted_frames_and_decoded_gzip_members ... ok
+test dictionary_skippable_legacy_reserved_and_optional_header_forms_are_rejected ... ok
+test each_normalization_budget_is_independent_and_positive ... ok
+test decoded_records_keep_existing_field_header_and_semantic_rejections ... ok
+test all_actual_apache_fixtures_have_the_declared_admission_outcome ... ok
+test encoded_crc_and_count_checks_precede_bad_codec_streams ... ok
+test exact_decoded_bounds_succeed_and_one_byte_less_rejects_all_codecs ... ok
+test every_encoded_truncation_and_trailing_incomplete_batch_is_rejected ... ok
+test uncompressed_fast_path_borrows_and_still_validates_every_record ... ok
+test four_codecs_raw_snappy_and_concatenated_streams_preserve_exact_history_bytes ... ok
+test independent_expanding_streams_exercise_compressed_blocks_and_output_caps ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

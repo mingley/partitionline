@@ -1,0 +1,23 @@
+[
+  {
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "/workspace/work/broker-codecs-dev01/partitionline-broker/Cargo.toml",
+      "--target-dir",
+      "/workspace/work/target-broker-codecs",
+      "--features",
+      "codecs",
+      "--test",
+      "codecs"
+    ],
+    "exit_code": 101,
+    "log": "development-stable03-test.log"
+  }
+]

@@ -1,0 +1,33 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-codecs-dev01/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 0.96s
+     Running tests/codecs.rs (/workspace/work/target-broker-codecs/debug/deps/codecs-b612d97bc4df8fc6)
+
+running 12 tests
+test advertised_window_and_content_size_bombs_fail_without_decoding ... ok
+test codec_units_are_aggregate_across_preflighted_frames_and_decoded_gzip_members ... FAILED
+test decoded_records_keep_existing_field_header_and_semantic_rejections ... ok
+test encoded_crc_and_count_checks_precede_bad_codec_streams ... ok
+test dictionary_skippable_legacy_reserved_and_optional_header_forms_are_rejected ... ok
+test each_normalization_budget_is_independent_and_positive ... ok
+test exact_decoded_bounds_succeed_and_one_byte_less_rejects_all_codecs ... ok
+test every_encoded_truncation_and_trailing_incomplete_batch_is_rejected ... ok
+test four_codecs_raw_snappy_and_concatenated_streams_preserve_exact_history_bytes ... ok
+test uncompressed_fast_path_borrows_and_still_validates_every_record ... ok
+test all_actual_apache_fixtures_have_the_declared_admission_outcome ... ok
+test independent_expanding_streams_exercise_compressed_blocks_and_output_caps ... ok
+
+failures:
+
+---- codec_units_are_aggregate_across_preflighted_frames_and_decoded_gzip_members stdout ----
+
+thread 'codec_units_are_aggregate_across_preflighted_frames_and_decoded_gzip_members' (306024) panicked at tests/codecs.rs:259:14:
+called `Result::unwrap()` on an `Err` value: BudgetExceeded(Units)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    codec_units_are_aggregate_across_preflighted_frames_and_decoded_gzip_members
+
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test codecs`
