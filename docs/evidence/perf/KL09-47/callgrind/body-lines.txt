@@ -1,0 +1,2012 @@
+--------------------------------------------------------------------------------
+Profile data file '/workspace/work/consumer-aborts/callgrind/body.out' (creator: callgrind-3.24.0)
+--------------------------------------------------------------------------------
+I1 cache: 
+D1 cache: 
+LL cache: 
+Timerange: Basic block 0 - 77863986
+Trigger: Program termination
+Profiled target:  /workspace/work/consumer-aborts/corrected-baseline-bin/runtime --cell nb-fetch-committed-aborts --out /workspace/work/consumer-aborts/callgrind/run --repetitions 1 (PID 167955, part 1)
+Events recorded:  Ir
+Events shown:     Ir
+Event sort order: Ir
+Thresholds:       100
+Include dirs:     
+User annotated:   /workspace/work/consumer-aborts/harness-baseline/src/consumer.rs
+Auto-annotation:  on
+
+--------------------------------------------------------------------------------
+Ir                   
+--------------------------------------------------------------------------------
+216,217,383 (100.0%)  PROGRAM TOTALS
+
+--------------------------------------------------------------------------------
+Ir                   file:function
+--------------------------------------------------------------------------------
+19,963,551 ( 9.23%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs:<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+15,456,398 ( 7.15%)  ???:0x00000000000a12a0 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+13,564,056 ( 6.27%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_unsigned_varint::<bytes::bytes::Bytes> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+12,907,696 ( 5.97%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:<bytes::bytes::Bytes as bytes::buf::buf_impl::Buf>::copy_to_bytes [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+10,626,775 ( 4.91%)  ???:malloc [/usr/lib/x86_64-linux-gnu/libc.so.6]
+10,087,500 ( 4.67%)  work/consumer-aborts/harness-baseline/src/protocol/records.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 8,849,907 ( 4.09%)  ???:0x0000000000162b40 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+ 7,076,684 ( 3.27%)  ???:free [/usr/lib/x86_64-linux-gnu/libc.so.6]
+ 6,823,979 ( 3.16%)  work/consumer-aborts/harness-baseline/src/consumer.rs:<partitionline::consumer::Consumer>::apply_fetch_body [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 5,918,000 ( 2.74%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+ 4,115,723 ( 1.90%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/string.rs:<alloc::string::String as core::clone::Clone>::clone [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 3,910,356 ( 1.81%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(alloc::string::String, i32)>
+ 3,228,000 ( 1.49%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::records::read_bytes_varint::<bytes::bytes::Bytes>
+ 3,221,248 ( 1.49%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i64>
+ 3,176,352 ( 1.47%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:partitionline::protocol::buf::get_unsigned_varint::<bytes::bytes::Bytes>
+ 3,093,500 ( 1.43%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+ 2,967,339 ( 1.37%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::raw_vec::RawVecInner>::try_allocate_in [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 2,708,212 ( 1.25%)  /rust/deps/hashbrown-0.17.1/src/rustc_entry.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 2,690,000 ( 1.24%)  work/consumer-aborts/harness-baseline/src/protocol/records.rs:partitionline::protocol::records::read_bytes_varint::<bytes::bytes::Bytes> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 2,606,904 ( 1.21%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(alloc::string::String, i32)>
+ 2,431,222 ( 1.12%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:partitionline::protocol::records::decode_checked_batch
+ 2,415,936 ( 1.12%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i64>
+ 2,403,784 ( 1.11%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/buf/buf_impl.rs:partitionline::protocol::buf::get_unsigned_varint::<bytes::bytes::Bytes>
+ 2,017,500 ( 0.93%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_varint::<bytes::bytes::Bytes> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 2,016,155 ( 0.93%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:bytes::bytes_mut::shared_v_clone
+ 2,000,628 ( 0.93%)  ???:0x00000000001623e0 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+ 1,994,787 ( 0.92%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/option.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+ 1,955,178 ( 0.90%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(alloc::string::String, i32)>
+ 1,912,616 ( 0.88%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i64>
+ 1,907,544 ( 0.88%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write
+ 1,883,000 ( 0.87%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs:<alloc::vec::Vec<partitionline::protocol::records::Record>>::push_mut [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 1,883,000 ( 0.87%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<alloc::vec::Vec<partitionline::protocol::records::Record>>::push_mut
+ 1,846,557 ( 0.85%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(alloc::string::String, i32)> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 1,773,786 ( 0.82%)  work/consumer-aborts/harness-baseline/src/protocol/records.rs:partitionline::protocol::records::decode_checked_batch [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 1,735,512 ( 0.80%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/alloc/unix.rs:<codec::CountingAlloc as core::alloc::global::GlobalAlloc>::alloc
+ 1,733,248 ( 0.80%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+ 1,733,152 ( 0.80%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/cmp.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+ 1,614,000 ( 0.75%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+ 1,562,232 ( 0.72%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+ 1,518,573 ( 0.70%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/sync/atomic.rs:<codec::CountingAlloc as core::alloc::global::GlobalAlloc>::alloc [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 1,380,317 ( 0.64%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write
+ 1,323,217 ( 0.61%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+ 1,299,876 ( 0.60%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+ 1,210,500 ( 0.56%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+ 1,209,693 ( 0.56%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes_mut.rs:bytes::bytes_mut::shared_v_clone
+ 1,083,085 ( 0.50%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<alloc::string::String as core::clone::Clone>::clone
+ 1,076,000 ( 0.50%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:partitionline::protocol::records::read_bytes_varint::<bytes::bytes::Bytes>
+ 1,058,784 ( 0.49%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:partitionline::protocol::buf::get_unsigned_varint::<bytes::bytes::Bytes>
+   943,383 ( 0.44%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<alloc::raw_vec::RawVecInner>::try_allocate_in
+   913,997 ( 0.42%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   869,121 ( 0.40%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/collections/hash/map.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   866,468 ( 0.40%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<alloc::string::String as core::clone::Clone>::clone
+   866,468 ( 0.40%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::string::String as core::clone::Clone>::clone
+   806,462 ( 0.37%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/sync/atomic.rs:bytes::bytes_mut::shared_v_clone [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+   750,000 ( 0.35%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes_mut.rs:bytes::bytes_mut::shared_v_drop [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+   728,253 ( 0.34%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/non_null.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   695,232 ( 0.32%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   651,762 ( 0.30%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write
+   651,726 ( 0.30%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/hash/random.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(alloc::string::String, i32)>
+   650,748 ( 0.30%)  work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:__rustc::__rust_alloc [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+   646,366 ( 0.30%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/iter/macros.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   603,984 ( 0.28%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/hash/random.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i64>
+   603,199 ( 0.28%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   543,045 ( 0.25%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/clone.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   539,076 ( 0.25%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::usize_from_i32 [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+   538,000 ( 0.25%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:partitionline::protocol::buf::get_varint::<bytes::bytes::Bytes>
+   538,000 ( 0.25%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/buf/buf_impl.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+   535,226 ( 0.25%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write
+   530,000 ( 0.25%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:core::ptr::drop_glue::<partitionline::protocol::records::Record> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+   503,320 ( 0.23%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i64> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+   435,580 ( 0.20%)  work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:__rustc::__rust_dealloc [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+   432,128 ( 0.20%)  ???:0x000000000009e650 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   409,840 ( 0.19%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   404,307 ( 0.19%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs:partitionline::protocol::records::decode_checked_batch
+   404,307 ( 0.19%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/convert/num.rs:partitionline::protocol::buf::usize_from_i32
+   403,500 ( 0.19%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+   324,996 ( 0.15%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+   324,966 ( 0.15%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+   324,966 ( 0.15%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+   324,966 ( 0.15%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+   324,798 ( 0.15%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   324,000 ( 0.15%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/bool.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   301,716 ( 0.14%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   269,538 ( 0.12%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<alloc::raw_vec::RawVecInner>::try_allocate_in
+   269,538 ( 0.12%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:partitionline::protocol::buf::usize_from_i32
+   269,000 ( 0.12%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/convert/num.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+   269,000 ( 0.12%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+   218,427 ( 0.10%)  work/consumer-aborts/harness-baseline/src/config.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   216,939 ( 0.10%)  work/consumer-aborts/harness-baseline/benchmarks/codec/src/lib.rs:<codec::CountingAlloc as core::alloc::global::GlobalAlloc>::alloc
+   216,916 ( 0.10%)  ???:__rustc::__rust_no_alloc_shim_is_unstable_v2 [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+   216,656 ( 0.10%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+   216,656 ( 0.10%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+   216,644 ( 0.10%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/tuple.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+   216,617 ( 0.10%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/slice.rs:<alloc::string::String as core::clone::Clone>::clone
+   212,000 ( 0.10%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:core::ptr::drop_glue::<partitionline::protocol::records::Record>
+   201,153 ( 0.09%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   201,093 ( 0.09%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   187,500 ( 0.09%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/sync/atomic.rs:bytes::bytes_mut::shared_v_drop
+   135,576 ( 0.06%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/buf/buf_impl.rs:partitionline::protocol::records::decode_checked_batch
+   135,038 ( 0.06%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/range.rs:partitionline::protocol::records::decode_checked_batch
+   134,769 ( 0.06%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:partitionline::protocol::records::decode_checked_batch
+   134,500 ( 0.06%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::vec::Vec<partitionline::protocol::records::Record>>::push_mut
+   134,500 ( 0.06%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+   134,500 ( 0.06%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/range.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+   134,500 ( 0.06%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<alloc::vec::Vec<partitionline::protocol::records::Record>>::push_mut
+   134,500 ( 0.06%)  work/consumer-aborts/harness-baseline/src/lib.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+   111,441 ( 0.05%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/into_iter.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+   108,918 ( 0.05%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/alloc/unix.rs:<codec::CountingAlloc as core::alloc::global::GlobalAlloc>::dealloc
+   108,918 ( 0.05%)  work/consumer-aborts/harness-baseline/benchmarks/codec/src/lib.rs:<codec::CountingAlloc as core::alloc::global::GlobalAlloc>::dealloc [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+   108,340 ( 0.05%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+   108,328 ( 0.05%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+   108,322 ( 0.05%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+   108,322 ( 0.05%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+   106,000 ( 0.05%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:core::ptr::drop_glue::<partitionline::protocol::records::Record>
+    26,500 ( 0.01%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs:core::ptr::drop_glue::<partitionline::protocol::records::Record>
+    13,296 ( 0.01%)  ???:0x00000000000a0460 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    11,298 ( 0.01%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_i64::<bytes::bytes::Bytes> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+     9,486 ( 0.00%)  ???:0x00000000000a05a0 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+     9,448 ( 0.00%)  ???:0x000000000009f040 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+     7,532 ( 0.00%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_i32::<bytes::bytes::Bytes> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+     6,887 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/rustc_entry.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+     6,187 ( 0.00%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:partitionline::protocol::records::decode_checked_batch
+     4,400 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+     4,304 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/cmp.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+     4,035 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+     3,982 ( 0.00%)  work/consumer-aborts/harness-baseline/src/protocol/records.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+     3,766 ( 0.00%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_i16::<bytes::bytes::Bytes> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+     3,766 ( 0.00%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::records::decode_checked_batch
+     3,266 ( 0.00%)  ???:0x00000000000a07f0 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+     3,240 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+     2,959 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:partitionline::protocol::records::decode_checked_batch
+     2,959 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/int_macros.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+     2,866 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/sort/shared/smallsort.rs:core::slice::sort::shared::smallsort::insertion_sort_shift_left::<(i64, i64), <[(i64, i64)]>::sort_by_key<core::cmp::Reverse<i64>, <partitionline::consumer::Consumer>::apply_fetch_body::{closure#4}>::{closure#0}> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+     2,421 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/mem/mod.rs:<bytes::bytes::Bytes as bytes::buf::buf_impl::Buf>::copy_to_bytes
+     2,421 ( 0.00%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:partitionline::protocol::buf::get_i64::<bytes::bytes::Bytes>
+     2,396 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/mod.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+     2,376 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/into_iter.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::Record> as core::ops::drop::Drop>::drop [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+     1,625 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+     1,614 ( 0.00%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/buf/buf_impl.rs:partitionline::protocol::buf::get_i64::<bytes::bytes::Bytes>
+     1,614 ( 0.00%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:partitionline::protocol::buf::get_i32::<bytes::bytes::Bytes>
+     1,512 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::Record> as core::ops::drop::Drop>::drop
+     1,407 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:core::slice::sort::shared::smallsort::insertion_sort_shift_left::<(i64, i64), <[(i64, i64)]>::sort_by_key<core::cmp::Reverse<i64>, <partitionline::consumer::Consumer>::apply_fetch_body::{closure#4}>::{closure#0}>
+     1,345 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:partitionline::protocol::records::decode_checked_batch
+     1,142 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+     1,076 ( 0.00%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/buf/buf_impl.rs:partitionline::protocol::buf::get_i32::<bytes::bytes::Bytes>
+     1,015 ( 0.00%)  ???:0x000000000009edb0 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+     1,007 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       942 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+       903 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+       864 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::Record> as core::ops::drop::Drop>::drop
+       860 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+       837 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+       807 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+       807 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+       807 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:partitionline::protocol::buf::get_i64::<bytes::bytes::Bytes>
+       807 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:partitionline::protocol::buf::get_i64::<bytes::bytes::Bytes>
+       807 ( 0.00%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:partitionline::protocol::buf::get_i16::<bytes::bytes::Bytes>
+       685 ( 0.00%)  ???:sbrk [/usr/lib/x86_64-linux-gnu/libc.so.6]
+       576 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i32>
+       550 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+       550 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+       538 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:partitionline::protocol::buf::get_i32::<bytes::bytes::Bytes>
+       538 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:partitionline::protocol::buf::get_i32::<bytes::bytes::Bytes>
+       538 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+       538 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/tuple.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+       538 ( 0.00%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/buf/buf_impl.rs:partitionline::protocol::buf::get_i16::<bytes::bytes::Bytes>
+       530 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+       458 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:core::slice::sort::shared::smallsort::insertion_sort_shift_left::<(i64, i64), <[(i64, i64)]>::sort_by_key<core::cmp::Reverse<i64>, <partitionline::consumer::Consumer>::apply_fetch_body::{closure#4}>::{closure#0}>
+       452 ( 0.00%)  ???:0x000000000009fd90 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+       432 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i32>
+       432 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::Record> as core::ops::drop::Drop>::drop
+       405 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::raw_vec::RawVecInner>::finish_grow [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       356 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+       354 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       345 ( 0.00%)  work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:__rustc::__rust_realloc [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       342 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i32>
+       320 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&str>
+       319 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+       288 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::raw_vec::RawVec<partitionline::consumer::FetchedRecord>>::grow_one [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       287 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+       279 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+       275 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+       269 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<alloc::raw_vec::RawVecInner>::try_allocate_in
+       269 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+       269 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+       269 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:partitionline::protocol::buf::get_i16::<bytes::bytes::Bytes>
+       269 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:partitionline::protocol::records::decode_checked_batch
+       269 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:<bytes::bytes::Bytes as bytes::buf::buf_impl::Buf>::copy_to_bytes
+       269 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:partitionline::protocol::buf::get_i16::<bytes::bytes::Bytes>
+       269 ( 0.00%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:bytes::bytes::static_drop [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       269 ( 0.00%)  work/consumer-aborts/harness-baseline/src/lib.rs:partitionline::protocol::records::decode_checked_batch
+       267 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+       258 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
+       253 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/alloc/global.rs:__rustc::__rust_realloc
+       252 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/cmp.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+       245 ( 0.00%)  ???:0x0000000000163540 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+       240 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
+       240 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&str>
+       239 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<alloc::raw_vec::RawVecInner>::finish_grow
+       232 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+       232 ( 0.00%)  ???:__default_morecore [/usr/lib/x86_64-linux-gnu/libc.so.6]
+       221 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+       218 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+       216 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+       216 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::Record> as core::ops::drop::Drop>::drop
+       216 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::Record> as core::ops::drop::Drop>::drop
+       216 ( 0.00%)  ???:brk [/usr/lib/x86_64-linux-gnu/libc.so.6]
+       212 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+       203 ( 0.00%)  ???:0x000000000009e670 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+       198 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::raw_vec::RawVec<(i64, i64)>>::grow_one [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       189 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<alloc::raw_vec::RawVecInner>::finish_grow
+       176 ( 0.00%)  ???:mmap [/usr/lib/x86_64-linux-gnu/libc.so.6]
+       171 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       162 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/rustc_entry.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       160 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&str>
+       143 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       143 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       139 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<alloc::raw_vec::RawVecInner>::finish_grow
+       136 ( 0.00%)  ???:0x00000000001110c0 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+       126 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       116 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+       116 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+       115 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:__rustc::__rust_realloc
+       115 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:core::slice::sort::shared::smallsort::insertion_sort_shift_left::<(i64, i64), <[(i64, i64)]>::sort_by_key<core::cmp::Reverse<i64>, <partitionline::consumer::Consumer>::apply_fetch_body::{closure#4}>::{closure#0}>
+       112 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+       112 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+       110 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&str> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       108 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<alloc::raw_vec::RawVecInner>::finish_grow
+       108 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/hash/random.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i32>
+       102 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       102 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs:<alloc::vec::Vec<partitionline::protocol::records::RecordBatch> as core::ops::drop::Drop>::drop [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+       102 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/adapters/zip.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+        99 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+        98 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
+        96 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+        96 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
+        93 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+        90 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i32> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        89 ( 0.00%)  work/consumer-aborts/harness-baseline/src/consumer.rs:<partitionline::consumer::PartitionMap<i32>>::insert [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        83 ( 0.00%)  work/consumer-aborts/harness-baseline/src/consumer.rs:<partitionline::consumer::PartitionMap<()>>::insert [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        80 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+        76 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<partitionline::consumer::PartitionMap<()>>::insert
+        74 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&[u8; 16]>
+        73 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+        71 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+        70 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/hash/random.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&str>
+        67 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/collections/hash/map.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+        66 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/into_iter.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::EncodedBatch> as core::ops::drop::Drop>::drop [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        66 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::string::String>
+        64 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/group/sse2.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+        62 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/collections/hash/map.rs:<partitionline::consumer::PartitionMap<()>>::insert
+        60 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+        60 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+        58 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+        58 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+        57 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+        55 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+        53 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/convert/num.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+        53 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/macros/mod.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+        53 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+        52 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, ()>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>::{closure#0}> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        52 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, i32>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>::{closure#0}> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        48 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/alloc.rs:<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
+        48 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+        48 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<alloc::raw_vec::RawVec<partitionline::consumer::FetchedRecord>>::grow_one
+        48 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&[u8; 16]>
+        48 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::string::String>
+        48 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<alloc::raw_vec::RawVec<partitionline::consumer::FetchedRecord>>::grow_one
+        46 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:__rustc::__rust_realloc
+        44 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
+        44 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+        42 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::EncodedBatch> as core::ops::drop::Drop>::drop
+        42 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+        41 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::raw::RawTable<([u8; 16], alloc::string::String)>>::reserve_rehash::<hashbrown::map::make_hasher<[u8; 16], alloc::string::String, std::hash::random::RandomState>::{closure#0}> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        40 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<partitionline::consumer::PartitionMap<()>>::insert
+        40 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+        38 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&[u8; 16]>
+        37 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        37 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        37 ( 0.00%)  work/consumer-aborts/harness-baseline/src/consumer.rs:<partitionline::consumer::Consumer>::topic_id_names [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        36 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+        36 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+        35 ( 0.00%)  ???:munmap [/usr/lib/x86_64-linux-gnu/libc.so.6]
+        33 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<alloc::raw_vec::RawVec<(i64, i64)>>::grow_one
+        33 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<alloc::raw_vec::RawVec<(i64, i64)>>::grow_one
+        33 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/sort/stable/mod.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+        32 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        32 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/adapters/step_by.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+        32 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::string::String>
+        32 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+        31 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+        31 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<partitionline::consumer::PartitionMap<()>>::insert
+        31 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+        30 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+        30 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+        30 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+        30 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+        30 ( 0.00%)  work/consumer-aborts/harness-baseline/src/protocol/fetch.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+        28 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::string::String> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        25 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/cmp.rs:<partitionline::consumer::PartitionMap<()>>::insert
+        25 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/cmp.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+        24 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+        24 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+        24 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cell.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+        24 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::EncodedBatch> as core::ops::drop::Drop>::drop
+        24 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+        24 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+        24 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
+        24 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/thread_local/native/lazy.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+        23 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+        23 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+        23 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/raw.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+        23 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:__rustc::__rust_realloc
+        22 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+        22 ( 0.00%)  work/consumer-aborts/harness-baseline/src/lib.rs:<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
+        21 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+        21 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+        20 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+        19 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+        18 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&[u8; 16]> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        18 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+        16 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+        16 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+        16 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+        16 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+        16 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/cmp.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+        15 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+        15 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+        15 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+        15 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<partitionline::consumer::PartitionMap<()>>::insert
+        15 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+        15 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<partitionline::consumer::PartitionMap<()>>::insert
+        15 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+        13 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+        13 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/into_iter.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>>> as core::ops::drop::Drop>::drop [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        13 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/into_iter.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>> as core::ops::drop::Drop>::drop [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        13 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<partitionline::consumer::PartitionMap<()>>::insert
+        13 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+        12 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+        12 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+        12 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/group/sse2.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+        12 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+        12 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+        12 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+        12 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/mem/mod.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+        12 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+        12 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::EncodedBatch> as core::ops::drop::Drop>::drop
+        12 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::EncodedBatch> as core::ops::drop::Drop>::drop
+        12 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<alloc::vec::Vec<partitionline::protocol::records::RecordBatch> as core::ops::drop::Drop>::drop
+        12 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+        12 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/hash/random.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&[u8; 16]>
+        12 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/hash/random.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::string::String>
+        11 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/into_iter.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedPartition> as core::ops::drop::Drop>::drop [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        11 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/into_iter.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedTopic> as core::ops::drop::Drop>::drop [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+        11 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+        11 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+        11 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/collections/hash/map.rs:<partitionline::consumer::Consumer>::topic_id_names
+        10 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/group/sse2.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+        10 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/group/sse2.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+        10 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/lib.rs:<partitionline::consumer::PartitionMap<()>>::insert
+        10 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/lib.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+        10 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>>> as core::ops::drop::Drop>::drop
+        10 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>> as core::ops::drop::Drop>::drop
+        10 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+        10 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+        10 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<partitionline::consumer::PartitionMap<()>>::insert
+        10 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+        10 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+        10 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+         8 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<partitionline::consumer::Consumer>::topic_id_names
+         8 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+         8 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, ()>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>::{closure#0}>
+         8 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, i32>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>::{closure#0}>
+         7 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedPartition> as core::ops::drop::Drop>::drop
+         7 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedTopic> as core::ops::drop::Drop>::drop
+         7 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+         7 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+         7 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+         7 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+         7 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+         7 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/group/sse2.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/tag.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::records::EncodedBatch> as core::ops::drop::Drop>::drop
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<partitionline::consumer::PartitionMap<()>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/convert/num.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/convert/num.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<partitionline::consumer::PartitionMap<()>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/macros/mod.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/macros/mod.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, ()>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>::{closure#0}>
+         6 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, i32>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>::{closure#0}>
+         5 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+         5 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+         5 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+         5 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<partitionline::consumer::PartitionMap<()>>::insert
+         5 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+         5 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<hashbrown::raw::RawTable<([u8; 16], alloc::string::String)>>::reserve_rehash::<hashbrown::map::make_hasher<[u8; 16], alloc::string::String, std::hash::random::RandomState>::{closure#0}>
+         5 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:<hashbrown::raw::RawTable<([u8; 16], alloc::string::String)>>::reserve_rehash::<hashbrown::map::make_hasher<[u8; 16], alloc::string::String, std::hash::random::RandomState>::{closure#0}>
+         4 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+         4 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+         4 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+         4 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/array/equality.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+         4 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+         4 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+         4 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+         4 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/adapters/step_by.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+         4 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/adapters/step_by.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+         4 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>>> as core::ops::drop::Drop>::drop
+         4 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>> as core::ops::drop::Drop>::drop
+         4 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedPartition> as core::ops::drop::Drop>::drop
+         3 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+         3 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+         3 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<partitionline::consumer::PartitionMap<()>>::insert
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/string.rs:<partitionline::consumer::PartitionMap<()>>::insert
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/string.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs:<hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cell.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>>> as core::ops::drop::Drop>::drop
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>> as core::ops::drop::Drop>::drop
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<partitionline::consumer::Consumer>::topic_id_names
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+         3 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/non_null.rs:<partitionline::consumer::Consumer>::topic_id_names
+         2 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/group/sse2.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/string.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/array/equality.rs:<partitionline::consumer::Consumer>::topic_id_names
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cell.rs:<partitionline::consumer::Consumer>::topic_id_names
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cell.rs:<partitionline::consumer::PartitionMap<()>>::insert
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::raw::RawTable<([u8; 16], alloc::string::String)>>::reserve_rehash::<hashbrown::map::make_hasher<[u8; 16], alloc::string::String, std::hash::random::RandomState>::{closure#0}>
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, ()>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>::{closure#0}>
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, i32>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>::{closure#0}>
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::raw::RawTable<([u8; 16], alloc::string::String)>>::reserve_rehash::<hashbrown::map::make_hasher<[u8; 16], alloc::string::String, std::hash::random::RandomState>::{closure#0}>
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/macros/mod.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/macros/mod.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/macros/mod.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>>> as core::ops::drop::Drop>::drop
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>> as core::ops::drop::Drop>::drop
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedPartition> as core::ops::drop::Drop>::drop
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedTopic> as core::ops::drop::Drop>::drop
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/iter/macros.rs:<partitionline::consumer::Consumer>::topic_id_names
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/tuple.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/thread_local/native/lazy.rs:<partitionline::consumer::Consumer>::topic_id_names
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/thread_local/native/lazy.rs:<partitionline::consumer::PartitionMap<()>>::insert
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/thread_local/native/lazy.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/thread_local/native/mod.rs:<partitionline::consumer::Consumer>::topic_id_names
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/thread_local/native/mod.rs:<partitionline::consumer::PartitionMap<()>>::insert
+         2 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/thread_local/native/mod.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+         1 ( 0.00%)  /rust/deps/hashbrown-0.17.1/src/control/group/sse2.rs:<hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>>> as core::ops::drop::Drop>::drop
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::vec::into_iter::IntoIter<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>> as core::ops::drop::Drop>::drop
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedPartition> as core::ops::drop::Drop>::drop
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedTopic> as core::ops::drop::Drop>::drop
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/slice.rs:<partitionline::consumer::PartitionMap<()>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/slice.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs:<partitionline::consumer::Consumer>::topic_id_names
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/convert/num.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/convert/num.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/convert/num.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, ()>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>::{closure#0}>
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, i32>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>::{closure#0}>
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/mem/mod.rs:<partitionline::consumer::Consumer>::topic_id_names
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/mem/mod.rs:<partitionline::consumer::PartitionMap<()>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/mem/mod.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedPartition> as core::ops::drop::Drop>::drop
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedTopic> as core::ops::drop::Drop>::drop
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::raw::RawTable<([u8; 16], alloc::string::String)>>::reserve_rehash::<hashbrown::map::make_hasher<[u8; 16], alloc::string::String, std::hash::random::RandomState>::{closure#0}>
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, ()>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>::{closure#0}>
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, i32>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>::{closure#0}>
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<partitionline::consumer::Consumer>::topic_id_names
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<partitionline::consumer::PartitionMap<()>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs:<partitionline::consumer::PartitionMap<i32>>::insert
+         1 ( 0.00%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+         .           /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/future/future.rs:<tokio::runtime::scheduler::current_thread::Context>::enter::<core::task::poll::Poll<()>, <tokio::runtime::scheduler::current_thread::CoreGuard>::block_on<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>::{closure#0}::{closure#0}>
+         .           /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs:std::rt::lang_start_internal
+         .           /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs:std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+         .           /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/rt.rs:std::rt::lang_start::<()>::{closure#0} [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/rt.rs:std::rt::lang_start_internal [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/backtrace.rs:std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           ???:(below main) [/usr/lib/x86_64-linux-gnu/libc.so.6]
+         .           ???:0x000000000001d2c0 [/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2]
+         .           ???:0x0000000000029c30 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+         .           ???:main [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context.rs:<tokio::runtime::scheduler::current_thread::CoreGuard>::block_on::<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>
+         .           work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context/runtime.rs:tokio::runtime::context::runtime::enter_runtime::<<tokio::runtime::scheduler::current_thread::CurrentThread>::block_on<runtime::fdrive::drive_fetch::{closure#0}>::{closure#0}, ()> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context/scoped.rs:<tokio::runtime::context::scoped::Scoped<tokio::runtime::scheduler::Context>>::set::<<tokio::runtime::scheduler::current_thread::CoreGuard>::enter<<tokio::runtime::scheduler::current_thread::CoreGuard>::block_on<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>::{closure#0}, core::option::Option<()>>::{closure#0}, (alloc::boxed::Box<tokio::runtime::scheduler::current_thread::Core>, core::option::Option<()>)> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/runtime.rs:<tokio::runtime::runtime::Runtime>::block_on::<runtime::fdrive::drive_fetch::{closure#0}> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs:<tokio::runtime::context::scoped::Scoped<tokio::runtime::scheduler::Context>>::set::<<tokio::runtime::scheduler::current_thread::CoreGuard>::enter<<tokio::runtime::scheduler::current_thread::CoreGuard>::block_on<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>::{closure#0}, core::option::Option<()>>::{closure#0}, (alloc::boxed::Box<tokio::runtime::scheduler::current_thread::Core>, core::option::Option<()>)>
+         .           work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs:<tokio::runtime::runtime::Runtime>::block_on::<runtime::fdrive::drive_fetch::{closure#0}>
+         .           work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs:<tokio::runtime::scheduler::current_thread::Context>::enter::<core::task::poll::Poll<()>, <tokio::runtime::scheduler::current_thread::CoreGuard>::block_on<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>::{closure#0}::{closure#0}> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs:<tokio::runtime::scheduler::current_thread::CoreGuard>::block_on::<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs:tokio::runtime::context::runtime::enter_runtime::<<tokio::runtime::scheduler::current_thread::CurrentThread>::block_on<runtime::fdrive::drive_fetch::{closure#0}>::{closure#0}, ()>
+         .           work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/time/timeout.rs:<tokio::time::timeout::Timeout<runtime::fdrive::drive_fetch::{closure#0}::{closure#0}> as core::future::future::Future>::poll [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           work/consumer-aborts/harness-baseline/benchmarks/runtime/src/fdrive.rs:runtime::fdrive::drive_fetch::{closure#0} [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:runtime::main [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:runtime::run_fetch [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           work/consumer-aborts/harness-baseline/src/consumer.rs:<partitionline::consumer::Consumer>::fetch_assigned_inner::{closure#0} [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+         .           work/consumer-aborts/harness-baseline/src/consumer.rs:<tokio::time::timeout::Timeout<runtime::fdrive::drive_fetch::{closure#0}::{closure#0}> as core::future::future::Future>::poll
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/consumer-aborts/harness-baseline/src/config.rs
+--------------------------------------------------------------------------------
+Ir               
+
+-- line 150 ----------------------------------------
+      .               fn from(acks: Acks) -> Self {
+      .                   acks.as_i16()
+      .               }
+      .           }
+      .           
+      .           /// Fetch isolation. Matches Kafka `isolation.level`.
+      .           ///
+      .           /// [`std::fmt::Display`] is Java `IsolationLevel.toString` (`read_uncommitted`).
+216,813 ( 0.10%)  #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+      .           #[repr(i8)]
+      .           pub enum IsolationLevel {
+      .               /// Return every record, including aborted transactions.
+      .               #[default]
+      .               ReadUncommitted = 0,
+      .               /// Skip records from aborted transactions. Wait for the last stable offset.
+      .               ReadCommitted = 1,
+      .           }
+-- line 166 ----------------------------------------
+
+  1,614 ( 0.00%)  <counts for unidentified lines in work/consumer-aborts/harness-baseline/src/config.rs>
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs
+--------------------------------------------------------------------------------
+Ir                 
+
+-- line 296 ----------------------------------------
+        .               /// ```
+        .               /// use bytes::Bytes;
+        .               ///
+        .               /// let b = Bytes::from(&b"hello"[..]);
+        .               /// assert_eq!(b.len(), 5);
+        .               /// ```
+        .               #[inline]
+        .               pub const fn len(&self) -> usize {
+  538,269 ( 0.25%)          self.len
+        .               }
+        .           
+        .               /// Returns true if the `Bytes` has a length of 0.
+        .               ///
+        .               /// # Examples
+        .               ///
+        .               /// ```
+        .               /// use bytes::Bytes;
+-- line 312 ----------------------------------------
+-- line 516 ----------------------------------------
+        .               /// assert_eq!(&b[..], b"hello");
+        .               /// ```
+        .               ///
+        .               /// # Panics
+        .               ///
+        .               /// Panics if `at > len`.
+        .               #[must_use = "consider Bytes::advance if you don't need the other half"]
+        .               pub fn split_to(&mut self, at: usize) -> Self {
+  807,000 ( 0.37%)          if at == self.len() {
+        .                       let end_ptr = self.ptr.wrapping_add(at);
+        .                       return mem::replace(self, Bytes::new_empty_with_ptr(end_ptr));
+        .                   }
+        .           
+  806,462 ( 0.37%)          if at == 0 {
+        .                       return Bytes::new_empty_with_ptr(self.ptr);
+        .                   }
+        .           
+        .                   assert!(
+  806,462 ( 0.37%)              at <= self.len(),
+        .                       "split_to out of bounds: {:?} <= {:?}",
+        .                       at,
+        .                       self.len(),
+        .                   );
+        .           
+        .                   let mut ret = self.clone();
+        .           
+        .                   // SAFETY: `at` has been asserted to be <= `self.len()`, and the
+        .                   // `at == self.len()` and `at == 0` cases were handled above.
+        .                   unsafe { self.inc_start(at) };
+        .           
+  806,462 ( 0.37%)          ret.len = at;
+        .                   ret
+        .               }
+        .           
+        .               /// Shortens the buffer, keeping the first `len` bytes and dropping the
+        .               /// rest.
+        .               ///
+        .               /// If `len` is greater than the buffer's current length, this has no
+        .               /// effect.
+-- line 554 ----------------------------------------
+-- line 625 ----------------------------------------
+        .           
+        .               #[inline]
+        .               pub(crate) unsafe fn with_vtable(
+        .                   ptr: *const u8,
+        .                   len: usize,
+        .                   data: AtomicPtr<()>,
+        .                   vtable: &'static Vtable,
+        .               ) -> Bytes {
+2,016,155 ( 0.93%)          Bytes {
+        .                       ptr,
+        .                       len,
+        .                       data,
+        .                       vtable,
+        .                   }
+        .               }
+        .           
+        .               // private
+-- line 641 ----------------------------------------
+-- line 644 ----------------------------------------
+        .               fn as_slice(&self) -> &[u8] {
+        .                   unsafe { slice::from_raw_parts(self.ptr, self.len) }
+        .               }
+        .           
+        .               #[inline]
+        .               unsafe fn inc_start(&mut self, by: usize) {
+        .                   // should already be asserted, but debug assert for tests
+        .                   debug_assert!(self.len >= by, "internal: inc_start out of bounds");
+2,929,948 ( 1.36%)          self.len -= by;
+1,733,974 ( 0.80%)          self.ptr = self.ptr.add(by);
+        .               }
+        .           
+        .               #[inline]
+        .               fn data_mut(&mut self) -> *mut () {
+  187,769 ( 0.09%)          self.data.with_mut(|p| *p)
+        .               }
+        .           }
+        .           
+        .           // Vtable must enforce this behavior
+        .           unsafe impl Send for Bytes {}
+        .           unsafe impl Sync for Bytes {}
+        .           
+        .           impl Drop for Bytes {
+        .               #[inline]
+        .               fn drop(&mut self) {
+        .                   let data = self.data_mut();
+  697,807 ( 0.32%)          unsafe { (self.vtable.drop)(data, self.ptr, self.len) }
+  265,000 ( 0.12%)  => /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes_mut.rs:bytes::bytes_mut::shared_v_drop (53,000x)
+        .               }
+        .           }
+        .           
+        .           impl Clone for Bytes {
+        .               #[inline]
+        .               fn clone(&self) -> Bytes {
+3,629,079 ( 1.68%)          unsafe { (self.vtable.clone)(&self.data, self.ptr, self.len) }
+4,032,310 ( 1.86%)  => /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/sync/atomic.rs:bytes::bytes_mut::shared_v_clone (403,500x)
+        .               }
+        .           }
+        .           
+        .           impl Buf for Bytes {
+        .               #[inline]
+        .               fn remaining(&self) -> usize {
+        .                   self.len()
+        .               }
+-- line 685 ----------------------------------------
+-- line 698 ----------------------------------------
+        .                       self.len(),
+        .                   );
+        .           
+        .                   unsafe {
+        .                       self.inc_start(cnt);
+        .                   }
+        .               }
+        .           
+2,017,500 ( 0.93%)      fn copy_to_bytes(&mut self, len: usize) -> Self {
+        .                   self.split_to(len)
+2,421,269 ( 1.12%)      }
+        .           }
+        .           
+        .           impl Deref for Bytes {
+        .               type Target = [u8];
+        .           
+        .               #[inline]
+        .               fn deref(&self) -> &[u8] {
+        .                   self.as_slice()
+-- line 716 ----------------------------------------
+-- line 1086 ----------------------------------------
+        .           }
+        .           
+        .           fn static_is_unique(_: &AtomicPtr<()>) -> bool {
+        .               false
+        .           }
+        .           
+        .           unsafe fn static_drop(_: *mut (), _: *const u8, _: usize) {
+        .               // nothing to drop for &'static [u8]
+      269 ( 0.00%)  }
+        .           
+        .           // ===== impl OwnedVtable =====
+        .           
+        .           #[repr(C)]
+        .           struct Owned<T> {
+        .               ref_cnt: AtomicUsize,
+        .               owner: T,
+        .           }
+-- line 1102 ----------------------------------------
+
+  539,076 ( 0.25%)  <counts for unidentified lines in work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs>
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/consumer-aborts/harness-baseline/src/protocol/buf.rs
+--------------------------------------------------------------------------------
+Ir                 
+
+-- line 63 ----------------------------------------
+        .           }
+        .           
+        .           /// Convert a non-negative `i16` length to `usize`.
+        .           pub fn usize_from_i16(n: i16) -> Result<usize> {
+        .               usize::try_from(n).map_err(|_| Error::protocol("negative length"))
+        .           }
+        .           
+        .           /// Convert a non-negative `i32` length to `usize`.
+  134,769 ( 0.06%)  pub fn usize_from_i32(n: i32) -> Result<usize> {
+        .               usize::try_from(n).map_err(|_| Error::protocol("negative length"))
+  404,307 ( 0.19%)  }
+        .           
+        .           /// Convert `u32` to `usize`.
+        .           pub fn usize_from_u32(n: u32) -> Result<usize> {
+        .               usize::try_from(n).map_err(|_| Error::protocol("length exceeds usize"))
+        .           }
+        .           
+        .           fn zigzag_i32(v: i32) -> u32 {
+        .               u32::from_ne_bytes((v.wrapping_shl(1) ^ (v >> 31)).to_ne_bytes())
+        .           }
+        .           
+        .           fn unzigzag_i32(n: u32) -> i32 {
+  807,000 ( 0.37%)      let hi = i32::from_ne_bytes((n >> 1).to_ne_bytes());
+  941,500 ( 0.44%)      let lo = if n & 1 == 0 { 0 } else { -1 };
+        .               hi ^ lo
+        .           }
+        .           
+        .           fn zigzag_i64(v: i64) -> u64 {
+        .               u64::from_ne_bytes((v.wrapping_shl(1) ^ (v >> 63)).to_ne_bytes())
+        .           }
+        .           
+        .           fn unzigzag_i64(n: u64) -> i64 {
+-- line 94 ----------------------------------------
+-- line 112 ----------------------------------------
+        .                   low | 0x80
+        .               } else {
+        .                   low
+        .               }
+        .           }
+        .           
+        .           /// Fail if `buf` has fewer than `n` remaining bytes.
+        .           pub fn need<B: Buf>(buf: &B, n: usize) -> Result<()> {
+3,468,755 ( 1.60%)      if buf.remaining() < n {
+        .                   Err(Error::protocol(format!(
+        .                       "need {n} bytes, have {}",
+        .                       buf.remaining()
+        .                   )))
+        .               } else {
+        .                   Ok(())
+        .               }
+        .           }
+-- line 128 ----------------------------------------
+-- line 516 ----------------------------------------
+        .               }
+        .               buf.put_u8(varint_byte_u32(v, false));
+        .           }
+        .           
+        .           /// Read an unsigned varint.
+        .           ///
+        .           /// Java `ByteUtils.readUnsignedVarint`. A fifth continuation byte is
+        .           /// `illegalVarintException`.
+2,017,500 ( 0.93%)  pub fn get_unsigned_varint<B: Buf>(buf: &mut B) -> Result<u32> {
+        .               let mut result = 0u32;
+        .               for i in 0..4 {
+  672,500 ( 0.31%)          need(buf, 1)?;
+        .                   let b = buf.get_u8();
+1,831,352 ( 0.85%)          result |= u32::from(b & 0x7f) << (i * 7);
+2,117,568 ( 0.98%)          if b & 0x80 == 0 {
+1,345,000 ( 0.62%)              return Ok(result);
+        .                   }
+        .               }
+        .               need(buf, 1)?;
+        .               // Java `result |= (tmp = buffer.get()) << 28;` then `if (tmp < 0)`.
+        .               let tmp = i8::from_ne_bytes([buf.get_u8()]);
+        .               result |= u32::from_ne_bytes(i32::from(tmp).wrapping_shl(28).to_ne_bytes());
+        .               if tmp < 0 {
+        .                   return Err(illegal_varint_exception(result));
+        .               }
+        .               Ok(result)
+2,017,500 ( 0.93%)  }
+        .           
+        .           /// Write a zigzag varint (record lengths).
+        .           pub fn put_varint(buf: &mut BytesMut, v: i32) {
+        .               put_unsigned_varint(buf, zigzag_i32(v));
+        .           }
+        .           
+        .           /// Read a zigzag varint.
+  538,000 ( 0.25%)  pub fn get_varint<B: Buf>(buf: &mut B) -> Result<i32> {
+  941,500 ( 0.44%)      Ok(unzigzag_i32(get_unsigned_varint(buf)?))
+7,801,000 ( 3.61%)  => work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_unsigned_varint::<bytes::bytes::Bytes> (269,000x)
+  403,500 ( 0.19%)  }
+        .           
+        .           /// Write an unsigned varlong.
+        .           pub fn put_unsigned_varlong(buf: &mut BytesMut, mut v: u64) {
+        .               while v >= 0x80 {
+        .                   buf.put_u8(varint_byte_u64(v, true));
+        .                   v >>= 7;
+        .               }
+        .               buf.put_u8(varint_byte_u64(v, false));
+-- line 560 ----------------------------------------
+-- line 564 ----------------------------------------
+        .           ///
+        .           /// Java `ByteUtils.readUnsignedVarlong`. A tenth continuation byte is
+        .           /// `illegalVarlongException`.
+        .           pub fn get_unsigned_varlong<B: Buf>(buf: &mut B) -> Result<u64> {
+        .               let mut result = 0u64;
+        .               for i in 0..9 {
+        .                   need(buf, 1)?;
+        .                   let b = buf.get_u8();
+  134,500 ( 0.06%)          result |= u64::from(b & 0x7f) << (i * 7);
+  269,000 ( 0.12%)          if b & 0x80 == 0 {
+        .                       return Ok(result);
+        .                   }
+        .               }
+        .               need(buf, 1)?;
+        .               let b = buf.get_u8();
+        .               result |= u64::from(b & 0x7f) << 63;
+        .               if b & 0x80 != 0 {
+        .                   return Err(illegal_varlong_exception(result));
+-- line 581 ----------------------------------------
+-- line 901 ----------------------------------------
+        .                   .get_mut(pos..pos + 4)
+        .                   .ok_or_else(|| Error::protocol("short i32 patch slot"))?;
+        .               slot.copy_from_slice(&v.to_be_bytes());
+        .               Ok(())
+        .           }
+        .           
+        .           /// Read `INT8`.
+        .           pub fn get_i8<B: Buf>(buf: &mut B) -> Result<i8> {
+  134,500 ( 0.06%)      need(buf, 1)?;
+        .               Ok(buf.get_i8())
+        .           }
+        .           
+        .           /// Read `INT16`.
+      807 ( 0.00%)  pub fn get_i16<B: Buf>(buf: &mut B) -> Result<i16> {
+      269 ( 0.00%)      need(buf, 2)?;
+      538 ( 0.00%)      Ok(buf.get_i16())
+    1,076 ( 0.00%)  }
+        .           
+        .           /// Read `INT32`.
+    1,614 ( 0.00%)  pub fn get_i32<B: Buf>(buf: &mut B) -> Result<i32> {
+      807 ( 0.00%)      need(buf, 4)?;
+    1,076 ( 0.00%)      Ok(buf.get_i32())
+    2,152 ( 0.00%)  }
+        .           
+        .           /// Read `INT64`.
+    2,421 ( 0.00%)  pub fn get_i64<B: Buf>(buf: &mut B) -> Result<i64> {
+      807 ( 0.00%)      need(buf, 8)?;
+    1,614 ( 0.00%)      Ok(buf.get_i64())
+    3,228 ( 0.00%)  }
+        .           
+        .           /// Read `FLOAT64`.
+        .           pub fn get_f64<B: Buf>(buf: &mut B) -> Result<f64> {
+        .               need(buf, 8)?;
+        .               Ok(buf.get_f64())
+        .           }
+        .           
+        .           /// Read `UINT32`.
+-- line 937 ----------------------------------------
+-- line 1008 ----------------------------------------
+        .               Ok(())
+        .           }
+        .           
+        .           /// Java `Utils.readBytes(ByteBuffer, int bytesToRead)`.
+        .           ///
+        .           /// Negative length is `None` (Java null). Zero is empty. Short buffer is
+        .           /// [`crate::Error::protocol`] `need N bytes`.
+        .           pub fn read_bytes<B: Buf>(buf: &mut B, bytes_to_read: i32) -> Result<Option<Bytes>> {
+  538,000 ( 0.25%)      if bytes_to_read < 0 {
+        .                   return Ok(None);
+        .               }
+        .               let n = usize_from_i32(bytes_to_read)?;
+  538,000 ( 0.25%)      need(buf, n)?;
+  807,000 ( 0.37%)      Ok(Some(buf.copy_to_bytes(n)))
+11,298,000 ( 5.23%)  => /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:<bytes::bytes::Bytes as bytes::buf::buf_impl::Buf>::copy_to_bytes (269,000x)
+        .           }
+        .           
+        .           /// Java `Utils.readBytes(ByteBuffer, int offset, int length)` (absolute).
+        .           ///
+        .           /// Short buffer is [`crate::Error::protocol`] `need N bytes`.
+        .           pub fn read_bytes_at(buffer: &[u8], offset: usize, length: usize) -> Result<Vec<u8>> {
+        .               let have = buffer.len();
+        .               let end = offset
+-- line 1029 ----------------------------------------
+
+2,390,334 ( 1.11%)  <counts for unidentified lines in work/consumer-aborts/harness-baseline/src/protocol/buf.rs>
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context/scoped.rs
+--------------------------------------------------------------------------------
+Ir 
+
+
+--------------------------------------------------------------------------------
+-- User-annotated source: /workspace/work/consumer-aborts/harness-baseline/src/consumer.rs
+--------------------------------------------------------------------------------
+  No information has been collected for /workspace/work/consumer-aborts/harness-baseline/src/consumer.rs
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/consumer-aborts/harness-baseline/benchmarks/runtime/src/fdrive.rs
+--------------------------------------------------------------------------------
+Ir 
+
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes_mut.rs
+--------------------------------------------------------------------------------
+Ir               
+
+-- line 1530 ----------------------------------------
+      .            *
+      .            * ===== Inner =====
+      .            *
+      .            */
+      .           
+      .           unsafe fn increment_shared(ptr: *mut Shared) {
+      .               let old_size = (*ptr).ref_count.fetch_add(1, Ordering::Relaxed);
+      .           
+403,231 ( 0.19%)      if old_size > isize::MAX as usize {
+      .                   crate::abort();
+      .               }
+      .           }
+      .           
+      .           unsafe fn release_shared(ptr: *mut Shared) {
+      .               // `Shared` storage... follow the drop steps from Arc.
+187,500 ( 0.09%)      if (*ptr).ref_count.fetch_sub(1, Ordering::Release) != 1 {
+      .                   return;
+      .               }
+      .           
+      .               // This fence is needed to prevent reordering of use of the data and
+      .               // deletion of the data.  Because it is marked `Release`, the decreasing
+      .               // of the reference count synchronizes with this `Acquire` fence. This
+      .               // means that use of the data happens before decreasing the reference
+      .               // count, which happens before this fence, which happens before the
+-- line 1553 ----------------------------------------
+-- line 1893 ----------------------------------------
+      .           };
+      .           
+      .           unsafe fn shared_v_clone(data: &AtomicPtr<()>, ptr: *const u8, len: usize) -> Bytes {
+      .               let shared = data.load(Ordering::Relaxed) as *mut Shared;
+      .               increment_shared(shared);
+      .           
+      .               let data = AtomicPtr::new(shared as *mut ());
+      .               Bytes::with_vtable(ptr, len, data, &SHARED_VTABLE)
+806,462 ( 0.37%)  }
+      .           
+      .           unsafe fn shared_v_to_vec(shared: *mut (), ptr: *const u8, len: usize) -> Vec<u8> {
+      .               let shared: *mut Shared = shared.cast();
+      .           
+      .               if (*shared).is_unique() {
+      .                   let shared = &mut *shared;
+      .           
+      .                   // Drop shared
+-- line 1909 ----------------------------------------
+-- line 1952 ----------------------------------------
+      .           }
+      .           
+      .           unsafe fn shared_v_is_unique(data: &AtomicPtr<()>) -> bool {
+      .               let shared = data.load(Ordering::Acquire);
+      .               let ref_count = (*shared.cast::<Shared>()).ref_count.load(Ordering::Relaxed);
+      .               ref_count == 1
+      .           }
+      .           
+187,500 ( 0.09%)  unsafe fn shared_v_drop(shared: *mut (), _ptr: *const u8, _len: usize) {
+      .               release_shared(shared.cast());
+375,000 ( 0.17%)  }
+      .           
+      .           // compile-fails
+      .           
+      .           /// ```compile_fail
+      .           /// use bytes::BytesMut;
+      .           /// #[deny(unused_must_use)]
+      .           /// {
+      .           ///     let mut b1 = BytesMut::from("hello world");
+-- line 1970 ----------------------------------------
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context/runtime.rs
+--------------------------------------------------------------------------------
+Ir 
+
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/consumer-aborts/harness-baseline/benchmarks/codec/src/lib.rs
+--------------------------------------------------------------------------------
+Ir               
+
+-- line 302 ----------------------------------------
+      .           pub struct CountingAlloc;
+      .           
+      .           static CENSUS_ENABLED: AtomicBool = AtomicBool::new(false);
+      .           static CENSUS_ALLOCS: AtomicU64 = AtomicU64::new(0);
+      .           static CENSUS_BYTES: AtomicU64 = AtomicU64::new(0);
+      .           
+      .           unsafe impl GlobalAlloc for CountingAlloc {
+      .               unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+216,939 ( 0.10%)          if CENSUS_ENABLED.load(Ordering::Relaxed) {
+      .                       CENSUS_ALLOCS.fetch_add(1, Ordering::Relaxed);
+      .                       CENSUS_BYTES.fetch_add(layout.size() as u64, Ordering::Relaxed);
+      .                   }
+      .                   unsafe { System.alloc(layout) }
+      .               }
+      .           
+108,918 ( 0.05%)      unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+      .                   unsafe { System.dealloc(ptr, layout) }
+      .               }
+      .           }
+      .           
+      .           /// Run `f` with the census enabled; returns `(value, allocs, bytes)`.
+      .           pub fn census<R>(f: impl FnOnce() -> R) -> (R, u64, u64) {
+      .               CENSUS_ALLOCS.store(0, Ordering::Relaxed);
+      .               CENSUS_BYTES.store(0, Ordering::Relaxed);
+-- line 325 ----------------------------------------
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs
+--------------------------------------------------------------------------------
+Ir                 
+
+-- line 23 ----------------------------------------
+        .           
+        .           use runtime::artifact::{build_result, parse_broker_artifact, BrokerCounts, RunContext};
+        .           use runtime::cells::{generate, producer_cells, CellDef};
+        .           use runtime::drive::drive_cell;
+        .           use runtime::host::probe as probe_host;
+        .           use runtime::measure::{cpu_now, peak_rss_bytes, rss_now, RssSampler};
+        .           
+        .           #[global_allocator]
+1,086,673 ( 0.50%)  static ALLOC: CountingAlloc = CountingAlloc;
+29,986,617 (13.87%)  => /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/sync/atomic.rs:<codec::CountingAlloc as core::alloc::global::GlobalAlloc>::alloc (217,888x)
+        .           
+        .           fn usage() -> ! {
+        .               eprintln!(
+        .                   "usage: runtime --cell <id|all> --out <dir> [--repetitions <n>] [--connect-stalled-first]"
+        .               );
+        .               std::process::exit(2);
+        .           }
+        .           
+-- line 39 ----------------------------------------
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/consumer-aborts/harness-baseline/src/lib.rs
+--------------------------------------------------------------------------------
+Ir               
+
+
+134,791 ( 0.06%)  <counts for unidentified lines in work/consumer-aborts/harness-baseline/src/lib.rs>
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/consumer-aborts/harness-baseline/src/consumer.rs
+--------------------------------------------------------------------------------
+Ir                 
+
+-- line 1306 ----------------------------------------
+        .               fn get_mut(&mut self, topic: &str, partition: i32) -> Option<&mut V> {
+        .                   self.topics.get_mut(topic)?.get_mut(&partition)
+        .               }
+        .           
+        .               fn contains(&self, topic: &str, partition: i32) -> bool {
+        .                   self.get(topic, partition).is_some()
+        .               }
+        .           
+      138 ( 0.00%)      fn insert(&mut self, topic: &str, partition: i32, value: V) -> Option<V> {
+        .                   if let Some(partitions) = self.topics.get_mut(topic) {
+        .                       return partitions.insert(partition, value);
+        .                   }
+        .                   let mut partitions = HashMap::new();
+        .                   let previous = partitions.insert(partition, value);
+       18 ( 0.00%)          let _previous_topic = self.topics.insert(topic.to_owned(), partitions);
+        .                   previous
+       16 ( 0.00%)      }
+        .           
+        .               fn remove(&mut self, topic: &str, partition: i32) -> Option<V> {
+        .                   let partitions = self.topics.get_mut(topic)?;
+        .                   let removed = partitions.remove(&partition);
+        .                   if partitions.is_empty() {
+        .                       let _removed_topic = self.topics.remove(topic);
+        .                   }
+        .                   removed
+-- line 1330 ----------------------------------------
+-- line 2025 ----------------------------------------
+        .               pub(crate) fn last_fetched_epoch(&self, topic: &str, partition: i32) -> i32 {
+        .                   self.last_fetched_epochs
+        .                       .get(topic, partition)
+        .                       .copied()
+        .                       .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
+        .               }
+        .           
+        .               pub(crate) fn set_last_fetched_epoch(&mut self, topic: &str, partition: i32, epoch: i32) {
+       12 ( 0.00%)          if epoch >= 0 {
+       30 ( 0.00%)              let _prev = self.last_fetched_epochs.insert(topic, partition, epoch);
+    4,527 ( 0.00%)  => work/consumer-aborts/harness-baseline/src/consumer.rs:<partitionline::consumer::PartitionMap<i32>>::insert (6x)
+        .                   } else {
+        .                       let _removed = self.last_fetched_epochs.remove(topic, partition);
+        .                   }
+        .               }
+        .           
+        .               /// Next consumable offset (delivered position) for an assigned partition.
+        .               ///
+        .               /// If records have been fetched and buffered (for example under
+-- line 2042 ----------------------------------------
+-- line 2155 ----------------------------------------
+        .                   Ok(tmd.partitions.iter().map(|p| p.partition_index).collect())
+        .               }
+        .           
+        .               /// Set the next fetch offset without a ListOffsets call.
+        .               pub(crate) fn advance(&mut self, topic: &str, partition: i32, next_offset: i64) {
+        .                   if let Some(slot) = self
+        .                       .assigned
+        .                       .iter_mut()
+       42 ( 0.00%)              .find(|(t, p, _)| t == topic && *p == partition)
+        .                   {
+        6 ( 0.00%)              slot.2 = next_offset;
+        .                   }
+        .               }
+        .           
+        .               async fn reconnect_bootstrap(&mut self) -> Result<()> {
+        .                   self.conns.clear();
+        .                   let addr = self.conn.addr().to_string();
+        .                   let mut conn = BrokerConn::connect_tls(
+        .                       &addr,
+-- line 2173 ----------------------------------------
+-- line 2255 ----------------------------------------
+        .                   self.refresh_metadata(Some(topics)).await
+        .               }
+        .           
+        .               pub(crate) async fn refresh_topic_metadata(&mut self, topic: &str) -> Result<()> {
+        .                   let topics = [topic.to_string()];
+        .                   self.refresh_metadata(Some(&topics)).await
+        .               }
+        .           
+        9 ( 0.00%)      pub(crate) fn topic_id_names(&self) -> HashMap<[u8; 16], String> {
+        .                   let mut out = HashMap::new();
+        2 ( 0.00%)          let Some(md) = &self.metadata else {
+        .                       return out;
+        .                   };
+        .                   for t in &md.topics {
+        2 ( 0.00%)              if t.topic_id == [0u8; 16] {
+        .                           continue;
+        .                       }
+        2 ( 0.00%)              if let Some(name) = &t.name {
+        5 ( 0.00%)                  let _ = out.insert(t.topic_id, name.clone());
+      106 ( 0.00%)  => /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/string.rs:<alloc::string::String as core::clone::Clone>::clone (1x)
+        .                       }
+        .                   }
+        .                   out
+        9 ( 0.00%)      }
+        .           
+        .               pub(crate) fn topic_name_ids(&self) -> HashMap<String, [u8; 16]> {
+        .                   let mut out = HashMap::new();
+        .                   let Some(md) = &self.metadata else {
+        .                       return out;
+        .                   };
+        .                   for t in &md.topics {
+        .                       if let Some(name) = &t.name {
+-- line 2285 ----------------------------------------
+-- line 3469 ----------------------------------------
+        .                       recovery,
+        .                   }
+        .               }
+        .           
+        .               #[expect(
+        .                   clippy::too_many_arguments,
+        .                   reason = "private helper accumulates records, byte budgets, error recovery, and completed partitions across leaders"
+        .               )]
+       14 ( 0.00%)      fn apply_fetch_body(
+        .                   &mut self,
+        .                   node: i32,
+        .                   body: FetchBody,
+        .                   out: &mut Vec<FetchedRecord>,
+        .                   out_bytes: &mut usize,
+        .                   fenced: &mut Vec<(String, i32)>,
+        .                   need_offsets: &mut Vec<(String, i32, i64)>,
+        .                   completed: &mut PartitionMap<()>,
+        .                   budget_reached: &mut bool,
+        .               ) -> Result<FetchRetry> {
+        .                   let FetchBody {
+        .                       topics: fetched,
+        4 ( 0.00%)              batches,
+        4 ( 0.00%)              endpoints,
+        .                   } = body;
+        .                   self.cluster.apply_node_endpoints(&endpoints);
+        1 ( 0.00%)          let id_names = self.topic_id_names();
+      712 ( 0.00%)  => work/consumer-aborts/harness-baseline/src/consumer.rs:<partitionline::consumer::Consumer>::topic_id_names (1x)
+        .                   let mut retry = FetchRetry::None;
+       32 ( 0.00%)          for (topic, topic_batches) in fetched.into_iter().zip(batches) {
+        .                       if *budget_reached {
+        .                           break;
+        .                       }
+        1 ( 0.00%)              let name = if !topic.topic.is_empty() {
+        .                           topic.topic
+        .                       } else if let Some(n) = id_names.get(&topic.topic_id) {
+        2 ( 0.00%)                  n.clone()
+      106 ( 0.00%)  => /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/string.rs:<alloc::string::String as core::clone::Clone>::clone (1x)
+        .                       } else {
+        .                           continue;
+        .                       };
+      118 ( 0.00%)              for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
+        .                           if *budget_reached {
+        .                               break;
+        .                           }
+        6 ( 0.00%)                  if self.cfg.rack.is_some() {
+        .                               if let Some(replica) = part.preferred_read_replica() {
+        .                                   if replica != node {
+        .                                       let _prev = self.preferred.insert(&name, part.partition, replica);
+        .                                       retry = retry.merge(FetchRetry::Redirect);
+        .                                       continue;
+        .                                   }
+        .                               }
+        .                           }
+       30 ( 0.00%)                  if part.error_code == error::OFFSET_OUT_OF_RANGE {
+        .                               let is_leader = self
+        .                                   .cluster
+        .                                   .leader(&name, part.partition)
+        .                                   .ok()
+        .                                   .map(|(l, _)| l)
+        .                                   == Some(node);
+        .                               if self.preferred.remove(&name, part.partition).is_some() || !is_leader {
+        .                                   let _ = self.preferred.remove(&name, part.partition);
+-- line 3528 ----------------------------------------
+-- line 3571 ----------------------------------------
+        .                                               part.partition,
+        .                                               crate::LATEST_TIMESTAMP,
+        .                                           ));
+        .                                       }
+        .                                       continue;
+        .                                   }
+        .                               }
+        .                           }
+       24 ( 0.00%)                  if part.error_code == error::FENCED_LEADER_EPOCH
+        .                               || part.error_code == error::UNKNOWN_LEADER_EPOCH
+        .                           {
+        .                               fenced.push((name.clone(), part.partition));
+        .                               continue;
+        .                           }
+       12 ( 0.00%)                  if part.error_code != 0 {
+        .                               let e = Error::broker(part.error_code, format!("{}-{}", name, part.partition));
+        .                               if e.is_retriable() {
+        .                                   let applied = part.current_leader_id >= 0
+        .                                       && self.cluster.apply_current_leader(
+        .                                           &name,
+        .                                           part.partition,
+        .                                           part.current_leader_id,
+        .                                           part.current_leader_epoch,
+-- line 3593 ----------------------------------------
+-- line 3599 ----------------------------------------
+        .                                       self.cluster.invalidate_topic(&name);
+        .                                       let _ = self.conns.remove(&node);
+        .                                       retry = retry.merge(FetchRetry::Backoff);
+        .                                   }
+        .                                   continue;
+        .                               }
+        .                               return Err(e);
+        .                           }
+       18 ( 0.00%)                  if part.is_diverging_epoch() && part.diverging_end_offset >= 0 {
+        .                               self.advance(&name, part.partition, part.diverging_end_offset);
+        .                               self.set_last_fetched_epoch(&name, part.partition, part.diverging_epoch);
+        .                               self.drop_pending_for(&name, part.partition);
+        .                               retry = retry.merge(FetchRetry::Redirect);
+        .                               continue;
+        .                           }
+       66 ( 0.00%)                  let part_key = (name.clone(), part.partition);
+      784 ( 0.00%)  => /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/string.rs:<alloc::string::String as core::clone::Clone>::clone (6x)
+        6 ( 0.00%)                  let isolation = self.cfg.isolation_level;
+        .                           let has_txn_headers = part_batches
+        .                               .iter()
+       18 ( 0.00%)                      .any(|b| b.is_transactional() || b.is_control_batch())
+        .                               || self
+        .                                   .aborted_pids
+        .                                   .get(&part_key)
+        .                                   .is_some_and(|m| !m.is_empty());
+        .           
+        6 ( 0.00%)                  if isolation == crate::IsolationLevel::ReadCommitted {
+       12 ( 0.00%)                      let pending = self.aborted_txs.entry(part_key.clone()).or_default();
+        .                               let completed_txs = self.completed_txs.entry(part_key.clone()).or_default();
+        .                               let active = self.aborted_pids.entry(part_key.clone()).or_default();
+      159 ( 0.00%)                      for &(pid, first) in &part.aborted_transactions {
+      106 ( 0.00%)                          if !completed_txs.contains(&(pid, first))
+        .                                       && active.get(&pid) != Some(&first)
+      916 ( 0.00%)                              && !pending.iter().any(|&(p, f)| p == pid && f == first)
+        .                                   {
+        .                                       pending.push((pid, first));
+        .                                   }
+        .                               }
+        .                               pending.sort_by_key(|a| std::cmp::Reverse(a.1));
+        .                           }
+        .           
+        .                           let req_offset = self
+        .                               .assigned
+        .                               .iter()
+       42 ( 0.00%)                      .find(|(t, p, _)| t == &name && *p == part.partition)
+        .                               .map_or(0, |(_, _, off)| *off);
+        .           
+        .                           let mut next: Option<i64> = None;
+        .                           let mut last_epoch = crate::RecordBatch::NO_PARTITION_LEADER_EPOCH;
+        .                           let mut reached_lso = false;
+        .           
+      574 ( 0.00%)                  for encoded in part_batches {
+        .                               let is_control = encoded.is_control_batch();
+    1,076 ( 0.00%)                      let is_first_batch = out.is_empty() && self.pending.is_empty();
+      269 ( 0.00%)                      let budget = self.cfg.buffer_memory;
+        .                               // Already over budget: this batch would be refused below
+        .                               // whatever its size, so skip it without decompressing.
+    1,883 ( 0.00%)                      if budget > 0
+        .                                   && !is_first_batch
+        .                                   && !is_control
+      804 ( 0.00%)                          && self.buffered_bytes.saturating_add(*out_bytes) > budget
+        .                               {
+        .                                   *budget_reached = true;
+        .                                   break;
+        .                               }
+    2,421 ( 0.00%)                      let batch = encoded.decode()?;
+      807 ( 0.00%)                      if budget > 0 && !is_first_batch && !is_control {
+        .                                   let batch_bytes = batch_records_bytes(&batch.records);
+      268 ( 0.00%)                          let current_total = self.buffered_bytes.saturating_add(*out_bytes);
+      536 ( 0.00%)                          if current_total.saturating_add(batch_bytes) > budget {
+        .                                       *budget_reached = true;
+        .                                       break;
+        .                                   }
+        .                               }
+        .           
+    1,076 ( 0.00%)                      if isolation == crate::IsolationLevel::ReadCommitted
+        .                                   && part.last_stable_offset >= 0
+        .                                   && batch.base_offset >= part.last_stable_offset
+        .                               {
+        .                                   break;
+        .                               }
+        .           
+      269 ( 0.00%)                      let batch_last = batch.last_offset();
+        .                               let batch_next = batch.records.last().map_or_else(
+        .                                   || batch.next_offset(),
+      269 ( 0.00%)                          |r| (r.offset + 1).max(batch.next_offset()),
+        .                               );
+        .           
+      269 ( 0.00%)                      if isolation == crate::IsolationLevel::ReadCommitted {
+        .                                   let pending = self.aborted_txs.entry(part_key.clone()).or_default();
+        .                                   let active = self.aborted_pids.entry(part_key.clone()).or_default();
+      421 ( 0.00%)                          while let Some(&(pid, first)) = pending.last() {
+      630 ( 0.00%)                              if first <= batch_last {
+        .                                           let _ = pending.pop();
+        .                                           let _ = active.insert(pid, first);
+        .                                       } else {
+        .                                           break;
+        .                                       }
+        .                                   }
+        .           
+      538 ( 0.00%)                          if batch.is_control_batch() {
+        .                                       if is_abort_marker(&batch) {
+        .                                           let active = self.aborted_pids.entry(part_key.clone()).or_default();
+        .                                           if let Some(first) = active.remove(&batch.producer_id) {
+        .                                               let completed_txs =
+        .                                                   self.completed_txs.entry(part_key.clone()).or_default();
+        .                                               let _ = completed_txs.insert((batch.producer_id, first));
+        .                                           }
+        .                                       }
+        .                                       if batch_next >= req_offset {
+        .                                           next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+        .                                           last_epoch = batch.partition_leader_epoch;
+        .                                       }
+        .                                       continue;
+        .                                   }
+        .           
+      538 ( 0.00%)                          if has_txn_headers && batch.is_transactional() {
+        .                                       let active = self.aborted_pids.entry(part_key.clone()).or_default();
+        .                                       if let Some(&first) = active.get(&batch.producer_id) {
+      212 ( 0.00%)                                  if batch.base_offset >= first {
+        .                                               if batch_next >= req_offset {
+        .                                                   next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+        .                                                   last_epoch = batch.partition_leader_epoch;
+        .                                               }
+        .                                               continue;
+        .                                           }
+        .                                       }
+        .                                   }
+-- line 3725 ----------------------------------------
+-- line 3726 ----------------------------------------
+        .                               } else if batch.is_control_batch() {
+        .                                   if batch_next >= req_offset {
+        .                                       next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+        .                                       last_epoch = batch.partition_leader_epoch;
+        .                                   }
+        .                                   continue;
+        .                               }
+        .           
+      216 ( 0.00%)                      let is_transactional = batch.is_transactional();
+        .                               let timestamp_type = batch.timestamp_type();
+1,729,512 ( 0.80%)                      for rec in batch.records {
+  108,000 ( 0.05%)                          let offset = rec.offset;
+  540,000 ( 0.25%)                          if isolation == crate::IsolationLevel::ReadCommitted
+        .                                       && part.last_stable_offset >= 0
+        .                                       && offset >= part.last_stable_offset
+        .                                   {
+        .                                       reached_lso = true;
+        .                                       break;
+        .                                   }
+  216,000 ( 0.10%)                          if offset >= req_offset {
+  108,000 ( 0.05%)                              next = Some(next.map_or(offset + 1, |c| c.max(offset + 1)));
+  108,000 ( 0.05%)                              last_epoch = batch.partition_leader_epoch;
+        .                                   } else {
+        .                                       continue;
+        .                                   }
+  108,000 ( 0.05%)                          if isolation == crate::IsolationLevel::ReadCommitted {
+        .                                       let active = self.aborted_pids.entry(part_key.clone()).or_default();
+        .                                       if let Some(&first) = active.get(&batch.producer_id) {
+        .                                           if has_txn_headers {
+        .                                               if is_transactional && offset >= first {
+        .                                                   continue;
+        .                                               }
+        .                                           } else if offset >= first {
+        .                                               continue;
+        .                                           }
+        .                                       }
+        .                                   }
+        .                                   let rec_b = single_record_bytes(&rec);
+  108,000 ( 0.05%)                          *out_bytes = out_bytes.saturating_add(rec_b);
+1,188,000 ( 0.55%)                          out.push(FetchedRecord {
+  324,000 ( 0.15%)                              topic: name.clone(),
+11,449,926 ( 5.30%)  => /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/string.rs:<alloc::string::String as core::clone::Clone>::clone (108,000x)
+  108,000 ( 0.05%)                              partition: part.partition,
+        .                                       offset,
+  216,000 ( 0.10%)                              timestamp: rec.timestamp,
+        .                                       timestamp_type,
+  540,000 ( 0.25%)                              key: rec.key,
+  432,000 ( 0.20%)                              value: rec.value,
+  432,000 ( 0.20%)                              headers: rec.headers,
+  108,000 ( 0.05%)                              leader_epoch: (batch.partition_leader_epoch >= 0)
+        .                                           .then_some(batch.partition_leader_epoch),
+        .                                   });
+        .                               }
+        .                               if reached_lso {
+        .                                   break;
+        .                               }
+      648 ( 0.00%)                      if batch_next >= req_offset {
+        .                                   next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+      216 ( 0.00%)                          last_epoch = batch.partition_leader_epoch;
+        .                               }
+        .                           }
+       18 ( 0.00%)                  if let Some(n) = next {
+        6 ( 0.00%)                      self.advance(&name, part.partition, n);
+        6 ( 0.00%)                      self.set_last_fetched_epoch(&name, part.partition, last_epoch);
+       18 ( 0.00%)                      let _ = completed.insert(&name, part.partition, ());
+    4,353 ( 0.00%)  => work/consumer-aborts/harness-baseline/src/consumer.rs:<partitionline::consumer::PartitionMap<()>>::insert (6x)
+        .                           } else if !*budget_reached {
+        .                               let _ = completed.insert(&name, part.partition, ());
+        .                           }
+       18 ( 0.00%)                  if *budget_reached {
+        .                               break;
+        .                           }
+        .                       }
+        2 ( 0.00%)              if *budget_reached {
+        .                           break;
+        .                       }
+        1 ( 0.00%)          }
+        2 ( 0.00%)          Ok(retry)
+        8 ( 0.00%)      }
+        .           
+        .               /// Negotiated ApiVersions for this connection.
+        .               pub fn versions(&self) -> &HashMap<i16, ApiVersion> {
+        .                   &self.versions
+        .               }
+        .           
+        .               #[expect(
+        .                   dead_code,
+-- line 3810 ----------------------------------------
+
+  434,769 ( 0.20%)  <counts for unidentified lines in work/consumer-aborts/harness-baseline/src/consumer.rs>
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs
+--------------------------------------------------------------------------------
+Ir 
+
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context.rs
+--------------------------------------------------------------------------------
+Ir 
+
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/consumer-aborts/harness-baseline/src/protocol/fetch.rs
+--------------------------------------------------------------------------------
+Ir          
+
+-- line 783 ----------------------------------------
+ .               }
+ .           
+ .               /// Java `FetchResponse.divergingEpoch` (`None` is empty `Optional`).
+ .               ///
+ .               /// Epoch `< 0` is empty (JSON default [`EpochEndOffset::UNDEFINED_EPOCH`]).
+ .               /// The pair is `(epoch, end_offset)`.
+ .               #[must_use]
+ .               pub fn diverging_epoch(&self) -> Option<(i32, i64)> {
+30 ( 0.00%)          (self.diverging_epoch >= 0).then_some((self.diverging_epoch, self.diverging_end_offset))
+ .               }
+ .           
+ .               /// Java `FetchResponse.isDivergingEpoch`.
+ .               #[must_use]
+ .               pub fn is_diverging_epoch(&self) -> bool {
+ .                   self.diverging_epoch().is_some()
+ .               }
+ .           
+-- line 799 ----------------------------------------
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/buf/buf_impl.rs
+--------------------------------------------------------------------------------
+Ir                 
+
+-- line 22 ----------------------------------------
+        .                   }
+        .           
+        .                   // try to convert directly from the bytes
+        .                   // this Option<ret> trick is to avoid keeping a borrow on self
+        .                   // when advance() is called (mut borrow) and to call bytes() only once
+        .                   let ret = $this
+        .                       .chunk()
+        .                       .get(..SIZE)
+    2,152 ( 0.00%)              .map(|src| unsafe { $typ::$conv(*(src as *const _ as *const [_; SIZE])) });
+        .           
+        .                   if let Some(ret) = ret {
+        .                       // if the direct conversion was possible, advance and return
+        .                       $this.advance(SIZE);
+        .                       return Ok(ret);
+        .                   } else {
+        .                       // if not we copy the bytes in a temp buffer then convert
+        .                       let mut buf = [0; SIZE];
+-- line 38 ----------------------------------------
+-- line 267 ----------------------------------------
+        .               ///
+        .               /// assert!(buf.has_remaining());
+        .               ///
+        .               /// buf.get_u8();
+        .               ///
+        .               /// assert!(!buf.has_remaining());
+        .               /// ```
+        .               fn has_remaining(&self) -> bool {
+  134,500 ( 0.06%)          self.remaining() > 0
+        .               }
+        .           
+        .               /// Copies bytes from `self` into `dst`.
+        .               ///
+        .               /// The cursor is advanced by the number of bytes copied. `self` must have
+        .               /// enough remaining bytes to fill `dst`.
+        .               ///
+        .               /// # Examples
+-- line 283 ----------------------------------------
+-- line 319 ----------------------------------------
+        .               /// This function panics if there is no more remaining data in `self`.
+        .               fn get_u8(&mut self) -> u8 {
+        .                   if self.remaining() < 1 {
+        .                       panic_advance(&TryGetError {
+        .                           requested: 1,
+        .                           available: 0,
+        .                       })
+        .                   }
+1,193,284 ( 0.55%)          let ret = self.chunk()[0];
+        .                   self.advance(1);
+        .                   ret
+        .               }
+        .           
+        .               /// Gets a signed 8 bit integer from `self`.
+        .               ///
+        .               /// The current position is advanced by 1.
+        .               ///
+-- line 335 ----------------------------------------
+-- line 347 ----------------------------------------
+        .               /// This function panics if there is no more remaining data in `self`.
+        .               fn get_i8(&mut self) -> i8 {
+        .                   if self.remaining() < 1 {
+        .                       panic_advance(&TryGetError {
+        .                           requested: 1,
+        .                           available: 0,
+        .                       });
+        .                   }
+      269 ( 0.00%)          let ret = self.chunk()[0] as i8;
+        .                   self.advance(1);
+        .                   ret
+        .               }
+        .           
+        .               /// Gets an unsigned 16 bit integer from `self` in big-endian byte order.
+        .               ///
+        .               /// The current position is advanced by 2.
+        .               ///
+-- line 363 ----------------------------------------
+-- line 2457 ----------------------------------------
+        .                   reader::new(self)
+        .               }
+        .           }
+        .           
+        .           macro_rules! deref_forward_buf {
+        .               () => {
+        .                   #[inline]
+        .                   fn remaining(&self) -> usize {
+  269,000 ( 0.12%)              (**self).remaining()
+        .                   }
+        .           
+        .                   #[inline]
+        .                   fn chunk(&self) -> &[u8] {
+1,481,383 ( 0.69%)              (**self).chunk()
+        .                   }
+        .           
+        .                   #[cfg(feature = "std")]
+        .                   #[inline]
+        .                   fn chunks_vectored<'b>(&'b self, dst: &mut [IoSlice<'b>]) -> usize {
+        .                       (**self).chunks_vectored(dst)
+        .                   }
+        .           
+-- line 2478 ----------------------------------------
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/time/timeout.rs
+--------------------------------------------------------------------------------
+Ir 
+
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/runtime.rs
+--------------------------------------------------------------------------------
+Ir 
+
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: work/consumer-aborts/harness-baseline/src/protocol/records.rs
+--------------------------------------------------------------------------------
+Ir                 
+
+-- line 191 ----------------------------------------
+        .               Snappy = 2,
+        .               /// LZ4 frame.
+        .               Lz4 = 3,
+        .           }
+        .           
+        .           impl Compression {
+        .               /// Codec from the low 3 bits of batch attributes.
+        .               pub fn from_attributes(attr: i16) -> Result<Self> {
+    1,076 ( 0.00%)          match attr & 0x07 {
+        .                       0 => Ok(Self::None),
+        .                       1 => Ok(Self::Gzip),
+        .                       2 => Ok(Self::Snappy),
+        .                       3 => Ok(Self::Lz4),
+        .                       n => Err(Error::protocol(format!("unsupported compression {n}"))),
+        .                   }
+        .               }
+        .           
+-- line 207 ----------------------------------------
+-- line 1093 ----------------------------------------
+        .               #[must_use]
+        .               pub fn is_transactional(&self) -> bool {
+        .                   self.attributes & ATTR_TRANSACTIONAL != 0
+        .               }
+        .           
+        .               /// Java `DefaultRecordBatch.isControlBatch`.
+        .               #[must_use]
+        .               pub fn is_control_batch(&self) -> bool {
+      269 ( 0.00%)          self.attributes & ATTR_CONTROL != 0
+        .               }
+        .           
+        .               /// Set [`ATTR_TRANSACTIONAL`].
+        .               #[must_use]
+        .               pub fn with_transactional(mut self, transactional: bool) -> Self {
+        .                   if transactional {
+        .                       self.attributes |= ATTR_TRANSACTIONAL;
+        .                   } else {
+-- line 1109 ----------------------------------------
+-- line 1157 ----------------------------------------
+        .               #[must_use]
+        .               pub fn base_offset(&self) -> i64 {
+        .                   self.base_offset
+        .               }
+        .           
+        .               /// Java `DefaultRecordBatch.lastOffset` (`baseOffset + count - 1`).
+        .               #[must_use]
+        .               pub fn last_offset(&self) -> i64 {
+      807 ( 0.00%)          self.base_offset.saturating_add(self.record_count_i64() - 1)
+        .               }
+        .           
+        .               /// Java `DefaultRecordBatch.nextOffset` (`lastOffset + 1`).
+        .               #[must_use]
+        .               pub fn next_offset(&self) -> i64 {
+        .                   self.base_offset.saturating_add(self.record_count_i64())
+        .               }
+        .           
+-- line 1173 ----------------------------------------
+-- line 2254 ----------------------------------------
+        .           impl EncodedBatch {
+        .               /// Batch attribute transactional bit.
+        .               pub(crate) fn is_transactional(&self) -> bool {
+        .                   self.attributes & ATTR_TRANSACTIONAL != 0
+        .               }
+        .           
+        .               /// Batch attribute control bit.
+        .               pub(crate) fn is_control_batch(&self) -> bool {
+      538 ( 0.00%)          self.attributes & ATTR_CONTROL != 0
+        .               }
+        .           
+        .               /// Decompress and decode the records, enforcing
+        .               /// [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`].
+        .               pub(crate) fn decode(self) -> Result<RecordBatch> {
+    1,076 ( 0.00%)          decode_checked_batch(
+85,716,837 (39.64%)  => work/consumer-aborts/harness-baseline/src/protocol/records.rs:partitionline::protocol::records::decode_checked_batch (269x)
+        .                       self.base_offset,
+    1,076 ( 0.00%)              self.body,
+        .                       DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+        .                   )
+        .               }
+        .           }
+        .           
+        .           /// Split consecutive magic-v2 batches like [`decode_record_batches`] (a
+        .           /// trailing partial batch is ignored), checking framing, magic, CRC32-C and
+        .           /// codec without decompressing anything.
+-- line 2278 ----------------------------------------
+-- line 2365 ----------------------------------------
+        .                       "Record is corrupt (stored crc = {crc}, computed crc = {computed})"
+        .                   )));
+        .               }
+        .               let _codec = Compression::from_attributes(buf::get_i16(&mut head)?)?;
+        .               Ok((base_offset, body))
+        .           }
+        .           
+        .           /// Decode a body that [`take_checked_batch`] already framed and checked.
+    2,421 ( 0.00%)  fn decode_checked_batch(
+        .               base_offset: i64,
+        .               mut body: Bytes,
+        .               max_decode_bytes: usize,
+        .           ) -> Result<RecordBatch> {
+        .               let partition_leader_epoch = buf::get_i32(&mut body)?;
+      269 ( 0.00%)      let magic = buf::get_i8(&mut body)?;
+        .               let _crc = buf::get_u32(&mut body)?;
+        .               let attributes = buf::get_i16(&mut body)?;
+        .               let compression = Compression::from_attributes(attributes)?;
+        .               let _last_delta = buf::get_i32(&mut body)?;
+      538 ( 0.00%)      let base_timestamp = buf::get_i64(&mut body)?;
+    5,649 ( 0.00%)  => /workspace/work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_i64::<bytes::bytes::Bytes> (269x)
+      538 ( 0.00%)      let max_timestamp = buf::get_i64(&mut body)?;
+    5,649 ( 0.00%)  => /workspace/work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_i64::<bytes::bytes::Bytes> (269x)
+      538 ( 0.00%)      let producer_id = buf::get_i64(&mut body)?;
+    5,649 ( 0.00%)  => /workspace/work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_i64::<bytes::bytes::Bytes> (269x)
+      538 ( 0.00%)      let producer_epoch = buf::get_i16(&mut body)?;
+    5,649 ( 0.00%)  => /workspace/work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_i16::<bytes::bytes::Bytes> (269x)
+      538 ( 0.00%)      let base_sequence = buf::get_i32(&mut body)?;
+    5,649 ( 0.00%)  => /workspace/work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_i32::<bytes::bytes::Bytes> (269x)
+    1,076 ( 0.00%)      let count = buf::get_i32(&mut body)?;
+    5,649 ( 0.00%)  => /workspace/work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_i32::<bytes::bytes::Bytes> (269x)
+      538 ( 0.00%)      if count < 0 {
+        .                   return Err(Error::protocol(format!(
+        .                       "Found invalid record count {count} in magic v{magic} batch"
+        .                   )));
+        .               }
+    1,345 ( 0.00%)      let mut records_cur = match compression {
+        .                   Compression::None => {
+      538 ( 0.00%)              if body.len() > max_decode_bytes {
+        .                           return Err(Error::protocol(
+        .                               "Decompressed batch exceeds maximum allowable size",
+        .                           ));
+        .                       }
+    1,614 ( 0.00%)              body
+        .                   }
+        .                   Compression::Gzip => Bytes::from(gzip_decompress(&body, max_decode_bytes)?),
+        .                   Compression::Snappy => Bytes::from(snappy_decompress(&body, max_decode_bytes)?),
+        .                   Compression::Lz4 => Bytes::from(lz4_decompress(&body, max_decode_bytes)?),
+        .               };
+      269 ( 0.00%)      let count_usize = buf::usize_from_i32(count)?;
+    2,421 ( 0.00%)  => /workspace/work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::usize_from_i32 (269x)
+      538 ( 0.00%)      if count_usize > records_cur.remaining() {
+        .                   return Err(Error::protocol(
+        .                       "Incorrect declared record count, exceeds remaining bytes",
+        .                   ));
+        .               }
+        .               let mut records = Vec::with_capacity(count_usize);
+        .               for _ in 0..count_usize {
+  134,500 ( 0.06%)          if !records_cur.has_remaining() {
+        .                       return Err(Error::protocol(
+        .                           "Incorrect declared batch size, premature EOF reached",
+        .                       ));
+        .                   }
+1,614,000 ( 0.75%)          records.push(decode_record(
+76,554,172 (35.41%)  => work/consumer-aborts/harness-baseline/src/protocol/records.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes> (134,500x)
+        .                       &mut records_cur,
+        .                       base_offset,
+        .                       base_timestamp,
+        .                   )?);
+        .               }
+    1,076 ( 0.00%)      if count > 0 && records_cur.has_remaining() {
+        .                   return Err(Error::protocol(
+        .                       "Incorrect declared batch size, records still remaining in file",
+        .                   ));
+        .               }
+    3,766 ( 0.00%)      Ok(RecordBatch {
+        .                   base_offset,
+        .                   partition_leader_epoch,
+        .                   attributes,
+        .                   base_timestamp,
+        .                   max_timestamp,
+        .                   producer_id,
+        .                   producer_epoch,
+        .                   base_sequence,
+    1,345 ( 0.00%)          records,
+        .               })
+    3,228 ( 0.00%)  }
+        .           
+        .           /// Java `DefaultRecord.readFrom` (magic-v2 inner record).
+1,614,000 ( 0.75%)  fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> Result<Record> {
+  134,500 ( 0.06%)      let size_of_body_in_bytes = buf::get_varint(buf)?;
+  269,000 ( 0.12%)      if size_of_body_in_bytes < 0 {
+        .                   return Err(Error::protocol("negative record length"));
+        .               }
+        .               let remaining = buf.remaining();
+        .               let len_usize = buf::usize_from_i32(size_of_body_in_bytes)?;
+  269,000 ( 0.12%)      if remaining < len_usize {
+        .                   return Err(Error::protocol(format!(
+        .                       "Invalid record size: expected {size_of_body_in_bytes} bytes in record payload, but instead the buffer has only {remaining} remaining bytes."
+        .                   )));
+        .               }
+  403,500 ( 0.19%)      let mut inner = buf.copy_to_bytes(len_usize);
+5,644,696 ( 2.61%)  => /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:<bytes::bytes::Bytes as bytes::buf::buf_impl::Buf>::copy_to_bytes (134,500x)
+        .               let _attributes = buf::get_i8(&mut inner)?;
+        .               let timestamp_delta = buf::get_varlong(&mut inner)?;
+        .               let offset_delta = buf::get_varint(&mut inner)?;
+  134,500 ( 0.06%)      let key = read_bytes_varint(&mut inner)?;
+12,105,000 ( 5.60%)  => work/consumer-aborts/harness-baseline/src/protocol/records.rs:partitionline::protocol::records::read_bytes_varint::<bytes::bytes::Bytes> (134,500x)
+  134,500 ( 0.06%)      let value = read_bytes_varint(&mut inner)?;
+13,988,000 ( 6.47%)  => work/consumer-aborts/harness-baseline/src/protocol/records.rs:partitionline::protocol::records::read_bytes_varint::<bytes::bytes::Bytes> (134,500x)
+  269,000 ( 0.12%)      let num_headers = buf::get_varint(&mut inner)?;
+5,514,500 ( 2.55%)  => /workspace/work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_varint::<bytes::bytes::Bytes> (134,500x)
+  269,000 ( 0.12%)      if num_headers < 0 {
+        .                   return Err(Error::protocol(format!(
+        .                       "Found invalid number of record headers {num_headers}"
+        .                   )));
+        .               }
+  134,500 ( 0.06%)      let num_headers_usize = buf::usize_from_i32(num_headers)?;
+1,210,500 ( 0.56%)  => /workspace/work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::usize_from_i32 (134,500x)
+  269,000 ( 0.12%)      if num_headers_usize > inner.remaining() {
+        .                   return Err(Error::protocol(format!(
+        .                       "Found invalid number of record headers. {num_headers} is larger than the remaining size of the buffer"
+        .                   )));
+        .               }
+        .               let mut headers = Vec::with_capacity(num_headers_usize);
+        .               for _ in 0..num_headers_usize {
+        .                   let header_key_size = buf::get_varint(&mut inner)?;
+        .                   if header_key_size < 0 {
+-- line 2479 ----------------------------------------
+-- line 2484 ----------------------------------------
+        .                   let key_len_usize = buf::usize_from_i32(header_key_size)?;
+        .                   buf::need(&inner, key_len_usize)?;
+        .                   let mut key_buf = vec![0u8; key_len_usize];
+        .                   inner.copy_to_slice(&mut key_buf);
+        .                   let key = String::from_utf8(key_buf).map_err(|e| Error::protocol(e.to_string()))?;
+        .                   let value = read_bytes_varint(&mut inner)?;
+        .                   headers.push(Header { key, value });
+        .               }
+  269,000 ( 0.12%)      if inner.remaining() != 0 {
+        .                   let consumed = len_usize - inner.remaining();
+        .                   return Err(Error::protocol(format!(
+        .                       "Invalid record size: expected to read {size_of_body_in_bytes} bytes in record payload, but instead read {consumed}"
+        .                   )));
+        .               }
+2,421,000 ( 1.12%)      Ok(Record {
+  134,500 ( 0.06%)          offset: base_offset + i64::from(offset_delta),
+  134,500 ( 0.06%)          timestamp: base_timestamp + timestamp_delta,
+        .                   key,
+        .                   value,
+  538,000 ( 0.25%)          headers,
+        .               })
+1,076,000 ( 0.50%)  }
+        .           
+1,614,000 ( 0.75%)  fn read_bytes_varint<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
+        .               let len = buf::get_varint(buf)?;
+        .               buf::read_bytes(buf, len)
+1,076,000 ( 0.50%)  }
+        .           
+        .           #[cfg(test)]
+        .           mod tests {
+        .               use super::*;
+        .           
+        .               #[test]
+        .               fn header_getters_match_java() {
+        .                   let h = Header::new("k", Bytes::from_static(b"v"));
+-- line 2518 ----------------------------------------
+
+1,617,713 ( 0.75%)  <counts for unidentified lines in work/consumer-aborts/harness-baseline/src/protocol/records.rs>
+
+--------------------------------------------------------------------------------
+The following files chosen for auto-annotation could not be found:
+--------------------------------------------------------------------------------
+  /rust/deps/hashbrown-0.17.1/src/alloc.rs
+  /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs
+  /rust/deps/hashbrown-0.17.1/src/control/group/sse2.rs
+  /rust/deps/hashbrown-0.17.1/src/control/tag.rs
+  /rust/deps/hashbrown-0.17.1/src/lib.rs
+  /rust/deps/hashbrown-0.17.1/src/map.rs
+  /rust/deps/hashbrown-0.17.1/src/raw.rs
+  /rust/deps/hashbrown-0.17.1/src/rustc_entry.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/slice.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/string.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/into_iter.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/alloc/global.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/array/equality.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/bool.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cell.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/clone.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/convert/num.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/future/future.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/mod.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/adapters/step_by.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/adapters/zip.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/range.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/macros/mod.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/mem/mod.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/int_macros.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/option.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/non_null.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/cmp.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/iter/macros.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/mod.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/sort/shared/smallsort.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/sort/stable/mod.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/sync/atomic.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/tuple.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/collections/hash/map.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/hash/random.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/rt.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/alloc/unix.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/backtrace.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/thread_local/native/lazy.rs
+  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/thread_local/native/mod.rs
+
+--------------------------------------------------------------------------------
+Ir                  
+--------------------------------------------------------------------------------
+65,473,213 (30.28%)  events annotated
+

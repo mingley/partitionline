@@ -1,0 +1,14 @@
+   Compiling partitionline v0.1.0 (/workspace/work/consumer-aborts/invariant-baseline)
+error[E0599]: no method named `fetch_attempts` found for struct `FixtureBroker` in the current scope
+    --> tests/consumer_fetch_semantics.rs:1072:23
+     |
+1072 |     assert_eq!(broker.fetch_attempts(), 6);
+     |                       ^^^^^^^^^^^^^^ method not found in `FixtureBroker`
+     |
+    ::: tests/common/fetch_fixture.rs:158:1
+     |
+ 158 | pub struct FixtureBroker {
+     | ------------------------ method `fetch_attempts` not found for this struct
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `partitionline` (test "consumer_fetch_semantics") due to 1 previous error

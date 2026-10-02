@@ -1,0 +1,5 @@
+   Compiling partitionline v0.1.0 (/workspace/work/consumer-aborts/candidate)
+   Compiling codec v0.1.0 (/workspace/work/consumer-aborts/candidate/benchmarks/codec)
+   Compiling nullbroker v0.1.0 (/workspace/work/consumer-aborts/candidate/benchmarks/nullbroker)
+   Compiling runtime v0.1.0 (/workspace/work/consumer-aborts/candidate/benchmarks/runtime)
+    Finished `release` profile [optimized + debuginfo] target(s) in 1m 37s

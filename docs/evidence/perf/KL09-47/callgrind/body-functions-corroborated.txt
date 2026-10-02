@@ -1,0 +1,114 @@
+--------------------------------------------------------------------------------
+Profile data file '/workspace/work/consumer-aborts/callgrind/body.out' (creator: callgrind-3.24.0)
+--------------------------------------------------------------------------------
+I1 cache: 
+D1 cache: 
+LL cache: 
+Timerange: Basic block 0 - 77863986
+Trigger: Program termination
+Profiled target:  /workspace/work/consumer-aborts/corrected-baseline-bin/runtime --cell nb-fetch-committed-aborts --out /workspace/work/consumer-aborts/callgrind/run --repetitions 1 (PID 167955, part 1)
+Events recorded:  Ir
+Events shown:     Ir
+Event sort order: Ir
+Thresholds:       99
+Include dirs:     
+User annotated:   
+Auto-annotation:  off
+
+--------------------------------------------------------------------------------
+Ir                   
+--------------------------------------------------------------------------------
+216,217,383 (100.0%)  PROGRAM TOTALS
+
+--------------------------------------------------------------------------------
+Ir                    file:function
+--------------------------------------------------------------------------------
+432,434,766 (200.0%)  ???:(below main) [/usr/lib/x86_64-linux-gnu/libc.so.6]
+216,217,383 (100.0%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/future/future.rs:<tokio::runtime::scheduler::current_thread::Context>::enter::<core::task::poll::Poll<()>, <tokio::runtime::scheduler::current_thread::CoreGuard>::block_on<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>::{closure#0}::{closure#0}>
+216,217,383 (100.0%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs:std::rt::lang_start::<()>::{closure#0}
+216,217,383 (100.0%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs:std::rt::lang_start_internal
+216,217,383 (100.0%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs:std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+216,217,383 (100.0%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/rt.rs:std::rt::lang_start::<()>::{closure#0} [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+216,217,383 (100.0%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/rt.rs:std::rt::lang_start_internal [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+216,217,383 (100.0%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/backtrace.rs:std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+216,217,383 (100.0%)  /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context/runtime.rs:tokio::runtime::context::runtime::enter_runtime::<<tokio::runtime::scheduler::current_thread::CurrentThread>::block_on<runtime::fdrive::drive_fetch::{closure#0}>::{closure#0}, ()>
+216,217,383 (100.0%)  /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context/scoped.rs:<tokio::runtime::context::scoped::Scoped<tokio::runtime::scheduler::Context>>::set::<<tokio::runtime::scheduler::current_thread::CoreGuard>::enter<<tokio::runtime::scheduler::current_thread::CoreGuard>::block_on<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>::{closure#0}, core::option::Option<()>>::{closure#0}, (alloc::boxed::Box<tokio::runtime::scheduler::current_thread::Core>, core::option::Option<()>)>
+216,217,383 (100.0%)  /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/runtime.rs:<tokio::runtime::runtime::Runtime>::block_on::<runtime::fdrive::drive_fetch::{closure#0}>
+216,217,383 (100.0%)  /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs:<tokio::runtime::scheduler::current_thread::Context>::enter::<core::task::poll::Poll<()>, <tokio::runtime::scheduler::current_thread::CoreGuard>::block_on<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>::{closure#0}::{closure#0}>
+216,217,383 (100.0%)  /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs:<tokio::runtime::scheduler::current_thread::CoreGuard>::block_on::<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>
+216,217,383 (100.0%)  /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/time/timeout.rs:<tokio::time::timeout::Timeout<runtime::fdrive::drive_fetch::{closure#0}::{closure#0}> as core::future::future::Future>::poll
+216,217,383 (100.0%)  /workspace/work/consumer-aborts/harness-baseline/benchmarks/runtime/src/fdrive.rs:runtime::fdrive::drive_fetch::{closure#0}
+216,217,383 (100.0%)  /workspace/work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:runtime::main
+216,217,383 (100.0%)  /workspace/work/consumer-aborts/harness-baseline/src/consumer.rs:<partitionline::consumer::Consumer>::fetch_assigned_inner::{closure#0}
+216,217,383 (100.0%)  ???:0x000000000001d2c0 [/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2]
+216,217,383 (100.0%)  ???:0x0000000000029c30 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+216,217,383 (100.0%)  ???:main [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+216,217,383 (100.0%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context.rs:<tokio::runtime::scheduler::current_thread::CoreGuard>::block_on::<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>
+216,217,383 (100.0%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs:<tokio::runtime::context::scoped::Scoped<tokio::runtime::scheduler::Context>>::set::<<tokio::runtime::scheduler::current_thread::CoreGuard>::enter<<tokio::runtime::scheduler::current_thread::CoreGuard>::block_on<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>::{closure#0}, core::option::Option<()>>::{closure#0}, (alloc::boxed::Box<tokio::runtime::scheduler::current_thread::Core>, core::option::Option<()>)>
+216,217,383 (100.0%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs:<tokio::runtime::runtime::Runtime>::block_on::<runtime::fdrive::drive_fetch::{closure#0}>
+216,217,383 (100.0%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs:tokio::runtime::context::runtime::enter_runtime::<<tokio::runtime::scheduler::current_thread::CurrentThread>::block_on<runtime::fdrive::drive_fetch::{closure#0}>::{closure#0}, ()>
+216,217,383 (100.0%)  work/consumer-aborts/harness-baseline/benchmarks/runtime/src/fdrive.rs:runtime::fdrive::drive_fetch::{closure#0} [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+216,217,383 (100.0%)  work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:runtime::main [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+216,217,383 (100.0%)  work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:runtime::run_fetch [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+216,217,383 (100.0%)  work/consumer-aborts/harness-baseline/src/consumer.rs:<partitionline::consumer::Consumer>::apply_fetch_body [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+216,217,383 (100.0%)  work/consumer-aborts/harness-baseline/src/consumer.rs:<partitionline::consumer::Consumer>::fetch_assigned_inner::{closure#0} [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+216,217,383 (100.0%)  work/consumer-aborts/harness-baseline/src/consumer.rs:<tokio::time::timeout::Timeout<runtime::fdrive::drive_fetch::{closure#0}::{closure#0}> as core::future::future::Future>::poll
+ 85,720,819 (39.65%)  work/consumer-aborts/harness-baseline/src/protocol/records.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+ 85,716,837 (39.64%)  work/consumer-aborts/harness-baseline/src/protocol/records.rs:partitionline::protocol::records::decode_checked_batch [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 76,554,172 (35.41%)  work/consumer-aborts/harness-baseline/src/protocol/records.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 50,359,862 (23.29%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/collections/hash/map.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+ 49,335,200 (22.82%)  /rust/deps/hashbrown-0.17.1/src/rustc_entry.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 40,547,434 (18.75%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/string.rs:<alloc::string::String as core::clone::Clone>::clone [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 31,666,137 (14.65%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<alloc::string::String as core::clone::Clone>::clone
+ 30,637,365 (14.17%)  /workspace/work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:__rustc::__rust_alloc
+ 30,637,365 (14.17%)  work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:__rustc::__rust_alloc [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 30,006,856 (13.88%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+ 29,992,259 (13.87%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/sync/atomic.rs:<codec::CountingAlloc as core::alloc::global::GlobalAlloc>::alloc [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 29,870,775 (13.82%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(alloc::string::String, i32)> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 29,639,557 (13.71%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/clone.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+ 28,256,747 (13.07%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/alloc/unix.rs:<codec::CountingAlloc as core::alloc::global::GlobalAlloc>::alloc
+ 26,521,235 (12.27%)  ???:malloc [/usr/lib/x86_64-linux-gnu/libc.so.6]
+ 26,093,000 (12.07%)  work/consumer-aborts/harness-baseline/src/protocol/records.rs:partitionline::protocol::records::read_bytes_varint::<bytes::bytes::Bytes> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 24,438,400 (11.30%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs:<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 22,327,000 (10.33%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::records::read_bytes_varint::<bytes::bytes::Bytes>
+ 20,202,976 ( 9.34%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_unsigned_varint::<bytes::bytes::Bytes> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 19,117,296 ( 8.84%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(alloc::string::String, i32)>
+ 16,942,696 ( 7.84%)  /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:<bytes::bytes::Bytes as bytes::buf::buf_impl::Buf>::copy_to_bytes
+ 16,940,006 ( 7.83%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:<bytes::bytes::Bytes as bytes::buf::buf_impl::Buf>::copy_to_bytes [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 15,894,460 ( 7.35%)  ???:0x00000000000a12a0 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+ 14,588,863 ( 6.75%)  /rust/deps/hashbrown-0.17.1/src/map.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+ 14,193,624 ( 6.56%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i64> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+ 12,536,476 ( 5.80%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+  8,849,907 ( 4.09%)  ???:0x0000000000162b40 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+  8,757,768 ( 4.05%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i64>
+  8,015,828 ( 3.71%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+  7,760,170 ( 3.59%)  /workspace/work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:__rustc::__rust_dealloc
+  7,760,170 ( 3.59%)  work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:__rustc::__rust_dealloc [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+  7,327,232 ( 3.39%)  /workspace/work/consumer-aborts/harness-baseline/benchmarks/codec/src/lib.rs:<codec::CountingAlloc as core::alloc::global::GlobalAlloc>::dealloc
+  7,218,314 ( 3.34%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/alloc/unix.rs:<codec::CountingAlloc as core::alloc::global::GlobalAlloc>::dealloc
+  7,109,396 ( 3.29%)  ???:free [/usr/lib/x86_64-linux-gnu/libc.so.6]
+  5,918,000 ( 2.74%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+  5,514,500 ( 2.55%)  /workspace/work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_varint::<bytes::bytes::Bytes>
+  5,380,000 ( 2.49%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+  5,011,844 ( 2.32%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+  4,976,500 ( 2.30%)  work/consumer-aborts/harness-baseline/src/protocol/buf.rs:partitionline::protocol::buf::get_varint::<bytes::bytes::Bytes> [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+  4,452,879 ( 2.06%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs:<partitionline::consumer::Consumer>::apply_fetch_body
+  4,439,307 ( 2.05%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs:partitionline::protocol::records::decode_checked_batch
+  4,231,088 ( 1.96%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::raw_vec::RawVecInner>::try_allocate_in [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+  4,035,000 ( 1.87%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs:<alloc::vec::Vec<partitionline::protocol::records::Record>>::push_mut [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+  4,032,310 ( 1.86%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/sync/atomic.rs:bytes::bytes_mut::shared_v_clone [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+  3,727,824 ( 1.72%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/cmp.rs:<hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+  3,682,489 ( 1.70%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:<alloc::string::String as core::clone::Clone>::clone
+  3,176,352 ( 1.47%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:partitionline::protocol::buf::get_unsigned_varint::<bytes::bytes::Bytes>
+  3,129,014 ( 1.45%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::raw_vec::RawVecInner>::finish_grow [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+  3,128,073 ( 1.45%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs:<alloc::raw_vec::RawVecInner>::finish_grow
+  3,127,545 ( 1.45%)  /workspace/work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs:__rustc::__rust_realloc
+  3,127,212 ( 1.45%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs:<alloc::raw_vec::RawVec<partitionline::consumer::FetchedRecord>>::grow_one [/workspace/work/consumer-aborts/corrected-baseline-bin/runtime]
+  3,118,594 ( 1.44%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs:__rustc::__rust_realloc
+  2,606,904 ( 1.21%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(alloc::string::String, i32)>
+  2,431,222 ( 1.12%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:partitionline::protocol::records::decode_checked_batch
+  2,415,936 ( 1.12%)  /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs:<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i64>
+  2,403,784 ( 1.11%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/buf/buf_impl.rs:partitionline::protocol::buf::get_unsigned_varint::<bytes::bytes::Bytes>
+  2,286,500 ( 1.06%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+  2,016,155 ( 0.93%)  work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs:bytes::bytes_mut::shared_v_clone
+

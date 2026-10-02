@@ -1,0 +1,201 @@
+{
+  "cells": {
+    "nb-fetch-1000p": {
+      "cpu_ns_per_record": {
+        "baseline_median": 847.6,
+        "candidate_median": 856.2,
+        "delta_pct": 1.0146295422369,
+        "ci95_pct": [
+          -5.631045601105478,
+          31.026597665182344
+        ]
+      },
+      "allocations_per_record": {
+        "baseline_median": 2.1318,
+        "candidate_median": 1.9318,
+        "delta_pct": -9.381743127873165,
+        "ci95_pct": [
+          -9.381743127873165,
+          -9.381743127873165
+        ]
+      },
+      "process_peak_rss_bytes": {
+        "baseline_median": 9359360,
+        "candidate_median": 9342976,
+        "delta_pct": -0.17505470459519,
+        "ci95_pct": [
+          -2.013129102844635,
+          3.1881454872025206
+        ]
+      },
+      "phase_sampled_peak_rss_bytes": {
+        "baseline_median": 5144576,
+        "candidate_median": 5189632,
+        "delta_pct": 0.8757961783439461,
+        "ci95_pct": [
+          0.31847133757962887,
+          63.96538158929977
+        ]
+      },
+      "rec_s": {
+        "baseline_median": 167444.59471852623,
+        "candidate_median": 167570.9324824707,
+        "delta_pct": 0.07545048805954746,
+        "ci95_pct": [
+          -7.117153478280313,
+          1.6785590830166175
+        ]
+      },
+      "external_client_vmhwm_bytes": {
+        "baseline_median": 13090816,
+        "candidate_median": 13115392,
+        "delta_pct": 0.1877346683354153,
+        "ci95_pct": [
+          -0.6540018685767701,
+          1.5857913098636267
+        ]
+      }
+    },
+    "nb-fetch-bulk": {
+      "cpu_ns_per_record": {
+        "baseline_median": 2596.5,
+        "candidate_median": 2622.15,
+        "delta_pct": 0.9878682842287656,
+        "ci95_pct": [
+          -1.2022236328312896,
+          6.997632232941298
+        ]
+      },
+      "allocations_per_record": {
+        "baseline_median": 6.7723,
+        "candidate_median": 6.7717,
+        "delta_pct": -0.008859619331691437,
+        "ci95_pct": [
+          -0.008859619331691437,
+          -0.008859619331691437
+        ]
+      },
+      "process_peak_rss_bytes": {
+        "baseline_median": 63410176,
+        "candidate_median": 63430656,
+        "delta_pct": 0.03229765519023875,
+        "ci95_pct": [
+          -0.24528789052413735,
+          0.15518913676042523
+        ]
+      },
+      "phase_sampled_peak_rss_bytes": {
+        "baseline_median": 48807936,
+        "candidate_median": 50683904,
+        "delta_pct": 3.8435716683450805,
+        "ci95_pct": [
+          -13.722274289284597,
+          20.392681838464966
+        ]
+      },
+      "rec_s": {
+        "baseline_median": 111314.89033351622,
+        "candidate_median": 109509.02749987961,
+        "delta_pct": -1.6223012287268745,
+        "ci95_pct": [
+          -3.8838830521027545,
+          0.9420635290934287
+        ]
+      },
+      "external_client_vmhwm_bytes": {
+        "baseline_median": 63410176,
+        "candidate_median": 63430656,
+        "delta_pct": 0.03229765519023875,
+        "ci95_pct": [
+          -0.13559759798540405,
+          0.1551791025475202
+        ]
+      }
+    },
+    "nb-fetch-committed-aborts": {
+      "cpu_ns_per_record": {
+        "baseline_median": 487.8888888888889,
+        "candidate_median": 398.712962962963,
+        "delta_pct": -18.277916951339858,
+        "ci95_pct": [
+          -28.712397992283268,
+          11.021990645770074
+        ]
+      },
+      "allocations_per_record": {
+        "baseline_median": 2.010074074074074,
+        "candidate_median": 1.0043055555555556,
+        "delta_pct": -50.036390772405646,
+        "ci95_pct": [
+          -50.036390772405646,
+          -50.036390772405646
+        ]
+      },
+      "process_peak_rss_bytes": {
+        "baseline_median": 42438656,
+        "candidate_median": 42385408,
+        "delta_pct": -0.12547051442910462,
+        "ci95_pct": [
+          -0.6170458927882816,
+          0.6600019411821867
+        ]
+      },
+      "phase_sampled_peak_rss_bytes": {
+        "baseline_median": 40591360,
+        "candidate_median": 40841216,
+        "delta_pct": 0.6155398587285532,
+        "ci95_pct": [
+          -0.5340050377833805,
+          3.502662843097082
+        ]
+      },
+      "rec_s": {
+        "baseline_median": 584812.7475879899,
+        "candidate_median": 611374.6214352776,
+        "delta_pct": 4.541945085301213,
+        "ci95_pct": [
+          -0.8289291527713849,
+          19.569703557826656
+        ]
+      },
+      "external_client_vmhwm_bytes": {
+        "baseline_median": 42438656,
+        "candidate_median": 42385408,
+        "delta_pct": -0.12547051442910462,
+        "ci95_pct": [
+          -0.6170458927882816,
+          0.20289855072463947
+        ]
+      }
+    }
+  },
+  "vmhwm_verification": {
+    "nb-fetch-1000p": {
+      "runs": 10,
+      "exact_matches": 0,
+      "range_delta_pct": [
+        39.38207136640557,
+        41.84903974988834
+      ],
+      "median_delta_pct": 40.100986457434985
+    },
+    "nb-fetch-bulk": {
+      "runs": 30,
+      "exact_matches": 27,
+      "range_delta_pct": [
+        0.0,
+        0.298313878080414
+      ],
+      "median_delta_pct": 0.0
+    },
+    "nb-fetch-committed-aborts": {
+      "runs": 10,
+      "exact_matches": 9,
+      "range_delta_pct": [
+        0.0,
+        0.4561778122876836
+      ],
+      "median_delta_pct": 0.0
+    }
+  }
+}

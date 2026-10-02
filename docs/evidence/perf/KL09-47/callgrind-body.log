@@ -1,0 +1,15 @@
+==167955== Callgrind, a call-graph generating cache profiler
+==167955== Copyright (C) 2002-2017, and GNU GPL'd, by Josef Weidendorfer et al.
+==167955== Using Valgrind-3.24.0 and LibVEX; rerun with -h for copyright info
+==167955== Command: /workspace/work/consumer-aborts/corrected-baseline-bin/runtime --cell nb-fetch-committed-aborts --out /workspace/work/consumer-aborts/callgrind/run --repetitions 1
+==167955== 
+==167955== For interactive control, run 'callgrind_control -h'.
+==167955== brk segment overflow in thread #1: can't grow to 0x4949000
+==167955== (see section Limitations in user manual)
+==167955== NOTE: further instances of this message will not be shown
+cell=nb-fetch-committed-aborts rep=0 failed=false artifact=/workspace/work/consumer-aborts/callgrind/run/nb-fetch-committed-aborts-rep0.result.json
+==167955== 
+==167955== Events    : Ir
+==167955== Collected : 216217383
+==167955== 
+==167955== I   refs:      216,217,383

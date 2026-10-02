@@ -1,0 +1,7 @@
+launcher_before_fork_RUSAGE_SELF_peak_bytes=12976128
+launcher_before_fork_current_executable_VmHWM_bytes=659456
+launcher_before_fork_current_RSS_bytes=659456
+child_after_fork_before_exec_RUSAGE_SELF_peak_bytes=0
+child_after_fork_before_exec_current_executable_VmHWM_bytes=253952
+child_after_fork_before_exec_current_RSS_bytes=253952
+cell=nb-fetch-bulk rep=0 failed=false artifact=/workspace/work/consumer-aborts/revised-paired/nb-fetch-bulk/pair-01-A/nb-fetch-bulk-rep0.result.json

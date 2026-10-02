@@ -1,0 +1,52 @@
+[
+  {
+    "repetition": 0,
+    "cpu_ns_per_record": 434.8611111111111,
+    "allocations_per_record": 2.010074074074074,
+    "allocation_count": 217088,
+    "peak_rss_bytes": 42479616,
+    "verified": 108000,
+    "history_ranges": 57,
+    "result": "raw/baseline-study/run-00/nb-fetch-committed-aborts-rep0.result.json"
+  },
+  {
+    "repetition": 1,
+    "cpu_ns_per_record": 419.8888888888889,
+    "allocations_per_record": 2.010074074074074,
+    "allocation_count": 217088,
+    "peak_rss_bytes": 42369024,
+    "verified": 108000,
+    "history_ranges": 57,
+    "result": "raw/baseline-study/run-01/nb-fetch-committed-aborts-rep0.result.json"
+  },
+  {
+    "repetition": 2,
+    "cpu_ns_per_record": 414.02777777777777,
+    "allocations_per_record": 2.010074074074074,
+    "allocation_count": 217088,
+    "peak_rss_bytes": 42401792,
+    "verified": 108000,
+    "history_ranges": 57,
+    "result": "raw/baseline-study/run-02/nb-fetch-committed-aborts-rep0.result.json"
+  },
+  {
+    "repetition": 3,
+    "cpu_ns_per_record": 478.9166666666667,
+    "allocations_per_record": 2.010074074074074,
+    "allocation_count": 217088,
+    "peak_rss_bytes": 42283008,
+    "verified": 108000,
+    "history_ranges": 57,
+    "result": "raw/baseline-study/run-03/nb-fetch-committed-aborts-rep0.result.json"
+  },
+  {
+    "repetition": 4,
+    "cpu_ns_per_record": 434.60185185185185,
+    "allocations_per_record": 2.010074074074074,
+    "allocation_count": 217088,
+    "peak_rss_bytes": 42483712,
+    "verified": 108000,
+    "history_ranges": 57,
+    "result": "raw/baseline-study/run-04/nb-fetch-committed-aborts-rep0.result.json"
+  }
+]

@@ -1,0 +1,3088 @@
+{
+  "id": "KL09-47",
+  "status": "done",
+  "source_sha": "96986ba02ba5c7c480295c855a9e0dfe9efab549",
+  "baseline_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+  "disposition": "accepted",
+  "hypothesis": "Per-record read_committed filtering clones topic keys and hashes the partition-state maps repeatedly. One partition-local aborted-interval heap and active/completed PID state, held by a borrowed topic lookup through each response, permits incremental activation and a cached per-data-batch aborted offset. This removes per-record partition-key allocation/hash work and repeated pending-interval sorting.",
+  "cells": [
+    "nb-fetch-committed-aborts",
+    "nb-fetch-bulk",
+    "nb-fetch-1000p"
+  ],
+  "host": "AMD EPYC 9V74 80-Core Processor; x86_64 Linux 6.18.44; affinity exposes CPUs 0\u20134, cgroup cpu.max=400000 100000; runtime client, C launcher and inherited broker pinned CPU 3, external observer CPU 2, builds/tests CPUs 0\u20131. Host frequency unmanaged, cpufreq governor/driver unavailable. rustc 1.99.0(b940084d7 2026-09-28), cargo 1.99.0. Optimized release with CARGO_PROFILE_RELEASE_DEBUG=true for attribution; only debug sections stripped from frozen A/B binaries with objcopy and separate GNU debuglink sidecars, code unchanged. CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1. Other client builds paused for the fresh accepted cohort; shared host/frequency uncertainty remains.",
+  "tested_source": {
+    "initial_baseline_sha": "0c2338e4d6a61d8e4b273a17a55e618583632041",
+    "corrected_baseline_tree": "03c11d833c819db8a7a80d5f70d57a5a49c2df7f",
+    "candidate_tree": "e5e354cf96436b702512885570a9087f5b2291c9",
+    "consumer_blob": "35cb37a9f3efea9e89b69ee513896cc252cc43eb",
+    "regression_test_blob": "0a1181e0a7b085c13ec4c1a7006cd0c6aa461dac",
+    "consumer_sha256": "ebad06a27657a1a84f203ef921c9ba9e69fde574384b5bca8193da360704e4ca",
+    "relation": "Clean immutable exact pushed SHAs for measurements. Among src/, runtime, codec and nullbroker inputs, only src/consumer.rs differs between corrected baseline and accepted candidate; the owned regression is also committed. Independent broker-test/docs commits are outside runtime inputs. Later lint-only main changes are excluded. Focused tests ran on c0cc plus exactly the frozen four-line guard revision, whose consumer/regression/full_surface/common bytes match 96986ba; final release build ran clean96986ba after source push.",
+    "frozen_runtime_sha256": {
+      "baseline": "09fae73c44955ce7d9429e09363d874509782981a04285b8a71cd8c2b7d9511a",
+      "rejected_candidate": "10fb07514d049a38e91a74a2e6a2390907bf2c42a89b4a301e3df660ab27188b",
+      "accepted_candidate": "bc330f546beef452928e38ff756c9785cc20414a009f513a0247a88787b0fbdf"
+    },
+    "frozen_broker_sha256": {
+      "baseline": "8c3ed34d40eab044b04f88e37ebe02161f0e006f10b711feab60a87574560158",
+      "accepted_candidate": "bf91030644551706137c109e10dac944582a4a70c59b4ef66e87b170eb1403d2"
+    },
+    "patch_sha256": "2b491db01051b42fbbb1e31177c8afac37c8799e89a63eeee99c7d241a7b8fb3",
+    "build_note": "After importing first candidate source SHA, a sequential exact-source rebuild confirmed the frozen executable; earlier concurrent checkout/build output was not measured. Original wrong package-selector rebuild exited101 and is retained. All accepted cohort binaries were frozen before execution."
+  },
+  "harness_correction": {
+    "claim_commit": "fcd9ba0fcccd4f6dcfff9a950ec44457e65312ce",
+    "harness_only_baseline_commit": "824662e39980604c799e3398a7e3bc46db8400b3",
+    "problem": "Original driver verified only a 20k target prefix although one Fetch returned 108k records. A corrupted or exposed aborted record in the unverified tail could pass. Earlier prefix and two mistaken history-shape fixtures are preserved and excluded from qualifying comparisons.",
+    "fix": "Keep frozen target 20k and synthesis settings unchanged, but validate offsets/ID/hash/key/order for EVERY returned record and complete per-partition histories through all observed cursors. Fail if returned!=verified, target unmet, cursor-derived complete count differs, or any aborted/out-of-order/gap record appears. Report actual offered/consumed/verified 108k, nominal target 20k separately; CPU/allocation denominators use actual verified 108k on both corrected SHAs. Proof vectors and latency capacity are reserved outside the allocation census.",
+    "settings": {
+      "partitions": 6,
+      "records_per_partition": 50000,
+      "records_per_batch": 500,
+      "payload_bytes": 100,
+      "abort_every": 5,
+      "target_records": 20000,
+      "isolation": "read_committed",
+      "seed": 4269539331,
+      "config_sha256": "fa4ef127133a1b4dfbaf190fccd16747da0d0df16b36d6cf137e9ef713b0469e"
+    },
+    "proof_each_named_run": {
+      "target_records": 20000,
+      "fetched_records": 134500,
+      "returned_records": 108000,
+      "verified_records": 108000,
+      "filtered_records": 26500,
+      "committed_abort_gap_records": 25500,
+      "aborted_deliveries": 0,
+      "exact_history_ranges": 57,
+      "verified_per_partition": [
+        40000,
+        40000,
+        26500,
+        500,
+        500,
+        500
+      ],
+      "partition_cursors": [
+        [
+          0,
+          50000
+        ],
+        [
+          1,
+          50000
+        ],
+        [
+          2,
+          33000
+        ],
+        [
+          3,
+          500
+        ],
+        [
+          4,
+          500
+        ],
+        [
+          5,
+          500
+        ]
+      ],
+      "fetch_requests": 1,
+      "metadata_aborted_intervals": 53,
+      "decoded_batches": 269
+    },
+    "history": "For p0,p1:20 ranges[2500*g,2500*g+2000),g0..19; p2:13 such ranges,g0..12, then [32500,33000); p3,p4,p5 each [0,500). Every delivered ID/hash/key and offset is checked; cursor-derived complete counts match 134500 fetched offsets. The broker admits a first 500-record batch on later partitions after the aggregate byte limit; this accounts for p3\u20135 without changing frozen knobs.",
+    "harness_e2e": "Complete-history harness against original consumer:1 passed, 0 failed, 0 ignored, separately pushed before attribution. A later invalid prefix-only proof is explicitly rejected despite its test passing; logs retained, helper removed its successful temporary raw output."
+  },
+  "baseline_attribution": {
+    "baseline_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+    "workload": "nb-fetch-committed-aborts",
+    "gate_passed": true,
+    "actual_records_verified_each_run": 108000,
+    "baseline_cpu_ns_per_actual_record_median": 434.60185185185185,
+    "baseline_allocations_each_run": 217088,
+    "source_lookup_clone_allocations": 108000,
+    "allocation_census_fraction_pct": 49.749410377358494,
+    "callgrind_scope": "Only apply_fetch_body collection; this is consumer response materialization, not whole-cell CPU/instructions. Absolute Ir and allocator paths are diagnostic under Valgrind; main gate uses whole-cell observed allocation count and exact executed clone-call count.",
+    "callgrind": {
+      "calls_string_clone_at_aborted_lookup": 108000,
+      "string_clone_inclusive_ir": 28992043,
+      "calls_aborted_partition_map_entry": 108000,
+      "entry_inclusive_ir": 49184744,
+      "apply_body_total_ir": 216217383,
+      "combined_lookup_share_of_body_ir_pct": 36.15656887309565,
+      "aborted_metadata_intervals": 53,
+      "decoded_record_batches": 269,
+      "raw_file": "callgrind/body.out"
+    },
+    "method_notes": [
+      "Source String clone for per-record aborted-state lookup executes once for each of108000 returned records; Callgrind reports exactly 108000 calls at that source branch. Runtime census has217088 allocations, so discard-only cloned topic keys alone account49.75% (>1%) before counting partition/PID hashes.",
+      "Sorting-only hypothesis is small; this card targets partition-local transaction filtering state and avoids repeated partition-key hashing/cloning in per-record lookups.",
+      "Valgrind emitted brk-segment warning but completed and verified full history; annotation helper emitted unresolved debug-source line warnings. All logs/raw traces preserved; traced timing/RSS are excluded from acceptance.",
+      "Plain real records from uncompressed synthetic cell; repeated PID/control-marker/LSO behavior separately covered by tests."
+    ]
+  },
+  "commands": [
+    "export CARGO_HOME=/workspace/work/cargo RUSTUP_HOME=/workspace/work/rustup PATH=/workspace/work/cargo/bin:$PATH CARGO_TARGET_DIR=/workspace/work/consumer-aborts/target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1",
+    "taskset -c 0,1 cargo build --offline --locked --release --manifest-path benchmarks/runtime/Cargo.toml --bins (initial0c snapshot; exit0)",
+    "taskset -c 3 /workspace/work/consumer-aborts/baseline-bin/runtime --cell nb-fetch-committed-aborts --out /workspace/work/consumer-aborts/initial-baseline-correct-provenance --repetitions 1 (exit0; excluded original prefix workload)",
+    "taskset -c 0,1 cargo test --offline --locked --test consumer_fetch_semantics read_committed_repeated_metadata_and_spanning_markers_survive_seek -- --test-threads=1 (initial consumer plus new invariant; final 1 pass exit0, two development failures retained)",
+    "taskset -c 0,1 cargo test --release --offline --locked --manifest-path benchmarks/runtime/Cargo.toml --test e2e committed_aborts_cell_verifies_exact_offset_history -- --test-threads=1 (harness-only original consumer; final 1 pass exit0, both earlier history-shape failures retained)",
+    "CARGO_PROFILE_RELEASE_DEBUG=true taskset -c 0,1 cargo build --offline --locked --release --manifest-path benchmarks/runtime/Cargo.toml --bins (clean824 baseline, cleanc0 candidate, clean969 revised candidate; each exit0)",
+    "objcopy --only-keep-debug runtime runtime.debug; objcopy --strip-debug runtime; objcopy --add-gnu-debuglink=runtime.debug runtime; objcopy --strip-debug nb-serve (each frozen A/B directory; exit0, separate debug symbols preserve attribution while avoiding112MB binary-provenance file reads)",
+    "python3 /workspace/work/consumer-aborts/run-baseline-study.py (5 baseline-first runs on CPU 3, each 108000 fully verified,217088 allocations; exit0)",
+    "VALGRIND_LIB=/workspace/work/request-header/valgrind/usr/libexec/valgrind taskset -c 3 /workspace/work/request-header/valgrind/usr/bin/valgrind --tool=callgrind --cache-sim=no --branch-sim=no --collect-atstart=no '--toggle-collect=*Consumer*apply_fetch_body' --callgrind-out-file=/workspace/work/consumer-aborts/callgrind/body.out /workspace/work/consumer-aborts/corrected-baseline-bin/runtime --cell nb-fetch-committed-aborts --out /workspace/work/consumer-aborts/callgrind/run --repetitions 1 (baseline-only scoped attribution; exit0, warning preserved)",
+    "taskset -c 0,1 cargo test --offline --locked --manifest-path /workspace/work/consumer-aborts/candidate/Cargo.toml --test consumer_fetch_semantics --test full_surface -- --test-threads=2 (first and revised frozen source: 386 pass/1 existing ignore each, exit0)",
+    "taskset -c 0,1 cargo clippy --offline --locked --manifest-path /workspace/work/consumer-aborts/candidate/Cargo.toml --lib --test consumer_fetch_semantics --test full_surface -- -D warnings (first and revised source:exit0)",
+    "taskset -c 2 python3 /workspace/work/consumer-aborts/run-pairs.py (first candidate 5 pairs each named/bulk/1000p:30 runs, all exit0)",
+    "taskset -c 2 python3 /workspace/work/consumer-aborts/run-pairs.py --bulk-more (exactly 10 added bulk pairs, all exit0; predeclared pooled 15 guard, no further sampling; first candidate fails)",
+    "taskset -c 2 cc -O2 /workspace/work/consumer-aborts/rss-exec-control.c -o /workspace/work/consumer-aborts/rss-exec-control (exit0)",
+    "taskset -c 2 cc -O2 -Wall -Wextra -Werror /workspace/work/consumer-aborts/low-rss-launcher.c -o /workspace/work/consumer-aborts/low-rss-launcher (final exit0)",
+    "taskset -c 2 python3 /workspace/work/consumer-aborts/verify-launcher.py (3 low-RSS fork/exec controls and exit 17 propagation pass; exit0)",
+    "taskset -c 2 python3 /workspace/work/consumer-aborts/run-revised-pairs.py 96986ba02ba5c7c480295c855a9e0dfe9efab549 (fresh predeclared5 named + 15 bulk + 5 sparse pairs;50 runs all exit0, no extensions)",
+    "taskset -c 2 python3 /workspace/work/consumer-aborts/calculate-revised-stats.py (20k paired bootstrap resamples, seed 20261002, exit0)",
+    "python3 scripts/benchmark-report.py <each sanitized result.json> --quiet --json (110/110 valid,0errors;220 sidecar SHA256/size checks pass)",
+    "git diff --check 824662e39980604c799e3398a7e3bc46db8400b3 96986ba02ba5c7c480295c855a9e0dfe9efab549 -- src/consumer.rs tests/consumer_fetch_semantics.rs (exit0)",
+    "sha256sum -c checksums.sha256 (all companion checksums verified)"
+  ],
+  "results": {
+    "primary": {
+      "baseline_median": 487.8888888888889,
+      "candidate_median": 398.712962962963,
+      "delta_pct": -18.277916951339858,
+      "baseline_ci95": [
+        432.3888888888889,
+        578.1851851851852
+      ],
+      "candidate_ci95": [
+        383.51851851851853,
+        501.1203703703704
+      ],
+      "ci95_pct": [
+        -28.712397992283268,
+        11.021990645770074
+      ],
+      "repetitions": 5,
+      "baseline_values": [
+        432.3888888888889,
+        578.1851851851852,
+        487.8888888888889,
+        451.3703703703704,
+        542.3518518518518
+      ],
+      "candidate_values": [
+        383.51851851851853,
+        473.5925925925926,
+        398.712962962963,
+        501.1203703703704,
+        386.6296296296296
+      ],
+      "metric": "CPU nanoseconds per actual verified record"
+    },
+    "allocations": {
+      "baseline_median": 2.010074074074074,
+      "candidate_median": 1.0043055555555556,
+      "delta_pct": -50.036390772405646,
+      "baseline_ci95": [
+        2.010074074074074,
+        2.010074074074074
+      ],
+      "candidate_ci95": [
+        1.0043055555555556,
+        1.0043055555555556
+      ],
+      "ci95_pct": [
+        -50.036390772405646,
+        -50.036390772405646
+      ],
+      "repetitions": 5,
+      "baseline_values": [
+        2.010074074074074,
+        2.010074074074074,
+        2.010074074074074,
+        2.010074074074074,
+        2.010074074074074
+      ],
+      "candidate_values": [
+        1.0043055555555556,
+        1.0043055555555556,
+        1.0043055555555556,
+        1.0043055555555556,
+        1.0043055555555556
+      ],
+      "unit": "per actual verified record",
+      "baseline_count": 217088,
+      "candidate_count": 108465,
+      "actual_verified_count": 108000,
+      "identical_counts_in_every_variant_repetition": true
+    },
+    "instructions": {
+      "qualifying_A_B_measured": false,
+      "baseline_attribution_only": true,
+      "tracked_benchmark_note": "No consumer instruction-count cell is tracked. Existing codec/protocol instruction-gate sources are unchanged, no budget was raised. Scoped baseline apply_fetch_body Ir is diagnostic, not a whole-cell instruction or CPU percentage claim."
+    },
+    "guardrails": {
+      "threshold_regression_pct": 2,
+      "fresh_cohort": {
+        "nb-fetch-1000p": {
+          "cpu_ns_per_record": {
+            "baseline_median": 847.6,
+            "candidate_median": 856.2,
+            "delta_pct": 1.0146295422369,
+            "baseline_ci95": [
+              829.9,
+              868.4
+            ],
+            "candidate_ci95": [
+              819.5,
+              1088.7
+            ],
+            "ci95_pct": [
+              -5.631045601105478,
+              31.026597665182344
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              868.4,
+              830.9,
+              854.9,
+              829.9,
+              847.6
+            ],
+            "candidate_values": [
+              819.5,
+              1088.7,
+              844.8,
+              903.0,
+              856.2
+            ]
+          },
+          "allocations_per_record": {
+            "baseline_median": 2.1318,
+            "candidate_median": 1.9318,
+            "delta_pct": -9.381743127873165,
+            "baseline_ci95": [
+              2.1318,
+              2.1318
+            ],
+            "candidate_ci95": [
+              1.9318,
+              1.9318
+            ],
+            "ci95_pct": [
+              -9.381743127873165,
+              -9.381743127873165
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              2.1318,
+              2.1318,
+              2.1318,
+              2.1318,
+              2.1318
+            ],
+            "candidate_values": [
+              1.9318,
+              1.9318,
+              1.9318,
+              1.9318,
+              1.9318
+            ]
+          },
+          "allocated_bytes_per_record": {
+            "baseline_median": 936.3336,
+            "candidate_median": 934.1336,
+            "delta_pct": -0.23495899324771363,
+            "baseline_ci95": [
+              936.3336,
+              936.3336
+            ],
+            "candidate_ci95": [
+              934.1336,
+              934.1336
+            ],
+            "ci95_pct": [
+              -0.23495899324771363,
+              -0.23495899324771363
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              936.3336,
+              936.3336,
+              936.3336,
+              936.3336,
+              936.3336
+            ],
+            "candidate_values": [
+              934.1336,
+              934.1336,
+              934.1336,
+              934.1336,
+              934.1336
+            ]
+          },
+          "process_peak_rss_bytes": {
+            "baseline_median": 9359360,
+            "candidate_median": 9342976,
+            "delta_pct": -0.17505470459519,
+            "baseline_ci95": [
+              9121792.0,
+              9424896.0
+            ],
+            "candidate_ci95": [
+              9170944.0,
+              9412608.0
+            ],
+            "ci95_pct": [
+              -2.013129102844635,
+              3.1881454872025206
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              9359360,
+              9424896,
+              9240576,
+              9371648,
+              9121792
+            ],
+            "candidate_values": [
+              9170944,
+              9359360,
+              9334784,
+              9342976,
+              9412608
+            ]
+          },
+          "external_client_vmhwm_bytes": {
+            "baseline_median": 13090816,
+            "candidate_median": 13115392,
+            "delta_pct": 0.1877346683354153,
+            "baseline_ci95": [
+              12914688.0,
+              13152256.0
+            ],
+            "candidate_ci95": [
+              13008896.0,
+              13156352.0
+            ],
+            "ci95_pct": [
+              -0.6540018685767701,
+              1.5857913098636267
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              13086720,
+              13152256,
+              13090816,
+              13099008,
+              12914688
+            ],
+            "candidate_values": [
+              13008896,
+              13066240,
+              13156352,
+              13115392,
+              13119488
+            ]
+          },
+          "rec_s": {
+            "baseline_median": 167444.59471852623,
+            "candidate_median": 167570.9324824707,
+            "delta_pct": 0.07545048805954746,
+            "baseline_ci95": [
+              165976.15330978276,
+              168431.36701390252
+            ],
+            "candidate_ci95": [
+              155527.30592132427,
+              168762.1611068057
+            ],
+            "ci95_pct": [
+              -7.117153478280313,
+              1.6785590830166175
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              165976.15330978276,
+              167444.59471852623,
+              166590.57364564447,
+              168431.36701390252,
+              167725.57975101407
+            ],
+            "candidate_values": [
+              168762.1611068057,
+              155527.30592132427,
+              168342.91316737863,
+              167386.37507379855,
+              167570.9324824707
+            ]
+          },
+          "phase_sampled_peak_rss_bytes": {
+            "baseline_median": 5144576,
+            "candidate_median": 5189632,
+            "delta_pct": 0.8757961783439461,
+            "baseline_ci95": [
+              5046272.0,
+              5206016.0
+            ],
+            "candidate_ci95": [
+              5160960.0,
+              8536064.0
+            ],
+            "ci95_pct": [
+              0.31847133757962887,
+              63.96538158929977
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              5144576,
+              5206016,
+              5152768,
+              5144576,
+              5046272
+            ],
+            "candidate_values": [
+              5160960,
+              8536064,
+              5181440,
+              5189632,
+              5193728
+            ]
+          }
+        },
+        "nb-fetch-bulk": {
+          "cpu_ns_per_record": {
+            "baseline_median": 2596.5,
+            "candidate_median": 2622.15,
+            "delta_pct": 0.9878682842287656,
+            "baseline_ci95": [
+              2490.45,
+              2628.7
+            ],
+            "candidate_ci95": [
+              2568.1,
+              2733.95
+            ],
+            "ci95_pct": [
+              -1.2022236328312896,
+              6.997632232941298
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              2383.8,
+              2523.4,
+              2481.05,
+              2555.15,
+              2490.45,
+              3267.9,
+              2635.55,
+              2489.4,
+              2632.6,
+              2599.35,
+              2703.95,
+              2596.5,
+              2628.7,
+              2535.5,
+              2599.35
+            ],
+            "candidate_values": [
+              2547.4,
+              2878.05,
+              2622.15,
+              2462.95,
+              2637.5,
+              2745.7,
+              2733.95,
+              2552.15,
+              2568.1,
+              2668.25,
+              2846.95,
+              2611.55,
+              2554.3,
+              2741.25,
+              2608.6
+            ]
+          },
+          "allocations_per_record": {
+            "baseline_median": 6.7723,
+            "candidate_median": 6.7717,
+            "delta_pct": -0.008859619331691437,
+            "baseline_ci95": [
+              6.7723,
+              6.7723
+            ],
+            "candidate_ci95": [
+              6.7717,
+              6.7717
+            ],
+            "ci95_pct": [
+              -0.008859619331691437,
+              -0.008859619331691437
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723,
+              6.7723
+            ],
+            "candidate_values": [
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717,
+              6.7717
+            ]
+          },
+          "allocated_bytes_per_record": {
+            "baseline_median": 5409.45175,
+            "candidate_median": 5409.44695,
+            "delta_pct": -8.873357638661261e-05,
+            "baseline_ci95": [
+              5409.45175,
+              5409.45175
+            ],
+            "candidate_ci95": [
+              5409.44695,
+              5409.44695
+            ],
+            "ci95_pct": [
+              -8.873357638661261e-05,
+              -8.873357638661261e-05
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175,
+              5409.45175
+            ],
+            "candidate_values": [
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695,
+              5409.44695
+            ]
+          },
+          "process_peak_rss_bytes": {
+            "baseline_median": 63410176,
+            "candidate_median": 63430656,
+            "delta_pct": 0.03229765519023875,
+            "baseline_ci95": [
+              63340544.0,
+              63475712.0
+            ],
+            "candidate_ci95": [
+              63270912.0,
+              63447040.0
+            ],
+            "ci95_pct": [
+              -0.24528789052413735,
+              0.15518913676042523
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              63258624,
+              63336448,
+              63528960,
+              63373312,
+              63475712,
+              63430656,
+              63475712,
+              63455232,
+              63348736,
+              63340544,
+              63344640,
+              63492096,
+              63184896,
+              63434752,
+              63410176
+            ],
+            "candidate_values": [
+              63442944,
+              63475712,
+              63299584,
+              63426560,
+              63430656,
+              63250432,
+              63447040,
+              63270912,
+              63524864,
+              63270912,
+              63160320,
+              63561728,
+              63299584,
+              63475712,
+              63447040
+            ]
+          },
+          "external_client_vmhwm_bytes": {
+            "baseline_median": 63410176,
+            "candidate_median": 63430656,
+            "delta_pct": 0.03229765519023875,
+            "baseline_ci95": [
+              63344640.0,
+              63475712.0
+            ],
+            "candidate_ci95": [
+              63348736.0,
+              63447040.0
+            ],
+            "ci95_pct": [
+              -0.13559759798540405,
+              0.1551791025475202
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              63258624,
+              63336448,
+              63528960,
+              63373312,
+              63475712,
+              63430656,
+              63475712,
+              63455232,
+              63348736,
+              63389696,
+              63344640,
+              63492096,
+              63184896,
+              63434752,
+              63410176
+            ],
+            "candidate_values": [
+              63442944,
+              63475712,
+              63422464,
+              63426560,
+              63430656,
+              63250432,
+              63447040,
+              63270912,
+              63524864,
+              63270912,
+              63348736,
+              63561728,
+              63299584,
+              63475712,
+              63447040
+            ]
+          },
+          "rec_s": {
+            "baseline_median": 111314.89033351622,
+            "candidate_median": 109509.02749987961,
+            "delta_pct": -1.6223012287268745,
+            "baseline_ci95": [
+              108490.2353472166,
+              111840.43313831363
+            ],
+            "candidate_ci95": [
+              105841.11836213326,
+              111876.52241921323
+            ],
+            "ci95_pct": [
+              -3.8838830521027545,
+              0.9420635290934287
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              115625.06749613315,
+              112248.658346508,
+              112321.27172480129,
+              111840.43313831363,
+              104558.69369596032,
+              100878.49278856225,
+              111444.46006524292,
+              113560.98946530472,
+              111830.08036590445,
+              110868.04708435135,
+              102578.91180269266,
+              110262.92033472582,
+              108490.2353472166,
+              111314.89033351622,
+              111229.14995680416
+            ],
+            "candidate_values": [
+              112415.67124369695,
+              103043.92262658547,
+              108919.57958240397,
+              109509.02749987961,
+              109512.28228705034,
+              105841.11836213326,
+              109971.13384203451,
+              111876.52241921323,
+              114231.74011488642,
+              107496.68151025636,
+              105121.27957658158,
+              113116.90893838841,
+              111671.53907272969,
+              107586.11308146112,
+              105528.35787844671
+            ]
+          },
+          "phase_sampled_peak_rss_bytes": {
+            "baseline_median": 48807936,
+            "candidate_median": 50683904,
+            "delta_pct": 3.8435716683450805,
+            "baseline_ci95": [
+              45490176.0,
+              54706176.0
+            ],
+            "candidate_ci95": [
+              45264896.0,
+              57192448.0
+            ],
+            "ci95_pct": [
+              -13.722274289284597,
+              20.392681838464966
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              53731328,
+              44580864,
+              44814336,
+              44617728,
+              45490176,
+              57081856,
+              45895680,
+              52445184,
+              48807936,
+              63434752,
+              60399616,
+              44810240,
+              54706176,
+              47603712,
+              50057216
+            ],
+            "candidate_values": [
+              45264896,
+              44720128,
+              55255040,
+              44736512,
+              57192448,
+              54292480,
+              62103552,
+              45146112,
+              63541248,
+              50683904,
+              48058368,
+              51232768,
+              45248512,
+              58994688,
+              45510656
+            ]
+          }
+        },
+        "nb-fetch-committed-aborts": {
+          "cpu_ns_per_record": {
+            "baseline_median": 487.8888888888889,
+            "candidate_median": 398.712962962963,
+            "delta_pct": -18.277916951339858,
+            "baseline_ci95": [
+              432.3888888888889,
+              578.1851851851852
+            ],
+            "candidate_ci95": [
+              383.51851851851853,
+              501.1203703703704
+            ],
+            "ci95_pct": [
+              -28.712397992283268,
+              11.021990645770074
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              432.3888888888889,
+              578.1851851851852,
+              487.8888888888889,
+              451.3703703703704,
+              542.3518518518518
+            ],
+            "candidate_values": [
+              383.51851851851853,
+              473.5925925925926,
+              398.712962962963,
+              501.1203703703704,
+              386.6296296296296
+            ]
+          },
+          "allocations_per_record": {
+            "baseline_median": 2.010074074074074,
+            "candidate_median": 1.0043055555555556,
+            "delta_pct": -50.036390772405646,
+            "baseline_ci95": [
+              2.010074074074074,
+              2.010074074074074
+            ],
+            "candidate_ci95": [
+              1.0043055555555556,
+              1.0043055555555556
+            ],
+            "ci95_pct": [
+              -50.036390772405646,
+              -50.036390772405646
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              2.010074074074074,
+              2.010074074074074,
+              2.010074074074074,
+              2.010074074074074,
+              2.010074074074074
+            ],
+            "candidate_values": [
+              1.0043055555555556,
+              1.0043055555555556,
+              1.0043055555555556,
+              1.0043055555555556,
+              1.0043055555555556
+            ]
+          },
+          "allocated_bytes_per_record": {
+            "baseline_median": 665.3146666666667,
+            "candidate_median": 653.2380370370371,
+            "delta_pct": -1.8151756206030156,
+            "baseline_ci95": [
+              665.3146666666667,
+              665.3146666666667
+            ],
+            "candidate_ci95": [
+              653.2380370370371,
+              653.2380370370371
+            ],
+            "ci95_pct": [
+              -1.8151756206030156,
+              -1.8151756206030156
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              665.3146666666667,
+              665.3146666666667,
+              665.3146666666667,
+              665.3146666666667,
+              665.3146666666667
+            ],
+            "candidate_values": [
+              653.2380370370371,
+              653.2380370370371,
+              653.2380370370371,
+              653.2380370370371,
+              653.2380370370371
+            ]
+          },
+          "process_peak_rss_bytes": {
+            "baseline_median": 42438656,
+            "candidate_median": 42385408,
+            "delta_pct": -0.12547051442910462,
+            "baseline_ci95": [
+              42201088.0,
+              42483712.0
+            ],
+            "candidate_ci95": [
+              42221568.0,
+              42496000.0
+            ],
+            "ci95_pct": [
+              -0.6170458927882816,
+              0.6600019411821867
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              42483712,
+              42438656,
+              42483712,
+              42364928,
+              42201088
+            ],
+            "candidate_values": [
+              42496000,
+              42385408,
+              42221568,
+              42262528,
+              42479616
+            ]
+          },
+          "external_client_vmhwm_bytes": {
+            "baseline_median": 42438656,
+            "candidate_median": 42385408,
+            "delta_pct": -0.12547051442910462,
+            "baseline_ci95": [
+              42364928.0,
+              42483712.0
+            ],
+            "candidate_ci95": [
+              42221568.0,
+              42496000.0
+            ],
+            "ci95_pct": [
+              -0.6170458927882816,
+              0.20289855072463947
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              42483712,
+              42438656,
+              42483712,
+              42364928,
+              42393600
+            ],
+            "candidate_values": [
+              42496000,
+              42385408,
+              42221568,
+              42262528,
+              42479616
+            ]
+          },
+          "rec_s": {
+            "baseline_median": 584812.7475879899,
+            "candidate_median": 611374.6214352776,
+            "delta_pct": 4.541945085301213,
+            "baseline_ci95": [
+              497853.55051450763,
+              600680.9018362765
+            ],
+            "candidate_ci95": [
+              564336.3799729517,
+              647426.6881294209
+            ],
+            "ci95_pct": [
+              -0.8289291527713849,
+              19.569703557826656
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              584812.7475879899,
+              497853.55051450763,
+              600680.9018362765,
+              598007.9226525922,
+              541463.8230798242
+            ],
+            "candidate_values": [
+              611374.6214352776,
+              564336.3799729517,
+              639332.1318703977,
+              593050.8606458423,
+              647426.6881294209
+            ]
+          },
+          "phase_sampled_peak_rss_bytes": {
+            "baseline_median": 40591360,
+            "candidate_median": 40841216,
+            "delta_pct": 0.6155398587285532,
+            "baseline_ci95": [
+              39993344.0,
+              41373696.0
+            ],
+            "candidate_ci95": [
+              40411136.0,
+              41504768.0
+            ],
+            "ci95_pct": [
+              -0.5340050377833805,
+              3.502662843097082
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              41373696,
+              39993344,
+              40652800,
+              40591360,
+              40493056
+            ],
+            "candidate_values": [
+              41504768,
+              41394176,
+              40435712,
+              40411136,
+              40841216
+            ]
+          }
+        }
+      },
+      "actual_peak_authority": "Direct observed Rust process lifetime VmHWM, corroborated by phase-end RUSAGE_SELF where the measured phase dominates. Both actual-lifetime and phase-end maxima meet 2% median guards. Coarse10ms instantaneous phase RSS is retained and not declared passing when it exceeds2%; it does not estimate the persistent process maximum reliably. Parent wait4 includes launcher/compiler descendants and is excluded from client peak.",
+      "coarse_losses_explicit": {
+        "fresh_bulk_15_phase_sampled_peak_delta_pct": 3.8435716683450805,
+        "old_sparse_5_phase_sampled_peak_delta_pct": 2.254428341384873,
+        "old_bulk_extra10_phase_sampled_peak_delta_pct": 8.073301688584555,
+        "old_bulk_all15_phase_sampled_peak_delta_pct": 2.89188788373127
+      },
+      "vmhwm_vs_phase_self": {
+        "nb-fetch-1000p": {
+          "runs": 10,
+          "exact_matches": 0,
+          "range_delta_pct": [
+            39.38207136640557,
+            41.84903974988834
+          ],
+          "median_delta_pct": 40.100986457434985
+        },
+        "nb-fetch-bulk": {
+          "runs": 30,
+          "exact_matches": 27,
+          "range_delta_pct": [
+            0.0,
+            0.298313878080414
+          ],
+          "median_delta_pct": 0.0
+        },
+        "nb-fetch-committed-aborts": {
+          "runs": 10,
+          "exact_matches": 9,
+          "range_delta_pct": [
+            0.0,
+            0.4561778122876836
+          ],
+          "median_delta_pct": 0.0
+        }
+      },
+      "observer_coverage": {
+        "nb-fetch-1000p": {
+          "runs": 10,
+          "minimum_peak_plateau_samples": 21,
+          "minimum_peak_plateau_ms": 25.646168,
+          "maximum_last_sample_to_exit_ms": 2.364892,
+          "rows": [
+            {
+              "variant": "A",
+              "pair": 0,
+              "plateau_samples": 24,
+              "plateau_ms": 27.53062,
+              "last_sample_to_exit_ms": 1.209972
+            },
+            {
+              "variant": "B",
+              "pair": 0,
+              "plateau_samples": 24,
+              "plateau_ms": 26.929439,
+              "last_sample_to_exit_ms": 1.174589
+            },
+            {
+              "variant": "B",
+              "pair": 1,
+              "plateau_samples": 29,
+              "plateau_ms": 34.478805,
+              "last_sample_to_exit_ms": 2.269559
+            },
+            {
+              "variant": "A",
+              "pair": 1,
+              "plateau_samples": 23,
+              "plateau_ms": 26.020489,
+              "last_sample_to_exit_ms": 2.285973
+            },
+            {
+              "variant": "A",
+              "pair": 2,
+              "plateau_samples": 23,
+              "plateau_ms": 26.053938,
+              "last_sample_to_exit_ms": 2.270721
+            },
+            {
+              "variant": "B",
+              "pair": 2,
+              "plateau_samples": 23,
+              "plateau_ms": 25.646168,
+              "last_sample_to_exit_ms": 2.348356
+            },
+            {
+              "variant": "B",
+              "pair": 3,
+              "plateau_samples": 22,
+              "plateau_ms": 26.679415,
+              "last_sample_to_exit_ms": 1.245265
+            },
+            {
+              "variant": "A",
+              "pair": 3,
+              "plateau_samples": 22,
+              "plateau_ms": 26.594357,
+              "last_sample_to_exit_ms": 2.364892
+            },
+            {
+              "variant": "A",
+              "pair": 4,
+              "plateau_samples": 24,
+              "plateau_ms": 29.301631,
+              "last_sample_to_exit_ms": 1.225696
+            },
+            {
+              "variant": "B",
+              "pair": 4,
+              "plateau_samples": 21,
+              "plateau_ms": 25.868951,
+              "last_sample_to_exit_ms": 1.272966
+            }
+          ]
+        },
+        "nb-fetch-bulk": {
+          "runs": 30,
+          "minimum_peak_plateau_samples": 42,
+          "minimum_peak_plateau_ms": 52.94458,
+          "maximum_last_sample_to_exit_ms": 3.416276,
+          "rows": [
+            {
+              "variant": "A",
+              "pair": 0,
+              "plateau_samples": 50,
+              "plateau_ms": 60.622468,
+              "last_sample_to_exit_ms": 1.254408
+            },
+            {
+              "variant": "B",
+              "pair": 0,
+              "plateau_samples": 53,
+              "plateau_ms": 72.959599,
+              "last_sample_to_exit_ms": 2.360255
+            },
+            {
+              "variant": "B",
+              "pair": 1,
+              "plateau_samples": 62,
+              "plateau_ms": 74.319611,
+              "last_sample_to_exit_ms": 1.209691
+            },
+            {
+              "variant": "A",
+              "pair": 1,
+              "plateau_samples": 48,
+              "plateau_ms": 57.637873,
+              "last_sample_to_exit_ms": 2.240876
+            },
+            {
+              "variant": "A",
+              "pair": 2,
+              "plateau_samples": 47,
+              "plateau_ms": 56.295333,
+              "last_sample_to_exit_ms": 1.768889
+            },
+            {
+              "variant": "B",
+              "pair": 2,
+              "plateau_samples": 62,
+              "plateau_ms": 78.632319,
+              "last_sample_to_exit_ms": 1.216812
+            },
+            {
+              "variant": "B",
+              "pair": 3,
+              "plateau_samples": 49,
+              "plateau_ms": 59.13499,
+              "last_sample_to_exit_ms": 2.319774
+            },
+            {
+              "variant": "A",
+              "pair": 3,
+              "plateau_samples": 48,
+              "plateau_ms": 60.223881,
+              "last_sample_to_exit_ms": 2.34034
+            },
+            {
+              "variant": "A",
+              "pair": 4,
+              "plateau_samples": 42,
+              "plateau_ms": 58.94859,
+              "last_sample_to_exit_ms": 1.217524
+            },
+            {
+              "variant": "B",
+              "pair": 4,
+              "plateau_samples": 55,
+              "plateau_ms": 68.886904,
+              "last_sample_to_exit_ms": 2.379543
+            },
+            {
+              "variant": "B",
+              "pair": 5,
+              "plateau_samples": 52,
+              "plateau_ms": 62.64724,
+              "last_sample_to_exit_ms": 1.190052
+            },
+            {
+              "variant": "A",
+              "pair": 5,
+              "plateau_samples": 53,
+              "plateau_ms": 66.905938,
+              "last_sample_to_exit_ms": 2.367495
+            },
+            {
+              "variant": "A",
+              "pair": 6,
+              "plateau_samples": 53,
+              "plateau_ms": 63.433507,
+              "last_sample_to_exit_ms": 2.40386
+            },
+            {
+              "variant": "B",
+              "pair": 6,
+              "plateau_samples": 48,
+              "plateau_ms": 56.499121,
+              "last_sample_to_exit_ms": 2.321237
+            },
+            {
+              "variant": "B",
+              "pair": 7,
+              "plateau_samples": 47,
+              "plateau_ms": 57.149936,
+              "last_sample_to_exit_ms": 2.826302
+            },
+            {
+              "variant": "A",
+              "pair": 7,
+              "plateau_samples": 49,
+              "plateau_ms": 58.781133,
+              "last_sample_to_exit_ms": 2.447946
+            },
+            {
+              "variant": "A",
+              "pair": 8,
+              "plateau_samples": 47,
+              "plateau_ms": 59.573726,
+              "last_sample_to_exit_ms": 3.416276
+            },
+            {
+              "variant": "B",
+              "pair": 8,
+              "plateau_samples": 46,
+              "plateau_ms": 55.201427,
+              "last_sample_to_exit_ms": 2.448397
+            },
+            {
+              "variant": "B",
+              "pair": 9,
+              "plateau_samples": 46,
+              "plateau_ms": 59.513747,
+              "last_sample_to_exit_ms": 1.298215
+            },
+            {
+              "variant": "A",
+              "pair": 9,
+              "plateau_samples": 53,
+              "plateau_ms": 63.391564,
+              "last_sample_to_exit_ms": 2.306234
+            },
+            {
+              "variant": "A",
+              "pair": 10,
+              "plateau_samples": 43,
+              "plateau_ms": 52.94458,
+              "last_sample_to_exit_ms": 1.216912
+            },
+            {
+              "variant": "B",
+              "pair": 10,
+              "plateau_samples": 46,
+              "plateau_ms": 61.270217,
+              "last_sample_to_exit_ms": 1.257684
+            },
+            {
+              "variant": "B",
+              "pair": 11,
+              "plateau_samples": 52,
+              "plateau_ms": 64.42996,
+              "last_sample_to_exit_ms": 2.312172
+            },
+            {
+              "variant": "A",
+              "pair": 11,
+              "plateau_samples": 46,
+              "plateau_ms": 56.302518,
+              "last_sample_to_exit_ms": 2.322999
+            },
+            {
+              "variant": "A",
+              "pair": 12,
+              "plateau_samples": 56,
+              "plateau_ms": 66.970184,
+              "last_sample_to_exit_ms": 2.346995
+            },
+            {
+              "variant": "B",
+              "pair": 12,
+              "plateau_samples": 48,
+              "plateau_ms": 60.24365,
+              "last_sample_to_exit_ms": 2.350701
+            },
+            {
+              "variant": "B",
+              "pair": 13,
+              "plateau_samples": 57,
+              "plateau_ms": 68.559299,
+              "last_sample_to_exit_ms": 1.281719
+            },
+            {
+              "variant": "A",
+              "pair": 13,
+              "plateau_samples": 51,
+              "plateau_ms": 63.587669,
+              "last_sample_to_exit_ms": 2.41752
+            },
+            {
+              "variant": "A",
+              "pair": 14,
+              "plateau_samples": 46,
+              "plateau_ms": 55.463702,
+              "last_sample_to_exit_ms": 1.233057
+            },
+            {
+              "variant": "B",
+              "pair": 14,
+              "plateau_samples": 52,
+              "plateau_ms": 62.430865,
+              "last_sample_to_exit_ms": 2.299374
+            }
+          ]
+        },
+        "nb-fetch-committed-aborts": {
+          "runs": 10,
+          "minimum_peak_plateau_samples": 51,
+          "minimum_peak_plateau_ms": 69.015016,
+          "maximum_last_sample_to_exit_ms": 3.444779,
+          "rows": [
+            {
+              "variant": "A",
+              "pair": 0,
+              "plateau_samples": 57,
+              "plateau_ms": 70.398583,
+              "last_sample_to_exit_ms": 1.180418
+            },
+            {
+              "variant": "B",
+              "pair": 0,
+              "plateau_samples": 69,
+              "plateau_ms": 87.182573,
+              "last_sample_to_exit_ms": 3.096127
+            },
+            {
+              "variant": "B",
+              "pair": 1,
+              "plateau_samples": 73,
+              "plateau_ms": 97.703094,
+              "last_sample_to_exit_ms": 2.989046
+            },
+            {
+              "variant": "A",
+              "pair": 1,
+              "plateau_samples": 58,
+              "plateau_ms": 79.174711,
+              "last_sample_to_exit_ms": 3.444779
+            },
+            {
+              "variant": "A",
+              "pair": 2,
+              "plateau_samples": 51,
+              "plateau_ms": 69.015016,
+              "last_sample_to_exit_ms": 2.366785
+            },
+            {
+              "variant": "B",
+              "pair": 2,
+              "plateau_samples": 54,
+              "plateau_ms": 71.780157,
+              "last_sample_to_exit_ms": 2.285082
+            },
+            {
+              "variant": "B",
+              "pair": 3,
+              "plateau_samples": 54,
+              "plateau_ms": 72.438763,
+              "last_sample_to_exit_ms": 1.271735
+            },
+            {
+              "variant": "A",
+              "pair": 3,
+              "plateau_samples": 69,
+              "plateau_ms": 82.452019,
+              "last_sample_to_exit_ms": 2.409564
+            },
+            {
+              "variant": "A",
+              "pair": 4,
+              "plateau_samples": 58,
+              "plateau_ms": 82.11908,
+              "last_sample_to_exit_ms": 2.476589
+            },
+            {
+              "variant": "B",
+              "pair": 4,
+              "plateau_samples": 58,
+              "plateau_ms": 70.936524,
+              "last_sample_to_exit_ms": 1.18872
+            }
+          ]
+        }
+      }
+    },
+    "net_production_lines": 10,
+    "correctness": {
+      "passed": 386,
+      "failed": 0,
+      "ignored": 1,
+      "new_skips": 0,
+      "suites": [
+        {
+          "name": "consumer_fetch_semantics",
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "ignored_test": "live_fetch_session_recovery_required",
+          "reason": "Pre-existing: requires owned digest-pinnedKL05-07broker and explicit observer ports"
+        },
+        {
+          "name": "full_surface",
+          "passed": 324,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "supplemental": "New regression passes original and candidate consumers:unordered/repeated PID interval metadata, ABORT/COMMIT control records spanning three responses, repeated PID transactions, exact offsets/cursors, then seek resets and replays same history. Existing suite covers LSO, nontransactional flags and seek/pause/assignment filtering. Complete-history harness e2e1pass; focused strict Clippy passes for both candidate attempts."
+    },
+    "integrity": {
+      "fresh_runs": 50,
+      "fresh_named_verified_records": 1080000,
+      "fresh_bulk_verified_records": 600000,
+      "fresh_sparse_verified_records": 100000,
+      "mismatches": 0,
+      "validation_failures": 0,
+      "runtime_artifacts_valid": 110,
+      "runtime_artifacts_failed": 0,
+      "sidecar_hashes_verified": 220,
+      "external_observer_artifacts": 100
+    }
+  },
+  "candidate_history": [
+    {
+      "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+      "disposition": "rejected-regression",
+      "reason": "Original 5 bulk throughput -2.271978% exceeded 2%; predeclared exactly 10 additional pairs yielded pooled 15 CPU +2.021989% exceeding 2%. No waiver or further unchanged-code sampling. Named allocation gain and every losing/coarse RSS observation remain valid and archived.",
+      "named_initial5": {
+        "cpu_ns_per_record": {
+          "baseline_median": 474.25,
+          "candidate_median": 392.4537037037037,
+          "delta_pct": -17.247505808391416,
+          "baseline_ci95": [
+            450.3611111111111,
+            519.7592592592592
+          ],
+          "candidate_ci95": [
+            366.8240740740741,
+            421.75
+          ],
+          "ci95_pct": [
+            -29.424234866569275,
+            -9.152738441900354
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            450.3611111111111,
+            464.24074074074076,
+            519.7592592592592,
+            476.5740740740741,
+            474.25
+          ],
+          "candidate_values": [
+            392.4537037037037,
+            421.75,
+            366.8240740740741,
+            386.22222222222223,
+            399.97222222222223
+          ]
+        },
+        "allocations_per_record": {
+          "baseline_median": 2.010074074074074,
+          "candidate_median": 1.0043055555555556,
+          "delta_pct": -50.036390772405646,
+          "baseline_ci95": [
+            2.010074074074074,
+            2.010074074074074
+          ],
+          "candidate_ci95": [
+            1.0043055555555556,
+            1.0043055555555556
+          ],
+          "ci95_pct": [
+            -50.036390772405646,
+            -50.036390772405646
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            2.010074074074074,
+            2.010074074074074,
+            2.010074074074074,
+            2.010074074074074,
+            2.010074074074074
+          ],
+          "candidate_values": [
+            1.0043055555555556,
+            1.0043055555555556,
+            1.0043055555555556,
+            1.0043055555555556,
+            1.0043055555555556
+          ]
+        },
+        "allocated_bytes_per_record": {
+          "baseline_median": 665.3146666666667,
+          "candidate_median": 653.2380370370371,
+          "delta_pct": -1.8151756206030156,
+          "baseline_ci95": [
+            665.3146666666667,
+            665.3146666666667
+          ],
+          "candidate_ci95": [
+            653.2380370370371,
+            653.2380370370371
+          ],
+          "ci95_pct": [
+            -1.8151756206030156,
+            -1.8151756206030156
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            665.3146666666667,
+            665.3146666666667,
+            665.3146666666667,
+            665.3146666666667,
+            665.3146666666667
+          ],
+          "candidate_values": [
+            653.2380370370371,
+            653.2380370370371,
+            653.2380370370371,
+            653.2380370370371,
+            653.2380370370371
+          ]
+        },
+        "process_peak_rss_bytes": {
+          "baseline_median": 42332160,
+          "candidate_median": 42348544,
+          "delta_pct": 0.03870343492984318,
+          "baseline_ci95": [
+            42229760.0,
+            42479616.0
+          ],
+          "candidate_ci95": [
+            42237952.0,
+            42414080.0
+          ],
+          "ci95_pct": [
+            -0.5688940314338087,
+            0.19351717464926033
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            42479616,
+            42364928,
+            42332160,
+            42311680,
+            42229760
+          ],
+          "candidate_values": [
+            42237952,
+            42389504,
+            42414080,
+            42348544,
+            42283008
+          ]
+        },
+        "external_client_vmhwm_bytes": {
+          "baseline_median": 42332160,
+          "candidate_median": 42348544,
+          "delta_pct": 0.03870343492984318,
+          "baseline_ci95": [
+            42229760.0,
+            42479616.0
+          ],
+          "candidate_ci95": [
+            42237952.0,
+            42414080.0
+          ],
+          "ci95_pct": [
+            -0.5688940314338087,
+            0.19351717464926033
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            42479616,
+            42364928,
+            42332160,
+            42311680,
+            42229760
+          ],
+          "candidate_values": [
+            42237952,
+            42389504,
+            42414080,
+            42348544,
+            42283008
+          ]
+        },
+        "rec_s": {
+          "baseline_median": 584769.0279293485,
+          "candidate_median": 630506.367545105,
+          "delta_pct": 7.82143674361675,
+          "baseline_ci95": [
+            524799.9360599308,
+            587171.1232112219
+          ],
+          "candidate_ci95": [
+            608870.2415486907,
+            641620.0306929636
+          ],
+          "ci95_pct": [
+            3.9403156073259282,
+            22.259929280877856
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            584769.0279293485,
+            585788.3324589176,
+            524799.9360599308,
+            580713.9290591476,
+            587171.1232112219
+          ],
+          "candidate_values": [
+            637801.4652779996,
+            608870.2415486907,
+            641620.0306929636,
+            630506.367545105,
+            612027.874401521
+          ]
+        },
+        "phase_sampled_peak_rss_bytes": {
+          "baseline_median": 41316352,
+          "candidate_median": 40628224,
+          "delta_pct": -1.6655100624566321,
+          "baseline_ci95": [
+            38637568.0,
+            41455616.0
+          ],
+          "candidate_ci95": [
+            38735872.0,
+            41291776.0
+          ],
+          "ci95_pct": [
+            -6.431186306520232,
+            6.869500689070285
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            41455616,
+            41316352,
+            39432192,
+            41398272,
+            38637568
+          ],
+          "candidate_values": [
+            40386560,
+            40775680,
+            40628224,
+            38735872,
+            41291776
+          ]
+        }
+      },
+      "bulk_initial5": {
+        "cpu_ns_per_record": {
+          "baseline_median": 2514.85,
+          "candidate_median": 2475.75,
+          "delta_pct": -1.5547646976956875,
+          "baseline_ci95": [
+            2363.95,
+            2611.3
+          ],
+          "candidate_ci95": [
+            2297.6,
+            2668.65
+          ],
+          "ci95_pct": [
+            -2.8293508141256085,
+            3.733821102650259
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            2363.95,
+            2364.5,
+            2611.3,
+            2514.85,
+            2532.3
+          ],
+          "candidate_values": [
+            2429.55,
+            2297.6,
+            2668.65,
+            2608.75,
+            2475.75
+          ]
+        },
+        "allocations_per_record": {
+          "baseline_median": 6.7723,
+          "candidate_median": 6.7717,
+          "delta_pct": -0.008859619331691437,
+          "baseline_ci95": [
+            6.7723,
+            6.7723
+          ],
+          "candidate_ci95": [
+            6.7717,
+            6.7717
+          ],
+          "ci95_pct": [
+            -0.008859619331691437,
+            -0.008859619331691437
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723
+          ],
+          "candidate_values": [
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717
+          ]
+        },
+        "allocated_bytes_per_record": {
+          "baseline_median": 5409.45175,
+          "candidate_median": 5409.44695,
+          "delta_pct": -8.873357638661261e-05,
+          "baseline_ci95": [
+            5409.45175,
+            5409.45175
+          ],
+          "candidate_ci95": [
+            5409.44695,
+            5409.44695
+          ],
+          "ci95_pct": [
+            -8.873357638661261e-05,
+            -8.873357638661261e-05
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175
+          ],
+          "candidate_values": [
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695
+          ]
+        },
+        "process_peak_rss_bytes": {
+          "baseline_median": 63500288,
+          "candidate_median": 63516672,
+          "delta_pct": 0.02580145778237064,
+          "baseline_ci95": [
+            63229952.0,
+            63516672.0
+          ],
+          "candidate_ci95": [
+            63442944.0,
+            63623168.0
+          ],
+          "ci95_pct": [
+            -0.10963498000773342,
+            0.5247133510397184
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            63500288,
+            63377408,
+            63229952,
+            63512576,
+            63516672
+          ],
+          "candidate_values": [
+            63516672,
+            63459328,
+            63561728,
+            63442944,
+            63623168
+          ]
+        },
+        "external_client_vmhwm_bytes": {
+          "baseline_median": 63500288,
+          "candidate_median": 63516672,
+          "delta_pct": 0.02580145778237064,
+          "baseline_ci95": [
+            63229952.0,
+            63516672.0
+          ],
+          "candidate_ci95": [
+            63442944.0,
+            63623168.0
+          ],
+          "ci95_pct": [
+            -0.10963498000773342,
+            0.5247133510397184
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            63500288,
+            63377408,
+            63229952,
+            63512576,
+            63516672
+          ],
+          "candidate_values": [
+            63516672,
+            63459328,
+            63561728,
+            63442944,
+            63623168
+          ]
+        },
+        "rec_s": {
+          "baseline_median": 113339.39510198137,
+          "candidate_median": 110764.34854939741,
+          "delta_pct": -2.271978379862505,
+          "baseline_ci95": [
+            110893.39718479036,
+            119346.0573615223
+          ],
+          "candidate_ci95": [
+            110093.41795326285,
+            115725.59260891654
+          ],
+          "ci95_pct": [
+            -3.485416517633688,
+            -0.07679755324180304
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            119346.0573615223,
+            113339.39510198137,
+            110953.07509859443,
+            114178.83832588771,
+            110893.39718479036
+          ],
+          "candidate_values": [
+            115725.59260891654,
+            113252.35321968398,
+            110093.41795326285,
+            110199.23023523497,
+            110764.34854939741
+          ]
+        },
+        "phase_sampled_peak_rss_bytes": {
+          "baseline_median": 59482112,
+          "candidate_median": 55517184,
+          "delta_pct": -6.665748519487669,
+          "baseline_ci95": [
+            45449216.0,
+            61382656.0
+          ],
+          "candidate_ci95": [
+            45457408.0,
+            62550016.0
+          ],
+          "ci95_pct": [
+            -23.57801955653491,
+            22.15212689257391
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            45449216,
+            48611328,
+            61382656,
+            59482112,
+            60456960
+          ],
+          "candidate_values": [
+            55517184,
+            45473792,
+            58593280,
+            45457408,
+            62550016
+          ]
+        }
+      },
+      "bulk_additional10": {
+        "cpu_ns_per_record": {
+          "baseline_median": 2519.9,
+          "candidate_median": 2580.675,
+          "delta_pct": 2.4118020556371356,
+          "baseline_ci95": [
+            2388.85,
+            2611.7749999999996
+          ],
+          "candidate_ci95": [
+            2364.55,
+            2669.6499999999996
+          ],
+          "ci95_pct": [
+            -5.344168451392084,
+            6.18108855729147
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            2449.4,
+            2498.05,
+            2388.85,
+            2369.55,
+            2311.6,
+            2656.85,
+            2697.2,
+            2541.75,
+            2566.7,
+            2607.1
+          ],
+          "candidate_values": [
+            2565.7,
+            2622.9,
+            2543.15,
+            2364.55,
+            2325.55,
+            2266.95,
+            2595.65,
+            2613.95,
+            2793.7,
+            2725.35
+          ]
+        },
+        "allocations_per_record": {
+          "baseline_median": 6.7723,
+          "candidate_median": 6.7717,
+          "delta_pct": -0.008859619331691437,
+          "baseline_ci95": [
+            6.7723,
+            6.7723
+          ],
+          "candidate_ci95": [
+            6.7717,
+            6.7717
+          ],
+          "ci95_pct": [
+            -0.008859619331691437,
+            -0.008859619331691437
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723
+          ],
+          "candidate_values": [
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717
+          ]
+        },
+        "allocated_bytes_per_record": {
+          "baseline_median": 5409.45175,
+          "candidate_median": 5409.44695,
+          "delta_pct": -8.873357638661261e-05,
+          "baseline_ci95": [
+            5409.45175,
+            5409.45175
+          ],
+          "candidate_ci95": [
+            5409.44695,
+            5409.44695
+          ],
+          "ci95_pct": [
+            -8.873357638661261e-05,
+            -8.873357638661261e-05
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175
+          ],
+          "candidate_values": [
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695
+          ]
+        },
+        "process_peak_rss_bytes": {
+          "baseline_median": 63428608.0,
+          "candidate_median": 63467520.0,
+          "delta_pct": 0.061347712376091934,
+          "baseline_ci95": [
+            63297536.0,
+            63467520.0
+          ],
+          "candidate_ci95": [
+            63315968.0,
+            63514624.0
+          ],
+          "ci95_pct": [
+            -0.22268839761174775,
+            0.2457161332040103
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            63471616,
+            63451136,
+            63344640,
+            63229952,
+            63463424,
+            63508480,
+            63406080,
+            63221760,
+            63365120,
+            63467520
+          ],
+          "candidate_values": [
+            63414272,
+            63524864,
+            63496192,
+            63438848,
+            63291392,
+            63152128,
+            63315968,
+            63504384,
+            63504384,
+            63524864
+          ]
+        },
+        "external_client_vmhwm_bytes": {
+          "baseline_median": 63442944.0,
+          "candidate_median": 63467520.0,
+          "delta_pct": 0.03873716831299667,
+          "baseline_ci95": [
+            63318016.0,
+            63488000.0
+          ],
+          "candidate_ci95": [
+            63365120.0,
+            63514624.0
+          ],
+          "ci95_pct": [
+            -0.11935098867777993,
+            0.219780219780219
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            63471616,
+            63451136,
+            63434752,
+            63229952,
+            63627264,
+            63508480,
+            63406080,
+            63221760,
+            63365120,
+            63467520
+          ],
+          "candidate_values": [
+            63414272,
+            63524864,
+            63496192,
+            63438848,
+            63414272,
+            63152128,
+            63315968,
+            63504384,
+            63504384,
+            63524864
+          ]
+        },
+        "rec_s": {
+          "baseline_median": 111245.83304576365,
+          "candidate_median": 109677.35453122917,
+          "delta_pct": -1.4099211373510445,
+          "baseline_ci95": [
+            107860.18320292013,
+            114713.72298529823
+          ],
+          "candidate_ci95": [
+            104390.18087070278,
+            115498.78082085687
+          ],
+          "ci95_pct": [
+            -4.641983411525197,
+            2.582258327010467
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            112022.62803315408,
+            116583.54735789534,
+            112539.82418623523,
+            114713.72298529823,
+            116353.44735571695,
+            110469.03805837322,
+            105545.45922351714,
+            110174.90718232314,
+            108768.78440305665,
+            104045.36061424884
+          ],
+          "candidate_values": [
+            109792.659252921,
+            109910.38714873239,
+            109562.04980953733,
+            115498.78082085687,
+            116391.88124494455,
+            116289.73394170619,
+            108023.55486020794,
+            109213.02215667377,
+            99567.3395847318,
+            98917.75714055511
+          ]
+        },
+        "phase_sampled_peak_rss_bytes": {
+          "baseline_median": 52637696.0,
+          "candidate_median": 56887296.0,
+          "delta_pct": 8.073301688584555,
+          "baseline_ci95": [
+            45477888.0,
+            57745408.0
+          ],
+          "candidate_ci95": [
+            52781056.0,
+            61722624.0
+          ],
+          "ci95_pct": [
+            -1.974497545123799,
+            30.507634791225623
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            45477888,
+            58986496,
+            45412352,
+            46665728,
+            56504320,
+            45457408,
+            50036736,
+            56975360,
+            55238656,
+            59736064
+          ],
+          "candidate_values": [
+            56954880,
+            56836096,
+            61722624,
+            51712000,
+            55644160,
+            63221760,
+            52781056,
+            56938496,
+            46141440,
+            62066688
+          ]
+        }
+      },
+      "bulk_pooled15": {
+        "cpu_ns_per_record": {
+          "baseline_median": 2514.85,
+          "candidate_median": 2565.7,
+          "delta_pct": 2.021989383064593,
+          "baseline_ci95": [
+            2388.85,
+            2607.1
+          ],
+          "candidate_ci95": [
+            2364.55,
+            2613.95
+          ],
+          "ci95_pct": [
+            -3.464113660488277,
+            6.459174916800969
+          ],
+          "repetitions": 15,
+          "baseline_values": [
+            2363.95,
+            2364.5,
+            2611.3,
+            2514.85,
+            2532.3,
+            2449.4,
+            2498.05,
+            2388.85,
+            2369.55,
+            2311.6,
+            2656.85,
+            2697.2,
+            2541.75,
+            2566.7,
+            2607.1
+          ],
+          "candidate_values": [
+            2429.55,
+            2297.6,
+            2668.65,
+            2608.75,
+            2475.75,
+            2565.7,
+            2622.9,
+            2543.15,
+            2364.55,
+            2325.55,
+            2266.95,
+            2595.65,
+            2613.95,
+            2793.7,
+            2725.35
+          ]
+        },
+        "allocations_per_record": {
+          "baseline_median": 6.7723,
+          "candidate_median": 6.7717,
+          "delta_pct": -0.008859619331691437,
+          "baseline_ci95": [
+            6.7723,
+            6.7723
+          ],
+          "candidate_ci95": [
+            6.7717,
+            6.7717
+          ],
+          "ci95_pct": [
+            -0.008859619331691437,
+            -0.008859619331691437
+          ],
+          "repetitions": 15,
+          "baseline_values": [
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723
+          ],
+          "candidate_values": [
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717
+          ]
+        },
+        "allocated_bytes_per_record": {
+          "baseline_median": 5409.45175,
+          "candidate_median": 5409.44695,
+          "delta_pct": -8.873357638661261e-05,
+          "baseline_ci95": [
+            5409.45175,
+            5409.45175
+          ],
+          "candidate_ci95": [
+            5409.44695,
+            5409.44695
+          ],
+          "ci95_pct": [
+            -8.873357638661261e-05,
+            -8.873357638661261e-05
+          ],
+          "repetitions": 15,
+          "baseline_values": [
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175
+          ],
+          "candidate_values": [
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695
+          ]
+        },
+        "process_peak_rss_bytes": {
+          "baseline_median": 63451136,
+          "candidate_median": 63496192,
+          "delta_pct": 0.07100897295204689,
+          "baseline_ci95": [
+            63344640.0,
+            63500288.0
+          ],
+          "candidate_ci95": [
+            63414272.0,
+            63516876.79999998
+          ],
+          "ci95_pct": [
+            -0.07744933522654263,
+            0.23266334905964747
+          ],
+          "repetitions": 15,
+          "baseline_values": [
+            63500288,
+            63377408,
+            63229952,
+            63512576,
+            63516672,
+            63471616,
+            63451136,
+            63344640,
+            63229952,
+            63463424,
+            63508480,
+            63406080,
+            63221760,
+            63365120,
+            63467520
+          ],
+          "candidate_values": [
+            63516672,
+            63459328,
+            63561728,
+            63442944,
+            63623168,
+            63414272,
+            63524864,
+            63496192,
+            63438848,
+            63291392,
+            63152128,
+            63315968,
+            63504384,
+            63504384,
+            63524864
+          ]
+        },
+        "external_client_vmhwm_bytes": {
+          "baseline_median": 63451136,
+          "candidate_median": 63496192,
+          "delta_pct": 0.07100897295204689,
+          "baseline_ci95": [
+            63377408.0,
+            63500288.0
+          ],
+          "candidate_ci95": [
+            63414272.0,
+            63516876.79999998
+          ],
+          "ci95_pct": [
+            -0.09034589571502716,
+            0.2003489950235915
+          ],
+          "repetitions": 15,
+          "baseline_values": [
+            63500288,
+            63377408,
+            63229952,
+            63512576,
+            63516672,
+            63471616,
+            63451136,
+            63434752,
+            63229952,
+            63627264,
+            63508480,
+            63406080,
+            63221760,
+            63365120,
+            63467520
+          ],
+          "candidate_values": [
+            63516672,
+            63459328,
+            63561728,
+            63442944,
+            63623168,
+            63414272,
+            63524864,
+            63496192,
+            63438848,
+            63414272,
+            63152128,
+            63315968,
+            63504384,
+            63504384,
+            63524864
+          ]
+        },
+        "rec_s": {
+          "baseline_median": 112022.62803315408,
+          "candidate_median": 110093.41795326285,
+          "delta_pct": -1.7221610613529448,
+          "baseline_ci95": [
+            110469.03805837322,
+            114713.72298529823
+          ],
+          "candidate_ci95": [
+            109562.04980953733,
+            115498.78082085687
+          ],
+          "ci95_pct": [
+            -3.5780889283216544,
+            1.1560307621993893
+          ],
+          "repetitions": 15,
+          "baseline_values": [
+            119346.0573615223,
+            113339.39510198137,
+            110953.07509859443,
+            114178.83832588771,
+            110893.39718479036,
+            112022.62803315408,
+            116583.54735789534,
+            112539.82418623523,
+            114713.72298529823,
+            116353.44735571695,
+            110469.03805837322,
+            105545.45922351714,
+            110174.90718232314,
+            108768.78440305665,
+            104045.36061424884
+          ],
+          "candidate_values": [
+            115725.59260891654,
+            113252.35321968398,
+            110093.41795326285,
+            110199.23023523497,
+            110764.34854939741,
+            109792.659252921,
+            109910.38714873239,
+            109562.04980953733,
+            115498.78082085687,
+            116391.88124494455,
+            116289.73394170619,
+            108023.55486020794,
+            109213.02215667377,
+            99567.3395847318,
+            98917.75714055511
+          ]
+        },
+        "phase_sampled_peak_rss_bytes": {
+          "baseline_median": 55238656,
+          "candidate_median": 56836096,
+          "delta_pct": 2.89188788373127,
+          "baseline_ci95": [
+            45477888.0,
+            58986496.0
+          ],
+          "candidate_ci95": [
+            52781056.0,
+            61722624.0
+          ],
+          "ci95_pct": [
+            -5.881536004444133,
+            25.236422588489592
+          ],
+          "repetitions": 15,
+          "baseline_values": [
+            45449216,
+            48611328,
+            61382656,
+            59482112,
+            60456960,
+            45477888,
+            58986496,
+            45412352,
+            46665728,
+            56504320,
+            45457408,
+            50036736,
+            56975360,
+            55238656,
+            59736064
+          ],
+          "candidate_values": [
+            55517184,
+            45473792,
+            58593280,
+            45457408,
+            62550016,
+            56954880,
+            56836096,
+            61722624,
+            51712000,
+            55644160,
+            63221760,
+            52781056,
+            56938496,
+            46141440,
+            62066688
+          ]
+        }
+      },
+      "sparse_initial5": {
+        "cpu_ns_per_record": {
+          "baseline_median": 807.4,
+          "candidate_median": 805.7,
+          "delta_pct": -0.21055239038889617,
+          "baseline_ci95": [
+            746.4,
+            841.4
+          ],
+          "candidate_ci95": [
+            758.4,
+            869.8
+          ],
+          "ci95_pct": [
+            -2.514243249938064,
+            8.575708400948677
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            812.6,
+            841.4,
+            801.1,
+            807.4,
+            746.4
+          ],
+          "candidate_values": [
+            805.7,
+            841.3,
+            869.8,
+            787.1,
+            758.4
+          ]
+        },
+        "allocations_per_record": {
+          "baseline_median": 2.1318,
+          "candidate_median": 1.9318,
+          "delta_pct": -9.381743127873165,
+          "baseline_ci95": [
+            2.1318,
+            2.1318
+          ],
+          "candidate_ci95": [
+            1.9318,
+            1.9318
+          ],
+          "ci95_pct": [
+            -9.381743127873165,
+            -9.381743127873165
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            2.1318,
+            2.1318,
+            2.1318,
+            2.1318,
+            2.1318
+          ],
+          "candidate_values": [
+            1.9318,
+            1.9318,
+            1.9318,
+            1.9318,
+            1.9318
+          ]
+        },
+        "allocated_bytes_per_record": {
+          "baseline_median": 936.3336,
+          "candidate_median": 934.1336,
+          "delta_pct": -0.23495899324771363,
+          "baseline_ci95": [
+            936.3336,
+            936.3336
+          ],
+          "candidate_ci95": [
+            934.1336,
+            934.1336
+          ],
+          "ci95_pct": [
+            -0.23495899324771363,
+            -0.23495899324771363
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            936.3336,
+            936.3336,
+            936.3336,
+            936.3336,
+            936.3336
+          ],
+          "candidate_values": [
+            934.1336,
+            934.1336,
+            934.1336,
+            934.1336,
+            934.1336
+          ]
+        },
+        "process_peak_rss_bytes": {
+          "baseline_median": 13197312,
+          "candidate_median": 13197312,
+          "delta_pct": 0.0,
+          "baseline_ci95": [
+            13107200.0,
+            13197312.0
+          ],
+          "candidate_ci95": [
+            13107200.0,
+            13197312.0
+          ],
+          "ci95_pct": [
+            0.0,
+            0.0
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            13107200,
+            13197312,
+            13197312,
+            13197312,
+            13197312
+          ],
+          "candidate_values": [
+            13107200,
+            13197312,
+            13197312,
+            13197312,
+            13197312
+          ]
+        },
+        "external_client_vmhwm_bytes": {
+          "baseline_median": 12935168,
+          "candidate_median": 13070336,
+          "delta_pct": 1.0449651678277494,
+          "baseline_ci95": [
+            12914688.0,
+            13070336.0
+          ],
+          "candidate_ci95": [
+            13012992.0,
+            13152256.0
+          ],
+          "ci95_pct": [
+            -0.4387339392040168,
+            1.2982900569981082
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            12914688,
+            12935168,
+            13070336,
+            13066240,
+            12935168
+          ],
+          "candidate_values": [
+            13070336,
+            13103104,
+            13012992,
+            13152256,
+            13012992
+          ]
+        },
+        "rec_s": {
+          "baseline_median": 168400.5609422685,
+          "candidate_median": 167118.87362681347,
+          "delta_pct": -0.7610944454599644,
+          "baseline_ci95": [
+            154792.76159326578,
+            171514.87771503764
+          ],
+          "candidate_ci95": [
+            154110.88790032576,
+            170114.95926648335
+          ],
+          "ci95_pct": [
+            -8.75645890289507,
+            7.962977019517137
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            168400.5609422685,
+            154792.76159326578,
+            168900.59948058674,
+            156626.68718267433,
+            171514.87771503764
+          ],
+          "candidate_values": [
+            168143.7817655131,
+            167118.87362681347,
+            154110.88790032576,
+            156865.1934253719,
+            170114.95926648335
+          ]
+        },
+        "phase_sampled_peak_rss_bytes": {
+          "baseline_median": 5087232,
+          "candidate_median": 5201920,
+          "delta_pct": 2.254428341384873,
+          "baseline_ci95": [
+            4984832.0,
+            9097216.0
+          ],
+          "candidate_ci95": [
+            5021696.0,
+            8028160.0
+          ],
+          "ci95_pct": [
+            -31.304347826086953,
+            47.02093397745573
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            5033984,
+            7536640,
+            5087232,
+            9097216,
+            4984832
+          ],
+          "candidate_values": [
+            5201920,
+            5177344,
+            7479296,
+            8028160,
+            5021696
+          ]
+        }
+      },
+      "revision": "Restore explicit read_committed isolation guard around cached abort predicate; RUC bypasses per-record transaction filtering as before. Cursor-update ordering is unchanged. Revised candidate pushed before a fresh fixed 25-pair cohort; orchestration fork fix applies equally to both SHAs.",
+      "method_distinction": "Old named/bulk process peaks exceeded inherited Python floor and remain valid. Old sparse RUSAGE_SELF has a constant 13.197MB pre-exec floor, whereas observed runtime VmHWM 12.94\u201313.16MB; those floored readings are retained and excluded from final acceptance."
+    }
+  ],
+  "measurement_orchestration": {
+    "launcher_sha256": "e4008078db50a97e6116cf45508779826a06d662624b68deba2069c0224ddaf3",
+    "launcher_source_sha256": "2d78cca916147f7b29043f03944ba967ea3fb251f94d07ddc57a44fa37b6ded0",
+    "compiler": "cc (Debian 14.2.0-19) 14.2.0",
+    "floor_control": "Python\u2192exec smallC retains 9.44MB RUSAGE_SELF despite 0.655MBcurrentRSS. ExtraC fork creates fresh child with 0 reported preexec peak/~0.25MBRSS; tiny exec probe self peak 0.393MB removes Python floor; exit 17 propagates. Both accepted A/B binaries use this same launcher with CPU 3 inherited affinity; emitted actual Rust childPID is observed only after exactexe confirmation.",
+    "sparse_phase_vs_lifetime": "With floor removed, sparse phase-end SELF medians9.359MB/9.343MB are truthful phase-end process maxima; lifetime VmHWM13.091MB/13.115MB includes later binary hash/provenance/artifact work. This ~40% difference is explicit, not falsely labelled a corroborating match. Actual lifetime peak plateau persists at least 21 samples/>25.6ms before exit, last sample gap<=2.365ms.",
+    "method_change": "First candidate cohorts use direct Python spawn; final fresh cohorts use low-current-RSS C fork/exec. Their statistics are never pooled across candidate/method changes. Original fixed 5 and extra 10 bulk cohorts remain separate, and their old pooled 15 is also retained.",
+    "wait4_control": "Compiler-version child reaches~85.18MB while true child inherits Python ~8.78MB; external wait4 includes descendants. It is diagnostic only and never substituted for direct client peak."
+  },
+  "preserved_failures": [
+    {
+      "artifact": "baseline-invariant-compile-failure.log",
+      "exit": 101,
+      "reason": "New fixture first called absent fetch_attempts helper; corrected to existing attempt_count."
+    },
+    {
+      "artifact": "baseline-invariant-runtime-failure.log",
+      "exit": 101,
+      "reason": "Attempt counter is zero-based; first subtract-one branch panicked/retried. Corrected fixture then passes against original consumer."
+    },
+    {
+      "artifact": "harness-proof-tests.log",
+      "exit": 101,
+      "reason": "Initial proof guessed135000 fetched rather than actual 134500. Raw artifact retained; source expectation corrected."
+    },
+    {
+      "artifact": "harness-proof-tests-final.log",
+      "exit": 0,
+      "reason": "Prefix proof passed but was rejected in review because tail 108000 returned versus 20000 verified could conceal aborted delivery. Final complete-history proof replaces it; original log retained."
+    },
+    {
+      "artifact": "harness-complete-history-tests.log",
+      "exit": 101,
+      "reason": "Initial complete-history expected wrong p2 tail range; raw exact actual history retained, corrected final 57-range proof passes."
+    },
+    {
+      "artifact": "candidate-exact-source-build.log",
+      "exit": 101,
+      "reason": "Root workspace package selector did not include excluded nullbroker harness. Correct explicit runtime manifest rebuild succeeds before measurement."
+    },
+    {
+      "artifact": "initial-baseline.log",
+      "exit": 0,
+      "excluded": true,
+      "reason": "Initial binary launched from live sharedcwd emitted dirty/wrong provenance; rerun clean0c provenance preserved. Neither prefix artifact qualifies."
+    },
+    {
+      "artifact": "callgrind-body.log",
+      "exit": 0,
+      "reason": "Valgrind brk-segment warning preserved; full 108k history still validates. Source-annotation warnings reproduced and retained; traced timing/RSS excluded."
+    }
+  ],
+  "acceptance_met": [
+    "Corrected complete-history harness independently claimed/pushed before admission gate. Baseline-only exact 108000 lookup String clone calls account 49.7494% of 217088 whole-cell allocations, exceeding 1% admission threshold; diagnostic body-only Ir scope is explicit.",
+    "Deterministic route: allocations per actual verified record fall 50.0364%, identical counts in all 5fresh A/B pairs. Wall-clock route is not claimed because fresh primary CPU paired CI includeszero despite 18.28% median improvement.",
+    "Fresh predeclared cohorts meet CPU/allocation/throughput/actual-client-maximum median guards<=2% for all 3 cells. Coarse phaseRSS increases and old rejected-candidate guards remain explicit; no waiver or selection of further samples.",
+    "One safe private partition-local state index, no runtime dependency/default/public API change, net 10 production lines. Active PID offset is looked up once per data batch; marker and seek lifecycle matches pinned histories.",
+    "Both required correctness suites pass 386 tests with only 1 pre-existing live-broker ignore and no new skips; strict focused Clippy passes. No allocation/instruction baseline budget was raised."
+  ],
+  "limits": [
+    "Local unsigned null-broker optimization evidence, no Kafka comparison or public performance claim; Suite HOLD unchanged.",
+    "Synthetic uncompressed unique-PID aborted metadata cell is one Fetch response; repeatedPID, ABORT/COMMIT marker-spanning responses, LSO and seek behavior are verified by correctness fixtures rather than performance cells.",
+    "Common bulk and sparse cells keep their existing target-prefix ID validation; only named committed-aborts was upgraded to complete returned-history verification. Common throughput is normalized to their existing20000/10000 verified target counts.",
+    "Named fresh CPU paired CI [-28.7124,+11.0220]% crosseszero. Common timing CIs also cannot exclude every 2% regression; deterministic allocation gain is robust while CPU/wall timing remains affected by unmanaged host frequency/shared quota despite paused client builds.",
+    "Coarse10ms phaseRSS freshbulk +3.8436%, old sparse+2.2544%, old additionalbulk +8.0733% and old pooledbulk +2.8919% remain reported as losses, not passing metrics. Direct persistent actual process maximum is the declared authoritative memory guard.",
+    "Phase-end RUSAGE_SELF excludes later artifact/provenance work. Larger named/bulk maxima dominate lifetime and mostlymatchVmHWM; sparse lifetime~13MB exceeds phase-end~9.35MB. Both scopes and the removed preexec-floor controls are retained.",
+    "External 1ms requested observer intervals are approximately1.2\u20131.4ms with scheduling jitter. PersistentVmHWM retains high-water values across samples; sampled instantaneousRSS still misses brief peaks. Last peak plateaus provide coverage evidence but do not constitute an exact phase-boundary timestamp.",
+    "Partition pending-header dedup still checks pending intervals; the heap avoids full re-sorts but this work does not qualify giant duplicate-header adversarial workloads or bound completed-transaction history beyond original lifecycle."
+  ],
+  "artifacts": [
+    "docs/evidence/perf/KL09-47/archive-artifacts.py",
+    "docs/evidence/perf/KL09-47/archive-final.log",
+    "docs/evidence/perf/KL09-47/archive-initial.log",
+    "docs/evidence/perf/KL09-47/artifact-validation.json",
+    "docs/evidence/perf/KL09-47/attribution.json",
+    "docs/evidence/perf/KL09-47/baseline-build.log",
+    "docs/evidence/perf/KL09-47/baseline-invariant-compile-failure.log",
+    "docs/evidence/perf/KL09-47/baseline-invariant-passed.log",
+    "docs/evidence/perf/KL09-47/baseline-invariant-runtime-failure.log",
+    "docs/evidence/perf/KL09-47/baseline-study-00.log",
+    "docs/evidence/perf/KL09-47/baseline-study-01.log",
+    "docs/evidence/perf/KL09-47/baseline-study-02.log",
+    "docs/evidence/perf/KL09-47/baseline-study-03.log",
+    "docs/evidence/perf/KL09-47/baseline-study-04.log",
+    "docs/evidence/perf/KL09-47/baseline-study.json",
+    "docs/evidence/perf/KL09-47/bulk-corroboration-execution.log",
+    "docs/evidence/perf/KL09-47/calculate-revised-stats.py",
+    "docs/evidence/perf/KL09-47/calculate-stats.py",
+    "docs/evidence/perf/KL09-47/callgrind/body-functions-corroborated.txt",
+    "docs/evidence/perf/KL09-47/callgrind/body-functions.txt",
+    "docs/evidence/perf/KL09-47/callgrind/body-lines.txt",
+    "docs/evidence/perf/KL09-47/callgrind/body.out",
+    "docs/evidence/perf/KL09-47/callgrind-annotation-source.log",
+    "docs/evidence/perf/KL09-47/callgrind-annotation.log",
+    "docs/evidence/perf/KL09-47/callgrind-body.log",
+    "docs/evidence/perf/KL09-47/candidate-build.log",
+    "docs/evidence/perf/KL09-47/candidate-clippy.log",
+    "docs/evidence/perf/KL09-47/candidate-exact-source-build-final.log",
+    "docs/evidence/perf/KL09-47/candidate-exact-source-build.log",
+    "docs/evidence/perf/KL09-47/candidate-rejected.patch",
+    "docs/evidence/perf/KL09-47/candidate-tests.log",
+    "docs/evidence/perf/KL09-47/checksums-verification.log",
+    "docs/evidence/perf/KL09-47/checksums.sha256",
+    "docs/evidence/perf/KL09-47/consumer-and-tests.patch",
+    "docs/evidence/perf/KL09-47/corrected-baseline-build.log",
+    "docs/evidence/perf/KL09-47/final-verification.log",
+    "docs/evidence/perf/KL09-47/harness-complete-history-tests.log",
+    "docs/evidence/perf/KL09-47/harness-complete-history.patch",
+    "docs/evidence/perf/KL09-47/harness-full-history-final.log",
+    "docs/evidence/perf/KL09-47/harness-proof-tests-final.log",
+    "docs/evidence/perf/KL09-47/harness-proof-tests.log",
+    "docs/evidence/perf/KL09-47/initial-baseline-correct-provenance.log",
+    "docs/evidence/perf/KL09-47/initial-baseline.log",
+    "docs/evidence/perf/KL09-47/launcher-build-final.log",
+    "docs/evidence/perf/KL09-47/launcher-build.log",
+    "docs/evidence/perf/KL09-47/launcher-control-final.log",
+    "docs/evidence/perf/KL09-47/launcher-control.log",
+    "docs/evidence/perf/KL09-47/low-rss-launcher.c",
+    "docs/evidence/perf/KL09-47/metrics.json",
+    "docs/evidence/perf/KL09-47/nb-fetch-1000p-pair-00-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-1000p-pair-00-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-1000p-pair-01-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-1000p-pair-01-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-1000p-pair-02-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-1000p-pair-02-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-1000p-pair-03-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-1000p-pair-03-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-1000p-pair-04-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-1000p-pair-04-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-00-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-00-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-01-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-01-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-02-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-02-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-03-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-03-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-04-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-04-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-05-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-05-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-06-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-06-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-07-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-07-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-08-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-08-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-09-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-09-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-10-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-10-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-11-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-11-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-12-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-12-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-13-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-13-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-14-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-bulk-pair-14-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-committed-aborts-pair-00-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-committed-aborts-pair-00-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-committed-aborts-pair-01-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-committed-aborts-pair-01-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-committed-aborts-pair-02-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-committed-aborts-pair-02-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-committed-aborts-pair-03-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-committed-aborts-pair-03-B.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-committed-aborts-pair-04-A.log",
+    "docs/evidence/perf/KL09-47/nb-fetch-committed-aborts-pair-04-B.log",
+    "docs/evidence/perf/KL09-47/observer-coverage.json",
+    "docs/evidence/perf/KL09-47/paired-execution.log",
+    "docs/evidence/perf/KL09-47/raw-artifacts.tar.gz",
+    "docs/evidence/perf/KL09-47/record-evidence.py",
+    "docs/evidence/perf/KL09-47/revised-candidate-build.log",
+    "docs/evidence/perf/KL09-47/revised-candidate-clippy.log",
+    "docs/evidence/perf/KL09-47/revised-candidate-tests.log",
+    "docs/evidence/perf/KL09-47/revised-metrics.json",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-1000p-pair-00-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-1000p-pair-00-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-1000p-pair-01-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-1000p-pair-01-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-1000p-pair-02-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-1000p-pair-02-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-1000p-pair-03-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-1000p-pair-03-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-1000p-pair-04-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-1000p-pair-04-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-00-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-00-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-01-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-01-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-02-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-02-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-03-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-03-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-04-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-04-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-05-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-05-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-06-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-06-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-07-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-07-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-08-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-08-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-09-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-09-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-10-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-10-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-11-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-11-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-12-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-12-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-13-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-13-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-14-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-bulk-pair-14-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-committed-aborts-pair-00-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-committed-aborts-pair-00-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-committed-aborts-pair-01-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-committed-aborts-pair-01-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-committed-aborts-pair-02-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-committed-aborts-pair-02-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-committed-aborts-pair-03-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-committed-aborts-pair-03-B.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-committed-aborts-pair-04-A.log",
+    "docs/evidence/perf/KL09-47/revised-nb-fetch-committed-aborts-pair-04-B.log",
+    "docs/evidence/perf/KL09-47/revised-paired-execution.log",
+    "docs/evidence/perf/KL09-47/revised-statistics.log",
+    "docs/evidence/perf/KL09-47/rss-exec-control.c",
+    "docs/evidence/perf/KL09-47/rss-exec-control.log",
+    "docs/evidence/perf/KL09-47/run-baseline-study.py",
+    "docs/evidence/perf/KL09-47/run-pairs-initial.py",
+    "docs/evidence/perf/KL09-47/run-pairs.py",
+    "docs/evidence/perf/KL09-47/run-revised-pairs.py",
+    "docs/evidence/perf/KL09-47/statistics-final.log",
+    "docs/evidence/perf/KL09-47/statistics.log",
+    "docs/evidence/perf/KL09-47/verify-artifacts.py",
+    "docs/evidence/perf/KL09-47/verify-launcher.py"
+  ]
+}

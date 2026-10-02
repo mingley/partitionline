@@ -1,0 +1,27 @@
+   Compiling partitionline v0.1.0 (/workspace/work/consumer-aborts/invariant-baseline)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.19s
+     Running tests/consumer_fetch_semantics.rs (/workspace/work/consumer-aborts/target/debug/deps/consumer_fetch_semantics-3410cd8345d8d2ba)
+
+running 1 test
+test read_committed_repeated_metadata_and_spanning_markers_survive_seek ... FAILED
+
+failures:
+
+---- read_committed_repeated_metadata_and_spanning_markers_survive_seek stdout ----
+
+thread 'read_committed_repeated_metadata_and_spanning_markers_survive_seek' (160987) panicked at tests/consumer_fetch_semantics.rs:1022:34:
+attempt to subtract with overflow
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'read_committed_repeated_metadata_and_spanning_markers_survive_seek' (160987) panicked at tests/consumer_fetch_semantics.rs:1072:5:
+assertion `left == right` failed
+  left: 7
+ right: 6
+
+
+failures:
+    read_committed_repeated_metadata_and_spanning_markers_survive_seek
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 62 filtered out; finished in 0.37s
+
+error: test failed, to rerun pass `--test consumer_fetch_semantics`

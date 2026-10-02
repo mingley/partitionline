@@ -1,0 +1,5277 @@
+# callgrind format
+version: 1
+creator: callgrind-3.24.0
+pid: 167955
+cmd:  /workspace/work/consumer-aborts/corrected-baseline-bin/runtime --cell nb-fetch-committed-aborts --out /workspace/work/consumer-aborts/callgrind/run --repetitions 1
+part: 1
+
+
+desc: I1 cache: 
+desc: D1 cache: 
+desc: LL cache: 
+
+desc: Timerange: Basic block 0 - 77863986
+desc: Trigger: Program termination
+
+positions: line
+events: Ir
+summary: 216217383
+
+
+ob=(1) /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+fl=(1) ???
+fn=(0) 0x000000000001d2c0
+cob=(7) /workspace/work/consumer-aborts/corrected-baseline-bin/runtime
+cfi=(7) ???
+cfn=(4134) (below main)
+calls=1 0 
+0 216217383
+
+ob=(7)
+fl=(281) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/sort/shared/smallsort.rs
+fn=(10454) core::slice::sort::shared::smallsort::insertion_sort_shift_left::<(i64, i64), <[(i64, i64)]>::sort_by_key<core::cmp::Reverse<i64>, <partitionline::consumer::Consumer>::apply_fetch_body::{closure#4}>::{closure#0}>
+580 9
++13 6
+0 3
+fi=(21) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mut_ptr.rs
+970 15
+fi=(19) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/mod.rs
+573 100
+fi=(21)
+970 50
+fe=(281)
+593 150
+-52 50
+fi=(20) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cmp.rs
+2144 50
+fe=(281)
+541 50
+fi=(19)
+1755 50
+fi=(21)
+1054 50
+fi=(19)
+573 250
+fe=(281)
+-13 100
+0 47
+566 94
+fi=(20)
+2144 47
+fe=(281)
+566 769
+fi=(20)
+2144 361
+fe=(281)
+566 361
+fi=(19)
++7 816
+fe=(281)
+-13 1224
+fi=(19)
++13 188
+0 3
+fe=(281)
+602 3
+
+fl=(74) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/mod.rs
+fn=(9062) <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::string::String>
+694 4
++5 2
+fi=(75) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/hash/sip.rs
+203 4
++1 4
+fi=(72) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/hash/random.rs
+84 12
+fe=(74)
+943 4
+0 2
+fi=(75)
+306 6
+cfn=(7830) <core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write
+calls=10 -50 
+* 112
+fe=(74)
++57 10
+cfi=(75)
+cfn=(7830)
+calls=10 256 
+* 68
+fi=(75)
+-49 6
+-2 2
+0 2
+316 2
+0 2
+fi=(11) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/uint_macros.rs
+2652 2
+0 2
+fi=(61) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/intrinsics/mod.rs
+2215 2
+fi=(11)
+2652 2
+fi=(75)
+78 2
+fi=(61)
+2215 2
+fi=(75)
+79 2
+fi=(61)
+2215 2
+fi=(11)
+2652 4
+fi=(61)
+2215 2
+fi=(75)
+79 2
+fi=(61)
+2215 4
+fi=(75)
+78 2
+318 2
++2 2
+fi=(11)
+2652 4
+fi=(61)
+2215 2
+fi=(75)
+78 2
+fi=(61)
+2215 4
+fi=(75)
+79 2
+fi=(11)
+2652 2
+fi=(61)
+2215 2
+fi=(11)
+2652 2
+fi=(75)
+79 2
+fi=(61)
+2215 2
+fi=(75)
+78 2
+fi=(61)
+2215 2
+fi=(11)
+2652 4
+fi=(61)
+2215 2
+fi=(75)
+78 2
+fi=(61)
+2215 4
+fi=(75)
+79 2
+fi=(11)
+2652 2
+fi=(61)
+2215 2
+fi=(11)
+2652 2
+fi=(75)
+79 2
+fi=(61)
+2215 2
+fi=(75)
+78 2
+fi=(61)
+2215 2
+fi=(11)
+2652 4
+fi=(61)
+2215 2
+fi=(75)
+78 2
+fi=(61)
+2215 2
+fi=(75)
+79 2
+fi=(11)
+2652 2
+fi=(61)
+2215 8
+fi=(75)
+323 6
+fe=(74)
+702 6
+
+fn=(9220) <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&str>
+694 20
++5 10
+fi=(75)
+203 20
+fi=(72)
+84 10
+fi=(75)
+204 20
+fi=(72)
+84 50
+-84 10
+fi=(75)
+306 20
+cfn=(7830)
+calls=28 -50 
+* 560
+fe=(74)
++57 50
+cfi=(75)
+cfn=(7830)
+calls=28 256 
+* 340
+fi=(75)
+-49 30
+-2 10
+0 10
+316 10
+0 10
+fi=(11)
+2652 10
+0 10
+fi=(61)
+2215 10
+fi=(11)
+2652 10
+fi=(75)
+78 10
+fi=(61)
+2215 10
+fi=(75)
+79 10
+fi=(61)
+2215 10
+fi=(11)
+2652 20
+fi=(61)
+2215 10
+fi=(75)
+79 10
+fi=(61)
+2215 20
+fi=(75)
+78 10
+318 10
++2 10
+fi=(11)
+2652 20
+fi=(61)
+2215 10
+fi=(75)
+78 10
+fi=(61)
+2215 20
+fi=(75)
+79 10
+fi=(11)
+2652 10
+fi=(61)
+2215 10
+fi=(11)
+2652 10
+fi=(75)
+79 10
+fi=(61)
+2215 10
+fi=(75)
+78 10
+fi=(61)
+2215 10
+fi=(11)
+2652 20
+fi=(61)
+2215 10
+fi=(75)
+78 10
+fi=(61)
+2215 20
+fi=(75)
+79 10
+fi=(11)
+2652 10
+fi=(61)
+2215 10
+fi=(11)
+2652 10
+fi=(75)
+79 10
+fi=(61)
+2215 10
+fi=(75)
+78 10
+fi=(61)
+2215 10
+fi=(11)
+2652 20
+fi=(61)
+2215 10
+fi=(75)
+78 10
+fi=(61)
+2215 10
+fi=(75)
+79 10
+fi=(11)
+2652 10
+fi=(61)
+2215 40
+fi=(75)
+323 30
+fe=(74)
+702 30
+
+fn=(10272) <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&[u8; 16]>
+694 8
++5 2
+fi=(75)
+203 4
+fi=(72)
+84 2
+fi=(75)
+204 4
+fi=(72)
+84 10
+fi=(11)
+4058 2
+0 4
+fi=(75)
+233 6
+cfn=(7830)
+calls=9 +23 
+* 110
+* 8
+cfn=(7830)
+calls=9 +23 
+* 150
++81 6
+-2 2
+0 2
+316 2
+0 2
+fi=(11)
+2652 2
+0 2
+fi=(61)
+2215 2
+fi=(11)
+2652 2
+fi=(75)
+78 2
+fi=(61)
+2215 2
+fi=(75)
+79 2
+fi=(61)
+2215 2
+fi=(11)
+2652 4
+fi=(61)
+2215 2
+fi=(75)
+79 2
+fi=(61)
+2215 4
+fi=(75)
+78 2
+318 2
++2 2
+fi=(11)
+2652 4
+fi=(61)
+2215 2
+fi=(75)
+78 2
+fi=(61)
+2215 4
+fi=(75)
+79 2
+fi=(11)
+2652 2
+fi=(61)
+2215 2
+fi=(11)
+2652 2
+fi=(75)
+79 2
+fi=(61)
+2215 2
+fi=(75)
+78 2
+fi=(61)
+2215 2
+fi=(11)
+2652 4
+fi=(61)
+2215 2
+fi=(75)
+78 2
+fi=(61)
+2215 4
+fi=(75)
+79 2
+fi=(11)
+2652 2
+fi=(61)
+2215 2
+fi=(11)
+2652 2
+fi=(75)
+79 2
+fi=(61)
+2215 2
+fi=(75)
+78 2
+fi=(61)
+2215 2
+fi=(11)
+2652 4
+fi=(61)
+2215 2
+fi=(75)
+78 2
+fi=(61)
+2215 2
+fi=(75)
+79 2
+fi=(11)
+2652 2
+fi=(61)
+2215 8
+fi=(75)
+323 6
+fe=(74)
+702 8
+
+fn=(9018) <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i32>
+694 18
++5 18
+fi=(75)
+203 36
++1 36
+fi=(72)
+84 108
+fe=(74)
+943 18
+fi=(11)
+4058 18
+0 36
+fi=(75)
+233 36
+cfn=(7830)
+calls=35 +23 
+* 486
++81 54
+-2 18
+0 18
+316 18
+0 18
+fi=(11)
+2652 18
+0 18
+fi=(61)
+2215 18
+fi=(11)
+2652 18
+fi=(75)
+78 18
+fi=(61)
+2215 18
+fi=(75)
+79 18
+fi=(61)
+2215 18
+fi=(11)
+2652 36
+fi=(61)
+2215 18
+fi=(75)
+79 18
+fi=(61)
+2215 36
+fi=(75)
+78 18
+318 18
++2 18
+fi=(11)
+2652 36
+fi=(61)
+2215 18
+fi=(75)
+78 18
+fi=(61)
+2215 36
+fi=(75)
+79 18
+fi=(11)
+2652 18
+fi=(61)
+2215 18
+fi=(11)
+2652 18
+fi=(75)
+79 18
+fi=(61)
+2215 18
+fi=(75)
+78 18
+fi=(61)
+2215 18
+fi=(11)
+2652 36
+fi=(61)
+2215 18
+fi=(75)
+78 18
+fi=(61)
+2215 36
+fi=(75)
+79 18
+fi=(11)
+2652 18
+fi=(61)
+2215 18
+fi=(11)
+2652 18
+fi=(75)
+79 18
+fi=(61)
+2215 18
+fi=(75)
+78 18
+fi=(61)
+2215 18
+fi=(11)
+2652 36
+fi=(61)
+2215 18
+fi=(75)
+78 18
+fi=(61)
+2215 18
+fi=(75)
+79 18
+fi=(11)
+2652 18
+fi=(61)
+2215 72
+fi=(75)
+323 54
+fe=(74)
+702 36
+
+fn=(10606) <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&i64>
+694 100664
++5 100664
+fi=(75)
+203 201328
++1 201328
+fi=(72)
+84 603984
+fe=(74)
+943 100664
+fi=(11)
+4058 100664
+0 201328
+fi=(75)
+233 201328
+cfn=(7830)
+calls=100664 +23 
+* 5536520
++81 301992
+-2 100664
+0 100664
+316 100664
+0 100664
+fi=(11)
+2652 100664
+0 100664
+fi=(61)
+2215 100664
+fi=(11)
+2652 100664
+fi=(75)
+78 100664
+fi=(61)
+2215 100664
+fi=(75)
+79 100664
+fi=(61)
+2215 100664
+fi=(11)
+2652 201328
+fi=(61)
+2215 100664
+fi=(75)
+79 100664
+fi=(61)
+2215 201328
+fi=(75)
+78 100664
+318 100664
++2 100664
+fi=(11)
+2652 201328
+fi=(61)
+2215 100664
+fi=(75)
+78 100664
+fi=(61)
+2215 201328
+fi=(75)
+79 100664
+fi=(11)
+2652 100664
+fi=(61)
+2215 100664
+fi=(11)
+2652 100664
+fi=(75)
+79 100664
+fi=(61)
+2215 100664
+fi=(75)
+78 100664
+fi=(61)
+2215 100664
+fi=(11)
+2652 201328
+fi=(61)
+2215 100664
+fi=(75)
+78 100664
+fi=(61)
+2215 201328
+fi=(75)
+79 100664
+fi=(11)
+2652 100664
+fi=(61)
+2215 100664
+fi=(11)
+2652 100664
+fi=(75)
+79 100664
+fi=(61)
+2215 100664
+fi=(75)
+78 100664
+fi=(61)
+2215 100664
+fi=(11)
+2652 201328
+fi=(61)
+2215 100664
+fi=(75)
+78 100664
+fi=(61)
+2215 100664
+fi=(75)
+79 100664
+fi=(11)
+2652 100664
+fi=(61)
+2215 402656
+fi=(75)
+323 301992
+fe=(74)
+702 201328
+
+fn=(9136) <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(alloc::string::String, i32)>
+694 325863
++5 108621
+fi=(75)
+203 325863
++1 217242
+fi=(72)
+84 651726
+fe=(74)
+895 217242
+0 108621
+fi=(75)
+306 217242
+cfn=(7830)
+calls=108648 -50 
+* 6082776
+fe=(74)
++57 543105
+cfi=(75)
+cfn=(7830)
+calls=108648 256 
+* 3693114
+895 108621
+fi=(11)
+4058 108621
+0 108621
+fi=(75)
+233 325863
+cfn=(7830)
+calls=108648 +23 
+* 9124164
++81 325863
+-2 108621
+0 108621
+316 108621
+0 108621
+fi=(11)
+2652 108621
+0 108621
+fi=(61)
+2215 108621
+fi=(11)
+2652 108621
+fi=(75)
+78 108621
+fi=(61)
+2215 108621
+fi=(75)
+79 108621
+fi=(61)
+2215 108621
+fi=(11)
+2652 217242
+fi=(61)
+2215 108621
+fi=(75)
+79 108621
+fi=(61)
+2215 217242
+fi=(75)
+78 108621
+318 108621
++2 108621
+fi=(11)
+2652 217242
+fi=(61)
+2215 108621
+fi=(75)
+78 108621
+fi=(61)
+2215 217242
+fi=(75)
+79 108621
+fi=(11)
+2652 108621
+fi=(61)
+2215 108621
+fi=(11)
+2652 108621
+fi=(75)
+79 108621
+fi=(61)
+2215 108621
+fi=(75)
+78 108621
+fi=(61)
+2215 108621
+fi=(11)
+2652 217242
+fi=(61)
+2215 108621
+fi=(75)
+78 108621
+fi=(61)
+2215 217242
+fi=(75)
+79 108621
+fi=(11)
+2652 108621
+fi=(61)
+2215 108621
+fi=(11)
+2652 108621
+fi=(75)
+79 108621
+fi=(61)
+2215 108621
+fi=(75)
+78 108621
+fi=(61)
+2215 108621
+fi=(11)
+2652 217242
+fi=(61)
+2215 108621
+fi=(75)
+78 108621
+fi=(61)
+2215 108621
+fi=(75)
+79 108621
+fi=(11)
+2652 108621
+fi=(61)
+2215 434484
+fi=(75)
+323 325863
+fe=(74)
+702 434484
+
+fl=(30) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/backtrace.rs
+fn=(5120) std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+fi=(69) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs
+cfi=(25) /workspace/work/consumer-aborts/harness-baseline/benchmarks/runtime/src/main.rs
+cfn=(5122) runtime::main
+calls=1 1141 
+250 216217383
+fe=(30)
+
+fl=(75)
+fn=(7830)
+256 426573
++2 426573
++4 1279719
++1 434508
+fi=(20)
+1090 651762
+fe=(75)
+126 434508
+0 853146
+132 651762
+fi=(19)
+573 108621
+fe=(75)
+134 325863
++1 108621
++2 434508
++2 1086270
+265 869016
++1 434508
++1 108633
+0 108633
+300 217266
+0 108621
+270 108621
+76 108621
+-76 108621
+fi=(11)
+2652 108621
+0 108621
+2652 108621
+fi=(61)
+2215 108621
+fe=(75)
+78 108621
+fi=(61)
+2215 217242
+fe=(75)
+79 108621
+fi=(11)
+2652 108621
+fi=(61)
+2215 108621
+fi=(11)
+2652 108621
+fe=(75)
+79 108621
+fi=(61)
+2215 108621
+fe=(75)
+79 108621
+-1 108621
+fi=(61)
+2215 108621
+fe=(75)
+78 108621
++14 108621
+272 217242
++6 108621
++1 217242
+0 108621
+282 217242
+-4 209319
++1 418638
+0 209319
+282 418638
+0 1046505
+fi=(19)
+573 209301
+fe=(75)
+288 209301
+fi=(11)
+2652 209301
+fi=(61)
+2215 209301
+fi=(11)
+2652 209301
+fe=(75)
+78 209301
+fi=(61)
+2215 209301
+fe=(75)
+79 209301
+fi=(61)
+2215 209301
+fi=(11)
+2652 418602
+fi=(61)
+2215 209301
+fe=(75)
+79 209301
+fi=(61)
+2215 418602
+fe=(75)
+78 209301
+290 209301
++2 209301
+-10 418602
+fi=(19)
+573 2
+fe=(75)
+288 2
+fi=(11)
+2652 2
+fi=(61)
+2215 2
+fi=(11)
+2652 2
+fe=(75)
+78 2
+fi=(61)
+2215 2
+fe=(75)
+79 2
+fi=(61)
+2215 2
+fi=(11)
+2652 4
+fi=(61)
+2215 2
+fe=(75)
+79 2
+fi=(61)
+2215 4
+fe=(75)
+78 2
+290 2
++2 2
+-10 4
+0 837204
+126 635880
+fi=(19)
+573 108651
+0 108651
+fe=(75)
+132 434604
+0 418578
+132 627867
++5 635880
++2 651726
+298 108621
+0 108621
+300 217242
+-2 209319
+0 209319
+300 418638
+
+fl=(160) /workspace/work/consumer-aborts/harness-baseline/benchmarks/runtime/src/fdrive.rs
+fn=(8704) runtime::fdrive::drive_fetch::{closure#0}
+cfi=(174) /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/time/timeout.rs
+cfn=(8708) <tokio::time::timeout::Timeout<runtime::fdrive::drive_fetch::{closure#0}::{closure#0}> as core::future::future::Future>::poll
+calls=43 211 
+312 216217383
+
+fl=(7)
+fn=(4196) main
+cfi=(9) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/rt.rs
+cfn=(4198) std::rt::lang_start_internal
+calls=1 152 
+0 216217383
+
+fn=(5094) __rustc::__rust_no_alloc_shim_is_unstable_v2
+0 216916
+
+fn=(4134)
+cob=(2) /usr/lib/x86_64-linux-gnu/libc.so.6
+cfi=(2) ???
+cfn=(4136) (below main)
+calls=1 0 
+0 216217383
+
+fl=(220) /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs
+fn=(10076) <bytes::bytes::Bytes as bytes::buf::buf_impl::Buf>::copy_to_bytes
+706 2017500
+304 403500
+524 807000
+0 269
+fi=(58) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/const_ptr.rs
+473 269
+fi=(12) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/mem/mod.rs
+975 1076
++1 1345
+fe=(220)
+708 269
+529 806462
++5 806462
+677 3629079
+cfi=(14) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/sync/atomic.rs
+cfn=(8918) bytes::bytes_mut::shared_v_clone
+calls=403500 3994 
+* 4032310
+0 403231
+652 403231
++1 403231
+546 806462
+708 2421000
+
+fn=(10194) bytes::bytes::static_drop
+1094 269
+
+fl=(32) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/raw_vec/mod.rs
+fn=(10534) <alloc::raw_vec::RawVec<partitionline::consumer::FetchedRecord>>::grow_one
+186 64
+493 16
++30 16
+fi=(20)
+1051 48
+fe=(32)
+529 96
+cfn=(5330) <alloc::raw_vec::RawVecInner>::finish_grow
+calls=16 +15 
+* 3126828
+fi=(27) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs
+2177 32
++1 16
+fe=(32)
+773 16
++1 16
+189 64
+
+fn=(10446) <alloc::raw_vec::RawVec<(i64, i64)>>::grow_one
+186 44
+493 11
++30 11
+fi=(20)
+1051 33
+fe=(32)
+529 66
+cfn=(5330)
+calls=11 +15 
+* 2186
+fi=(27)
+2177 22
++1 11
+fe=(32)
+773 11
++1 11
+189 44
+
+fn=(8962) <alloc::raw_vec::RawVecInner>::try_allocate_in
+447 1212921
+fi=(11)
+3212 404307
+0 539076
+fi=(61)
+478 269538
+fe=(32)
+-17 269538
+0 538
+cfi=(7)
+cfn=(5094)
+calls=276 0 
+0 269
+0 538
+465 538
++13 807
+-16 269000
+0 269000
+483 941500
+0 538
+483 1883
+fi=(24) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/alloc.rs
+130 269
+cfi=(25)
+cfn=(5096) __rustc::__rust_alloc
+calls=276 -99 
+* 50290
+fe=(32)
+470 538
+
+fn=(5330)
+544 216
+fi=(11)
+3212 108
+0 108
+fi=(61)
+478 81
+0 27
+fe=(32)
+631 27
+fi=(11)
+1401 23
+fi=(24)
+228 115
+cfi=(25)
+cfn=(5296) __rustc::__rust_realloc
+calls=44 31 
+* 3127545
+fi=(27)
+965 46
+fi=(24)
+298 8
++4 4
+cfi=(7)
+cfn=(5094)
+calls=11 0 
+* 4
+130 12
+cfi=(25)
+cfn=(5096)
+calls=11 -99 
+* 385
+fi=(27)
+965 8
++1 54
+0 81
+fe=(32)
+564 162
+
+fl=(162) /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/runtime.rs
+fn=(8672) <tokio::runtime::runtime::Runtime>::block_on::<runtime::fdrive::drive_fetch::{closure#0}>
+fi=(116) /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/scheduler/current_thread/mod.rs
+cfi=(167) /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context/runtime.rs
+cfn=(8676) tokio::runtime::context::runtime::enter_runtime::<<tokio::runtime::scheduler::current_thread::CurrentThread>::block_on<runtime::fdrive::drive_fetch::{closure#0}>::{closure#0}, ()>
+calls=1 35 
+206 216217383
+fe=(162)
+
+fl=(14)
+fn=(5098) <codec::CountingAlloc as core::alloc::global::GlobalAlloc>::alloc
+3994 433878
+762 216939
+fi=(43) /workspace/work/consumer-aborts/harness-baseline/benchmarks/codec/src/lib.rs
+310 216939
+fe=(14)
+4029 867756
+fi=(26) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/alloc/unix.rs
+30 1301634
++1 433878
+cob=(2)
+cfi=(2)
+cfn=(4252) malloc
+calls=326207 -31 
+* 26521235
+fe=(14)
+
+fn=(8918)
+3994 403231
++35 403231
+fi=(211) /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes_mut.rs
+1538 403231
+fi=(220)
+633 2016155
+fi=(211)
+1901 806462
+fe=(14)
+
+fl=(161) /workspace/work/consumer-aborts/harness-baseline/src/consumer.rs
+fn=(10356) <partitionline::consumer::Consumer>::apply_fetch_body
+3477 14
++13 4
++1 4
+fi=(15) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ptr/non_null.rs
+1663 1
+fi=(48) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/iter/macros.rs
+180 1
+fi=(24)
+0 2
+fe=(161)
+3494 1
+cfn=(10360) <partitionline::consumer::Consumer>::topic_id_names
+calls=1 2263 
+* 712
++2 3
+fi=(21)
+970 3
+fe=(161)
+3496 3
+fi=(21)
+970 2
+fi=(279) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/adapters/zip.rs
+152 2
+fe=(161)
+3496 11
+fi=(15)
+1663 1
+fi=(65) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/into_iter.rs
+262 1
+0 43
+fi=(15)
+627 2
+fi=(65)
+266 1
+fi=(19)
+1755 1
+fi=(42) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/option.rs
+2869 2
++1 9
+fi=(279)
+162 1
+fi=(15)
+1663 2
+627 2
+fi=(65)
+266 1
+fi=(19)
+1755 1
+fi=(42)
+2869 2
+fe=(161)
+3496 15
+fi=(33) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/vec/mod.rs
+3101 2
+fi=(41) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/string.rs
+1897 1
+fe=(161)
+3500 1
+0 1
+fi=(223) /rust/deps/hashbrown-0.17.1/src/map.rs
+1284 1
+241 3
+cfi=(74)
+cfn=(10272)
+calls=1 694 
+* 225
+fi=(230) /rust/deps/hashbrown-0.17.1/src/control/tag.rs
+47 9
+fi=(224) /rust/deps/hashbrown-0.17.1/src/raw.rs
+-47 2
+fi=(19)
+573 1
+fi=(225) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/../../stdarch/crates/core_arch/src/x86/sse2.rs
+1569 3
+fi=(227) /rust/deps/hashbrown-0.17.1/src/control/bitmask.rs
+40 2
+fi=(226) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/nonzero.rs
+628 1
+fi=(224)
+2032 2
+fi=(21)
+1054 2
+0 2
+fi=(265) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/array/equality.rs
+157 4
+fi=(61)
+455 1
+fi=(224)
+1217 2
+fe=(161)
+3503 2
+cfi=(41)
+cfn=(6762) <alloc::string::String as core::clone::Clone>::clone
+calls=1 2388 
+* 106
++4 3
+fi=(21)
+970 2
+fe=(161)
+3507 2
+fi=(21)
+970 2
+fi=(279)
+152 3
+fe=(161)
+3507 11
+fi=(15)
+1663 1
+fi=(65)
+262 1
+0 4
+fi=(15)
+627 1
+fi=(65)
+266 1
+fi=(19)
+1755 1
+fi=(42)
+2869 2
+fi=(15)
+627 5
+fi=(65)
+266 5
+fi=(19)
+1755 5
+fi=(42)
+2869 10
+0 6
+2870 90
+fi=(279)
+162 6
+fi=(15)
+1663 6
+fi=(65)
+262 6
+fi=(15)
+627 12
+fi=(65)
+266 6
+fi=(19)
+1755 6
+fi=(42)
+2869 12
+fi=(279)
+0 6
+fi=(42)
+2870 18
+fi=(279)
+164 84
+fe=(161)
+3507 102
+0 6
+fi=(42)
+634 6
+fe=(161)
+3511 6
++9 30
++59 24
++6 12
++22 6
+fi=(264) /workspace/work/consumer-aborts/harness-baseline/src/protocol/fetch.rs
+791 30
+fe=(161)
+3607 12
++7 18
+cfi=(41)
+cfn=(6762)
+calls=6 2388 
+* 784
+* 48
++1 6
+0 6
+fi=(32)
+611 6
+fi=(33)
+1865 6
+0 6
+fi=(15)
+1663 12
+fi=(48)
+180 6
+0 30
+fe=(161)
+3618 6
+fi=(48)
+327 6
+fe=(161)
+3618 12
+fi=(48)
+327 12
+fi=(15)
+1663 30
+fi=(48)
+180 15
+0 3
+fi=(224)
+1337 3
+fi=(223)
+-53 3
+0 9
+241 6
+cfi=(74)
+cfn=(9136)
+calls=3 694 
+* 825
+fi=(230)
+47 12
+fi=(224)
+2452 24
+0 3
+fi=(19)
+573 3
+fi=(225)
+1569 9
+fi=(227)
+40 6
+fi=(225)
+1569 9
+fi=(61)
+455 6
+fi=(224)
+0 6
+fi=(261) /workspace/work/consumer-aborts/harness-baseline/src/config.rs
+158 3
+fe=(161)
+3624 3
+0 9
+fi=(261)
+158 3
+fe=(161)
+3624 3
+0 9
+fi=(255) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/clone.rs
+236 9
+cfi=(41)
+cfn=(6762)
+calls=3 2388 
+* 1322
+fe=(161)
+0 6
+fi=(255)
+236 9
+cfi=(41)
+cfn=(6762)
+calls=3 2388 
+* 614
+0 6
+236 6
+fi=(232) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/collections/hash/map.rs
+1013 24
+cfi=(257) /rust/deps/hashbrown-0.17.1/src/rustc_entry.rs
+cfn=(10414) <hashbrown::map::HashMap<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+calls=6 35 
+* 3508
+3073 6
+0 12
+3073 12
++2 12
+fi=(224)
+1910 12
+0 12
+fi=(19)
+573 6
+fi=(225)
+1569 6
+fi=(227)
+40 12
+fi=(226)
+628 6
+fi=(224)
+1754 12
+2646 6
+fi=(230)
+17 6
+fi=(61)
+478 6
+fe=(161)
+3625 12
+fi=(230)
+47 6
+fi=(11)
+2689 6
+fi=(224)
+2589 6
++4 6
++1 6
+fi=(21)
+1054 12
+fi=(19)
+1963 18
+fi=(21)
+1054 6
+fi=(224)
++22 6
+fi=(19)
+1963 30
+fi=(224)
+1076 42
+fi=(255)
+236 18
+cfi=(41)
+cfn=(6762)
+calls=6 2388 
+* 1797
+0 6
+236 6
+fi=(232)
+1013 24
+cfi=(257)
+cfn=(10426) <hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::set::HashSet<(i64, i64)>, std::hash::random::RandomState>>::rustc_entry
+calls=6 35 
+* 3880
+3073 6
+0 12
+3073 12
++2 24
+0 6
+fi=(70) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/thread_local/native/lazy.rs
+59 12
+fi=(73) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/cell.rs
+558 12
+fi=(11)
+2652 6
+fi=(12)
+976 6
+fi=(224)
+1910 12
+0 12
+fi=(19)
+573 6
+fi=(225)
+1569 6
+fi=(227)
+40 12
+fi=(226)
+628 6
+fi=(224)
+1754 12
+2646 6
+fi=(230)
+17 6
+fi=(61)
+478 6
+fi=(230)
+47 6
+fi=(11)
+2689 6
+fi=(224)
+2589 6
++4 6
++1 6
+fi=(21)
+1054 18
+fi=(19)
+1963 18
+fi=(21)
+1054 6
+fi=(224)
++22 6
+fi=(19)
+1963 48
+fi=(224)
+1076 42
+0 6
+fi=(255)
+236 18
+cfi=(41)
+cfn=(6762)
+calls=6 2388 
+* 1524
+0 6
+236 6
+fi=(232)
+1013 24
+cfi=(257)
+cfn=(10438) <hashbrown::map::HashMap<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>>::rustc_entry
+calls=6 35 
+* 3814
+3073 6
+0 12
+3073 12
++2 24
+0 6
+fi=(70)
+59 12
+fi=(73)
+558 12
+fi=(11)
+2652 6
+fi=(12)
+976 6
+fi=(224)
+1910 12
+0 12
+fi=(19)
+573 6
+fi=(225)
+1569 6
+fi=(227)
+40 12
+fi=(226)
+628 6
+fi=(224)
+1754 12
+2646 6
+fi=(230)
+17 6
+fi=(61)
+478 6
+fi=(230)
+47 6
+fi=(11)
+2689 6
+fi=(224)
+2589 6
++4 6
++1 6
+fi=(21)
+1054 18
+fi=(19)
+1963 18
+fi=(21)
+1054 6
+fi=(224)
++22 6
+fi=(19)
+1963 48
+fi=(224)
+1076 42
+fi=(33)
+1865 6
+fi=(15)
+1663 6
+fi=(48)
+180 6
+0 39
+fe=(161)
+3628 159
++1 106
+0 53
+fi=(224)
+1337 53
+fi=(223)
++49 53
+fi=(224)
+0 53
+1337 53
+fi=(223)
+-53 53
+fe=(161)
+0 53
+fi=(32)
+611 53
+fi=(33)
+1865 53
+fi=(21)
+970 106
+fi=(15)
+1663 53
+fi=(48)
+180 53
+0 100
+fi=(15)
+1663 916
+fi=(48)
+180 458
+fe=(161)
+3631 916
+fi=(48)
+0 53
+fi=(33)
+1032 106
+0 11
+1033 11
+cfi=(32)
+cfn=(10446)
+calls=11 186 
+* 2450
+0 11
+fi=(32)
+611 11
+fi=(19)
+1963 22
+fi=(33)
+1038 11
+0 11
+1038 11
+fi=(48)
+0 11
+fi=(15)
+1663 11
+fi=(48)
+180 11
+fi=(19)
+1963 84
+fi=(33)
+1038 42
+0 42
+1038 42
+fi=(48)
+0 42
+fi=(15)
+1663 42
+fi=(48)
+180 42
+0 6
+fi=(32)
+611 6
+fi=(33)
+1904 6
+0 12
+fi=(280) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/sort/stable/mod.rs
+38 6
+-38 12
+fi=(61)
+455 6
+0 6
+fi=(33)
+1865 6
+fi=(15)
+1663 6
+fi=(48)
+180 6
+0 48
+fi=(15)
+1663 30
+fi=(48)
+180 15
+fi=(44) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/cmp.rs
+21 42
+fi=(32)
+611 21
+fi=(44)
+157 63
+cob=(2)
+cfi=(2)
+cfn=(5614) 0x00000000001623e0
+calls=21 0 
+* 378
+* 21
+fe=(161)
+3642 42
+fi=(48)
+344 21
+fi=(42)
+1228 18
+0 24
+fi=(21)
+970 18
+fe=(161)
+3649 36
+fi=(15)
+1663 6
+fi=(65)
+262 6
+0 18
+fi=(15)
+1663 269
+fi=(65)
+262 269
+fi=(15)
+627 269
+fi=(65)
+266 269
+fi=(19)
+1755 269
+fe=(161)
+3649 538
+0 269
+fi=(19)
+1755 1345
+0 269
+fe=(161)
+3652 269
+-1 1076
++4 538
+0 538
+3655 807
+0 268
+3658 268
+0 268
+fi=(11)
+2496 804
+fe=(161)
+3658 536
+fi=(267) /workspace/work/consumer-aborts/harness-baseline/src/protocol/records.rs
+2270 1076
+-2 1076
+cfn=(10466) partitionline::protocol::records::decode_checked_batch
+calls=269 2373 
+* 85716837
+fi=(27)
+-91 538
+0 1614
+2177 538
+fe=(161)
+3655 538
+fi=(267)
+2262 538
+fi=(27)
+-84 1345
+fe=(161)
+3663 2421
++1 807
+fi=(32)
+611 268
+fi=(33)
+1865 268
+fi=(15)
+1663 268
+fi=(48)
+25 268
+-25 804
+fi=(11)
+2496 268000
+1013 134000
+fi=(48)
+279 268000
+fi=(15)
+627 268000
+fi=(42)
+743 134000
+1227 134000
++1 134000
+743 134000
+1227 134000
+fi=(11)
+2496 402000
+fi=(33)
+1865 134000
+fi=(15)
+1663 134000
+fi=(48)
+25 134000
+fi=(42)
+-25 134000
+fi=(48)
+25 134000
+-25 268
+fe=(161)
+3666 268
+0 268
+fi=(11)
+2496 268
+0 268
+2496 804
+fe=(161)
+3667 536
+fi=(261)
+158 538
+0 1614
+fe=(161)
+3673 1076
++7 269
+fi=(267)
+1165 807
+fi=(136) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/num/int_macros.rs
+1983 1614
+fi=(52) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/slice/mod.rs
+282 538
+fi=(42)
+1274 538
+fi=(52)
+282 269
+fi=(42)
+1274 269
+fi=(255)
+236 807
+cfi=(41)
+cfn=(6762)
+calls=269 2388 
+* 65080
+0 269
+236 269
+fi=(232)
+1013 1076
+cfi=(257)
+cfn=(10414)
+calls=269 35 
+* 122286
+3073 269
+0 269
+3073 538
+fi=(255)
+236 807
+cfi=(41)
+cfn=(6762)
+calls=269 2388 
+* 28514
+0 269
+236 269
+fi=(232)
+1013 1076
+cfi=(257)
+cfn=(10438)
+calls=269 35 
+* 122499
+3073 269
+0 269
+3073 538
+fi=(224)
+0 807
+fi=(33)
+1865 269
+fi=(52)
+282 538
+fi=(33)
+1865 53
+fi=(52)
+282 106
+fi=(32)
+611 315
+fi=(52)
+282 945
+fe=(161)
+3689 315
++1 630
+-1 106
+fi=(33)
+2877 53
+fi=(232)
+1333 106
+cfi=(223)
+cfn=(10604) <hashbrown::map::HashMap<i64, i64, std::hash::random::RandomState>>::insert
+calls=53 1806 
+* 25867
+* 53
+fe=(161)
+3698 269
+fi=(267)
+1101 269
+fe=(161)
+3698 269
+0 538
+3714 538
+fi=(255)
+236 159
+cfi=(41)
+cfn=(6762)
+calls=53 2388 
+* 5618
+0 53
+236 53
+fi=(232)
+1013 212
+cfi=(257)
+cfn=(10438)
+calls=53 35 
+* 24143
+3073 53
+0 53
+3073 106
+fi=(224)
+1337 106
+fi=(223)
+-53 53
++3 53
+241 106
+cfi=(74)
+cfn=(10606)
+calls=53 694 
+* 7473
+fi=(230)
+47 159
+fi=(224)
+2452 371
+0 53
+fi=(19)
+573 53
+fi=(225)
+1569 159
+fi=(227)
+40 106
+fi=(226)
+628 53
+fi=(224)
+2032 106
+fi=(21)
+1054 159
+fi=(20)
+2105 53
+fi=(61)
+455 53
+fi=(136)
+1983 1076
+fi=(42)
+1275 269
+fi=(136)
+1983 269
+fe=(161)
+3683 269
+fi=(20)
+1051 807
+fi=(261)
+158 269
+fe=(161)
+3686 269
++48 216
++2 432
+fi=(21)
+970 432
+fe=(161)
+3736 1080
+fi=(15)
+1663 216
+fi=(65)
+262 216
+0 2160
+fi=(21)
+970 324000
+fi=(19)
+1963 324000
+cob=(2)
+cfi=(2)
+cfn=(4580) 0x0000000000162b40
+calls=108000 0 
+* 3132000
+fi=(33)
+1038 648000
+0 108000
+fi=(15)
+1663 108000
+fi=(65)
+262 108000
+fi=(15)
+627 108000
+fi=(19)
+1755 108000
+fe=(161)
+3736 1728000
++1 108000
+fi=(261)
+158 108000
+fe=(161)
+3738 108000
+0 108000
+3738 432000
++7 216000
++1 108000
+0 108000
+fi=(42)
+1227 432000
+0 108000
+fe=(161)
+3747 108000
+0 108000
+fi=(261)
+158 108000
+fe=(161)
+3751 108000
+fi=(255)
+236 324000
+cfi=(41)
+cfn=(6762)
+calls=108000 2388 
+* 28992043
+0 108000
+236 108000
+fi=(232)
+1013 432000
+cfi=(257)
+cfn=(10438)
+calls=108000 35 
+* 49184744
+3073 108000
+0 108000
+3073 216000
+fi=(224)
+1337 108000
+fi=(223)
+-53 108000
++3 100500
+241 201000
+cfi=(74)
+cfn=(10606)
+calls=100500 694 
+* 14170500
+fi=(230)
+47 301500
+fi=(224)
+2452 703500
+0 100500
+fi=(19)
+573 100500
+fi=(225)
+1569 301500
+fi=(227)
+40 201000
+fi=(225)
+1569 301500
+fi=(61)
+455 201000
+fi=(42)
+743 216000
+1227 108000
+0 108000
+743 108000
+1227 108000
+fi=(11)
+2496 324000
+fi=(33)
+1865 108000
+fi=(15)
+1663 108000
+fi=(48)
+25 108000
+fi=(11)
+-25 108000
+2496 324000
+fe=(161)
+3764 108000
++2 324000
+cfi=(41)
+cfn=(6762)
+calls=108000 2388 
+* 11449926
++1 108000
++2 216000
++2 540000
++1 432000
++1 432000
++1 108000
+fi=(355) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/bool.rs
+0 324000
+fe=(161)
+3765 1188000
+0 108000
+fi=(33)
+1029 108000
++3 216000
++1 32
+cfi=(32)
+cfn=(10534)
+calls=16 186 
+* 3127212
+* 16
+fi=(267)
+0 216
+fi=(65)
+266 432
+fi=(19)
+847 432
+cfi=(65)
+cfn=(10564) <alloc::vec::into_iter::IntoIter<partitionline::protocol::records::Record> as core::ops::drop::Drop>::drop
+calls=216 583 
+* 43670
+fe=(161)
+3781 432
+0 216
+fi=(42)
+1227 864
+0 648
+fe=(161)
+3783 216
+0 216
+3781 216
+-64 212
+fi=(19)
+0 636
+fi=(33)
+4358 53
+fi=(19)
+847 106
+fi=(33)
+4358 53
+fi=(19)
+847 106
+0 53
+847 106
+cfn=(10630) core::ptr::drop_glue::<partitionline::protocol::records::Record>
+calls=53 * 
+* 2279
+* 52894
+cfn=(10630)
+calls=26447 * 
+* 1137221
+* 106000
+0 106
+fi=(32)
+631 53
+425 53
+fi=(11)
+1401 53
+fi=(24)
+175 106
+cfi=(25)
+cfn=(6604) __rustc::__rust_dealloc
+calls=53 31 
+* 9328
+0 59
+fi=(19)
+847 12
+cfi=(65)
+cfn=(10676) <alloc::vec::into_iter::IntoIter<partitionline::protocol::records::EncodedBatch> as core::ops::drop::Drop>::drop
+calls=6 583 
+* 930
+fe=(161)
+3786 18
+fi=(32)
+611 6
+fi=(33)
+1865 6
+fe=(161)
+3787 6
+0 6
+fi=(33)
+1904 6
+fi=(15)
+1663 12
+0 30
+1663 30
+fi=(48)
+180 15
+fi=(44)
+21 42
+fi=(32)
+611 21
+fi=(44)
+157 63
+cob=(2)
+cfi=(2)
+cfn=(5614)
+calls=21 0 
+* 378
+* 21
+fe=(161)
+2163 42
+fi=(48)
+344 21
+0 6
+fe=(161)
+2165 6
+3788 6
+0 18
+2033 12
+0 12
+2034 24
+cfn=(10678) <partitionline::consumer::PartitionMap<i32>>::insert
+calls=6 1314 
+* 4527
+* 6
+fi=(32)
+611 6
+fi=(33)
+1865 12
+fe=(161)
+3789 18
+cfn=(9162) <partitionline::consumer::PartitionMap<()>>::insert
+calls=6 1314 
+* 4353
++4 18
+fi=(32)
+425 6
+0 6
+631 6
+425 6
+fi=(24)
+175 12
+cfi=(25)
+cfn=(6604)
+calls=6 31 
+* 426
+fi=(32)
+425 6
+0 12
+631 6
+425 3
+fi=(11)
+1401 3
+fi=(24)
+175 6
+cfi=(25)
+cfn=(6604)
+calls=3 31 
+* 213
+fi=(19)
+847 12
+cfi=(33)
+cfn=(10730) <alloc::vec::Vec<partitionline::protocol::records::RecordBatch> as core::ops::drop::Drop>::drop
+calls=6 4353 
+* 114
+fi=(32)
+425 6
+0 6
+631 6
+fi=(24)
+0 18
+fi=(15)
+1663 13
+fi=(280)
+78 3
+fi=(61)
+455 3
+fi=(280)
+79 9
+cfi=(281)
+cfn=(10454)
+calls=3 580 
+* 4846
+-79 3
+fi=(229) /rust/deps/hashbrown-0.17.1/src/control/group/sse2.rs
+57 1
+fi=(225)
+1569 1
+fi=(227)
+40 1
+fi=(224)
+1917 1
+0 1
+fi=(19)
+847 2
+cfi=(65)
+cfn=(10808) <alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedPartition> as core::ops::drop::Drop>::drop
+calls=1 583 
+* 97
+* 2
+cfi=(65)
+cfn=(10810) <alloc::vec::into_iter::IntoIter<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>> as core::ops::drop::Drop>::drop
+calls=1 583 
+* 104
+fe=(161)
+3797 2
+fi=(32)
+425 1
+0 1
+631 1
+425 1
+fi=(24)
+175 2
+cfi=(25)
+cfn=(6604)
+calls=1 31 
+* 71
+fi=(41)
+1897 1
+fe=(161)
+3800 1
+fi=(32)
+425 1
+0 1
+631 1
+fi=(24)
+0 2
+fi=(15)
+1663 1
+fi=(65)
+262 2
+fe=(161)
+0 1
+fi=(19)
+847 1
+cfi=(65)
+cfn=(10816) <alloc::vec::into_iter::IntoIter<partitionline::protocol::fetch::FetchedTopic> as core::ops::drop::Drop>::drop
+calls=1 583 
+* 93
+* 2
+cfi=(65)
+cfn=(10818) <alloc::vec::into_iter::IntoIter<alloc::vec::Vec<alloc::vec::Vec<partitionline::protocol::records::EncodedBatch>>> as core::ops::drop::Drop>::drop
+calls=1 583 
+* 104
+0 2
+fe=(161)
+3801 2
+fi=(224)
+2656 2
+2271 1
+-59 3
+2439 1
+fi=(229)
+57 1
+fi=(58)
+871 1
+fi=(224)
+3591 4
+0 4
+3853 2
+fi=(227)
+40 2
+fi=(226)
+628 1
+fi=(21)
+1054 2
+fi=(32)
+425 1
+0 1
+631 1
+fi=(224)
+0 1
+fi=(32)
+425 1
+fi=(24)
+175 2
+cfi=(25)
+cfn=(6604)
+calls=1 31 
+* 71
+0 1
+fi=(11)
+3212 2
+fi=(224)
+222 2
+fi=(24)
++90 2
+fi=(224)
+3150 1
+fi=(21)
+1054 2
+fi=(24)
+175 3
+cfi=(25)
+cfn=(6604)
+calls=1 31 
+* 71
+fi=(32)
+611 1
+fi=(33)
+4358 1
+fi=(19)
+847 2
+fi=(32)
+425 1
+0 1
+631 1
+fi=(24)
+0 1
+fe=(161)
+3802 8
+
+fn=(10678)
+1314 72
+fi=(224)
++23 6
+fi=(223)
++83 6
+0 5
+1423 5
+241 15
+cfi=(74)
+cfn=(9220)
+calls=5 694 
+* 900
+fi=(230)
+47 15
+fi=(224)
+2452 40
+0 5
+fi=(19)
+573 5
+fi=(225)
+1569 15
+fi=(227)
+40 10
+-40 30
+fi=(226)
+628 5
+fi=(224)
+2032 10
+fi=(21)
+1054 10
+fi=(44)
+21 10
+fi=(224)
+1202 5
+fi=(283) /rust/deps/hashbrown-0.17.1/src/lib.rs
+157 5
+0 5
+fi=(44)
+157 10
+cob=(2)
+cfi=(2)
+cfn=(5614)
+calls=5 0 
+* 90
+* 5
+fi=(61)
+455 5
+fi=(222) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/thread_local/native/mod.rs
+105 2
+fi=(70)
+-46 2
+fi=(73)
+558 2
+0 1
+fi=(11)
+2652 1
+fi=(12)
+976 1
+fi=(232)
+368 6
+0 1
+1333 2
+cfi=(223)
+cfn=(10684) <hashbrown::map::HashMap<i32, i32, std::hash::random::RandomState>>::insert
+calls=1 1806 
+* 405
+0 1
+fi=(61)
+478 1
+fi=(224)
+1227 5
+fi=(232)
+1333 55
+cfi=(223)
+cfn=(10684)
+calls=5 1806 
+* 1706
+fi=(32)
+461 1
+0 2
+cfi=(7)
+cfn=(5094)
+calls=1 0 
+0 1
+0 1
+fi=(24)
+130 3
+cfi=(25)
+cfn=(5096)
+calls=1 -99 
+* 60
+fi=(32)
+470 2
+fi=(36) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/alloc/src/slice.rs
+0 1
+fi=(19)
+573 4
+cob=(2)
+cfi=(2)
+cfn=(4580)
+calls=1 0 
+* 12
+0 1
+fi=(41)
+1017 3
+fe=(161)
+1320 9
+fi=(232)
++13 2
+cfi=(223)
+cfn=(10714) <hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>>::insert
+calls=1 1806 
+* 934
+fi=(19)
+847 3
+fe=(161)
+1322 8
+
+fn=(10360)
+2263 9
+fi=(222)
+105 2
+fi=(70)
+-46 2
+fi=(73)
+558 2
+fi=(11)
+2652 1
+fi=(12)
+976 1
+fi=(232)
+368 6
+fe=(161)
+2265 2
+fi=(33)
+1865 1
+fi=(15)
+1663 1
+fi=(48)
+180 1
+fe=(161)
+0 3
+2269 1
+0 4
+fi=(15)
+1663 2
+fi=(48)
+180 1
+fi=(265)
+-23 2
+fe=(161)
+2269 1
++3 2
+0 1
+2273 5
+cfi=(41)
+cfn=(6762)
+calls=1 2388 
+* 106
+fi=(232)
+1333 5
+cfi=(223)
+cfn=(10370) <hashbrown::map::HashMap<[u8; 16], alloc::string::String, std::hash::random::RandomState>>::insert
+calls=1 1806 
+* 531
+fi=(19)
+847 3
+fi=(24)
+0 8
+fe=(161)
+2277 9
+
+fn=(9162)
+1314 66
+fi=(224)
++23 6
+fi=(223)
++83 6
+0 5
+1423 5
+241 15
+cfi=(74)
+cfn=(9220)
+calls=10 694 
+* 900
+fi=(230)
+47 15
+fi=(224)
+2452 40
+0 5
+fi=(19)
+573 5
+fi=(225)
+1569 15
+fi=(227)
+40 10
+-40 30
+fi=(226)
+628 5
+fi=(224)
+2032 10
+fi=(21)
+1054 10
+fi=(44)
+21 10
+fi=(224)
+1202 10
+fi=(283)
+157 5
+0 5
+fi=(44)
+157 10
+cob=(2)
+cfi=(2)
+cfn=(5614)
+calls=10 0 
+* 90
+* 5
+fi=(61)
+455 5
+fi=(222)
+105 2
+fi=(70)
+-46 2
+fi=(73)
+558 2
+fi=(11)
+2652 1
+fi=(12)
+976 1
+fi=(232)
+368 6
+0 1
+1333 2
+cfi=(223)
+cfn=(9168) <hashbrown::map::HashMap<i32, (), std::hash::random::RandomState>>::insert
+calls=2 1806 
+* 398
+0 1
+fi=(61)
+478 1
+fi=(224)
+1227 5
+fi=(232)
+1333 50
+cfi=(223)
+cfn=(9168)
+calls=10 1806 
+* 1671
+fi=(32)
+461 1
+0 2
+cfi=(7)
+cfn=(5094)
+calls=2 0 
+0 1
+0 1
+fi=(24)
+130 3
+cfi=(25)
+cfn=(5096)
+calls=2 -99 
+* 208
+fi=(32)
+470 2
+fi=(36)
+0 1
+fi=(19)
+573 4
+cob=(2)
+cfi=(2)
+cfn=(4580)
+calls=2 0 
+* 12
+0 1
+fi=(41)
+1017 3
+fe=(161)
+1320 9
+fi=(232)
++13 2
+cfi=(223)
+cfn=(9198) <hashbrown::map::HashMap<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>>::insert
+calls=2 1806 
+* 661
+fi=(19)
+847 3
+fe=(161)
+1322 8
+
+fn=(9308) <partitionline::consumer::Consumer>::fetch_assigned_inner::{closure#0}
+cfn=(10356)
+calls=1 3477 
+3117 216217383
+
+fl=(65)
+fn=(10818)
+583 7
++14 3
+fi=(19)
+847 2
+fi=(58)
+733 2
+0 1
+fi=(19)
+847 2
+fi=(24)
+0 1
+fe=(65)
+203 1
+0 1
+fi=(32)
+631 1
+fe=(65)
+203 1
+fi=(11)
+1401 2
+fi=(24)
+175 9
+cfi=(25)
+cfn=(6604)
+calls=1 31 
+* 71
+fe=(65)
+
+fn=(10564)
+583 1296
++14 432
+fi=(19)
+847 432
+fi=(58)
+733 432
+fi=(19)
+847 432
+fe=(65)
+203 216
+0 216
+fi=(32)
+631 216
+fe=(65)
+203 216
+fi=(11)
+1401 216
+fi=(24)
+175 1512
+cfi=(25)
+cfn=(6604)
+calls=216 31 
+* 38054
+fe=(65)
+
+fn=(10676)
+583 36
++14 12
+fi=(19)
+847 12
+fi=(58)
+733 12
+fi=(19)
+847 12
+fe=(65)
+203 6
+0 6
+fi=(32)
+631 6
+fe=(65)
+203 6
+fi=(11)
+1401 12
+fi=(24)
+175 42
+cfi=(25)
+cfn=(6604)
+calls=6 31 
+* 768
+fe=(65)
+
+fn=(10810)
+583 7
++14 3
+fi=(19)
+847 2
+fi=(58)
+733 2
+0 1
+fi=(19)
+847 2
+fi=(24)
+0 1
+fe=(65)
+203 1
+0 1
+fi=(32)
+631 1
+fe=(65)
+203 1
+fi=(11)
+1401 2
+fi=(24)
+175 9
+cfi=(25)
+cfn=(6604)
+calls=1 31 
+* 71
+fe=(65)
+
+fn=(10808)
+583 6
++14 2
+fi=(19)
+847 2
+fi=(58)
+733 2
+fi=(19)
+847 2
+fe=(65)
+203 1
+0 1
+fi=(32)
+631 1
+fe=(65)
+203 1
+fi=(11)
+1401 1
+fi=(24)
+175 7
+cfi=(25)
+cfn=(6604)
+calls=1 31 
+* 71
+fe=(65)
+
+fn=(10816)
+583 6
++14 2
+fi=(19)
+847 2
+fe=(65)
+203 1
+0 1
+fi=(32)
+631 1
+fe=(65)
+203 1
+fi=(11)
+1401 1
+fi=(24)
+175 7
+cfi=(25)
+cfn=(6604)
+calls=1 31 
+* 71
+fe=(65)
+
+fl=(25)
+fn=(5096)
+31 650748
+cfi=(14)
+cfn=(5098)
+calls=217888 3994 
+* 29986617
+
+fn=(6604)
+31 435580
+cfi=(43)
+cfn=(5172) <codec::CountingAlloc as core::alloc::global::GlobalAlloc>::dealloc
+calls=109172 317 
+* 7324590
+
+fn=(5122)
+cfn=(6176) runtime::run_fetch
+calls=1 618 
+1268 216217383
+
+fn=(6176)
+cfi=(162)
+cfn=(8672)
+calls=1 338 
+667 216217383
+
+fn=(5296)
+31 207
+fi=(59) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/alloc/global.rs
+337 92
+cfi=(14)
+cfn=(5098)
+calls=114 3994 
+* 5642
+fi=(58)
+38 23
+fi=(59)
+338 23
+fi=(20)
+1090 46
+fi=(19)
+573 115
+cob=(2)
+cfi=(2)
+cfn=(4580)
+calls=114 0 
+* 3118479
+fi=(59)
+343 115
+cfi=(43)
+cfn=(5172)
+calls=114 -26 
+* 2642
+* 23
+fe=(25)
+31 138
+
+fl=(174)
+fn=(8708)
+fi=(161)
+cfi=(161)
+cfn=(9308)
+calls=42 2922 
+2906 216217383
+fe=(174)
+
+fl=(19)
+fn=(10630)
+847 238500
+fi=(220)
+658 26500
++12 79500
+cfi=(211)
+cfn=(7806) bytes::bytes_mut::shared_v_drop
+calls=26500 1960 
+* 132500
+fe=(19)
+847 79500
+fi=(220)
+658 26500
++12 79500
+cfi=(211)
+cfn=(7806)
+calls=26500 1960 
+* 132500
+fi=(32)
+-59 26500
+fi=(33)
+4358 26500
+fe=(19)
+847 53000
+fi=(32)
+425 26500
+0 26500
+631 26500
+fe=(19)
+847 159000
+
+fl=(267)
+fn=(10488) partitionline::protocol::records::read_bytes_varint::<bytes::bytes::Bytes>
+2507 1614000
+fi=(215) /workspace/work/consumer-aborts/harness-baseline/src/protocol/buf.rs
+551 269000
+cfn=(8902) partitionline::protocol::buf::get_unsigned_varint::<bytes::bytes::Bytes>
+calls=269000 -27 
+* 7801000
+fi=(27)
+2177 807000
++1 269000
+fi=(215)
+1016 538000
+85 269000
+1020 538000
+120 538000
+1021 807000
+cfi=(220)
+cfn=(10076)
+calls=269000 706 
+* 11298000
+0 269000
+fe=(267)
+2510 1076000
+
+fn=(10466)
+2373 2421
+fi=(215)
+921 269
+0 269
+120 538
+fi=(282) /workspace/work/consumer-aborts/harness-baseline/src/lib.rs
+0 269
+fi=(219) /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/buf/buf_impl.rs
+2470 269
+30 269
+fi=(58)
+871 269
+fi=(215)
+120 269
+0 269
+120 269
+fi=(220)
+652 269
++1 269
+fi=(215)
+120 269
+fi=(219)
+355 269
+fi=(220)
+652 538
+fi=(58)
+871 269
+fi=(220)
+653 269
+fe=(267)
+2379 269
+0 269
+fi=(215)
+120 538
+fi=(220)
+652 538
+fi=(58)
+871 269
+fi=(220)
+653 269
+0 269
+fi=(215)
+120 538
+fi=(219)
+-90 269
+fi=(11)
+743 269
+fi=(220)
+-91 538
+fi=(58)
+871 269
+fi=(220)
+653 269
+fe=(267)
+199 1076
+0 269
+fi=(215)
+120 538
+fe=(267)
+2443 2421
+0 807
+fi=(220)
+652 538
+fi=(58)
+871 269
+fi=(220)
+653 269
+0 538
+fe=(267)
+2384 538
+cfi=(215)
+cfn=(10066) partitionline::protocol::buf::get_i64::<bytes::bytes::Bytes>
+calls=269 926 
+* 5649
+fi=(27)
+2177 807
++1 538
+0 269
+fe=(267)
+2385 538
+cfi=(215)
+cfn=(10066)
+calls=269 926 
+* 5649
+fi=(27)
+2177 807
++1 538
+0 269
+fe=(267)
+2386 538
+cfi=(215)
+cfn=(10066)
+calls=269 926 
+* 5649
+fi=(27)
+2177 807
++1 538
+0 269
+fe=(267)
+2387 538
+cfi=(215)
+cfn=(8964) partitionline::protocol::buf::get_i16::<bytes::bytes::Bytes>
+calls=269 914 
+* 5649
+fi=(27)
+2177 269
+0 269
+2177 538
+0 538
+fe=(267)
+2388 538
+cfi=(215)
+cfn=(8990) partitionline::protocol::buf::get_i32::<bytes::bytes::Bytes>
+calls=269 920 
+* 5649
+fi=(27)
+2177 807
++1 538
+0 269
+fe=(267)
+2389 538
+cfi=(215)
+cfn=(8990)
+calls=269 920 
+* 5649
+fi=(27)
+2177 807
++1 269
+fe=(267)
+2389 538
++1 538
++5 1345
+fi=(220)
+304 269
+fe=(267)
+2397 538
++5 1614
+0 538
+2408 269
+cfi=(215)
+cfn=(7732) partitionline::protocol::buf::usize_from_i32
+calls=269 71 
+* 2421
+fi=(27)
+2177 807
++1 269
+fe=(267)
+2409 538
++34 807
+0 269
+fi=(32)
+435 1345
+cfn=(8962)
+calls=269 +12 
+* 61588
+0 538
+435 538
++1 269
+0 269
+fi=(33)
+969 807
+fi=(20)
+2144 269
+fi=(34) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/range.rs
+1100 269
+0 269
+fi=(219)
+275 269
+fe=(267)
+2416 269
+fi=(219)
+275 134231
+fe=(267)
+2416 134231
++5 672500
+cfn=(10480) partitionline::protocol::records::decode_record::<bytes::bytes::Bytes>
+calls=134500 +25 
+* 76554172
+fi=(27)
+2177 134500
+0 807000
+2177 269000
++1 1210500
+fe=(267)
+2421 941500
+fi=(33)
+996 403500
+cfn=(10504) <alloc::vec::Vec<partitionline::protocol::records::Record>>::push_mut
+calls=134500 +31 
+* 4035000
+fi=(20)
+2144 134500
+fi=(34)
+1100 134500
+fe=(267)
+2427 538
+0 807
+2427 538
+0 538
+2441 1345
+-9 3766
+fi=(220)
+658 269
++12 807
+cfn=(10194)
+calls=269 1094 
+* 269
+0 269
+fe=(267)
+
+fn=(10480)
+2446 1614000
+fi=(215)
+551 134500
+cfn=(8902)
+calls=134500 -27 
+* 4842000
+fi=(27)
+2177 403500
++1 134500
+fi=(215)
+85 269000
++1 538000
+fe=(267)
+2447 134500
++1 269000
+fi=(219)
++17 269000
+fi=(172) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/convert/num.rs
+281 134500
+fe=(267)
+2453 269000
++52 1076000
+0 134500
+2458 403500
+cfi=(220)
+cfn=(10076)
+calls=134500 706 
+* 5644696
+fi=(215)
+909 134500
+0 134500
+120 269000
+fi=(219)
+2470 134500
+fi=(215)
+120 269000
+0 134500
+120 134500
+fi=(220)
+652 134500
+fi=(58)
+871 134500
+fi=(220)
+653 134500
+fi=(215)
+120 134500
+0 134500
+fi=(219)
+327 134500
+fi=(220)
+652 269000
+fi=(58)
+871 134500
+fi=(220)
+653 134500
+fi=(215)
+-81 134500
++1 269000
+0 269000
+551 134500
+cfn=(8902)
+calls=134500 -27 
+* 4600976
+fi=(27)
+2177 403500
++1 134500
+0 269000
+fe=(267)
+2462 134500
+cfn=(10488)
+calls=134500 +45 
+* 12105000
+fi=(27)
+2177 403500
++1 941500
+0 403500
+fe=(267)
+2463 134500
+cfn=(10488)
+calls=134500 +44 
+* 13988000
+fi=(27)
+2177 403500
++1 941500
+0 403500
+fe=(267)
+2464 134500
+cfi=(215)
+cfn=(10494) partitionline::protocol::buf::get_varint::<bytes::bytes::Bytes>
+calls=134500 550 
+* 5514500
+fi=(27)
+2177 403500
++1 134500
+fe=(267)
+2464 134500
++1 269000
+0 134500
+2470 134500
+cfi=(215)
+cfn=(7732)
+calls=134500 71 
+* 1210500
+fi=(27)
+2177 403500
++1 134500
+fe=(267)
+2471 269000
+fi=(220)
+0 134500
+fi=(32)
+435 672500
+cfn=(8962)
+calls=134500 +12 
+* 4169500
+0 134500
+435 269000
++1 134500
+fi=(33)
+969 403500
+fi=(20)
+2144 134500
+fi=(34)
+1100 134500
+fi=(220)
+304 134500
+fe=(267)
+2492 269000
+0 1345000
+fi=(172)
+72 134500
+fe=(267)
+2499 134500
++1 134500
++3 538000
+-5 2421000
+fi=(220)
+658 134500
++12 538000
+cfi=(211)
+cfn=(7806)
+calls=134500 1960 
+* 672500
+fi=(282)
+0 134500
+fe=(267)
+
+fl=(9)
+fn=(5118) std::rt::lang_start::<()>::{closure#0}
+cfi=(30)
+cfn=(5120)
+calls=1 162 
+206 216217383
+
+fn=(4198)
+fi=(69)
+cfn=(5118)
+calls=1 206 
+287 216217383
+fe=(9)
+
+fl=(211)
+fn=(7806)
+1960 187500
+fi=(14)
+4049 187500
+fe=(211)
+1545 187500
+1962 375000
+
+fl=(224)
+fn=(10614) <hashbrown::raw::RawTable<(i64, i64)>>::reserve_rehash::<hashbrown::map::make_hasher<i64, i64, std::hash::random::RandomState>::{closure#0}>
+948 88
+2752 11
+fi=(11)
+938 11
+fi=(61)
+478 11
+0 11
+fe=(224)
+2755 11
+183 88
+2756 44
++30 11
+fi=(20)
+1051 22
+fe=(224)
+2696 11
+0 11
+2696 22
+cfn=(7844) <hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
+calls=11 1615 
+* 2479
+fi=(27)
+2177 11
+0 22
+2177 22
+fe=(224)
+3992 22
+0 24
+2624 8
+fi=(229)
+57 8
++58 48
+0 8
+fi=(227)
+40 116
+fi=(226)
+628 58
+fe=(224)
+3944 58
+fi=(21)
+1054 290
+0 58
+fi=(223)
+241 58
+cfi=(74)
+cfn=(10606)
+calls=58 694 
+* 8178
+fe=(224)
+0 174
+fi=(19)
+573 58
+fi=(225)
+1569 58
+fi=(227)
+40 116
+fi=(226)
+628 58
+fe=(224)
+1754 116
+fi=(230)
+17 58
+fi=(61)
+478 58
+fe=(224)
+0 174
+fi=(230)
+47 58
+fi=(11)
+2689 58
+fe=(224)
+2589 58
++4 58
++1 58
+2398 232
+0 58
+fi=(19)
+573 116
+0 58
+fe=(224)
+3992 124
+fi=(228) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/adapters/step_by.rs
+0 32
+fe=(224)
+3992 8
+0 8
+975 99
+fi=(19)
+1472 3
+fe=(224)
+2945 3
+fi=(19)
+1474 12
+fe=(224)
+2656 6
+2945 8
+fi=(19)
+1474 32
+fe=(224)
+2656 16
+fi=(11)
+3212 16
+938 8
+fe=(224)
+222 8
++1 8
+fi=(24)
++89 8
+0 8
+fi=(21)
+1054 8
+fi=(24)
+175 24
+cfi=(25)
+cfn=(6604)
+calls=8 31 
+* 568
+0 8
+fe=(224)
+
+fn=(10688) <hashbrown::raw::RawTable<(i32, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<i32, i32, std::hash::random::RandomState>::{closure#0}>
+948 16
+2752 2
+fi=(11)
+938 2
+fi=(61)
+478 2
+0 2
+fe=(224)
+2755 2
+183 16
+2756 10
++30 2
+fi=(20)
+1051 4
+fe=(224)
+2696 2
+0 2
+2696 4
+cfn=(7844)
+calls=2 1615 
+* 306
+fi=(27)
+2177 2
+0 4
+2177 4
+fe=(224)
+3992 4
+0 2
+2624 1
+fi=(229)
+57 1
++58 7
+0 2
+fi=(227)
+40 6
+fi=(226)
+628 3
+fe=(224)
+3944 3
+fi=(21)
+1054 12
+0 3
+fi=(223)
+241 3
+cfi=(74)
+cfn=(9018)
+calls=3 694 
+* 339
+fe=(224)
+0 9
+fi=(19)
+573 3
+fi=(225)
+1569 3
+fi=(227)
+40 6
+fi=(226)
+628 3
+fe=(224)
+1754 6
+fi=(230)
+17 3
+fi=(61)
+478 3
+fe=(224)
+0 9
+fi=(230)
+47 3
+fi=(11)
+2689 3
+fe=(224)
+2589 3
++4 3
++1 3
+2398 6
+0 3
+fi=(19)
+573 6
+0 3
+fe=(224)
+3992 7
+fi=(228)
+0 4
+fe=(224)
+3992 1
+0 1
+975 18
+fi=(19)
+1472 1
+fe=(224)
+2945 1
+fi=(19)
+1474 4
+fe=(224)
+2656 2
+2945 1
+fi=(19)
+1474 4
+fe=(224)
+2656 2
+fi=(11)
+938 1
+fe=(224)
+222 1
++1 1
+fi=(24)
++89 1
+0 1
+fi=(21)
+1054 1
+fi=(24)
+175 3
+cfi=(25)
+cfn=(6604)
+calls=1 31 
+* 71
+0 1
+fe=(224)
+
+fn=(10718) <hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, i32>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, i32>, std::hash::random::RandomState>::{closure#0}>
+948 8
+2752 1
+fi=(11)
+938 1
+fi=(61)
+478 1
+fe=(224)
+2755 1
+183 8
+2756 5
++30 1
+fi=(20)
+1051 2
+fe=(224)
+2696 1
+0 1
+2696 2
+cfn=(7844)
+calls=1 1615 
+* 571
+fi=(27)
+2177 1
+0 2
+2177 2
+0 2
+2178 1
+fe=(224)
+2898 7
+-59 1
+3992 2
+0 1
+975 9
+0 1
+2945 1
+fi=(19)
+1472 2
++2 4
+fe=(224)
+2656 1
++49 1
+
+fn=(7844)
+1615 192
++9 48
+0 24
+109 48
++24 88
+fi=(20)
+1051 44
+fe=(224)
+133 66
++8 132
+fi=(282)
+0 22
+fi=(11)
+3212 4
+fi=(61)
+478 2
+fi=(11)
+3212 2
+fe=(224)
+156 16
+fi=(11)
+3908 2
++5 2
++1 2
+-6 2
++6 2
++23 2
+3212 4
+fi=(61)
+478 2
+fi=(11)
+3212 44
+fi=(61)
+478 22
+fi=(11)
+938 24
+fi=(61)
+478 24
+fi=(11)
+938 24
+fe=(224)
+222 24
++1 24
+fi=(11)
+938 72
+0 72
+fi=(61)
+478 48
+fi=(24)
+298 48
+0 48
+128 24
+cfi=(7)
+cfn=(5094)
+calls=42 0 
+* 24
++2 72
+cfi=(25)
+cfn=(5096)
+calls=42 -99 
+* 3370
+* 48
+fi=(256) /rust/deps/hashbrown-0.17.1/src/alloc.rs
+18 48
+fi=(21)
+970 24
+fe=(224)
+1604 24
+183 168
+fi=(19)
+735 96
+cob=(2)
+cfi=(2)
+cfn=(5022) 0x0000000000163540
+calls=42 0 
+* 245
+fe=(224)
+1640 96
++3 192
+
+fn=(10374) <hashbrown::raw::RawTable<([u8; 16], alloc::string::String)>>::reserve_rehash::<hashbrown::map::make_hasher<[u8; 16], alloc::string::String, std::hash::random::RandomState>::{closure#0}>
+948 8
+2752 1
+fi=(11)
+938 1
+fi=(61)
+478 1
+0 1
+fe=(224)
+2755 1
+183 8
+2756 4
++30 1
+fi=(20)
+1051 2
+fe=(224)
+2696 1
+0 1
+2696 2
+cfn=(7844)
+calls=1 1615 
+* 153
+fi=(27)
+2177 1
+0 2
+2177 2
+fe=(224)
+3992 2
+975 9
+fi=(19)
+1472 1
+fe=(224)
+2945 1
+fi=(19)
+1474 4
+fe=(224)
+2656 2
+
+fn=(10420) <hashbrown::raw::RawTable<((alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), alloc::vec::Vec<(i64, i64)>, std::hash::random::RandomState>::{closure#0}>
+948 16
+2752 2
+fi=(11)
+938 2
+fi=(61)
+478 2
+fe=(224)
+2755 2
+183 16
+2756 10
++30 2
+fi=(20)
+1051 4
+fe=(224)
+2696 2
+0 2
+2696 4
+cfn=(7844)
+calls=2 1615 
+* 306
+fi=(27)
+2177 2
+0 4
+2177 4
+0 4
+2178 2
+fe=(224)
+2898 14
+-59 2
+3992 4
+0 1
+2624 1
+fi=(229)
+57 1
++58 4
+0 1
+fi=(227)
+40 6
+fi=(226)
+628 3
+fe=(224)
+3944 3
+2439 3
+fi=(21)
+1054 15
+0 3
+fi=(223)
+241 3
+cfi=(74)
+cfn=(9136)
+calls=3 694 
+* 825
+fe=(224)
+0 9
+fi=(19)
+573 3
+fi=(225)
+1569 3
+fi=(227)
+40 6
+-40 3
+fi=(226)
+628 3
+fe=(224)
+1754 6
+fi=(230)
+17 3
+fi=(61)
+478 3
+fe=(224)
+0 9
+fi=(230)
+47 3
+fi=(11)
+2689 3
+fe=(224)
+2589 3
++4 3
++1 3
+2439 3
+-41 12
+fi=(19)
+573 24
+0 3
+fe=(224)
+3992 7
+2945 3
+0 2
+975 18
+0 1
+2945 1
+fi=(19)
+1472 2
++2 4
+fe=(224)
+2656 1
++49 1
+2945 1
+fi=(19)
+1472 2
++2 4
+fe=(224)
+2656 1
++49 1
+fi=(11)
+3212 1
+938 1
+fe=(224)
+222 1
++1 1
+fi=(24)
++89 2
+fi=(21)
+1054 1
+fi=(24)
+175 2
+cfi=(25)
+cfn=(6604)
+calls=1 31 
+* 71
+0 1
+fe=(224)
+
+fn=(10432) <hashbrown::raw::RawTable<((alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>)>>::reserve_rehash::<hashbrown::map::make_hasher<(alloc::string::String, i32), std::collections::hash::map::HashMap<i64, i64>, std::hash::random::RandomState>::{closure#0}>
+948 32
+2752 4
+fi=(11)
+938 4
+fi=(61)
+478 4
+fe=(224)
+2755 4
+183 32
+2756 20
++30 4
+fi=(20)
+1051 8
+fe=(224)
+2696 4
+0 4
+2696 8
+cfn=(7844)
+calls=4 1615 
+* 1192
+fi=(27)
+2177 4
+0 8
+2177 8
+0 8
+2178 4
+fe=(224)
+2898 28
+-59 4
+3992 8
+0 2
+2624 2
+fi=(229)
+57 2
++58 8
+0 2
+fi=(227)
+40 12
+fi=(226)
+628 6
+fe=(224)
+3944 6
+2439 6
+fi=(21)
+1054 36
+0 6
+fi=(223)
+241 6
+cfi=(74)
+cfn=(9136)
+calls=6 694 
+* 1650
+fe=(224)
+0 18
+fi=(19)
+573 6
+fi=(225)
+1569 6
+fi=(227)
+40 12
+-40 6
+fi=(226)
+628 6
+fe=(224)
+1754 12
+fi=(230)
+17 6
+fi=(61)
+478 6
+fe=(224)
+0 18
+fi=(230)
+47 6
+fi=(11)
+2689 6
+fe=(224)
+2589 6
++4 6
++1 6
+2439 6
+-41 36
+fi=(19)
+573 60
+0 6
+fe=(224)
+3992 14
+2945 6
+0 4
+975 36
+0 2
+2945 2
+fi=(19)
+1472 4
++2 8
+fe=(224)
+2656 2
++49 2
+2945 2
+fi=(19)
+1472 4
++2 8
+fe=(224)
+2656 2
++49 2
+fi=(11)
+3212 4
+938 2
+fe=(224)
+222 2
++1 2
+fi=(24)
++89 4
+fi=(21)
+1054 2
+fi=(24)
+175 4
+cfi=(25)
+cfn=(6604)
+calls=2 31 
+* 142
+0 2
+fe=(224)
+
+fn=(9172) <hashbrown::raw::RawTable<(i32, ())>>::reserve_rehash::<hashbrown::map::make_hasher<i32, (), std::hash::random::RandomState>::{closure#0}>
+948 16
+2752 2
+fi=(11)
+938 2
+fi=(61)
+478 2
+0 2
+fe=(224)
+2755 2
+183 16
+2756 10
++30 2
+fi=(20)
+1051 4
+fe=(224)
+2696 2
+0 2
+2696 4
+cfn=(7844)
+calls=4 1615 
+* 306
+fi=(27)
+2177 2
+0 4
+2177 4
+fe=(224)
+3992 4
+0 2
+2624 1
+fi=(229)
+57 1
++58 7
+0 2
+fi=(227)
+40 6
+fi=(226)
+628 3
+fe=(224)
+3944 3
+fi=(21)
+1054 12
+0 3
+fi=(223)
+241 3
+cfi=(74)
+cfn=(9018)
+calls=6 694 
+* 339
+fe=(224)
+0 9
+fi=(19)
+573 3
+fi=(225)
+1569 3
+fi=(227)
+40 6
+fi=(226)
+628 3
+fe=(224)
+1754 6
+fi=(230)
+17 3
+fi=(61)
+478 3
+fe=(224)
+0 9
+fi=(230)
+47 3
+fi=(11)
+2689 3
+fe=(224)
+2589 3
++4 3
++1 3
+2398 6
+0 3
+fi=(19)
+573 6
+0 3
+fe=(224)
+3992 7
+fi=(228)
+0 4
+fe=(224)
+3992 1
+0 1
+975 18
+fi=(19)
+1472 1
+fe=(224)
+2945 1
+fi=(19)
+1474 4
+fe=(224)
+2656 2
+2945 1
+fi=(19)
+1474 4
+fe=(224)
+2656 2
+fi=(11)
+938 1
+fe=(224)
+222 1
++1 1
+fi=(24)
++89 1
+0 1
+fi=(21)
+1054 1
+fi=(24)
+175 3
+cfi=(25)
+cfn=(6604)
+calls=2 31 
+* 71
+0 1
+fe=(224)
+
+fn=(9202) <hashbrown::raw::RawTable<(alloc::string::String, std::collections::hash::map::HashMap<i32, ()>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, std::collections::hash::map::HashMap<i32, ()>, std::hash::random::RandomState>::{closure#0}>
+948 8
+2752 1
+fi=(11)
+938 1
+fi=(61)
+478 1
+fe=(224)
+2755 1
+183 8
+2756 5
++30 1
+fi=(20)
+1051 2
+fe=(224)
+2696 1
+0 1
+2696 2
+cfn=(7844)
+calls=2 1615 
+* 298
+fi=(27)
+2177 1
+0 2
+2177 2
+0 2
+2178 1
+fe=(224)
+2898 7
+-59 1
+3992 2
+0 1
+975 9
+0 1
+2945 1
+fi=(19)
+1472 2
++2 4
+fe=(224)
+2656 1
++49 1
+
+fl=(41)
+fn=(6762)
+2388 1516319
++1 216617
+fi=(32)
+461 433234
+fe=(41)
+2389 216617
+fi=(24)
+128 216617
+cfi=(7)
+cfn=(5094)
+calls=216713 0 
+* 216617
++2 649851
+cfi=(25)
+cfn=(5096)
+calls=216713 -99 
+* 30583052
+fi=(32)
+470 433234
+fi=(36)
+0 216617
+fi=(19)
+573 866468
+cob=(2)
+cfi=(2)
+cfn=(4580)
+calls=216713 0 
+* 2599404
+* 216617
+fe=(41)
+2389 649851
++1 1516319
+
+fl=(257)
+fn=(10426)
+35 60
++1 6
+fi=(223)
+241 12
+cfi=(74)
+cfn=(9136)
+calls=6 694 
+* 1650
+fe=(257)
+0 6
+fi=(230)
+47 12
+fi=(224)
+2452 72
+0 6
+fi=(19)
+573 6
+fi=(225)
+1569 18
+fi=(227)
+40 12
+-40 10
+fi=(226)
+628 1
+fi=(224)
+2032 2
+fi=(21)
+1054 3
+fi=(44)
+21 2
+fi=(224)
+1202 1
+fi=(320) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/tuple.rs
+31 1
+fi=(44)
+157 6
+cob=(2)
+cfi=(2)
+cfn=(5614)
+calls=1 0 
+* 18
+0 7
+157 1
+fi=(320)
+31 1
+fi=(20)
+2105 1
+fi=(61)
+455 1
+0 1
+fi=(226)
+486 1
+fi=(227)
+40 1
+-40 8
+fi=(225)
+1569 2
+fi=(61)
+455 2
+fi=(225)
+1569 10
+fi=(61)
+455 10
+fi=(224)
+910 6
+fi=(61)
+478 6
+fe=(257)
+50 24
+-2 12
++6 54
+fi=(224)
+914 10
+cfn=(10432)
+calls=2 +34 
+* 1816
+* 2
+fe=(257)
+
+fn=(10414)
+35 2750
++1 275
+fi=(223)
+241 550
+cfi=(74)
+cfn=(9136)
+calls=275 694 
+* 75625
+fe=(257)
+0 275
+fi=(230)
+47 550
+fi=(224)
+2452 3300
+0 275
+fi=(19)
+573 275
+fi=(225)
+1569 825
+fi=(227)
+40 550
+-40 2690
+fi=(226)
+628 269
+fi=(224)
+2032 538
+fi=(21)
+1054 538
+fi=(44)
+21 538
+fi=(224)
+1202 269
+fi=(320)
+31 269
+fi=(44)
+157 1614
+cob=(2)
+cfi=(2)
+cfn=(5614)
+calls=269 0 
+* 5002
+0 1883
+157 269
+fi=(320)
+31 269
+fi=(20)
+2105 269
+fi=(61)
+455 269
+fi=(225)
+1569 12
+fi=(61)
+455 12
+fe=(257)
+38 807
+fi=(32)
+425 269
+0 269
+631 269
+fi=(24)
+175 807
+cfi=(25)
+cfn=(6604)
+calls=269 31 
+* 19099
+fe=(257)
+54 269
+fi=(224)
+910 6
+fi=(61)
+478 6
+fe=(257)
+50 24
+-2 12
++6 2475
+fi=(224)
+914 10
+cfn=(10420)
+calls=2 +34 
+* 1510
+* 2
+fe=(257)
+
+fn=(10438)
+35 1083280
++1 108328
+fi=(223)
+241 216656
+cfi=(74)
+cfn=(9136)
+calls=108328 694 
+* 29790200
+fe=(257)
+0 108328
+fi=(230)
+47 216656
+fi=(224)
+2452 1299936
+0 108328
+fi=(19)
+573 108328
+fi=(225)
+1569 324984
+fi=(227)
+40 216656
+-40 1083220
+fi=(226)
+628 108322
+fi=(224)
+2032 216644
+fi=(21)
+1054 324966
+fi=(44)
+21 216644
+fi=(224)
+1202 108322
+fi=(320)
+31 108322
+fi=(44)
+157 649932
+cob=(2)
+cfi=(2)
+cfn=(5614)
+calls=108322 0 
+* 1994672
+0 758254
+157 108322
+fi=(320)
+31 108322
+fi=(20)
+2105 108322
+fi=(61)
+455 108322
+fi=(225)
+1569 12
+fi=(61)
+455 12
+fe=(257)
+38 324966
+fi=(32)
+425 108322
+0 108322
+631 108322
+fi=(24)
+175 324966
+cfi=(25)
+cfn=(6604)
+calls=108322 31 
+* 7690862
+fe=(257)
+54 108322
+fi=(224)
+910 6
+fi=(61)
+478 6
+fe=(257)
+50 24
+-2 12
++6 974952
+fi=(224)
+914 10
+cfn=(10432)
+calls=2 +34 
+* 1816
+* 2
+fe=(257)
+
+fl=(43)
+fn=(5172)
+317 108918
+fi=(26)
+65 108918
+cob=(2)
+cfi=(2)
+cfn=(4970) free
+calls=326143 -65 
+* 7109396
+fe=(43)
+
+fl=(215)
+fn=(10066)
+926 2421
++1 807
+0 807
+120 1614
+fi=(219)
+2470 807
+30 807
+fi=(11)
+743 807
+fi=(220)
+-91 1614
+fi=(58)
+871 807
+fi=(220)
+653 807
+fe=(215)
+928 1614
+0 807
+929 3228
+
+fn=(8990)
+920 1614
++1 538
+0 538
+120 1076
+fi=(219)
+2470 538
+30 538
+fi=(11)
+743 538
+fi=(220)
+-91 1076
+fi=(58)
+871 538
+fi=(220)
+653 538
+fe=(215)
+922 1076
+0 538
+923 2152
+
+fn=(8902)
+524 2017500
++3 672500
+0 672500
+120 1345000
+fi=(219)
+2470 1345000
+327 672500
+fi=(220)
+652 1345000
+fi=(58)
+871 672500
+fi=(220)
+653 672500
+fe=(215)
+529 672500
++1 1345000
++1 1345000
++11 2017500
+0 386284
+120 772568
+0 386284
+fi=(219)
+327 386284
+fi=(220)
+652 772568
+fi=(58)
+871 386284
+fi=(220)
+653 386284
+fe=(215)
+529 1158852
++1 772568
+
+fn=(10494)
+550 538000
++1 134500
+cfn=(8902)
+calls=134500 -27 
+* 2959000
+fi=(27)
+2177 403500
++1 134500
+fe=(215)
+85 269000
++1 403500
+551 269000
++1 403500
+
+fn=(8964)
+914 807
++1 269
+0 269
+120 538
+fi=(219)
+2470 269
+30 269
+fi=(11)
+743 269
+fi=(220)
+-91 538
+fi=(58)
+871 269
+fi=(220)
+653 269
+fe=(215)
+916 538
+0 269
+917 1076
+
+fn=(7732)
+71 134769
+fi=(172)
+280 269538
++1 134769
+fi=(27)
+966 269538
+fe=(215)
+73 404307
+
+fl=(33)
+fn=(10504)
+1027 672500
++2 134500
++3 269000
+fi=(32)
+611 134500
+fi=(21)
+970 134500
+fi=(19)
+1963 1883000
+fe=(33)
+1038 269000
++4 538000
+
+fn=(10730)
+4353 42
++5 6
+0 6
+fi=(19)
+847 12
+fe=(33)
+4361 48
+
+fl=(167)
+fn=(8676)
+fi=(116)
+cfi=(116)
+cfn=(8690) <tokio::runtime::scheduler::current_thread::CoreGuard>::block_on::<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>
+calls=1 816 
+218 216217383
+fe=(167)
+
+fl=(169) /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context/scoped.rs
+fn=(8696) <tokio::runtime::context::scoped::Scoped<tokio::runtime::scheduler::Context>>::set::<<tokio::runtime::scheduler::current_thread::CoreGuard>::enter<<tokio::runtime::scheduler::current_thread::CoreGuard>::block_on<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>::{closure#0}, core::option::Option<()>>::{closure#0}, (alloc::boxed::Box<tokio::runtime::scheduler::current_thread::Core>, core::option::Option<()>)>
+fi=(116)
+cfi=(116)
+cfn=(8700) <tokio::runtime::scheduler::current_thread::Context>::enter::<core::task::poll::Poll<()>, <tokio::runtime::scheduler::current_thread::CoreGuard>::block_on<core::pin::Pin<&mut runtime::fdrive::drive_fetch::{closure#0}>>::{closure#0}::{closure#0}>
+calls=44 481 
+829 216217383
+fe=(169)
+
+fl=(116)
+fn=(8690)
+fi=(205) /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/runtime/context.rs
+cfi=(169)
+cfn=(8696)
+calls=1 17 
+187 216217383
+fe=(116)
+
+fn=(8700)
+fi=(352) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/future/future.rs
+cfi=(160)
+cfn=(8704)
+calls=44 114 
+133 216217383
+fe=(116)
+
+fl=(223)
+fn=(10604)
+1806 477
++1 53
+0 53
+241 106
+cfi=(74)
+cfn=(10606)
+calls=53 694 
+* 7473
+fi=(224)
+910 53
+fi=(61)
+478 53
+fi=(224)
+1138 106
+fi=(230)
+47 477
+fi=(224)
+-47 53
+fi=(19)
+573 53
+fi=(225)
+1569 159
+fi=(227)
+40 106
+fi=(226)
+628 2
+fi=(224)
+1824 4
+fi=(21)
+1054 6
+fi=(20)
+2105 2
+fi=(61)
+455 2
+fi=(226)
++31 2
+fi=(227)
+40 2
+-40 2
+40 2
+-40 2
+fi=(153) /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/macros/mod.rs
+434 2
+fi=(61)
++21 2
+fi=(153)
+-21 51
+fi=(61)
++21 51
+fi=(225)
+1569 53
+fi=(227)
+40 106
+fi=(226)
+628 53
+fi=(224)
+1754 106
+fi=(225)
+1569 106
+fi=(61)
+455 106
+fi=(224)
+2646 53
+fi=(230)
+17 53
+fi=(61)
+478 53
+fi=(172)
+51 53
+fi=(11)
+2689 53
+fi=(224)
+2589 53
++4 53
++1 53
+2459 318
+fi=(21)
+1054 212
+fi=(19)
+1963 159
+fe=(223)
+1822 318
+fi=(224)
+914 66
+cfn=(10614)
+calls=11 +34 
+* 14459
+0 22
+fi=(229)
+57 1
+fi=(225)
+1569 1
+fi=(227)
+40 1
+fi=(224)
+1181 1
+0 1
+fe=(223)
+
+fn=(10684)
+1806 60
++1 6
+0 6
+241 12
+cfi=(74)
+cfn=(9018)
+calls=6 694 
+* 678
+fi=(224)
+910 6
+fi=(61)
+478 6
+fi=(224)
+1138 12
+fi=(230)
+47 54
+fi=(224)
+-47 6
+fi=(19)
+573 6
+fi=(225)
+1569 18
+fi=(227)
+40 12
+fi=(153)
+434 6
+fi=(61)
++21 6
+fi=(225)
+1569 6
+fi=(227)
+40 12
+fi=(226)
+628 6
+fi=(224)
+1754 12
+fi=(225)
+1569 12
+fi=(61)
+455 12
+fi=(224)
+2646 6
+fi=(230)
+17 6
+fi=(61)
+478 6
+fi=(172)
+51 6
+fi=(11)
+2689 6
+fi=(224)
+2589 6
++4 6
++1 6
+2459 36
+fi=(21)
+1054 24
+fi=(19)
+1963 18
+fe=(223)
+1822 42
+fi=(224)
+914 12
+cfn=(10688)
+calls=2 +34 
+* 973
+0 4
+fe=(223)
+
+fn=(9198)
+1806 11
++1 1
+241 3
+cfi=(74)
+cfn=(9062)
+calls=2 694 
+* 183
+0 1
+fi=(224)
+910 1
+fi=(61)
+478 1
+0 2
+fi=(224)
+1138 3
+fi=(230)
+47 8
+-47 5
+fi=(19)
+573 1
+fi=(225)
+1569 3
+fi=(227)
+40 2
+fi=(153)
+434 1
+0 1
+fi=(61)
+455 1
+fi=(225)
+1569 1
+fi=(227)
+40 2
+fi=(226)
+628 1
+fi=(224)
+1754 2
+fi=(225)
+1569 2
+fi=(61)
+455 2
+fi=(224)
+2646 1
+fi=(230)
+17 1
+-17 1
+fi=(61)
+478 1
+fe=(223)
+1817 11
+fi=(172)
+51 1
+fi=(11)
+2689 1
+fi=(224)
+2589 1
++4 1
++1 1
+2459 7
+fi=(21)
+1054 2
+fi=(19)
+1963 10
+fe=(223)
+1819 1
++3 9
+fi=(224)
+914 5
+cfn=(9202)
+calls=2 +34 
+* 368
+* 1
+fe=(223)
+
+fn=(9168)
+1806 42
++1 6
+0 6
+241 12
+cfi=(74)
+cfn=(9018)
+calls=12 694 
+* 678
+fi=(224)
+910 6
+fi=(61)
+478 6
+fi=(224)
+1138 12
+fi=(230)
+47 54
+fi=(224)
+-47 6
+fi=(19)
+573 6
+fi=(225)
+1569 18
+fi=(227)
+40 12
+fi=(153)
+434 6
+fi=(61)
++21 6
+fi=(225)
+1569 6
+fi=(227)
+40 12
+fi=(226)
+628 6
+fi=(224)
+1754 12
+fi=(225)
+1569 12
+fi=(61)
+455 12
+fi=(224)
+2646 6
+fi=(230)
+17 6
+fi=(61)
+478 6
+fi=(172)
+51 6
+fi=(11)
+2689 6
+fi=(224)
+2589 6
++4 6
++1 6
+2459 36
+fi=(21)
+1054 12
+fi=(19)
+1963 12
+fe=(223)
+1822 36
+fi=(224)
+914 12
+cfn=(9172)
+calls=4 +34 
+* 973
+0 4
+fe=(223)
+
+fn=(10370)
+1806 11
++1 1
+241 3
+cfi=(74)
+cfn=(10272)
+calls=1 694 
+* 225
+* 1
+fi=(224)
+910 1
+fi=(61)
+478 1
+fi=(224)
+1138 2
+fi=(230)
+47 9
+-47 3
+fi=(19)
+573 1
+fi=(225)
+1569 3
+fi=(227)
+40 2
+fi=(153)
+434 1
+0 1
+fi=(61)
+455 1
+fi=(225)
+1569 1
+fi=(227)
+40 2
+fi=(226)
+628 1
+fi=(224)
+1754 2
+0 2
+fi=(225)
+1569 2
+fi=(61)
+455 2
+fi=(224)
+2646 1
+fi=(230)
+17 1
+fi=(61)
+478 1
+fe=(223)
+1817 6
+fi=(172)
+51 1
+fi=(11)
+2689 1
+fi=(224)
+2589 1
++4 1
++1 1
+2459 6
+fi=(21)
+1054 2
+fi=(19)
+1963 6
+fe=(223)
+1819 1
++3 9
+fi=(224)
+914 5
+cfn=(10374)
+calls=1 +34 
+* 209
+* 1
+fe=(223)
+
+fn=(10714)
+1806 11
++1 1
+241 3
+cfi=(74)
+cfn=(9062)
+calls=1 694 
+* 183
+0 1
+fi=(224)
+910 1
+fi=(61)
+478 1
+0 2
+fi=(224)
+1138 3
+fi=(230)
+47 8
+-47 5
+fi=(19)
+573 1
+fi=(225)
+1569 3
+fi=(227)
+40 2
+fi=(153)
+434 1
+0 1
+fi=(61)
+455 1
+fi=(225)
+1569 1
+fi=(227)
+40 2
+fi=(226)
+628 1
+fi=(224)
+1754 2
+fi=(225)
+1569 2
+fi=(61)
+455 2
+fi=(224)
+2646 1
+fi=(230)
+17 1
+-17 1
+fi=(61)
+478 1
+fe=(223)
+1817 11
+fi=(172)
+51 1
+fi=(11)
+2689 1
+fi=(224)
+2589 1
++4 1
++1 1
+2459 7
+fi=(21)
+1054 2
+fi=(19)
+1963 10
+fe=(223)
+1819 1
++3 9
+fi=(224)
+914 5
+cfn=(10718)
+calls=1 +34 
+* 641
+* 1
+fe=(223)
+
+ob=(2)
+fl=(2)
+fn=(4136)
+cfn=(4182) 0x0000000000029c30
+calls=1 0 
+0 216217383
+
+fn=(4340) 0x00000000000a07f0
+0 2132
+cfn=(8040) 0x000000000009fd90
+calls=11 0 
+0 764
+0 536
+cfn=(4356) __default_morecore
+calls=29 0 
+0 1040
+0 598
+
+fn=(5450) 0x00000000000a0460
+0 26
+cfn=(4356)
+calls=1 0 
+0 25
+0 8
+cfn=(4356)
+calls=1 0 
+0 43
+0 2
+cfn=(4356)
+calls=1 0 
+0 25
+0 7956
+cfn=(5534) 0x000000000009edb0
+calls=14 0 
+0 128
+0 1674
+cfn=(5468) 0x000000000009f040
+calls=375 0 
+0 9471
+0 3630
+
+fn=(5614)
+0 2000628
+
+fn=(8052) 0x00000000001110c0
+0 136
+
+fn=(4252)
+0 9110293
+cfn=(4300) 0x00000000000a12a0
+calls=109034 0 
+0 15894460
+0 1516482
+
+fn=(4358) sbrk
+0 490
+cfn=(4360) brk
+calls=30 0 
+0 216
+0 195
+
+fn=(4406) 0x000000000009e650
+0 432128
+
+fn=(4970)
+0 6094748
+cfn=(10598) 0x000000000009e670
+calls=8 0 
+0 238
+0 981657
+cfn=(5442) 0x00000000000a05a0
+calls=109025 0 
+0 32474
+0 279
+
+fn=(5468)
+0 9414
+cfn=(5534)
+calls=14 0 
+0 23
+0 34
+
+fn=(6558) munmap
+0 35
+
+fn=(10598)
+0 203
+cfn=(6558)
+calls=11 0 
+0 35
+
+fn=(4182)
+cob=(7)
+cfi=(7)
+cfn=(4196)
+calls=1 0 
+0 216217383
+
+fn=(4300)
+0 13163398
+cfn=(5534)
+calls=97 0 
+0 768
+0 879
+cfn=(5534)
+calls=7 0 
+0 96
+0 40
+cfn=(4406)
+calls=5 0 
+0 4
+0 10
+cfn=(4406)
+calls=2 0 
+0 8
+0 432116
+cfn=(4406)
+calls=108807 0 
+0 432116
+0 1859845
+cfn=(4340)
+calls=40 0 
+0 5070
+0 110
+
+fn=(5534)
+0 1015
+
+fn=(8040)
+0 136
+cfn=(5076) mmap
+calls=11 0 
+0 176
+0 72
+cfn=(8052)
+calls=11 0 
+0 136
+0 244
+
+fn=(4356)
+0 116
+cfn=(4358)
+calls=33 0 
+0 901
+0 116
+
+fn=(5022)
+0 245
+
+fn=(4360)
+0 216
+
+fn=(5442)
+0 8370
+cfn=(5450)
+calls=372 0 
+0 22988
+0 1116
+
+fn=(4580)
+0 8849907
+
+fn=(5076)
+0 176
+
+totals: 216217383

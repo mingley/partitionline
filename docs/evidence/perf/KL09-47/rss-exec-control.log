@@ -1,0 +1,11 @@
+parent_python_peak_bytes 8650752
+small_child 0 RUSAGE_SELF_peak_bytes=8650752
+current_executable_VmHWM_bytes=659456 exit 0
+small_child 1 RUSAGE_SELF_peak_bytes=8781824
+current_executable_VmHWM_bytes=655360 exit 0
+small_child 2 RUSAGE_SELF_peak_bytes=8781824
+current_executable_VmHWM_bytes=655360 exit 0
+true wait4_peak_bytes 8781824 exit 0
+
+rustc_version wait4_peak_bytes 85176320 exit 0
+rustc 1.99.0 (b940084d7 2026-09-28)

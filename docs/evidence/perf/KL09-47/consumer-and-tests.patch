@@ -1,0 +1,313 @@
+diff --git a/src/consumer.rs b/src/consumer.rs
+index 70659f61..35cb37a9 100644
+--- a/src/consumer.rs
++++ b/src/consumer.rs
+@@ -1,7 +1,7 @@
+ //! Fetch client with manual partition assignment.
+ 
+ use std::collections::hash_map::Entry;
+-use std::collections::{HashMap, HashSet, VecDeque};
++use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
+ use std::fmt;
+ use std::ops::Deref;
+ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+@@ -1467,6 +1467,44 @@ impl PendingRecords {
+     }
+ }
+ 
++/// Partition-local cursor over aborted starts. ABORT markers retire active
++/// intervals, including those whose data and marker arrive in separate replies.
++#[derive(Default)]
++struct AbortedIntervals {
++    pending: BinaryHeap<std::cmp::Reverse<(i64, i64)>>,
++    active: HashMap<i64, i64>,
++    completed: HashSet<(i64, i64)>,
++}
++
++impl AbortedIntervals {
++    fn extend(&mut self, intervals: &[(i64, i64)]) {
++        for &(pid, first) in intervals {
++            if !self.completed.contains(&(pid, first))
++                && self.active.get(&pid) != Some(&first)
++                && !self.pending.iter().any(|entry| entry.0 == (first, pid))
++            {
++                self.pending.push(std::cmp::Reverse((first, pid)));
++            }
++        }
++    }
++
++    fn advance(&mut self, last: i64) {
++        while let Some(&std::cmp::Reverse((first, pid))) = self.pending.peek() {
++            if first > last {
++                break;
++            }
++            let _pending = self.pending.pop();
++            let _previous = self.active.insert(pid, first);
++        }
++    }
++
++    fn abort(&mut self, pid: i64) {
++        if let Some(first) = self.active.remove(&pid) {
++            let _previous = self.completed.insert((pid, first));
++        }
++    }
++}
++
+ /// Manual-assignment fetch client.
+ pub struct Consumer {
+     cfg: ConsumerConfig,
+@@ -1486,9 +1524,7 @@ pub struct Consumer {
+     paused: PartitionMap<()>,
+     pending: PendingRecords,
+     buffered_bytes: usize,
+-    aborted_pids: HashMap<(String, i32), HashMap<i64, i64>>,
+-    aborted_txs: HashMap<(String, i32), Vec<(i64, i64)>>,
+-    completed_txs: HashMap<(String, i32), HashSet<(i64, i64)>>,
++    aborted: PartitionMap<AbortedIntervals>,
+     m_fetch_rounds: AtomicU64,
+     m_records: AtomicU64,
+     m_bytes: AtomicU64,
+@@ -1796,9 +1832,7 @@ impl Consumer {
+             paused: PartitionMap::new(),
+             pending: PendingRecords::new(),
+             buffered_bytes: 0,
+-            aborted_pids: HashMap::new(),
+-            aborted_txs: HashMap::new(),
+-            completed_txs: HashMap::new(),
++            aborted: PartitionMap::new(),
+             m_fetch_rounds: AtomicU64::new(0),
+             m_records: AtomicU64::new(0),
+             m_bytes: AtomicU64::new(0),
+@@ -2096,9 +2130,7 @@ impl Consumer {
+         self.pending.clear();
+         self.buffered_bytes = 0;
+         self.last_fetched_epochs.clear();
+-        self.aborted_pids.clear();
+-        self.aborted_txs.clear();
+-        self.completed_txs.clear();
++        self.aborted.clear();
+     }
+ 
+     /// Replace the assignment. One Metadata refresh for the topic set.
+@@ -2110,9 +2142,7 @@ impl Consumer {
+         }
+         self.assigned.clear();
+         self.last_fetched_epochs.clear();
+-        self.aborted_pids.clear();
+-        self.aborted_txs.clear();
+-        self.completed_txs.clear();
++        self.aborted.clear();
+         if starts.is_empty() {
+             self.pending.clear();
+             self.buffered_bytes = 0;
+@@ -3611,29 +3641,26 @@ impl Consumer {
+                     retry = retry.merge(FetchRetry::Redirect);
+                     continue;
+                 }
+-                let part_key = (name.clone(), part.partition);
+                 let isolation = self.cfg.isolation_level;
++                let mut aborted = if isolation == crate::IsolationLevel::ReadCommitted {
++                    if !self.aborted.contains(&name, part.partition) {
++                        let _previous =
++                            self.aborted
++                                .insert(&name, part.partition, AbortedIntervals::default());
++                    }
++                    self.aborted.get_mut(&name, part.partition)
++                } else {
++                    None
++                };
+                 let has_txn_headers = part_batches
+                     .iter()
+                     .any(|b| b.is_transactional() || b.is_control_batch())
+-                    || self
+-                        .aborted_pids
+-                        .get(&part_key)
+-                        .is_some_and(|m| !m.is_empty());
+-
+-                if isolation == crate::IsolationLevel::ReadCommitted {
+-                    let pending = self.aborted_txs.entry(part_key.clone()).or_default();
+-                    let completed_txs = self.completed_txs.entry(part_key.clone()).or_default();
+-                    let active = self.aborted_pids.entry(part_key.clone()).or_default();
+-                    for &(pid, first) in &part.aborted_transactions {
+-                        if !completed_txs.contains(&(pid, first))
+-                            && active.get(&pid) != Some(&first)
+-                            && !pending.iter().any(|&(p, f)| p == pid && f == first)
+-                        {
+-                            pending.push((pid, first));
+-                        }
+-                    }
+-                    pending.sort_by_key(|a| std::cmp::Reverse(a.1));
++                    || aborted
++                        .as_ref()
++                        .is_some_and(|state| !state.active.is_empty());
++
++                if let Some(state) = aborted.as_deref_mut() {
++                    state.extend(&part.aborted_transactions);
+                 }
+ 
+                 let req_offset = self
+@@ -3683,26 +3710,12 @@ impl Consumer {
+                         |r| (r.offset + 1).max(batch.next_offset()),
+                     );
+ 
+-                    if isolation == crate::IsolationLevel::ReadCommitted {
+-                        let pending = self.aborted_txs.entry(part_key.clone()).or_default();
+-                        let active = self.aborted_pids.entry(part_key.clone()).or_default();
+-                        while let Some(&(pid, first)) = pending.last() {
+-                            if first <= batch_last {
+-                                let _ = pending.pop();
+-                                let _ = active.insert(pid, first);
+-                            } else {
+-                                break;
+-                            }
+-                        }
++                    if let Some(state) = aborted.as_deref_mut() {
++                        state.advance(batch_last);
+ 
+                         if batch.is_control_batch() {
+                             if is_abort_marker(&batch) {
+-                                let active = self.aborted_pids.entry(part_key.clone()).or_default();
+-                                if let Some(first) = active.remove(&batch.producer_id) {
+-                                    let completed_txs =
+-                                        self.completed_txs.entry(part_key.clone()).or_default();
+-                                    let _ = completed_txs.insert((batch.producer_id, first));
+-                                }
++                                state.abort(batch.producer_id);
+                             }
+                             if batch_next >= req_offset {
+                                 next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+@@ -3712,8 +3725,7 @@ impl Consumer {
+                         }
+ 
+                         if has_txn_headers && batch.is_transactional() {
+-                            let active = self.aborted_pids.entry(part_key.clone()).or_default();
+-                            if let Some(&first) = active.get(&batch.producer_id) {
++                            if let Some(&first) = state.active.get(&batch.producer_id) {
+                                 if batch.base_offset >= first {
+                                     if batch_next >= req_offset {
+                                         next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
+@@ -3733,6 +3745,14 @@ impl Consumer {
+ 
+                     let is_transactional = batch.is_transactional();
+                     let timestamp_type = batch.timestamp_type();
++                    // No transaction state changes within one decoded data batch.
++                    let abort_from = aborted.as_ref().and_then(|state| {
++                        if !has_txn_headers || is_transactional {
++                            state.active.get(&batch.producer_id).copied()
++                        } else {
++                            None
++                        }
++                    });
+                     for rec in batch.records {
+                         let offset = rec.offset;
+                         if isolation == crate::IsolationLevel::ReadCommitted
+@@ -3748,17 +3768,10 @@ impl Consumer {
+                         } else {
+                             continue;
+                         }
+-                        if isolation == crate::IsolationLevel::ReadCommitted {
+-                            let active = self.aborted_pids.entry(part_key.clone()).or_default();
+-                            if let Some(&first) = active.get(&batch.producer_id) {
+-                                if has_txn_headers {
+-                                    if is_transactional && offset >= first {
+-                                        continue;
+-                                    }
+-                                } else if offset >= first {
+-                                    continue;
+-                                }
+-                            }
++                        if isolation == crate::IsolationLevel::ReadCommitted
++                            && abort_from.is_some_and(|first| offset >= first)
++                        {
++                            continue;
+                         }
+                         let rec_b = single_record_bytes(&rec);
+                         *out_bytes = out_bytes.saturating_add(rec_b);
+@@ -4326,10 +4339,7 @@ impl Consumer {
+         self.buffered_bytes = self
+             .buffered_bytes
+             .saturating_sub(self.pending.drop_for(topic, partition));
+-        let key = (topic.to_string(), partition);
+-        let _ = self.aborted_pids.remove(&key);
+-        let _ = self.aborted_txs.remove(&key);
+-        let _ = self.completed_txs.remove(&key);
++        let _state = self.aborted.remove(topic, partition);
+     }
+ 
+     fn retain_pending_assigned(&mut self) {
+diff --git a/tests/consumer_fetch_semantics.rs b/tests/consumer_fetch_semantics.rs
+index ef147f27..0a1181e0 100644
+--- a/tests/consumer_fetch_semantics.rs
++++ b/tests/consumer_fetch_semantics.rs
+@@ -1009,6 +1009,71 @@ async fn read_committed_multiple_aborted_intervals_and_pids() {
+     broker.shutdown().await;
+ }
+ 
++/// Unordered repeated headers must not reopen a completed transaction or
++/// activate a later transaction under the same PID before its first offset.
++#[tokio::test]
++async fn read_committed_repeated_metadata_and_spanning_markers_survive_seek() {
++    let mut broker =
++        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |_topics, attempt| {
++            let mut part = FetchedPartition::partition_response(0, 0);
++            part.high_watermark = 12;
++            part.last_stable_offset = 12;
++            part.aborted_transactions = vec![(8, 8), (7, 4), (7, 0), (7, 0)];
++            part.records = match attempt % 3 {
++                0 => vec![custom_batch(0, &[b"abort-first"], 7, 0, Some(0), true)],
++                1 => vec![
++                    custom_marker(1, ControlRecordType::Abort, 7, 0),
++                    custom_batch(2, &[b"commit-middle"], 7, 0, Some(1), true),
++                    custom_marker(3, ControlRecordType::Commit, 7, 0),
++                    custom_batch(4, &[b"abort-second"], 7, 0, Some(2), true),
++                ],
++                _ => vec![
++                    custom_marker(5, ControlRecordType::Abort, 7, 0),
++                    custom_batch(6, &[b"commit-after-second"], 7, 0, Some(3), true),
++                    custom_marker(7, ControlRecordType::Commit, 7, 0),
++                    custom_batch(8, &[b"abort-other-pid"], 8, 0, Some(0), true),
++                    custom_marker(9, ControlRecordType::Abort, 8, 0),
++                    custom_batch(10, &[b"commit-other-pid"], 8, 0, Some(1), true),
++                    custom_marker(11, ControlRecordType::Commit, 8, 0),
++                ],
++            };
++            vec![FetchedTopic {
++                topic: "t".to_owned(),
++                topic_id: [0; 16],
++                partitions: vec![part],
++            }]
++        })
++        .await;
++    let mut cfg = broker.config();
++    cfg.isolation_level = IsolationLevel::ReadCommitted;
++    let mut consumer = Consumer::new(cfg).await.unwrap();
++    consumer.assign("t", 0, 0).await.unwrap();
++    for pass in 0..2 {
++        if pass > 0 {
++            consumer.seek("t", 0, 0).unwrap();
++        }
++        let mut history = Vec::new();
++        for (expected, cursor) in [(vec![], 1), (vec![2], 5), (vec![6, 10], 12)] {
++            let records = consumer.fetch().await.unwrap();
++            let offsets = records
++                .iter()
++                .map(|record| record.offset)
++                .collect::<Vec<_>>();
++            assert_eq!(offsets, expected);
++            assert_eq!(consumer.fetch_cursor("t", 0).unwrap(), cursor);
++            history.extend(offsets);
++        }
++        assert_eq!(history, vec![2, 6, 10]);
++        assert_eq!(
++            consumer.positions(),
++            vec![(TopicPartition::new("t", 0), 12)]
++        );
++    }
++    assert_eq!(broker.attempt_count(), 6);
++    consumer.close().await.unwrap();
++    broker.shutdown().await;
++}
++
+ /// Verify that non-transactional batches are NOT suppressed merely because they share
+ /// a producer ID that is currently in the aborted transactions list.
+ #[tokio::test]

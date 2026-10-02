@@ -1,0 +1,280 @@
+diff --git a/benchmarks/runtime/src/fdrive.rs b/benchmarks/runtime/src/fdrive.rs
+index e9eda3a6..34ecb348 100644
+--- a/benchmarks/runtime/src/fdrive.rs
++++ b/benchmarks/runtime/src/fdrive.rs
+@@ -39,6 +39,16 @@ pub struct FetchOutcome {
+     pub paused_backlog_records: u64,
+     /// Buffered key/value/header bytes immediately after the prefill poll.
+     pub prefill_buffered_bytes: usize,
++    /// Records returned by the consumer, including the unverified tail past the target.
++    pub returned_records: u64,
++    /// Exact verified committed history: partition, inclusive start, exclusive end.
++    pub committed_history: Vec<(i32, i64, i64)>,
++    /// Aborted offsets skipped between adjacent verified committed records.
++    pub committed_abort_gap_records: u64,
++    /// Aborted offsets unexpectedly delivered by the committed cell.
++    pub committed_aborted_deliveries: u64,
++    /// Fetch cursor for every assigned partition after the committed response.
++    pub committed_partition_cursors: Vec<(i32, i64)>,
+     /// The drive hit the cell timeout.
+     pub timed_out: bool,
+ }
+@@ -63,6 +73,15 @@ fn micros(d: Duration) -> u64 {
+     d.as_micros().min(u128::from(u64::MAX)) as u64
+ }
+ 
++fn committed_expected_offset(cell: &FetchCellDef, ordinal: u64) -> Result<u64, String> {
++    let batch = u64::from(cell.synth_records_per_batch);
++    let committed_group = batch.saturating_mul(cell.synth_abort_every.saturating_sub(1));
++    if committed_group == 0 {
++        return Err("committed history requires a nonempty committed batch group".to_owned());
++    }
++    Ok(ordinal.saturating_add((ordinal / committed_group).saturating_mul(batch)))
++}
++
+ /// Build the consumer for `cell` over `bootstrap` endpoints.
+ pub fn consumer_config(cell: &FetchCellDef, bootstrap: &[String]) -> ConsumerConfig {
+     let cfg = ConsumerConfig::bootstrap(bootstrap.iter().cloned())
+@@ -144,8 +163,55 @@ pub async fn drive_fetch(consumer: &mut Consumer, cell: &FetchCellDef, out: &mut
+                 continue;
+             }
+             empties = 0;
++            out.returned_records += batch.len() as u64;
+             for rec in batch.iter() {
+-                *out.per_partition.entry(rec.partition).or_default() += 1;
++                let delivered = out.per_partition.entry(rec.partition).or_default();
++                let ordinal = *delivered;
++                *delivered += 1;
++                if cell.id == "nb-fetch-committed-aborts" {
++                    let expected = match committed_expected_offset(cell, ordinal) {
++                        Ok(expected) => expected,
++                        Err(e) => {
++                            record_error(out, e);
++                            return;
++                        }
++                    };
++                    if u64::try_from(rec.offset).ok() != Some(expected) {
++                        let batch_index = u64::try_from(rec.offset)
++                            .ok()
++                            .map(|offset| offset / u64::from(cell.synth_records_per_batch));
++                        if batch_index
++                            .is_some_and(|index| (index + 1) % cell.synth_abort_every == 0)
++                        {
++                            out.committed_aborted_deliveries += 1;
++                        }
++                        out.mismatched += 1;
++                        record_error(
++                            out,
++                            format!(
++                                "committed history p{}: offset {} != expected {expected}",
++                                rec.partition, rec.offset
++                            ),
++                        );
++                        return;
++                    }
++                    let committed_group =
++                        u64::from(cell.synth_records_per_batch) * (cell.synth_abort_every - 1);
++                    if ordinal > 0 && ordinal % committed_group == 0 {
++                        out.committed_abort_gap_records += u64::from(cell.synth_records_per_batch);
++                    }
++                    match out.committed_history.last_mut() {
++                        Some((partition, _, end))
++                            if *partition == rec.partition && *end == rec.offset =>
++                        {
++                            *end = rec.offset + 1;
++                        }
++                        _ => {
++                            out.committed_history
++                                .push((rec.partition, rec.offset, rec.offset + 1))
++                        }
++                    }
++                }
+                 if cell.paused_partitions.contains(&rec.partition) {
+                     *out.paused_delivered.entry(rec.partition).or_default() += 1;
+                 }
+@@ -155,7 +221,9 @@ pub async fn drive_fetch(consumer: &mut Consumer, cell: &FetchCellDef, out: &mut
+                         out.latencies_us.push(elapsed_us);
+                         out.bytes_delivered += rec.key.as_ref().map_or(0, |k| k.len() as u64)
+                             + rec.value.as_ref().map_or(0, |v| v.len() as u64);
+-                        if out.verified >= cell.target_records {
++                        if out.verified >= cell.target_records
++                            && cell.id != "nb-fetch-committed-aborts"
++                        {
+                             break;
+                         }
+                     }
+@@ -165,6 +233,34 @@ pub async fn drive_fetch(consumer: &mut Consumer, cell: &FetchCellDef, out: &mut
+                     }
+                 }
+             }
++            if cell.id == "nb-fetch-committed-aborts" {
++                let batch_records = u64::from(cell.synth_records_per_batch);
++                let group_records = batch_records * cell.synth_abort_every;
++                let committed_group = group_records - batch_records;
++                for partition in 0..cell.partitions {
++                    let cursor = match consumer.fetch_cursor(cell.topic, partition) {
++                        Ok(cursor) if cursor >= 0 => cursor,
++                        result => {
++                            record_error(out, format!("committed history cursor: {result:?}"));
++                            return;
++                        }
++                    };
++                    let end = cursor as u64;
++                    let expected_count = (end / group_records) * committed_group
++                        + (end % group_records).min(committed_group);
++                    if out.per_partition.get(&partition).copied().unwrap_or(0) != expected_count {
++                        out.mismatched += 1;
++                        record_error(
++                            out,
++                            format!(
++                                "incomplete committed history p{partition} at cursor {cursor}: expected {expected_count} verified records"
++                            ),
++                        );
++                        return;
++                    }
++                    out.committed_partition_cursors.push((partition, cursor));
++                }
++            }
+             if pause_after_prefill && out.rounds == 1 {
+                 // Fetch all six sparse logs before pausing: the named cell
+                 // requires 100k client-held paused records, not just a single
+diff --git a/benchmarks/runtime/src/main.rs b/benchmarks/runtime/src/main.rs
+index 4ff5fbe6..ed7cf30e 100644
+--- a/benchmarks/runtime/src/main.rs
++++ b/benchmarks/runtime/src/main.rs
+@@ -650,8 +650,19 @@ fn run_fetch(
+         ))
+         .map_err(|e| format!("consumer connect: {e}"))?;
+     let mut fout = runtime::fdrive::FetchOutcome::default();
++    let verify_capacity = if cell.id == "nb-fetch-committed-aborts" {
++        cell.synth_records_per_partition
++            .saturating_mul(cell.partitions as u64)
++    } else {
++        cell.target_records
++    };
+     fout.latencies_us
+-        .reserve(cell.target_records.min(1_000_000) as usize);
++        .reserve(verify_capacity.min(1_000_000) as usize);
++    if cell.id == "nb-fetch-committed-aborts" {
++        fout.committed_history.reserve(64);
++        fout.committed_partition_cursors
++            .reserve(cell.partitions as usize);
++    }
+     let phase = measured_phase(|| {
+         rt.block_on(runtime::fdrive::drive_fetch(&mut consumer, cell, &mut fout));
+     });
+@@ -670,7 +681,18 @@ fn run_fetch(
+         timed_out: fout.timed_out,
+         ..runtime::drive::DriveOutcome::default()
+     };
+-    let extra_failed = fout.mismatched > 0 || !fout.paused_delivered.is_empty();
++    let extra_failed = fout.mismatched > 0
++        || !fout.paused_delivered.is_empty()
++        || (cell.id == "nb-fetch-committed-aborts"
++            && (fout.verified != fout.returned_records
++                || fout.verified < cell.target_records
++                || fout
++                    .committed_partition_cursors
++                    .iter()
++                    .map(|(_, cursor)| *cursor as u64)
++                    .sum::<u64>()
++                    != counts.fetched_records
++                || !outcome.errors.is_empty()));
+ 
+     let cpu_total_us = phase.cpu_us.0 + phase.cpu_us.1;
+     let mut extra = serde_json::Map::new();
+@@ -712,6 +734,36 @@ fn run_fetch(
+             serde_json::Value::from(fout.prefill_buffered_bytes),
+         );
+     }
++    if cell.id == "nb-fetch-committed-aborts" {
++        extra.insert(
++            "target_records".to_owned(),
++            serde_json::Value::from(cell.target_records),
++        );
++        extra.insert(
++            "returned_records".to_owned(),
++            serde_json::Value::from(fout.returned_records),
++        );
++        extra.insert(
++            "committed_history".to_owned(),
++            serde_json::json!(fout.committed_history),
++        );
++        extra.insert(
++            "committed_partition_cursors".to_owned(),
++            serde_json::json!(fout.committed_partition_cursors),
++        );
++        extra.insert(
++            "committed_abort_gap_records".to_owned(),
++            serde_json::Value::from(fout.committed_abort_gap_records),
++        );
++        extra.insert(
++            "committed_aborted_deliveries".to_owned(),
++            serde_json::Value::from(fout.committed_aborted_deliveries),
++        );
++        extra.insert(
++            "filtered_records".to_owned(),
++            serde_json::Value::from(counts.fetched_records.saturating_sub(fout.returned_records)),
++        );
++    }
+     extra.insert(
+         "fetch_requests".to_owned(),
+         serde_json::Value::from(counts.fetch_requests),
+@@ -770,7 +822,11 @@ fn run_fetch(
+ 
+     let ctx = RunContext {
+         cell_id: cell.id,
+-        offered: cell.target_records,
++        offered: if cell.id == "nb-fetch-committed-aborts" {
++            fout.returned_records
++        } else {
++            cell.target_records
++        },
+         seed: cell.seed,
+         profile: "fetch",
+         consumed: fout.verified,
+diff --git a/benchmarks/runtime/tests/e2e.rs b/benchmarks/runtime/tests/e2e.rs
+index 08977352..edd0b263 100644
+--- a/benchmarks/runtime/tests/e2e.rs
++++ b/benchmarks/runtime/tests/e2e.rs
+@@ -169,3 +169,40 @@ fn capped_paused_cell_prefills_real_client_held_backlog() {
+     );
+     let _ = std::fs::remove_dir_all(&out_dir);
+ }
++
++#[test]
++fn committed_aborts_cell_verifies_exact_offset_history() {
++    let (doc, out_dir) = run_cell("nb-fetch-committed-aborts");
++    assert_eq!(doc["outcomes"]["consumed"], 108_000);
++    assert_eq!(doc["execution"]["target_records"], 20_000);
++    assert_eq!(doc["integrity"]["record_ids"]["verified_count"], 108_000);
++    assert_eq!(doc["execution"]["fetch_rounds"], 1);
++    assert_eq!(doc["execution"]["fetched_records"], 134_500);
++    assert_eq!(doc["execution"]["returned_records"], 108_000);
++    assert_eq!(doc["execution"]["filtered_records"], 26_500);
++    assert_eq!(doc["execution"]["committed_aborted_deliveries"], 0);
++    assert_eq!(doc["execution"]["committed_abort_gap_records"], 25_500);
++    assert_eq!(
++        doc["execution"]["committed_partition_cursors"],
++        serde_json::json!([
++            (0, 50_000),
++            (1, 50_000),
++            (2, 33_000),
++            (3, 500),
++            (4, 500),
++            (5, 500)
++        ])
++    );
++    let mut history: Vec<(i32, i64, i64)> = [(0, 20), (1, 20), (2, 13)]
++        .into_iter()
++        .flat_map(|(partition, groups)| {
++            (0..groups).map(move |group| (partition, group * 2_500, group * 2_500 + 2_000))
++        })
++        .collect();
++    history.extend([(2, 32_500, 33_000), (3, 0, 500), (4, 0, 500), (5, 0, 500)]);
++    assert_eq!(
++        doc["execution"]["committed_history"],
++        serde_json::json!(history)
++    );
++    let _ = std::fs::remove_dir_all(&out_dir);
++}

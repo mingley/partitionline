@@ -1,0 +1,28 @@
+{
+  "baseline_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+  "workload": "nb-fetch-committed-aborts",
+  "gate_passed": true,
+  "actual_records_verified_each_run": 108000,
+  "baseline_cpu_ns_per_actual_record_median": 434.60185185185185,
+  "baseline_allocations_each_run": 217088,
+  "source_lookup_clone_allocations": 108000,
+  "allocation_census_fraction_pct": 49.749410377358494,
+  "callgrind_scope": "Only apply_fetch_body collection; this is consumer response materialization, not whole-cell CPU/instructions. Absolute Ir and allocator paths are diagnostic under Valgrind; main gate uses whole-cell observed allocation count and exact executed clone-call count.",
+  "callgrind": {
+    "calls_string_clone_at_aborted_lookup": 108000,
+    "string_clone_inclusive_ir": 28992043,
+    "calls_aborted_partition_map_entry": 108000,
+    "entry_inclusive_ir": 49184744,
+    "apply_body_total_ir": 216217383,
+    "combined_lookup_share_of_body_ir_pct": 36.15656887309565,
+    "aborted_metadata_intervals": 53,
+    "decoded_record_batches": 269,
+    "raw_file": "callgrind/body.out"
+  },
+  "method_notes": [
+    "Source String clone for per-record aborted-state lookup executes once for each of108000 returned records; Callgrind reports exactly108000 calls at that source branch. Runtime census has217088 allocations, so discard-only cloned topic keys alone account49.75% (>1%) before counting partition/PID hashes.",
+    "Sorting-only hypothesis is small; this card targets partition-local transaction filtering state and avoids repeated partition-key hashing/cloning in per-record lookups.",
+    "Valgrind emitted brk-segment warning but completed and verified full history; annotation helper emitted unresolved debug-source line warnings. All logs/raw traces preserved; traced timing/RSS are excluded from acceptance.",
+    "Plain real records from uncompressed synthetic cell; repeated PID/control-marker/LSO behavior separately covered by tests."
+  ]
+}

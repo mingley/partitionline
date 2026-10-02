@@ -1,0 +1,4988 @@
+{
+  "bootstrap": {
+    "method": "20,000 paired bootstrap resamples of ratio of A/B medians; percentile 95% CI",
+    "seed": 20261002
+  },
+  "order": "A0 B0 B1 A1 A2 B2 B3 A3 A4 B4; reversed initial variant in odd-numbered pairs",
+  "initial5": {
+    "nb-fetch-1000p": {
+      "rows": [
+        {
+          "cell": "nb-fetch-1000p",
+          "pair": 0,
+          "variant": "A",
+          "cpu_ns_per_record": 812.6,
+          "allocations_per_record": 2.1318,
+          "allocation_count": 21318,
+          "allocated_bytes_per_record": 936.3336,
+          "process_peak_rss_bytes": 13107200,
+          "phase_sampled_peak_rss_bytes": 5033984,
+          "phase_average_rss_bytes": 4352682,
+          "rec_s": 168400.5609422685,
+          "p99_us": 15018.0,
+          "verified_records": 10000,
+          "returned_records": null,
+          "fetched_records": 10000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-1000p/pair-00-A/nb-fetch-1000p-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-1000p/pair-00-A/external-rss.json",
+          "external_client_vmhwm_bytes": 12914688,
+          "external_sample_peak_rss_bytes": 12914688,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 92,
+          "external_actual_interval_ms": {
+            "median": 1.20188,
+            "p95": 1.281244,
+            "max": 1.290844
+          },
+          "vmhwm_vs_self_pct": -1.4687499999999964
+        },
+        {
+          "cell": "nb-fetch-1000p",
+          "pair": 0,
+          "variant": "B",
+          "cpu_ns_per_record": 805.7,
+          "allocations_per_record": 1.9318,
+          "allocation_count": 19318,
+          "allocated_bytes_per_record": 934.1336,
+          "process_peak_rss_bytes": 13107200,
+          "phase_sampled_peak_rss_bytes": 5201920,
+          "phase_average_rss_bytes": 4527445,
+          "rec_s": 168143.7817655131,
+          "p99_us": 14373.0,
+          "verified_records": 10000,
+          "returned_records": null,
+          "fetched_records": 10000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-1000p/pair-00-B/nb-fetch-1000p-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-1000p/pair-00-B/external-rss.json",
+          "external_client_vmhwm_bytes": 13070336,
+          "external_sample_peak_rss_bytes": 13070336,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 92,
+          "external_actual_interval_ms": {
+            "median": 1.213718,
+            "p95": 1.281119,
+            "max": 1.285976
+          },
+          "vmhwm_vs_self_pct": -0.28124999999999956
+        },
+        {
+          "cell": "nb-fetch-1000p",
+          "pair": 1,
+          "variant": "B",
+          "cpu_ns_per_record": 841.3,
+          "allocations_per_record": 1.9318,
+          "allocation_count": 19318,
+          "allocated_bytes_per_record": 934.1336,
+          "process_peak_rss_bytes": 13197312,
+          "phase_sampled_peak_rss_bytes": 5177344,
+          "phase_average_rss_bytes": 4420949,
+          "rec_s": 167118.87362681347,
+          "p99_us": 17039.0,
+          "verified_records": 10000,
+          "returned_records": null,
+          "fetched_records": 10000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-1000p/pair-01-B/nb-fetch-1000p-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-1000p/pair-01-B/external-rss.json",
+          "external_client_vmhwm_bytes": 13103104,
+          "external_sample_peak_rss_bytes": 13103104,
+          "external_wait4_peak_rss_bytes": 85192704,
+          "external_sample_count": 92,
+          "external_actual_interval_ms": {
+            "median": 1.214369,
+            "p95": 1.2841485000000001,
+            "max": 1.307018
+          },
+          "vmhwm_vs_self_pct": -0.7138423339540623
+        },
+        {
+          "cell": "nb-fetch-1000p",
+          "pair": 1,
+          "variant": "A",
+          "cpu_ns_per_record": 841.4,
+          "allocations_per_record": 2.1318,
+          "allocation_count": 21318,
+          "allocated_bytes_per_record": 936.3336,
+          "process_peak_rss_bytes": 13197312,
+          "phase_sampled_peak_rss_bytes": 7536640,
+          "phase_average_rss_bytes": 4757796,
+          "rec_s": 154792.76159326578,
+          "p99_us": 16225.0,
+          "verified_records": 10000,
+          "returned_records": null,
+          "fetched_records": 10000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-1000p/pair-01-A/nb-fetch-1000p-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-1000p/pair-01-A/external-rss.json",
+          "external_client_vmhwm_bytes": 12935168,
+          "external_sample_peak_rss_bytes": 12935168,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 98,
+          "external_actual_interval_ms": {
+            "median": 1.203383,
+            "p95": 1.2744545999999999,
+            "max": 1.291935
+          },
+          "vmhwm_vs_self_pct": -1.9863438857852245
+        },
+        {
+          "cell": "nb-fetch-1000p",
+          "pair": 2,
+          "variant": "A",
+          "cpu_ns_per_record": 801.1,
+          "allocations_per_record": 2.1318,
+          "allocation_count": 21318,
+          "allocated_bytes_per_record": 936.3336,
+          "process_peak_rss_bytes": 13197312,
+          "phase_sampled_peak_rss_bytes": 5087232,
+          "phase_average_rss_bytes": 4327424,
+          "rec_s": 168900.59948058674,
+          "p99_us": 13126.0,
+          "verified_records": 10000,
+          "returned_records": null,
+          "fetched_records": 10000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-1000p/pair-02-A/nb-fetch-1000p-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-1000p/pair-02-A/external-rss.json",
+          "external_client_vmhwm_bytes": 13070336,
+          "external_sample_peak_rss_bytes": 13070336,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 95,
+          "external_actual_interval_ms": {
+            "median": 1.1555010000000001,
+            "p95": 1.2098497499999998,
+            "max": 1.249412
+          },
+          "vmhwm_vs_self_pct": -0.9621353196772153
+        },
+        {
+          "cell": "nb-fetch-1000p",
+          "pair": 2,
+          "variant": "B",
+          "cpu_ns_per_record": 869.8,
+          "allocations_per_record": 1.9318,
+          "allocation_count": 19318,
+          "allocated_bytes_per_record": 934.1336,
+          "process_peak_rss_bytes": 13197312,
+          "phase_sampled_peak_rss_bytes": 7479296,
+          "phase_average_rss_bytes": 4666514,
+          "rec_s": 154110.88790032576,
+          "p99_us": 16969.0,
+          "verified_records": 10000,
+          "returned_records": null,
+          "fetched_records": 10000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-1000p/pair-02-B/nb-fetch-1000p-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-1000p/pair-02-B/external-rss.json",
+          "external_client_vmhwm_bytes": 13012992,
+          "external_sample_peak_rss_bytes": 13012992,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 98,
+          "external_actual_interval_ms": {
+            "median": 1.15465,
+            "p95": 1.2254657999999996,
+            "max": 1.300338
+          },
+          "vmhwm_vs_self_pct": -1.3966480446927387
+        },
+        {
+          "cell": "nb-fetch-1000p",
+          "pair": 3,
+          "variant": "B",
+          "cpu_ns_per_record": 787.1,
+          "allocations_per_record": 1.9318,
+          "allocation_count": 19318,
+          "allocated_bytes_per_record": 934.1336,
+          "process_peak_rss_bytes": 13197312,
+          "phase_sampled_peak_rss_bytes": 8028160,
+          "phase_average_rss_bytes": 4871314,
+          "rec_s": 156865.1934253719,
+          "p99_us": 17053.0,
+          "verified_records": 10000,
+          "returned_records": null,
+          "fetched_records": 10000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-1000p/pair-03-B/nb-fetch-1000p-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-1000p/pair-03-B/external-rss.json",
+          "external_client_vmhwm_bytes": 13152256,
+          "external_sample_peak_rss_bytes": 13152256,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 97,
+          "external_actual_interval_ms": {
+            "median": 1.1555155,
+            "p95": 1.2014049999999998,
+            "max": 1.380237
+          },
+          "vmhwm_vs_self_pct": -0.3414028553693327
+        },
+        {
+          "cell": "nb-fetch-1000p",
+          "pair": 3,
+          "variant": "A",
+          "cpu_ns_per_record": 807.4,
+          "allocations_per_record": 2.1318,
+          "allocation_count": 21318,
+          "allocated_bytes_per_record": 936.3336,
+          "process_peak_rss_bytes": 13197312,
+          "phase_sampled_peak_rss_bytes": 9097216,
+          "phase_average_rss_bytes": 4936265,
+          "rec_s": 156626.68718267433,
+          "p99_us": 15431.0,
+          "verified_records": 10000,
+          "returned_records": null,
+          "fetched_records": 10000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-1000p/pair-03-A/nb-fetch-1000p-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-1000p/pair-03-A/external-rss.json",
+          "external_client_vmhwm_bytes": 13066240,
+          "external_sample_peak_rss_bytes": 13066240,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 103,
+          "external_actual_interval_ms": {
+            "median": 1.1614545,
+            "p95": 1.24221365,
+            "max": 1.338164
+          },
+          "vmhwm_vs_self_pct": -0.9931719428926122
+        },
+        {
+          "cell": "nb-fetch-1000p",
+          "pair": 4,
+          "variant": "A",
+          "cpu_ns_per_record": 746.4,
+          "allocations_per_record": 2.1318,
+          "allocation_count": 21318,
+          "allocated_bytes_per_record": 936.3336,
+          "process_peak_rss_bytes": 13197312,
+          "phase_sampled_peak_rss_bytes": 4984832,
+          "phase_average_rss_bytes": 4303530,
+          "rec_s": 171514.87771503764,
+          "p99_us": 13349.0,
+          "verified_records": 10000,
+          "returned_records": null,
+          "fetched_records": 10000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-1000p/pair-04-A/nb-fetch-1000p-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-1000p/pair-04-A/external-rss.json",
+          "external_client_vmhwm_bytes": 12935168,
+          "external_sample_peak_rss_bytes": 12935168,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 92,
+          "external_actual_interval_ms": {
+            "median": 1.159406,
+            "p95": 1.2379445,
+            "max": 1.403782
+          },
+          "vmhwm_vs_self_pct": -1.9863438857852245
+        },
+        {
+          "cell": "nb-fetch-1000p",
+          "pair": 4,
+          "variant": "B",
+          "cpu_ns_per_record": 758.4,
+          "allocations_per_record": 1.9318,
+          "allocation_count": 19318,
+          "allocated_bytes_per_record": 934.1336,
+          "process_peak_rss_bytes": 13197312,
+          "phase_sampled_peak_rss_bytes": 5021696,
+          "phase_average_rss_bytes": 4278954,
+          "rec_s": 170114.95926648335,
+          "p99_us": 13097.0,
+          "verified_records": 10000,
+          "returned_records": null,
+          "fetched_records": 10000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-1000p/pair-04-B/nb-fetch-1000p-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-1000p/pair-04-B/external-rss.json",
+          "external_client_vmhwm_bytes": 13012992,
+          "external_sample_peak_rss_bytes": 13012992,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 93,
+          "external_actual_interval_ms": {
+            "median": 1.1594764999999998,
+            "p95": 1.1977253,
+            "max": 1.324253
+          },
+          "vmhwm_vs_self_pct": -1.3966480446927387
+        }
+      ],
+      "metrics": {
+        "cpu_ns_per_record": {
+          "baseline_median": 807.4,
+          "candidate_median": 805.7,
+          "delta_pct": -0.21055239038889617,
+          "baseline_ci95": [
+            746.4,
+            841.4
+          ],
+          "candidate_ci95": [
+            758.4,
+            869.8
+          ],
+          "ci95_pct": [
+            -2.514243249938064,
+            8.575708400948677
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            812.6,
+            841.4,
+            801.1,
+            807.4,
+            746.4
+          ],
+          "candidate_values": [
+            805.7,
+            841.3,
+            869.8,
+            787.1,
+            758.4
+          ]
+        },
+        "allocations_per_record": {
+          "baseline_median": 2.1318,
+          "candidate_median": 1.9318,
+          "delta_pct": -9.381743127873165,
+          "baseline_ci95": [
+            2.1318,
+            2.1318
+          ],
+          "candidate_ci95": [
+            1.9318,
+            1.9318
+          ],
+          "ci95_pct": [
+            -9.381743127873165,
+            -9.381743127873165
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            2.1318,
+            2.1318,
+            2.1318,
+            2.1318,
+            2.1318
+          ],
+          "candidate_values": [
+            1.9318,
+            1.9318,
+            1.9318,
+            1.9318,
+            1.9318
+          ]
+        },
+        "allocation_count": {
+          "baseline_median": 21318,
+          "candidate_median": 19318,
+          "delta_pct": -9.381743127873154,
+          "baseline_ci95": [
+            21318.0,
+            21318.0
+          ],
+          "candidate_ci95": [
+            19318.0,
+            19318.0
+          ],
+          "ci95_pct": [
+            -9.381743127873154,
+            -9.381743127873154
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            21318,
+            21318,
+            21318,
+            21318,
+            21318
+          ],
+          "candidate_values": [
+            19318,
+            19318,
+            19318,
+            19318,
+            19318
+          ]
+        },
+        "allocated_bytes_per_record": {
+          "baseline_median": 936.3336,
+          "candidate_median": 934.1336,
+          "delta_pct": -0.23495899324771363,
+          "baseline_ci95": [
+            936.3336,
+            936.3336
+          ],
+          "candidate_ci95": [
+            934.1336,
+            934.1336
+          ],
+          "ci95_pct": [
+            -0.23495899324771363,
+            -0.23495899324771363
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            936.3336,
+            936.3336,
+            936.3336,
+            936.3336,
+            936.3336
+          ],
+          "candidate_values": [
+            934.1336,
+            934.1336,
+            934.1336,
+            934.1336,
+            934.1336
+          ]
+        },
+        "process_peak_rss_bytes": {
+          "baseline_median": 13197312,
+          "candidate_median": 13197312,
+          "delta_pct": 0.0,
+          "baseline_ci95": [
+            13107200.0,
+            13197312.0
+          ],
+          "candidate_ci95": [
+            13107200.0,
+            13197312.0
+          ],
+          "ci95_pct": [
+            0.0,
+            0.0
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            13107200,
+            13197312,
+            13197312,
+            13197312,
+            13197312
+          ],
+          "candidate_values": [
+            13107200,
+            13197312,
+            13197312,
+            13197312,
+            13197312
+          ]
+        },
+        "phase_sampled_peak_rss_bytes": {
+          "baseline_median": 5087232,
+          "candidate_median": 5201920,
+          "delta_pct": 2.254428341384873,
+          "baseline_ci95": [
+            4984832.0,
+            9097216.0
+          ],
+          "candidate_ci95": [
+            5021696.0,
+            8028160.0
+          ],
+          "ci95_pct": [
+            -31.304347826086953,
+            47.02093397745573
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            5033984,
+            7536640,
+            5087232,
+            9097216,
+            4984832
+          ],
+          "candidate_values": [
+            5201920,
+            5177344,
+            7479296,
+            8028160,
+            5021696
+          ]
+        },
+        "phase_average_rss_bytes": {
+          "baseline_median": 4352682,
+          "candidate_median": 4527445,
+          "delta_pct": 4.015064734800289,
+          "baseline_ci95": [
+            4303530.0,
+            4936265.0
+          ],
+          "candidate_ci95": [
+            4278954.0,
+            4871314.0
+          ],
+          "ci95_pct": [
+            -7.079895817307003,
+            7.835839520231902
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            4352682,
+            4757796,
+            4327424,
+            4936265,
+            4303530
+          ],
+          "candidate_values": [
+            4527445,
+            4420949,
+            4666514,
+            4871314,
+            4278954
+          ]
+        },
+        "rec_s": {
+          "baseline_median": 168400.5609422685,
+          "candidate_median": 167118.87362681347,
+          "delta_pct": -0.7610944454599644,
+          "baseline_ci95": [
+            154792.76159326578,
+            171514.87771503764
+          ],
+          "candidate_ci95": [
+            154110.88790032576,
+            170114.95926648335
+          ],
+          "ci95_pct": [
+            -8.75645890289507,
+            7.962977019517137
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            168400.5609422685,
+            154792.76159326578,
+            168900.59948058674,
+            156626.68718267433,
+            171514.87771503764
+          ],
+          "candidate_values": [
+            168143.7817655131,
+            167118.87362681347,
+            154110.88790032576,
+            156865.1934253719,
+            170114.95926648335
+          ]
+        },
+        "p99_us": {
+          "baseline_median": 15018.0,
+          "candidate_median": 16969.0,
+          "delta_pct": 12.991077373818083,
+          "baseline_ci95": [
+            13126.0,
+            16225.0
+          ],
+          "candidate_ci95": [
+            13097.0,
+            17053.0
+          ],
+          "ci95_pct": [
+            -4.294846184578505,
+            29.27776931281427
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            15018.0,
+            16225.0,
+            13126.0,
+            15431.0,
+            13349.0
+          ],
+          "candidate_values": [
+            14373.0,
+            17039.0,
+            16969.0,
+            17053.0,
+            13097.0
+          ]
+        },
+        "external_client_vmhwm_bytes": {
+          "baseline_median": 12935168,
+          "candidate_median": 13070336,
+          "delta_pct": 1.0449651678277494,
+          "baseline_ci95": [
+            12914688.0,
+            13070336.0
+          ],
+          "candidate_ci95": [
+            13012992.0,
+            13152256.0
+          ],
+          "ci95_pct": [
+            -0.4387339392040168,
+            1.2982900569981082
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            12914688,
+            12935168,
+            13070336,
+            13066240,
+            12935168
+          ],
+          "candidate_values": [
+            13070336,
+            13103104,
+            13012992,
+            13152256,
+            13012992
+          ]
+        },
+        "external_sample_peak_rss_bytes": {
+          "baseline_median": 12935168,
+          "candidate_median": 13070336,
+          "delta_pct": 1.0449651678277494,
+          "baseline_ci95": [
+            12914688.0,
+            13070336.0
+          ],
+          "candidate_ci95": [
+            13012992.0,
+            13152256.0
+          ],
+          "ci95_pct": [
+            -0.4387339392040168,
+            1.2982900569981082
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            12914688,
+            12935168,
+            13070336,
+            13066240,
+            12935168
+          ],
+          "candidate_values": [
+            13070336,
+            13103104,
+            13012992,
+            13152256,
+            13012992
+          ]
+        },
+        "external_wait4_peak_rss_bytes": {
+          "baseline_median": 85221376,
+          "candidate_median": 85221376,
+          "delta_pct": 0.0,
+          "baseline_ci95": [
+            85221376.0,
+            85221376.0
+          ],
+          "candidate_ci95": [
+            85192704.0,
+            85221376.0
+          ],
+          "ci95_pct": [
+            -0.033644141113142734,
+            0.0
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            85221376,
+            85221376,
+            85221376,
+            85221376,
+            85221376
+          ],
+          "candidate_values": [
+            85221376,
+            85192704,
+            85221376,
+            85221376,
+            85221376
+          ]
+        }
+      }
+    },
+    "nb-fetch-bulk": {
+      "rows": [
+        {
+          "cell": "nb-fetch-bulk",
+          "pair": 0,
+          "variant": "A",
+          "cpu_ns_per_record": 2363.95,
+          "allocations_per_record": 6.7723,
+          "allocation_count": 135446,
+          "allocated_bytes_per_record": 5409.45175,
+          "process_peak_rss_bytes": 63500288,
+          "phase_sampled_peak_rss_bytes": 45449216,
+          "phase_average_rss_bytes": 12617125,
+          "rec_s": 119346.0573615223,
+          "p99_us": 124902.0,
+          "verified_records": 20000,
+          "returned_records": null,
+          "fetched_records": 135000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-bulk/pair-00-A/nb-fetch-bulk-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-bulk/pair-00-A/external-rss.json",
+          "external_client_vmhwm_bytes": 63500288,
+          "external_sample_peak_rss_bytes": 63086592,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 170,
+          "external_actual_interval_ms": {
+            "median": 1.180298,
+            "p95": 1.431817,
+            "max": 12.220875
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-bulk",
+          "pair": 0,
+          "variant": "B",
+          "cpu_ns_per_record": 2429.55,
+          "allocations_per_record": 6.7717,
+          "allocation_count": 135434,
+          "allocated_bytes_per_record": 5409.44695,
+          "process_peak_rss_bytes": 63516672,
+          "phase_sampled_peak_rss_bytes": 55517184,
+          "phase_average_rss_bytes": 13537735,
+          "rec_s": 115725.59260891654,
+          "p99_us": 124175.0,
+          "verified_records": 20000,
+          "returned_records": null,
+          "fetched_records": 135000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-bulk/pair-00-B/nb-fetch-bulk-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-bulk/pair-00-B/external-rss.json",
+          "external_client_vmhwm_bytes": 63516672,
+          "external_sample_peak_rss_bytes": 62599168,
+          "external_wait4_peak_rss_bytes": 85155840,
+          "external_sample_count": 189,
+          "external_actual_interval_ms": {
+            "median": 1.171044,
+            "p95": 1.3744794500000002,
+            "max": 2.341066
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-bulk",
+          "pair": 1,
+          "variant": "B",
+          "cpu_ns_per_record": 2297.6,
+          "allocations_per_record": 6.7717,
+          "allocation_count": 135434,
+          "allocated_bytes_per_record": 5409.44695,
+          "process_peak_rss_bytes": 63459328,
+          "phase_sampled_peak_rss_bytes": 45473792,
+          "phase_average_rss_bytes": 11748010,
+          "rec_s": 113252.35321968398,
+          "p99_us": 128592.0,
+          "verified_records": 20000,
+          "returned_records": null,
+          "fetched_records": 135000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-bulk/pair-01-B/nb-fetch-bulk-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-bulk/pair-01-B/external-rss.json",
+          "external_client_vmhwm_bytes": 63459328,
+          "external_sample_peak_rss_bytes": 62926848,
+          "external_wait4_peak_rss_bytes": 85192704,
+          "external_sample_count": 192,
+          "external_actual_interval_ms": {
+            "median": 1.169832,
+            "p95": 1.310893,
+            "max": 1.523182
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-bulk",
+          "pair": 1,
+          "variant": "A",
+          "cpu_ns_per_record": 2364.5,
+          "allocations_per_record": 6.7723,
+          "allocation_count": 135446,
+          "allocated_bytes_per_record": 5409.45175,
+          "process_peak_rss_bytes": 63377408,
+          "phase_sampled_peak_rss_bytes": 48611328,
+          "phase_average_rss_bytes": 12823210,
+          "rec_s": 113339.39510198137,
+          "p99_us": 126441.0,
+          "verified_records": 20000,
+          "returned_records": null,
+          "fetched_records": 135000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-bulk/pair-01-A/nb-fetch-bulk-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-bulk/pair-01-A/external-rss.json",
+          "external_client_vmhwm_bytes": 63377408,
+          "external_sample_peak_rss_bytes": 60334080,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 195,
+          "external_actual_interval_ms": {
+            "median": 1.170843,
+            "p95": 1.3424272499999998,
+            "max": 1.42246
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-bulk",
+          "pair": 2,
+          "variant": "A",
+          "cpu_ns_per_record": 2611.3,
+          "allocations_per_record": 6.7723,
+          "allocation_count": 135446,
+          "allocated_bytes_per_record": 5409.45175,
+          "process_peak_rss_bytes": 63229952,
+          "phase_sampled_peak_rss_bytes": 61382656,
+          "phase_average_rss_bytes": 12523747,
+          "rec_s": 110953.07509859443,
+          "p99_us": 133905.0,
+          "verified_records": 20000,
+          "returned_records": null,
+          "fetched_records": 135000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-bulk/pair-02-A/nb-fetch-bulk-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-bulk/pair-02-A/external-rss.json",
+          "external_client_vmhwm_bytes": 63229952,
+          "external_sample_peak_rss_bytes": 61382656,
+          "external_wait4_peak_rss_bytes": 85192704,
+          "external_sample_count": 190,
+          "external_actual_interval_ms": {
+            "median": 1.186116,
+            "p95": 1.4548918,
+            "max": 1.520618
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-bulk",
+          "pair": 2,
+          "variant": "B",
+          "cpu_ns_per_record": 2668.65,
+          "allocations_per_record": 6.7717,
+          "allocation_count": 135434,
+          "allocated_bytes_per_record": 5409.44695,
+          "process_peak_rss_bytes": 63561728,
+          "phase_sampled_peak_rss_bytes": 58593280,
+          "phase_average_rss_bytes": 12255004,
+          "rec_s": 110093.41795326285,
+          "p99_us": 135527.0,
+          "verified_records": 20000,
+          "returned_records": null,
+          "fetched_records": 135000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-bulk/pair-02-B/nb-fetch-bulk-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-bulk/pair-02-B/external-rss.json",
+          "external_client_vmhwm_bytes": 63561728,
+          "external_sample_peak_rss_bytes": 61583360,
+          "external_wait4_peak_rss_bytes": 85192704,
+          "external_sample_count": 184,
+          "external_actual_interval_ms": {
+            "median": 1.221149,
+            "p95": 1.4643378000000002,
+            "max": 1.526186
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-bulk",
+          "pair": 3,
+          "variant": "B",
+          "cpu_ns_per_record": 2608.75,
+          "allocations_per_record": 6.7717,
+          "allocation_count": 135434,
+          "allocated_bytes_per_record": 5409.44695,
+          "process_peak_rss_bytes": 63442944,
+          "phase_sampled_peak_rss_bytes": 45457408,
+          "phase_average_rss_bytes": 12619548,
+          "rec_s": 110199.23023523497,
+          "p99_us": 136383.0,
+          "verified_records": 20000,
+          "returned_records": null,
+          "fetched_records": 135000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-bulk/pair-03-B/nb-fetch-bulk-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-bulk/pair-03-B/external-rss.json",
+          "external_client_vmhwm_bytes": 63442944,
+          "external_sample_peak_rss_bytes": 60903424,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 190,
+          "external_actual_interval_ms": {
+            "median": 1.2081,
+            "p95": 1.4443536,
+            "max": 1.519476
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-bulk",
+          "pair": 3,
+          "variant": "A",
+          "cpu_ns_per_record": 2514.85,
+          "allocations_per_record": 6.7723,
+          "allocation_count": 135446,
+          "allocated_bytes_per_record": 5409.45175,
+          "process_peak_rss_bytes": 63512576,
+          "phase_sampled_peak_rss_bytes": 59482112,
+          "phase_average_rss_bytes": 12634232,
+          "rec_s": 114178.83832588771,
+          "p99_us": 132085.0,
+          "verified_records": 20000,
+          "returned_records": null,
+          "fetched_records": 135000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-bulk/pair-03-A/nb-fetch-bulk-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-bulk/pair-03-A/external-rss.json",
+          "external_client_vmhwm_bytes": 63512576,
+          "external_sample_peak_rss_bytes": 63057920,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 181,
+          "external_actual_interval_ms": {
+            "median": 1.2112045,
+            "p95": 1.4442152,
+            "max": 1.653657
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-bulk",
+          "pair": 4,
+          "variant": "A",
+          "cpu_ns_per_record": 2532.3,
+          "allocations_per_record": 6.7723,
+          "allocation_count": 135446,
+          "allocated_bytes_per_record": 5409.45175,
+          "process_peak_rss_bytes": 63516672,
+          "phase_sampled_peak_rss_bytes": 60456960,
+          "phase_average_rss_bytes": 12308480,
+          "rec_s": 110893.39718479036,
+          "p99_us": 134425.0,
+          "verified_records": 20000,
+          "returned_records": null,
+          "fetched_records": 135000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-bulk/pair-04-A/nb-fetch-bulk-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-bulk/pair-04-A/external-rss.json",
+          "external_client_vmhwm_bytes": 63516672,
+          "external_sample_peak_rss_bytes": 60370944,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 187,
+          "external_actual_interval_ms": {
+            "median": 1.2158715,
+            "p95": 1.42001225,
+            "max": 1.520808
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-bulk",
+          "pair": 4,
+          "variant": "B",
+          "cpu_ns_per_record": 2475.75,
+          "allocations_per_record": 6.7717,
+          "allocation_count": 135434,
+          "allocated_bytes_per_record": 5409.44695,
+          "process_peak_rss_bytes": 63623168,
+          "phase_sampled_peak_rss_bytes": 62550016,
+          "phase_average_rss_bytes": 12743338,
+          "rec_s": 110764.34854939741,
+          "p99_us": 135881.0,
+          "verified_records": 20000,
+          "returned_records": null,
+          "fetched_records": 135000,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-bulk/pair-04-B/nb-fetch-bulk-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-bulk/pair-04-B/external-rss.json",
+          "external_client_vmhwm_bytes": 63623168,
+          "external_sample_peak_rss_bytes": 62615552,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 186,
+          "external_actual_interval_ms": {
+            "median": 1.210874,
+            "p95": 1.4374488,
+            "max": 1.508639
+          },
+          "vmhwm_vs_self_pct": 0.0
+        }
+      ],
+      "metrics": {
+        "cpu_ns_per_record": {
+          "baseline_median": 2514.85,
+          "candidate_median": 2475.75,
+          "delta_pct": -1.5547646976956875,
+          "baseline_ci95": [
+            2363.95,
+            2611.3
+          ],
+          "candidate_ci95": [
+            2297.6,
+            2668.65
+          ],
+          "ci95_pct": [
+            -2.8293508141256085,
+            3.733821102650259
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            2363.95,
+            2364.5,
+            2611.3,
+            2514.85,
+            2532.3
+          ],
+          "candidate_values": [
+            2429.55,
+            2297.6,
+            2668.65,
+            2608.75,
+            2475.75
+          ]
+        },
+        "allocations_per_record": {
+          "baseline_median": 6.7723,
+          "candidate_median": 6.7717,
+          "delta_pct": -0.008859619331691437,
+          "baseline_ci95": [
+            6.7723,
+            6.7723
+          ],
+          "candidate_ci95": [
+            6.7717,
+            6.7717
+          ],
+          "ci95_pct": [
+            -0.008859619331691437,
+            -0.008859619331691437
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723,
+            6.7723
+          ],
+          "candidate_values": [
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717,
+            6.7717
+          ]
+        },
+        "allocation_count": {
+          "baseline_median": 135446,
+          "candidate_median": 135434,
+          "delta_pct": -0.008859619331691437,
+          "baseline_ci95": [
+            135446.0,
+            135446.0
+          ],
+          "candidate_ci95": [
+            135434.0,
+            135434.0
+          ],
+          "ci95_pct": [
+            -0.008859619331691437,
+            -0.008859619331691437
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            135446,
+            135446,
+            135446,
+            135446,
+            135446
+          ],
+          "candidate_values": [
+            135434,
+            135434,
+            135434,
+            135434,
+            135434
+          ]
+        },
+        "allocated_bytes_per_record": {
+          "baseline_median": 5409.45175,
+          "candidate_median": 5409.44695,
+          "delta_pct": -8.873357638661261e-05,
+          "baseline_ci95": [
+            5409.45175,
+            5409.45175
+          ],
+          "candidate_ci95": [
+            5409.44695,
+            5409.44695
+          ],
+          "ci95_pct": [
+            -8.873357638661261e-05,
+            -8.873357638661261e-05
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175,
+            5409.45175
+          ],
+          "candidate_values": [
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695,
+            5409.44695
+          ]
+        },
+        "process_peak_rss_bytes": {
+          "baseline_median": 63500288,
+          "candidate_median": 63516672,
+          "delta_pct": 0.02580145778237064,
+          "baseline_ci95": [
+            63229952.0,
+            63516672.0
+          ],
+          "candidate_ci95": [
+            63442944.0,
+            63623168.0
+          ],
+          "ci95_pct": [
+            -0.10963498000773342,
+            0.5247133510397184
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            63500288,
+            63377408,
+            63229952,
+            63512576,
+            63516672
+          ],
+          "candidate_values": [
+            63516672,
+            63459328,
+            63561728,
+            63442944,
+            63623168
+          ]
+        },
+        "phase_sampled_peak_rss_bytes": {
+          "baseline_median": 59482112,
+          "candidate_median": 55517184,
+          "delta_pct": -6.665748519487669,
+          "baseline_ci95": [
+            45449216.0,
+            61382656.0
+          ],
+          "candidate_ci95": [
+            45457408.0,
+            62550016.0
+          ],
+          "ci95_pct": [
+            -23.57801955653491,
+            22.15212689257391
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            45449216,
+            48611328,
+            61382656,
+            59482112,
+            60456960
+          ],
+          "candidate_values": [
+            55517184,
+            45473792,
+            58593280,
+            45457408,
+            62550016
+          ]
+        },
+        "phase_average_rss_bytes": {
+          "baseline_median": 12617125,
+          "candidate_median": 12619548,
+          "delta_pct": 0.01920405797675162,
+          "baseline_ci95": [
+            12308480.0,
+            12823210.0
+          ],
+          "candidate_ci95": [
+            11748010.0,
+            13537735.0
+          ],
+          "ci95_pct": [
+            -8.384796006616124,
+            7.296511685506801
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            12617125,
+            12823210,
+            12523747,
+            12634232,
+            12308480
+          ],
+          "candidate_values": [
+            13537735,
+            11748010,
+            12255004,
+            12619548,
+            12743338
+          ]
+        },
+        "rec_s": {
+          "baseline_median": 113339.39510198137,
+          "candidate_median": 110764.34854939741,
+          "delta_pct": -2.271978379862505,
+          "baseline_ci95": [
+            110893.39718479036,
+            119346.0573615223
+          ],
+          "candidate_ci95": [
+            110093.41795326285,
+            115725.59260891654
+          ],
+          "ci95_pct": [
+            -3.485416517633688,
+            -0.07679755324180304
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            119346.0573615223,
+            113339.39510198137,
+            110953.07509859443,
+            114178.83832588771,
+            110893.39718479036
+          ],
+          "candidate_values": [
+            115725.59260891654,
+            113252.35321968398,
+            110093.41795326285,
+            110199.23023523497,
+            110764.34854939741
+          ]
+        },
+        "p99_us": {
+          "baseline_median": 132085.0,
+          "candidate_median": 135527.0,
+          "delta_pct": 2.6058977173789577,
+          "baseline_ci95": [
+            124902.0,
+            134425.0
+          ],
+          "candidate_ci95": [
+            124175.0,
+            136383.0
+          ],
+          "ci95_pct": [
+            -0.5820563321644157,
+            3.2539652496498483
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            124902.0,
+            126441.0,
+            133905.0,
+            132085.0,
+            134425.0
+          ],
+          "candidate_values": [
+            124175.0,
+            128592.0,
+            135527.0,
+            136383.0,
+            135881.0
+          ]
+        },
+        "external_client_vmhwm_bytes": {
+          "baseline_median": 63500288,
+          "candidate_median": 63516672,
+          "delta_pct": 0.02580145778237064,
+          "baseline_ci95": [
+            63229952.0,
+            63516672.0
+          ],
+          "candidate_ci95": [
+            63442944.0,
+            63623168.0
+          ],
+          "ci95_pct": [
+            -0.10963498000773342,
+            0.5247133510397184
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            63500288,
+            63377408,
+            63229952,
+            63512576,
+            63516672
+          ],
+          "candidate_values": [
+            63516672,
+            63459328,
+            63561728,
+            63442944,
+            63623168
+          ]
+        },
+        "external_sample_peak_rss_bytes": {
+          "baseline_median": 61382656,
+          "candidate_median": 62599168,
+          "delta_pct": 1.981849726411311,
+          "baseline_ci95": [
+            60334080.0,
+            63086592.0
+          ],
+          "candidate_ci95": [
+            60903424.0,
+            62926848.0
+          ],
+          "ci95_pct": [
+            -3.4166937317310797,
+            4.297352342158867
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            63086592,
+            60334080,
+            61382656,
+            63057920,
+            60370944
+          ],
+          "candidate_values": [
+            62599168,
+            62926848,
+            61583360,
+            60903424,
+            62615552
+          ]
+        },
+        "external_wait4_peak_rss_bytes": {
+          "baseline_median": 85221376,
+          "candidate_median": 85192704,
+          "delta_pct": -0.033644141113142734,
+          "baseline_ci95": [
+            85192704.0,
+            85221376.0
+          ],
+          "candidate_ci95": [
+            85155840.0,
+            85221376.0
+          ],
+          "ci95_pct": [
+            -0.07690089397289768,
+            0.0
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            85221376,
+            85221376,
+            85192704,
+            85221376,
+            85221376
+          ],
+          "candidate_values": [
+            85155840,
+            85192704,
+            85192704,
+            85221376,
+            85221376
+          ]
+        }
+      }
+    },
+    "nb-fetch-committed-aborts": {
+      "rows": [
+        {
+          "cell": "nb-fetch-committed-aborts",
+          "pair": 0,
+          "variant": "A",
+          "cpu_ns_per_record": 450.3611111111111,
+          "allocations_per_record": 2.010074074074074,
+          "allocation_count": 217088,
+          "allocated_bytes_per_record": 665.3146666666667,
+          "process_peak_rss_bytes": 42479616,
+          "phase_sampled_peak_rss_bytes": 41455616,
+          "phase_average_rss_bytes": 11315523,
+          "rec_s": 584769.0279293485,
+          "p99_us": 135040.0,
+          "verified_records": 108000,
+          "returned_records": 108000,
+          "fetched_records": 134500,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-committed-aborts/pair-00-A/nb-fetch-committed-aborts-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-committed-aborts/pair-00-A/external-rss.json",
+          "external_client_vmhwm_bytes": 42479616,
+          "external_sample_peak_rss_bytes": 41508864,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 203,
+          "external_actual_interval_ms": {
+            "median": 1.186007,
+            "p95": 1.3221593,
+            "max": 1.486847
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-committed-aborts",
+          "pair": 0,
+          "variant": "B",
+          "cpu_ns_per_record": 392.4537037037037,
+          "allocations_per_record": 1.0043055555555556,
+          "allocation_count": 108465,
+          "allocated_bytes_per_record": 653.2380370370371,
+          "process_peak_rss_bytes": 42237952,
+          "phase_sampled_peak_rss_bytes": 40386560,
+          "phase_average_rss_bytes": 10518768,
+          "rec_s": 637801.4652779996,
+          "p99_us": 121096.0,
+          "verified_records": 108000,
+          "returned_records": 108000,
+          "fetched_records": 134500,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-committed-aborts/pair-00-B/nb-fetch-committed-aborts-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-committed-aborts/pair-00-B/external-rss.json",
+          "external_client_vmhwm_bytes": 42237952,
+          "external_sample_peak_rss_bytes": 41246720,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 184,
+          "external_actual_interval_ms": {
+            "median": 1.182852,
+            "p95": 1.4102531,
+            "max": 1.460238
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-committed-aborts",
+          "pair": 1,
+          "variant": "B",
+          "cpu_ns_per_record": 421.75,
+          "allocations_per_record": 1.0043055555555556,
+          "allocation_count": 108465,
+          "allocated_bytes_per_record": 653.2380370370371,
+          "process_peak_rss_bytes": 42389504,
+          "phase_sampled_peak_rss_bytes": 40775680,
+          "phase_average_rss_bytes": 10670535,
+          "rec_s": 608870.2415486907,
+          "p99_us": 128306.0,
+          "verified_records": 108000,
+          "returned_records": 108000,
+          "fetched_records": 134500,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-committed-aborts/pair-01-B/nb-fetch-committed-aborts-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-committed-aborts/pair-01-B/external-rss.json",
+          "external_client_vmhwm_bytes": 42389504,
+          "external_sample_peak_rss_bytes": 41463808,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 205,
+          "external_actual_interval_ms": {
+            "median": 1.173919,
+            "p95": 1.30073375,
+            "max": 1.351574
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-committed-aborts",
+          "pair": 1,
+          "variant": "A",
+          "cpu_ns_per_record": 464.24074074074076,
+          "allocations_per_record": 2.010074074074074,
+          "allocation_count": 217088,
+          "allocated_bytes_per_record": 665.3146666666667,
+          "process_peak_rss_bytes": 42364928,
+          "phase_sampled_peak_rss_bytes": 41316352,
+          "phase_average_rss_bytes": 11308409,
+          "rec_s": 585788.3324589176,
+          "p99_us": 137229.0,
+          "verified_records": 108000,
+          "returned_records": 108000,
+          "fetched_records": 134500,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-committed-aborts/pair-01-A/nb-fetch-committed-aborts-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-committed-aborts/pair-01-A/external-rss.json",
+          "external_client_vmhwm_bytes": 42364928,
+          "external_sample_peak_rss_bytes": 41451520,
+          "external_wait4_peak_rss_bytes": 85192704,
+          "external_sample_count": 201,
+          "external_actual_interval_ms": {
+            "median": 1.209892,
+            "p95": 1.4197383,
+            "max": 2.468538
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-committed-aborts",
+          "pair": 2,
+          "variant": "A",
+          "cpu_ns_per_record": 519.7592592592592,
+          "allocations_per_record": 2.010074074074074,
+          "allocation_count": 217088,
+          "allocated_bytes_per_record": 665.3146666666667,
+          "process_peak_rss_bytes": 42332160,
+          "phase_sampled_peak_rss_bytes": 39432192,
+          "phase_average_rss_bytes": 10334412,
+          "rec_s": 524799.9360599308,
+          "p99_us": 158789.0,
+          "verified_records": 108000,
+          "returned_records": 108000,
+          "fetched_records": 134500,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-committed-aborts/pair-02-A/nb-fetch-committed-aborts-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-committed-aborts/pair-02-A/external-rss.json",
+          "external_client_vmhwm_bytes": 42332160,
+          "external_sample_peak_rss_bytes": 42369024,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 202,
+          "external_actual_interval_ms": {
+            "median": 1.242721,
+            "p95": 1.478755,
+            "max": 3.38466
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-committed-aborts",
+          "pair": 2,
+          "variant": "B",
+          "cpu_ns_per_record": 366.8240740740741,
+          "allocations_per_record": 1.0043055555555556,
+          "allocation_count": 108465,
+          "allocated_bytes_per_record": 653.2380370370371,
+          "process_peak_rss_bytes": 42414080,
+          "phase_sampled_peak_rss_bytes": 40628224,
+          "phase_average_rss_bytes": 10349387,
+          "rec_s": 641620.0306929636,
+          "p99_us": 119562.0,
+          "verified_records": 108000,
+          "returned_records": 108000,
+          "fetched_records": 134500,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-committed-aborts/pair-02-B/nb-fetch-committed-aborts-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-committed-aborts/pair-02-B/external-rss.json",
+          "external_client_vmhwm_bytes": 42414080,
+          "external_sample_peak_rss_bytes": 42602496,
+          "external_wait4_peak_rss_bytes": 85155840,
+          "external_sample_count": 180,
+          "external_actual_interval_ms": {
+            "median": 1.200909,
+            "p95": 1.3337903999999998,
+            "max": 3.015677
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-committed-aborts",
+          "pair": 3,
+          "variant": "B",
+          "cpu_ns_per_record": 386.22222222222223,
+          "allocations_per_record": 1.0043055555555556,
+          "allocation_count": 108465,
+          "allocated_bytes_per_record": 653.2380370370371,
+          "process_peak_rss_bytes": 42348544,
+          "phase_sampled_peak_rss_bytes": 38735872,
+          "phase_average_rss_bytes": 9564400,
+          "rec_s": 630506.367545105,
+          "p99_us": 124556.0,
+          "verified_records": 108000,
+          "returned_records": 108000,
+          "fetched_records": 134500,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-committed-aborts/pair-03-B/nb-fetch-committed-aborts-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-committed-aborts/pair-03-B/external-rss.json",
+          "external_client_vmhwm_bytes": 42348544,
+          "external_sample_peak_rss_bytes": 41832448,
+          "external_wait4_peak_rss_bytes": 85192704,
+          "external_sample_count": 187,
+          "external_actual_interval_ms": {
+            "median": 1.1973129999999998,
+            "p95": 1.3875834999999999,
+            "max": 1.452946
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-committed-aborts",
+          "pair": 3,
+          "variant": "A",
+          "cpu_ns_per_record": 476.5740740740741,
+          "allocations_per_record": 2.010074074074074,
+          "allocation_count": 217088,
+          "allocated_bytes_per_record": 665.3146666666667,
+          "process_peak_rss_bytes": 42311680,
+          "phase_sampled_peak_rss_bytes": 41398272,
+          "phase_average_rss_bytes": 11981662,
+          "rec_s": 580713.9290591476,
+          "p99_us": 135162.0,
+          "verified_records": 108000,
+          "returned_records": 108000,
+          "fetched_records": 134500,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-committed-aborts/pair-03-A/nb-fetch-committed-aborts-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-committed-aborts/pair-03-A/external-rss.json",
+          "external_client_vmhwm_bytes": 42311680,
+          "external_sample_peak_rss_bytes": 41398272,
+          "external_wait4_peak_rss_bytes": 85192704,
+          "external_sample_count": 207,
+          "external_actual_interval_ms": {
+            "median": 1.1865875,
+            "p95": 1.359201,
+            "max": 2.543369
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-committed-aborts",
+          "pair": 4,
+          "variant": "A",
+          "cpu_ns_per_record": 474.25,
+          "allocations_per_record": 2.010074074074074,
+          "allocation_count": 217088,
+          "allocated_bytes_per_record": 665.3146666666667,
+          "process_peak_rss_bytes": 42229760,
+          "phase_sampled_peak_rss_bytes": 38637568,
+          "phase_average_rss_bytes": 11069332,
+          "rec_s": 587171.1232112219,
+          "p99_us": 131290.0,
+          "verified_records": 108000,
+          "returned_records": 108000,
+          "fetched_records": 134500,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+          "result": "raw/paired/nb-fetch-committed-aborts/pair-04-A/nb-fetch-committed-aborts-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-committed-aborts/pair-04-A/external-rss.json",
+          "external_client_vmhwm_bytes": 42229760,
+          "external_sample_peak_rss_bytes": 41316352,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 200,
+          "external_actual_interval_ms": {
+            "median": 1.222431,
+            "p95": 1.3980063,
+            "max": 2.205218
+          },
+          "vmhwm_vs_self_pct": 0.0
+        },
+        {
+          "cell": "nb-fetch-committed-aborts",
+          "pair": 4,
+          "variant": "B",
+          "cpu_ns_per_record": 399.97222222222223,
+          "allocations_per_record": 1.0043055555555556,
+          "allocation_count": 108465,
+          "allocated_bytes_per_record": 653.2380370370371,
+          "process_peak_rss_bytes": 42283008,
+          "phase_sampled_peak_rss_bytes": 41291776,
+          "phase_average_rss_bytes": 10599765,
+          "rec_s": 612027.874401521,
+          "p99_us": 125030.0,
+          "verified_records": 108000,
+          "returned_records": 108000,
+          "fetched_records": 134500,
+          "fetch_rounds": 1,
+          "mismatched": 0,
+          "validation_failures": 0,
+          "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+          "result": "raw/paired/nb-fetch-committed-aborts/pair-04-B/nb-fetch-committed-aborts-rep0.result.json",
+          "external_rss_result": "raw/paired/nb-fetch-committed-aborts/pair-04-B/external-rss.json",
+          "external_client_vmhwm_bytes": 42283008,
+          "external_sample_peak_rss_bytes": 41291776,
+          "external_wait4_peak_rss_bytes": 85221376,
+          "external_sample_count": 201,
+          "external_actual_interval_ms": {
+            "median": 1.160974,
+            "p95": 1.2900037999999998,
+            "max": 2.143571
+          },
+          "vmhwm_vs_self_pct": 0.0
+        }
+      ],
+      "metrics": {
+        "cpu_ns_per_record": {
+          "baseline_median": 474.25,
+          "candidate_median": 392.4537037037037,
+          "delta_pct": -17.247505808391416,
+          "baseline_ci95": [
+            450.3611111111111,
+            519.7592592592592
+          ],
+          "candidate_ci95": [
+            366.8240740740741,
+            421.75
+          ],
+          "ci95_pct": [
+            -29.424234866569275,
+            -9.152738441900354
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            450.3611111111111,
+            464.24074074074076,
+            519.7592592592592,
+            476.5740740740741,
+            474.25
+          ],
+          "candidate_values": [
+            392.4537037037037,
+            421.75,
+            366.8240740740741,
+            386.22222222222223,
+            399.97222222222223
+          ]
+        },
+        "allocations_per_record": {
+          "baseline_median": 2.010074074074074,
+          "candidate_median": 1.0043055555555556,
+          "delta_pct": -50.036390772405646,
+          "baseline_ci95": [
+            2.010074074074074,
+            2.010074074074074
+          ],
+          "candidate_ci95": [
+            1.0043055555555556,
+            1.0043055555555556
+          ],
+          "ci95_pct": [
+            -50.036390772405646,
+            -50.036390772405646
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            2.010074074074074,
+            2.010074074074074,
+            2.010074074074074,
+            2.010074074074074,
+            2.010074074074074
+          ],
+          "candidate_values": [
+            1.0043055555555556,
+            1.0043055555555556,
+            1.0043055555555556,
+            1.0043055555555556,
+            1.0043055555555556
+          ]
+        },
+        "allocation_count": {
+          "baseline_median": 217088,
+          "candidate_median": 108465,
+          "delta_pct": -50.03639077240566,
+          "baseline_ci95": [
+            217088.0,
+            217088.0
+          ],
+          "candidate_ci95": [
+            108465.0,
+            108465.0
+          ],
+          "ci95_pct": [
+            -50.03639077240566,
+            -50.03639077240566
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            217088,
+            217088,
+            217088,
+            217088,
+            217088
+          ],
+          "candidate_values": [
+            108465,
+            108465,
+            108465,
+            108465,
+            108465
+          ]
+        },
+        "allocated_bytes_per_record": {
+          "baseline_median": 665.3146666666667,
+          "candidate_median": 653.2380370370371,
+          "delta_pct": -1.8151756206030156,
+          "baseline_ci95": [
+            665.3146666666667,
+            665.3146666666667
+          ],
+          "candidate_ci95": [
+            653.2380370370371,
+            653.2380370370371
+          ],
+          "ci95_pct": [
+            -1.8151756206030156,
+            -1.8151756206030156
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            665.3146666666667,
+            665.3146666666667,
+            665.3146666666667,
+            665.3146666666667,
+            665.3146666666667
+          ],
+          "candidate_values": [
+            653.2380370370371,
+            653.2380370370371,
+            653.2380370370371,
+            653.2380370370371,
+            653.2380370370371
+          ]
+        },
+        "process_peak_rss_bytes": {
+          "baseline_median": 42332160,
+          "candidate_median": 42348544,
+          "delta_pct": 0.03870343492984318,
+          "baseline_ci95": [
+            42229760.0,
+            42479616.0
+          ],
+          "candidate_ci95": [
+            42237952.0,
+            42414080.0
+          ],
+          "ci95_pct": [
+            -0.5688940314338087,
+            0.19351717464926033
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            42479616,
+            42364928,
+            42332160,
+            42311680,
+            42229760
+          ],
+          "candidate_values": [
+            42237952,
+            42389504,
+            42414080,
+            42348544,
+            42283008
+          ]
+        },
+        "phase_sampled_peak_rss_bytes": {
+          "baseline_median": 41316352,
+          "candidate_median": 40628224,
+          "delta_pct": -1.6655100624566321,
+          "baseline_ci95": [
+            38637568.0,
+            41455616.0
+          ],
+          "candidate_ci95": [
+            38735872.0,
+            41291776.0
+          ],
+          "ci95_pct": [
+            -6.431186306520232,
+            6.869500689070285
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            41455616,
+            41316352,
+            39432192,
+            41398272,
+            38637568
+          ],
+          "candidate_values": [
+            40386560,
+            40775680,
+            40628224,
+            38735872,
+            41291776
+          ]
+        },
+        "phase_average_rss_bytes": {
+          "baseline_median": 11308409,
+          "candidate_median": 10518768,
+          "delta_pct": -6.982777152824948,
+          "baseline_ci95": [
+            10334412.0,
+            11981662.0
+          ],
+          "candidate_ci95": [
+            9564400.0,
+            10670535.0
+          ],
+          "ci95_pct": [
+            -20.174680273905242,
+            0.14490422870696573
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            11315523,
+            11308409,
+            10334412,
+            11981662,
+            11069332
+          ],
+          "candidate_values": [
+            10518768,
+            10670535,
+            10349387,
+            9564400,
+            10599765
+          ]
+        },
+        "rec_s": {
+          "baseline_median": 584769.0279293485,
+          "candidate_median": 630506.367545105,
+          "delta_pct": 7.82143674361675,
+          "baseline_ci95": [
+            524799.9360599308,
+            587171.1232112219
+          ],
+          "candidate_ci95": [
+            608870.2415486907,
+            641620.0306929636
+          ],
+          "ci95_pct": [
+            3.9403156073259282,
+            22.259929280877856
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            584769.0279293485,
+            585788.3324589176,
+            524799.9360599308,
+            580713.9290591476,
+            587171.1232112219
+          ],
+          "candidate_values": [
+            637801.4652779996,
+            608870.2415486907,
+            641620.0306929636,
+            630506.367545105,
+            612027.874401521
+          ]
+        },
+        "p99_us": {
+          "baseline_median": 135162.0,
+          "candidate_median": 124556.0,
+          "delta_pct": -7.846880040247994,
+          "baseline_ci95": [
+            131290.0,
+            158789.0
+          ],
+          "candidate_ci95": [
+            119562.0,
+            128306.0
+          ],
+          "ci95_pct": [
+            -24.703852281959083,
+            -4.768070683220349
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            135040.0,
+            137229.0,
+            158789.0,
+            135162.0,
+            131290.0
+          ],
+          "candidate_values": [
+            121096.0,
+            128306.0,
+            119562.0,
+            124556.0,
+            125030.0
+          ]
+        },
+        "external_client_vmhwm_bytes": {
+          "baseline_median": 42332160,
+          "candidate_median": 42348544,
+          "delta_pct": 0.03870343492984318,
+          "baseline_ci95": [
+            42229760.0,
+            42479616.0
+          ],
+          "candidate_ci95": [
+            42237952.0,
+            42414080.0
+          ],
+          "ci95_pct": [
+            -0.5688940314338087,
+            0.19351717464926033
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            42479616,
+            42364928,
+            42332160,
+            42311680,
+            42229760
+          ],
+          "candidate_values": [
+            42237952,
+            42389504,
+            42414080,
+            42348544,
+            42283008
+          ]
+        },
+        "external_sample_peak_rss_bytes": {
+          "baseline_median": 41451520,
+          "candidate_median": 41463808,
+          "delta_pct": 0.029644268774697835,
+          "baseline_ci95": [
+            41316352.0,
+            42369024.0
+          ],
+          "candidate_ci95": [
+            41246720.0,
+            42602496.0
+          ],
+          "ci95_pct": [
+            -0.6315373988553419,
+            1.0487780746017528
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            41508864,
+            41451520,
+            42369024,
+            41398272,
+            41316352
+          ],
+          "candidate_values": [
+            41246720,
+            41463808,
+            42602496,
+            41832448,
+            41291776
+          ]
+        },
+        "external_wait4_peak_rss_bytes": {
+          "baseline_median": 85221376,
+          "candidate_median": 85221376,
+          "delta_pct": 0.0,
+          "baseline_ci95": [
+            85192704.0,
+            85221376.0
+          ],
+          "candidate_ci95": [
+            85155840.0,
+            85221376.0
+          ],
+          "ci95_pct": [
+            -0.07690089397289768,
+            0.03365546420501797
+          ],
+          "repetitions": 5,
+          "baseline_values": [
+            85221376,
+            85192704,
+            85221376,
+            85192704,
+            85221376
+          ],
+          "candidate_values": [
+            85221376,
+            85221376,
+            85155840,
+            85192704,
+            85221376
+          ]
+        }
+      }
+    }
+  },
+  "additional10_bulk": {
+    "rows": [
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 5,
+        "variant": "B",
+        "cpu_ns_per_record": 2565.7,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63414272,
+        "phase_sampled_peak_rss_bytes": 56954880,
+        "phase_average_rss_bytes": 12621069,
+        "rec_s": 109792.659252921,
+        "p99_us": 136569.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-05-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-05-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63414272,
+        "external_sample_peak_rss_bytes": 62783488,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 195,
+        "external_actual_interval_ms": {
+          "median": 1.19125,
+          "p95": 1.3517340999999998,
+          "max": 3.412784
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 5,
+        "variant": "A",
+        "cpu_ns_per_record": 2449.4,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63471616,
+        "phase_sampled_peak_rss_bytes": 45477888,
+        "phase_average_rss_bytes": 12430677,
+        "rec_s": 112022.62803315408,
+        "p99_us": 133378.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-05-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-05-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63471616,
+        "external_sample_peak_rss_bytes": 61550592,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 189,
+        "external_actual_interval_ms": {
+          "median": 1.182397,
+          "p95": 1.3510996,
+          "max": 1.567108
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 6,
+        "variant": "A",
+        "cpu_ns_per_record": 2498.05,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63451136,
+        "phase_sampled_peak_rss_bytes": 58986496,
+        "phase_average_rss_bytes": 12354499,
+        "rec_s": 116583.54735789534,
+        "p99_us": 128736.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-06-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-06-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63451136,
+        "external_sample_peak_rss_bytes": 62205952,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 187,
+        "external_actual_interval_ms": {
+          "median": 1.1882405,
+          "p95": 1.3548004999999999,
+          "max": 1.440819
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 6,
+        "variant": "B",
+        "cpu_ns_per_record": 2622.9,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63524864,
+        "phase_sampled_peak_rss_bytes": 56836096,
+        "phase_average_rss_bytes": 12487410,
+        "rec_s": 109910.38714873239,
+        "p99_us": 136560.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-06-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-06-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63524864,
+        "external_sample_peak_rss_bytes": 63279104,
+        "external_wait4_peak_rss_bytes": 85192704,
+        "external_sample_count": 198,
+        "external_actual_interval_ms": {
+          "median": 1.214169,
+          "p95": 1.3794549999999997,
+          "max": 1.613287
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 7,
+        "variant": "B",
+        "cpu_ns_per_record": 2543.15,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63496192,
+        "phase_sampled_peak_rss_bytes": 61722624,
+        "phase_average_rss_bytes": 12703971,
+        "rec_s": 109562.04980953733,
+        "p99_us": 136854.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-07-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-07-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63496192,
+        "external_sample_peak_rss_bytes": 60981248,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 188,
+        "external_actual_interval_ms": {
+          "median": 1.221971,
+          "p95": 1.4324111000000002,
+          "max": 1.524955
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 7,
+        "variant": "A",
+        "cpu_ns_per_record": 2388.85,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63344640,
+        "phase_sampled_peak_rss_bytes": 45412352,
+        "phase_average_rss_bytes": 12014705,
+        "rec_s": 112539.82418623523,
+        "p99_us": 133592.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-07-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-07-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63434752,
+        "external_sample_peak_rss_bytes": 62935040,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 191,
+        "external_actual_interval_ms": {
+          "median": 1.193929,
+          "p95": 1.3330250499999998,
+          "max": 1.3884
+        },
+        "vmhwm_vs_self_pct": 0.14225670869705276
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 8,
+        "variant": "A",
+        "cpu_ns_per_record": 2369.55,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63229952,
+        "phase_sampled_peak_rss_bytes": 46665728,
+        "phase_average_rss_bytes": 12666197,
+        "rec_s": 114713.72298529823,
+        "p99_us": 128024.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-08-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-08-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63229952,
+        "external_sample_peak_rss_bytes": 61550592,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 195,
+        "external_actual_interval_ms": {
+          "median": 1.1708745,
+          "p95": 1.3073146,
+          "max": 1.384855
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 8,
+        "variant": "B",
+        "cpu_ns_per_record": 2364.55,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63438848,
+        "phase_sampled_peak_rss_bytes": 51712000,
+        "phase_average_rss_bytes": 13156352,
+        "rec_s": 115498.78082085687,
+        "p99_us": 130073.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-08-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-08-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63438848,
+        "external_sample_peak_rss_bytes": 60465152,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 194,
+        "external_actual_interval_ms": {
+          "median": 1.173698,
+          "p95": 1.3438657999999992,
+          "max": 1.601369
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 9,
+        "variant": "B",
+        "cpu_ns_per_record": 2325.55,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63291392,
+        "phase_sampled_peak_rss_bytes": 55644160,
+        "phase_average_rss_bytes": 11592402,
+        "rec_s": 116391.88124494455,
+        "p99_us": 128042.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-09-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-09-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63414272,
+        "external_sample_peak_rss_bytes": 62808064,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 185,
+        "external_actual_interval_ms": {
+          "median": 1.1687159999999999,
+          "p95": 1.33233275,
+          "max": 1.409101
+        },
+        "vmhwm_vs_self_pct": 0.19414962464405772
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 9,
+        "variant": "A",
+        "cpu_ns_per_record": 2311.6,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63463424,
+        "phase_sampled_peak_rss_bytes": 56504320,
+        "phase_average_rss_bytes": 11671431,
+        "rec_s": 116353.44735571695,
+        "p99_us": 128886.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-09-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-09-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63627264,
+        "external_sample_peak_rss_bytes": 63111168,
+        "external_wait4_peak_rss_bytes": 85192704,
+        "external_sample_count": 185,
+        "external_actual_interval_ms": {
+          "median": 1.1719205000000001,
+          "p95": 1.35388225,
+          "max": 2.063783
+        },
+        "vmhwm_vs_self_pct": 0.2581644507551273
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 10,
+        "variant": "A",
+        "cpu_ns_per_record": 2656.85,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63508480,
+        "phase_sampled_peak_rss_bytes": 45457408,
+        "phase_average_rss_bytes": 13016405,
+        "rec_s": 110469.03805837322,
+        "p99_us": 136140.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-10-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-10-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63508480,
+        "external_sample_peak_rss_bytes": 60608512,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 195,
+        "external_actual_interval_ms": {
+          "median": 1.1835635,
+          "p95": 1.4160357000000001,
+          "max": 2.084633
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 10,
+        "variant": "B",
+        "cpu_ns_per_record": 2266.95,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63152128,
+        "phase_sampled_peak_rss_bytes": 63221760,
+        "phase_average_rss_bytes": 11982004,
+        "rec_s": 116289.73394170619,
+        "p99_us": 125980.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-10-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-10-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63152128,
+        "external_sample_peak_rss_bytes": 59416576,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 188,
+        "external_actual_interval_ms": {
+          "median": 1.181019,
+          "p95": 1.3437742,
+          "max": 1.838354
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 11,
+        "variant": "B",
+        "cpu_ns_per_record": 2595.65,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63315968,
+        "phase_sampled_peak_rss_bytes": 52781056,
+        "phase_average_rss_bytes": 13076803,
+        "rec_s": 108023.55486020794,
+        "p99_us": 141154.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-11-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-11-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63315968,
+        "external_sample_peak_rss_bytes": 61534208,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 209,
+        "external_actual_interval_ms": {
+          "median": 1.17448,
+          "p95": 1.3281481,
+          "max": 1.460778
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 11,
+        "variant": "A",
+        "cpu_ns_per_record": 2697.2,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63406080,
+        "phase_sampled_peak_rss_bytes": 50036736,
+        "phase_average_rss_bytes": 12930856,
+        "rec_s": 105545.45922351714,
+        "p99_us": 142728.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-11-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-11-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63406080,
+        "external_sample_peak_rss_bytes": 63492096,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 206,
+        "external_actual_interval_ms": {
+          "median": 1.190344,
+          "p95": 1.4131408,
+          "max": 1.495611
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 12,
+        "variant": "A",
+        "cpu_ns_per_record": 2541.75,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63221760,
+        "phase_sampled_peak_rss_bytes": 56975360,
+        "phase_average_rss_bytes": 11734129,
+        "rec_s": 110174.90718232314,
+        "p99_us": 137060.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-12-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-12-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63221760,
+        "external_sample_peak_rss_bytes": 63242240,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 190,
+        "external_actual_interval_ms": {
+          "median": 1.175572,
+          "p95": 1.33724,
+          "max": 2.811853
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 12,
+        "variant": "B",
+        "cpu_ns_per_record": 2613.95,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63504384,
+        "phase_sampled_peak_rss_bytes": 56938496,
+        "phase_average_rss_bytes": 11884544,
+        "rec_s": 109213.02215667377,
+        "p99_us": 139023.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-12-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-12-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63504384,
+        "external_sample_peak_rss_bytes": 60239872,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 193,
+        "external_actual_interval_ms": {
+          "median": 1.1739895,
+          "p95": 1.34471435,
+          "max": 1.451776
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 13,
+        "variant": "B",
+        "cpu_ns_per_record": 2793.7,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63504384,
+        "phase_sampled_peak_rss_bytes": 46141440,
+        "phase_average_rss_bytes": 12206899,
+        "rec_s": 99567.3395847318,
+        "p99_us": 156646.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-13-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-13-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63504384,
+        "external_sample_peak_rss_bytes": 60186624,
+        "external_wait4_peak_rss_bytes": 85204992,
+        "external_sample_count": 206,
+        "external_actual_interval_ms": {
+          "median": 1.227789,
+          "p95": 1.6424527999999996,
+          "max": 3.627306
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 13,
+        "variant": "A",
+        "cpu_ns_per_record": 2566.7,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63365120,
+        "phase_sampled_peak_rss_bytes": 55238656,
+        "phase_average_rss_bytes": 13522405,
+        "rec_s": 108768.78440305665,
+        "p99_us": 138874.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-13-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-13-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63365120,
+        "external_sample_peak_rss_bytes": 60837888,
+        "external_wait4_peak_rss_bytes": 85192704,
+        "external_sample_count": 197,
+        "external_actual_interval_ms": {
+          "median": 1.2093015,
+          "p95": 1.4700395,
+          "max": 2.835769
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 14,
+        "variant": "A",
+        "cpu_ns_per_record": 2607.1,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63467520,
+        "phase_sampled_peak_rss_bytes": 59736064,
+        "phase_average_rss_bytes": 11911814,
+        "rec_s": 104045.36061424884,
+        "p99_us": 146473.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-14-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-14-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63467520,
+        "external_sample_peak_rss_bytes": 61276160,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 205,
+        "external_actual_interval_ms": {
+          "median": 1.2049705,
+          "p95": 1.3839618,
+          "max": 2.20262
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 14,
+        "variant": "B",
+        "cpu_ns_per_record": 2725.35,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63524864,
+        "phase_sampled_peak_rss_bytes": 62066688,
+        "phase_average_rss_bytes": 12268544,
+        "rec_s": 98917.75714055511,
+        "p99_us": 155390.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-14-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-14-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63524864,
+        "external_sample_peak_rss_bytes": 62066688,
+        "external_wait4_peak_rss_bytes": 85229568,
+        "external_sample_count": 207,
+        "external_actual_interval_ms": {
+          "median": 1.2170055,
+          "p95": 1.4132574999999998,
+          "max": 1.626507
+        },
+        "vmhwm_vs_self_pct": 0.0
+      }
+    ],
+    "metrics": {
+      "cpu_ns_per_record": {
+        "baseline_median": 2519.9,
+        "candidate_median": 2580.675,
+        "delta_pct": 2.4118020556371356,
+        "baseline_ci95": [
+          2388.85,
+          2611.7749999999996
+        ],
+        "candidate_ci95": [
+          2364.55,
+          2669.6499999999996
+        ],
+        "ci95_pct": [
+          -5.344168451392084,
+          6.18108855729147
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          2449.4,
+          2498.05,
+          2388.85,
+          2369.55,
+          2311.6,
+          2656.85,
+          2697.2,
+          2541.75,
+          2566.7,
+          2607.1
+        ],
+        "candidate_values": [
+          2565.7,
+          2622.9,
+          2543.15,
+          2364.55,
+          2325.55,
+          2266.95,
+          2595.65,
+          2613.95,
+          2793.7,
+          2725.35
+        ]
+      },
+      "allocations_per_record": {
+        "baseline_median": 6.7723,
+        "candidate_median": 6.7717,
+        "delta_pct": -0.008859619331691437,
+        "baseline_ci95": [
+          6.7723,
+          6.7723
+        ],
+        "candidate_ci95": [
+          6.7717,
+          6.7717
+        ],
+        "ci95_pct": [
+          -0.008859619331691437,
+          -0.008859619331691437
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723
+        ],
+        "candidate_values": [
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717
+        ]
+      },
+      "allocation_count": {
+        "baseline_median": 135446.0,
+        "candidate_median": 135434.0,
+        "delta_pct": -0.008859619331691437,
+        "baseline_ci95": [
+          135446.0,
+          135446.0
+        ],
+        "candidate_ci95": [
+          135434.0,
+          135434.0
+        ],
+        "ci95_pct": [
+          -0.008859619331691437,
+          -0.008859619331691437
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446
+        ],
+        "candidate_values": [
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434
+        ]
+      },
+      "allocated_bytes_per_record": {
+        "baseline_median": 5409.45175,
+        "candidate_median": 5409.44695,
+        "delta_pct": -8.873357638661261e-05,
+        "baseline_ci95": [
+          5409.45175,
+          5409.45175
+        ],
+        "candidate_ci95": [
+          5409.44695,
+          5409.44695
+        ],
+        "ci95_pct": [
+          -8.873357638661261e-05,
+          -8.873357638661261e-05
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175
+        ],
+        "candidate_values": [
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695
+        ]
+      },
+      "process_peak_rss_bytes": {
+        "baseline_median": 63428608.0,
+        "candidate_median": 63467520.0,
+        "delta_pct": 0.061347712376091934,
+        "baseline_ci95": [
+          63297536.0,
+          63467520.0
+        ],
+        "candidate_ci95": [
+          63315968.0,
+          63514624.0
+        ],
+        "ci95_pct": [
+          -0.22268839761174775,
+          0.2457161332040103
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          63471616,
+          63451136,
+          63344640,
+          63229952,
+          63463424,
+          63508480,
+          63406080,
+          63221760,
+          63365120,
+          63467520
+        ],
+        "candidate_values": [
+          63414272,
+          63524864,
+          63496192,
+          63438848,
+          63291392,
+          63152128,
+          63315968,
+          63504384,
+          63504384,
+          63524864
+        ]
+      },
+      "phase_sampled_peak_rss_bytes": {
+        "baseline_median": 52637696.0,
+        "candidate_median": 56887296.0,
+        "delta_pct": 8.073301688584555,
+        "baseline_ci95": [
+          45477888.0,
+          57745408.0
+        ],
+        "candidate_ci95": [
+          52781056.0,
+          61722624.0
+        ],
+        "ci95_pct": [
+          -1.974497545123799,
+          30.507634791225623
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          45477888,
+          58986496,
+          45412352,
+          46665728,
+          56504320,
+          45457408,
+          50036736,
+          56975360,
+          55238656,
+          59736064
+        ],
+        "candidate_values": [
+          56954880,
+          56836096,
+          61722624,
+          51712000,
+          55644160,
+          63221760,
+          52781056,
+          56938496,
+          46141440,
+          62066688
+        ]
+      },
+      "phase_average_rss_bytes": {
+        "baseline_median": 12392588.0,
+        "candidate_median": 12377977.0,
+        "delta_pct": -0.11790111960471306,
+        "baseline_ci95": [
+          11874417.0,
+          12930856.0
+        ],
+        "candidate_ci95": [
+          11982004.0,
+          12782106.5
+        ],
+        "ci95_pct": [
+          -5.5986780766872695,
+          4.262502788355338
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          12430677,
+          12354499,
+          12014705,
+          12666197,
+          11671431,
+          13016405,
+          12930856,
+          11734129,
+          13522405,
+          11911814
+        ],
+        "candidate_values": [
+          12621069,
+          12487410,
+          12703971,
+          13156352,
+          11592402,
+          11982004,
+          13076803,
+          11884544,
+          12206899,
+          12268544
+        ]
+      },
+      "rec_s": {
+        "baseline_median": 111245.83304576365,
+        "candidate_median": 109677.35453122917,
+        "delta_pct": -1.4099211373510445,
+        "baseline_ci95": [
+          107860.18320292013,
+          114713.72298529823
+        ],
+        "candidate_ci95": [
+          104390.18087070278,
+          115498.78082085687
+        ],
+        "ci95_pct": [
+          -4.641983411525197,
+          2.582258327010467
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          112022.62803315408,
+          116583.54735789534,
+          112539.82418623523,
+          114713.72298529823,
+          116353.44735571695,
+          110469.03805837322,
+          105545.45922351714,
+          110174.90718232314,
+          108768.78440305665,
+          104045.36061424884
+        ],
+        "candidate_values": [
+          109792.659252921,
+          109910.38714873239,
+          109562.04980953733,
+          115498.78082085687,
+          116391.88124494455,
+          116289.73394170619,
+          108023.55486020794,
+          109213.02215667377,
+          99567.3395847318,
+          98917.75714055511
+        ]
+      },
+      "p99_us": {
+        "baseline_median": 134866.0,
+        "candidate_median": 136711.5,
+        "delta_pct": 1.3683952960716672,
+        "baseline_ci95": [
+          128886.0,
+          139894.0
+        ],
+        "candidate_ci95": [
+          130073.0,
+          147206.5
+        ],
+        "ci95_pct": [
+          -2.7119142059644497,
+          6.265135593097071
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          133378.0,
+          128736.0,
+          133592.0,
+          128024.0,
+          128886.0,
+          136140.0,
+          142728.0,
+          137060.0,
+          138874.0,
+          146473.0
+        ],
+        "candidate_values": [
+          136569.0,
+          136560.0,
+          136854.0,
+          130073.0,
+          128042.0,
+          125980.0,
+          141154.0,
+          139023.0,
+          156646.0,
+          155390.0
+        ]
+      },
+      "external_client_vmhwm_bytes": {
+        "baseline_median": 63442944.0,
+        "candidate_median": 63467520.0,
+        "delta_pct": 0.03873716831299667,
+        "baseline_ci95": [
+          63318016.0,
+          63488000.0
+        ],
+        "candidate_ci95": [
+          63365120.0,
+          63514624.0
+        ],
+        "ci95_pct": [
+          -0.11935098867777993,
+          0.219780219780219
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          63471616,
+          63451136,
+          63434752,
+          63229952,
+          63627264,
+          63508480,
+          63406080,
+          63221760,
+          63365120,
+          63467520
+        ],
+        "candidate_values": [
+          63414272,
+          63524864,
+          63496192,
+          63438848,
+          63414272,
+          63152128,
+          63315968,
+          63504384,
+          63504384,
+          63524864
+        ]
+      },
+      "external_sample_peak_rss_bytes": {
+        "baseline_median": 61878272.0,
+        "candidate_median": 61257728.0,
+        "delta_pct": -1.0028463626133632,
+        "baseline_ci95": [
+          61194240.0,
+          63111168.0
+        ],
+        "candidate_ci95": [
+          60239872.0,
+          62783488.0
+        ],
+        "ci95_pct": [
+          -3.6493029603873572,
+          1.4207759366473782
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          61550592,
+          62205952,
+          62935040,
+          61550592,
+          63111168,
+          60608512,
+          63492096,
+          63242240,
+          60837888,
+          61276160
+        ],
+        "candidate_values": [
+          62783488,
+          63279104,
+          60981248,
+          60465152,
+          62808064,
+          59416576,
+          61534208,
+          60239872,
+          60186624,
+          62066688
+        ]
+      },
+      "external_wait4_peak_rss_bytes": {
+        "baseline_median": 85221376.0,
+        "candidate_median": 85221376.0,
+        "delta_pct": 0.0,
+        "baseline_ci95": [
+          85207040.0,
+          85221376.0
+        ],
+        "candidate_ci95": [
+          85213184.0,
+          85221376.0
+        ],
+        "ci95_pct": [
+          -0.00961261174661221,
+          0.016824900853262825
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          85221376,
+          85221376,
+          85221376,
+          85221376,
+          85192704,
+          85221376,
+          85221376,
+          85221376,
+          85192704,
+          85221376
+        ],
+        "candidate_values": [
+          85221376,
+          85192704,
+          85221376,
+          85221376,
+          85221376,
+          85221376,
+          85221376,
+          85221376,
+          85204992,
+          85229568
+        ]
+      }
+    }
+  },
+  "all15_bulk": {
+    "rows": [
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 0,
+        "variant": "A",
+        "cpu_ns_per_record": 2363.95,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63500288,
+        "phase_sampled_peak_rss_bytes": 45449216,
+        "phase_average_rss_bytes": 12617125,
+        "rec_s": 119346.0573615223,
+        "p99_us": 124902.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/paired/nb-fetch-bulk/pair-00-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/paired/nb-fetch-bulk/pair-00-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63500288,
+        "external_sample_peak_rss_bytes": 63086592,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 170,
+        "external_actual_interval_ms": {
+          "median": 1.180298,
+          "p95": 1.431817,
+          "max": 12.220875
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 0,
+        "variant": "B",
+        "cpu_ns_per_record": 2429.55,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63516672,
+        "phase_sampled_peak_rss_bytes": 55517184,
+        "phase_average_rss_bytes": 13537735,
+        "rec_s": 115725.59260891654,
+        "p99_us": 124175.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/paired/nb-fetch-bulk/pair-00-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/paired/nb-fetch-bulk/pair-00-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63516672,
+        "external_sample_peak_rss_bytes": 62599168,
+        "external_wait4_peak_rss_bytes": 85155840,
+        "external_sample_count": 189,
+        "external_actual_interval_ms": {
+          "median": 1.171044,
+          "p95": 1.3744794500000002,
+          "max": 2.341066
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 1,
+        "variant": "B",
+        "cpu_ns_per_record": 2297.6,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63459328,
+        "phase_sampled_peak_rss_bytes": 45473792,
+        "phase_average_rss_bytes": 11748010,
+        "rec_s": 113252.35321968398,
+        "p99_us": 128592.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/paired/nb-fetch-bulk/pair-01-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/paired/nb-fetch-bulk/pair-01-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63459328,
+        "external_sample_peak_rss_bytes": 62926848,
+        "external_wait4_peak_rss_bytes": 85192704,
+        "external_sample_count": 192,
+        "external_actual_interval_ms": {
+          "median": 1.169832,
+          "p95": 1.310893,
+          "max": 1.523182
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 1,
+        "variant": "A",
+        "cpu_ns_per_record": 2364.5,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63377408,
+        "phase_sampled_peak_rss_bytes": 48611328,
+        "phase_average_rss_bytes": 12823210,
+        "rec_s": 113339.39510198137,
+        "p99_us": 126441.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/paired/nb-fetch-bulk/pair-01-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/paired/nb-fetch-bulk/pair-01-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63377408,
+        "external_sample_peak_rss_bytes": 60334080,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 195,
+        "external_actual_interval_ms": {
+          "median": 1.170843,
+          "p95": 1.3424272499999998,
+          "max": 1.42246
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 2,
+        "variant": "A",
+        "cpu_ns_per_record": 2611.3,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63229952,
+        "phase_sampled_peak_rss_bytes": 61382656,
+        "phase_average_rss_bytes": 12523747,
+        "rec_s": 110953.07509859443,
+        "p99_us": 133905.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/paired/nb-fetch-bulk/pair-02-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/paired/nb-fetch-bulk/pair-02-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63229952,
+        "external_sample_peak_rss_bytes": 61382656,
+        "external_wait4_peak_rss_bytes": 85192704,
+        "external_sample_count": 190,
+        "external_actual_interval_ms": {
+          "median": 1.186116,
+          "p95": 1.4548918,
+          "max": 1.520618
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 2,
+        "variant": "B",
+        "cpu_ns_per_record": 2668.65,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63561728,
+        "phase_sampled_peak_rss_bytes": 58593280,
+        "phase_average_rss_bytes": 12255004,
+        "rec_s": 110093.41795326285,
+        "p99_us": 135527.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/paired/nb-fetch-bulk/pair-02-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/paired/nb-fetch-bulk/pair-02-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63561728,
+        "external_sample_peak_rss_bytes": 61583360,
+        "external_wait4_peak_rss_bytes": 85192704,
+        "external_sample_count": 184,
+        "external_actual_interval_ms": {
+          "median": 1.221149,
+          "p95": 1.4643378000000002,
+          "max": 1.526186
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 3,
+        "variant": "B",
+        "cpu_ns_per_record": 2608.75,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63442944,
+        "phase_sampled_peak_rss_bytes": 45457408,
+        "phase_average_rss_bytes": 12619548,
+        "rec_s": 110199.23023523497,
+        "p99_us": 136383.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/paired/nb-fetch-bulk/pair-03-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/paired/nb-fetch-bulk/pair-03-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63442944,
+        "external_sample_peak_rss_bytes": 60903424,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 190,
+        "external_actual_interval_ms": {
+          "median": 1.2081,
+          "p95": 1.4443536,
+          "max": 1.519476
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 3,
+        "variant": "A",
+        "cpu_ns_per_record": 2514.85,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63512576,
+        "phase_sampled_peak_rss_bytes": 59482112,
+        "phase_average_rss_bytes": 12634232,
+        "rec_s": 114178.83832588771,
+        "p99_us": 132085.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/paired/nb-fetch-bulk/pair-03-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/paired/nb-fetch-bulk/pair-03-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63512576,
+        "external_sample_peak_rss_bytes": 63057920,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 181,
+        "external_actual_interval_ms": {
+          "median": 1.2112045,
+          "p95": 1.4442152,
+          "max": 1.653657
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 4,
+        "variant": "A",
+        "cpu_ns_per_record": 2532.3,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63516672,
+        "phase_sampled_peak_rss_bytes": 60456960,
+        "phase_average_rss_bytes": 12308480,
+        "rec_s": 110893.39718479036,
+        "p99_us": 134425.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/paired/nb-fetch-bulk/pair-04-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/paired/nb-fetch-bulk/pair-04-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63516672,
+        "external_sample_peak_rss_bytes": 60370944,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 187,
+        "external_actual_interval_ms": {
+          "median": 1.2158715,
+          "p95": 1.42001225,
+          "max": 1.520808
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 4,
+        "variant": "B",
+        "cpu_ns_per_record": 2475.75,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63623168,
+        "phase_sampled_peak_rss_bytes": 62550016,
+        "phase_average_rss_bytes": 12743338,
+        "rec_s": 110764.34854939741,
+        "p99_us": 135881.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/paired/nb-fetch-bulk/pair-04-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/paired/nb-fetch-bulk/pair-04-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63623168,
+        "external_sample_peak_rss_bytes": 62615552,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 186,
+        "external_actual_interval_ms": {
+          "median": 1.210874,
+          "p95": 1.4374488,
+          "max": 1.508639
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 5,
+        "variant": "B",
+        "cpu_ns_per_record": 2565.7,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63414272,
+        "phase_sampled_peak_rss_bytes": 56954880,
+        "phase_average_rss_bytes": 12621069,
+        "rec_s": 109792.659252921,
+        "p99_us": 136569.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-05-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-05-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63414272,
+        "external_sample_peak_rss_bytes": 62783488,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 195,
+        "external_actual_interval_ms": {
+          "median": 1.19125,
+          "p95": 1.3517340999999998,
+          "max": 3.412784
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 5,
+        "variant": "A",
+        "cpu_ns_per_record": 2449.4,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63471616,
+        "phase_sampled_peak_rss_bytes": 45477888,
+        "phase_average_rss_bytes": 12430677,
+        "rec_s": 112022.62803315408,
+        "p99_us": 133378.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-05-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-05-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63471616,
+        "external_sample_peak_rss_bytes": 61550592,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 189,
+        "external_actual_interval_ms": {
+          "median": 1.182397,
+          "p95": 1.3510996,
+          "max": 1.567108
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 6,
+        "variant": "A",
+        "cpu_ns_per_record": 2498.05,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63451136,
+        "phase_sampled_peak_rss_bytes": 58986496,
+        "phase_average_rss_bytes": 12354499,
+        "rec_s": 116583.54735789534,
+        "p99_us": 128736.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-06-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-06-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63451136,
+        "external_sample_peak_rss_bytes": 62205952,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 187,
+        "external_actual_interval_ms": {
+          "median": 1.1882405,
+          "p95": 1.3548004999999999,
+          "max": 1.440819
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 6,
+        "variant": "B",
+        "cpu_ns_per_record": 2622.9,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63524864,
+        "phase_sampled_peak_rss_bytes": 56836096,
+        "phase_average_rss_bytes": 12487410,
+        "rec_s": 109910.38714873239,
+        "p99_us": 136560.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-06-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-06-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63524864,
+        "external_sample_peak_rss_bytes": 63279104,
+        "external_wait4_peak_rss_bytes": 85192704,
+        "external_sample_count": 198,
+        "external_actual_interval_ms": {
+          "median": 1.214169,
+          "p95": 1.3794549999999997,
+          "max": 1.613287
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 7,
+        "variant": "B",
+        "cpu_ns_per_record": 2543.15,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63496192,
+        "phase_sampled_peak_rss_bytes": 61722624,
+        "phase_average_rss_bytes": 12703971,
+        "rec_s": 109562.04980953733,
+        "p99_us": 136854.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-07-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-07-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63496192,
+        "external_sample_peak_rss_bytes": 60981248,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 188,
+        "external_actual_interval_ms": {
+          "median": 1.221971,
+          "p95": 1.4324111000000002,
+          "max": 1.524955
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 7,
+        "variant": "A",
+        "cpu_ns_per_record": 2388.85,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63344640,
+        "phase_sampled_peak_rss_bytes": 45412352,
+        "phase_average_rss_bytes": 12014705,
+        "rec_s": 112539.82418623523,
+        "p99_us": 133592.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-07-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-07-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63434752,
+        "external_sample_peak_rss_bytes": 62935040,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 191,
+        "external_actual_interval_ms": {
+          "median": 1.193929,
+          "p95": 1.3330250499999998,
+          "max": 1.3884
+        },
+        "vmhwm_vs_self_pct": 0.14225670869705276
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 8,
+        "variant": "A",
+        "cpu_ns_per_record": 2369.55,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63229952,
+        "phase_sampled_peak_rss_bytes": 46665728,
+        "phase_average_rss_bytes": 12666197,
+        "rec_s": 114713.72298529823,
+        "p99_us": 128024.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-08-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-08-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63229952,
+        "external_sample_peak_rss_bytes": 61550592,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 195,
+        "external_actual_interval_ms": {
+          "median": 1.1708745,
+          "p95": 1.3073146,
+          "max": 1.384855
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 8,
+        "variant": "B",
+        "cpu_ns_per_record": 2364.55,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63438848,
+        "phase_sampled_peak_rss_bytes": 51712000,
+        "phase_average_rss_bytes": 13156352,
+        "rec_s": 115498.78082085687,
+        "p99_us": 130073.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-08-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-08-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63438848,
+        "external_sample_peak_rss_bytes": 60465152,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 194,
+        "external_actual_interval_ms": {
+          "median": 1.173698,
+          "p95": 1.3438657999999992,
+          "max": 1.601369
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 9,
+        "variant": "B",
+        "cpu_ns_per_record": 2325.55,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63291392,
+        "phase_sampled_peak_rss_bytes": 55644160,
+        "phase_average_rss_bytes": 11592402,
+        "rec_s": 116391.88124494455,
+        "p99_us": 128042.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-09-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-09-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63414272,
+        "external_sample_peak_rss_bytes": 62808064,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 185,
+        "external_actual_interval_ms": {
+          "median": 1.1687159999999999,
+          "p95": 1.33233275,
+          "max": 1.409101
+        },
+        "vmhwm_vs_self_pct": 0.19414962464405772
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 9,
+        "variant": "A",
+        "cpu_ns_per_record": 2311.6,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63463424,
+        "phase_sampled_peak_rss_bytes": 56504320,
+        "phase_average_rss_bytes": 11671431,
+        "rec_s": 116353.44735571695,
+        "p99_us": 128886.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-09-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-09-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63627264,
+        "external_sample_peak_rss_bytes": 63111168,
+        "external_wait4_peak_rss_bytes": 85192704,
+        "external_sample_count": 185,
+        "external_actual_interval_ms": {
+          "median": 1.1719205000000001,
+          "p95": 1.35388225,
+          "max": 2.063783
+        },
+        "vmhwm_vs_self_pct": 0.2581644507551273
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 10,
+        "variant": "A",
+        "cpu_ns_per_record": 2656.85,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63508480,
+        "phase_sampled_peak_rss_bytes": 45457408,
+        "phase_average_rss_bytes": 13016405,
+        "rec_s": 110469.03805837322,
+        "p99_us": 136140.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-10-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-10-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63508480,
+        "external_sample_peak_rss_bytes": 60608512,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 195,
+        "external_actual_interval_ms": {
+          "median": 1.1835635,
+          "p95": 1.4160357000000001,
+          "max": 2.084633
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 10,
+        "variant": "B",
+        "cpu_ns_per_record": 2266.95,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63152128,
+        "phase_sampled_peak_rss_bytes": 63221760,
+        "phase_average_rss_bytes": 11982004,
+        "rec_s": 116289.73394170619,
+        "p99_us": 125980.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-10-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-10-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63152128,
+        "external_sample_peak_rss_bytes": 59416576,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 188,
+        "external_actual_interval_ms": {
+          "median": 1.181019,
+          "p95": 1.3437742,
+          "max": 1.838354
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 11,
+        "variant": "B",
+        "cpu_ns_per_record": 2595.65,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63315968,
+        "phase_sampled_peak_rss_bytes": 52781056,
+        "phase_average_rss_bytes": 13076803,
+        "rec_s": 108023.55486020794,
+        "p99_us": 141154.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-11-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-11-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63315968,
+        "external_sample_peak_rss_bytes": 61534208,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 209,
+        "external_actual_interval_ms": {
+          "median": 1.17448,
+          "p95": 1.3281481,
+          "max": 1.460778
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 11,
+        "variant": "A",
+        "cpu_ns_per_record": 2697.2,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63406080,
+        "phase_sampled_peak_rss_bytes": 50036736,
+        "phase_average_rss_bytes": 12930856,
+        "rec_s": 105545.45922351714,
+        "p99_us": 142728.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-11-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-11-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63406080,
+        "external_sample_peak_rss_bytes": 63492096,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 206,
+        "external_actual_interval_ms": {
+          "median": 1.190344,
+          "p95": 1.4131408,
+          "max": 1.495611
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 12,
+        "variant": "A",
+        "cpu_ns_per_record": 2541.75,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63221760,
+        "phase_sampled_peak_rss_bytes": 56975360,
+        "phase_average_rss_bytes": 11734129,
+        "rec_s": 110174.90718232314,
+        "p99_us": 137060.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-12-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-12-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63221760,
+        "external_sample_peak_rss_bytes": 63242240,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 190,
+        "external_actual_interval_ms": {
+          "median": 1.175572,
+          "p95": 1.33724,
+          "max": 2.811853
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 12,
+        "variant": "B",
+        "cpu_ns_per_record": 2613.95,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63504384,
+        "phase_sampled_peak_rss_bytes": 56938496,
+        "phase_average_rss_bytes": 11884544,
+        "rec_s": 109213.02215667377,
+        "p99_us": 139023.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-12-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-12-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63504384,
+        "external_sample_peak_rss_bytes": 60239872,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 193,
+        "external_actual_interval_ms": {
+          "median": 1.1739895,
+          "p95": 1.34471435,
+          "max": 1.451776
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 13,
+        "variant": "B",
+        "cpu_ns_per_record": 2793.7,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63504384,
+        "phase_sampled_peak_rss_bytes": 46141440,
+        "phase_average_rss_bytes": 12206899,
+        "rec_s": 99567.3395847318,
+        "p99_us": 156646.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-13-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-13-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63504384,
+        "external_sample_peak_rss_bytes": 60186624,
+        "external_wait4_peak_rss_bytes": 85204992,
+        "external_sample_count": 206,
+        "external_actual_interval_ms": {
+          "median": 1.227789,
+          "p95": 1.6424527999999996,
+          "max": 3.627306
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 13,
+        "variant": "A",
+        "cpu_ns_per_record": 2566.7,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63365120,
+        "phase_sampled_peak_rss_bytes": 55238656,
+        "phase_average_rss_bytes": 13522405,
+        "rec_s": 108768.78440305665,
+        "p99_us": 138874.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-13-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-13-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63365120,
+        "external_sample_peak_rss_bytes": 60837888,
+        "external_wait4_peak_rss_bytes": 85192704,
+        "external_sample_count": 197,
+        "external_actual_interval_ms": {
+          "median": 1.2093015,
+          "p95": 1.4700395,
+          "max": 2.835769
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 14,
+        "variant": "A",
+        "cpu_ns_per_record": 2607.1,
+        "allocations_per_record": 6.7723,
+        "allocation_count": 135446,
+        "allocated_bytes_per_record": 5409.45175,
+        "process_peak_rss_bytes": 63467520,
+        "phase_sampled_peak_rss_bytes": 59736064,
+        "phase_average_rss_bytes": 11911814,
+        "rec_s": 104045.36061424884,
+        "p99_us": 146473.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "824662e39980604c799e3398a7e3bc46db8400b3",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-14-A/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-14-A/external-rss.json",
+        "external_client_vmhwm_bytes": 63467520,
+        "external_sample_peak_rss_bytes": 61276160,
+        "external_wait4_peak_rss_bytes": 85221376,
+        "external_sample_count": 205,
+        "external_actual_interval_ms": {
+          "median": 1.2049705,
+          "p95": 1.3839618,
+          "max": 2.20262
+        },
+        "vmhwm_vs_self_pct": 0.0
+      },
+      {
+        "cell": "nb-fetch-bulk",
+        "pair": 14,
+        "variant": "B",
+        "cpu_ns_per_record": 2725.35,
+        "allocations_per_record": 6.7717,
+        "allocation_count": 135434,
+        "allocated_bytes_per_record": 5409.44695,
+        "process_peak_rss_bytes": 63524864,
+        "phase_sampled_peak_rss_bytes": 62066688,
+        "phase_average_rss_bytes": 12268544,
+        "rec_s": 98917.75714055511,
+        "p99_us": 155390.0,
+        "verified_records": 20000,
+        "returned_records": null,
+        "fetched_records": 135000,
+        "fetch_rounds": 1,
+        "mismatched": 0,
+        "validation_failures": 0,
+        "source_sha": "c0cc3cde39a156350502dc65890fc66dd5dd8b60",
+        "result": "raw/bulk-corroboration/nb-fetch-bulk/pair-14-B/nb-fetch-bulk-rep0.result.json",
+        "external_rss_result": "raw/bulk-corroboration/nb-fetch-bulk/pair-14-B/external-rss.json",
+        "external_client_vmhwm_bytes": 63524864,
+        "external_sample_peak_rss_bytes": 62066688,
+        "external_wait4_peak_rss_bytes": 85229568,
+        "external_sample_count": 207,
+        "external_actual_interval_ms": {
+          "median": 1.2170055,
+          "p95": 1.4132574999999998,
+          "max": 1.626507
+        },
+        "vmhwm_vs_self_pct": 0.0
+      }
+    ],
+    "metrics": {
+      "cpu_ns_per_record": {
+        "baseline_median": 2514.85,
+        "candidate_median": 2565.7,
+        "delta_pct": 2.021989383064593,
+        "baseline_ci95": [
+          2388.85,
+          2607.1
+        ],
+        "candidate_ci95": [
+          2364.55,
+          2613.95
+        ],
+        "ci95_pct": [
+          -3.464113660488277,
+          6.459174916800969
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          2363.95,
+          2364.5,
+          2611.3,
+          2514.85,
+          2532.3,
+          2449.4,
+          2498.05,
+          2388.85,
+          2369.55,
+          2311.6,
+          2656.85,
+          2697.2,
+          2541.75,
+          2566.7,
+          2607.1
+        ],
+        "candidate_values": [
+          2429.55,
+          2297.6,
+          2668.65,
+          2608.75,
+          2475.75,
+          2565.7,
+          2622.9,
+          2543.15,
+          2364.55,
+          2325.55,
+          2266.95,
+          2595.65,
+          2613.95,
+          2793.7,
+          2725.35
+        ]
+      },
+      "allocations_per_record": {
+        "baseline_median": 6.7723,
+        "candidate_median": 6.7717,
+        "delta_pct": -0.008859619331691437,
+        "baseline_ci95": [
+          6.7723,
+          6.7723
+        ],
+        "candidate_ci95": [
+          6.7717,
+          6.7717
+        ],
+        "ci95_pct": [
+          -0.008859619331691437,
+          -0.008859619331691437
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723,
+          6.7723
+        ],
+        "candidate_values": [
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717,
+          6.7717
+        ]
+      },
+      "allocation_count": {
+        "baseline_median": 135446,
+        "candidate_median": 135434,
+        "delta_pct": -0.008859619331691437,
+        "baseline_ci95": [
+          135446.0,
+          135446.0
+        ],
+        "candidate_ci95": [
+          135434.0,
+          135434.0
+        ],
+        "ci95_pct": [
+          -0.008859619331691437,
+          -0.008859619331691437
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446,
+          135446
+        ],
+        "candidate_values": [
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434,
+          135434
+        ]
+      },
+      "allocated_bytes_per_record": {
+        "baseline_median": 5409.45175,
+        "candidate_median": 5409.44695,
+        "delta_pct": -8.873357638661261e-05,
+        "baseline_ci95": [
+          5409.45175,
+          5409.45175
+        ],
+        "candidate_ci95": [
+          5409.44695,
+          5409.44695
+        ],
+        "ci95_pct": [
+          -8.873357638661261e-05,
+          -8.873357638661261e-05
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175,
+          5409.45175
+        ],
+        "candidate_values": [
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695,
+          5409.44695
+        ]
+      },
+      "process_peak_rss_bytes": {
+        "baseline_median": 63451136,
+        "candidate_median": 63496192,
+        "delta_pct": 0.07100897295204689,
+        "baseline_ci95": [
+          63344640.0,
+          63500288.0
+        ],
+        "candidate_ci95": [
+          63414272.0,
+          63516876.79999998
+        ],
+        "ci95_pct": [
+          -0.07744933522654263,
+          0.23266334905964747
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          63500288,
+          63377408,
+          63229952,
+          63512576,
+          63516672,
+          63471616,
+          63451136,
+          63344640,
+          63229952,
+          63463424,
+          63508480,
+          63406080,
+          63221760,
+          63365120,
+          63467520
+        ],
+        "candidate_values": [
+          63516672,
+          63459328,
+          63561728,
+          63442944,
+          63623168,
+          63414272,
+          63524864,
+          63496192,
+          63438848,
+          63291392,
+          63152128,
+          63315968,
+          63504384,
+          63504384,
+          63524864
+        ]
+      },
+      "phase_sampled_peak_rss_bytes": {
+        "baseline_median": 55238656,
+        "candidate_median": 56836096,
+        "delta_pct": 2.89188788373127,
+        "baseline_ci95": [
+          45477888.0,
+          58986496.0
+        ],
+        "candidate_ci95": [
+          52781056.0,
+          61722624.0
+        ],
+        "ci95_pct": [
+          -5.881536004444133,
+          25.236422588489592
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          45449216,
+          48611328,
+          61382656,
+          59482112,
+          60456960,
+          45477888,
+          58986496,
+          45412352,
+          46665728,
+          56504320,
+          45457408,
+          50036736,
+          56975360,
+          55238656,
+          59736064
+        ],
+        "candidate_values": [
+          55517184,
+          45473792,
+          58593280,
+          45457408,
+          62550016,
+          56954880,
+          56836096,
+          61722624,
+          51712000,
+          55644160,
+          63221760,
+          52781056,
+          56938496,
+          46141440,
+          62066688
+        ]
+      },
+      "phase_average_rss_bytes": {
+        "baseline_median": 12523747,
+        "candidate_median": 12487410,
+        "delta_pct": -0.29014479452514896,
+        "baseline_ci95": [
+          12014705.0,
+          12670122.324999657
+        ],
+        "candidate_ci95": [
+          11982004.0,
+          12703971.0
+        ],
+        "ci95_pct": [
+          -4.3934292557034516,
+          2.828702321316312
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          12617125,
+          12823210,
+          12523747,
+          12634232,
+          12308480,
+          12430677,
+          12354499,
+          12014705,
+          12666197,
+          11671431,
+          13016405,
+          12930856,
+          11734129,
+          13522405,
+          11911814
+        ],
+        "candidate_values": [
+          13537735,
+          11748010,
+          12255004,
+          12619548,
+          12743338,
+          12621069,
+          12487410,
+          12703971,
+          13156352,
+          11592402,
+          11982004,
+          13076803,
+          11884544,
+          12206899,
+          12268544
+        ]
+      },
+      "rec_s": {
+        "baseline_median": 112022.62803315408,
+        "candidate_median": 110093.41795326285,
+        "delta_pct": -1.7221610613529448,
+        "baseline_ci95": [
+          110469.03805837322,
+          114713.72298529823
+        ],
+        "candidate_ci95": [
+          109562.04980953733,
+          115498.78082085687
+        ],
+        "ci95_pct": [
+          -3.5780889283216544,
+          1.1560307621993893
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          119346.0573615223,
+          113339.39510198137,
+          110953.07509859443,
+          114178.83832588771,
+          110893.39718479036,
+          112022.62803315408,
+          116583.54735789534,
+          112539.82418623523,
+          114713.72298529823,
+          116353.44735571695,
+          110469.03805837322,
+          105545.45922351714,
+          110174.90718232314,
+          108768.78440305665,
+          104045.36061424884
+        ],
+        "candidate_values": [
+          115725.59260891654,
+          113252.35321968398,
+          110093.41795326285,
+          110199.23023523497,
+          110764.34854939741,
+          109792.659252921,
+          109910.38714873239,
+          109562.04980953733,
+          115498.78082085687,
+          116391.88124494455,
+          116289.73394170619,
+          108023.55486020794,
+          109213.02215667377,
+          99567.3395847318,
+          98917.75714055511
+        ]
+      },
+      "p99_us": {
+        "baseline_median": 133592.0,
+        "candidate_median": 136383.0,
+        "delta_pct": 2.0891969579016623,
+        "baseline_ci95": [
+          128736.0,
+          136140.0
+        ],
+        "candidate_ci95": [
+          128592.0,
+          136854.0
+        ],
+        "ci95_pct": [
+          -2.6341397688484314,
+          5.427276818273508
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          124902.0,
+          126441.0,
+          133905.0,
+          132085.0,
+          134425.0,
+          133378.0,
+          128736.0,
+          133592.0,
+          128024.0,
+          128886.0,
+          136140.0,
+          142728.0,
+          137060.0,
+          138874.0,
+          146473.0
+        ],
+        "candidate_values": [
+          124175.0,
+          128592.0,
+          135527.0,
+          136383.0,
+          135881.0,
+          136569.0,
+          136560.0,
+          136854.0,
+          130073.0,
+          128042.0,
+          125980.0,
+          141154.0,
+          139023.0,
+          156646.0,
+          155390.0
+        ]
+      },
+      "external_client_vmhwm_bytes": {
+        "baseline_median": 63451136,
+        "candidate_median": 63496192,
+        "delta_pct": 0.07100897295204689,
+        "baseline_ci95": [
+          63377408.0,
+          63500288.0
+        ],
+        "candidate_ci95": [
+          63414272.0,
+          63516876.79999998
+        ],
+        "ci95_pct": [
+          -0.09034589571502716,
+          0.2003489950235915
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          63500288,
+          63377408,
+          63229952,
+          63512576,
+          63516672,
+          63471616,
+          63451136,
+          63434752,
+          63229952,
+          63627264,
+          63508480,
+          63406080,
+          63221760,
+          63365120,
+          63467520
+        ],
+        "candidate_values": [
+          63516672,
+          63459328,
+          63561728,
+          63442944,
+          63623168,
+          63414272,
+          63524864,
+          63496192,
+          63438848,
+          63414272,
+          63152128,
+          63315968,
+          63504384,
+          63504384,
+          63524864
+        ]
+      },
+      "external_sample_peak_rss_bytes": {
+        "baseline_median": 61550592,
+        "candidate_median": 61583360,
+        "delta_pct": 0.053237505822845144,
+        "baseline_ci95": [
+          60837888.0,
+          63086592.0
+        ],
+        "candidate_ci95": [
+          60465152.0,
+          62783488.0
+        ],
+        "ci95_pct": [
+          -3.228115847705826,
+          2.0085413052182144
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          63086592,
+          60334080,
+          61382656,
+          63057920,
+          60370944,
+          61550592,
+          62205952,
+          62935040,
+          61550592,
+          63111168,
+          60608512,
+          63492096,
+          63242240,
+          60837888,
+          61276160
+        ],
+        "candidate_values": [
+          62599168,
+          62926848,
+          61583360,
+          60903424,
+          62615552,
+          62783488,
+          63279104,
+          60981248,
+          60465152,
+          62808064,
+          59416576,
+          61534208,
+          60239872,
+          60186624,
+          62066688
+        ]
+      },
+      "external_wait4_peak_rss_bytes": {
+        "baseline_median": 85221376,
+        "candidate_median": 85221376,
+        "delta_pct": 0.0,
+        "baseline_ci95": [
+          85221376.0,
+          85221376.0
+        ],
+        "candidate_ci95": [
+          85204992.0,
+          85221376.0
+        ],
+        "ci95_pct": [
+          -0.01922522349322442,
+          0.0
+        ],
+        "repetitions": 15,
+        "baseline_values": [
+          85221376,
+          85221376,
+          85192704,
+          85221376,
+          85221376,
+          85221376,
+          85221376,
+          85221376,
+          85221376,
+          85192704,
+          85221376,
+          85221376,
+          85221376,
+          85192704,
+          85221376
+        ],
+        "candidate_values": [
+          85155840,
+          85192704,
+          85192704,
+          85221376,
+          85221376,
+          85221376,
+          85192704,
+          85221376,
+          85221376,
+          85221376,
+          85221376,
+          85221376,
+          85221376,
+          85204992,
+          85229568
+        ]
+      }
+    }
+  },
+  "vmhwm_verification": {
+    "nb-fetch-1000p": {
+      "runs": 10,
+      "exact_matches": 0,
+      "range_delta_pct": [
+        -1.9863438857852245,
+        -0.28124999999999956
+      ],
+      "median_delta_pct": -1.1949099937926755
+    },
+    "nb-fetch-bulk": {
+      "runs": 30,
+      "exact_matches": 27,
+      "range_delta_pct": [
+        0.0,
+        0.2581644507551273
+      ],
+      "median_delta_pct": 0.0
+    },
+    "nb-fetch-committed-aborts": {
+      "runs": 10,
+      "exact_matches": 10,
+      "range_delta_pct": [
+        0.0,
+        0.0
+      ],
+      "median_delta_pct": 0.0
+    }
+  }
+}

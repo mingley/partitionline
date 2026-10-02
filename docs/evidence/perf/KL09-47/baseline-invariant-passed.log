@@ -1,0 +1,9 @@
+   Compiling partitionline v0.1.0 (/workspace/work/consumer-aborts/invariant-baseline)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.21s
+     Running tests/consumer_fetch_semantics.rs (/workspace/work/consumer-aborts/target/debug/deps/consumer_fetch_semantics-3410cd8345d8d2ba)
+
+running 1 test
+test read_committed_repeated_metadata_and_spanning_markers_survive_seek ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 0.31s
+

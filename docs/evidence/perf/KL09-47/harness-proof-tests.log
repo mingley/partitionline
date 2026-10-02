@@ -1,0 +1,50 @@
+   Compiling runtime v0.1.0 (/workspace/work/consumer-aborts/baseline/benchmarks/runtime)
+    Finished `release` profile [optimized + debuginfo] target(s) in 50.14s
+     Running unittests src/lib.rs (/workspace/work/consumer-aborts/target/release/deps/runtime-4a07342675ae4599)
+
+running 1 test
+test fdrive::tests::committed_expected_history_skips_every_aborted_batch ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/nb-serve.rs (/workspace/work/consumer-aborts/target/release/deps/nb_serve-d1eec8cb8099b233)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/workspace/work/consumer-aborts/target/release/deps/runtime-4588d5df8709458b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cells.rs (/workspace/work/consumer-aborts/target/release/deps/cells-27a512e1c2ff2d93)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+     Running tests/e2e.rs (/workspace/work/consumer-aborts/target/release/deps/e2e-0b1fd6435db28bad)
+
+running 1 test
+test committed_aborts_cell_verifies_exact_offset_history ... cell=nb-fetch-committed-aborts rep=0 failed=false artifact=/tmp/runtime-e2e-nb-fetch-committed-aborts-140736-1790971252800475811/nb-fetch-committed-aborts-rep0.result.json
+FAILED
+
+failures:
+
+---- committed_aborts_cell_verifies_exact_offset_history stdout ----
+
+thread 'committed_aborts_cell_verifies_exact_offset_history' (140737) panicked at tests/e2e.rs:178:5:
+assertion `left == right` failed
+  left: Number(134500)
+ right: 135000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    committed_aborts_cell_verifies_exact_offset_history
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.41s
+
+error: test failed, to rerun pass `--test e2e`
