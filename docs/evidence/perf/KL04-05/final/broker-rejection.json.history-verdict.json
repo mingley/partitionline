@@ -1,0 +1,16 @@
+{
+  "valid": false,
+  "history_gate": {
+    "valid": false,
+    "validation_error": "Empty consumed records: an empty history must not exit 0",
+    "minimal_counterexample": {
+      "type": "HISTORY_VALIDATION_ERROR",
+      "message": "Empty consumed records: an empty history must not exit 0"
+    }
+  },
+  "independent_byte_errors": [],
+  "complete_expected_ids": false,
+  "verified_ids": 0,
+  "duplicate_ids": 0,
+  "bad_records": 0
+}

@@ -1,0 +1,35 @@
+   Compiling rdkafka-sys v4.10.0+2.12.1
+   Compiling rdkafka v0.39.0
+   Compiling partitionline-rust-rdkafka-peer v0.1.0 (/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust)
+    Finished `test` profile [unoptimized] target(s) in 3.06s
+     Running unittests src/lib.rs (/workspace/work/target-rust-peer-msrv/debug/deps/partitionline_rust_rdkafka_peer-9f9f9c6f42e4c0e6)
+
+running 1 test
+test records::tests::published_splitmix_vectors_and_partial_chunks ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/workspace/work/target-rust-peer-msrv/debug/deps/partitionline_rust_rdkafka_peer-17097f5052523441)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/config.rs (/workspace/work/target-rust-peer-msrv/debug/deps/config-4bf2982d7fcd612e)
+
+running 6 tests
+test null_keys_cannot_suggest_unique_id_verification ... ok
+test reject_implicit_idempotence_adjustments ... ok
+test bounded_workload_and_absolute_phase_deadlines_are_required ... ok
+test unsupported_protocol_and_compression_settings_fail_closed ... ok
+test effective_post_creation_settings_and_no_secret_dump ... ok
+test native_pin_checks_fail_before_any_broker_request ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+
+   Doc-tests partitionline_rust_rdkafka_peer
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

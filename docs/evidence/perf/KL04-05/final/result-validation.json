@@ -1,0 +1,108 @@
+{
+  "source_sha": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+  "jsonschema_version": "4.26.0",
+  "results": [
+    {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/final/stable-smoke.json",
+      "sha256": "b8424604f67b1a00ba7bdc79d5c34973af1130ad198027b3ab6df77201641706",
+      "schema_valid": true,
+      "report_valid": true,
+      "report_errors": [],
+      "expected_clean": true,
+      "disposition": "executed",
+      "source_commit": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+      "source_clean": true,
+      "acknowledged": 256,
+      "consumed": 256,
+      "verified": true
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/final/unsupported-share.json",
+      "sha256": "3b827c7264778c9b9f240b60628f2513bf7d8b4dcb439f3860b6691ad509056e",
+      "schema_valid": true,
+      "report_valid": true,
+      "report_errors": [],
+      "expected_clean": true,
+      "disposition": "unsupported",
+      "source_commit": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+      "source_clean": true,
+      "acknowledged": 0,
+      "consumed": 0,
+      "verified": false
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/final/frozen-matched-not-run.json",
+      "sha256": "b3d83ca7d02e83d6d305a010089f69c05cad35d1d9ce450555eb562b5fb2e75a",
+      "schema_valid": true,
+      "report_valid": true,
+      "report_errors": [],
+      "expected_clean": true,
+      "disposition": "not_run",
+      "source_commit": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+      "source_clean": true,
+      "acknowledged": 0,
+      "consumed": 0,
+      "verified": false
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/final/queue-full-smoke.json",
+      "sha256": "494a78863c011c7c49ae581be35cf3f079444167512e7ebdf9bcd22f94acb953",
+      "schema_valid": true,
+      "report_valid": true,
+      "report_errors": [],
+      "expected_clean": true,
+      "disposition": "executed",
+      "source_commit": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+      "source_clean": true,
+      "acknowledged": 32,
+      "consumed": 32,
+      "verified": true
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/final/broker-rejection.json",
+      "sha256": "196eeffae69e375284c455aab7dd8f6a2b813d68020de311c669fd2572b6275d",
+      "schema_valid": true,
+      "report_valid": false,
+      "report_errors": [
+        "Integrity failure: result indicates integrity_failure=true"
+      ],
+      "expected_clean": false,
+      "disposition": "failed",
+      "source_commit": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+      "source_clean": true,
+      "acknowledged": 0,
+      "consumed": 0,
+      "verified": false
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/final/acks-zero.json",
+      "sha256": "bd11dc7d31fb4302c30047bbb76e4404eb530980be63d40bf08b26c04051b519",
+      "schema_valid": true,
+      "report_valid": false,
+      "report_errors": [
+        "Integrity failure: result indicates integrity_failure=true"
+      ],
+      "expected_clean": false,
+      "disposition": "failed",
+      "source_commit": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+      "source_clean": true,
+      "acknowledged": 0,
+      "consumed": 0,
+      "verified": false
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/final/msrv-smoke.json",
+      "sha256": "af9244e43054e5939cafc77f601645b09aaf55757ed29db4a31d7bc48ba0daff",
+      "schema_valid": true,
+      "report_valid": true,
+      "report_errors": [],
+      "expected_clean": true,
+      "disposition": "executed",
+      "source_commit": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+      "source_clean": true,
+      "acknowledged": 256,
+      "consumed": 256,
+      "verified": true
+    }
+  ]
+}

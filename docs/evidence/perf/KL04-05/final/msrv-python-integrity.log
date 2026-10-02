@@ -1,0 +1,16 @@
+test_acks_zero_cannot_be_marked_acknowledged (test_adapter.IndependentHistoryTests.test_acks_zero_cannot_be_marked_acknowledged) ... ok
+test_empty_receipts_do_not_pass (test_adapter.IndependentHistoryTests.test_empty_receipts_do_not_pass) ... ok
+test_missing_duplicate_swap_is_detected (test_adapter.IndependentHistoryTests.test_missing_duplicate_swap_is_detected) ... ok
+test_null_key_history_is_explicitly_unsupported (test_adapter.IndependentHistoryTests.test_null_key_history_is_explicitly_unsupported) ... ok
+test_partition_order_inversion_fails (test_adapter.IndependentHistoryTests.test_partition_order_inversion_fails) ... ok
+test_payload_corruption_is_detected_independently (test_adapter.IndependentHistoryTests.test_payload_corruption_is_detected_independently) ... ok
+test_producer_and_receipt_same_corruption_still_fails (test_adapter.IndependentHistoryTests.test_producer_and_receipt_same_corruption_still_fails) ... ok
+test_published_generator_vectors (test_adapter.IndependentHistoryTests.test_published_generator_vectors) ... ok
+test_valid_independent_receipts (test_adapter.IndependentHistoryTests.test_valid_independent_receipts) ... ok
+test_wrong_key_distinguisher_fails (test_adapter.IndependentHistoryTests.test_wrong_key_distinguisher_fails) ... ok
+test_wrong_partition_or_offset_fails (test_adapter.IndependentHistoryTests.test_wrong_partition_or_offset_fails) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.060s
+
+OK

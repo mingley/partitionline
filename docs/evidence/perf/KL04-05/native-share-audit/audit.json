@@ -1,0 +1,53 @@
+{
+  "native_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "native_tree": "429a83d1ba5350c0846aeaee4efe821b463f6b85",
+  "native_version": "2.15.0",
+  "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "source_sha256": {
+    "CHANGELOG.md": "1067d65c2c5b853027666ad591caa1c62dd314fdaf6a86dd9a847006eef6e10a",
+    "src/rdkafka.h": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+    "INTRODUCTION.md": "109a00994a9c8eed91564b11af7b95251363dac6e514740563fb4f69b378de31",
+    "LICENSE": "c545fe812d514aa0151449062eecfc181b8c9d49b6c0b540593110bf79749eaa"
+  },
+  "exported_share_api_count": 28,
+  "exported_symbols_sha256": "767663810abc0533509abe9e3970b201d23bced40eea04f57e249d5c0fa5ce19",
+  "rust_api_audit": [
+    {
+      "package": "rdkafka-0.39.0",
+      "rd_kafka_share_bindings_or_ShareConsumer_identifiers_found": false,
+      "source_sha256": {
+        "src/admin.rs": "692cdb7f4e1a8f2e4ca9b349b1db504dcad75301d9f3648e26fb80d859418700",
+        "src/client.rs": "35e4dddc70f47fb9bb2509bac8e19b5ed5844e4f8e6a0824622e79b5d0532a83",
+        "src/config.rs": "6bc03426bda77eb3be9f6884f734469f70383c68b3cbbd5bdc5d61e2a04d2c5c",
+        "src/consumer/base_consumer.rs": "65783472fd528c2ef4be95fee05dba0fec9ae3ad6c4f04f5cf5cf9ccba34d830",
+        "src/consumer/mod.rs": "af33adc6c496715b342b14eb2feba2ea455a5c83afb8c091cf2e022f24719182",
+        "src/consumer/stream_consumer.rs": "54de7ed08ad78388a7533c4a374b2f54ad7e308d422b8e0da8390521a4ddefb0",
+        "src/error.rs": "0640ea8bdeeec1ab9a315dcb66c377d21711de5140c4815b2a6c971873bb6379",
+        "src/groups.rs": "3e36f1ecd74daf40ac9601469b66dd16614f712dc8d2fc2e5fe2d7eaeb5d60b6",
+        "src/lib.rs": "3cce82302993ad4c89e36e88f70129c223db5b34d11c8ca3dc8b65998e2890b5",
+        "src/log.rs": "6b2c8a41d8b22439e9a8100211665bb6e611c3793867d1580fb03ea23c5940d9",
+        "src/message.rs": "5f7bbb3ac8e6cfc976496feff40db563e656132abd23ada84eccaf83fdba01ec",
+        "src/metadata.rs": "bdf677021963fa858f71cf543ea4be7c830e3952a13eddb94db5dfb5a5fb98a1",
+        "src/mocking.rs": "59b82fd97d243855853862f317b3193ab2fcd78641a982514f710e929bdf9b68",
+        "src/producer/base_producer.rs": "5130774c15cd4655a92ae8b5f3db2cb5b6d741a8ecb15ce4d903d7b20fd60283",
+        "src/producer/future_producer.rs": "673f4ee595e1e1adc1af556ff40598414b932a98c2a593f2413b7e1eff6a4167",
+        "src/producer/mod.rs": "226c8a376de8d6e683f2b6971c53819de4ce13d5e03da894ef10044bf11146f9",
+        "src/statistics.rs": "fe23c669944cfe6d49f56c7126625d5410a6a8b01e5da984588714fdaf943b25",
+        "src/topic_partition_list.rs": "ee9a12a7d72b83a2374d37e4357f69bffb476a7dca9e40aed1f67673d4133bd8",
+        "src/util.rs": "b941545a74f0a290bcff6e35a928afad52e20f3b793c90bd4b6237c99cd96bcb"
+      }
+    },
+    {
+      "package": "rdkafka-sys-4.10.0+2.12.1",
+      "rd_kafka_share_bindings_or_ShareConsumer_identifiers_found": false,
+      "source_sha256": {
+        "src/bindings.rs": "3a971d5349858a2f304f88ba879db834c86dfbdd8f959c32c0cb90360e2606c4",
+        "src/helpers.rs": "4657b5ed93a04667eb19e1e9869f83835348faca3deb0ec1c0b5e391814ca95a",
+        "src/lib.rs": "ffd1b5985a213c7d4e62af4f158b189f309aa569ac9cbc5cb9d24ef6157da93b",
+        "src/types.rs": "61cf87cdc3445b411fd7a16000645cd77b290da15e30d38b0eea76cbcce34455"
+      }
+    }
+  ],
+  "conclusion": "Pinned native C 2.15.0 has preview KIP-932 public APIs and installed symbols. Current Rust wrapper/sys API and C/Rust benchmark drivers have no implemented share lifecycle; Kafka 3.9.1 validation fixture is ineligible. Unsupported is a driver/fixture exclusion, never a native-capability absence or performance win.",
+  "behavioral_share_validation": "not_run"
+}

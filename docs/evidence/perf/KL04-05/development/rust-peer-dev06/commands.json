@@ -1,0 +1,15 @@
+[
+  {
+    "command": [
+      "cargo",
+      "+stable",
+      "build",
+      "--locked",
+      "--release",
+      "--manifest-path",
+      "/workspace/partitionline/benchmarks/peers/rust/Cargo.toml"
+    ],
+    "exit_code": 0,
+    "log": "command-00.log"
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "all_valid": true,
+  "total_histories": 1,
+  "passed": 1,
+  "failed": 0,
+  "results": [
+    {
+      "history_id": "rust-rdkafka-independent-java-receipts",
+      "valid": true,
+      "attempted_count": 256,
+      "consumed_count": 256,
+      "violations": [],
+      "minimal_counterexample": null,
+      "summary": "PASS: history 'rust-rdkafka-independent-java-receipts' verified (256 attempted, 256 consumed, acks=-1, delivery=partition)"
+    }
+  ]
+}

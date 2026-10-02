@@ -1,0 +1,67 @@
+{
+  "id": "KL04-05",
+  "status": "done",
+  "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+  "compiled_source_sha": "9c6a9b3539bd0bf3eae8dc851d18186029a656b8",
+  "baseline_sha": "e054ce0cdcc68a46e9688ca56f2698d45de6595e",
+  "commands": [
+    "See exact recorded build/test/format/Clippy/rustdoc commands in docs/evidence/perf/KL04-05/final-9c6a9b35/ and prior retained final lanes.",
+    "See25 expected-exit orchestration commands in provenance.json and their actual logs; all25 match.",
+    "See six exact corrected metadata/runtime filing commands in final-6b4d3306/commands.json.",
+    "Verify checksums.json:447 files match actual SHA256."
+  ],
+  "results": {
+    "source_and_dependency_proof": "dependency-proof.json",
+    "build_lanes": {
+      "stable": {
+        "rust_tests": 7,
+        "python_integrity_tests": 11,
+        "rust_gates": 5
+      },
+      "msrv": {
+        "rust_tests": 7,
+        "python_integrity_tests": 11,
+        "rust_gates": 5
+      }
+    },
+    "orchestration_commands": 25,
+    "additional_metadata_runtime_commands": 6,
+    "corrected_metadata_artifacts": 4,
+    "named_test_executions": 36,
+    "live": {
+      "successful_measured_acknowledgements": 544,
+      "independent_measured_receipts": 544,
+      "warmup_acknowledgements_excluded": 64,
+      "queue_full_retries": 37,
+      "oversized_callback_failures": 32,
+      "acks_zero_unknown": 8,
+      "altered_history_controls": 2
+    },
+    "pure_rust_selection": "blocked: no exact eligible unchanged frozen cells",
+    "performance_qualification": "not_run; suite HOLD remains active; UUID key distribution unresolved",
+    "share_validation": "not_run; native C preview support verified by source/symbols only; Rust wrapper/sys/driver and Kafka 3.9.1 fixture excluded",
+    "broker_lifecycle": "broker-lifecycle.json",
+    "verified_artifact_checksums": 447
+  },
+  "acceptance_met": [
+    "Wrapper0.39.0, binding4.10.0+2.12.1 and actual loaded native2.15.0/hash reported separately and enforced.",
+    "Safe wrapper/API measured bar is separate from C-only results, without an unsupported estimate of wrapper overhead alone.",
+    "Isolated44-package benchmark workspace; core runtime lock/graph and frozen settings unchanged.",
+    "Matched frozen metadata filing and unsupported-cell artifacts validate; bounded smoke/failure histories independently verify the runnable adapter. PureRust selection is conditional on exact comparable cells; inspected candidates have none."
+  ],
+  "limits": [
+    "Full8M measured/10k warmup/five repetition campaign remains not_run; no comparative performance or production claim. SuiteHOLD active.",
+    "Shared16-byte ID keys do not establish frozenUUID shape/distribution; campaign qualification remains blocked.",
+    "PureRust candidate selection blocked with precise source-pinned exclusions; unsupported cells nevercount as wins.",
+    "No scheduled openloop, fetch-only, transactions/groups/share driver; secure receipt audit unqualified. Native2.15 previewshare support exists, currentdrivers/wrapper/sys/Kafka3.9.1 fixture remain ineligible.",
+    "Actual correctness binaries compiled9c6a; final6b4 metadata/docs only refinements use explicit byte-identical source/input and binary reuse proof."
+  ],
+  "failures_retained": "development-failures.json",
+  "artifacts": [
+    "docs/evidence/perf/KL04-05/README.md",
+    "docs/evidence/perf/KL04-05/provenance.json",
+    "docs/evidence/perf/KL04-05/checksums.json",
+    "docs/evidence/perf/KL04-05/development-failures.json",
+    "docs/evidence/perf/KL04-05/native-share-audit/"
+  ]
+}

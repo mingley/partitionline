@@ -1,0 +1,1 @@
+Native librdkafka 2.15.0 has no KIP-932 share RPCs; adapter has no share driver. Unsupported is excluded and never a win.

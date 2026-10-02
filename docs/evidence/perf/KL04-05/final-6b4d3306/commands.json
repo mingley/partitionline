@@ -1,0 +1,148 @@
+[
+  {
+    "name": "stable-unsupported-share",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-6b4d3306/benchmarks/peers/rust/run.py",
+      "unsupported",
+      "--binary",
+      "/workspace/work/rust-peer-refiling-6b4d3306-stable/rust-peer",
+      "--result",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-6b4d3306/stable-unsupported-share.json",
+      "--reason",
+      "Native C 2.15.0 supplies preview KIP-932; pinned wrapper/sys API and this adapter have no share lifecycle, and Kafka 3.9.1 fixture is ineligible. Unsupported driver/fixture cell is excluded, never a win."
+    ],
+    "environment": {
+      "PROFILE": "group/share",
+      "SCENARIO_ID": "share-exp-kip932-concurrency"
+    },
+    "exit_code": 0,
+    "log": "stable-unsupported-share.log",
+    "log_sha256": "1b40e7649d783d739206eb8954d3134f0f372b3c78d53a18a353ab94fb3fec8a",
+    "affinity": "0-2,4"
+  },
+  {
+    "name": "stable-frozen-not-run",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-6b4d3306/benchmarks/peers/rust/run.py",
+      "not-run",
+      "--binary",
+      "/workspace/work/rust-peer-refiling-6b4d3306-stable/rust-peer",
+      "--result",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-6b4d3306/stable-frozen-not-run.json",
+      "--reason",
+      "Frozen 8M/10k/5 required campaign is unchanged and unexecuted; shared ID-key instrumentation does not prove frozen UUID distribution. No qualification or claim."
+    ],
+    "environment": {
+      "TIER": "required",
+      "RTT_MS": "0.1",
+      "COUNT": "8000000",
+      "WARMUP": "10000",
+      "TOTAL_REPETITIONS": "5",
+      "ACKS": "-1",
+      "IDEMPOTENT": "1",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576",
+      "KAFKA_TOPIC": "plbench-matched",
+      "SCENARIO_ID": "matched-bulk-acks-all-6p-uncompressed"
+    },
+    "exit_code": 0,
+    "log": "stable-frozen-not-run.log",
+    "log_sha256": "4761c877463bc1c0b8bdaafa61bf87ab8e9b2e8c5b5d9370564455e3a7708b84",
+    "affinity": "0-2,4"
+  },
+  {
+    "name": "stable-runtime-effective-config",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-6b4d3306/benchmarks/peers/rust/run.py",
+      "emit-config",
+      "--binary",
+      "/workspace/work/rust-peer-refiling-6b4d3306-stable/rust-peer"
+    ],
+    "environment": {
+      "ACKS": "-1",
+      "IDEMPOTENT": "1",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576"
+    },
+    "exit_code": 0,
+    "log": "stable-runtime-effective-config.log",
+    "log_sha256": "e23cf1ffc152f13feb9c9fba90db5867ebd27b8e4b66677845175b9750729405",
+    "affinity": "0-2,4"
+  },
+  {
+    "name": "msrv-unsupported-share",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-6b4d3306/benchmarks/peers/rust/run.py",
+      "unsupported",
+      "--binary",
+      "/workspace/work/rust-peer-refiling-6b4d3306-msrv/rust-peer",
+      "--result",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-6b4d3306/msrv-unsupported-share.json",
+      "--reason",
+      "Native C 2.15.0 supplies preview KIP-932; pinned wrapper/sys API and this adapter have no share lifecycle, and Kafka 3.9.1 fixture is ineligible. Unsupported driver/fixture cell is excluded, never a win."
+    ],
+    "environment": {
+      "PROFILE": "group/share",
+      "SCENARIO_ID": "share-exp-kip932-concurrency"
+    },
+    "exit_code": 0,
+    "log": "msrv-unsupported-share.log",
+    "log_sha256": "0bbbb534784503f70ba9439e529136fb604d5b30992d46657056c5c3c40f0e84",
+    "affinity": "0-2,4"
+  },
+  {
+    "name": "msrv-frozen-not-run",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-6b4d3306/benchmarks/peers/rust/run.py",
+      "not-run",
+      "--binary",
+      "/workspace/work/rust-peer-refiling-6b4d3306-msrv/rust-peer",
+      "--result",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-6b4d3306/msrv-frozen-not-run.json",
+      "--reason",
+      "Frozen 8M/10k/5 required campaign is unchanged and unexecuted; shared ID-key instrumentation does not prove frozen UUID distribution. No qualification or claim."
+    ],
+    "environment": {
+      "TIER": "required",
+      "RTT_MS": "0.1",
+      "COUNT": "8000000",
+      "WARMUP": "10000",
+      "TOTAL_REPETITIONS": "5",
+      "ACKS": "-1",
+      "IDEMPOTENT": "1",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576",
+      "KAFKA_TOPIC": "plbench-matched",
+      "SCENARIO_ID": "matched-bulk-acks-all-6p-uncompressed"
+    },
+    "exit_code": 0,
+    "log": "msrv-frozen-not-run.log",
+    "log_sha256": "d44d4ea942253181a2325d111723dada3f89ac00c36ac034a54391b04482d043",
+    "affinity": "0-2,4"
+  },
+  {
+    "name": "msrv-runtime-effective-config",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-6b4d3306/benchmarks/peers/rust/run.py",
+      "emit-config",
+      "--binary",
+      "/workspace/work/rust-peer-refiling-6b4d3306-msrv/rust-peer"
+    ],
+    "environment": {
+      "ACKS": "-1",
+      "IDEMPOTENT": "1",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576"
+    },
+    "exit_code": 0,
+    "log": "msrv-runtime-effective-config.log",
+    "log_sha256": "f07ac8ce351d10460f7cd26a38ea7d42ab398a293b2288991cb197f212e3b634",
+    "affinity": "0-2,4"
+  }
+]

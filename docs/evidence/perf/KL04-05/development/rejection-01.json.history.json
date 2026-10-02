@@ -1,0 +1,333 @@
+{
+  "history_id": "rust-rdkafka-independent-java-receipts",
+  "config": {
+    "acks": -1,
+    "idempotent": true,
+    "transactional": false,
+    "isolation_level": "read_committed",
+    "delivery": "partition"
+  },
+  "attempted": [
+    {
+      "attempt_index": 0,
+      "id": "0",
+      "key": "000000000000000003317bb4875fb038",
+      "offset": null,
+      "partition": 0,
+      "payload_hash": "e8c77d9ae461943e68500867e85520396afb8d27afc6b4d2f777801ddabd5cd7",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 1,
+      "id": "1",
+      "key": "00000000000000011cc152e47d174d3c",
+      "offset": null,
+      "partition": 1,
+      "payload_hash": "d6e24476a9c93b301902eba1c5fe95e708c374dfa08ee5d769199c3f69722547",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 2,
+      "id": "2",
+      "key": "0000000000000002ac4dd1641a6e5ca4",
+      "offset": null,
+      "partition": 2,
+      "payload_hash": "de6c741c1eb0bda94189386324b5d0081c76467843b94ecb4ad7d64ad3db9f15",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 3,
+      "id": "3",
+      "key": "00000000000000038c44e9ef30ca4931",
+      "offset": null,
+      "partition": 3,
+      "payload_hash": "e5936dc583467dcbdccc9d34f65f098e9ace466853679c9a87b48dc5076df8c3",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 4,
+      "id": "4",
+      "key": "00000000000000047060ff710df8d712",
+      "offset": null,
+      "partition": 4,
+      "payload_hash": "6e71e07d7a012deb4acd66c4950d5764cf5e8a5243921a17d15936485f6da2c0",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 5,
+      "id": "5",
+      "key": "0000000000000005c42ddc646a6fa046",
+      "offset": null,
+      "partition": 5,
+      "payload_hash": "7c6a3ee9a2512abcdd1b57195bbb22749e781dfb00131c05bb84f80bf39814c1",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 6,
+      "id": "6",
+      "key": "0000000000000006cf27ba36812e9a71",
+      "offset": null,
+      "partition": 0,
+      "payload_hash": "a993c94e6c3bd9e11760ee758a92f47e57a572675dbc8b16bedf1767a2c2a97a",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 7,
+      "id": "7",
+      "key": "0000000000000007a94418ed682c00b2",
+      "offset": null,
+      "partition": 1,
+      "payload_hash": "70a08b2581cdc45717316d267c23e30ee4d7f0ad668dbdbe2ad4cf11856f52fe",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 8,
+      "id": "8",
+      "key": "00000000000000087452de1fb7ddda7c",
+      "offset": null,
+      "partition": 2,
+      "payload_hash": "a88dfa1dcd12f50f2c1c9b5d1cbd1da6958b5dc8577eb5f6bb8871e4c7f0b1b7",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 9,
+      "id": "9",
+      "key": "00000000000000097fd64407ba263e35",
+      "offset": null,
+      "partition": 3,
+      "payload_hash": "9dace866a5a360dda16c7f2197811079765977491ef4e43559d3d9fb509f9f07",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 10,
+      "id": "10",
+      "key": "000000000000000aa49ee7da3cd014b2",
+      "offset": null,
+      "partition": 4,
+      "payload_hash": "b76b3fa83c1cf1ff1af7e2a9e6a69feed9f541fcc595ae13ad2d75490e2b33db",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 11,
+      "id": "11",
+      "key": "000000000000000b9d9175575fcc76c8",
+      "offset": null,
+      "partition": 5,
+      "payload_hash": "6d072285b7420fa96e46c2458d31fdafb517247a6afb2a3924ad1689c92dea15",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 12,
+      "id": "12",
+      "key": "000000000000000c8f20fd0604f50eec",
+      "offset": null,
+      "partition": 0,
+      "payload_hash": "621ab816162bb9e07a031cbc6b9b77ae5dc168b400f6a50d27efcbf1d81f492f",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 13,
+      "id": "13",
+      "key": "000000000000000d8949e484815e3448",
+      "offset": null,
+      "partition": 1,
+      "payload_hash": "3873aecdb312a001babc2eacd7a99dc680ee4ca6309e0fa7340cdbd0c31cac30",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 14,
+      "id": "14",
+      "key": "000000000000000e8831bd823a39abb3",
+      "offset": null,
+      "partition": 2,
+      "payload_hash": "b78ff8558f9ae29f7e4c639c420a2903a52e4acd9b301c1a916d14b6d7e2f9cd",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 15,
+      "id": "15",
+      "key": "000000000000000f3cf49751cbf23f77",
+      "offset": null,
+      "partition": 3,
+      "payload_hash": "bb1291b2387af171d4782e7cca276b0822018b94260868006aaf602e89d0c0a2",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 16,
+      "id": "16",
+      "key": "000000000000001006a6a48990578ecf",
+      "offset": null,
+      "partition": 4,
+      "payload_hash": "3dde3db489cc5213e4f163e81e9422e560435f3d9a74d894ec8dcf8a1b0e9e27",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 17,
+      "id": "17",
+      "key": "0000000000000011b11de1e166b5ef61",
+      "offset": null,
+      "partition": 5,
+      "payload_hash": "bcd875cd27db98864c97a25cc5a4323e1f09dfb3a1c1995b55d3f1b66f4d52a4",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 18,
+      "id": "18",
+      "key": "0000000000000012af2e30da9b1eb08a",
+      "offset": null,
+      "partition": 0,
+      "payload_hash": "2c992fdf352f1d5405c0ba033b7afdcbd61eaf8088cddf57cf059446edb1bec1",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 19,
+      "id": "19",
+      "key": "000000000000001379189d32076757a6",
+      "offset": null,
+      "partition": 1,
+      "payload_hash": "1673dc63edf78b77e0ce1764cec79ae1f834902f1a3ef3dd923f312235e4e0fd",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 20,
+      "id": "20",
+      "key": "00000000000000140df10896e3888852",
+      "offset": null,
+      "partition": 2,
+      "payload_hash": "bcf72a5defa358df49bee4d356a2d4fb2708d42f07d7a86284111c37c3f4f524",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 21,
+      "id": "21",
+      "key": "00000000000000150bc5be39ac853105",
+      "offset": null,
+      "partition": 3,
+      "payload_hash": "55d986b57c02eae2395c14b35e839dec14379a640857518d93553d4c9b8f1953",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 22,
+      "id": "22",
+      "key": "000000000000001655cc6a1ea8bf194a",
+      "offset": null,
+      "partition": 4,
+      "payload_hash": "b8fe21993e24760be17cf8cec798a989027f5052a6664eacc290ac7a07c04878",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 23,
+      "id": "23",
+      "key": "0000000000000017ef9d8f9408e71b58",
+      "offset": null,
+      "partition": 5,
+      "payload_hash": "cc07d1a77dbe36e7eeafb80c7006cc806a760cc8b07701b4129452144166e733",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 24,
+      "id": "24",
+      "key": "00000000000000189a8f4c83193b72dd",
+      "offset": null,
+      "partition": 0,
+      "payload_hash": "ea03fa94299f14830f4481051f3eee1209338eed8d5abdeda7b60f7701532294",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 25,
+      "id": "25",
+      "key": "000000000000001907ae51f2cbbdd138",
+      "offset": null,
+      "partition": 1,
+      "payload_hash": "52ef8602434f7bce6d45864610bc24cf262e1372f65d80cdcf9a53ec02cae093",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 26,
+      "id": "26",
+      "key": "000000000000001aba7c7c161358968f",
+      "offset": null,
+      "partition": 2,
+      "payload_hash": "bcef14ae96a8b2f83f07cadde089c9cbf0c6fc82d018b095bf44a75eb5fbadf3",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 27,
+      "id": "27",
+      "key": "000000000000001b0617d887f1e9cd75",
+      "offset": null,
+      "partition": 3,
+      "payload_hash": "91c9db75ff35ccb81ff596975a420ba44d1ac9e6509ddc00c79ee587227080b8",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 28,
+      "id": "28",
+      "key": "000000000000001cb5ee7c3152b831a8",
+      "offset": null,
+      "partition": 4,
+      "payload_hash": "7cec5d3efde8038c57c1269fae0bfe05b28de7d4d9ffb885ed72b2dcdc45370b",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 29,
+      "id": "29",
+      "key": "000000000000001df15ebc771c0846f8",
+      "offset": null,
+      "partition": 5,
+      "payload_hash": "e5f5d462f9ddbfcc03881cf1f1d815eba78077d8776445edae0eb09189482f56",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 30,
+      "id": "30",
+      "key": "000000000000001ee2f742d96db5faf6",
+      "offset": null,
+      "partition": 0,
+      "payload_hash": "6477f21c6ad4e3004274e1d79682541b0182003c87c9413050987eb7141f1587",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    },
+    {
+      "attempt_index": 31,
+      "id": "31",
+      "key": "000000000000001f163e15dbd8cc7455",
+      "offset": null,
+      "partition": 1,
+      "payload_hash": "cb3233fd238d109c8fdbdb44fc33cbe2bc877ef046461f94b317a5db75c7a8ef",
+      "status": "ambiguous",
+      "topic": "kl0405-dev-rejection-20261002a"
+    }
+  ],
+  "consumed": []
+}

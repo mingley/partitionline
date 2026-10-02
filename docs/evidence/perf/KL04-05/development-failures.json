@@ -1,0 +1,57 @@
+[
+  {
+    "attempt": "development/rust-peer-dev01",
+    "kind": "strict_clippy",
+    "detail": "Inherited core async-runtime disallowed blocking fs methods; independent synchronous benchmark clippy.toml fixed scope without changing core."
+  },
+  {
+    "attempt": "initial Python independent-history tests",
+    "kind": "test_harness",
+    "detail": "Generic shared history gate raises HistoryValidationError for empty consumed records; adapter now retains an invalid verdict rather than losing the result."
+  },
+  {
+    "attempt": "first scoped metadata editor",
+    "kind": "authoring_script",
+    "detail": "Editor addressed equal_semantics instead of frozen_knobs; assertion failed before file write. Retried with correct registry key, all frozen knobs independently compared."
+  },
+  {
+    "attempt": "development/rust-peer-msrv-dev01",
+    "kind": "strict_clippy",
+    "detail": "Rust 1.85 format_collect lint; formatter replaced by direct hex digit appends."
+  },
+  {
+    "attempt": "development/broker-startup-interrupted.log",
+    "kind": "environment_process",
+    "detail": "Background broker ended with its tool shell. Retained foreground session restart reused unchanged data; no resets."
+  },
+  {
+    "attempt": "development/smoke-01.json",
+    "kind": "independent_auditor_environment",
+    "detail": "All 256 broker acknowledgements occurred, but javac launcher absent. Failed filing and attempted history retained. Use installed jdk.compiler module via java; subsequent independent receipt smoke passed."
+  },
+  {
+    "attempt": "development/unsupported-01.json and frozen-not-run-01.json",
+    "kind": "json_schema",
+    "detail": "Zero steady-state duration violates schema exclusive minimum. Metadata-only filing now records actual filing wall duration with measured_phase_present=false; no steady workload or positive throughput is asserted."
+  },
+  {
+    "attempt": "candidate source verification first two runs",
+    "kind": "evidence_script_literals",
+    "detail": "Assertions used presentation shorthand transactional_id: None/acks: -1 and partition_max_bytes, rather than actual NullableString(None)/Int16(-1) and PartitionFetchRequest.max_bytes tokens. Archive/member hashes already matched; assertions corrected to pinned source literals."
+  },
+  {
+    "attempt": "final source 18194a1a",
+    "kind": "registry_metadata_mismatch",
+    "detail": "All Rust/Python/live behavioral gates passed, but named required not_run was hardcoded exploratory and RTT defaulted 0 instead of frozen 0.1. Exact results preserved in final/; refined adapter validates caller TIER and named invocation supplies required tier/RTT."
+  },
+  {
+    "attempt": "source 18194a1a and 9c6a9b35 README/scoped unsupported reason",
+    "kind": "incorrect_inherited_native_capability_claim",
+    "detail": "Inherited assertion that pinned C 2.15.0 lacked KIP-932 was false. Exact source header/CHANGELOG and installed 28 share API symbols prove preview native support. Corrected README/registry and both-lane metadata filings at 6b4d3306; retained original artifacts are superseded only for this reason. Current pinned Rust wrapper/sys and both driver share lifecycles remain absent, and Kafka 3.9.1 fixture remains ineligible. No share behavior was exercised."
+  },
+  {
+    "attempt": "broker rejection/acks-zero/corrupt history/invalid config/library shadow controls",
+    "kind": "expected_adversarial_results",
+    "detail": "These are deliberate retained nonzero results; they remain failures or unsupported, never substituted with successful scores."
+  }
+]

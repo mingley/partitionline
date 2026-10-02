@@ -1,0 +1,495 @@
+{
+  "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+  "tested_base_sha": "e054ce0cdcc68a46e9688ca56f2698d45de6595e",
+  "core_lock_byte_identical": true,
+  "core_graph_sections_identical": true,
+  "core_workspace_members": [
+    "path+file:///workspace/work/rust-peer-source-6b4d3306#partitionline@0.1.0"
+  ],
+  "peer_workspace_members": [
+    "path+file:///workspace/work/rust-peer-source-6b4d3306/benchmarks/peers/rust#partitionline-rust-rdkafka-peer@0.1.0"
+  ],
+  "core_native_kafka_dependencies": [],
+  "peer_resolved_package_count": 44,
+  "peer_packages": [
+    {
+      "name": "block-buffer",
+      "version": "0.10.4",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": null,
+      "features": [],
+      "registry_checksum": "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
+    },
+    {
+      "name": "cfg-if",
+      "version": "1.0.5",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.32",
+      "features": [],
+      "registry_checksum": "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
+    },
+    {
+      "name": "cpufeatures",
+      "version": "0.2.17",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": null,
+      "features": [],
+      "registry_checksum": "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280"
+    },
+    {
+      "name": "crypto-common",
+      "version": "0.1.7",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": null,
+      "features": [
+        "std"
+      ],
+      "registry_checksum": "78c8292055d1c1df0cce5d180393dc8cce0abec0a7102adb6c7b1eef6016d60a"
+    },
+    {
+      "name": "digest",
+      "version": "0.10.7",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": null,
+      "features": [
+        "alloc",
+        "block-buffer",
+        "core-api",
+        "default",
+        "std"
+      ],
+      "registry_checksum": "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
+    },
+    {
+      "name": "equivalent",
+      "version": "1.0.2",
+      "license": "Apache-2.0 OR MIT",
+      "declared_msrv": "1.6",
+      "features": [],
+      "registry_checksum": "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
+    },
+    {
+      "name": "futures-channel",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.71",
+      "features": [
+        "alloc",
+        "default",
+        "std"
+      ],
+      "registry_checksum": "b1f9e3d69d39e4862ffed03ed071a76f9a13ba1d9109d355b0f0aa6b15e393c4"
+    },
+    {
+      "name": "futures-core",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.36",
+      "features": [
+        "alloc",
+        "std"
+      ],
+      "registry_checksum": "92d699e522242e69e3003b94ecc1f960f3a5e015aa7c5d7486e65ad01dd94f5e"
+    },
+    {
+      "name": "futures-executor",
+      "version": "0.3.31",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.56",
+      "features": [
+        "default",
+        "std"
+      ],
+      "registry_checksum": "1e28d1d997f585e54aebc3f97d39e72338912123a67330d723fdbb564d646c9f"
+    },
+    {
+      "name": "futures-task",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.71",
+      "features": [
+        "alloc",
+        "std"
+      ],
+      "registry_checksum": "cd417de3d1d015fc3bfd2b1ea46dfc7bab72ef86f1cc7cc9c78e728b34a6d1fd"
+    },
+    {
+      "name": "futures-util",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.71",
+      "features": [
+        "alloc",
+        "slab",
+        "std"
+      ],
+      "registry_checksum": "0d50a92467f8ba5dd6e3ee5d4bd04d73ab2e4e1c44474a0674821dfce14b79bc"
+    },
+    {
+      "name": "generic-array",
+      "version": "0.14.7",
+      "license": "MIT",
+      "declared_msrv": null,
+      "features": [
+        "more_lengths"
+      ],
+      "registry_checksum": "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
+    },
+    {
+      "name": "hashbrown",
+      "version": "0.17.1",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.85.0",
+      "features": [],
+      "registry_checksum": "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+    },
+    {
+      "name": "indexmap",
+      "version": "2.14.2",
+      "license": "Apache-2.0 OR MIT",
+      "declared_msrv": "1.85",
+      "features": [
+        "default",
+        "std"
+      ],
+      "registry_checksum": "cc4e190f5d26ca7051642629da2c52fc03bde85a03197c99408dcd291734c855"
+    },
+    {
+      "name": "itoa",
+      "version": "1.0.18",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.68",
+      "features": [],
+      "registry_checksum": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+    },
+    {
+      "name": "libc",
+      "version": "0.2.190",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.65",
+      "features": [
+        "default",
+        "std"
+      ],
+      "registry_checksum": "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78"
+    },
+    {
+      "name": "log",
+      "version": "0.4.34",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.71.0",
+      "features": [],
+      "registry_checksum": "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+    },
+    {
+      "name": "memchr",
+      "version": "2.8.3",
+      "license": "Unlicense OR MIT",
+      "declared_msrv": "1.61",
+      "features": [
+        "alloc",
+        "std"
+      ],
+      "registry_checksum": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+    },
+    {
+      "name": "num_enum",
+      "version": "0.7.6",
+      "license": "BSD-3-Clause OR MIT OR Apache-2.0",
+      "declared_msrv": "1.70.0",
+      "features": [
+        "default",
+        "std"
+      ],
+      "registry_checksum": "5d0bca838442ec211fa11de3a8b0e0e8f3a4522575b5c4c06ed722e005036f26"
+    },
+    {
+      "name": "num_enum_derive",
+      "version": "0.7.6",
+      "license": "BSD-3-Clause OR MIT OR Apache-2.0",
+      "declared_msrv": "1.70.0",
+      "features": [
+        "proc-macro-crate",
+        "std"
+      ],
+      "registry_checksum": "680998035259dcfcafe653688bf2aa6d3e2dc05e98be6ab46afb089dc84f1df8"
+    },
+    {
+      "name": "partitionline-rust-rdkafka-peer",
+      "version": "0.1.0",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.85",
+      "features": [],
+      "registry_checksum": null
+    },
+    {
+      "name": "pin-project-lite",
+      "version": "0.2.17",
+      "license": "Apache-2.0 OR MIT",
+      "declared_msrv": "1.37",
+      "features": [],
+      "registry_checksum": "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
+    },
+    {
+      "name": "pkg-config",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.63",
+      "features": [],
+      "registry_checksum": "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
+    },
+    {
+      "name": "proc-macro-crate",
+      "version": "3.5.0",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.82.0",
+      "features": [],
+      "registry_checksum": "e67ba7e9b2b56446f1d419b1d807906278ffa1a658a8a5d8a39dcb1f5a78614f"
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0.107",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.71",
+      "features": [
+        "default",
+        "proc-macro"
+      ],
+      "registry_checksum": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
+    },
+    {
+      "name": "quote",
+      "version": "1.0.47",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.71",
+      "features": [
+        "default",
+        "proc-macro"
+      ],
+      "registry_checksum": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
+    },
+    {
+      "name": "rdkafka",
+      "version": "0.39.0",
+      "license": "MIT",
+      "declared_msrv": "1.74",
+      "features": [
+        "dynamic-linking"
+      ],
+      "registry_checksum": "d7956f9ac12b5712e50372d9749a3102f4810a8d42481c5eae3748d36d585bcf"
+    },
+    {
+      "name": "rdkafka-sys",
+      "version": "4.10.0+2.12.1",
+      "license": "MIT",
+      "declared_msrv": "1.74",
+      "features": [
+        "dynamic-linking"
+      ],
+      "registry_checksum": "e234cf318915c1059d4921ef7f75616b5219b10b46e9f3a511a15eb4b56a3f77"
+    },
+    {
+      "name": "rustversion",
+      "version": "1.0.23",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.31",
+      "features": [],
+      "registry_checksum": "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
+    },
+    {
+      "name": "serde",
+      "version": "1.0.228",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.56",
+      "features": [
+        "default",
+        "derive",
+        "serde_derive",
+        "std"
+      ],
+      "registry_checksum": "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
+    },
+    {
+      "name": "serde_core",
+      "version": "1.0.228",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.56",
+      "features": [
+        "alloc",
+        "result",
+        "std"
+      ],
+      "registry_checksum": "41d385c7d4ca58e59fc732af25c3983b67ac852c1a25000afe1175de458b67ad"
+    },
+    {
+      "name": "serde_derive",
+      "version": "1.0.228",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.61",
+      "features": [
+        "default"
+      ],
+      "registry_checksum": "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
+    },
+    {
+      "name": "serde_json",
+      "version": "1.0.149",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.68",
+      "features": [
+        "default",
+        "std"
+      ],
+      "registry_checksum": "83fc039473c5595ace860d8c4fafa220ff474b3fc6bfdb4293327f1a37e94d86"
+    },
+    {
+      "name": "sha2",
+      "version": "0.10.9",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": null,
+      "features": [
+        "default",
+        "std"
+      ],
+      "registry_checksum": "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
+    },
+    {
+      "name": "slab",
+      "version": "0.4.12",
+      "license": "MIT",
+      "declared_msrv": "1.51",
+      "features": [
+        "default",
+        "std"
+      ],
+      "registry_checksum": "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
+    },
+    {
+      "name": "syn",
+      "version": "2.0.119",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.71",
+      "features": [
+        "clone-impls",
+        "default",
+        "derive",
+        "extra-traits",
+        "parsing",
+        "printing",
+        "proc-macro"
+      ],
+      "registry_checksum": "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297"
+    },
+    {
+      "name": "toml_datetime",
+      "version": "1.1.1+spec-1.1.0",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.85",
+      "features": [
+        "alloc",
+        "default",
+        "std"
+      ],
+      "registry_checksum": "3165f65f62e28e0115a00b2ebdd37eb6f3b641855f9d636d3cd4103767159ad7"
+    },
+    {
+      "name": "toml_edit",
+      "version": "0.25.15+spec-1.1.0",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.85",
+      "features": [
+        "parse"
+      ],
+      "registry_checksum": "1340ea94a5856333492c9064b02c778b191dd2c853778d9609debdcdfea3a614"
+    },
+    {
+      "name": "toml_parser",
+      "version": "1.1.3+spec-1.1.0",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.85",
+      "features": [
+        "alloc",
+        "default",
+        "std"
+      ],
+      "registry_checksum": "1d38ac1cf9b95face32296c0a3ede1fdc270627c9d9c02a7274dd6d960dc4d56"
+    },
+    {
+      "name": "typenum",
+      "version": "1.20.1",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.41.0",
+      "features": [],
+      "registry_checksum": "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
+    },
+    {
+      "name": "unicode-ident",
+      "version": "1.0.26",
+      "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "declared_msrv": "1.71",
+      "features": [],
+      "registry_checksum": "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
+    },
+    {
+      "name": "version_check",
+      "version": "0.9.5",
+      "license": "MIT/Apache-2.0",
+      "declared_msrv": null,
+      "features": [],
+      "registry_checksum": "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+    },
+    {
+      "name": "winnow",
+      "version": "1.0.4",
+      "license": "MIT",
+      "declared_msrv": "1.65.0",
+      "features": [
+        "alloc",
+        "ascii",
+        "binary",
+        "default",
+        "parser",
+        "std"
+      ],
+      "registry_checksum": "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
+    },
+    {
+      "name": "zmij",
+      "version": "1.0.23",
+      "license": "MIT",
+      "declared_msrv": "1.71",
+      "features": [],
+      "registry_checksum": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+    }
+  ],
+  "native_library_note": "C 2.15.0 / OpenSSL / zlib / zstd are external benchmark-only native installation dependencies, not Cargo core dependencies; binding header baseline remains 2.12.1",
+  "frozen_profiles_unchanged": true,
+  "frozen_named_knobs_unchanged": true,
+  "existing_peer_configurations_unchanged": true,
+  "source_sha256": {
+    "benchmarks/peers/rust/.gitignore": "f2d790e37f2593b5789295d976510d759b73a8959a3b347dfd9a4e81c102151d",
+    "benchmarks/peers/rust/Cargo.lock": "f3aa51f847987c5b169eb3fa5cec7dfe3444e976364a101a2f4f70574d07fa01",
+    "benchmarks/peers/rust/Cargo.toml": "fd62b4d5ad0f88b2083b78e90679ae00201d31bf7e5bb6ead805fb3774fe2cfa",
+    "benchmarks/peers/rust/README.md": "869776441a301ebbaed502f37493e27f244388da35064b2771f1fd2415ba31cb",
+    "benchmarks/peers/rust/ReceiptAudit.java": "db9d056983a7da7eda9b764014a2a3cfc722448f502c681471358d6339bb06ea",
+    "benchmarks/peers/rust/audit.py": "65f2eb86192864b77d04a73f1e0797543662d188e18f3d5e975897d587c167f1",
+    "benchmarks/peers/rust/build.py": "e91c71fb8b426ab1d54f804c87ad6d8d9032fcf5539c7155a3b5b519f882a5c2",
+    "benchmarks/peers/rust/clippy.toml": "0f44de0a84e4f40cfdeb6982cfd4de96c23c1d7fa795384db2628657a0465c7f",
+    "benchmarks/peers/rust/pure-rust-candidates.json": "20e2ff18e613bc9d4012b2544a1f848a79daab37bdb6dce510699d35ba83e869",
+    "benchmarks/peers/rust/run.py": "ce8ade1d36626af901c4e62486480a65d0238d1d613e4d1f8fa03368c76c13ab",
+    "benchmarks/peers/rust/source-pin.json": "b504589e30bd2f307aa189e733e81b21f3f97066885274105c3cd3b5c371ed4e",
+    "benchmarks/peers/rust/src/config.rs": "14cb47f3029e7f759c8945c90973306f46f6185bc23bee024e96d360d2e591bf",
+    "benchmarks/peers/rust/src/lib.rs": "2c436a49b51f2a81e4eaf2b1dcfdcf98dccf798591b597666d0f7e0405a4ab24",
+    "benchmarks/peers/rust/src/main.rs": "c4065a3b6b07d1031ebc8c55dfc7ad1221faa9735e1f24dd2e0d1c08e109f29e",
+    "benchmarks/peers/rust/src/native.rs": "7091a241fe9701f1ef917b724b427201b01d99b1a7e6aade47cbf3020b9d32d4",
+    "benchmarks/peers/rust/src/records.rs": "ae95702adb0c5f0ec26e2393b15804d2e1670e008c2f7ffea01f661e5f1bee89",
+    "benchmarks/peers/rust/test_adapter.py": "3b3c0bf41148532ab62da78cd50663c6b2f824cfb5a0c83e5919e0c15932cd81",
+    "benchmarks/peers/rust/tests/config.rs": "9e35613d9ca683e0c5463537d026ac6a17d898a4e4b2c728442c6bace7e27f33",
+    "Cargo.toml": "b07fc38a514ab0e14954ff1261701b6a878e35ae7d9b91b081a19e14704d3c13",
+    "Cargo.lock": "d35e6ba903c4f8b811997d06b9edf4e3612c3636dede83d07dda86570eddbca9",
+    "benchmarks/scenarios.json": "ff713ee3767f38264c2e75f08b48c8151ba22f58c6ba89d8f27c8754d2cee598",
+    "benchmarks/result-schema.json": "faae8686985df634986226c7aa1e9811ff14fc189d5a53b682f7d6aa7a304111",
+    "benchmarks/peers/librdkafka/run.py": "836a34d0c66d770d13fc256a155b5c025f1a8755f56ca089f98e1c32a7b20da6",
+    "scripts/check-record-history.py": "539a379a4fa605f578b60f3686a22a1bf92d1cd67645b99d4e0a27ea247a03fe"
+  }
+}

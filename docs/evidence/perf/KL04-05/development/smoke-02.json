@@ -1,0 +1,484 @@
+{
+  "schema_version": "1.0.0",
+  "contract_version": "1.1.0",
+  "suite_hold": {
+    "status": "active",
+    "policy": "Unsigned adapter samples do not lift Suite HOLD",
+    "note": "No comparison, qualification, or performance claim"
+  },
+  "scenario": {
+    "scenario_id": "rust-rdkafka-matched-settings-integrity-smoke",
+    "profile": "bulk",
+    "tier": "exploratory",
+    "peer": "peer-adapter",
+    "cell_disposition": "executed",
+    "equal_semantics": {
+      "durability": {
+        "replication_factor": 1,
+        "min_insync_replicas": 1
+      },
+      "acks": -1,
+      "idempotence": true,
+      "isolation": "read_committed",
+      "security": {
+        "protocol": "PLAINTEXT",
+        "mechanism": "NONE"
+      },
+      "note": ""
+    }
+  },
+  "provenance": {
+    "source": {
+      "git_commit": "e56dbd7229eef67eed47173d7f8c8034b18accb9",
+      "git_branch": "main",
+      "repo_url": "https://github.com/mingley/partitionline",
+      "clean": false,
+      "tree_hash": "3c822c2390b6ae95ef61af4b6d4d2bfec9e96666",
+      "peer": "rust-rdkafka",
+      "wrapper_pin": {
+        "crate": "rdkafka",
+        "version": "0.39.0",
+        "license": "MIT",
+        "msrv": "1.74",
+        "repository": "https://github.com/fede1024/rust-rdkafka",
+        "git_commit": "598ac4ba1f714852bdf4e5685fe10cf5a66e947c",
+        "crate_archive_sha256": "d7956f9ac12b5712e50372d9749a3102f4810a8d42481c5eae3748d36d585bcf"
+      },
+      "binding_pin": {
+        "crate": "rdkafka-sys",
+        "version": "4.10.0+2.12.1",
+        "header_version": "2.12.1",
+        "license": "MIT",
+        "msrv": "1.74",
+        "link_mode": "dynamic-linking",
+        "git_commit": "47a17d8de72b8bfa89589a84a4a0c600c54df1e0",
+        "crate_archive_sha256": "e234cf318915c1059d4921ef7f75616b5219b10b46e9f3a511a15eb4b56a3f77"
+      },
+      "native_pin": {
+        "repository": "https://github.com/confluentinc/librdkafka.git",
+        "tag": "v2.15.0",
+        "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+        "version": "2.15.0",
+        "tree": "429a83d1ba5350c0846aeaee4efe821b463f6b85",
+        "build_card": "KL04-03",
+        "pin_file": "../librdkafka/source-pin.json"
+      },
+      "source_sha256": {
+        "Cargo.lock": "f3aa51f847987c5b169eb3fa5cec7dfe3444e976364a101a2f4f70574d07fa01",
+        "Cargo.toml": "fd62b4d5ad0f88b2083b78e90679ae00201d31bf7e5bb6ead805fb3774fe2cfa",
+        "README.md": "2550e36082e4fecd3753865fde15c884232ef893cfa56656a9ef27c0c3f7349d",
+        "ReceiptAudit.java": "db9d056983a7da7eda9b764014a2a3cfc722448f502c681471358d6339bb06ea",
+        "audit.py": "65f2eb86192864b77d04a73f1e0797543662d188e18f3d5e975897d587c167f1",
+        "build.py": "e91c71fb8b426ab1d54f804c87ad6d8d9032fcf5539c7155a3b5b519f882a5c2",
+        "clippy.toml": "0f44de0a84e4f40cfdeb6982cfd4de96c23c1d7fa795384db2628657a0465c7f",
+        "pure-rust-candidates.json": "20e2ff18e613bc9d4012b2544a1f848a79daab37bdb6dce510699d35ba83e869",
+        "run.py": "1c0d41e5dad65a337a7e5b6305942210bd30d4af15336dd3d4847103c877ad11",
+        "source-pin.json": "b504589e30bd2f307aa189e733e81b21f3f97066885274105c3cd3b5c371ed4e",
+        "src/config.rs": "14cb47f3029e7f759c8945c90973306f46f6185bc23bee024e96d360d2e591bf",
+        "src/lib.rs": "2c436a49b51f2a81e4eaf2b1dcfdcf98dccf798591b597666d0f7e0405a4ab24",
+        "src/main.rs": "c4065a3b6b07d1031ebc8c55dfc7ad1221faa9735e1f24dd2e0d1c08e109f29e",
+        "src/native.rs": "7091a241fe9701f1ef917b724b427201b01d99b1a7e6aade47cbf3020b9d32d4",
+        "src/records.rs": "ae95702adb0c5f0ec26e2393b15804d2e1670e008c2f7ffea01f661e5f1bee89",
+        "test_adapter.py": "3b3c0bf41148532ab62da78cd50663c6b2f824cfb5a0c83e5919e0c15932cd81",
+        "tests/config.rs": "9e35613d9ca683e0c5463537d026ac6a17d898a4e4b2c728442c6bace7e27f33"
+      },
+      "note": "Standalone native wrapper; its instrumentation/API cost belongs to this bar, never the C-only bar"
+    },
+    "binary": {
+      "name": "rust-rdkafka-BaseProducer-peer",
+      "path": "/workspace/work/rust-peer-dev07/rust-peer",
+      "sha256": "03380e9562ace59ae17df26d59625c0f1f80ed0df2f59e69871726beeb63c75b"
+    },
+    "config": {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.effective-config.json",
+      "sha256": "229f2e8774baa6e16a5c5a3f2f12ba904e8f152478824cfcf727394d63a4decc",
+      "effective_settings": {
+        "bootstrap": "127.0.0.1:19094",
+        "topic": "kl0405-dev-smoke-20261002a",
+        "count": 256,
+        "warmup": 32,
+        "payload_bytes": 100,
+        "partitions": 6,
+        "acks": -1,
+        "linger_ms": 5.0,
+        "batch_size_bytes": 1048576,
+        "batch_num_messages": 32768,
+        "max_in_flight": 5,
+        "queue_max_messages": 1000000,
+        "queue_max_kbytes": 32768,
+        "delivery_timeout_ms": 30000,
+        "flush_timeout_ms": 35000,
+        "run_timeout_ms": 120000,
+        "consume_timeout_ms": 30000,
+        "record_seed": 1592590337,
+        "latency_samples": 1000000000,
+        "idempotence": true,
+        "compression": "none",
+        "isolation_level": "read_committed",
+        "payload_mode": "seeded",
+        "key_mode": "id",
+        "sasl_mechanism": "",
+        "has_sasl_credentials": false,
+        "has_custom_ca": false,
+        "has_client_identity": false,
+        "security_protocol": "PLAINTEXT",
+        "partitioner": "explicit_round_robin",
+        "connections_per_broker": 1,
+        "socket_nagle_disable": true,
+        "delivery_definition": "successful delivery callback with acks!=0; enqueue never acknowledged",
+        "record_id_definition": "key=be64(index)||be64(splitmix64(seed^index)); splitmix64 value stream",
+        "unsupported": [
+          "open-loop latency",
+          "transactions",
+          "groups/share",
+          "OAuth/OIDC refresh",
+          "GSSAPI"
+        ],
+        "librdkafka_effective": {
+          "batch.num.messages": "32768",
+          "batch.size": "1048576",
+          "client.id": "rust-rdkafka-comparison-peer",
+          "compression.codec": "none",
+          "enable.idempotence": "true",
+          "max.in.flight.requests.per.connection": "5",
+          "message.timeout.ms": "30000",
+          "partitioner": "consistent_random",
+          "queue.buffering.max.kbytes": "32768",
+          "queue.buffering.max.messages": "1000000",
+          "queue.buffering.max.ms": "5",
+          "request.required.acks": "-1",
+          "retries": "2147483647",
+          "security.protocol": "plaintext",
+          "socket.nagle.disable": "true",
+          "sticky.partitioning.linger.ms": "0"
+        }
+      }
+    },
+    "toolchains": {
+      "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "runtime": "rust-rdkafka 0.39.0 / actual librdkafka 2.15.0 / binding headers 2.12.1",
+      "build_tool": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "native_runtime": {
+        "binding_header_version": "2.12.1",
+        "binding_version": "4.10.0+2.12.1",
+        "loaded_library_path": "/workspace/work/rust-peer-dev07/lib/librdkafka.so.1",
+        "loaded_library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+        "native_version": "2.15.0",
+        "native_version_number": 34537727,
+        "wrapper_version": "0.39.0"
+      }
+    },
+    "broker": {
+      "image": "apache-kafka-3.9.1-distribution",
+      "version": "3.9.1",
+      "mode": "kraft",
+      "cluster_id": "byI-r4nKR9OzNDjnf3ZoGg",
+      "node_count": 1,
+      "endpoints": [
+        "127.0.0.1:19094"
+      ],
+      "identity_note": "Distribution identity supplied by operator; metadata/cluster/RF/minISR queried before timed phase"
+    },
+    "host": {
+      "hostname": "sanitized-local-host",
+      "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+      "os_family": "linux",
+      "kernel_version": "6.18.44",
+      "arch": "x86_64",
+      "cpu": {
+        "model": "AMD EPYC 9V74 80-Core Processor",
+        "physical_cores": 5,
+        "logical_cores": 5,
+        "frequency_mhz": 2596.15
+      },
+      "memory": {
+        "total_bytes": 18882699264,
+        "unit": "bytes"
+      }
+    },
+    "topology": {
+      "environment": "loopback",
+      "rtt_ms": 0.0,
+      "rtt_unit": "milliseconds",
+      "client_nodes": 1,
+      "broker_nodes": 1,
+      "network_interface": "lo",
+      "rtt_note": "Unmeasured unless RTT_MS supplied; process affinity recorded externally"
+    },
+    "timestamps": {
+      "start_time_utc": "2026-10-02T20:53:25.485387Z",
+      "end_time_utc": "2026-10-02T20:53:28.023649Z",
+      "duration_seconds": 2.538262,
+      "duration_unit": "seconds"
+    },
+    "seeds": {
+      "payload_seed": "0x5eed0001",
+      "key_seed": "0x5eed0001",
+      "partition_seed": "explicit index modulo partitions",
+      "repetition_seed": "0x5EED0004"
+    },
+    "artifacts": [
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.input-config.json",
+        "type": "input",
+        "sha256": "5de6f12683d239d5c2a764e13f10fe59243af5aecfd34b3950efe4e9acaca32e",
+        "size_bytes": 1229
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.effective-config.json",
+        "type": "config",
+        "sha256": "229f2e8774baa6e16a5c5a3f2f12ba904e8f152478824cfcf727394d63a4decc",
+        "size_bytes": 1873
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.raw.json",
+        "type": "raw",
+        "sha256": "2a68fa6f42d334e35308e1a3ba8760a60c38c75d07d6c6bb487deaf7e8bb800c",
+        "size_bytes": 2919
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.producer-raw.json",
+        "type": "producer_raw",
+        "sha256": "10d4023eb366b91b35286eef1e1aaf96bb58ac605a1b8c4bcdb57da671a1554f",
+        "size_bytes": 2076
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.samples.csv",
+        "type": "samples",
+        "sha256": "9a9ab9cb9d2f368f462be6d9d2307ddac13e7ae6ca5a380bccaf3d7371ec87f1",
+        "size_bytes": 3368
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.stderr.log",
+        "type": "stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.build-manifest.json",
+        "type": "build",
+        "sha256": "d915d34f158b22f5e424c7f9cc2f402b8d7982f7160b1c30bbd0ff9ff1a657ed",
+        "size_bytes": 3531
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.attempts.jsonl",
+        "type": "attempts",
+        "sha256": "0fcdef3779a703771349f77d9ba0b2ce20240417fdebb7e927367cf240bb0a64",
+        "size_bytes": 60196
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.receipts.jsonl",
+        "type": "receipts",
+        "sha256": "2b82968b30bb8d5b688a2ff6d0f5f169cba5330284a938c1c3c2da20f8bc40d8",
+        "size_bytes": 71680
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.fences.tsv",
+        "type": "fences",
+        "sha256": "8448d0fd37cf333e68242fe331e16f1427510feaa8f2d6a1b88116c0fd291c90",
+        "size_bytes": 48
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.audit.log",
+        "type": "audit_log",
+        "sha256": "0ae17c8bbfb152917d22058f3cba523dcf36253bff22b15c6baefa984971a5c2",
+        "size_bytes": 272
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.auditor.json",
+        "type": "auditor",
+        "sha256": "9fcded9100821338c9846936879975bb8f06259e169c87b3083a0b6eded028bc",
+        "size_bytes": 1150
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.history.json",
+        "type": "history",
+        "sha256": "f9ddc530bb3435edaeee8222adcf77a9e5f4a3357f08b35b40303f9607d4b8c9",
+        "size_bytes": 145080
+      },
+      {
+        "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.history-verdict.json",
+        "type": "verdict",
+        "sha256": "1d1b9927883935e818ff3a1a8404bcf4ef8a0c44e3a743b573db6f2cb93a916c",
+        "size_bytes": 508
+      }
+    ]
+  },
+  "execution": {
+    "phase": "steady_state",
+    "warmup_completed": true,
+    "warmup_records": 32,
+    "warmup_duration_seconds": 0.10007789,
+    "steady_state_duration_seconds": 0.100279733,
+    "repetition_index": 1,
+    "total_repetitions": 1,
+    "pairing_order": "standalone adapter validation",
+    "coordinated_omission_avoidance": {
+      "enabled": false,
+      "schedule_type": "closed_loop"
+    },
+    "contract_sample_floors_met": false,
+    "note": "Exploratory correctness smoke; independent Java receipt audit is outside producer timing; no frozen campaign executed"
+  },
+  "outcomes": {
+    "offered": 256,
+    "accepted": 256,
+    "acknowledged": 256,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0,
+    "consumed": 256
+  },
+  "measurements": {
+    "throughput": {
+      "records_per_second": 2552.858811460936,
+      "records_per_second_unit": "records/s",
+      "megabytes_per_second": 0.2552858811460936,
+      "megabytes_per_second_unit": "MB/s",
+      "total_bytes_transferred": 25600,
+      "total_bytes_unit": "bytes",
+      "mb_definition": "1 MB=1000000 value bytes; keys/protocol excluded"
+    },
+    "latency": {
+      "sample_count": 256,
+      "unit": "microseconds",
+      "p50": 14830.504,
+      "p90": 14999.517,
+      "p95": 15025.045,
+      "p99": 15058.746,
+      "p99_9": 15070.273,
+      "min": 6920.205,
+      "max": 15070.273,
+      "mean": 11614.940324218749,
+      "stddev": 3416.234396410647,
+      "confidence_interval_95": {
+        "lower": 15039.267,
+        "upper": 15070.273,
+        "unit": "microseconds",
+        "method": "200 fixed-seed bootstrap p99 resamples; population capped at 10000"
+      },
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "min_us": 4096,
+            "max_us": 8192,
+            "count": 43
+          },
+          {
+            "min_us": 8192,
+            "max_us": 16384,
+            "count": 213
+          }
+        ]
+      },
+      "definition": "First LATENCY_SAMPLES IDs sampled; queue attempt to successful delivery callback, includes local backpressure; closed-loop diagnostic, no open-loop latency claim"
+    },
+    "client_resources": {
+      "cpu_utilization_pct": 7.582833979555868,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 0.01158,
+      "system_cpu_seconds": 0.019398,
+      "cpu_seconds_unit": "seconds",
+      "allocations": {
+        "total_allocated_bytes": 0,
+        "allocation_count": 0,
+        "unit": "bytes",
+        "note": "Uninstrumented"
+      },
+      "rss": {
+        "peak_rss_bytes": 29728768,
+        "average_rss_bytes": 0,
+        "unit": "bytes",
+        "note": "Producer child wait4 peak; average unmeasured"
+      },
+      "threads_count": 4,
+      "threads_note": "Producer procfs snapshot; CPU/RSS include warmup, native hash/inspection and producer history hashing/I/O; CPU denominator is producer child lifetime, excludes Java audit; no isolated steady-state efficiency claim"
+    },
+    "broker_resources": {
+      "cpu_utilization_pct": 0,
+      "cpu_unit": "percent",
+      "peak_rss_bytes": 0,
+      "rss_unit": "bytes",
+      "disk_write_bytes": 0,
+      "disk_write_unit": "bytes",
+      "note": "Unmeasured"
+    },
+    "errors": [],
+    "callback_failures": 0,
+    "warmup_callback_failures": 0,
+    "queue_full_retries": 0
+  },
+  "integrity": {
+    "verified": true,
+    "record_ids": {
+      "start_id": 0,
+      "end_id": 255,
+      "expected_count": 256,
+      "verified_count": 256,
+      "missing_ids_count": 0,
+      "duplicate_ids_count": 0,
+      "checksum_algorithm": "Independent exact deterministic bytes plus SHA256 and shared history gate",
+      "payload_checksum_matches": true
+    },
+    "high_watermark_audit": {
+      "partitions": [
+        {
+          "end_offset": 98,
+          "offset_delta": 43,
+          "partition": 0,
+          "start_offset": 55
+        },
+        {
+          "end_offset": 98,
+          "offset_delta": 43,
+          "partition": 1,
+          "start_offset": 55
+        },
+        {
+          "end_offset": 96,
+          "offset_delta": 43,
+          "partition": 2,
+          "start_offset": 53
+        },
+        {
+          "end_offset": 96,
+          "offset_delta": 43,
+          "partition": 3,
+          "start_offset": 53
+        },
+        {
+          "end_offset": 94,
+          "offset_delta": 42,
+          "partition": 4,
+          "start_offset": 52
+        },
+        {
+          "end_offset": 94,
+          "offset_delta": 42,
+          "partition": 5,
+          "start_offset": 52
+        }
+      ],
+      "total_offset_delta": 256,
+      "matches_acknowledged": true
+    },
+    "idempotence_sequence_verified": false,
+    "integrity_failure": false
+  },
+  "repetition_history": {
+    "total_attempts": 1,
+    "failed_attempts": 0,
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "repetition_index": 1,
+        "status": "passed_measurement",
+        "integrity_failure": false,
+        "error_message": null,
+        "timestamp_utc": "2026-10-02T20:53:28.023649Z",
+        "broker_workload_attempted": true
+      }
+    ]
+  }
+}

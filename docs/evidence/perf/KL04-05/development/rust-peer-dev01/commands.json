@@ -1,0 +1,56 @@
+[
+  {
+    "command": [
+      "cargo",
+      "+stable",
+      "build",
+      "--locked",
+      "--release",
+      "--manifest-path",
+      "/workspace/partitionline/benchmarks/peers/rust/Cargo.toml"
+    ],
+    "exit_code": 0,
+    "log": "command-00.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "/workspace/partitionline/benchmarks/peers/rust/Cargo.toml"
+    ],
+    "exit_code": 0,
+    "log": "command-01.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "+stable",
+      "fmt",
+      "--manifest-path",
+      "/workspace/partitionline/benchmarks/peers/rust/Cargo.toml",
+      "--",
+      "--check"
+    ],
+    "exit_code": 0,
+    "log": "command-02.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "--locked",
+      "--manifest-path",
+      "/workspace/partitionline/benchmarks/peers/rust/Cargo.toml",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 101,
+    "log": "command-03.log"
+  }
+]

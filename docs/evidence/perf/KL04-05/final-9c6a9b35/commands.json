@@ -1,0 +1,581 @@
+[
+  {
+    "name": "stable-package-clean",
+    "command": [
+      "cargo",
+      "+stable",
+      "clean",
+      "--manifest-path",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/Cargo.toml",
+      "--target-dir",
+      "/workspace/work/target-rust-peer",
+      "-p",
+      "partitionline-rust-rdkafka-peer"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "stable-package-clean.log",
+    "log_sha256": "1f5d163ea8923407edfd4cf5e4e5b838af8c58fedfe520f32472907a7622b67a"
+  },
+  {
+    "name": "stable-build-checks",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/build.py",
+      "--native-build",
+      "/workspace/work/c-peer",
+      "--out",
+      "/workspace/work/rust-peer-final-9c6a9b35-stable",
+      "--target-dir",
+      "/workspace/work/target-rust-peer",
+      "--toolchain",
+      "stable",
+      "--check"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "stable-build-checks.log",
+    "log_sha256": "e6bd933238e766acc86fd6d0c9792c9bcc6c786725980fafa14ecc3a1bc8b76c"
+  },
+  {
+    "name": "stable-python-integrity",
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust",
+      "-p",
+      "test_adapter.py",
+      "-v"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "stable-python-integrity.log",
+    "log_sha256": "643e60717b0144dc3565657677c3fb9065db7610db27cac01dc778f470162c24"
+  },
+  {
+    "name": "stable-create-topic",
+    "command": [
+      "/workspace/work/c-peer/kafka_2.13-3.9.1/bin/kafka-topics.sh",
+      "--bootstrap-server",
+      "127.0.0.1:19094",
+      "--create",
+      "--topic",
+      "kl0405-final-9c6a9b35-stable",
+      "--partitions",
+      "6",
+      "--replication-factor",
+      "1",
+      "--config",
+      "min.insync.replicas=1"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "stable-create-topic.log",
+    "log_sha256": "ecc1ea7249c67b90e182bf68ce8eaec7d63814a6754e169c6f901fffbf85995c"
+  },
+  {
+    "name": "stable-receipt-smoke",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/run.py",
+      "roundtrip",
+      "--binary",
+      "/workspace/work/rust-peer-final-9c6a9b35-stable/rust-peer",
+      "--kafka-home",
+      "/workspace/work/c-peer/kafka_2.13-3.9.1",
+      "--result",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-9c6a9b35/stable-smoke.json"
+    ],
+    "environment": {
+      "COUNT": "256",
+      "WARMUP": "32",
+      "ACKS": "-1",
+      "IDEMPOTENT": "1",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576",
+      "KAFKA_BOOTSTRAP": "127.0.0.1:19094",
+      "KAFKA_TOPIC": "kl0405-final-9c6a9b35-stable",
+      "BROKER_IMAGE": "apache-kafka-3.9.1-distribution",
+      "BROKER_VERSION": "3.9.1",
+      "SCENARIO_ID": "rust-rdkafka-matched-settings-integrity-smoke-stable"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "stable-receipt-smoke.log",
+    "log_sha256": "698fb4a10a1fcafa020efa4d33d01903760506b18fef419aa00cb634ae1bbb90"
+  },
+  {
+    "name": "stable-effective-config",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/run.py",
+      "emit-config",
+      "--binary",
+      "/workspace/work/rust-peer-final-9c6a9b35-stable/rust-peer"
+    ],
+    "environment": {
+      "COUNT": "256",
+      "WARMUP": "32",
+      "ACKS": "-1",
+      "IDEMPOTENT": "1",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576",
+      "KAFKA_BOOTSTRAP": "127.0.0.1:19094",
+      "KAFKA_TOPIC": "kl0405-final-9c6a9b35-stable",
+      "BROKER_IMAGE": "apache-kafka-3.9.1-distribution",
+      "BROKER_VERSION": "3.9.1",
+      "SCENARIO_ID": "rust-rdkafka-matched-settings-integrity-smoke-stable"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "stable-effective-config.log",
+    "log_sha256": "f9d4b01c405a69527fa7dc195a2c1a33c9139601c510eb88caa627fc73a9f538"
+  },
+  {
+    "name": "stable-independent-history-cli",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/scripts/check-record-history.py",
+      "--json",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-9c6a9b35/stable-smoke.json.history.json"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "stable-independent-history-cli.log",
+    "log_sha256": "08b6495e5ad8fc42ead75505b18d6f6f44201c489bd0b2b34271d9e79bd6784d"
+  },
+  {
+    "name": "stable-corrupt-history-cli",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/scripts/check-record-history.py",
+      "--json",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-9c6a9b35/stable-corrupt-history.json"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "log": "stable-corrupt-history-cli.log",
+    "log_sha256": "c308e77e83d42666c2b0398ae06bc0d21bf6bff7921b2c0201beb049797bb7ef"
+  },
+  {
+    "name": "unsupported-share",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/run.py",
+      "unsupported",
+      "--binary",
+      "/workspace/work/rust-peer-final-9c6a9b35-stable/rust-peer",
+      "--result",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-9c6a9b35/unsupported-share.json",
+      "--reason",
+      "Native librdkafka 2.15.0 lacks KIP-932 RPCs; no adapter share driver. Excluded, never a win."
+    ],
+    "environment": {
+      "PROFILE": "group/share",
+      "SCENARIO_ID": "share-exp-kip932-concurrency"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "unsupported-share.log",
+    "log_sha256": "667eb2c8c8aeb72108f57fe96688058212582ec7088feeb28dff5d64d557ee03"
+  },
+  {
+    "name": "frozen-not-run",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/run.py",
+      "not-run",
+      "--binary",
+      "/workspace/work/rust-peer-final-9c6a9b35-stable/rust-peer",
+      "--result",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-9c6a9b35/frozen-matched-not-run.json",
+      "--reason",
+      "Frozen 8M/10k/5 campaign remains unchanged and unexecuted; separate smoke cannot qualify it. Shared ID keys do not prove UUID distribution."
+    ],
+    "environment": {
+      "TIER": "required",
+      "RTT_MS": "0.1",
+      "COUNT": "8000000",
+      "WARMUP": "10000",
+      "TOTAL_REPETITIONS": "5",
+      "ACKS": "-1",
+      "IDEMPOTENT": "1",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576",
+      "KAFKA_TOPIC": "plbench-matched",
+      "SCENARIO_ID": "matched-bulk-acks-all-6p-uncompressed"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "frozen-not-run.log",
+    "log_sha256": "6fe456f65549975d96ee0e5453e9e75525b1f65c14cb696d2b7aa7acf3c8f317"
+  },
+  {
+    "name": "queue-full-control",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/run.py",
+      "roundtrip",
+      "--binary",
+      "/workspace/work/rust-peer-final-9c6a9b35-stable/rust-peer",
+      "--kafka-home",
+      "/workspace/work/c-peer/kafka_2.13-3.9.1",
+      "--result",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-9c6a9b35/queue-full-smoke.json"
+    ],
+    "environment": {
+      "COUNT": "32",
+      "WARMUP": "0",
+      "ACKS": "-1",
+      "IDEMPOTENT": "1",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576",
+      "KAFKA_BOOTSTRAP": "127.0.0.1:19094",
+      "KAFKA_TOPIC": "kl0405-final-9c6a9b35-stable",
+      "BROKER_IMAGE": "apache-kafka-3.9.1-distribution",
+      "BROKER_VERSION": "3.9.1",
+      "SCENARIO_ID": "rust-rdkafka-queue-full-integrity-control",
+      "QUEUE_MESSAGES": "1"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "queue-full-control.log",
+    "log_sha256": "91d8abe45af5a0b58997b631e7435ed7447a84726d52f62bc130aa255ee69a14"
+  },
+  {
+    "name": "create-rejection-topic",
+    "command": [
+      "/workspace/work/c-peer/kafka_2.13-3.9.1/bin/kafka-topics.sh",
+      "--bootstrap-server",
+      "127.0.0.1:19094",
+      "--create",
+      "--topic",
+      "kl0405-final-9c6a9b35-stable-rejection",
+      "--partitions",
+      "6",
+      "--replication-factor",
+      "1",
+      "--config",
+      "min.insync.replicas=1",
+      "--config",
+      "max.message.bytes=200"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "create-rejection-topic.log",
+    "log_sha256": "6aff7c84fe9ac170798fb0915650774949452beabfee379f7cd3dbc28d1da2fd"
+  },
+  {
+    "name": "broker-rejection-control",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/run.py",
+      "roundtrip",
+      "--binary",
+      "/workspace/work/rust-peer-final-9c6a9b35-stable/rust-peer",
+      "--kafka-home",
+      "/workspace/work/c-peer/kafka_2.13-3.9.1",
+      "--result",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-9c6a9b35/broker-rejection.json"
+    ],
+    "environment": {
+      "COUNT": "32",
+      "WARMUP": "0",
+      "ACKS": "-1",
+      "IDEMPOTENT": "1",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576",
+      "KAFKA_BOOTSTRAP": "127.0.0.1:19094",
+      "KAFKA_TOPIC": "kl0405-final-9c6a9b35-stable-rejection",
+      "BROKER_IMAGE": "apache-kafka-3.9.1-distribution",
+      "BROKER_VERSION": "3.9.1",
+      "SCENARIO_ID": "rust-rdkafka-oversize-rejection-control",
+      "PAYLOAD_BYTES": "1000"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "log": "broker-rejection-control.log",
+    "log_sha256": "cd9c411c0e850a738f633a87296799c63abb4f4c89c0ab59101a789546e3421b"
+  },
+  {
+    "name": "acks-zero-control",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/run.py",
+      "produce",
+      "--binary",
+      "/workspace/work/rust-peer-final-9c6a9b35-stable/rust-peer",
+      "--result",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-9c6a9b35/acks-zero.json"
+    ],
+    "environment": {
+      "COUNT": "8",
+      "WARMUP": "0",
+      "ACKS": "0",
+      "IDEMPOTENT": "0",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576",
+      "KAFKA_BOOTSTRAP": "127.0.0.1:19094",
+      "KAFKA_TOPIC": "kl0405-final-9c6a9b35-stable",
+      "BROKER_IMAGE": "apache-kafka-3.9.1-distribution",
+      "BROKER_VERSION": "3.9.1",
+      "SCENARIO_ID": "rust-rdkafka-acks-zero-control"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "log": "acks-zero-control.log",
+    "log_sha256": "3f9f12cf59d74701c48682e4b4e6ec89fd86cf221206cf6252f111c611266fe4"
+  },
+  {
+    "name": "invalid-idempotence-config",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/run.py",
+      "emit-config",
+      "--binary",
+      "/workspace/work/rust-peer-final-9c6a9b35-stable/rust-peer"
+    ],
+    "environment": {
+      "ACKS": "1",
+      "IDEMPOTENT": "1"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 2,
+    "expected_exit_code": 2,
+    "log": "invalid-idempotence-config.log",
+    "log_sha256": "570763fa1d8570db55e4846e1dcc560a3e3484f67cbcea91d2ea5091f5e1c31a"
+  },
+  {
+    "name": "invalid-tier-config",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/run.py",
+      "emit-config",
+      "--binary",
+      "/workspace/work/rust-peer-final-9c6a9b35-stable/rust-peer"
+    ],
+    "environment": {
+      "TIER": "made-up"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 2,
+    "expected_exit_code": 2,
+    "log": "invalid-tier-config.log",
+    "log_sha256": "7a5e32229e6aaadfb1552c3188c80079788273f66fc25f3269b2fca4bceb9d89"
+  },
+  {
+    "name": "runtime-library-shadow-control",
+    "command": [
+      "/workspace/work/rust-peer-final-9c6a9b35-stable/rust-peer",
+      "produce"
+    ],
+    "environment": {
+      "LD_LIBRARY_PATH": "/workspace/work/rust-peer-shadow-9c6a9b35/lib",
+      "RUST_PEER_NATIVE_SHA256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 2,
+    "expected_exit_code": 2,
+    "log": "runtime-library-shadow-control.log",
+    "log_sha256": "e9810e7b383fa6967c92ed75a6d13759ae2ef3744915e66a8183d05787d6b2c2"
+  },
+  {
+    "name": "msrv-package-clean",
+    "command": [
+      "cargo",
+      "+1.85.0",
+      "clean",
+      "--manifest-path",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/Cargo.toml",
+      "--target-dir",
+      "/workspace/work/target-rust-peer-msrv",
+      "-p",
+      "partitionline-rust-rdkafka-peer"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "msrv-package-clean.log",
+    "log_sha256": "a73df2fb1c10c9176605725cfe30ddc669c651044bc716bcb101d6c5e2101552"
+  },
+  {
+    "name": "msrv-build-checks",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/build.py",
+      "--native-build",
+      "/workspace/work/c-peer",
+      "--out",
+      "/workspace/work/rust-peer-final-9c6a9b35-msrv",
+      "--target-dir",
+      "/workspace/work/target-rust-peer-msrv",
+      "--toolchain",
+      "1.85.0",
+      "--check"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "msrv-build-checks.log",
+    "log_sha256": "67579a5144684ec0b8fef832636e32fca7c23e909bcbdd95c52c4081eabd1953"
+  },
+  {
+    "name": "msrv-python-integrity",
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust",
+      "-p",
+      "test_adapter.py",
+      "-v"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "msrv-python-integrity.log",
+    "log_sha256": "ac5911244d01a4f9a81843eecc12c7f92add85418402e0daa9daebbfc77d317a"
+  },
+  {
+    "name": "msrv-create-topic",
+    "command": [
+      "/workspace/work/c-peer/kafka_2.13-3.9.1/bin/kafka-topics.sh",
+      "--bootstrap-server",
+      "127.0.0.1:19094",
+      "--create",
+      "--topic",
+      "kl0405-final-9c6a9b35-msrv",
+      "--partitions",
+      "6",
+      "--replication-factor",
+      "1",
+      "--config",
+      "min.insync.replicas=1"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "msrv-create-topic.log",
+    "log_sha256": "abb0cc9808326bca8df3f4cacdcce2516c794931256b72aa6a24b8138fc46e31"
+  },
+  {
+    "name": "msrv-receipt-smoke",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/run.py",
+      "roundtrip",
+      "--binary",
+      "/workspace/work/rust-peer-final-9c6a9b35-msrv/rust-peer",
+      "--kafka-home",
+      "/workspace/work/c-peer/kafka_2.13-3.9.1",
+      "--result",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-9c6a9b35/msrv-smoke.json"
+    ],
+    "environment": {
+      "COUNT": "256",
+      "WARMUP": "32",
+      "ACKS": "-1",
+      "IDEMPOTENT": "1",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576",
+      "KAFKA_BOOTSTRAP": "127.0.0.1:19094",
+      "KAFKA_TOPIC": "kl0405-final-9c6a9b35-msrv",
+      "BROKER_IMAGE": "apache-kafka-3.9.1-distribution",
+      "BROKER_VERSION": "3.9.1",
+      "SCENARIO_ID": "rust-rdkafka-matched-settings-integrity-smoke-msrv"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "msrv-receipt-smoke.log",
+    "log_sha256": "f787c57ceb78bfed0f7111bddf8d0af2349dca1532bba975e722643b42b58614"
+  },
+  {
+    "name": "msrv-effective-config",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust/run.py",
+      "emit-config",
+      "--binary",
+      "/workspace/work/rust-peer-final-9c6a9b35-msrv/rust-peer"
+    ],
+    "environment": {
+      "COUNT": "256",
+      "WARMUP": "32",
+      "ACKS": "-1",
+      "IDEMPOTENT": "1",
+      "ISOLATION": "read_committed",
+      "BATCH_BYTES": "1048576",
+      "KAFKA_BOOTSTRAP": "127.0.0.1:19094",
+      "KAFKA_TOPIC": "kl0405-final-9c6a9b35-msrv",
+      "BROKER_IMAGE": "apache-kafka-3.9.1-distribution",
+      "BROKER_VERSION": "3.9.1",
+      "SCENARIO_ID": "rust-rdkafka-matched-settings-integrity-smoke-msrv"
+    },
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "msrv-effective-config.log",
+    "log_sha256": "40162d11298167b6b0d2ae00f26641842e68cead613958bd43b8defa2719806d"
+  },
+  {
+    "name": "msrv-independent-history-cli",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/scripts/check-record-history.py",
+      "--json",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-9c6a9b35/msrv-smoke.json.history.json"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "msrv-independent-history-cli.log",
+    "log_sha256": "08b6495e5ad8fc42ead75505b18d6f6f44201c489bd0b2b34271d9e79bd6784d"
+  },
+  {
+    "name": "msrv-corrupt-history-cli",
+    "command": [
+      "python3",
+      "/workspace/work/rust-peer-source-9c6a9b35/scripts/check-record-history.py",
+      "--json",
+      "/workspace/partitionline/docs/evidence/perf/KL04-05/final-9c6a9b35/msrv-corrupt-history.json"
+    ],
+    "environment": {},
+    "affinity": "0-2,4",
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "log": "msrv-corrupt-history-cli.log",
+    "log_sha256": "7cccdd58a93dd6beec83809727c7cccde89cfd787740e3c096f98ffccfa500ef"
+  }
+]

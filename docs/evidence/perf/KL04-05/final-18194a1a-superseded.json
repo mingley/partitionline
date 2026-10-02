@@ -1,0 +1,14 @@
+{
+  "source_sha": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+  "complete_validation": "final/commands.json",
+  "status": "superseded_for_required_filing_metadata",
+  "behavioral_gates": "all expected results passed on stable and 1.85.0",
+  "filing_mismatch": {
+    "scenario_id": "matched-bulk-acks-all-6p-uncompressed",
+    "expected_tier": "required",
+    "actual_tier": "exploratory",
+    "expected_rtt_ms": 0.1,
+    "actual_rtt_ms": 0
+  },
+  "fix": "Validate caller TIER; pass required and frozen RTT_MS=0.1 in named filing. No workload settings modified."
+}

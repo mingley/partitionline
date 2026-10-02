@@ -1,0 +1,7 @@
+{
+  "base_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "mutant_sha256": "c90e63775a2ed3039b6194e9e22f7da71de315e5820a972e45de38237193c9a6",
+  "mutation": "append one NUL byte; ELF/version unchanged",
+  "expected_exit": 2,
+  "broker_traffic": false
+}

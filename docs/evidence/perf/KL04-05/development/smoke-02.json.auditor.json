@@ -1,0 +1,22 @@
+{
+  "client": "org.apache.kafka:kafka-clients",
+  "version": "3.9.1",
+  "jar_sha256": "25c5e4eb059c35766f645c0e0bd2fe623a1ebdc18250957506b1edbf476d1272",
+  "source_sha256": "db9d056983a7da7eda9b764014a2a3cfc722448f502c681471358d6339bb06ea",
+  "class_sha256": "98a3b6a516b6332ba787ba38c2ca73a249c2f5e50020dc37d892a2fdc7fbb34b",
+  "compiler": "javac 21.0.12.1",
+  "runtime": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)",
+  "command": [
+    "java",
+    "-cp",
+    "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.java-classes:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/kafka-clients-3.9.1.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/*",
+    "ReceiptAudit",
+    "127.0.0.1:19094",
+    "kl0405-dev-smoke-20261002a",
+    "read_committed",
+    "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.fences.tsv",
+    "/workspace/partitionline/docs/evidence/perf/KL04-05/development/smoke-02.json.receipts.jsonl",
+    "30000"
+  ],
+  "exit_code": 0
+}

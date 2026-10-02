@@ -1,0 +1,41 @@
+{
+  "task": "KL04-05",
+  "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+  "compiled_source_sha": "9c6a9b3539bd0bf3eae8dc851d18186029a656b8",
+  "tested_base_sha": "e054ce0cdcc68a46e9688ca56f2698d45de6595e",
+  "compiled_behavioral_source_clean": true,
+  "metadata_source_clean": true,
+  "compilation_reuse_proof": "final-6b4d3306/result-validation.json",
+  "source_and_dependency_proof": "dependency-proof.json",
+  "build_lanes": {
+    "stable": {
+      "rust_tests": 7,
+      "python_integrity_tests": 11,
+      "rust_gates": 5
+    },
+    "msrv": {
+      "rust_tests": 7,
+      "python_integrity_tests": 11,
+      "rust_gates": 5
+    }
+  },
+  "orchestration_commands": 25,
+  "orchestration_expected_exits_matched": 25,
+  "additional_metadata_runtime_commands": 6,
+  "corrected_metadata_artifacts": 4,
+  "named_test_executions": 36,
+  "live": {
+    "successful_measured_acknowledgements": 544,
+    "independent_measured_receipts": 544,
+    "warmup_acknowledgements_excluded": 64,
+    "queue_full_retries": 37,
+    "oversized_callback_failures": 32,
+    "acks_zero_unknown": 8,
+    "altered_history_controls": 2
+  },
+  "pure_rust_selection": "blocked: no exact eligible unchanged frozen cells",
+  "performance_qualification": "not_run; suite HOLD remains active; UUID key distribution unresolved",
+  "share_validation": "not_run; native C preview support verified by source/symbols only; Rust wrapper/sys/driver and Kafka 3.9.1 fixture excluded",
+  "broker_lifecycle": "broker-lifecycle.json",
+  "retained_development_failures": "development-failures.json"
+}

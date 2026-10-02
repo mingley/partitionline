@@ -1,0 +1,1 @@
+rust peer adapter: idempotence requires ACKS=-1 and MAX_IN_FLIGHT<=5; implicit library adjustment prohibited

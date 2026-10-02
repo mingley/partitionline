@@ -1,0 +1,1 @@
+Native C 2.15.0 supplies preview KIP-932; pinned wrapper/sys API and this adapter have no share lifecycle, and Kafka 3.9.1 fixture is ineligible. Unsupported driver/fixture cell is excluded, never a win.

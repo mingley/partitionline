@@ -1,0 +1,1 @@
+Frozen 8M records/10k warmup/5 repetitions remain unchanged and unexecuted. Bounded adapter smoke is separately named; ID-key instrumentation does not establish frozen UUID-key distribution.

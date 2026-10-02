@@ -1,0 +1,132 @@
+{
+  "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+  "compiled_source_sha": "9c6a9b3539bd0bf3eae8dc851d18186029a656b8",
+  "unchanged_inputs": {
+    ".gitignore": "f2d790e37f2593b5789295d976510d759b73a8959a3b347dfd9a4e81c102151d",
+    "Cargo.lock": "f3aa51f847987c5b169eb3fa5cec7dfe3444e976364a101a2f4f70574d07fa01",
+    "Cargo.toml": "fd62b4d5ad0f88b2083b78e90679ae00201d31bf7e5bb6ead805fb3774fe2cfa",
+    "ReceiptAudit.java": "db9d056983a7da7eda9b764014a2a3cfc722448f502c681471358d6339bb06ea",
+    "audit.py": "65f2eb86192864b77d04a73f1e0797543662d188e18f3d5e975897d587c167f1",
+    "build.py": "e91c71fb8b426ab1d54f804c87ad6d8d9032fcf5539c7155a3b5b519f882a5c2",
+    "clippy.toml": "0f44de0a84e4f40cfdeb6982cfd4de96c23c1d7fa795384db2628657a0465c7f",
+    "pure-rust-candidates.json": "20e2ff18e613bc9d4012b2544a1f848a79daab37bdb6dce510699d35ba83e869",
+    "run.py": "ce8ade1d36626af901c4e62486480a65d0238d1d613e4d1f8fa03368c76c13ab",
+    "source-pin.json": "b504589e30bd2f307aa189e733e81b21f3f97066885274105c3cd3b5c371ed4e",
+    "src/config.rs": "14cb47f3029e7f759c8945c90973306f46f6185bc23bee024e96d360d2e591bf",
+    "src/lib.rs": "2c436a49b51f2a81e4eaf2b1dcfdcf98dccf798591b597666d0f7e0405a4ab24",
+    "src/main.rs": "c4065a3b6b07d1031ebc8c55dfc7ad1221faa9735e1f24dd2e0d1c08e109f29e",
+    "src/native.rs": "7091a241fe9701f1ef917b724b427201b01d99b1a7e6aade47cbf3020b9d32d4",
+    "src/records.rs": "ae95702adb0c5f0ec26e2393b15804d2e1670e008c2f7ffea01f661e5f1bee89",
+    "test_adapter.py": "3b3c0bf41148532ab62da78cd50663c6b2f824cfb5a0c83e5919e0c15932cd81",
+    "tests/config.rs": "9e35613d9ca683e0c5463537d026ac6a17d898a4e4b2c728442c6bace7e27f33"
+  },
+  "changed_peer_files": [
+    "README.md"
+  ],
+  "reused_compilation": [
+    {
+      "lane": "stable",
+      "compiled_source_sha": "9c6a9b3539bd0bf3eae8dc851d18186029a656b8",
+      "metadata_source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+      "original_build_manifest_sha256": "51417b38bb4e499b89558b56a957a72b49a9a95fa8791f51f7aa5e42657e6b5d",
+      "binary_sha256": "03380e9562ace59ae17df26d59625c0f1f80ed0df2f59e69871726beeb63c75b",
+      "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+      "changed_peer_files": [
+        "README.md"
+      ],
+      "unchanged_inputs_sha256": {
+        ".gitignore": "f2d790e37f2593b5789295d976510d759b73a8959a3b347dfd9a4e81c102151d",
+        "Cargo.lock": "f3aa51f847987c5b169eb3fa5cec7dfe3444e976364a101a2f4f70574d07fa01",
+        "Cargo.toml": "fd62b4d5ad0f88b2083b78e90679ae00201d31bf7e5bb6ead805fb3774fe2cfa",
+        "ReceiptAudit.java": "db9d056983a7da7eda9b764014a2a3cfc722448f502c681471358d6339bb06ea",
+        "audit.py": "65f2eb86192864b77d04a73f1e0797543662d188e18f3d5e975897d587c167f1",
+        "build.py": "e91c71fb8b426ab1d54f804c87ad6d8d9032fcf5539c7155a3b5b519f882a5c2",
+        "clippy.toml": "0f44de0a84e4f40cfdeb6982cfd4de96c23c1d7fa795384db2628657a0465c7f",
+        "pure-rust-candidates.json": "20e2ff18e613bc9d4012b2544a1f848a79daab37bdb6dce510699d35ba83e869",
+        "run.py": "ce8ade1d36626af901c4e62486480a65d0238d1d613e4d1f8fa03368c76c13ab",
+        "source-pin.json": "b504589e30bd2f307aa189e733e81b21f3f97066885274105c3cd3b5c371ed4e",
+        "src/config.rs": "14cb47f3029e7f759c8945c90973306f46f6185bc23bee024e96d360d2e591bf",
+        "src/lib.rs": "2c436a49b51f2a81e4eaf2b1dcfdcf98dccf798591b597666d0f7e0405a4ab24",
+        "src/main.rs": "c4065a3b6b07d1031ebc8c55dfc7ad1221faa9735e1f24dd2e0d1c08e109f29e",
+        "src/native.rs": "7091a241fe9701f1ef917b724b427201b01d99b1a7e6aade47cbf3020b9d32d4",
+        "src/records.rs": "ae95702adb0c5f0ec26e2393b15804d2e1670e008c2f7ffea01f661e5f1bee89",
+        "test_adapter.py": "3b3c0bf41148532ab62da78cd50663c6b2f824cfb5a0c83e5919e0c15932cd81",
+        "tests/config.rs": "9e35613d9ca683e0c5463537d026ac6a17d898a4e4b2c728442c6bace7e27f33"
+      },
+      "note": "No compilation rerun; all Rust/Python/Cargo/lock/native pin/helper inputs are identical. Only README and scoped registry facts changed. Prior 9c6a9b35 full stable/MSRV gates and live controls remain authoritative for byte-identical executable behavior."
+    },
+    {
+      "lane": "msrv",
+      "compiled_source_sha": "9c6a9b3539bd0bf3eae8dc851d18186029a656b8",
+      "metadata_source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+      "original_build_manifest_sha256": "74f7d32e616a0d79819af7a9ae43984c5363746fa477a3f7b2418efd02913dce",
+      "binary_sha256": "3a11a41783e08888cb47c870d0b80fb76330570c4b21e755a5b8002993821bbc",
+      "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+      "changed_peer_files": [
+        "README.md"
+      ],
+      "unchanged_inputs_sha256": {
+        ".gitignore": "f2d790e37f2593b5789295d976510d759b73a8959a3b347dfd9a4e81c102151d",
+        "Cargo.lock": "f3aa51f847987c5b169eb3fa5cec7dfe3444e976364a101a2f4f70574d07fa01",
+        "Cargo.toml": "fd62b4d5ad0f88b2083b78e90679ae00201d31bf7e5bb6ead805fb3774fe2cfa",
+        "ReceiptAudit.java": "db9d056983a7da7eda9b764014a2a3cfc722448f502c681471358d6339bb06ea",
+        "audit.py": "65f2eb86192864b77d04a73f1e0797543662d188e18f3d5e975897d587c167f1",
+        "build.py": "e91c71fb8b426ab1d54f804c87ad6d8d9032fcf5539c7155a3b5b519f882a5c2",
+        "clippy.toml": "0f44de0a84e4f40cfdeb6982cfd4de96c23c1d7fa795384db2628657a0465c7f",
+        "pure-rust-candidates.json": "20e2ff18e613bc9d4012b2544a1f848a79daab37bdb6dce510699d35ba83e869",
+        "run.py": "ce8ade1d36626af901c4e62486480a65d0238d1d613e4d1f8fa03368c76c13ab",
+        "source-pin.json": "b504589e30bd2f307aa189e733e81b21f3f97066885274105c3cd3b5c371ed4e",
+        "src/config.rs": "14cb47f3029e7f759c8945c90973306f46f6185bc23bee024e96d360d2e591bf",
+        "src/lib.rs": "2c436a49b51f2a81e4eaf2b1dcfdcf98dccf798591b597666d0f7e0405a4ab24",
+        "src/main.rs": "c4065a3b6b07d1031ebc8c55dfc7ad1221faa9735e1f24dd2e0d1c08e109f29e",
+        "src/native.rs": "7091a241fe9701f1ef917b724b427201b01d99b1a7e6aade47cbf3020b9d32d4",
+        "src/records.rs": "ae95702adb0c5f0ec26e2393b15804d2e1670e008c2f7ffea01f661e5f1bee89",
+        "test_adapter.py": "3b3c0bf41148532ab62da78cd50663c6b2f824cfb5a0c83e5919e0c15932cd81",
+        "tests/config.rs": "9e35613d9ca683e0c5463537d026ac6a17d898a4e4b2c728442c6bace7e27f33"
+      },
+      "note": "No compilation rerun; all Rust/Python/Cargo/lock/native pin/helper inputs are identical. Only README and scoped registry facts changed. Prior 9c6a9b35 full stable/MSRV gates and live controls remain authoritative for byte-identical executable behavior."
+    }
+  ],
+  "results": [
+    {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/final-6b4d3306/stable-unsupported-share.json",
+      "sha256": "950251ebe13d38affeeeba16a384ee6fd9fb91b2a1c69597fe431dbf1c87d69d",
+      "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+      "schema_valid": true,
+      "report_valid": true,
+      "tier": "exploratory",
+      "disposition": "unsupported",
+      "acknowledged": 0
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/final-6b4d3306/stable-frozen-not-run.json",
+      "sha256": "8fdc27ec78128f9733e729409e2c2262e0b787ae775b0235d8e835cf782f67ba",
+      "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+      "schema_valid": true,
+      "report_valid": true,
+      "tier": "required",
+      "disposition": "not_run",
+      "acknowledged": 0
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/final-6b4d3306/msrv-unsupported-share.json",
+      "sha256": "02b8393382a37b79d9a06eee8302d5c05e1ebbaae28b76b9f216159ba8571bc4",
+      "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+      "schema_valid": true,
+      "report_valid": true,
+      "tier": "exploratory",
+      "disposition": "unsupported",
+      "acknowledged": 0
+    },
+    {
+      "path": "/workspace/partitionline/docs/evidence/perf/KL04-05/final-6b4d3306/msrv-frozen-not-run.json",
+      "sha256": "6b9ddd448684dc87688e593394d6af6c3fb9f08238f2dd20a3d73fe4f45efe69",
+      "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+      "schema_valid": true,
+      "report_valid": true,
+      "tier": "required",
+      "disposition": "not_run",
+      "acknowledged": 0
+    }
+  ]
+}

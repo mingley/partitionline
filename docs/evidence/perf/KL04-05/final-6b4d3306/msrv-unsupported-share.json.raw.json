@@ -1,0 +1,54 @@
+{
+  "client": "rust-rdkafka-BaseProducer",
+  "version": "0.39.0",
+  "runtime": {},
+  "effective_config": {},
+  "warmup": {
+    "offered": 0,
+    "accepted": 0,
+    "acknowledged": 0,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0,
+    "callback_failures": 0,
+    "queue_full_retries": 0,
+    "elapsed_s": 0,
+    "errors": []
+  },
+  "timed": {
+    "offered": 0,
+    "accepted": 0,
+    "acknowledged": 0,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0,
+    "callback_failures": 0,
+    "queue_full_retries": 0,
+    "elapsed_s": 0,
+    "errors": []
+  },
+  "cluster_id": "",
+  "broker_nodes": 0,
+  "durability": {
+    "verified": false,
+    "replication_factor": 1,
+    "min_insync_replicas": 1
+  },
+  "high_watermarks": {
+    "queried": false,
+    "partitions": [],
+    "total_offset_delta": 0
+  },
+  "verification": {
+    "verified_ids": 0,
+    "duplicate_ids": 0,
+    "bad_records": 0,
+    "performed": false
+  },
+  "resources": {
+    "user_cpu_seconds": 0,
+    "system_cpu_seconds": 0,
+    "peak_rss_bytes": 0,
+    "threads_count": 1
+  }
+}

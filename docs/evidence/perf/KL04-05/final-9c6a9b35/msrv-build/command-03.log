@@ -1,0 +1,4 @@
+    Checking rdkafka-sys v4.10.0+2.12.1
+    Checking rdkafka v0.39.0
+    Checking partitionline-rust-rdkafka-peer v0.1.0 (/workspace/work/rust-peer-source-9c6a9b35/benchmarks/peers/rust)
+    Finished `dev` profile [unoptimized] target(s) in 1.54s

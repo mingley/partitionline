@@ -1,0 +1,21 @@
+{
+  "pid": 193959,
+  "owned_pid_file": "/workspace/work/rust-peer-broker/owned-second.pid",
+  "configuration": "/workspace/work/c-peer/kraft.properties",
+  "heap": "-Xms256m -Xmx256m",
+  "affinity": "0-2,4",
+  "ports": [
+    19094,
+    19095
+  ],
+  "stop_signal": "SIGTERM",
+  "shared_data_reset": false,
+  "topics_deleted": false,
+  "exited": true,
+  "foreground_session_exit_code": 143,
+  "configuration_sha256": "15dcb00949e939834995b6be6f536b11ec2a71cdfccb40486e0fae7f11f3478c",
+  "validation_log": "broker-validation.log",
+  "validation_log_sha256": "b730e46899e8235ce52bd0d25207c28cc64fb5c4f1af3294ffe8b76f040955b4",
+  "configuration_copy": "broker-validation.properties",
+  "owned_process_stopped_after_validation": true
+}

@@ -1,0 +1,47 @@
+{
+  "all_valid": false,
+  "total_histories": 1,
+  "passed": 0,
+  "failed": 1,
+  "results": [
+    {
+      "history_id": "rust-rdkafka-independent-java-receipts",
+      "valid": false,
+      "attempted_count": 256,
+      "consumed_count": 256,
+      "violations": [
+        {
+          "type": "PAYLOAD_CORRUPTION",
+          "message": "Payload corruption for record '3': expected hash '2b90a93c3fb0d31b1ef73192b631e6ef31351487e7c95aef7b1542314ade2a2e', got '6101c48f4d7c8168028fbb2519f9c98ce427174c64793b6e73bfda6e7eba6d19'",
+          "record_ids": [
+            "3"
+          ],
+          "topic": "kl0405-final-18194a1a-msrv",
+          "partition": 3,
+          "details": {
+            "record_id": "3",
+            "expected_payload_hash": "2b90a93c3fb0d31b1ef73192b631e6ef31351487e7c95aef7b1542314ade2a2e",
+            "actual_payload_hash": "6101c48f4d7c8168028fbb2519f9c98ce427174c64793b6e73bfda6e7eba6d19",
+            "offset": 5
+          }
+        }
+      ],
+      "minimal_counterexample": {
+        "type": "PAYLOAD_CORRUPTION",
+        "message": "Payload corruption for record '3': expected hash '2b90a93c3fb0d31b1ef73192b631e6ef31351487e7c95aef7b1542314ade2a2e', got '6101c48f4d7c8168028fbb2519f9c98ce427174c64793b6e73bfda6e7eba6d19'",
+        "record_ids": [
+          "3"
+        ],
+        "topic": "kl0405-final-18194a1a-msrv",
+        "partition": 3,
+        "details": {
+          "record_id": "3",
+          "expected_payload_hash": "2b90a93c3fb0d31b1ef73192b631e6ef31351487e7c95aef7b1542314ade2a2e",
+          "actual_payload_hash": "6101c48f4d7c8168028fbb2519f9c98ce427174c64793b6e73bfda6e7eba6d19",
+          "offset": 5
+        }
+      },
+      "summary": "FAIL: 1 violation(s) in history 'rust-rdkafka-independent-java-receipts'. Counterexample: PAYLOAD_CORRUPTION: Payload corruption for record '3': expected hash '2b90a93c3fb0d31b1ef73192b631e6ef31351487e7c95aef7b1542314ade2a2e', got '6101c48f4d7c8168028fbb2519f9c98ce427174c64793b6e73bfda6e7eba6d19'"
+    }
+  ]
+}

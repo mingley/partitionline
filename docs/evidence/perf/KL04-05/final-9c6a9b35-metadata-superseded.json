@@ -1,0 +1,10 @@
+{
+  "source_sha": "9c6a9b3539bd0bf3eae8dc851d18186029a656b8",
+  "metadata_source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+  "retained_behavioral_gates": "authoritative, byte-identical runtime inputs",
+  "superseded_scope": "Only inherited native KIP-932 absence wording in unsupported metadata/README/registry; C 2.15.0 actually supplies preview share support.",
+  "corrected_metadata": "final-6b4d3306/",
+  "source_audit": "native-share-audit/",
+  "frozen_campaign_disposition": "not_run",
+  "share_disposition": "unsupported driver and fixture; excluded, never a win"
+}
