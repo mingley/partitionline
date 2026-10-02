@@ -6,4 +6,3 @@
 //! Implemented APIs will be advertised only after their handlers and versioned
 //! semantics are verified. Production and comparative performance qualification
 //! require the separate, evidence-backed completion gates.
-
