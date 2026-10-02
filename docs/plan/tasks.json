@@ -2607,12 +2607,13 @@
     {
       "id": "KL05-25",
       "title": "Add an opt-in Avro companion adapter",
-      "priority": "P2", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P2", "kind": "implementation", "status": "in_progress", "owner": "codex-goal-20261002",
       "depends_on": ["KL05-24"],
       "files": ["partitionline-schema/Cargo.toml", "new: partitionline-schema/src/avro.rs", "new: partitionline-schema/tests/avro.rs"],
       "deliverable": "Schema-ID-aware Avro serialization/deserialization with approved dependencies.",
       "acceptance": ["Test writer/reader schema resolution, references, defaults/nulls and incompatible changes with independent fixtures.", "Bound allocations and return structured failures without silently registering schemas.", "No codec/native dependency enters core or companion defaults unless explicitly approved."],
       "validation": ["Run companion tests with Avro enabled and with default features only.", "Decode emitted bytes with an independent pinned Avro peer and reverse the direction."],
+      "write_set": ["partitionline-schema/Cargo.toml", "partitionline-schema/Cargo.lock", "partitionline-schema/src/lib.rs", "partitionline-schema/src/avro.rs", "partitionline-schema/tests/avro.rs", "partitionline-schema/tests/oracles/avro/", "partitionline-schema/tests/fixtures/avro/", "partitionline-schema/README.md", "docs/plan/evidence/KL05-25.json", "docs/plan/tasks.json"],
       "evidence": []
     },
     {
