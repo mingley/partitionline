@@ -4473,7 +4473,7 @@
       "id": "KL09-32",
       "title": "Size records in one pass and speed up varint encoding",
       "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "mingley",
-      "write_set": ["src/protocol/records.rs", "src/protocol/buf.rs", "tests/record_encode_identity.rs", "docs/plan/tasks.json", "docs/plan/evidence/KL09-32.json", "docs/evidence/perf/KL09-32/"],
+      "write_set": ["src/protocol/records.rs", "src/protocol/buf.rs", "benchmarks/codec/tests/alloc_budget.rs", "benchmarks/codec/json1k-alloc-baseline.json", "docs/resource-contract.md", "docs/plan/tasks.json", "docs/plan/evidence/KL09-32.json", "docs/evidence/perf/KL09-32/"],
       "depends_on": ["KL09-04", "KL09-05"],
       "files": ["src/protocol/records.rs", "src/protocol/buf.rs"],
       "deliverable": "Record encoding computes body length and varint widths once per record and uses a fast varint writer instead of sizing and then re-deriving widths while writing.",
