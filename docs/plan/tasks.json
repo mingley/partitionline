@@ -9678,8 +9678,8 @@
       "title": "Terminate TLS/mTLS and rotate trust/client identity",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-02"
       ],
@@ -9696,7 +9696,19 @@
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/security/",
+        "partitionline-broker/src/transport.rs",
+        "partitionline-broker/tests/tls.rs",
+        "partitionline-broker/tests/fixtures/tls/",
+        "partitionline-broker/Cargo.toml",
+        "partitionline-broker/Cargo.lock",
+        "docs/plan/evidence/KL11-35.json",
+        "docs/evidence/broker/KL11-35/",
+        "docs/plan/tasks.json"
+      ],
+      "integration_coordinator": "Root exclusively edits Cargo.toml/Cargo.lock and shared module exports; worker owns TLS/transport behavior and tests."
     },
     {
       "id": "KL11-36",
