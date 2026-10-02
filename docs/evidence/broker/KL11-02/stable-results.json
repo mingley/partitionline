@@ -1,0 +1,88 @@
+{
+  "task": "KL11-02",
+  "toolchain": "stable",
+  "tested_base_sha": "4b3d11fae284fc4b314d9f2f225d68900aa717ec",
+  "source_sha256": {
+    "partitionline-broker/Cargo.toml": "50f3edb9f0f1c738bbb68f2755a8c85d4da18e9e5459498876db3ca020a02594",
+    "partitionline-broker/Cargo.lock": "fd2a66ff73beee49873ac1686ba7737d5fe321101d29560325d77efd18b515a9",
+    "partitionline-broker/src/lib.rs": "7725a2e41f1ea190e00cbc8c4d0243f57c6e0afb86b9eeeea704f7ebd268ab73",
+    "partitionline-broker/src/transport.rs": "68899b58b93b1c5697af4abc1a1fbd00b81d921dee882df31b306d0da09b1ba5",
+    "partitionline-broker/tests/transport.rs": "7f0ce85062c4297be4af2e049be3441332e727b1e744e48ea70b13115f303bab"
+  },
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+  "environment": {
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_INCREMENTAL": "0",
+    "RUSTDOCFLAGS": "-D warnings",
+    "cpu_affinity": "externally restricted to 0-2,4 for this retained run"
+  },
+  "checks": [
+    {
+      "name": "format",
+      "command": [
+        "rustup",
+        "run",
+        "stable",
+        "rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "partitionline-broker/src/transport.rs",
+        "partitionline-broker/tests/transport.rs"
+      ],
+      "exit_code": 0,
+      "log": "stable-format.log"
+    },
+    {
+      "name": "transport-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "transport"
+      ],
+      "exit_code": 0,
+      "log": "stable-transport-tests.log"
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--lib",
+        "--test",
+        "transport",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "stable-strict-clippy.log"
+    },
+    {
+      "name": "strict-docs",
+      "command": [
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "log": "stable-strict-docs.log"
+    }
+  ],
+  "sources_unchanged_during_checks": true,
+  "passed": true
+}

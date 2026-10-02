@@ -1,0 +1,31 @@
+   Compiling libc v0.2.189
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling bytes v1.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling tokio v1.53.1
+   Compiling crc32c v0.6.8
+   Compiling partitionline-broker v0.1.0 (<repository>/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.43s
+     Running tests/transport.rs (<target>/debug/deps/transport-b7443096de481794)
+
+running 16 tests
+test cancelled_shutdown_await_can_be_retried_and_still_joins ... ok
+test dropping_transport_requests_socket_and_handler_cleanup ... ok
+test connection_overload_rejects_without_spawning_handler ... ok
+test adversarial_lengths_close_before_payload_or_handler_and_isolate_peers ... ok
+test handler_error_and_oversized_response_close_only_their_connections ... ok
+test handler_work_is_bounded_and_shutdown_joins_active_and_queued_requests ... ok
+test hanging_handler_times_out_and_its_future_is_dropped ... ok
+test idle_connection_has_an_absolute_read_deadline ... ok
+test fragmented_prefix_body_empty_and_exact_limit_roundtrip ... ok
+test rejects_zero_and_out_of_range_configuration_without_io ... ok
+test pipelined_no_reply_sends_no_frame_and_keeps_connection_usable ... ok
+test truncated_prefix_and_body_never_invoke_handler ... ok
+test pipelined_requests_keep_wire_and_handler_order ... ok
+test slowloris_progress_does_not_reset_prefix_plus_body_deadline ... ok
+test handler_deadline_includes_waiting_for_concurrency_permit ... ok
+test unread_large_response_hits_absolute_write_deadline_and_joins ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+

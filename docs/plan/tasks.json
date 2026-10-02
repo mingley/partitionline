@@ -8750,7 +8750,7 @@
       "title": "Bound broker framed transport and shutdown",
       "priority": "P0",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-01"
@@ -8770,7 +8770,63 @@
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+                "schema_version": 1,
+                "task": "KL11-02",
+                "source_sha": "5a1bf5cb9e2f83a7f60c73e4d7cc2f80499473d0",
+                "commands": [
+                        "cargo +{stable,1.85.0} fmt --check --manifest-path <pinned-source>/partitionline-broker/Cargo.toml",
+                        "cargo +{stable,1.85.0} test --locked --manifest-path <pinned-source>/partitionline-broker/Cargo.toml --all-targets",
+                        "cargo +{stable,1.85.0} clippy --locked --manifest-path <pinned-source>/partitionline-broker/Cargo.toml --all-targets -- -D warnings",
+                        "RUSTDOCFLAGS=-D warnings cargo +{stable,1.85.0} doc --locked --manifest-path <pinned-source>/partitionline-broker/Cargo.toml --no-deps"
+                ],
+                "results": {
+                        "stable": {
+                                "tests_passed": 16,
+                                "tests_failed": 0,
+                                "tests_ignored": 0,
+                                "format": "passed",
+                                "strict_clippy": "passed",
+                                "strict_docs": "passed"
+                        },
+                        "rust1.85.0": {
+                                "tests_passed": 16,
+                                "tests_failed": 0,
+                                "tests_ignored": 0,
+                                "format": "passed",
+                                "strict_clippy": "passed",
+                                "strict_docs": "passed"
+                        },
+                        "request_size_checked_before_reserve": true,
+                        "optional_reply": "None emits no frame; next pipelined request remains usable",
+                        "connection_order_and_isolation": "passed",
+                        "absolute_deadlines": "read prefix+body; handler permit+future; response prefix+body",
+                        "shutdown": "stops admission, drops pending async futures/sockets, joins owned connection tasks; cancelled await retry tested"
+                },
+                "tested_source": {
+                        "transport_sha256": "68899b58b93b1c5697af4abc1a1fbd00b81d921dee882df31b306d0da09b1ba5",
+                        "tests_sha256": "7f0ce85062c4297be4af2e049be3441332e727b1e744e48ea70b13115f303bab",
+                        "pinned_validation": "Source snapshot extracted from exact pushed source_sha, transport-only lib exports. Two full locked all-target suites and strict gates rerun after push. Original dirty-candidate contexts and logs remain separately retained."
+                },
+                "artifacts": [
+                        "docs/evidence/broker/KL11-02/README.md",
+                        "docs/evidence/broker/KL11-02/stable-results.json",
+                        "docs/evidence/broker/KL11-02/1.85.0-results.json",
+                        "docs/evidence/broker/KL11-02/pinned-stable.log",
+                        "docs/evidence/broker/KL11-02/pinned-1.85.0.log"
+                ],
+                "failed_attempts": [
+                        "Draft integration crate lacked required crate documentation; corrected, then final gates passed. Earlier15-case draft excluded from final counts."
+                ],
+                "limitations": [
+                        "Handlers must yield and have nonblocking destructors; arbitrary blocking polls cannot be preempted. Handler-spawned tasks are outside transport ownership.",
+                        "Drop requests cleanup while runtime continues; explicit shutdown observes joined completion.",
+                        "Wire buffers and task counts are bounded; no independent total-byte/OS-buffer/RSS/load qualification is claimed.",
+                        "Local framing tests implement no Kafka APIs, authentication, durable storage or executable/production broker. Write deadline relies on local socket backpressure; other platforms remain unqualified."
+                ]
+        }
+      ],
       "write_set": [
         "partitionline-broker/src/transport.rs",
         "partitionline-broker/tests/transport.rs",
