@@ -1,0 +1,62 @@
+[
+  {
+    "version": "4.1.2",
+    "commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+    "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+    "original_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+    "retained_files_sha256": {
+      "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+      "clients/src/main/java/org/apache/kafka/common/security/plain/PlainAuthenticateCallback.java": "c9ea3d6b01148ebcb1c3ec87b1457a0da4522f31b6a79b95b68f2e6f6bc42568",
+      "clients/src/main/java/org/apache/kafka/common/security/plain/internals/PlainSaslServer.java": "e160716ccea32978ce72ef2ab1b56691e4a315c4ca8d37370fd25e43d7c917b6",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/ScramCredential.java": "db66b018c8db3e79fd6e541d290cd397f343fe771cee406a753c73e8bbf5f203",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/ScramCredentialCallback.java": "aa3cb85ae89c8e9a34a305b0176f5eaaf795329718ecdce421a5aa64c540d3a3",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramExtensions.java": "ab42e8d09f38aed22779b5175b2eef0e9aad5e699ef76e5ab69de2ea89159f41",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramFormatter.java": "a0ad8545028b974dcc800c7515e13060222c5028320bf624db6dfb43329640de",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramMechanism.java": "211f1fefe6862aff72a5911ede96d92895d7118bbf4290c679b66b1210ad84ac",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramMessages.java": "522969b0fedde9a5eacfd6d0081a728c39364a50b777198bfbd67ff86ba03ec3",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslClient.java": "b3d862459994cae3130a9efc8e882facc2858186facd331adcdfbc1250078573",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslServer.java": "0ff659742dca5d62bb2b582bdeeb15009d17080af96745dbf2e390dac86d23d9"
+    }
+  },
+  {
+    "version": "4.2.1",
+    "commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+    "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+    "original_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+    "retained_files_sha256": {
+      "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+      "clients/src/main/java/org/apache/kafka/common/security/plain/PlainAuthenticateCallback.java": "c9ea3d6b01148ebcb1c3ec87b1457a0da4522f31b6a79b95b68f2e6f6bc42568",
+      "clients/src/main/java/org/apache/kafka/common/security/plain/internals/PlainSaslServer.java": "e160716ccea32978ce72ef2ab1b56691e4a315c4ca8d37370fd25e43d7c917b6",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/ScramCredential.java": "db66b018c8db3e79fd6e541d290cd397f343fe771cee406a753c73e8bbf5f203",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/ScramCredentialCallback.java": "aa3cb85ae89c8e9a34a305b0176f5eaaf795329718ecdce421a5aa64c540d3a3",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramExtensions.java": "ab42e8d09f38aed22779b5175b2eef0e9aad5e699ef76e5ab69de2ea89159f41",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramFormatter.java": "a0ad8545028b974dcc800c7515e13060222c5028320bf624db6dfb43329640de",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramMechanism.java": "211f1fefe6862aff72a5911ede96d92895d7118bbf4290c679b66b1210ad84ac",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramMessages.java": "522969b0fedde9a5eacfd6d0081a728c39364a50b777198bfbd67ff86ba03ec3",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslClient.java": "b3d862459994cae3130a9efc8e882facc2858186facd331adcdfbc1250078573",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslServer.java": "0ff659742dca5d62bb2b582bdeeb15009d17080af96745dbf2e390dac86d23d9"
+    }
+  },
+  {
+    "version": "4.3.1",
+    "commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+    "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+    "original_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+    "retained_files_sha256": {
+      "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+      "clients/src/main/java/org/apache/kafka/common/security/plain/PlainAuthenticateCallback.java": "c9ea3d6b01148ebcb1c3ec87b1457a0da4522f31b6a79b95b68f2e6f6bc42568",
+      "clients/src/main/java/org/apache/kafka/common/security/plain/internals/PlainSaslServer.java": "e160716ccea32978ce72ef2ab1b56691e4a315c4ca8d37370fd25e43d7c917b6",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/ScramCredential.java": "db66b018c8db3e79fd6e541d290cd397f343fe771cee406a753c73e8bbf5f203",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/ScramCredentialCallback.java": "aa3cb85ae89c8e9a34a305b0176f5eaaf795329718ecdce421a5aa64c540d3a3",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramExtensions.java": "ab42e8d09f38aed22779b5175b2eef0e9aad5e699ef76e5ab69de2ea89159f41",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramFormatter.java": "a0ad8545028b974dcc800c7515e13060222c5028320bf624db6dfb43329640de",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramMechanism.java": "211f1fefe6862aff72a5911ede96d92895d7118bbf4290c679b66b1210ad84ac",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramMessages.java": "522969b0fedde9a5eacfd6d0081a728c39364a50b777198bfbd67ff86ba03ec3",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslClient.java": "b3d862459994cae3130a9efc8e882facc2858186facd331adcdfbc1250078573",
+      "clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslServer.java": "0ff659742dca5d62bb2b582bdeeb15009d17080af96745dbf2e390dac86d23d9"
+    }
+  }
+]

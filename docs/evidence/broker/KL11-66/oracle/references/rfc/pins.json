@@ -1,0 +1,32 @@
+[
+  {
+    "rfc": 4616,
+    "mirror_url": "https://raw.githubusercontent.com/pingidentity/ldapsdk/3ccde474779363ad7e96524dd3a55447dd2f852d/docs/specs/rfc4616.txt",
+    "mirror_repository": "pingidentity/ldapsdk",
+    "mirror_commit": "3ccde474779363ad7e96524dd3a55447dd2f852d",
+    "publisher_url": "https://www.rfc-editor.org/rfc/rfc4616.txt",
+    "sha256": "33aa677ab7b8efe52e86147c63b38dd8dd5de96438c63e10ba8a04504bbdbca4",
+    "bytes": 20270,
+    "provenance": "Published RFC text mirrored at immutable third-party source commit; fetched through allowed GitHub proxy host, not directly from publisher."
+  },
+  {
+    "rfc": 5802,
+    "mirror_url": "https://raw.githubusercontent.com/pingidentity/ldapsdk/3ccde474779363ad7e96524dd3a55447dd2f852d/docs/specs/rfc5802.txt",
+    "mirror_repository": "pingidentity/ldapsdk",
+    "mirror_commit": "3ccde474779363ad7e96524dd3a55447dd2f852d",
+    "publisher_url": "https://www.rfc-editor.org/rfc/rfc5802.txt",
+    "sha256": "12fcaba0dd78fe7aeb1c63f433314722977ef6746a638fce0f168c63a5bd24ba",
+    "bytes": 59049,
+    "provenance": "Published RFC text mirrored at immutable third-party source commit; fetched through allowed GitHub proxy host, not directly from publisher."
+  },
+  {
+    "rfc": 7677,
+    "mirror_url": "https://raw.githubusercontent.com/pingidentity/ldapsdk/3ccde474779363ad7e96524dd3a55447dd2f852d/docs/specs/rfc7677.txt",
+    "mirror_repository": "pingidentity/ldapsdk",
+    "mirror_commit": "3ccde474779363ad7e96524dd3a55447dd2f852d",
+    "publisher_url": "https://www.rfc-editor.org/rfc/rfc7677.txt",
+    "sha256": "81490224a838bf5da7bfcce53e4ec1b1d2f69717c43c600111dec6652a386c71",
+    "bytes": 15209,
+    "provenance": "Published RFC text mirrored at immutable third-party source commit; fetched through allowed GitHub proxy host, not directly from publisher."
+  }
+]

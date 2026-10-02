@@ -16,5 +16,5 @@ pub mod raft;
 pub mod records;
 pub mod transport;
 
-#[cfg(feature = "tls")]
+#[cfg(any(feature = "tls", feature = "sasl"))]
 pub mod security;
