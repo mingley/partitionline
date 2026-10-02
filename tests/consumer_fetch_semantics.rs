@@ -1009,6 +1009,71 @@ async fn read_committed_multiple_aborted_intervals_and_pids() {
     broker.shutdown().await;
 }
 
+/// Unordered repeated headers must not reopen a completed transaction or
+/// activate a later transaction under the same PID before its first offset.
+#[tokio::test]
+async fn read_committed_repeated_metadata_and_spanning_markers_survive_seek() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 1, |_topics, attempt| {
+            let mut part = FetchedPartition::partition_response(0, 0);
+            part.high_watermark = 12;
+            part.last_stable_offset = 12;
+            part.aborted_transactions = vec![(8, 8), (7, 4), (7, 0), (7, 0)];
+            part.records = match attempt % 3 {
+                0 => vec![custom_batch(0, &[b"abort-first"], 7, 0, Some(0), true)],
+                1 => vec![
+                    custom_marker(1, ControlRecordType::Abort, 7, 0),
+                    custom_batch(2, &[b"commit-middle"], 7, 0, Some(1), true),
+                    custom_marker(3, ControlRecordType::Commit, 7, 0),
+                    custom_batch(4, &[b"abort-second"], 7, 0, Some(2), true),
+                ],
+                _ => vec![
+                    custom_marker(5, ControlRecordType::Abort, 7, 0),
+                    custom_batch(6, &[b"commit-after-second"], 7, 0, Some(3), true),
+                    custom_marker(7, ControlRecordType::Commit, 7, 0),
+                    custom_batch(8, &[b"abort-other-pid"], 8, 0, Some(0), true),
+                    custom_marker(9, ControlRecordType::Abort, 8, 0),
+                    custom_batch(10, &[b"commit-other-pid"], 8, 0, Some(1), true),
+                    custom_marker(11, ControlRecordType::Commit, 8, 0),
+                ],
+            };
+            vec![FetchedTopic {
+                topic: "t".to_owned(),
+                topic_id: [0; 16],
+                partitions: vec![part],
+            }]
+        })
+        .await;
+    let mut cfg = broker.config();
+    cfg.isolation_level = IsolationLevel::ReadCommitted;
+    let mut consumer = Consumer::new(cfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    for pass in 0..2 {
+        if pass > 0 {
+            consumer.seek("t", 0, 0).unwrap();
+        }
+        let mut history = Vec::new();
+        for (expected, cursor) in [(vec![], 1), (vec![2], 5), (vec![6, 10], 12)] {
+            let records = consumer.fetch().await.unwrap();
+            let offsets = records
+                .iter()
+                .map(|record| record.offset)
+                .collect::<Vec<_>>();
+            assert_eq!(offsets, expected);
+            assert_eq!(consumer.fetch_cursor("t", 0).unwrap(), cursor);
+            history.extend(offsets);
+        }
+        assert_eq!(history, vec![2, 6, 10]);
+        assert_eq!(
+            consumer.positions(),
+            vec![(TopicPartition::new("t", 0), 12)]
+        );
+    }
+    assert_eq!(broker.attempt_count(), 6);
+    consumer.close().await.unwrap();
+    broker.shutdown().await;
+}
+
 /// Verify that non-transactional batches are NOT suppressed merely because they share
 /// a producer ID that is currently in the aborted transactions list.
 #[tokio::test]

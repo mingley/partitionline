@@ -1,7 +1,7 @@
 //! Fetch client with manual partition assignment.
 
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -1467,6 +1467,44 @@ impl PendingRecords {
     }
 }
 
+/// Partition-local cursor over aborted starts. ABORT markers retire active
+/// intervals, including those whose data and marker arrive in separate replies.
+#[derive(Default)]
+struct AbortedIntervals {
+    pending: BinaryHeap<std::cmp::Reverse<(i64, i64)>>,
+    active: HashMap<i64, i64>,
+    completed: HashSet<(i64, i64)>,
+}
+
+impl AbortedIntervals {
+    fn extend(&mut self, intervals: &[(i64, i64)]) {
+        for &(pid, first) in intervals {
+            if !self.completed.contains(&(pid, first))
+                && self.active.get(&pid) != Some(&first)
+                && !self.pending.iter().any(|entry| entry.0 == (first, pid))
+            {
+                self.pending.push(std::cmp::Reverse((first, pid)));
+            }
+        }
+    }
+
+    fn advance(&mut self, last: i64) {
+        while let Some(&std::cmp::Reverse((first, pid))) = self.pending.peek() {
+            if first > last {
+                break;
+            }
+            let _pending = self.pending.pop();
+            let _previous = self.active.insert(pid, first);
+        }
+    }
+
+    fn abort(&mut self, pid: i64) {
+        if let Some(first) = self.active.remove(&pid) {
+            let _previous = self.completed.insert((pid, first));
+        }
+    }
+}
+
 /// Manual-assignment fetch client.
 pub struct Consumer {
     cfg: ConsumerConfig,
@@ -1486,9 +1524,7 @@ pub struct Consumer {
     paused: PartitionMap<()>,
     pending: PendingRecords,
     buffered_bytes: usize,
-    aborted_pids: HashMap<(String, i32), HashMap<i64, i64>>,
-    aborted_txs: HashMap<(String, i32), Vec<(i64, i64)>>,
-    completed_txs: HashMap<(String, i32), HashSet<(i64, i64)>>,
+    aborted: PartitionMap<AbortedIntervals>,
     m_fetch_rounds: AtomicU64,
     m_records: AtomicU64,
     m_bytes: AtomicU64,
@@ -1796,9 +1832,7 @@ impl Consumer {
             paused: PartitionMap::new(),
             pending: PendingRecords::new(),
             buffered_bytes: 0,
-            aborted_pids: HashMap::new(),
-            aborted_txs: HashMap::new(),
-            completed_txs: HashMap::new(),
+            aborted: PartitionMap::new(),
             m_fetch_rounds: AtomicU64::new(0),
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
@@ -2096,9 +2130,7 @@ impl Consumer {
         self.pending.clear();
         self.buffered_bytes = 0;
         self.last_fetched_epochs.clear();
-        self.aborted_pids.clear();
-        self.aborted_txs.clear();
-        self.completed_txs.clear();
+        self.aborted.clear();
     }
 
     /// Replace the assignment. One Metadata refresh for the topic set.
@@ -2110,9 +2142,7 @@ impl Consumer {
         }
         self.assigned.clear();
         self.last_fetched_epochs.clear();
-        self.aborted_pids.clear();
-        self.aborted_txs.clear();
-        self.completed_txs.clear();
+        self.aborted.clear();
         if starts.is_empty() {
             self.pending.clear();
             self.buffered_bytes = 0;
@@ -3611,29 +3641,26 @@ impl Consumer {
                     retry = retry.merge(FetchRetry::Redirect);
                     continue;
                 }
-                let part_key = (name.clone(), part.partition);
                 let isolation = self.cfg.isolation_level;
+                let mut aborted = if isolation == crate::IsolationLevel::ReadCommitted {
+                    if !self.aborted.contains(&name, part.partition) {
+                        let _previous =
+                            self.aborted
+                                .insert(&name, part.partition, AbortedIntervals::default());
+                    }
+                    self.aborted.get_mut(&name, part.partition)
+                } else {
+                    None
+                };
                 let has_txn_headers = part_batches
                     .iter()
                     .any(|b| b.is_transactional() || b.is_control_batch())
-                    || self
-                        .aborted_pids
-                        .get(&part_key)
-                        .is_some_and(|m| !m.is_empty());
+                    || aborted
+                        .as_ref()
+                        .is_some_and(|state| !state.active.is_empty());
 
-                if isolation == crate::IsolationLevel::ReadCommitted {
-                    let pending = self.aborted_txs.entry(part_key.clone()).or_default();
-                    let completed_txs = self.completed_txs.entry(part_key.clone()).or_default();
-                    let active = self.aborted_pids.entry(part_key.clone()).or_default();
-                    for &(pid, first) in &part.aborted_transactions {
-                        if !completed_txs.contains(&(pid, first))
-                            && active.get(&pid) != Some(&first)
-                            && !pending.iter().any(|&(p, f)| p == pid && f == first)
-                        {
-                            pending.push((pid, first));
-                        }
-                    }
-                    pending.sort_by_key(|a| std::cmp::Reverse(a.1));
+                if let Some(state) = aborted.as_deref_mut() {
+                    state.extend(&part.aborted_transactions);
                 }
 
                 let req_offset = self
@@ -3683,26 +3710,12 @@ impl Consumer {
                         |r| (r.offset + 1).max(batch.next_offset()),
                     );
 
-                    if isolation == crate::IsolationLevel::ReadCommitted {
-                        let pending = self.aborted_txs.entry(part_key.clone()).or_default();
-                        let active = self.aborted_pids.entry(part_key.clone()).or_default();
-                        while let Some(&(pid, first)) = pending.last() {
-                            if first <= batch_last {
-                                let _ = pending.pop();
-                                let _ = active.insert(pid, first);
-                            } else {
-                                break;
-                            }
-                        }
+                    if let Some(state) = aborted.as_deref_mut() {
+                        state.advance(batch_last);
 
                         if batch.is_control_batch() {
                             if is_abort_marker(&batch) {
-                                let active = self.aborted_pids.entry(part_key.clone()).or_default();
-                                if let Some(first) = active.remove(&batch.producer_id) {
-                                    let completed_txs =
-                                        self.completed_txs.entry(part_key.clone()).or_default();
-                                    let _ = completed_txs.insert((batch.producer_id, first));
-                                }
+                                state.abort(batch.producer_id);
                             }
                             if batch_next >= req_offset {
                                 next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
@@ -3712,8 +3725,7 @@ impl Consumer {
                         }
 
                         if has_txn_headers && batch.is_transactional() {
-                            let active = self.aborted_pids.entry(part_key.clone()).or_default();
-                            if let Some(&first) = active.get(&batch.producer_id) {
+                            if let Some(&first) = state.active.get(&batch.producer_id) {
                                 if batch.base_offset >= first {
                                     if batch_next >= req_offset {
                                         next = Some(next.map_or(batch_next, |c| c.max(batch_next)));
@@ -3733,6 +3745,14 @@ impl Consumer {
 
                     let is_transactional = batch.is_transactional();
                     let timestamp_type = batch.timestamp_type();
+                    // No transaction state changes within one decoded data batch.
+                    let abort_from = aborted.as_ref().and_then(|state| {
+                        if !has_txn_headers || is_transactional {
+                            state.active.get(&batch.producer_id).copied()
+                        } else {
+                            None
+                        }
+                    });
                     for rec in batch.records {
                         let offset = rec.offset;
                         if isolation == crate::IsolationLevel::ReadCommitted
@@ -3748,17 +3768,8 @@ impl Consumer {
                         } else {
                             continue;
                         }
-                        if isolation == crate::IsolationLevel::ReadCommitted {
-                            let active = self.aborted_pids.entry(part_key.clone()).or_default();
-                            if let Some(&first) = active.get(&batch.producer_id) {
-                                if has_txn_headers {
-                                    if is_transactional && offset >= first {
-                                        continue;
-                                    }
-                                } else if offset >= first {
-                                    continue;
-                                }
-                            }
+                        if abort_from.is_some_and(|first| offset >= first) {
+                            continue;
                         }
                         let rec_b = single_record_bytes(&rec);
                         *out_bytes = out_bytes.saturating_add(rec_b);
@@ -4326,10 +4337,7 @@ impl Consumer {
         self.buffered_bytes = self
             .buffered_bytes
             .saturating_sub(self.pending.drop_for(topic, partition));
-        let key = (topic.to_string(), partition);
-        let _ = self.aborted_pids.remove(&key);
-        let _ = self.aborted_txs.remove(&key);
-        let _ = self.completed_txs.remove(&key);
+        let _state = self.aborted.remove(topic, partition);
     }
 
     fn retain_pending_assigned(&mut self) {
