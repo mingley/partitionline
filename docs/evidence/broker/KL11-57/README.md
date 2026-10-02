@@ -12,7 +12,9 @@ retained archive checksums, per-file hashes, both directions' exact ranges,
 listeners, unstable versions, ApiKeys flags, and valid-version header mappings.
 The retained source archives preserve LICENSE and NOTICE, protocol JSON, and
 relevant generators. The source subset is 207, 207, and 208 files respectively,
-in three approximately 72 KiB archives outside the client package. Rebuilding
+in three approximately 72 KiB archives. The original inventory commit included
+these under the client package's broad test inclusion; KL11-61 corrects that
+packaging boundary with an explicit broker-conformance exclusion. Rebuilding
 from all three checksum-pinned full originals reproduced the committed subset
 archives and matrix byte for byte. Python 3.12.14 and zlib 1.3.2 were used.
 

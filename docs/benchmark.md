@@ -27,7 +27,7 @@ C 2.15.0, not Lab A). Suite HOLD: [STATUS.md](STATUS.md).
 
 ## Record-history correctness gate (KL04-07)
 
-Run `scripts/lab-a-integrity.sh` to require complete deterministic record
+Run [scripts/lab-a-integrity.sh](https://github.com/mingley/partitionline/blob/c9a2e8c12dd12e056902b8b9410e1407f798fad6/scripts/lab-a-integrity.sh) to require complete deterministic record
 histories before accepting a benchmark attempt's correctness. It now retains
 producer and independent consumer JSONL journals, stdout/stderr, command exit
 statuses, normalized history, a checker verdict, and checksums in an exclusive
@@ -68,8 +68,8 @@ application records. The gate accepts legitimate offset gaps and rejects
 exposed control markers. The harness's additional `HW delta == acked` audit is
 restricted to its explicitly non-transactional producer.
 
-`scripts/bench-record-history.py` independently regenerates expected payloads
-in Python and invokes the existing KL03-18 checker for ID/hash/key/order,
+[scripts/bench-record-history.py](https://github.com/mingley/partitionline/blob/c9a2e8c12dd12e056902b8b9410e1407f798fad6/scripts/bench-record-history.py) independently regenerates expected payloads
+in Python and invokes the existing [KL03-18 checker](https://github.com/mingley/partitionline/blob/c9a2e8c12dd12e056902b8b9410e1407f798fad6/scripts/check-record-history.py) for ID/hash/key/order,
 visibility, and control-record rules. Matching totals cannot hide a
 missing/duplicate swap or payload corruption. A failed verdict sets
 `performance_claims_invalidated=true`; the raw attempt remains intact.

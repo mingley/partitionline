@@ -16,6 +16,7 @@ categories = ["network-programming", "asynchronous"]
 include = [
     "/src/**",
     "/tests/**",
+    "!/tests/conformance/broker/**",
     "/examples/**",
     "/docs/*.md",
     "/docs/latency-baseline.json",

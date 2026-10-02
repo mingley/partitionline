@@ -13743,7 +13743,7 @@
         "Cargo.toml",
         "docs/benchmark.md",
         "docs/evidence/broker/KL11-57/README.md",
-        "docs/evidence/broker/KL11-57/checksums.sha256"
+        "docs/evidence/broker/KL11-57/checksums.json"
       ],
       "deliverable": "Explicit broker-conformance exclusion from the client package and usable immutable links for external benchmark tooling.",
       "acceptance": [
@@ -13761,7 +13761,7 @@
         "Cargo.toml",
         "docs/benchmark.md",
         "docs/evidence/broker/KL11-57/README.md",
-        "docs/evidence/broker/KL11-57/checksums.sha256",
+        "docs/evidence/broker/KL11-57/checksums.json",
         "docs/plan/evidence/KL11-61.json",
         "docs/evidence/broker/KL11-61/",
         "docs/plan/tasks.json"
