@@ -1422,12 +1422,13 @@
     {
       "id": "KL04-04",
       "title": "Check in a reproducible librdkafka C benchmark peer",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "codex-goal-20261002",
       "depends_on": ["KL04-01", "KL04-02"],
       "files": ["new: benchmarks/peers/librdkafka/", "scripts/lab-a-produce.sh", "docs/benchmark.md"],
       "deliverable": "A source-pinned C peer build and adapter replacing the manual comparison step.",
       "acceptance": ["Preserve the v2.15.0 historical reference and explicitly pin any newer comparison baseline.", "Match effective queue, linger, partitioning, batching, security and durability semantics; emit configuration and callback failure counts.", "Keep C build artifacts/dependencies out of the partitionline crate and never use a rust-rdkafka wrapper result as the C-only bar."],
       "validation": ["Build the pinned reviewed source in its isolated benchmark environment.", "Validate one successful and one deliberately failed delivery artifact."],
+      "write_set": ["benchmarks/peers/librdkafka/", "scripts/lab-a-produce.sh", "docs/benchmark.md", "docs/plan/evidence/KL04-04.json", "docs/evidence/perf/KL04-04/", "docs/plan/tasks.json"],
       "evidence": []
     },
     {
@@ -1444,12 +1445,13 @@
     {
       "id": "KL04-06",
       "title": "Measure scheduled open-loop latency through saturation",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "codex-goal-20261002",
       "depends_on": ["KL04-02"],
       "files": ["examples/bench_latency.rs", "new: benchmarks/tests/load_schedule.rs"],
       "deliverable": "An open-loop mode retaining the current sequential smoke mode under an explicit label.",
       "acceptance": ["Record intended arrival, actual enqueue, acknowledgment and optional independent receive times.", "Include schedule lag, queueing, rejection and timeout counts; a stalled client cannot hide latency by stopping the arrival clock.", "Report p50/p95/p99/p99.9 only at the declared sample floor and keep service-time versus end-to-end metrics distinct."],
       "validation": ["Run deterministic scheduler tests with a delayed/stalled fake peer.", "Show that a deliberately introduced pause appears in end-to-end latency rather than disappearing from the samples."],
+      "write_set": ["examples/bench_latency.rs", "benchmarks/tests/load_schedule.rs", "benchmarks/tests/open_loop.rs", "tests/bench_latency_open_loop.rs", "docs/open-loop-latency.md", "docs/plan/evidence/KL04-06.json", "docs/evidence/perf/KL04-06/", "docs/plan/tasks.json"],
       "evidence": []
     },
     {
@@ -4598,12 +4600,13 @@
     {
       "id": "KL09-40",
       "title": "Stop allocating topic strings for partition-state lookups",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "codex-goal-20261002",
       "depends_on": ["KL09-10", "KL09-11", "KL03-22"],
       "files": ["src/consumer.rs"],
       "deliverable": "Fetch planning and delivery look up paused/completed/preferred/assigned state without topic.clone() keys (for example Arc<str> keys or a per-partition state index).",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "No String allocation per partition lookup in planning or capped-poll paths.", "Pause/resume/seek/metadata-change/preferred-replica behavior is identical."],
       "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test full_surface", "cargo test --locked --test fetch_buffer_budget", "A/B cell nb-fetch-1000p (allocations and CPU per round): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
+      "write_set": ["src/consumer.rs", "docs/plan/evidence/KL09-40.json", "docs/evidence/perf/KL09-40/", "docs/plan/tasks.json"],
       "evidence": []
     },
     {
@@ -4730,12 +4733,13 @@
     {
       "id": "KL09-52",
       "title": "Reuse RPC request buffer capacity across writes",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "codex-goal-20261002",
       "depends_on": ["KL09-09", "KL09-11"],
       "files": ["src/net.rs"],
       "deliverable": "BrokerConn reuses request buffer capacity across completed writes instead of handing off its BytesMut after every RPC.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Cancellation still closes partially written frames; wire bytes are identical.", "Allocations per RPC fall."],
       "validation": ["cargo test --locked --test network_deadlines", "cargo test --locked --test full_surface", "A/B cell nb-produce-flush-heavy (allocations per RPC): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)", "A/B cell nb-send-seq (p50/p99 guardrail): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
+      "write_set": ["src/net.rs", "docs/plan/evidence/KL09-52.json", "docs/evidence/perf/KL09-52/", "docs/plan/tasks.json"],
       "evidence": []
     },
     {
