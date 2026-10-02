@@ -1285,6 +1285,56 @@ fn write_broker_id_list(f: &mut fmt::Formatter<'_>, ids: &[i32]) -> fmt::Result 
     f.write_str("]")
 }
 
+/// Partition state indexed by borrowed topic names. A topic is owned only when
+/// its first partition is inserted, and empty topic buckets are removed.
+#[derive(Clone)]
+struct PartitionMap<V> {
+    topics: HashMap<String, HashMap<i32, V>>,
+}
+
+impl<V> PartitionMap<V> {
+    fn new() -> Self {
+        Self {
+            topics: HashMap::new(),
+        }
+    }
+
+    fn get(&self, topic: &str, partition: i32) -> Option<&V> {
+        self.topics.get(topic)?.get(&partition)
+    }
+
+    fn contains(&self, topic: &str, partition: i32) -> bool {
+        self.get(topic, partition).is_some()
+    }
+
+    fn insert(&mut self, topic: &str, partition: i32, value: V) -> Option<V> {
+        if let Some(partitions) = self.topics.get_mut(topic) {
+            return partitions.insert(partition, value);
+        }
+        let mut partitions = HashMap::new();
+        let previous = partitions.insert(partition, value);
+        let _previous_topic = self.topics.insert(topic.to_owned(), partitions);
+        previous
+    }
+
+    fn remove(&mut self, topic: &str, partition: i32) -> Option<V> {
+        let partitions = self.topics.get_mut(topic)?;
+        let removed = partitions.remove(&partition);
+        if partitions.is_empty() {
+            let _removed_topic = self.topics.remove(topic);
+        }
+        removed
+    }
+
+    fn clear(&mut self) {
+        self.topics.clear();
+    }
+
+    fn is_empty(&self) -> bool {
+        self.topics.is_empty()
+    }
+}
+
 /// Manual-assignment fetch client.
 pub struct Consumer {
     cfg: ConsumerConfig,
@@ -1299,9 +1349,9 @@ pub struct Consumer {
     throttle_metrics: crate::metrics::ThrottleTracker,
     assigned: Vec<(String, i32, i64)>,
     /// Last consumed record-batch leader epoch (Fetch v12+ `LastFetchedEpoch`).
-    last_fetched_epochs: HashMap<(String, i32), i32>,
-    preferred: HashMap<(String, i32), i32>,
-    paused: HashSet<(String, i32)>,
+    last_fetched_epochs: PartitionMap<i32>,
+    preferred: PartitionMap<i32>,
+    paused: PartitionMap<()>,
     pending: VecDeque<FetchedRecord>,
     buffered_bytes: usize,
     aborted_pids: HashMap<(String, i32), HashMap<i64, i64>>,
@@ -1609,9 +1659,9 @@ impl Consumer {
             fetch_sessions: HashMap::new(),
             throttle_metrics: crate::metrics::ThrottleTracker::default(),
             assigned: Vec::new(),
-            last_fetched_epochs: HashMap::new(),
-            preferred: HashMap::new(),
-            paused: HashSet::new(),
+            last_fetched_epochs: PartitionMap::new(),
+            preferred: PartitionMap::new(),
+            paused: PartitionMap::new(),
             pending: VecDeque::new(),
             buffered_bytes: 0,
             aborted_pids: HashMap::new(),
@@ -1843,20 +1893,16 @@ impl Consumer {
 
     pub(crate) fn last_fetched_epoch(&self, topic: &str, partition: i32) -> i32 {
         self.last_fetched_epochs
-            .get(&(topic.to_string(), partition))
+            .get(topic, partition)
             .copied()
             .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
     }
 
     pub(crate) fn set_last_fetched_epoch(&mut self, topic: &str, partition: i32, epoch: i32) {
         if epoch >= 0 {
-            let _prev = self
-                .last_fetched_epochs
-                .insert((topic.to_string(), partition), epoch);
+            let _prev = self.last_fetched_epochs.insert(topic, partition, epoch);
         } else {
-            let _removed = self
-                .last_fetched_epochs
-                .remove(&(topic.to_string(), partition));
+            let _removed = self.last_fetched_epochs.remove(topic, partition);
         }
     }
 
@@ -1893,7 +1939,7 @@ impl Consumer {
     pub fn pause(&mut self, partitions: impl IntoIterator<Item = impl Into<TopicPartition>>) {
         for p in partitions {
             let tp = p.into();
-            let _inserted = self.paused.insert((tp.topic, tp.partition));
+            let _inserted = self.paused.insert(&tp.topic, tp.partition, ());
         }
     }
 
@@ -1901,7 +1947,7 @@ impl Consumer {
     pub fn resume(&mut self, partitions: impl IntoIterator<Item = impl Into<TopicPartition>>) {
         for p in partitions {
             let tp = p.into();
-            let _removed = self.paused.remove(&(tp.topic, tp.partition));
+            let _removed = self.paused.remove(&tp.topic, tp.partition);
         }
     }
 
@@ -1909,7 +1955,7 @@ impl Consumer {
     pub fn paused(&self) -> Vec<TopicPartition> {
         self.assigned
             .iter()
-            .filter(|(t, p, _)| self.paused.contains(&(t.clone(), *p)))
+            .filter(|(t, p, _)| self.paused.contains(t, *p))
             .map(|(t, p, _)| TopicPartition::new(t.clone(), *p))
             .collect()
     }
@@ -1927,11 +1973,10 @@ impl Consumer {
     /// Replace the assignment. One Metadata refresh for the topic set.
     pub(crate) async fn assign_all(&mut self, starts: &[(String, i32, i64)]) -> Result<()> {
         let old_ids = self.topic_name_ids();
-        let old_assigned: HashMap<(String, i32), i64> = self
-            .assigned
-            .iter()
-            .map(|(t, p, o)| ((t.clone(), *p), *o))
-            .collect();
+        let mut old_assigned = PartitionMap::new();
+        for (topic, partition, offset) in &self.assigned {
+            let _previous = old_assigned.insert(topic, *partition, *offset);
+        }
         self.assigned.clear();
         self.last_fetched_epochs.clear();
         self.aborted_pids.clear();
@@ -1953,7 +1998,7 @@ impl Consumer {
         let new_ids = self.topic_name_ids();
         self.assigned.extend(starts.iter().cloned());
         for (topic, part, offset) in starts {
-            if let Some(&old_offset) = old_assigned.get(&(topic.clone(), *part)) {
+            if let Some(&old_offset) = old_assigned.get(topic, *part) {
                 if old_offset != *offset || old_ids.get(topic) != new_ids.get(topic) {
                     self.drop_pending_for(topic, *part);
                 }
@@ -2273,7 +2318,7 @@ impl Consumer {
         // Preferred replica may have returned the fence; OffsetForLeaderEpoch is leader-only.
         // Refresh Metadata first so `current_leader_epoch` is not the value that just fenced us.
         for (topic, partition) in coords {
-            let _ = self.preferred.remove(&(topic.clone(), *partition));
+            let _ = self.preferred.remove(topic, *partition);
         }
         let deadline = Instant::now() + self.cfg.request_timeout;
         let mut names: Vec<String> = coords.iter().map(|(t, _)| t.clone()).collect();
@@ -2747,7 +2792,7 @@ impl Consumer {
         let mut attempt = 0u32;
         let mut out = Vec::new();
         let mut out_bytes = 0usize;
-        let mut completed: HashSet<(String, i32)> = HashSet::new();
+        let mut completed = PartitionMap::new();
         loop {
             if self.woken() {
                 return Err(Error::Wakeup);
@@ -2755,10 +2800,10 @@ impl Consumer {
             let mut topics = Vec::new();
             let mut seen = HashSet::new();
             for (t, p, _) in &self.assigned {
-                if completed.contains(&(t.clone(), *p)) {
+                if completed.contains(t, *p) {
                     continue;
                 }
-                if seen.insert(t.clone()) {
+                if seen.insert(t.as_str()) {
                     topics.push(t.clone());
                 }
             }
@@ -2768,17 +2813,17 @@ impl Consumer {
             {
                 self.refresh_metadata(Some(&topics)).await?;
             }
-            let mut by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>> = HashMap::new();
+            let mut by_leader: HashMap<i32, HashMap<&str, Vec<FetchPartition>>> = HashMap::new();
             let mut missing_leader = false;
             for (topic, part, offset) in &self.assigned {
-                if self.paused.contains(&(topic.clone(), *part)) {
+                if self.paused.contains(topic, *part) {
                     continue;
                 }
-                if completed.contains(&(topic.clone(), *part)) {
+                if completed.contains(topic, *part) {
                     continue;
                 }
                 let node = if self.cfg.rack.is_some() {
-                    self.preferred.get(&(topic.clone(), *part)).copied()
+                    self.preferred.get(topic, *part).copied()
                 } else {
                     None
                 };
@@ -2791,7 +2836,7 @@ impl Consumer {
                         by_leader
                             .entry(node)
                             .or_default()
-                            .entry(topic.clone())
+                            .entry(topic.as_str())
                             .or_default()
                             .push(FetchPartition {
                                 partition: *part,
@@ -2809,6 +2854,16 @@ impl Consumer {
                     }
                 }
             }
+            let mut by_leader = by_leader
+                .into_iter()
+                .map(|(node, topics)| {
+                    let topics = topics
+                        .into_iter()
+                        .map(|(topic, partitions)| (topic.to_owned(), partitions))
+                        .collect();
+                    (node, topics)
+                })
+                .collect::<HashMap<_, _>>();
             if missing_leader {
                 if Instant::now() >= deadline {
                     return if !out.is_empty() {
@@ -2960,7 +3015,7 @@ impl Consumer {
                         crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     );
                     self.drop_pending_for(&topic, partition);
-                    let _ = completed.insert((topic, partition));
+                    let _ = completed.insert(&topic, partition, ());
                 }
             }
             if !fenced.is_empty() {
@@ -2972,9 +3027,10 @@ impl Consumer {
             if budget_reached {
                 return Ok(self.finish_fetch(out));
             }
-            let all_done = self.assigned.iter().all(|(t, p, _)| {
-                self.paused.contains(&(t.clone(), *p)) || completed.contains(&(t.clone(), *p))
-            });
+            let all_done = self
+                .assigned
+                .iter()
+                .all(|(t, p, _)| self.paused.contains(t, *p) || completed.contains(t, *p));
             if !all_done && retry.should_retry() {
                 if Instant::now() >= deadline {
                     return if !out.is_empty() {
@@ -3295,7 +3351,7 @@ impl Consumer {
         out_bytes: &mut usize,
         fenced: &mut Vec<(String, i32)>,
         need_offsets: &mut Vec<(String, i32, i64)>,
-        completed: &mut HashSet<(String, i32)>,
+        completed: &mut PartitionMap<()>,
         budget_reached: &mut bool,
     ) -> Result<FetchRetry> {
         let FetchBody {
@@ -3324,9 +3380,7 @@ impl Consumer {
                 if self.cfg.rack.is_some() {
                     if let Some(replica) = part.preferred_read_replica() {
                         if replica != node {
-                            let _prev = self
-                                .preferred
-                                .insert((name.clone(), part.partition), replica);
+                            let _prev = self.preferred.insert(&name, part.partition, replica);
                             retry = retry.merge(FetchRetry::Redirect);
                             continue;
                         }
@@ -3339,13 +3393,8 @@ impl Consumer {
                         .ok()
                         .map(|(l, _)| l)
                         == Some(node);
-                    if self
-                        .preferred
-                        .remove(&(name.clone(), part.partition))
-                        .is_some()
-                        || !is_leader
-                    {
-                        let _ = self.preferred.remove(&(name.clone(), part.partition));
+                    if self.preferred.remove(&name, part.partition).is_some() || !is_leader {
+                        let _ = self.preferred.remove(&name, part.partition);
                         retry = retry.merge(FetchRetry::Redirect);
                         continue;
                     }
@@ -3365,7 +3414,7 @@ impl Consumer {
                                     crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
                                 );
                                 self.drop_pending_for(&name, part.partition);
-                                let _ = completed.insert((name.clone(), part.partition));
+                                let _ = completed.insert(&name, part.partition, ());
                             } else {
                                 need_offsets.push((
                                     name.clone(),
@@ -3384,7 +3433,7 @@ impl Consumer {
                                     crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
                                 );
                                 self.drop_pending_for(&name, part.partition);
-                                let _ = completed.insert((name.clone(), part.partition));
+                                let _ = completed.insert(&name, part.partition, ());
                             } else {
                                 need_offsets.push((
                                     name.clone(),
@@ -3606,9 +3655,9 @@ impl Consumer {
                 if let Some(n) = next {
                     self.advance(&name, part.partition, n);
                     self.set_last_fetched_epoch(&name, part.partition, last_epoch);
-                    let _ = completed.insert((name.clone(), part.partition));
+                    let _ = completed.insert(&name, part.partition, ());
                 } else if !*budget_reached {
-                    let _ = completed.insert((name.clone(), part.partition));
+                    let _ = completed.insert(&name, part.partition, ());
                 }
                 if *budget_reached {
                     break;
@@ -4159,14 +4208,13 @@ impl Consumer {
     }
 
     fn retain_pending_assigned(&mut self) {
-        let assigned: HashSet<(String, i32)> = self
-            .assigned
-            .iter()
-            .map(|(t, p, _)| (t.clone(), *p))
-            .collect();
+        let mut assigned = PartitionMap::new();
+        for (topic, partition, _) in &self.assigned {
+            let _previous = assigned.insert(topic, *partition, ());
+        }
         let mut kept = VecDeque::with_capacity(self.pending.len());
         while let Some(r) = self.pending.pop_front() {
-            if assigned.contains(&(r.topic.clone(), r.partition)) {
+            if assigned.contains(&r.topic, r.partition) {
                 kept.push_back(r);
             } else {
                 self.buffered_bytes = self.buffered_bytes.saturating_sub(record_bytes(&r));
@@ -4208,7 +4256,7 @@ impl Consumer {
         let mut out = Vec::new();
         let mut kept = VecDeque::new();
         while let Some(rec) = self.pending.pop_front() {
-            if self.paused.contains(&(rec.topic.clone(), rec.partition)) || out.len() >= cap {
+            if self.paused.contains(&rec.topic, rec.partition) || out.len() >= cap {
                 kept.push_back(rec);
                 continue;
             }
