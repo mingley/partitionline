@@ -1,0 +1,505 @@
+{
+  "id": "KL09-40",
+  "status": "done",
+  "source_sha": "6fde80a2c2945aff0e76446ca21dc99e512b61db",
+  "baseline_sha": "f5bd936d5719f166a784049f75eb78ebfe87c589",
+  "disposition": "accepted",
+  "hypothesis": "Fetch planning and capped delivery clone topic Strings to probe tuple-key partition state. Borrow topic names, own one topic key per bucket, and index partition IDs within each topic so lookups require no String allocation.",
+  "cells": [
+    "nb-fetch-1000p"
+  ],
+  "host": "AMD EPYC 9V74 80-Core Processor; x86_64 Linux 6.18.44; affinity exposes 5 CPUs, cgroup cpu.max=400000 100000; client and inherited broker pinned to CPU 3; external RSS observer CPU 2; cpufreq governor/driver unavailable in container, host frequency policy unmanaged; rustc 1.99.0 (b940084d7 2026-09-28); Cargo release optimized default profile.",
+  "tested_source": {
+    "baseline_tree": "178e2dacbae95af28e79752ff16b3dfa28415301",
+    "candidate_tree": "dd6d46cdfc6aa77dcd1c8730e36cf2eaee4a603c",
+    "consumer_blob": "cac6fe84cf618abe5d80d4c4d730145819d89414",
+    "consumer_sha256": "0e252ebbd9b8f9b559b69875005c3c853569923a0e93386950e89b07c1f2c651",
+    "candidate_relation": "Exact f5bd936d baseline tree plus only src/consumer.rs, whose blob matches pushed implementation source_sha. Candidate checkout HEAD pins source_sha with baseline tasks.json and baseline runtime host.rs restored, so candidate artifacts correctly record dirty_tree=true. The remote host.rs diff only cfg-gates an unused CStr import on Linux; it is excluded from measured binaries.",
+    "patch_sha256": "54ee131cd3efdff0d978f40a74b57dc76d6e5b6f1083e5711e1a967e7ee05bf1"
+  },
+  "commands": [
+    "export CARGO_HOME=/workspace/work/cargo RUSTUP_HOME=/workspace/work/rustup PATH=/workspace/work/cargo/bin:$PATH",
+    "CARGO_TARGET_DIR=/workspace/work/consumer-lookups/baseline-target cargo build --offline --locked --release --manifest-path /workspace/work/consumer-lookups/baseline/benchmarks/runtime/Cargo.toml --bins (exit 0)",
+    "taskset -c 3 /workspace/work/consumer-lookups/baseline-target/release/runtime --cell nb-fetch-1000p --out /workspace/work/consumer-lookups/first-baseline --repetitions 1 (exit 0; before consumer edits)",
+    "CARGO_TARGET_DIR=/workspace/work/consumer-lookups/candidate-target cargo build --offline --locked --release --manifest-path /workspace/work/consumer-lookups/candidate/benchmarks/runtime/Cargo.toml --bins (exit 0)",
+    "CARGO_TARGET_DIR=/workspace/work/consumer-lookups/candidate-target cargo test --offline --locked --test consumer_fetch_semantics --test full_surface --test fetch_buffer_budget (isolated candidate cwd, exit 0)",
+    "CARGO_TARGET_DIR=/workspace/work/consumer-lookups/candidate-target cargo clippy --offline --locked --lib -- -D warnings (isolated candidate cwd, exit 0)",
+    "python3 /workspace/work/consumer-lookups/run-pairs.py (20 interleaved A/B runs, exit 0)",
+    "python3 /workspace/work/consumer-lookups/run-rss-pairs.py (20 interleaved A/B runs, external RSS at 1ms after /proc/PID/exe confirms runtime, exit 0)",
+    "python3 scripts/benchmark-report.py <each sanitized result.json> --quiet --json (41/41 valid, 0 errors)",
+    "rustfmt --edition 2021 src/consumer.rs and git diff --check -- src/consumer.rs (exit 0)"
+  ],
+  "results": {
+    "primary": {
+      "baseline_median": 33300.0,
+      "candidate_median": 21318.0,
+      "delta_pct": -35.98198198198198,
+      "baseline_ci95": [
+        33300.0,
+        33300.0
+      ],
+      "candidate_ci95": [
+        21318.0,
+        21318.0
+      ],
+      "ci95_pct": [
+        -35.98198198198198,
+        -35.98198198198198
+      ],
+      "repetitions": 10,
+      "baseline_values": [
+        33300.0,
+        33300.0,
+        33300.0,
+        33300.0,
+        33300.0,
+        33300.0,
+        33300.0,
+        33300.0,
+        33300.0,
+        33300.0
+      ],
+      "candidate_values": [
+        21318.0,
+        21318.0,
+        21318.0,
+        21318.0,
+        21318.0,
+        21318.0,
+        21318.0,
+        21318.0,
+        21318.0,
+        21318.0
+      ],
+      "metric": "allocations per fetch round"
+    },
+    "allocations": {
+      "unit": "per round",
+      "baseline": 33300,
+      "candidate": 21318,
+      "delta_pct": -35.98198198198198,
+      "identical_counts_in_every_repetition": true,
+      "total_allocated_bytes": {
+        "baseline_median": 9786476.0,
+        "candidate_median": 9363336.0,
+        "delta_pct": -4.323721838177496,
+        "baseline_ci95": [
+          9786476.0,
+          9786476.0
+        ],
+        "candidate_ci95": [
+          9363336.0,
+          9363336.0
+        ],
+        "ci95_pct": [
+          -4.323721838177496,
+          -4.323721838177496
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          9786476.0,
+          9786476.0,
+          9786476.0,
+          9786476.0,
+          9786476.0,
+          9786476.0,
+          9786476.0,
+          9786476.0,
+          9786476.0,
+          9786476.0
+        ],
+        "candidate_values": [
+          9363336.0,
+          9363336.0,
+          9363336.0,
+          9363336.0,
+          9363336.0,
+          9363336.0,
+          9363336.0,
+          9363336.0,
+          9363336.0,
+          9363336.0
+        ]
+      }
+    },
+    "instructions": {
+      "measured": false,
+      "reason": "No runtime consumer instruction-count cell exists; codec instruction benchmark production paths were not changed."
+    },
+    "guardrails": {
+      "cpu_ns_per_round": {
+        "baseline_median": 8297500.0,
+        "candidate_median": 8208000.0,
+        "delta_pct": -1.0786381440192838,
+        "baseline_ci95": [
+          7874000.0,
+          9143000.0
+        ],
+        "candidate_ci95": [
+          7459000.0,
+          9042000.0
+        ],
+        "ci95_pct": [
+          -7.779897460355311,
+          9.323335996558303
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          8438000.0,
+          9171000.0,
+          7795000.0,
+          9315000.0,
+          9143000.0,
+          8801000.0,
+          7833000.0,
+          8157000.0,
+          7973000.0,
+          7874000.0
+        ],
+        "candidate_values": [
+          8042000.0,
+          9445000.0,
+          9148000.0,
+          8746000.0,
+          9042000.0,
+          8015000.0,
+          7459000.0,
+          8374000.0,
+          7450000.0,
+          7454000.0
+        ]
+      },
+      "external_process_peak_rss_bytes": {
+        "baseline_median": 13103104.0,
+        "candidate_median": 13168640.0,
+        "delta_pct": 0.5001562988433905,
+        "baseline_ci95": [
+          13082624.0,
+          13178880.0
+        ],
+        "candidate_ci95": [
+          13160448.0,
+          13221888.0
+        ],
+        "ci95_pct": [
+          -0.12432012432012085,
+          1.0010949475989461
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          13078528,
+          13099008,
+          13107200,
+          13180928,
+          13086720,
+          13176832,
+          13176832,
+          13078528,
+          13086720,
+          13185024
+        ],
+        "candidate_values": [
+          13172736,
+          13250560,
+          13152256,
+          13160448,
+          13221888,
+          13160448,
+          13189120,
+          13225984,
+          13164544,
+          13164544
+        ]
+      },
+      "rss_threshold_pct": 2,
+      "cpu_threshold_pct": 2,
+      "rss_scope": "Whole runtime process from exec through artifact emission; /proc/PID/statm resident pages sampled externally every 1ms. This supplements the defective in-harness Linux sampler, whose zero RSS values are not counted as passing evidence."
+    },
+    "other_metrics": {
+      "main_uninstrumented": {
+        "rec_s": {
+          "baseline_median": 167449.78382472773,
+          "candidate_median": 168017.85790655168,
+          "delta_pct": 0.3392504121824125,
+          "baseline_ci95": [
+            157827.44337360453,
+            171170.0039767927
+          ],
+          "candidate_ci95": [
+            164460.59228179863,
+            171511.12120130094
+          ],
+          "ci95_pct": [
+            -1.046618265031296,
+            5.827114111348153
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            155556.04987811405,
+            166031.9596911593,
+            157827.44337360453,
+            153950.13650527678,
+            166368.18550505204,
+            168531.3821444034,
+            185856.58521569966,
+            169581.4179465471,
+            171170.0039767927,
+            171177.5195439365
+          ],
+          "candidate_values": [
+            155779.42686225232,
+            164210.23481669475,
+            166687.5804017544,
+            167360.87679426133,
+            164460.59228179863,
+            168674.83901884206,
+            170132.16240666507,
+            183545.74103032154,
+            172137.93019872342,
+            171511.12120130094
+          ]
+        },
+        "p99_us": {
+          "baseline_median": 16385.5,
+          "candidate_median": 15814.5,
+          "delta_pct": -3.484788379970094,
+          "baseline_ci95": [
+            14868.0,
+            16761.0
+          ],
+          "candidate_ci95": [
+            14635.0,
+            16808.0
+          ],
+          "ci95_pct": [
+            -11.916942521817631,
+            9.13581895256852
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            16376.0,
+            16615.0,
+            14705.0,
+            16395.0,
+            17180.0,
+            16761.0,
+            12620.0,
+            14928.0,
+            16887.0,
+            15031.0
+          ],
+          "candidate_values": [
+            17759.0,
+            14635.0,
+            15691.0,
+            15938.0,
+            17115.0,
+            15191.0,
+            16348.0,
+            13433.0,
+            14140.0,
+            16808.0
+          ]
+        }
+      },
+      "external_rss_observer_window": {
+        "cpu_ns_per_round": {
+          "baseline_median": 8755000.0,
+          "candidate_median": 8151500.0,
+          "delta_pct": -6.893203883495147,
+          "baseline_ci95": [
+            8372500.0,
+            9192500.0
+          ],
+          "candidate_ci95": [
+            7964000.0,
+            8297000.0
+          ],
+          "ci95_pct": [
+            -12.450367147130814,
+            -3.1034885077587226
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            10713000.0,
+            8638000.0,
+            8571000.0,
+            8174000.0,
+            9463000.0,
+            8129000.0,
+            8872000.0,
+            9110000.0,
+            8922000.0,
+            8561000.0
+          ],
+          "candidate_values": [
+            8046000.0,
+            9309000.0,
+            8313000.0,
+            7878000.0,
+            8050000.0,
+            8183000.0,
+            8297000.0,
+            7589000.0,
+            8177000.0,
+            8126000.0
+          ]
+        },
+        "rec_s": {
+          "baseline_median": 165032.16035174724,
+          "candidate_median": 156122.23984201514,
+          "delta_pct": -5.398899517973721,
+          "baseline_ci95": [
+            154972.1745136078,
+            169530.34212528425
+          ],
+          "candidate_ci95": [
+            155723.2792284341,
+            168343.68816350744
+          ],
+          "ci95_pct": [
+            -7.625534557002245,
+            7.947215668397223
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            149254.0543557893,
+            168489.9951904531,
+            166143.59126018253,
+            170491.3386478666,
+            163920.72944331192,
+            156217.5043182033,
+            154972.1745136078,
+            180171.37613023305,
+            154382.78126848396,
+            169530.34212528425
+          ],
+          "candidate_values": [
+            155838.1344205516,
+            152576.0963363031,
+            155608.42403631663,
+            156266.40308899924,
+            155774.21928882058,
+            155978.07659503102,
+            167960.29687318392,
+            170009.72370614737,
+            168945.0254914391,
+            167742.3508355758
+          ]
+        },
+        "p99_us": {
+          "baseline_median": 15736.5,
+          "candidate_median": 15957.0,
+          "delta_pct": 1.4012010294538246,
+          "baseline_ci95": [
+            14372.0,
+            17751.0
+          ],
+          "candidate_ci95": [
+            13545.0,
+            16634.0
+          ],
+          "ci95_pct": [
+            -15.305828873928306,
+            15.343217249401064
+          ],
+          "repetitions": 10,
+          "baseline_values": [
+            20298.0,
+            14324.0,
+            14420.0,
+            12915.0,
+            17802.0,
+            16426.0,
+            17007.0,
+            14381.0,
+            17751.0,
+            15047.0
+          ],
+          "candidate_values": [
+            15893.0,
+            19136.0,
+            16610.0,
+            16933.0,
+            15547.0,
+            16021.0,
+            16335.0,
+            13389.0,
+            13545.0,
+            13499.0
+          ]
+        }
+      },
+      "note": "The external-observer window reports a 5.40% throughput decline. This is disclosed rather than scored as a throughput improvement; allocation is the deterministic primary metric, and CPU/RSS are the named fetch guardrails."
+    },
+    "net_production_lines": 48,
+    "correctness": {
+      "passed": 393,
+      "failed": 0,
+      "skipped": 1,
+      "new_skips": 0,
+      "per_suite": [
+        {
+          "name": "consumer_fetch_semantics",
+          "passed": 60,
+          "failed": 0,
+          "skipped": 1,
+          "ignored": "live_fetch_session_recovery_required (existing live-broker test requires broker environment)"
+        },
+        {
+          "name": "fetch_buffer_budget",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "full_surface",
+          "passed": 324,
+          "failed": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    "integrity": {
+      "runs": 41,
+      "records_verified": 410000,
+      "records_each_run": 10000,
+      "partitions_each_run": 1000,
+      "fetch_rounds_each_run": 1,
+      "mismatched": 0,
+      "validation_failures": 0,
+      "artifact_validation": {
+        "valid": 41,
+        "failed": 0
+      }
+    }
+  },
+  "acceptance_met": [
+    "Measured pinned parent first; 33,300 allocations in a 1,000-partition fetch round makes temporary per-partition topic-key allocation clearly visible.",
+    "Deterministic acceptance: every paired candidate uses 21,318 allocations/round versus 33,300 baseline (-35.98%, exceeds 5% threshold); no allocation/instruction baseline raised.",
+    "Named fetch guardrails pass by measured medians: main CPU -1.08%; independently sampled process RSS +0.50% (both below the 2% regression ceiling).",
+    "All required correctness suites pass with no new skips; pause/resume, seek, recreated-topic assignment, leader movement, preferred replicas and capped-poll coverage retained.",
+    "Private safe-Rust map introduces no runtime dependencies, public API or defaults change; net production addition is 48 lines; empty topic buckets are removed.",
+    "Planning and capped delivery probe paused/completed/preferred/assignment/last-fetched-epoch state using borrowed &str keys; topic deduplication and grouping own only one String per topic."
+  ],
+  "artifacts": [
+    "docs/evidence/perf/KL09-40/artifact-validation.json",
+    "docs/evidence/perf/KL09-40/candidate-build.log",
+    "docs/evidence/perf/KL09-40/candidate-clippy.log",
+    "docs/evidence/perf/KL09-40/candidate-tests.log",
+    "docs/evidence/perf/KL09-40/consumer.patch",
+    "docs/evidence/perf/KL09-40/measurements.json",
+    "docs/evidence/perf/KL09-40/raw-artifacts.tar.gz",
+    "docs/evidence/perf/KL09-40/run-pairs.py",
+    "docs/evidence/perf/KL09-40/run-rss-pairs.py",
+    "docs/evidence/perf/KL09-40/checksums.sha256"
+  ],
+  "limits": [
+    "Local/unsigned exploratory null-broker result; not a Kafka throughput comparison or public performance claim. Suite HOLD remains active.",
+    "Only the named 1,000-partition read_uncommitted cell was measured; pause/resume/read_committed/preferred-replica behavior is covered by correctness suites rather than additional performance cells.",
+    "No CPU-frequency governor is exposed by the container; paired windows were exclusive of builds and test execution, but host scheduling and frequency are unmanaged.",
+    "The baseline Linux in-harness RSS parser stops after the first statm field, so baseline/average/sampled RSS are zero and unusable. RUSAGE process_peak may reflect the Python launcher RSS floor. The external statm observer provides the separate RSS guardrail measurement.",
+    "External observer samples at 1ms and includes setup plus artifact generation, rather than isolating the fetch phase. Sub-millisecond RSS spikes may be missed.",
+    "CPU bootstrap confidence interval includes zero; this card accepts the deterministic allocation route and makes no CPU or throughput improvement claim."
+  ]
+}

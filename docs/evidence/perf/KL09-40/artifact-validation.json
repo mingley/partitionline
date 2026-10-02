@@ -1,0 +1,211 @@
+{
+  "valid": 41,
+  "failed": 0,
+  "runs": [
+    {
+      "artifact": "raw/first-baseline/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-00-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-00-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-01-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-01-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-02-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-02-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-03-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-03-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-04-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-04-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-05-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-05-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-06-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-06-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-07-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-07-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-08-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-08-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-09-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/paired/pair-09-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-00-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-00-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-01-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-01-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-02-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-02-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-03-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-03-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-04-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-04-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-05-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-05-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-06-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-06-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-07-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-07-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-08-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-08-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-09-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    },
+    {
+      "artifact": "raw/rss-paired/pair-09-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+   Compiling partitionline v0.1.0 (/workspace/work/consumer-lookups/candidate)
+   Compiling codec v0.1.0 (/workspace/work/consumer-lookups/candidate/benchmarks/codec)
+   Compiling runtime v0.1.0 (/workspace/work/consumer-lookups/candidate/benchmarks/runtime)
+warning: unused import: `std::ffi::CStr`
+ --> src/host.rs:8:5
+  |
+8 | use std::ffi::CStr;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `runtime` (lib) generated 1 warning (run `cargo fix --lib -p runtime` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 34.43s
