@@ -4750,7 +4750,8 @@
         "Re-run all five maintained consumer regression cases at the new negotiated version where applicable.",
         "KIP1166 request partition HighWatermark tag1 has defaulti64MAX (featureunsupported) and unknown sentinel-1; ordinary consumers omitdefault and never infer replication acknowledgment semantics. No response-schema change.",
         "Preserve existing public FetchPartition layout and encoder/decoder signatures; any explicit replica high-watermark representation uses added overload/sidecar APIs. Validate known tagged-field length/default/unknown behavior with authentic Apache implementation.",
-        "Exact-source default/all-feature wholeclient/strict toolchain gates, threecurrentApachefixtures and actual Rust\u2192Java parsing; keep existing lower-version/UUID/session/duplicate/leader/receipt regression behavior."
+        "Exact-source default/all-feature wholeclient/strict toolchain gates, threecurrentApachefixtures and actual Rust\u2192Java parsing; keep existing lower-version/UUID/session/duplicate/leader/receipt regression behavior.",
+        "Maintained audit regressions A01-A05 run at the negotiated Fetch18 version and retain their lower-version baseline, including A05 delivered-only offset commits."
       ],
       "validation": [
         "cargo test --locked --test protocol_oracles",
@@ -4779,7 +4780,9 @@
         "CHANGELOG.md",
         "docs/evidence/client/KL05-12/",
         "docs/plan/evidence/KL05-12.json",
-        "docs/plan/tasks.json"
+        "docs/plan/tasks.json",
+        "tests/common/fetch_fixture.rs",
+        "tests/consumer_close_commit.rs"
       ],
       "integration_coordinator": "Root owns coreFetch18 implementation/tests/oracles and atomic plan updates. No core records/buf or resource-contract edits held underKL09-32. docs/api-stability.md remains KL10-07 ownership; public API compatibility preserved and documented in guide/gaps/support/CHANGELOG. Broker workers have separate crate ownership."
     },
