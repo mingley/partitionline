@@ -7991,8 +7991,11 @@
         "partitionline-broker/tests/transport.rs",
         "docs/plan/evidence/KL11-02.json",
         "docs/evidence/broker/KL11-02/",
-        "docs/plan/tasks.json"
-      ]
+        "docs/plan/tasks.json",
+        "partitionline-broker/src/lib.rs",
+        "partitionline-broker/README.md"
+      ],
+      "integration_coordinator": "Root exclusively owns shared lib.rs exports and README, coordinating transport and journal workers."
     },
     {
       "id": "KL11-03",
