@@ -1,0 +1,17 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling partitionline v0.1.0 (<work>/packed-final/partitionline-0.1.0)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.58s
+     Running tests/bootstrap_dials.rs (<work>/target-dials-msrv/debug/deps/bootstrap_dials-d7e4dc7ad93199f1)
+
+running 6 tests
+test cancelling_bootstrap_race_closes_pending_tls_handshakes ... ok
+test refused_first_bootstrap_still_connects_to_live_host ... ok
+test stalled_first_bootstrap_does_not_delay_reachable_host ... ok
+test cancelling_bootstrap_race_closes_every_pending_tcp_dial ... ok
+test all_failures_preserve_last_configured_address_error ... ok
+test at_most_four_bootstrap_dials_run_at_once ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+

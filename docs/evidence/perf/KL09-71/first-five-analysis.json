@@ -1,0 +1,724 @@
+{
+  "live": {
+    "baseline_samples": [
+      99.949,
+      99.89,
+      99.886,
+      99.933,
+      99.674
+    ],
+    "candidate_samples": [
+      99.841,
+      99.889,
+      103.515,
+      99.897,
+      96.035
+    ],
+    "baseline_median": 99.89,
+    "candidate_median": 99.889,
+    "ratio_of_medians_delta_pct": -0.0010011012113397832,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -3.6509019403254683,
+      3.633141781631055
+    ],
+    "paired_delta_pct_samples": [
+      -0.10805510810514285,
+      -0.0010011012113397832,
+      3.633141781631055,
+      -0.036024136171231014,
+      -3.6509019403254683
+    ],
+    "median_paired_delta_pct": -0.036024136171231014,
+    "median_paired_delta_ci95_pct": [
+      -3.6509019403254683,
+      3.633141781631055
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "live_1": {
+    "baseline_samples": [
+      103.305,
+      97.823,
+      95.986,
+      101.262,
+      97.908
+    ],
+    "candidate_samples": [
+      96.277,
+      107.87,
+      95.615,
+      103.75,
+      96.035
+    ],
+    "baseline_median": 97.908,
+    "candidate_median": 96.277,
+    "ratio_of_medians_delta_pct": -1.6658495730686007,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -6.803155703983355,
+      10.270590760864028
+    ],
+    "paired_delta_pct_samples": [
+      -6.803155703983355,
+      10.270590760864028,
+      -0.3865147000604363,
+      2.4569927514763723,
+      -1.9130203864852757
+    ],
+    "median_paired_delta_pct": -0.3865147000604363,
+    "median_paired_delta_ci95_pct": [
+      -6.803155703983355,
+      10.270590760864028
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "live_6": {
+    "baseline_samples": [
+      99.949,
+      99.89,
+      99.95,
+      95.896,
+      99.96
+    ],
+    "candidate_samples": [
+      99.865,
+      99.889,
+      103.945,
+      99.897,
+      99.846
+    ],
+    "baseline_median": 99.949,
+    "candidate_median": 99.889,
+    "ratio_of_medians_delta_pct": -0.06003061561397072,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -0.11404561824729376,
+      4.172228247267884
+    ],
+    "paired_delta_pct_samples": [
+      -0.08404286185955678,
+      -0.0010011012113397832,
+      3.9969984992496155,
+      4.172228247267884,
+      -0.11404561824729376
+    ],
+    "median_paired_delta_pct": -0.0010011012113397832,
+    "median_paired_delta_ci95_pct": [
+      -0.11404561824729376,
+      4.172228247267884
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "live_64": {
+    "baseline_samples": [
+      95.881,
+      99.9,
+      99.886,
+      99.933,
+      99.674
+    ],
+    "candidate_samples": [
+      99.841,
+      95.86,
+      103.515,
+      95.89,
+      91.866
+    ],
+    "baseline_median": 99.886,
+    "candidate_median": 95.89,
+    "ratio_of_medians_delta_pct": -4.000560639128603,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -7.833537331701357,
+      4.130119627454865
+    ],
+    "paired_delta_pct_samples": [
+      4.130119627454865,
+      -4.044044044044048,
+      3.633141781631055,
+      -4.045710626119503,
+      -7.833537331701357
+    ],
+    "median_paired_delta_pct": -4.044044044044048,
+    "median_paired_delta_ci95_pct": [
+      -7.833537331701357,
+      4.130119627454865
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "refused": {
+    "baseline_samples": [
+      99.856,
+      103.912,
+      95.867,
+      99.839,
+      95.892
+    ],
+    "candidate_samples": [
+      99.883,
+      99.927,
+      99.884,
+      95.892,
+      95.882
+    ],
+    "baseline_median": 99.839,
+    "candidate_median": 99.883,
+    "ratio_of_medians_delta_pct": 0.044070954236308246,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -3.9533649175172103,
+      4.190180145409772
+    ],
+    "paired_delta_pct_samples": [
+      0.027038936067946828,
+      -3.834975748710445,
+      4.190180145409772,
+      -3.9533649175172103,
+      -0.010428398615103252
+    ],
+    "median_paired_delta_pct": -0.010428398615103252,
+    "median_paired_delta_ci95_pct": [
+      -3.9533649175172103,
+      4.190180145409772
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "refused_1": {
+    "baseline_samples": [
+      99.896,
+      95.804,
+      99.882,
+      103.724,
+      95.892
+    ],
+    "candidate_samples": [
+      95.803,
+      99.769,
+      111.903,
+      95.792,
+      95.83
+    ],
+    "baseline_median": 99.882,
+    "candidate_median": 95.83,
+    "ratio_of_medians_delta_pct": -4.056787008670238,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -7.647217615980873,
+      12.035201537814611
+    ],
+    "paired_delta_pct_samples": [
+      -4.097261151597664,
+      4.138658093607783,
+      12.035201537814611,
+      -7.647217615980873,
+      -0.06465607141367125
+    ],
+    "median_paired_delta_pct": -0.06465607141367125,
+    "median_paired_delta_ci95_pct": [
+      -7.647217615980873,
+      12.035201537814611
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "refused_6": {
+    "baseline_samples": [
+      95.874,
+      103.912,
+      95.86,
+      99.81,
+      96.092
+    ],
+    "candidate_samples": [
+      99.965,
+      99.927,
+      96.19,
+      95.892,
+      95.882
+    ],
+    "baseline_median": 96.092,
+    "candidate_median": 96.19,
+    "ratio_of_medians_delta_pct": 0.10198559713607835,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -3.925458370904722,
+      4.267058848071437
+    ],
+    "paired_delta_pct_samples": [
+      4.267058848071437,
+      -3.834975748710445,
+      0.34425203421657447,
+      -3.925458370904722,
+      -0.21854056529159172
+    ],
+    "median_paired_delta_pct": -0.21854056529159172,
+    "median_paired_delta_ci95_pct": [
+      -3.925458370904722,
+      4.267058848071437
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "refused_64": {
+    "baseline_samples": [
+      99.856,
+      103.927,
+      95.867,
+      99.839,
+      95.857
+    ],
+    "candidate_samples": [
+      99.883,
+      107.925,
+      99.884,
+      103.923,
+      95.897
+    ],
+    "baseline_median": 99.839,
+    "candidate_median": 99.884,
+    "ratio_of_medians_delta_pct": 0.04507256683259353,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      0.027038936067946828,
+      4.190180145409772
+    ],
+    "paired_delta_pct_samples": [
+      0.027038936067946828,
+      3.8469310188882444,
+      4.190180145409772,
+      4.0905858432075615,
+      0.04172882522925914
+    ],
+    "median_paired_delta_pct": 3.8469310188882444,
+    "median_paired_delta_ci95_pct": [
+      0.027038936067946828,
+      4.190180145409772
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "stalled_tcp": {
+    "baseline_samples": [
+      303.836,
+      295.887,
+      299.892,
+      303.912,
+      299.918
+    ],
+    "candidate_samples": [
+      99.924,
+      99.903,
+      100.14,
+      99.902,
+      100.079
+    ],
+    "baseline_median": 299.918,
+    "candidate_median": 99.924,
+    "ratio_of_medians_delta_pct": -66.68289332417527,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -67.12798441654162,
+      -66.23609688833913
+    ],
+    "paired_delta_pct_samples": [
+      -67.11252122855751,
+      -66.23609688833913,
+      -66.60797887239407,
+      -67.12798441654162,
+      -66.63121253142525
+    ],
+    "median_paired_delta_pct": -66.63121253142525,
+    "median_paired_delta_ci95_pct": [
+      -67.12798441654162,
+      -66.23609688833913
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "stalled_tcp_1": {
+    "baseline_samples": [
+      303.866,
+      295.887,
+      299.892,
+      307.913,
+      299.918
+    ],
+    "candidate_samples": [
+      99.925,
+      99.903,
+      99.91,
+      99.883,
+      99.896
+    ],
+    "baseline_median": 299.918,
+    "candidate_median": 99.903,
+    "ratio_of_medians_delta_pct": -66.68989523803172,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -67.56129166355431,
+      -66.23609688833913
+    ],
+    "paired_delta_pct_samples": [
+      -67.1154390422094,
+      -66.23609688833913,
+      -66.6846731490003,
+      -67.56129166355431,
+      -66.6922292093172
+    ],
+    "median_paired_delta_pct": -66.6922292093172,
+    "median_paired_delta_ci95_pct": [
+      -67.56129166355431,
+      -66.23609688833913
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "stalled_tcp_6": {
+    "baseline_samples": [
+      303.836,
+      295.948,
+      299.893,
+      303.912,
+      295.835
+    ],
+    "candidate_samples": [
+      95.82,
+      101.495,
+      103.891,
+      103.893,
+      107.85
+    ],
+    "baseline_median": 299.893,
+    "candidate_median": 103.891,
+    "ratio_of_medians_delta_pct": -65.35731077417613,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -68.46324991113629,
+      -63.543867358493756
+    ],
+    "paired_delta_pct_samples": [
+      -68.46324991113629,
+      -65.70512387311285,
+      -65.35731077417613,
+      -65.81477532970071,
+      -63.543867358493756
+    ],
+    "median_paired_delta_pct": -65.70512387311285,
+    "median_paired_delta_ci95_pct": [
+      -68.46324991113629,
+      -63.543867358493756
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "stalled_tcp_64": {
+    "baseline_samples": [
+      299.884,
+      295.868,
+      299.854,
+      295.904,
+      299.954
+    ],
+    "candidate_samples": [
+      99.924,
+      98.331,
+      100.14,
+      99.902,
+      100.079
+    ],
+    "baseline_median": 299.854,
+    "candidate_median": 99.924,
+    "ratio_of_medians_delta_pct": -66.67578221401081,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -66.76524666405288,
+      -66.23837460798097
+    ],
+    "paired_delta_pct_samples": [
+      -66.67911592482427,
+      -66.76524666405288,
+      -66.60374715694972,
+      -66.23837460798097,
+      -66.63521740000134
+    ],
+    "median_paired_delta_pct": -66.63521740000134,
+    "median_paired_delta_ci95_pct": [
+      -66.76524666405288,
+      -66.23837460798097
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "cpu_ns_per_record": {
+    "baseline_samples": [
+      5327111.111111111,
+      5458444.444444444,
+      4982666.666666667,
+      7014111.111111111,
+      6620666.666666667
+    ],
+    "candidate_samples": [
+      3407000.0,
+      6953777.777777778,
+      4751777.777777778,
+      4864000.0,
+      6096222.222222222
+    ],
+    "baseline_median": 5458444.444444444,
+    "candidate_median": 4864000.0,
+    "ratio_of_medians_delta_pct": -10.890363554940352,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -36.04413482396128,
+      27.394862191100454
+    ],
+    "paired_delta_pct_samples": [
+      -36.04413482396128,
+      27.394862191100454,
+      -4.633841762554636,
+      -30.65407828662854,
+      -7.921323800892832
+    ],
+    "median_paired_delta_pct": -7.921323800892832,
+    "median_paired_delta_ci95_pct": [
+      -36.04413482396128,
+      27.394862191100454
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "rss_peak_bytes": {
+    "baseline_samples": [
+      4542464,
+      4677632,
+      4411392,
+      4546560,
+      4542464
+    ],
+    "candidate_samples": [
+      4632576,
+      4567040,
+      4567040,
+      4571136,
+      4571136
+    ],
+    "baseline_median": 4542464,
+    "candidate_median": 4571136,
+    "ratio_of_medians_delta_pct": 0.6311992786294018,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -2.3642732049036774,
+      3.52831940575673
+    ],
+    "paired_delta_pct_samples": [
+      1.9837691614066788,
+      -2.3642732049036774,
+      3.52831940575673,
+      0.540540540540535,
+      0.6311992786294018
+    ],
+    "median_paired_delta_pct": 0.6311992786294018,
+    "median_paired_delta_ci95_pct": [
+      -2.3642732049036774,
+      3.52831940575673
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "rss_average_bytes": {
+    "baseline_samples": [
+      4504271,
+      4638776,
+      4377670,
+      4509142,
+      4505964
+    ],
+    "candidate_samples": [
+      4560989,
+      4496270,
+      4505144,
+      4509602,
+      4500562
+    ],
+    "baseline_median": 4505964,
+    "candidate_median": 4505144,
+    "ratio_of_medians_delta_pct": -0.018198103668831678,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -3.0720603883438224,
+      2.911914328855314
+    ],
+    "paired_delta_pct_samples": [
+      1.2592048746622897,
+      -3.0720603883438224,
+      2.911914328855314,
+      0.010201497313677699,
+      -0.1198855561207357
+    ],
+    "median_paired_delta_pct": 0.010201497313677699,
+    "median_paired_delta_ci95_pct": [
+      -3.0720603883438224,
+      2.911914328855314
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "allocation_count": {
+    "baseline_samples": [
+      75343,
+      70027,
+      52461,
+      94341,
+      94911
+    ],
+    "candidate_samples": [
+      39455,
+      107926,
+      77140,
+      60574,
+      93818
+    ],
+    "baseline_median": 75343,
+    "candidate_median": 77140,
+    "ratio_of_medians_delta_pct": 2.385092178437276,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -47.632825876325604,
+      54.120553500792546
+    ],
+    "paired_delta_pct_samples": [
+      -47.632825876325604,
+      54.120553500792546,
+      47.042564953012715,
+      -35.792497429537526,
+      -1.1516051880182454
+    ],
+    "median_paired_delta_pct": -1.1516051880182454,
+    "median_paired_delta_ci95_pct": [
+      -47.632825876325604,
+      54.120553500792546
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "allocated_bytes": {
+    "baseline_samples": [
+      38609335,
+      38529595,
+      38266105,
+      38894305,
+      38902855
+    ],
+    "candidate_samples": [
+      38092065,
+      39119659,
+      38657869,
+      38409379,
+      38908039
+    ],
+    "baseline_median": 38609335,
+    "candidate_median": 38657869,
+    "ratio_of_medians_delta_pct": 0.12570535079146072,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -1.3397537150018235,
+      1.531456533607467
+    ],
+    "paired_delta_pct_samples": [
+      -1.3397537150018235,
+      1.531456533607467,
+      1.0237885460252727,
+      -1.2467789307457733,
+      0.01332550014645495
+    ],
+    "median_paired_delta_pct": 0.01332550014645495,
+    "median_paired_delta_ci95_pct": [
+      -1.3397537150018235,
+      1.531456533607467
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "latency_p99_us": {
+    "baseline_samples": [
+      303863.6,
+      295943.12,
+      299892.92,
+      307592.92,
+      299951.12
+    ],
+    "candidate_samples": [
+      99961.8,
+      107920.6,
+      111266.36,
+      103920.6,
+      107228.32
+    ],
+    "baseline_median": 299951.12,
+    "candidate_median": 107228.32,
+    "ratio_of_medians_delta_pct": -64.25140202843717,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      -67.1030686136806,
+      -62.89797038222843
+    ],
+    "paired_delta_pct_samples": [
+      -67.1030686136806,
+      -63.53333032374599,
+      -62.89797038222843,
+      -66.21489207228827,
+      -64.25140202843717
+    ],
+    "median_paired_delta_pct": -64.25140202843717,
+    "median_paired_delta_ci95_pct": [
+      -67.1030686136806,
+      -62.89797038222843
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  },
+  "open_sockets": {
+    "baseline_samples": [
+      14,
+      14,
+      14,
+      14,
+      14
+    ],
+    "candidate_samples": [
+      14,
+      14,
+      14,
+      14,
+      14
+    ],
+    "baseline_median": 14,
+    "candidate_median": 14,
+    "ratio_of_medians_delta_pct": 0.0,
+    "ratio_of_medians_paired_bootstrap_ci95_pct": [
+      0.0,
+      0.0
+    ],
+    "paired_delta_pct_samples": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "median_paired_delta_pct": 0.0,
+    "median_paired_delta_ci95_pct": [
+      0.0,
+      0.0
+    ],
+    "pairs": 5,
+    "resamples": 20000,
+    "seed": 71002
+  }
+}

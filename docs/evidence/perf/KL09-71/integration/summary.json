@@ -1,0 +1,80 @@
+{
+  "source_sha": "a3a3592b17bf8d529198aa44216253a6af63471c",
+  "date": "2026-10-02",
+  "build_cpu_affinity": "0-2,4; CPU3 reserved for paired measurement",
+  "commands": [
+    {
+      "command": "cargo fmt --all --check",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo build --locked --example verifiable_producer --example verifiable_consumer",
+      "exit_code": 0
+    },
+    {
+      "command": "CARGO_INCREMENTAL=0 cargo test --locked --all-targets",
+      "exit_code": 0
+    },
+    {
+      "command": "PL_PACKAGE_TOOLCHAINS='stable 1.85.0' CARGO_INCREMENTAL=0 bash scripts/ci-crate-consumer.sh",
+      "exit_code": 0
+    },
+    {
+      "command": "CARGO_INCREMENTAL=0 cargo +1.85.0 test --locked --manifest-path <extracted-final-crate>/Cargo.toml --test bootstrap_dials",
+      "exit_code": 0
+    }
+  ],
+  "results": {
+    "core_suites": 48,
+    "core_passed": 1791,
+    "core_failed": 0,
+    "core_existing_ignored": 4,
+    "new_ignored": 0,
+    "ignored_tests": [
+      "test live_compatibility_required ... ignored, requires explicit fresh digest-pinned Kafka cell; runner selects this exact test",
+      "test live_fetch_session_recovery_required ... ignored, requires the owned digest-pinned KL05-07 broker and explicit observer ports",
+      "test kip848_join_against_local_broker ... ignored, needs a live Kafka 4.x broker with ConsumerGroupHeartbeat",
+      "test live_broker_decoded_semantics ... ignored, live broker; scripts/ci-protocol-oracles.sh REQUIRE_BROKER=1"
+    ],
+    "package_cells": 4,
+    "package_matrix": [
+      "stable/default",
+      "stable/tracing",
+      "1.85.0/default",
+      "1.85.0/tracing"
+    ],
+    "compiled_markdown_snippets_per_cell": 19,
+    "ignored_snippets_per_cell": 0,
+    "packaged_bootstrap_passed": 6,
+    "packaged_bootstrap_failed": 0,
+    "packaged_bootstrap_ignored": 0
+  },
+  "archive": {
+    "sha256": "561cbe1052bc76a1345bfd2a89331a5e04bdf7749687dbfcaa87a0c9b172993e",
+    "vcs_info": {
+      "git": {
+        "sha1": "a3a3592b17bf8d529198aa44216253a6af63471c"
+      },
+      "path_in_vcs": ""
+    },
+    "contains_bootstrap_test_and_common_fixture": true
+  },
+  "initial_attempts": {
+    "outcome": "compile interrupted by ENOSPC; no reported assertion failures",
+    "corrective_action": "Removed obsolete Cargo target and incremental caches; retained logs, source, measurements and artifacts. Disabled incremental compilation for final reruns.",
+    "source_changed": false,
+    "all_affected_checks_reran": true,
+    "error_log": "disk-full-errors.log"
+  },
+  "limits": [
+    "This verifies the core defaults and extracted default/tracing package on stable and MSRV. Companion feature matrices and peer interop are recorded on their own task cards.",
+    "Four pre-existing broker/environment-dependent ignored tests remain; these are not counted as passed.",
+    "GitHub Actions CI is separately tracked; queued workflows are not counted as successful."
+  ],
+  "artifacts": [
+    "core-tests.log",
+    "package-gate.log",
+    "packaged-bootstrap.log",
+    "disk-full-errors.log"
+  ]
+}

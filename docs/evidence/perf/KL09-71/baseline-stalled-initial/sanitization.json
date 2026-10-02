@@ -1,0 +1,14 @@
+{
+  "raw_sha256": "8cdf49947d797a4561359663c42475d9e43d43c94a0e5519a76334a4d4275e9a",
+  "sanitized_sha256": "394846ccfaed3c34db8aa1770550b7cbf02b516d55a2d1f30f3c4f598e5c0959",
+  "actions": [
+    "hostname redacted",
+    "logical binary label",
+    "repository-relative sidecar paths"
+  ],
+  "source_sha": "57f30e96dfa82dd3ef27f2f67ac2bf7b77419205",
+  "dirty_tree": false,
+  "acknowledged": 9,
+  "sidecars_verified": 10,
+  "validator_exit": 0
+}

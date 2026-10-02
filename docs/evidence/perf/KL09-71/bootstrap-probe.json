@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "baseline_sha": "589919b1bfbc255db9f2dd460f2450cf16862e98",
+  "source_sha256": "3f24b3cac8562fbc83f11bcbdb60693e5701ed26821100532cd0f436899bea2c",
+  "binary_sha256": "2f6f4fc5ae3da8ed5c75525464b1d0f5461ff444fbc86701236e8556e6885150",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "profile": "release dependencies; rustc -O standalone probe; current-thread Tokio",
+  "cpu_affinity": 3,
+  "connect_timeout_ms": 1000,
+  "warmup_dials": 20,
+  "pair_order": "live/refused-first, refused-first/live, alternating",
+  "samples": [
+    {
+      "repetition": 0,
+      "refused_first": false,
+      "dials": 100,
+      "total_ns": 1728799,
+      "mean_us_per_dial": 17.28799
+    },
+    {
+      "repetition": 0,
+      "refused_first": true,
+      "dials": 100,
+      "total_ns": 2731041,
+      "mean_us_per_dial": 27.31041
+    },
+    {
+      "repetition": 1,
+      "refused_first": true,
+      "dials": 100,
+      "total_ns": 2706003,
+      "mean_us_per_dial": 27.060029999999998
+    },
+    {
+      "repetition": 1,
+      "refused_first": false,
+      "dials": 100,
+      "total_ns": 2139825,
+      "mean_us_per_dial": 21.39825
+    },
+    {
+      "repetition": 2,
+      "refused_first": false,
+      "dials": 100,
+      "total_ns": 1600928,
+      "mean_us_per_dial": 16.00928
+    },
+    {
+      "repetition": 2,
+      "refused_first": true,
+      "dials": 100,
+      "total_ns": 2718501,
+      "mean_us_per_dial": 27.18501
+    },
+    {
+      "repetition": 3,
+      "refused_first": true,
+      "dials": 100,
+      "total_ns": 2334416,
+      "mean_us_per_dial": 23.34416
+    },
+    {
+      "repetition": 3,
+      "refused_first": false,
+      "dials": 100,
+      "total_ns": 1627768,
+      "mean_us_per_dial": 16.27768
+    },
+    {
+      "repetition": 4,
+      "refused_first": false,
+      "dials": 100,
+      "total_ns": 1502560,
+      "mean_us_per_dial": 15.0256
+    },
+    {
+      "repetition": 4,
+      "refused_first": true,
+      "dials": 100,
+      "total_ns": 2775617,
+      "mean_us_per_dial": 27.756169999999997
+    }
+  ],
+  "limits": [
+    "Both arms execute the baseline; this is a hotspot visibility probe, not a candidate A/B.",
+    "Refused-first is 127.0.0.1:1, matching nb-connect; the probe first verifies it refuses connections.",
+    "Only TCP/bootstrap selection is timed; ApiVersions/SASL/metadata/first ack are excluded.",
+    "No blackholed SYN, stalled TLS handshake, DNS delay or multi-broker setup is exercised."
+  ]
+}

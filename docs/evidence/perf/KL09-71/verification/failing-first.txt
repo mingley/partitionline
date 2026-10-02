@@ -1,0 +1,58 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+warning: unreachable `pub` item
+  --> tests/../benchmarks/runtime/src/stalled_dial.rs:15:1
+   |
+15 | pub struct StalledDial {
+   | ---^^^^^^^^^^^^^^^^^^^
+   | |
+   | help: consider restricting its visibility: `pub(crate)`
+   |
+   = help: or consider exporting it for use by other crates
+   = note: requested on the command line with `-W unreachable-pub`
+
+warning: unreachable `pub` item
+  --> tests/../benchmarks/runtime/src/stalled_dial.rs:28:5
+   |
+28 |     pub async fn new() -> io::Result<Self> {
+   |     ---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     help: consider restricting its visibility: `pub(crate)`
+
+warning: unreachable `pub` item
+  --> tests/../benchmarks/runtime/src/stalled_dial.rs:60:5
+   |
+60 |     pub fn addr(&self) -> SocketAddr {
+   |     ---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     help: consider restricting its visibility: `pub(crate)`
+
+warning: unreachable `pub` item
+  --> tests/../benchmarks/runtime/src/stalled_dial.rs:65:5
+   |
+65 |     pub fn verified_stall(&self) -> Duration {
+   |     ---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     help: consider restricting its visibility: `pub(crate)`
+
+warning: `partitionline` (test "bootstrap_dials") generated 4 warnings (run `cargo fix --test "bootstrap_dials" -p partitionline` to apply 4 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.42s
+     Running tests/bootstrap_dials.rs (/workspace/work/target-rpc-tests/debug/deps/bootstrap_dials-ad1f45e7188e2419)
+
+running 1 test
+test stalled_first_bootstrap_does_not_delay_reachable_host ... FAILED
+
+failures:
+
+---- stalled_first_bootstrap_does_not_delay_reachable_host stdout ----
+
+thread 'stalled_first_bootstrap_does_not_delay_reachable_host' (82113) panicked at tests/bootstrap_dials.rs:25:5:
+reachable bootstrap waited for the stalled TCP connect timeout
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    stalled_first_bootstrap_does_not_delay_reachable_host
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+error: test failed, to rerun pass `--test bootstrap_dials`

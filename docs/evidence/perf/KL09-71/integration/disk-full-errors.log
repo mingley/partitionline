@@ -1,0 +1,13 @@
+qa-package-final-disk-full.log
+error: could not create incremental compilation crate directory `<work>/target-package/package-consumer-targets/1.85.0/debug/incremental/partitionline_markdown_check-2xi65r84iyoo6`: No space left on device (os error 28)
+error: could not compile `partitionline-markdown-check` (lib) due to 1 previous error
+error: failed to build archive at `<work>/target-package/package-consumer-targets/1.85.0/debug/deps/libpartitionline-f2ce76560d699a34.rlib`: couldn't create a directory for the temp file: No space left on device (os error 28) at path "<work>/target-package/package-consumer-targets/1.85.0/debug/deps/.tmp5NtpcU.temp-archive"
+error: could not compile `partitionline` (lib) due to 1 previous error
+qa-tests-final-disk-full.log
+error: couldn't create a temp dir: No space left on device (os error 28) at path "<work>/target-qa/debug/deps/rustcnq6rc7"
+error: could not compile `partitionline` (lib test) due to 1 previous error
+error: couldn't create a temp dir: No space left on device (os error 28) at path "<work>/target-qa/debug/deps/rustcKj4OQs"
+error: could not compile `partitionline` (test "client_api") due to 1 previous error
+qa-package-bootstrap-disk-full.log
+error: couldn't create a temp dir: No space left on device (os error 28) at path "<work>/target-dials-msrv/debug/deps/rmetaoC8k1J"
+error: could not compile `partitionline` (lib) due to 1 previous error

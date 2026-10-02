@@ -1,0 +1,15 @@
+{
+  "valid": true,
+  "error_count": 0,
+  "errors": [],
+  "summary": {
+    "scenario_id": "nb-connect",
+    "peer": "partitionline",
+    "suite_hold": "active",
+    "throughput_rps": 10.156641445954186,
+    "latency_p99_us": 99950.2,
+    "total_acknowledged": 9,
+    "integrity_verified": true,
+    "has_retained_integrity_failure": false
+  }
+}

@@ -1,0 +1,402 @@
+[
+  {
+    "pair": 0,
+    "variant": "A",
+    "cwd": "/workspace/work/bootstrap-dials/baseline-final",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-baseline/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair0-A",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 0,
+    "variant": "B",
+    "cwd": "/workspace/work/bootstrap-dials/candidate",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-candidate/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair0-B",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 1,
+    "variant": "B",
+    "cwd": "/workspace/work/bootstrap-dials/candidate",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-candidate/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair1-B",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 1,
+    "variant": "A",
+    "cwd": "/workspace/work/bootstrap-dials/baseline-final",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-baseline/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair1-A",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 2,
+    "variant": "A",
+    "cwd": "/workspace/work/bootstrap-dials/baseline-final",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-baseline/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair2-A",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 2,
+    "variant": "B",
+    "cwd": "/workspace/work/bootstrap-dials/candidate",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-candidate/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair2-B",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 3,
+    "variant": "B",
+    "cwd": "/workspace/work/bootstrap-dials/candidate",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-candidate/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair3-B",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 3,
+    "variant": "A",
+    "cwd": "/workspace/work/bootstrap-dials/baseline-final",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-baseline/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair3-A",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 4,
+    "variant": "A",
+    "cwd": "/workspace/work/bootstrap-dials/baseline-final",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-baseline/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair4-A",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 4,
+    "variant": "B",
+    "cwd": "/workspace/work/bootstrap-dials/candidate",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-candidate/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair4-B",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 5,
+    "variant": "B",
+    "cwd": "/workspace/work/bootstrap-dials/candidate",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-candidate/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair5-B",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 5,
+    "variant": "A",
+    "cwd": "/workspace/work/bootstrap-dials/baseline-final",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-baseline/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair5-A",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 6,
+    "variant": "A",
+    "cwd": "/workspace/work/bootstrap-dials/baseline-final",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-baseline/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair6-A",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 6,
+    "variant": "B",
+    "cwd": "/workspace/work/bootstrap-dials/candidate",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-candidate/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair6-B",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 7,
+    "variant": "B",
+    "cwd": "/workspace/work/bootstrap-dials/candidate",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-candidate/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair7-B",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 7,
+    "variant": "A",
+    "cwd": "/workspace/work/bootstrap-dials/baseline-final",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-baseline/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair7-A",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 8,
+    "variant": "A",
+    "cwd": "/workspace/work/bootstrap-dials/baseline-final",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-baseline/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair8-A",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 8,
+    "variant": "B",
+    "cwd": "/workspace/work/bootstrap-dials/candidate",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-candidate/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair8-B",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 9,
+    "variant": "B",
+    "cwd": "/workspace/work/bootstrap-dials/candidate",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-candidate/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair9-B",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  },
+  {
+    "pair": 9,
+    "variant": "A",
+    "cwd": "/workspace/work/bootstrap-dials/baseline-final",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-dials-baseline/release/runtime",
+      "--cell",
+      "nb-connect",
+      "--out",
+      "/workspace/work/bootstrap-dials/ab/pair9-A",
+      "--repetitions",
+      "1",
+      "--connect-stalled-first"
+    ],
+    "NB_SERVE": "/workspace/work/target-dials-baseline/release/nb-serve",
+    "exit_code": 0
+  }
+]

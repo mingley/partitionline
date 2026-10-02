@@ -1,0 +1,153 @@
+   Packaging partitionline v0.1.0 (<repo>)
+    Updating crates.io index
+    Packaged 461 files, 8.3MiB (1.3MiB compressed)
+package-docs: 23 documents, 183 local links, 111 pinned repository targets; license and exclusion inventory passed
+    Updating crates.io index
+     Locking 76 packages to highest compatible versions
+    Checking partitionline v0.1.0 (<package-scratch>/partitionline-0.1.0)
+    Checking partitionline-crate-consumer v0.0.0 (<package-scratch>/consumer-stable-default)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.82s
+    Updating crates.io index
+     Locking 76 packages to highest compatible versions
+   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-v_ipl78v/package/partitionline-0.1.0)
+   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-v_ipl78v/consumer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.53s
+   Doc-tests partitionline_markdown_check
+
+running 19 tests
+test src/lib.rs - (line 215) - compile ... ok
+test src/lib.rs - (line 19) - compile ... ok
+test src/lib.rs - (line 235) - compile ... ok
+test src/lib.rs - (line 283) - compile ... ok
+test src/lib.rs - (line 104) - compile ... ok
+test src/lib.rs - (line 268) - compile ... ok
+test src/lib.rs - (line 249) - compile ... ok
+test src/lib.rs - (line 293) - compile ... ok
+test src/lib.rs - (line 365) - compile ... ok
+test src/lib.rs - (line 383) - compile ... ok
+test src/lib.rs - (line 3) - compile ... ok
+test src/lib.rs - (line 33) - compile ... ok
+test src/lib.rs - (line 425) - compile ... ok
+test src/lib.rs - (line 434) - compile ... ok
+test src/lib.rs - (line 445) - compile ... ok
+test src/lib.rs - (line 73) - compile ... ok
+test src/lib.rs - (line 90) - compile ... ok
+test src/lib.rs - (line 52) - compile ... ok
+test src/lib.rs - (line 403) - compile ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+rustc 1.99.0 (b940084d7 2026-09-28)
+doc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored
+    Updating crates.io index
+     Locking 80 packages to highest compatible versions
+    Checking partitionline v0.1.0 (<package-scratch>/partitionline-0.1.0)
+    Checking partitionline-crate-consumer v0.0.0 (<package-scratch>/consumer-stable-tracing)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.82s
+    Updating crates.io index
+     Locking 80 packages to highest compatible versions
+   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-wecnhruu/package/partitionline-0.1.0)
+   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-wecnhruu/consumer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.03s
+   Doc-tests partitionline_markdown_check
+
+running 19 tests
+test src/lib.rs - (line 235) - compile ... ok
+test src/lib.rs - (line 19) - compile ... ok
+test src/lib.rs - (line 104) - compile ... ok
+test src/lib.rs - (line 215) - compile ... ok
+test src/lib.rs - (line 283) - compile ... ok
+test src/lib.rs - (line 268) - compile ... ok
+test src/lib.rs - (line 249) - compile ... ok
+test src/lib.rs - (line 293) - compile ... ok
+test src/lib.rs - (line 383) - compile ... ok
+test src/lib.rs - (line 3) - compile ... ok
+test src/lib.rs - (line 365) - compile ... ok
+test src/lib.rs - (line 33) - compile ... ok
+test src/lib.rs - (line 434) - compile ... ok
+test src/lib.rs - (line 425) - compile ... ok
+test src/lib.rs - (line 445) - compile ... ok
+test src/lib.rs - (line 52) - compile ... ok
+test src/lib.rs - (line 90) - compile ... ok
+test src/lib.rs - (line 403) - compile ... ok
+test src/lib.rs - (line 73) - compile ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+rustc 1.99.0 (b940084d7 2026-09-28)
+doc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored
+    Updating crates.io index
+     Locking 76 packages to latest compatible versions
+    Checking partitionline v0.1.0 (<package-scratch>/partitionline-0.1.0)
+    Checking partitionline-crate-consumer v0.0.0 (<package-scratch>/consumer-1.85.0-default)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.38s
+    Updating crates.io index
+     Locking 76 packages to latest compatible versions
+   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-yrbjourz/package/partitionline-0.1.0)
+   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-yrbjourz/consumer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.16s
+   Doc-tests partitionline_markdown_check
+
+running 19 tests
+test src/lib.rs - (line 235) - compile ... ok
+test src/lib.rs - (line 215) - compile ... ok
+test src/lib.rs - (line 19) - compile ... ok
+test src/lib.rs - (line 104) - compile ... ok
+test src/lib.rs - (line 268) - compile ... ok
+test src/lib.rs - (line 249) - compile ... ok
+test src/lib.rs - (line 283) - compile ... ok
+test src/lib.rs - (line 365) - compile ... ok
+test src/lib.rs - (line 3) - compile ... ok
+test src/lib.rs - (line 33) - compile ... ok
+test src/lib.rs - (line 383) - compile ... ok
+test src/lib.rs - (line 293) - compile ... ok
+test src/lib.rs - (line 425) - compile ... ok
+test src/lib.rs - (line 403) - compile ... ok
+test src/lib.rs - (line 434) - compile ... ok
+test src/lib.rs - (line 445) - compile ... ok
+test src/lib.rs - (line 90) - compile ... ok
+test src/lib.rs - (line 52) - compile ... ok
+test src/lib.rs - (line 73) - compile ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+rustc 1.85.0 (4d91de4e4 2025-02-17)
+doc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored
+    Updating crates.io index
+     Locking 80 packages to latest compatible versions
+    Checking partitionline v0.1.0 (<package-scratch>/partitionline-0.1.0)
+    Checking partitionline-crate-consumer v0.0.0 (<package-scratch>/consumer-1.85.0-tracing)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.26s
+    Updating crates.io index
+     Locking 80 packages to latest compatible versions
+   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-45qpdksv/package/partitionline-0.1.0)
+   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-45qpdksv/consumer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.79s
+   Doc-tests partitionline_markdown_check
+
+running 19 tests
+test src/lib.rs - (line 19) - compile ... ok
+test src/lib.rs - (line 235) - compile ... ok
+test src/lib.rs - (line 249) - compile ... ok
+test src/lib.rs - (line 215) - compile ... ok
+test src/lib.rs - (line 283) - compile ... ok
+test src/lib.rs - (line 104) - compile ... ok
+test src/lib.rs - (line 293) - compile ... ok
+test src/lib.rs - (line 3) - compile ... ok
+test src/lib.rs - (line 268) - compile ... ok
+test src/lib.rs - (line 365) - compile ... ok
+test src/lib.rs - (line 383) - compile ... ok
+test src/lib.rs - (line 33) - compile ... ok
+test src/lib.rs - (line 425) - compile ... ok
+test src/lib.rs - (line 403) - compile ... ok
+test src/lib.rs - (line 434) - compile ... ok
+test src/lib.rs - (line 90) - compile ... ok
+test src/lib.rs - (line 73) - compile ... ok
+test src/lib.rs - (line 52) - compile ... ok
+test src/lib.rs - (line 445) - compile ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+
+rustc 1.85.0 (4d91de4e4 2025-02-17)
+doc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored
+ci-crate-consumer: 4 actual package feature/toolchain cells passed; source/package/version and license inventory retained in <work>/package-revert-report

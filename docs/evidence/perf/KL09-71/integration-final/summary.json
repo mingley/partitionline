@@ -1,0 +1,57 @@
+{
+  "source_sha": "5b43d24978f88815bdd863aa5686b1ded6457c9d",
+  "date": "2026-10-02",
+  "state": "Shipped source after reverting rejected bootstrap candidate a3a3592b. src/net.rs restored byte-for-byte to baseline7f7737ba. Harness and evidence retained.",
+  "commands": [
+    {
+      "command": "cargo fmt --all --check",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo build --locked --example verifiable_producer --example verifiable_consumer",
+      "exit_code": 0
+    },
+    {
+      "command": "CARGO_INCREMENTAL=0 cargo test --locked --all-targets",
+      "exit_code": 0
+    },
+    {
+      "command": "PL_PACKAGE_TOOLCHAINS='stable 1.85.0' CARGO_INCREMENTAL=0 bash scripts/ci-crate-consumer.sh",
+      "exit_code": 0
+    }
+  ],
+  "results": {
+    "core_suites": 47,
+    "core_passed": 1785,
+    "core_failed": 0,
+    "core_existing_ignored": 4,
+    "new_ignored": 0,
+    "package_cells": 4,
+    "package_matrix": [
+      "stable/default",
+      "stable/tracing",
+      "1.85.0/default",
+      "1.85.0/tracing"
+    ],
+    "compiled_markdown_snippets_per_cell": 19,
+    "ignored_snippets_per_cell": 0
+  },
+  "archive": {
+    "sha256": "d144d09e525593c5b8f6e5aeb9d9910bf928dcb6c774c6d9f1454cc2b030fb8b",
+    "vcs_info": {
+      "git": {
+        "sha1": "5b43d24978f88815bdd863aa5686b1ded6457c9d"
+      },
+      "path_in_vcs": ""
+    }
+  },
+  "limits": [
+    "The six bootstrap racing tests belong to the rejected candidate and were removed with its production code. Their successful verification is retained separately in integration/.",
+    "Four existing live-broker ignored cases remain; they are not counted as passed.",
+    "GitHub Actions status is reported separately."
+  ],
+  "artifacts": [
+    "core-tests.log",
+    "package-gate.log"
+  ]
+}

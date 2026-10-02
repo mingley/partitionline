@@ -1,0 +1,403 @@
+{
+  "contract_version": "1.1.0",
+  "execution": {
+    "cell_id": "nb-connect",
+    "connect_cases": [
+      {
+        "bootstrap_kind": "live",
+        "connect_timeout_ms": 10000,
+        "dead_bootstrap_first": false,
+        "first_ack_us": 98894,
+        "ok": true,
+        "open_sockets": 14,
+        "partitions": 1,
+        "verified_tcp_stall_us": null
+      },
+      {
+        "bootstrap_kind": "refused",
+        "connect_timeout_ms": 10000,
+        "dead_bootstrap_first": true,
+        "first_ack_us": 95884,
+        "ok": true,
+        "open_sockets": 14,
+        "partitions": 1,
+        "verified_tcp_stall_us": null
+      },
+      {
+        "bootstrap_kind": "live",
+        "connect_timeout_ms": 10000,
+        "dead_bootstrap_first": false,
+        "first_ack_us": 95718,
+        "ok": true,
+        "open_sockets": 14,
+        "partitions": 6,
+        "verified_tcp_stall_us": null
+      },
+      {
+        "bootstrap_kind": "refused",
+        "connect_timeout_ms": 10000,
+        "dead_bootstrap_first": true,
+        "first_ack_us": 95907,
+        "ok": true,
+        "open_sockets": 14,
+        "partitions": 6,
+        "verified_tcp_stall_us": null
+      },
+      {
+        "bootstrap_kind": "live",
+        "connect_timeout_ms": 10000,
+        "dead_bootstrap_first": false,
+        "first_ack_us": 99899,
+        "ok": true,
+        "open_sockets": 14,
+        "partitions": 64,
+        "verified_tcp_stall_us": null
+      },
+      {
+        "bootstrap_kind": "refused",
+        "connect_timeout_ms": 10000,
+        "dead_bootstrap_first": true,
+        "first_ack_us": 99734,
+        "ok": true,
+        "open_sockets": 14,
+        "partitions": 64,
+        "verified_tcp_stall_us": null
+      },
+      {
+        "bootstrap_kind": "stalled_tcp",
+        "connect_timeout_ms": 200,
+        "dead_bootstrap_first": true,
+        "first_ack_us": 299872,
+        "ok": true,
+        "open_sockets": 14,
+        "partitions": 1,
+        "verified_tcp_stall_us": 51138
+      },
+      {
+        "bootstrap_kind": "stalled_tcp",
+        "connect_timeout_ms": 200,
+        "dead_bootstrap_first": true,
+        "first_ack_us": 299910,
+        "ok": true,
+        "open_sockets": 14,
+        "partitions": 6,
+        "verified_tcp_stall_us": 51251
+      },
+      {
+        "bootstrap_kind": "stalled_tcp",
+        "connect_timeout_ms": 200,
+        "dead_bootstrap_first": true,
+        "first_ack_us": 299841,
+        "ok": true,
+        "open_sockets": 14,
+        "partitions": 64,
+        "verified_tcp_stall_us": 51242
+      }
+    ],
+    "drive_mode": "connect-first-ack",
+    "flush_us_total": 0,
+    "latency_note": "construction-to-first-ack per case: Producer::new through one send() ack, microseconds",
+    "offsets_observed": true,
+    "queue_full_retries": 0,
+    "records_consumed": 0,
+    "records_offered": 9,
+    "repetition_index": 0,
+    "result_path": "/workspace/work/bootstrap-dials/ab/pair6-A/nb-connect-rep0.result.json",
+    "socket_measure": "socket fds via /proc/self/fd",
+    "timed_out": false,
+    "validation_failures": 0
+  },
+  "integrity": {
+    "high_watermark_audit": {
+      "matches_acknowledged": true,
+      "partitions": [
+        {
+          "end_offset": 9,
+          "partition": 0,
+          "start_offset": 0,
+          "topic": "nb-connect"
+        }
+      ],
+      "total_offset_delta": 9
+    },
+    "integrity_failure": false,
+    "record_ids": {
+      "checksum_algorithm": "broker batch-CRC validation (KL09-06) + client offset accounting",
+      "duplicate_ids_count": 0,
+      "end_id": 9,
+      "expected_count": 9,
+      "missing_ids_count": 0,
+      "payload_checksum_matches": true,
+      "start_id": 1,
+      "verified_count": 9
+    },
+    "verified": true
+  },
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 5823,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 2965504,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.018345,
+      "user_cpu_seconds": 0.019695
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 83281,
+        "allocations_per_record": 9253.444444444445,
+        "total_allocated_bytes": 38728405,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 5275000.0,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 3.1927542122081984,
+      "rss": {
+        "average_rss_bytes": 4509835,
+        "baseline_rss_bytes": 3051520,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 4546560,
+        "process_peak_rss_bytes": 9568256,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.0,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.047475
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 102790.35199080114,
+        "unit": "microseconds",
+        "upper": 227356.0924536433
+      },
+      "max": 299910,
+      "mean": 165073.22222222222,
+      "min": 95718,
+      "p50": 99734.0,
+      "p90": 299879.6,
+      "p95": 299894.8,
+      "p99": 299906.96,
+      "p99_9": 299909.696,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 6,
+            "upper_bound_us": 131072
+          },
+          {
+            "count": 3,
+            "upper_bound_us": 524288
+          }
+        ]
+      },
+      "sample_count": 9,
+      "stddev": 95330.92382360369,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 0.00018471113953551945,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 6.052614620299901,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 288,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "outcomes": {
+    "accepted": 9,
+    "acknowledged": 9,
+    "consumed": 0,
+    "offered": 9,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "provenance": {
+    "artifacts": [
+      {
+        "path": "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c0.broker.json",
+        "sha256": "486c9fe1a61ecb0dc52f5ac7f991be8aea931df112ed098c5d6eebf5868236a5",
+        "size_bytes": 647,
+        "type": "broker-counts"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c1.broker.json",
+        "sha256": "486c9fe1a61ecb0dc52f5ac7f991be8aea931df112ed098c5d6eebf5868236a5",
+        "size_bytes": 647,
+        "type": "broker-counts"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c2.broker.json",
+        "sha256": "486c9fe1a61ecb0dc52f5ac7f991be8aea931df112ed098c5d6eebf5868236a5",
+        "size_bytes": 647,
+        "type": "broker-counts"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c3.broker.json",
+        "sha256": "486c9fe1a61ecb0dc52f5ac7f991be8aea931df112ed098c5d6eebf5868236a5",
+        "size_bytes": 647,
+        "type": "broker-counts"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c4.broker.json",
+        "sha256": "486c9fe1a61ecb0dc52f5ac7f991be8aea931df112ed098c5d6eebf5868236a5",
+        "size_bytes": 647,
+        "type": "broker-counts"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c5.broker.json",
+        "sha256": "486c9fe1a61ecb0dc52f5ac7f991be8aea931df112ed098c5d6eebf5868236a5",
+        "size_bytes": 647,
+        "type": "broker-counts"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c6.broker.json",
+        "sha256": "486c9fe1a61ecb0dc52f5ac7f991be8aea931df112ed098c5d6eebf5868236a5",
+        "size_bytes": 647,
+        "type": "broker-counts"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c7.broker.json",
+        "sha256": "486c9fe1a61ecb0dc52f5ac7f991be8aea931df112ed098c5d6eebf5868236a5",
+        "size_bytes": 647,
+        "type": "broker-counts"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c8.broker.json",
+        "sha256": "486c9fe1a61ecb0dc52f5ac7f991be8aea931df112ed098c5d6eebf5868236a5",
+        "size_bytes": 647,
+        "type": "broker-counts"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0.latency-us.txt",
+        "sha256": "6ec196214f3b039c94f13d4759e1c68b8c5f8da76e6a6d1389d23577ac7c673a",
+        "size_bytes": 57,
+        "type": "raw-latency-us"
+      }
+    ],
+    "binary": {
+      "name": "runtime",
+      "path": "runtime (not committed; binary SHA-256 recorded)",
+      "sha256": "94feeb41233f60c9be124984a0793c990323ad11cfe6f8e1d59f3ed78ca14fc5",
+      "size_bytes": 7186488
+    },
+    "broker": {
+      "cluster_id": "nb-serve-multi",
+      "endpoints": [
+        "127.0.0.1:46069",
+        "127.0.0.1:37001",
+        "127.0.0.1:44991",
+        "127.0.0.1:45413",
+        "127.0.0.1:40605",
+        "127.0.0.1:37921",
+        "127.0.0.1:45661",
+        "127.0.0.1:46387",
+        "127.0.0.1:41069"
+      ],
+      "image": "nullbroker (KL09-06, workspace-excluded harness broker)",
+      "mode": "null-broker loopback",
+      "node_count": 9,
+      "version": "0.1.0"
+    },
+    "config": {
+      "effective_settings": {
+        "acks": 1,
+        "batch_size_bytes": 1000000,
+        "cases": "1/6/64 partitions x live-first/dead-first bootstrap",
+        "connect_stalled_first": true,
+        "dead_host": "127.0.0.1:1 (refused-fast unreachable stand-in)",
+        "idempotence": false,
+        "linger_ms": 5,
+        "max_in_flight": 16,
+        "stalled_connect_timeout_ms": 200,
+        "stalled_host": "loopback listen(1), two held unaccepted connections; verified pending TCP connect before census"
+      },
+      "sha256": "3d98887fdbeadaa1fbe76a76fe7edfe16d3de0d6c6558adfa118746c2ec3a4a4"
+    },
+    "host": {
+      "arch": "x86_64",
+      "cpu": {
+        "frequency_mhz": 2596.15,
+        "logical_cores": 5,
+        "model": "AMD EPYC 9V74 80-Core Processor",
+        "physical_cores": 5
+      },
+      "hostname": "redacted",
+      "kernel_version": "6.18.44 #1 SMP Sat Sep 26 20:02:31 UTC 2026",
+      "memory": {
+        "total_bytes": 18882699264,
+        "unit": "bytes"
+      },
+      "os": "Linux 6.18.44",
+      "os_family": "linux"
+    },
+    "seeds": {
+      "key_seed": 11400714820401789972,
+      "partition_seed": 14029467335485443334,
+      "payload_seed": 3235774465,
+      "repetition_seed": 3235774465
+    },
+    "source": {
+      "dirty_tree": false,
+      "git_branch": "HEAD",
+      "git_commit": "7f7737ba328487f3e97551b65e4ee8b0dac5766d",
+      "tree_hash": "403a2b87e92d7e2a5e6778a863f18b6c33c8b416"
+    },
+    "timestamps": {
+      "duration_seconds": 1.486960688,
+      "duration_unit": "seconds",
+      "end_time_utc": "2026-10-02T16:45:45.470637744Z",
+      "start_time_utc": "2026-10-02T16:45:43.983677286Z"
+    },
+    "toolchains": {
+      "build_tool": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "runtime": "rustc 1.99.0 (b940084d7 2026-09-28)"
+    },
+    "topology": {
+      "broker_nodes": 1,
+      "client_nodes": 1,
+      "environment": "loopback",
+      "network_interface": "lo",
+      "rtt_ms": 0.0,
+      "rtt_unit": "milliseconds"
+    }
+  },
+  "repetition_history": {
+    "attempts": [
+      {
+        "integrity_failure": false,
+        "repetition_index": 0,
+        "status": "passed_measurement"
+      }
+    ],
+    "failed_attempts": 0,
+    "total_attempts": 1
+  },
+  "scenario": {
+    "cell_disposition": "executed",
+    "cell_id": "nb-connect",
+    "equal_semantics": {
+      "acks": 1
+    },
+    "peer": "partitionline",
+    "profile": "bulk",
+    "scenario_id": "nb-connect",
+    "tier": "exploratory"
+  },
+  "schema_version": "1.0.0",
+  "suite_hold": {
+    "status": "active"
+  }
+}

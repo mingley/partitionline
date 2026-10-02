@@ -1,0 +1,5 @@
+   Compiling partitionline v0.1.0 (/workspace/work/bootstrap-dials/baseline-final)
+   Compiling nullbroker v0.1.0 (/workspace/work/bootstrap-dials/baseline-final/benchmarks/nullbroker)
+   Compiling codec v0.1.0 (/workspace/work/bootstrap-dials/baseline-final/benchmarks/codec)
+   Compiling runtime v0.1.0 (/workspace/work/bootstrap-dials/baseline-final/benchmarks/runtime)
+    Finished `release` profile [optimized] target(s) in 26.87s

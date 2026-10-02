@@ -6638,7 +6638,7 @@
       "title": "Dial bootstrap addresses with bounded parallelism",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-goal-20261002",
       "depends_on": [
         "KL09-10",
@@ -6672,7 +6672,1079 @@
         "docs/evidence/perf/KL09-71/",
         "docs/plan/tasks.json"
       ],
-      "evidence": []
+      "evidence": [
+        {
+                "id": "KL09-71",
+                "status": "done",
+                "disposition": "rejected-regression",
+                "date": "2026-10-02",
+                "outcome_branch": "Performance-leadership section 6 steps 6-7: wall-clock improvement is present, but tracked guardrail point regressions exceed 2%; production code and the candidate bootstrap tests were reverted. Remaining acceptance criteria do not apply to the rejected outcome.",
+                "source_sha": "a3a3592b17bf8d529198aa44216253a6af63471c",
+                "baseline_sha": "7f7737ba328487f3e97551b65e4ee8b0dac5766d",
+                "candidate_sha": "a3a3592b17bf8d529198aa44216253a6af63471c",
+                "revert_sha": "5b43d24978f88815bdd863aa5686b1ded6457c9d",
+                "hypothesis": "Sequential BrokerConn::connect_tls_any waits for an unreachable first bootstrap address to exhaust its TCP connect timeout before trying a reachable second address. A fixed four-future first-success race was expected to overlap those attempts and improve ms to first ack while preserving deadlines, negotiation, SASL, retry and cancellation behavior.",
+                "finding": "The actual pending-TCP fixture makes the approximately 200 ms sequential delay visible. The candidate reduced stalled-first construction-to-first-ack latency by 66.6196% at the median paired point (95% CI -67.5603% to -66.2511%). The refused-first 1-partition and 64-partition paired latency points and the whole-phase allocation-count point exceeded the 2% guardrail limit. Rejection follows the declared acceptance rule; the noisy allocator census is not proof of a causal allocation regression.",
+                "cells": [
+                        "nb-connect"
+                ],
+                "host": {
+                        "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+                        "logical_cores_reported": 5,
+                        "os": "Linux 6.18.44",
+                        "arch": "x86_64",
+                        "cpu_affinity": "Client and validating null broker pinned to CPU3; coordinator builds confined to CPUs0-2,4 during paired window.",
+                        "frequency_policy": "Managed shared host; no frequency/governor control exposed; no frequency pinning. Harness reports 2596.15 MHz.",
+                        "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+                        "profile": "Locked runtime release profile, default core features; current-thread runtime harness."
+                },
+                "experiment": {
+                        "baseline_variant": "A",
+                        "candidate_variant": "B",
+                        "paired_repetitions": 10,
+                        "processes": 20,
+                        "order": "AB on even pair indices, BA on odd indices; one fresh process per arm per pair; each process repetition_index=0.",
+                        "initial_pairs_retained": [
+                                0,
+                                1,
+                                2,
+                                3,
+                                4
+                        ],
+                        "extension_pairs": [
+                                5,
+                                6,
+                                7,
+                                8,
+                                9
+                        ],
+                        "extension_reason": "One extension from five to ten pairs was authorized to resolve the large allocation-census uncertainty. Original five-pair data and analysis remain saved; no samples were removed, no variant was altered, and no further sampling followed the ten-pair rejection.",
+                        "initial_five_observations": {
+                                "allocation_count_paired_delta_pct": -1.1516051880182454,
+                                "allocation_count_ci95_pct": [
+                                        -47.632825876325604,
+                                        54.120553500792546
+                                ],
+                                "refused_64_paired_delta_pct": 3.8469310188882444,
+                                "refused_64_ci95_pct": [
+                                        0.027038936067946828,
+                                        4.190180145409772
+                                ]
+                        },
+                        "case_matrix": "live-first, refused-first, and verified stalled-TCP-first; each with 1/6/64 partitions, one acknowledged record per case.",
+                        "stalled_connect_timeout_ms": 200,
+                        "original_live_refused_timeout_ms": 10000,
+                        "fixture": "Safe loopback TcpSocket.listen(1), two held unaccepted connections, third Tokio TcpStream::connect verified pending until a 50 ms timeout. Fixture setup/proof precedes the measured allocator census; all three fixtures are held in both arms through the entire case matrix. No firewall/routing changes.",
+                        "same_broker_for_both_arms": {
+                                "source_sha": "7f7737ba328487f3e97551b65e4ee8b0dac5766d",
+                                "sha256": "54a14c49b4ee374b99adbd4a6853e0b4d8d9e15b0dfedd26bdaa4b816ffb9886",
+                                "binary": "nb-serve from the baseline release target; explicitly set through NB_SERVE in all commands."
+                        },
+                        "frozen_harness_sha256": {
+                                "benchmarks/runtime/src/main.rs": "a94c7dd11d3e8ef56236609a6ee1e7dedabe6b3ea8a32dd20637521a94f3cc1d",
+                                "benchmarks/runtime/src/lib.rs": "e7cb8d1ff329b1b1b7e7091eccebea6a4eadd798654a3e997f35cd579d766b47",
+                                "benchmarks/runtime/src/stalled_dial.rs": "abd4494e11c093dd36f72229e10c4c5a6c41a9a48adc0d101ba1354be3b335fa",
+                                "benchmarks/runtime/tests/e2e.rs": "cef602e65241f284bccdae34b47c9784d30503cc5929e559172f5c952b6c8e08",
+                                "tests/common/stalled_dial.rs": "cb799f7fad81a293bc212f00d845e88b42e8e571ed2e1ff49e13787bea72d25c"
+                        },
+                        "production_difference": "Only src/net.rs differs in production source between baseline and candidate; candidate.patch also includes the six new bootstrap regression tests. Harness and fixture bytes are identical.",
+                        "all_measured_checkouts_clean": true,
+                        "results_validated": 20,
+                        "records_acknowledged": 180,
+                        "sidecar_checksums_verified": 200,
+                        "integrity_failures": 0,
+                        "timeouts_or_rejections": 0,
+                        "sanitization": "docs/evidence/perf/KL09-71/sanitization.json",
+                        "statistics": {
+                                "method": "For each process, primary = median of the three stalled-first partition cases; each healthy/partition case also has its own paired series. Paired point = median of 100*(B_i/A_i-1). Percentile 95% CIs bootstrap ten matched pair indices together, 20,000 resamples, seed71002. The separate ratio of arm medians and its pair-resampled CI are retained in ab-analysis.json. Positive deltas mean regression for these cost/latency metrics.",
+                                "bootstrap_resamples": 20000,
+                                "seed": 71002,
+                                "analysis": "docs/evidence/perf/KL09-71/ab-analysis.json",
+                                "first_five_analysis": "docs/evidence/perf/KL09-71/first-five-analysis.json"
+                        },
+                        "hypothesis_first_reproduction": {
+                                "source_sha": "57f30e96dfa82dd3ef27f2f67ac2bf7b77419205",
+                                "artifact": "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0.result.json",
+                                "acknowledged": 9,
+                                "sidecars_verified": 10,
+                                "result": "Stalled-first cases approximately 299-304 ms versus approximately 98-100 ms live/refused, with each fixture verifying an actual approximately 51 ms pending TCP connect.",
+                                "earlier_refused_probe": "bootstrap-probe.json uses unchanged589919b1 live/refused TCP-only arms; it demonstrates that fast refusal is an insufficient unreachable-host surrogate. It is not candidate evidence or a no-gain rejection."
+                        }
+                },
+                "commands": [
+                        "export CARGO_HOME=/workspace/work/cargo RUSTUP_HOME=/workspace/work/rustup PATH=/workspace/work/cargo/bin:$PATH (all Rust commands)",
+                        "git clone --shared --no-checkout /workspace/partitionline /workspace/work/bootstrap-dials/baseline-final; git -C /workspace/work/bootstrap-dials/baseline-final checkout --detach 7f7737ba328487f3e97551b65e4ee8b0dac5766d (exit 0)",
+                        "git clone --shared --no-checkout /workspace/partitionline /workspace/work/bootstrap-dials/candidate; git -C /workspace/work/bootstrap-dials/candidate checkout --detach a3a3592b17bf8d529198aa44216253a6af63471c (exit 0)",
+                        "taskset -c 0-2,4 cargo build --locked --release --manifest-path /workspace/work/bootstrap-dials/baseline-final/benchmarks/runtime/Cargo.toml --target-dir /workspace/work/target-dials-baseline (exit 0)",
+                        "taskset -c 0-2,4 cargo build --locked --release --manifest-path /workspace/work/bootstrap-dials/candidate/benchmarks/runtime/Cargo.toml --target-dir /workspace/work/target-dials-candidate (exit 0)",
+                        "cd each pinned checkout; NB_SERVE=/workspace/work/target-dials-baseline/release/nb-serve taskset -c 3 <variant-release-runtime> --cell nb-connect --out /workspace/work/bootstrap-dials/ab/pair<N>-<A|B> --repetitions 1 --connect-stalled-first (20 commands, each exit 0; exact argv and cwd in ab-commands.json)",
+                        "CARGO_TARGET_DIR=/workspace/work/target-rpc-tests taskset -c 0-2,4 cargo test --locked --test bootstrap_dials stalled_first_bootstrap_does_not_delay_reachable_host -- --exact (expected exit 101 before implementation; one failed behavioral assertion; failing-first.txt)",
+                        "CARGO_TARGET_DIR=/workspace/work/target-rpc-tests taskset -c 0-2,4 cargo test --locked --test network_deadlines --test auth_lifecycle --test full_surface --test bootstrap_dials -- --test-threads=2 (exit 0; required-suites.txt)",
+                        "CARGO_TARGET_DIR=/workspace/work/target-rpc-tests taskset -c 0-2,4 cargo test --locked --test bootstrap_dials -- --test-threads=2 (exit 0; six final tests; bootstrap-six.txt)",
+                        "CARGO_TARGET_DIR=/workspace/work/target-dials-msrv taskset -c 0-2,4 cargo +1.85.0 test --locked --test bootstrap_dials -- --test-threads=2 (exit 0; six final tests; msrv-bootstrap-six.txt)",
+                        "CARGO_TARGET_DIR=/workspace/work/target-rpc-tests taskset -c 0-2,4 cargo clippy --locked --all-targets --all-features -- -D warnings (exit 0; strict-clippy.txt)",
+                        "CARGO_TARGET_DIR=/workspace/work/target-dials-harness taskset -c 0-2,4 cargo clippy --locked --manifest-path benchmarks/runtime/Cargo.toml --all-targets -- -D warnings (exit 0; harness-strict-clippy.txt)",
+                        "CARGO_TARGET_DIR=/workspace/work/target-dials-harness taskset -c 0-2,4 cargo test --locked --manifest-path benchmarks/runtime/Cargo.toml --test e2e nb_connect -- --test-threads=1 (exit 0; two passed, two unrelated filtered; harness-e2e.txt)",
+                        "cargo fmt --all --check (exit 0; candidate and shipped state; integration summaries)",
+                        "python3 scripts/benchmark-report.py <each docs/evidence/perf/KL09-71/ab/pair<N>-<A|B>/nb-connect-rep0.result.json> --quiet --json (20 exit 0, all valid; paired validation.json files)",
+                        "python3 docs/evidence/perf/KL09-71/analyze-ab.py --output /workspace/work/bootstrap-dials/reproduced-analysis.json (exit 0; byte-identical to saved ab-analysis.json)",
+                        "python3 docs/evidence/perf/KL09-71/analyze-ab.py --pairs 5 --output docs/evidence/perf/KL09-71/first-five-analysis.json (exit 0; initial samples retained)",
+                        "Coordinator candidate/all-target and extracted-package commands: docs/evidence/perf/KL09-71/integration/summary.json (all final reruns exit 0)",
+                        "Coordinator post-revert/all-target and extracted-package commands: docs/evidence/perf/KL09-71/integration-final/summary.json (all exit 0)",
+                        "sha256sum -c docs/evidence/perf/KL09-71/checksums.sha256 (all files valid)"
+                ],
+                "results": {
+                        "primary": {
+                                "metric": "stalled_tcp",
+                                "unit": "ms to first ack",
+                                "baseline_median": 299.882,
+                                "candidate_median": 99.899,
+                                "delta_pct": -66.61959570190966,
+                                "ci95_pct": [
+                                        -67.56026899118623,
+                                        -66.25106856017219
+                                ],
+                                "ratio_of_medians_delta_pct": -66.68723031058883,
+                                "ratio_of_medians_paired_ci95_pct": [
+                                        -67.35116120104699,
+                                        -66.24447980970338
+                                ],
+                                "paired_repetitions": 10,
+                                "within_process_statistic": "median of 1/6/64-partition stalled-first first-ack times",
+                                "wall_clock_improvement_route_passes": true
+                        },
+                        "first_ack_case_matrix": {
+                                "live": {
+                                        "metric": "live",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 99.888,
+                                        "candidate_median": 99.84649999999999,
+                                        "delta_pct": -0.07765873392574507,
+                                        "ci95_pct": [
+                                                -3.066920136712037,
+                                                0.7784643122699997
+                                        ],
+                                        "ratio_of_medians_delta_pct": -0.04154653211598802,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -3.9459299683941165,
+                                                0.5942548648321777
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "live_1": {
+                                        "metric": "live_1",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 99.0015,
+                                        "candidate_median": 96.156,
+                                        "delta_pct": -1.5310689876110728,
+                                        "ci95_pct": [
+                                                -4.483588488684864,
+                                                0.7007945524930781
+                                        ],
+                                        "ratio_of_medians_delta_pct": -2.8741988757745918,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -5.591810118700325,
+                                                1.6237207974884704
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "live_6": {
+                                        "metric": "live_6",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 99.8955,
+                                        "candidate_median": 99.85849999999999,
+                                        "delta_pct": 0.07419804318024581,
+                                        "ci95_pct": [
+                                                -0.08404821300329601,
+                                                3.9969984992496155
+                                        ],
+                                        "ratio_of_medians_delta_pct": -0.037038705447201004,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -2.0730547910933206,
+                                                4.136518130825517
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "live_64": {
+                                        "metric": "live_64",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 99.8925,
+                                        "candidate_median": 97.91749999999999,
+                                        "delta_pct": -0.1441402147996096,
+                                        "ci95_pct": [
+                                                -4.044044044044048,
+                                                3.633141781631055
+                                        ],
+                                        "ratio_of_medians_delta_pct": -1.977125409815561,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -4.029029029029029,
+                                                4.071506749361542
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "refused": {
+                                        "metric": "refused",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 95.9205,
+                                        "candidate_median": 99.8835,
+                                        "delta_pct": 0.0495775215000549,
+                                        "ci95_pct": [
+                                                -1.9143594526439711,
+                                                4.141388871515828
+                                        ],
+                                        "ratio_of_medians_delta_pct": 4.131546436893041,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -1.9785844921479834,
+                                                4.173313731010264
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "refused_1": {
+                                        "metric": "refused_1",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 95.889,
+                                        "candidate_median": 97.855,
+                                        "delta_pct": 2.1167990520203794,
+                                        "ci95_pct": [
+                                                -4.038501988201004,
+                                                4.2035828771142985
+                                        ],
+                                        "ratio_of_medians_delta_pct": 2.0502873113704467,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -4.0678899541892966,
+                                                4.200909432230615
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "refused_6": {
+                                        "metric": "refused_6",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 95.926,
+                                        "candidate_median": 98.0505,
+                                        "delta_pct": 0.00012668786467107118,
+                                        "ci95_pct": [
+                                                -3.834975748710445,
+                                                4.146644011966671
+                                        ],
+                                        "ratio_of_medians_delta_pct": 2.214728019515033,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -1.9478340986134768,
+                                                4.195275557710465
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "refused_64": {
+                                        "metric": "refused_64",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 97.834,
+                                        "candidate_median": 99.8835,
+                                        "delta_pct": 2.0282442208163776,
+                                        "ci95_pct": [
+                                                0.04172882522925914,
+                                                4.140382994308666
+                                        ],
+                                        "ratio_of_medians_delta_pct": 2.0948749923339394,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                0.03555422018577392,
+                                                4.174966886035825
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "stalled_tcp": {
+                                        "metric": "stalled_tcp",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 299.882,
+                                        "candidate_median": 99.899,
+                                        "delta_pct": -66.61959570190966,
+                                        "ci95_pct": [
+                                                -67.56026899118623,
+                                                -66.25106856017219
+                                        ],
+                                        "ratio_of_medians_delta_pct": -66.68723031058883,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -67.35116120104699,
+                                                -66.24447980970338
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "stalled_tcp_1": {
+                                        "metric": "stalled_tcp_1",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 299.882,
+                                        "candidate_median": 99.8995,
+                                        "delta_pct": -66.69472958712083,
+                                        "ci95_pct": [
+                                                -67.56129166355431,
+                                                -66.4640685980742
+                                        ],
+                                        "ratio_of_medians_delta_pct": -66.68706357834083,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -67.3590732045673,
+                                                -66.23940577731517
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "stalled_tcp_6": {
+                                        "metric": "stalled_tcp_6",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 299.9015,
+                                        "candidate_median": 99.902,
+                                        "delta_pct": -66.25428651947516,
+                                        "ci95_pct": [
+                                                -68.012070287753,
+                                                -65.58604305193842
+                                        ],
+                                        "ratio_of_medians_delta_pct": -66.68839602336101,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -68.22007930487324,
+                                                -65.35731077417613
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "stalled_tcp_64": {
+                                        "metric": "stalled_tcp_64",
+                                        "unit": "ms to first ack",
+                                        "baseline_median": 299.84749999999997,
+                                        "candidate_median": 99.89099999999999,
+                                        "delta_pct": -66.6571666624128,
+                                        "ci95_pct": [
+                                                -66.7261287232171,
+                                                -66.25034646403873
+                                        ],
+                                        "ratio_of_medians_delta_pct": -66.68606541658677,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -66.72789661139153,
+                                                -66.23834855315897
+                                        ],
+                                        "paired_repetitions": 10
+                                }
+                        },
+                        "allocations": {
+                                "metric": "allocation_count",
+                                "unit": "allocations per nine-record cell",
+                                "baseline_median": 88811.0,
+                                "candidate_median": 96479.0,
+                                "delta_pct": 3.3921725573869965,
+                                "ci95_pct": [
+                                        -18.472051308777885,
+                                        40.50851781513081
+                                ],
+                                "ratio_of_medians_delta_pct": 8.634065599981987,
+                                "ratio_of_medians_paired_ci95_pct": [
+                                        -17.354631485340377,
+                                        40.50851781513081
+                                ],
+                                "paired_repetitions": 10,
+                                "baseline_per_acknowledged_record": 9867.888888888889,
+                                "candidate_per_acknowledged_record": 10719.888888888889,
+                                "interpretation": "Whole measured-phase allocator census includes runtime activity. The wide paired interval excludes a deterministic causal attribution; its point still exceeds the tracked guardrail limit."
+                        },
+                        "allocated_bytes": {
+                                "metric": "allocated_bytes",
+                                "unit": "bytes per nine-record cell",
+                                "baseline_median": 38811355.0,
+                                "candidate_median": 38947954.0,
+                                "delta_pct": 0.17724595708540347,
+                                "ci95_pct": [
+                                        -0.687701531233309,
+                                        1.091441152849626
+                                ],
+                                "ratio_of_medians_delta_pct": 0.35195627671333884,
+                                "ratio_of_medians_paired_ci95_pct": [
+                                        -0.5178954778682354,
+                                        1.1698825475164432
+                                ],
+                                "paired_repetitions": 10
+                        },
+                        "instructions": {
+                                "measured": false,
+                                "reason": "Wall-clock route evaluated; no instruction profiler or deterministic allocation-improvement claim."
+                        },
+                        "guardrails": {
+                                "named_open_sockets": {
+                                        "metric": "open_sockets",
+                                        "unit": "socket FDs after first ack per case",
+                                        "baseline_median": 14.0,
+                                        "candidate_median": 14.0,
+                                        "delta_pct": 0.0,
+                                        "ci95_pct": [
+                                                0.0,
+                                                0.0
+                                        ],
+                                        "ratio_of_medians_delta_pct": 0.0,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                0.0,
+                                                0.0
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "healthy_first_ack_cases": {
+                                        "live_1": {
+                                                "metric": "live_1",
+                                                "unit": "ms to first ack",
+                                                "baseline_median": 99.0015,
+                                                "candidate_median": 96.156,
+                                                "delta_pct": -1.5310689876110728,
+                                                "ci95_pct": [
+                                                        -4.483588488684864,
+                                                        0.7007945524930781
+                                                ],
+                                                "ratio_of_medians_delta_pct": -2.8741988757745918,
+                                                "ratio_of_medians_paired_ci95_pct": [
+                                                        -5.591810118700325,
+                                                        1.6237207974884704
+                                                ],
+                                                "paired_repetitions": 10
+                                        },
+                                        "live_6": {
+                                                "metric": "live_6",
+                                                "unit": "ms to first ack",
+                                                "baseline_median": 99.8955,
+                                                "candidate_median": 99.85849999999999,
+                                                "delta_pct": 0.07419804318024581,
+                                                "ci95_pct": [
+                                                        -0.08404821300329601,
+                                                        3.9969984992496155
+                                                ],
+                                                "ratio_of_medians_delta_pct": -0.037038705447201004,
+                                                "ratio_of_medians_paired_ci95_pct": [
+                                                        -2.0730547910933206,
+                                                        4.136518130825517
+                                                ],
+                                                "paired_repetitions": 10
+                                        },
+                                        "live_64": {
+                                                "metric": "live_64",
+                                                "unit": "ms to first ack",
+                                                "baseline_median": 99.8925,
+                                                "candidate_median": 97.91749999999999,
+                                                "delta_pct": -0.1441402147996096,
+                                                "ci95_pct": [
+                                                        -4.044044044044048,
+                                                        3.633141781631055
+                                                ],
+                                                "ratio_of_medians_delta_pct": -1.977125409815561,
+                                                "ratio_of_medians_paired_ci95_pct": [
+                                                        -4.029029029029029,
+                                                        4.071506749361542
+                                                ],
+                                                "paired_repetitions": 10
+                                        },
+                                        "refused_1": {
+                                                "metric": "refused_1",
+                                                "unit": "ms to first ack",
+                                                "baseline_median": 95.889,
+                                                "candidate_median": 97.855,
+                                                "delta_pct": 2.1167990520203794,
+                                                "ci95_pct": [
+                                                        -4.038501988201004,
+                                                        4.2035828771142985
+                                                ],
+                                                "ratio_of_medians_delta_pct": 2.0502873113704467,
+                                                "ratio_of_medians_paired_ci95_pct": [
+                                                        -4.0678899541892966,
+                                                        4.200909432230615
+                                                ],
+                                                "paired_repetitions": 10
+                                        },
+                                        "refused_6": {
+                                                "metric": "refused_6",
+                                                "unit": "ms to first ack",
+                                                "baseline_median": 95.926,
+                                                "candidate_median": 98.0505,
+                                                "delta_pct": 0.00012668786467107118,
+                                                "ci95_pct": [
+                                                        -3.834975748710445,
+                                                        4.146644011966671
+                                                ],
+                                                "ratio_of_medians_delta_pct": 2.214728019515033,
+                                                "ratio_of_medians_paired_ci95_pct": [
+                                                        -1.9478340986134768,
+                                                        4.195275557710465
+                                                ],
+                                                "paired_repetitions": 10
+                                        },
+                                        "refused_64": {
+                                                "metric": "refused_64",
+                                                "unit": "ms to first ack",
+                                                "baseline_median": 97.834,
+                                                "candidate_median": 99.8835,
+                                                "delta_pct": 2.0282442208163776,
+                                                "ci95_pct": [
+                                                        0.04172882522925914,
+                                                        4.140382994308666
+                                                ],
+                                                "ratio_of_medians_delta_pct": 2.0948749923339394,
+                                                "ratio_of_medians_paired_ci95_pct": [
+                                                        0.03555422018577392,
+                                                        4.174966886035825
+                                                ],
+                                                "paired_repetitions": 10
+                                        }
+                                },
+                                "cpu_per_record": {
+                                        "metric": "cpu_ns_per_record",
+                                        "unit": "ns per acknowledged record",
+                                        "baseline_median": 5535666.666666666,
+                                        "candidate_median": 5586055.555555556,
+                                        "delta_pct": -3.741881386806539,
+                                        "ci95_pct": [
+                                                -19.287701043760684,
+                                                16.368334611310807
+                                        ],
+                                        "ratio_of_medians_delta_pct": 0.9102587262399542,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -18.092612330106505,
+                                                15.43867289571621
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "rss_peak": {
+                                        "metric": "rss_peak_bytes",
+                                        "unit": "bytes",
+                                        "baseline_median": 4542464.0,
+                                        "candidate_median": 4571136.0,
+                                        "delta_pct": 1.306590630305693,
+                                        "ci95_pct": [
+                                                0.540540540540535,
+                                                3.4734917733089565
+                                        ],
+                                        "ratio_of_medians_delta_pct": 0.6311992786294018,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                0.45045045045044585,
+                                                2.71764163979733
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "rss_average": {
+                                        "metric": "rss_average_bytes",
+                                        "unit": "bytes",
+                                        "baseline_median": 4505837.5,
+                                        "candidate_median": 4503673.0,
+                                        "delta_pct": 0.6134489476485983,
+                                        "ci95_pct": [
+                                                -0.1387097193208897,
+                                                2.6052148796605223
+                                        ],
+                                        "ratio_of_medians_delta_pct": -0.0480376844482322,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -0.19490989742168008,
+                                                1.9197083520218428
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "allocation_count": {
+                                        "metric": "allocation_count",
+                                        "unit": "allocations per nine-record cell",
+                                        "baseline_median": 88811.0,
+                                        "candidate_median": 96479.0,
+                                        "delta_pct": 3.3921725573869965,
+                                        "ci95_pct": [
+                                                -18.472051308777885,
+                                                40.50851781513081
+                                        ],
+                                        "ratio_of_medians_delta_pct": 8.634065599981987,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -17.354631485340377,
+                                                40.50851781513081
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "allocated_bytes": {
+                                        "metric": "allocated_bytes",
+                                        "unit": "bytes per nine-record cell",
+                                        "baseline_median": 38811355.0,
+                                        "candidate_median": 38947954.0,
+                                        "delta_pct": 0.17724595708540347,
+                                        "ci95_pct": [
+                                                -0.687701531233309,
+                                                1.091441152849626
+                                        ],
+                                        "ratio_of_medians_delta_pct": 0.35195627671333884,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -0.5178954778682354,
+                                                1.1698825475164432
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "p99_ack_latency": {
+                                        "metric": "latency_p99_us",
+                                        "unit": "microseconds across the nine-case cell",
+                                        "baseline_median": 299929.04000000004,
+                                        "candidate_median": 99956.0,
+                                        "delta_pct": -66.63918616633995,
+                                        "ci95_pct": [
+                                                -67.05298587416968,
+                                                -64.25140202843717
+                                        ],
+                                        "ratio_of_medians_delta_pct": -66.67345049349007,
+                                        "ratio_of_medians_paired_ci95_pct": [
+                                                -67.07523642480994,
+                                                -64.24446432413275
+                                        ],
+                                        "paired_repetitions": 10
+                                },
+                                "failed_points": [
+                                        {
+                                                "metric": "refused_1",
+                                                "unit": "ms to first ack",
+                                                "baseline_median": 95.889,
+                                                "candidate_median": 97.855,
+                                                "delta_pct": 2.1167990520203794,
+                                                "ci95_pct": [
+                                                        -4.038501988201004,
+                                                        4.2035828771142985
+                                                ],
+                                                "ratio_of_medians_delta_pct": 2.0502873113704467,
+                                                "ratio_of_medians_paired_ci95_pct": [
+                                                        -4.0678899541892966,
+                                                        4.200909432230615
+                                                ],
+                                                "paired_repetitions": 10,
+                                                "limit_pct": 2.0,
+                                                "acceptance_point_exceeds_limit": true
+                                        },
+                                        {
+                                                "metric": "refused_64",
+                                                "unit": "ms to first ack",
+                                                "baseline_median": 97.834,
+                                                "candidate_median": 99.8835,
+                                                "delta_pct": 2.0282442208163776,
+                                                "ci95_pct": [
+                                                        0.04172882522925914,
+                                                        4.140382994308666
+                                                ],
+                                                "ratio_of_medians_delta_pct": 2.0948749923339394,
+                                                "ratio_of_medians_paired_ci95_pct": [
+                                                        0.03555422018577392,
+                                                        4.174966886035825
+                                                ],
+                                                "paired_repetitions": 10,
+                                                "limit_pct": 2.0,
+                                                "acceptance_point_exceeds_limit": true
+                                        },
+                                        {
+                                                "metric": "allocation_count",
+                                                "unit": "allocations per nine-record cell",
+                                                "baseline_median": 88811.0,
+                                                "candidate_median": 96479.0,
+                                                "delta_pct": 3.3921725573869965,
+                                                "ci95_pct": [
+                                                        -18.472051308777885,
+                                                        40.50851781513081
+                                                ],
+                                                "ratio_of_medians_delta_pct": 8.634065599981987,
+                                                "ratio_of_medians_paired_ci95_pct": [
+                                                        -17.354631485340377,
+                                                        40.50851781513081
+                                                ],
+                                                "paired_repetitions": 10,
+                                                "limit_pct": 2.0,
+                                                "acceptance_point_exceeds_limit": true
+                                        }
+                                ],
+                                "rule": "Reject when any tracked guardrail point regression exceeds 2%; confidence intervals do not waive this rule. Ratio-of-medians observations are retained separately from median paired deltas."
+                        },
+                        "socket_cleanup_and_bounds": {
+                                "observed_open_socket_fds": {
+                                        "baseline": 14,
+                                        "candidate": 14,
+                                        "case_observations": 180,
+                                        "delta_pct": 0,
+                                        "ci95_pct": [
+                                                0,
+                                                0
+                                        ]
+                                },
+                                "measurement_scope": "Socket FD count after first ack; not a peak concurrency sampler. Three fixture listeners plus their six prefilled connections remain alive in both arms, along with the case connection/runtime sockets. These constants are included consistently.",
+                                "candidate_transient_cap": 4,
+                                "tests": "Four stalled bootstrap attempts delay the fifth reachable address until a slot finishes; two pending SYN_SENT connections disappear after cancellation; accepted TLS losers consume ClientHello and observe EOF/reset after cancellation. Full connection futures, including TCP/TLS phases, are dropped.",
+                                "dns_caveat": "Tokio hostname resolution may spawn blocking resolver jobs that outlive cancellation; the cap bounds dial futures/sockets/handshakes, not outstanding resolver-worker jobs.",
+                                "shipped_state": "Candidate reverted; production bootstrap dialing remains sequential."
+                        },
+                        "net_production_lines": 0,
+                        "candidate_net_added_production_lines": 47,
+                        "correctness": {
+                                "required_candidate_suites": {
+                                        "auth_lifecycle": {
+                                                "passed": 32,
+                                                "failed": 0,
+                                                "ignored": 0
+                                        },
+                                        "network_deadlines": {
+                                                "passed": 8,
+                                                "failed": 0,
+                                                "ignored": 0
+                                        },
+                                        "full_surface": {
+                                                "passed": 324,
+                                                "failed": 0,
+                                                "ignored": 0
+                                        },
+                                        "bootstrap_dials": {
+                                                "passed": 6,
+                                                "failed": 0,
+                                                "ignored": 0
+                                        }
+                                },
+                                "unique_required_candidate_tests_passed": 370,
+                                "logs_note": "required-suites.txt contains the first five bootstrap tests plus all three required suites; bootstrap-six.txt contains the final six-test suite including TLS cancellation. Counts are unique, not summed repeated executions.",
+                                "msrv_bootstrap": {
+                                        "toolchain": "1.85.0",
+                                        "passed": 6,
+                                        "failed": 0,
+                                        "ignored": 0
+                                },
+                                "harness_e2e": {
+                                        "passed": 2,
+                                        "failed": 0,
+                                        "ignored": 0,
+                                        "filtered": 2,
+                                        "tests": "Existing nb-connect and additive stalled-first nb-connect variants; fixture unsupported behavior is an error, not a passing skip."
+                                },
+                                "format": "cargo fmt --all --check: clean for candidate and final shipped state",
+                                "lint": "Core strict all-target/all-feature clippy and runtime strict clippy: clean",
+                                "candidate_full_integration": {
+                                        "source_sha": "a3a3592b17bf8d529198aa44216253a6af63471c",
+                                        "core_passed": 1791,
+                                        "core_failed": 0,
+                                        "preexisting_ignored": 4,
+                                        "package_cells": 4,
+                                        "packaged_msrv_bootstrap_passed": 6,
+                                        "summary": "docs/evidence/perf/KL09-71/integration/summary.json"
+                                },
+                                "final_shipped_integration": {
+                                        "source_sha": "5b43d24978f88815bdd863aa5686b1ded6457c9d",
+                                        "core_passed": 1785,
+                                        "core_failed": 0,
+                                        "preexisting_ignored": 4,
+                                        "package_cells": 4,
+                                        "summary": "docs/evidence/perf/KL09-71/integration-final/summary.json"
+                                },
+                                "failing_first": {
+                                        "outcome": "expected failed assertion before candidate implementation",
+                                        "passed": 0,
+                                        "failed": 1,
+                                        "failure": "reachable bootstrap waited for the stalled TCP connect timeout",
+                                        "log": "docs/evidence/perf/KL09-71/verification/failing-first.txt",
+                                        "source_note": "Harness-first source at 57f30e96 with the regression test added in the working tree; fixture was subsequently relocated to tests/common without behavior changes for packaging."
+                                }
+                        }
+                },
+                "resource_policy": {
+                        "candidate": "Per-call maximum four in-progress bootstrap sockets/handshakes, four 24 KiB connection buffers plus TLS/kernel buffers; only the winner survives. Candidate rustdoc discloses this transient bound and DNS cancellation caveat. Existing producer buffer_memory and connection budgets unchanged. No runtime dependency or public API change.",
+                        "shipped": "Reverted source exactly matches baseline net.rs. No new retained connection pool, buffer policy, resource-contract edit, baseline increase, or default change ships."
+                },
+                "acceptance_met": [
+                        "Baseline actual TCP-stall hotspot reproduced before implementation; fixture and named-cell variant landed as a separate harness commit.",
+                        "Failing-first behavioral test preserved; candidate correctness passed with no new skips.",
+                        "Ten interleaved A/B pairs retained, all20results valid and200sidecar hashes verified.",
+                        "Rejection branch completed: production candidate and six candidate-specific tests reverted; final shipped state1785tests and four package cells passed."
+                ],
+                "acceptance_not_met": [
+                        "Tracked guardrail points exceed2%: refused-first1partition +2.116799% (95% CI -4.038502 to4.203583), refused-first64partitions +2.028244% (95% CI0.041729 to4.140383), allocator census +3.392173% (95% CI -18.472051 to40.508518). The primary gain cannot override the guardrail rule."
+                ],
+                "artifacts": [
+                        "docs/evidence/perf/KL09-71/README.md",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-A/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair0-B/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-A/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair1-B/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-A/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair2-B/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-A/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair3-B/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-A/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair4-B/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-A/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair5-B/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-A/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair6-B/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-A/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair7-B/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-A/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair8-B/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-A/validation.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/ab/pair9-B/validation.json",
+                        "docs/evidence/perf/KL09-71/ab-analysis.json",
+                        "docs/evidence/perf/KL09-71/ab-commands.json",
+                        "docs/evidence/perf/KL09-71/analyze-ab.py",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0-c0.broker.json",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0-c1.broker.json",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0-c2.broker.json",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0-c3.broker.json",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0-c4.broker.json",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0-c5.broker.json",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0-c6.broker.json",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0-c7.broker.json",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0-c8.broker.json",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/nb-connect-rep0.result.json",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/sanitization.json",
+                        "docs/evidence/perf/KL09-71/baseline-stalled-initial/validation.json",
+                        "docs/evidence/perf/KL09-71/bootstrap-probe.json",
+                        "docs/evidence/perf/KL09-71/bootstrap-probe.rs",
+                        "docs/evidence/perf/KL09-71/bootstrap-probe.txt",
+                        "docs/evidence/perf/KL09-71/candidate-bootstrap-tests.rs",
+                        "docs/evidence/perf/KL09-71/candidate.patch",
+                        "docs/evidence/perf/KL09-71/first-five-analysis.json",
+                        "docs/evidence/perf/KL09-71/integration/SHA256SUMS",
+                        "docs/evidence/perf/KL09-71/integration/core-tests.log",
+                        "docs/evidence/perf/KL09-71/integration/disk-full-errors.log",
+                        "docs/evidence/perf/KL09-71/integration/package-gate.log",
+                        "docs/evidence/perf/KL09-71/integration/packaged-bootstrap.log",
+                        "docs/evidence/perf/KL09-71/integration/summary.json",
+                        "docs/evidence/perf/KL09-71/integration-final/SHA256SUMS",
+                        "docs/evidence/perf/KL09-71/integration-final/core-tests.log",
+                        "docs/evidence/perf/KL09-71/integration-final/package-gate.log",
+                        "docs/evidence/perf/KL09-71/integration-final/summary.json",
+                        "docs/evidence/perf/KL09-71/run-bootstrap-probe.py",
+                        "docs/evidence/perf/KL09-71/sanitization.json",
+                        "docs/evidence/perf/KL09-71/verification/baseline-release-build.txt",
+                        "docs/evidence/perf/KL09-71/verification/bootstrap-six.txt",
+                        "docs/evidence/perf/KL09-71/verification/candidate-release-build.txt",
+                        "docs/evidence/perf/KL09-71/verification/failing-first.txt",
+                        "docs/evidence/perf/KL09-71/verification/harness-e2e.txt",
+                        "docs/evidence/perf/KL09-71/verification/harness-strict-clippy.txt",
+                        "docs/evidence/perf/KL09-71/verification/msrv-bootstrap-six.txt",
+                        "docs/evidence/perf/KL09-71/verification/required-suites.txt",
+                        "docs/evidence/perf/KL09-71/verification/strict-clippy.txt",
+                        "docs/evidence/perf/KL09-71/checksums.sha256"
+                ],
+                "limits": [
+                        "Local unsigned validating-null-broker engineering evidence; not a Kafka comparison or public performance claim. Suite HOLD remains active.",
+                        "Managed shared host without frequency pinning; CPU3 affinity keeps coordinator builds off that CPU; shared CPU quota, memory/cache and host-wide effects remain possible. CPU/RSS/allocation intervals remain observations with the reported uncertainty.",
+                        "The real pending-TCP fixture depends on Linux accept-backlog behavior and fails if it cannot verify a pending Tokio connect. It is not a TLS/application delay or a firewall blackhole. The200ms timeout is an explicit fixture configuration, not a production default change.",
+                        "Candidate cancellation tests cover actual pending TCP and TLS futures. They do not bound outstanding Tokio blocking DNS resolver jobs, which may outlive cancellation. No multi-broker caller overlap, hostname/DNS delay, SASL setup speed, or real-broker network behavior is claimed.",
+                        "Socket FD observations after first ack are not transient peak FD measurements; candidate cap/loser cleanup are established separately by implementation and behavioral tests.",
+                        "No deterministic instruction or allocation-improvement route was asserted. Whole-phase allocations include small runtime and sampler activity; wide confidence intervals do not prove a causal allocator regression.",
+                        "The initial root integration build ran out of disk. Affected compile checks were rerun after cache reclamation, with no source change; all reported paired measurements completed afterward and no ENOSPC-affected run is counted. Failed-build history is retained in integration/disk-full-errors.log.",
+                        "Six candidate bootstrap tests were removed with the rejected production change. Their immutable source is retained in candidate.patch and candidate-bootstrap-tests.rs, and their passes describe the rejected candidate only. The final shipped state is independently verified in integration-final/.",
+                        "Four pre-existing live-broker ignored core tests are recorded as ignored, never passed. No new skips were introduced. GitHub Actions status is separate from local checks."
+                ],
+                "next_dependency_effect": "No requires_accepted dependents exist. Coordinator should close KL09-71 done/rejected-regression; aggregate KL09-57 and multi-broker KL09-72 remain pending, without inheriting an accepted bootstrap optimization."
+        }
+      ]
     },
     {
       "id": "KL09-72",
