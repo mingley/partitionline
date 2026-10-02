@@ -8869,8 +8869,11 @@
         "partitionline-broker/tests/journal.rs",
         "docs/plan/evidence/KL11-03.json",
         "docs/evidence/broker/KL11-03/",
-        "docs/plan/tasks.json"
-      ]
+        "docs/plan/tasks.json",
+        "partitionline-broker/src/lib.rs",
+        "partitionline-broker/README.md"
+      ],
+      "integration_coordinator": "Root exclusively owns shared exports and README for journal integration."
     },
     {
       "id": "KL11-04",
@@ -10560,15 +10563,19 @@
       "status": "pending",
       "depends_on": [
         "KL11-02",
-        "KL11-03"
+        "KL11-03",
+        "KL11-57"
       ],
       "files": [
-        ".github/workflows/broker.yml"
+        ".github/workflows/broker.yml",
+        "scripts/check-broker-api-matrix.py",
+        "tests/ci/test_broker_api_matrix.py"
       ],
       "deliverable": "Separate main/PR CI for broker format, strict lint/docs and stable/MSRV behavioral tests.",
       "acceptance": [
         "Locked dependency graph, stable and Rust1.85 behavioral suites, strict format/clippy/rustdoc.",
-        "Workflow checks the independent excluded crate and never marks production qualification complete."
+        "Workflow checks the independent excluded crate and never marks production qualification complete.",
+        "Verify retained current Apache API inventory and run its negative controls; require no unsupported implementation claims."
       ],
       "validation": [
         "Execute every workflow command locally; verify workflow syntax and retained results."
