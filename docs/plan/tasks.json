@@ -1765,6 +1765,8 @@
         "docs/benchmark.md",
         "docs/plan/evidence/KL04-07.json",
         "docs/evidence/perf/KL04-07/",
+        "examples/common/bench_history.rs",
+        "tests/bench_record_history.rs",
         "docs/plan/tasks.json"
       ]
     },
