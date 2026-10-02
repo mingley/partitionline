@@ -1,0 +1,10 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.39s
+     Running unittests src/lib.rs (/workspace/work/metadata-target/debug/deps/partitionline_broker-8fe39f77418bc643)
+
+running 2 tests
+test metadata::tests::queued_cancel_and_full_admission_never_mutate ... ok
+test metadata::tests::canceled_shutdown_retains_join_and_pending_work_is_rejected ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+

@@ -1,0 +1,644 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-05",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+  "scope": "Persistent single-node Metadata and topic administration through a bounded catalog storage actor; composed wire advertisement only for fully supported local versions.",
+  "provenance": "docs/evidence/broker/KL11-05/provenance.json",
+  "commands": [
+    {
+      "cell": "stable-default",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        21,
+        14,
+        15,
+        8,
+        7,
+        9,
+        9,
+        12,
+        0,
+        16
+      ],
+      "passed_tests": 111,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-default-test.log"
+    },
+    {
+      "cell": "stable-default",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-default-clippy.log"
+    },
+    {
+      "cell": "stable-default",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+stable",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-default-doc.log"
+    },
+    {
+      "cell": "stable-all-features",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        21,
+        14,
+        15,
+        8,
+        7,
+        9,
+        9,
+        12,
+        15,
+        16
+      ],
+      "passed_tests": 126,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-all-features-test.log"
+    },
+    {
+      "cell": "stable-all-features",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-all-features-clippy.log"
+    },
+    {
+      "cell": "stable-all-features",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+stable",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-all-features-doc.log"
+    },
+    {
+      "cell": "stable",
+      "check": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "log": "docs/evidence/broker/KL11-05/final/stable-fmt.log"
+    },
+    {
+      "cell": "1.85.0-default",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        21,
+        14,
+        15,
+        8,
+        7,
+        9,
+        9,
+        12,
+        0,
+        16
+      ],
+      "passed_tests": 111,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-default-test.log"
+    },
+    {
+      "cell": "1.85.0-default",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-default-clippy.log"
+    },
+    {
+      "cell": "1.85.0-default",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-default-doc.log"
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        21,
+        14,
+        15,
+        8,
+        7,
+        9,
+        9,
+        12,
+        15,
+        16
+      ],
+      "passed_tests": 126,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-test.log"
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-clippy.log"
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-doc.log"
+    },
+    {
+      "cell": "1.85.0",
+      "check": "fmt",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-fmt.log"
+    },
+    {
+      "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+      "lane": "stable-default",
+      "command": [
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-default-protocol-handler.json",
+        "--metadata-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-default-metadata-handler.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-default-compiled-matrix.json"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-default-compiled-matrix.log",
+      "report": "docs/evidence/broker/KL11-05/final/stable-default-compiled-matrix.json",
+      "verdict": "passed"
+    },
+    {
+      "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+      "lane": "stable-all-features",
+      "command": [
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-all-features-protocol-handler.json",
+        "--metadata-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-all-features-metadata-handler.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-all-features-compiled-matrix.json"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-all-features-compiled-matrix.log",
+      "report": "docs/evidence/broker/KL11-05/final/stable-all-features-compiled-matrix.json",
+      "verdict": "passed"
+    },
+    {
+      "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+      "lane": "1.85.0-default",
+      "command": [
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-default-protocol-handler.json",
+        "--metadata-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-default-metadata-handler.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-default-compiled-matrix.json"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-default-compiled-matrix.log",
+      "report": "docs/evidence/broker/KL11-05/final/1.85.0-default-compiled-matrix.json",
+      "verdict": "passed"
+    },
+    {
+      "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+      "lane": "1.85.0-all-features",
+      "command": [
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-all-features-protocol-handler.json",
+        "--metadata-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-all-features-metadata-handler.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-all-features-compiled-matrix.json"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-compiled-matrix.log",
+      "report": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-compiled-matrix.json",
+      "verdict": "passed"
+    },
+    {
+      "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+      "command": [
+        "python3",
+        "-B",
+        "tests/ci/test_broker_api_matrix.py"
+      ],
+      "cwd": "/workspace/work/metadata-final/source",
+      "exit_code": 0,
+      "mutation_and_baseline_tests": 33,
+      "log": "docs/evidence/broker/KL11-05/final/verifier-ci.log",
+      "verdict": "passed"
+    }
+  ],
+  "results": {
+    "stable_rust": "1.99.0",
+    "msrv_rust": "1.85.0",
+    "stable_default_passed": 111,
+    "stable_all_features_passed": 126,
+    "msrv_default_passed": 111,
+    "msrv_all_features_passed": 126,
+    "failed_final_tests": 0,
+    "ignored_final_tests": 0,
+    "inert_live_harness_tests_per_cell": 1,
+    "metadata_integration_functions_per_cell": 8,
+    "private_actor_cases_per_cell": 4,
+    "strict_clippy_cells": 4,
+    "strict_rustdoc_cells": 4,
+    "format_toolchains": 2,
+    "compiled_registry_report_checks": 4,
+    "standalone_apache_cases_per_cell": 99,
+    "metadata_admin_declared_cases_per_cell": 555,
+    "metadata_admin_response_comparisons_per_cell": 522,
+    "metadata_admin_local_rejections_per_cell": 33,
+    "advertised_api_version_pairs_per_release": 28,
+    "source_files_git_blob_verified_before_and_unchanged_after": 4823,
+    "verifier_baseline_and_mutation_cases": 33,
+    "deliberately_failed_behavioral_mutants": 2,
+    "deliberate_failures_compiled_then_expected_assertions": true,
+    "actual_independent_java_assertions": 3162,
+    "actual_independent_native_c_assertions": 142,
+    "actual_independent_eof_rejections": 84,
+    "actual_server_processes_with_successful_exit": 4,
+    "retained_java_uuid_histories_after_restart": 6,
+    "fresh_ids_after_delete_and_recreate": 6,
+    "full_partition_proof_cells_for_KL11_65": 4,
+    "qualification": "not_run"
+  },
+  "supported_api_versions": [
+    {
+      "api_key": 3,
+      "min_version": 0,
+      "max_version": 13
+    },
+    {
+      "api_key": 18,
+      "min_version": 0,
+      "max_version": 4
+    },
+    {
+      "api_key": 19,
+      "min_version": 2,
+      "max_version": 4
+    },
+    {
+      "api_key": 20,
+      "min_version": 1,
+      "max_version": 6
+    }
+  ],
+  "standalone_api_versions": [
+    {
+      "api_key": 18,
+      "min_version": 0,
+      "max_version": 4
+    }
+  ],
+  "independent_evidence": {
+    "task_id": "KL11-63",
+    "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+    "report": "docs/evidence/broker/KL11-63/validation.json",
+    "sha256": "719c256d8fe54714ece150121730bb53842040a23feb2b5fdb6df6f242eae823",
+    "upstream_pins": "docs/evidence/broker/KL11-63/upstream-pins.json",
+    "oracle_generation": "docs/evidence/broker/KL11-63/oracle-generation.json",
+    "live_features": "default broker features on both final toolchains",
+    "restart_kind": "Controlled process shutdown/reopen with the same durable catalog, not machine/power loss."
+  },
+  "failed_attempts": [
+    {
+      "kind": "unresolved_dependency_lock",
+      "verdict": "failed",
+      "log": "docs/evidence/broker/KL11-05/development-check-01.log",
+      "disposition": "Coordinator minimally resolved broker-only getrandom0.4.3 before the final source pin."
+    },
+    {
+      "kind": "metadata_test_assertion_format_compile",
+      "verdict": "failed",
+      "log": "docs/evidence/broker/KL11-05/development-tests-01.log",
+      "disposition": "Corrected the Rust assertion format argument."
+    },
+    {
+      "kind": "metadata_identical_branch_and_arity_lints",
+      "verdict": "failed",
+      "log": "docs/evidence/broker/KL11-05/development-clippy-01.log",
+      "disposition": "Removed duplicate branch and reduced response-writer arguments."
+    },
+    {
+      "kind": "metadata_lint_fix_call_arity_compile",
+      "verdict": "failed",
+      "log": "docs/evidence/broker/KL11-05/development-clippy-02.log",
+      "disposition": "Updated the remaining call site."
+    },
+    {
+      "kind": "working_tree_sibling_partition_export",
+      "verdict": "failed",
+      "log": "docs/evidence/broker/KL11-05/development-all-default.log",
+      "disposition": "Concurrent sibling test existed before its shared module export; isolated final source includes the completed module."
+    },
+    {
+      "kind": "working_tree_sibling_sasl_zeroize_traits",
+      "verdict": "failed",
+      "log": "docs/evidence/broker/KL11-05/development-corrected-clippy.log",
+      "disposition": "Concurrent uncommitted security implementation trait errors; final pinned snapshot excludes that unfinished code."
+    },
+    {
+      "kind": "source_6b_msrv_full_clippy_format_collect",
+      "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+      "verdict": "failed",
+      "log": "docs/evidence/broker/KL11-05/superseded-6b-msrv-full-clippy.log",
+      "command_context": "docs/evidence/broker/KL11-05/superseded-6b-gate-command-context.json",
+      "disposition": "Metadata test hex helper changed to direct nibble digits; all final full strict gates pass."
+    },
+    {
+      "kind": "superseded_malformed_selector_response_policy",
+      "verdict": "superseded",
+      "report": "docs/evidence/broker/KL11-05/superseded-malformed-selector-development-metadata-handler.json",
+      "disposition": "Earlier 525 positive byte comparisons included six malformed identity responses. Final corpus excludes those response frames and verifies six fail-closed cases; historical frames stay labeled schema-only."
+    },
+    {
+      "kind": "source_6b_actual_native_all_topics",
+      "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+      "verdict": "failed",
+      "report": "docs/evidence/broker/KL11-05/../KL11-63/live/stable/attempt-1/validation.json",
+      "disposition": "Independent actual native request/source and all three Apache parsers confirmed exactly three leftover zero bytes. Final read-only compatibility is restricted to flexible null/all selectors; actual C all-topics passes both final toolchains."
+    }
+  ],
+  "deliberate_failed_variants": {
+    "report": "docs/evidence/broker/KL11-05/final/mutants/mutants.json",
+    "mutations": [
+      "zero-response-uuid",
+      "validate-only-writes"
+    ],
+    "observed_exit_codes": [
+      101,
+      101
+    ],
+    "all_expected_behavioral_failures_verified": true
+  },
+  "artifacts": [
+    "partitionline-broker/src/metadata.rs",
+    "partitionline-broker/tests/metadata.rs",
+    "partitionline-broker/src/protocol.rs",
+    "partitionline-broker/tests/protocol.rs",
+    "tests/conformance/broker/implemented-api-versions.json",
+    "tests/conformance/broker/features.json",
+    "scripts/check-broker-api-matrix.py",
+    "tests/ci/test_broker_api_matrix.py",
+    "docs/evidence/broker/KL11-05/README.md",
+    "docs/evidence/broker/KL11-05/design.md",
+    "docs/evidence/broker/KL11-05/provenance.json",
+    "docs/evidence/broker/KL11-05/checksums.json",
+    "docs/evidence/broker/KL11-05/final/validation.json",
+    "docs/evidence/broker/KL11-05/final/compiled-matrix-checks.json",
+    "docs/evidence/broker/KL11-05/final/verifier-ci.json",
+    "docs/evidence/broker/KL11-05/final/mutants/mutants.json"
+  ],
+  "limitations": [
+    "Single configured endpoint/controller, RF1 logical partition leader/replica/ISR, epoch0 and no offline replicas; no wire Produce/Fetch, placement or replication claim.",
+    "CreateTopics is partial against Apache2-7: supports2-4; nonempty configuration overrides return INVALID_CONFIG rather than fabricated config success.",
+    "Automatic topic creation disabled; no authorizer/ACL enforcement; authorization bitmaps describe this no-authorizer local policy.",
+    "Custom process-local catalog journal and trusted operator path; no distributed ownership, cross-process lock or Apache metadata-log format. Topic names never become paths.",
+    "Each topic operation is atomic after sync; a multi-topic request is not a transaction. Timeout/cancellation after admitted commit can lose a receipt and is ambiguous until lookup/restart.",
+    "Shutdown requires explicit stop/drain/join for deterministic completion; Drop requests stop and does not blockingly join. Actor queue, aggregate request bytes, responses and catalog history budgets bound local work.",
+    "Actor tests model queue/cancellation/receipt/join faults. Catalog physical sync ambiguity belongs to KL11-59/KL11-03; orderly live restarts do not inject power loss.",
+    "Official Apache serializers/parsers and selected request/name components execute independently. Ordinary single-node golden responses are policy assembled, not executed upstream controller responses; ordering is locally deterministic.",
+    "Metadata12/13 null-name/zero-ID selectors are schema accepted by Apache components but locally fail closed before response encoding. Historical malformed response frames are excluded from positive qualification.",
+    "Pinned librdkafka2.15 flexible all-topics Metadata uses a four-byte null-array reservation. Exactly three zero tail bytes are admitted for flexible null/all selectors after complete parsing; every other suffix/named/empty/classic selector and all mutating admin requests remain strict.",
+    "RFC4122v4 IDs use approved broker-only getrandom0.4.3, at most32 attempts including collisions, and reservedzero/one/leading-base64url-minus exclusions; OS entropy and filesystem sync guarantees are inherited.",
+    "No security, cluster durability, full Apache controller behavior, production readiness or performance qualification. The checked registry explicitly retains qualification not_run."
+  ]
+}

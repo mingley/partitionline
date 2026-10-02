@@ -1,0 +1,40 @@
+   Compiling libc v0.2.189
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling crc32c v0.6.8
+   Compiling syn v3.0.6
+   Compiling getrandom v0.4.3
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling pin-project-lite v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling bytes v1.12.1
+   Compiling tokio-macros v2.7.2
+   Compiling tokio v1.53.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/metadata-final/mutants/zero-response-uuid/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.05s
+     Running tests/metadata.rs (/workspace/work/metadata-final/mutants/zero-response-uuid-target/debug/deps/metadata-91614346aa96c69c)
+
+running 1 test
+test independent_apache_metadata_admin_goldens ... FAILED
+
+failures:
+
+---- independent_apache_metadata_admin_goldens stdout ----
+
+thread 'independent_apache_metadata_admin_goldens' (303378) panicked at tests/metadata.rs:343:21:
+assertion `left == right` failed: 4.1.2/metadata-v10-all
+  left: [0, 0, 0, 7, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 10, 49, 50, 55, 46, 48, 46, 48, 46, 49, 0, 0, 74, 151, 0, 0, 22, 112, 97, 114, 116, 105, 116, 105, 111, 110, 108, 105, 110, 101, 45, 102, 105, 120, 116, 117, 114, 101, 0, 0, 0, 0, 3, 0, 0, 6, 97, 108, 112, 104, 97, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 128, 0, 0, 0, 0, 0, 0, 19, 95, 95, 99, 111, 110, 115, 117, 109, 101, 114, 95, 111, 102, 102, 115, 101, 116, 115, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 128, 0, 0, 0, 0, 128, 0, 0, 0, 0]
+ right: [0, 0, 0, 7, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 10, 49, 50, 55, 46, 48, 46, 48, 46, 49, 0, 0, 74, 151, 0, 0, 22, 112, 97, 114, 116, 105, 116, 105, 111, 110, 108, 105, 110, 101, 45, 102, 105, 120, 116, 117, 114, 101, 0, 0, 0, 0, 3, 0, 0, 6, 97, 108, 112, 104, 97, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 128, 0, 0, 0, 0, 0, 0, 19, 95, 95, 99, 111, 110, 115, 117, 109, 101, 114, 95, 111, 102, 102, 115, 101, 116, 115, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 128, 0, 0, 0, 0, 128, 0, 0, 0, 0]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    independent_apache_metadata_admin_goldens
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--test metadata`

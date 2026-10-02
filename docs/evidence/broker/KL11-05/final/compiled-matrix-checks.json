@@ -1,0 +1,78 @@
+[
+  {
+    "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+    "lane": "stable-default",
+    "command": [
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-default-protocol-handler.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-default-metadata-handler.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-default-compiled-matrix.json"
+    ],
+    "exit_code": 0,
+    "log": "stable-default-compiled-matrix.log",
+    "report": "stable-default-compiled-matrix.json",
+    "verdict": "passed"
+  },
+  {
+    "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+    "lane": "stable-all-features",
+    "command": [
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-all-features-protocol-handler.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-all-features-metadata-handler.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/stable-all-features-compiled-matrix.json"
+    ],
+    "exit_code": 0,
+    "log": "stable-all-features-compiled-matrix.log",
+    "report": "stable-all-features-compiled-matrix.json",
+    "verdict": "passed"
+  },
+  {
+    "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+    "lane": "1.85.0-default",
+    "command": [
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-default-protocol-handler.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-default-metadata-handler.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-default-compiled-matrix.json"
+    ],
+    "exit_code": 0,
+    "log": "1.85.0-default-compiled-matrix.log",
+    "report": "1.85.0-default-compiled-matrix.json",
+    "verdict": "passed"
+  },
+  {
+    "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+    "lane": "1.85.0-all-features",
+    "command": [
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-all-features-protocol-handler.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-all-features-metadata-handler.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-05/final/1.85.0-all-features-compiled-matrix.json"
+    ],
+    "exit_code": 0,
+    "log": "1.85.0-all-features-compiled-matrix.log",
+    "report": "1.85.0-all-features-compiled-matrix.json",
+    "verdict": "passed"
+  }
+]

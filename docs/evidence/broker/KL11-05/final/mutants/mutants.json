@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+  "checks": [
+    {
+      "mutation": "zero-response-uuid",
+      "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+      "baseline_metadata_sha256": "078fdbd186f911b62154fbfa6a3e268a5ef047ed86dac3cca46a9acaca32fbe9",
+      "mutant_metadata_sha256": "acad025d76e529c37832e3f8313ca9334785597f209fbe9abeb5cae97b4b0ef4",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/metadata-final/mutants/zero-response-uuid/partitionline-broker/Cargo.toml",
+        "--test",
+        "metadata",
+        "independent_apache_metadata_admin_goldens",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/mutants/zero-response-uuid-target",
+        "-j",
+        "2",
+        "--",
+        "--exact"
+      ],
+      "observed_exit_code": 101,
+      "verdict": "failed",
+      "expected_behavioral_failure_verified": true,
+      "failed_test": "independent_apache_metadata_admin_goldens",
+      "log": "zero-response-uuid.log"
+    },
+    {
+      "mutation": "validate-only-writes",
+      "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+      "baseline_metadata_sha256": "078fdbd186f911b62154fbfa6a3e268a5ef047ed86dac3cca46a9acaca32fbe9",
+      "mutant_metadata_sha256": "fc6c6dcfdd2033bef8f430baa67d1da00207aea5d22c709a30e3c5b9a3f3d318",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/metadata-final/mutants/validate-only-writes/partitionline-broker/Cargo.toml",
+        "--test",
+        "metadata",
+        "persistent_create_validate_delete_and_fresh_identity",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/mutants/validate-only-writes-target",
+        "-j",
+        "2",
+        "--",
+        "--exact"
+      ],
+      "observed_exit_code": 101,
+      "verdict": "failed",
+      "expected_behavioral_failure_verified": true,
+      "failed_test": "persistent_create_validate_delete_and_fresh_identity",
+      "log": "validate-only-writes.log"
+    }
+  ],
+  "all_expected_failures_verified": true,
+  "qualification": "not_run"
+}

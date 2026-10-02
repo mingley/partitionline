@@ -1,0 +1,13 @@
+{
+  "source_commit": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+  "command": [
+    "python3",
+    "-B",
+    "tests/ci/test_broker_api_matrix.py"
+  ],
+  "cwd": "/workspace/work/metadata-final/source",
+  "exit_code": 0,
+  "mutation_and_baseline_tests": 33,
+  "log": "verifier-ci.log",
+  "verdict": "passed"
+}

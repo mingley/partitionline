@@ -1,0 +1,40 @@
+   Compiling libc v0.2.189
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling crc32c v0.6.8
+   Compiling syn v3.0.6
+   Compiling getrandom v0.4.3
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling pin-project-lite v0.2.17
+   Compiling bytes v1.12.1
+   Compiling cfg-if v1.0.5
+   Compiling tokio-macros v2.7.2
+   Compiling tokio v1.53.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/metadata-final/mutants/validate-only-writes/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.10s
+     Running tests/metadata.rs (/workspace/work/metadata-final/mutants/validate-only-writes-target/debug/deps/metadata-91614346aa96c69c)
+
+running 1 test
+test persistent_create_validate_delete_and_fresh_identity ... FAILED
+
+failures:
+
+---- persistent_create_validate_delete_and_fresh_identity stdout ----
+
+thread 'persistent_create_validate_delete_and_fresh_identity' (303909) panicked at tests/metadata.rs:131:5:
+assertion `left == right` failed
+  left: (1, 1, 2)
+ right: (0, 0, 0)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    persistent_create_validate_delete_and_fresh_identity
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test metadata`

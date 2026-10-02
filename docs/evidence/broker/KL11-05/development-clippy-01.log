@@ -1,0 +1,39 @@
+    Checking partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+error: this `if` has identical blocks
+   --> src/metadata.rs:539:24
+    |
+539 |           } else if flex {
+    |  ________________________^
+540 | |             2
+541 | |         } else {
+    | |_________^
+    |
+note: same as this
+   --> src/metadata.rs:541:16
+    |
+541 |           } else {
+    |  ________________^
+542 | |             2
+543 | |         },
+    | |_________^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#if_same_then_else
+    = note: `-D clippy::if-same-then-else` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::if_same_then_else)]`
+
+error: this function has too many arguments (8/7)
+    --> src/metadata.rs:1196:1
+     |
+1196 | / fn delete(
+1197 | |     catalog: &mut Catalog,
+1198 | |     config: &Config,
+1199 | |     header: RequestHeader<'_>,
+...    |
+1204 | |     stopping: &AtomicBool,
+1205 | | ) -> Result<Vec<u8>, Error> {
+     | |___________________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#too_many_arguments
+     = note: `-D clippy::too-many-arguments` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::too_many_arguments)]`
+
+error: could not compile `partitionline-broker` (lib) due to 2 previous errors

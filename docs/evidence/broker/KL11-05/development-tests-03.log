@@ -1,0 +1,14 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.89s
+     Running tests/metadata.rs (/workspace/work/metadata-target/debug/deps/metadata-91614346aa96c69c)
+
+running 6 tests
+test serve_live_probe ... ok
+test corrupt_complete_catalog_fails_startup_without_partial_metadata ... ok
+test shutdown_is_joined_idempotent_and_stops_admission ... ok
+test persistent_create_validate_delete_and_fresh_identity ... ok
+test resource_bounds_and_response_preflight_are_non_mutating ... ok
+test validation_errors_timeout_and_no_peer_paths ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.01s
+

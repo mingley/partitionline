@@ -1,0 +1,135 @@
+    Checking typenum v1.20.1
+    Checking cmov v0.5.4
+    Checking ctutils v0.4.2
+    Checking const-oid v0.10.2
+    Checking cpufeatures v0.3.1
+    Checking base64 v0.23.1
+    Checking hybrid-array v0.4.15
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+    Checking digest v0.11.3
+    Checking hmac v0.13.0
+    Checking sha2 v0.11.0
+    Checking pbkdf2 v0.13.0
+    Checking partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:130:28
+    |
+130 |                 let output=Zeroizing::new(mac.finalize().into_bytes());
+    |                            ^^^^^^^^^ the trait `hmac::digest::zeroize::DefaultIsZeroes` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>`
+    |
+    = help: the following other types implement trait `hmac::digest::zeroize::DefaultIsZeroes`:
+              ()
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+              i32
+            and 10 others
+    = note: required for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>` to implement `hmac::digest::zeroize::Zeroize`
+note: required by a bound in `hmac::digest::zeroize::Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+    = note: the full name for the type has been written to '/workspace/work/metadata-target/debug/deps/partitionline_broker-c48c0db819f43c3d.long-type-6491302320399130903.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:130:28
+    |
+130 |                 let output=Zeroizing::new(mac.finalize().into_bytes());
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `hmac::digest::zeroize::DefaultIsZeroes` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>`
+    |
+    = help: the following other types implement trait `hmac::digest::zeroize::DefaultIsZeroes`:
+              ()
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+              i32
+            and 10 others
+    = note: required for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>` to implement `hmac::digest::zeroize::Zeroize`
+note: required by a bound in `hmac::digest::zeroize::Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+    = note: the full name for the type has been written to '/workspace/work/metadata-target/debug/deps/partitionline_broker-c48c0db819f43c3d.long-type-6491302320399130903.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0599]: no method named `to_vec` found for struct `hmac::digest::zeroize::Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:131:42
+    |
+131 |                 Ok(Zeroizing::new(output.to_vec()))
+    |                                          ^^^^^^ method not found in `Zeroizing<Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>>`
+    |
+    = note: the full name for the type has been written to '/workspace/work/metadata-target/debug/deps/partitionline_broker-c48c0db819f43c3d.long-type-3671613547992114221.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:136:28
+    |
+136 |                 let output=Zeroizing::new(mac.finalize().into_bytes());
+    |                            ^^^^^^^^^ the trait `hmac::digest::zeroize::DefaultIsZeroes` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>`
+    |
+    = help: the following other types implement trait `hmac::digest::zeroize::DefaultIsZeroes`:
+              ()
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+              i32
+            and 10 others
+    = note: required for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>` to implement `hmac::digest::zeroize::Zeroize`
+note: required by a bound in `hmac::digest::zeroize::Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+    = note: the full name for the type has been written to '/workspace/work/metadata-target/debug/deps/partitionline_broker-c48c0db819f43c3d.long-type-9640324605058575813.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:136:28
+    |
+136 |                 let output=Zeroizing::new(mac.finalize().into_bytes());
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `hmac::digest::zeroize::DefaultIsZeroes` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>`
+    |
+    = help: the following other types implement trait `hmac::digest::zeroize::DefaultIsZeroes`:
+              ()
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+              i32
+            and 10 others
+    = note: required for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>` to implement `hmac::digest::zeroize::Zeroize`
+note: required by a bound in `hmac::digest::zeroize::Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+    = note: the full name for the type has been written to '/workspace/work/metadata-target/debug/deps/partitionline_broker-c48c0db819f43c3d.long-type-9640324605058575813.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0599]: no method named `to_vec` found for struct `hmac::digest::zeroize::Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:137:42
+    |
+137 |                 Ok(Zeroizing::new(output.to_vec()))
+    |                                          ^^^^^^ method not found in `Zeroizing<Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>>`
+    |
+    = note: the full name for the type has been written to '/workspace/work/metadata-target/debug/deps/partitionline_broker-c48c0db819f43c3d.long-type-5307166403204731230.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+Some errors have detailed explanations: E0277, E0599.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `partitionline-broker` (lib) due to 6 previous errors
