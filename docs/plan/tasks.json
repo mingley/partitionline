@@ -20424,9 +20424,48 @@
         "docs/evidence/broker/KL11-66/",
         "docs/plan/evidence/KL11-66.json",
         "docs/plan/tasks.json",
-        "partitionline-broker/src/security/mod.rs"
+        "partitionline-broker/src/security/mod.rs",
+        "partitionline-broker/src/lib.rs"
       ],
       "integration_coordinator": "Worker owns mechanism/credentials/tests/oracles. Root exclusively owns Cargo/lock/security mod/sharedlib. This foundation precedes KL11-36 actual Kafka SASL dispatch, live peer sessions and admin."
+    },
+    {
+      "id": "KL11-67",
+      "title": "Decode Kafka gzip/Snappy/LZ4/Zstandard batches with bounded pure Rust codecs",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL11-60",
+        "KL05-02"
+      ],
+      "files": [
+        "partitionline-broker/src/codecs.rs",
+        "partitionline-broker/tests/codecs.rs"
+      ],
+      "deliverable": "Optional safe Rust bounded codec normalization of ordinary magic2 batches, feeding the existing admission validator; no wire advertisement until Produce integration.",
+      "acceptance": [
+        "Use optional core-approved pure Rust codec families and the vetted zstd-rs0.1.0 backend. Keep default activation and published client graphs unchanged; no hidden native Kafka/SASL/codec dependencies.",
+        "Validate compressed-batch CRC/length/work limits before decode, cap each codec window/decoded output and aggregate allocations, reject malformed/truncated/trailing frames and counts safely. Specify any deliberate stricter behavior relative to actual upstream decoding.",
+        "Preserve ordinary record offsets/timestamps/keys/values/headers while normalizing only compression attributes/length/CRC. Validate the entire decoded input before admission; unsupported idempotent/transaction/control semantics do not become success.",
+        "Actual pinned Apache-generated compressed fixtures across all four codecs decode to identical independently verified record histories, including concatenated/multi-batch forms where supported; retain all failures/hostile controls.",
+        "Output/CPU/work bounds and decoder memory limits are explicit, including dictionary/window/frame handling and failure cleanup. No production/performance claim from codec fixtures."
+      ],
+      "validation": [
+        "Stable/MSRV default and codec-enabled behavioral tests; strict format/lint/docs.",
+        "Independent Apache/JNI encoders and parser histories/negative fixtures with exact source/jar pins; bounded malformed/window/decoded-size tests."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/codecs.rs",
+        "partitionline-broker/tests/codecs.rs",
+        "partitionline-broker/tests/fixtures/codecs/",
+        "docs/evidence/broker/KL11-67/",
+        "docs/plan/evidence/KL11-67.json",
+        "docs/plan/tasks.json"
+      ],
+      "integration_coordinator": "Worker owns codec module/tests/oracles; root exclusively edits shared Cargo/lock/lib exports under existing root ownership. No records/journal/core source edits. Codec integration into Produce and later Fetch is separate."
     }
   ]
 }
