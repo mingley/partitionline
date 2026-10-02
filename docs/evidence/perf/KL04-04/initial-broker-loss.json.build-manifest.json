@@ -1,0 +1,25 @@
+{
+  "repository": "https://github.com/confluentinc/librdkafka.git",
+  "tag": "v2.15.0",
+  "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "baseline": "Historical Lab A v2.15.0 retained; no newer baseline selected.",
+  "configure_flags": [
+    "--enable-ssl",
+    "--enable-zlib",
+    "--enable-zstd",
+    "--disable-gssapi",
+    "--disable-curl",
+    "--disable-lz4-ext"
+  ],
+  "compiler": "cc (Debian 14.2.0-19) 14.2.0",
+  "build_tool": "GNU Make 4.4.1",
+  "peer_source_sha256": "e02fcd1f6df59bda7a772f0d8d72bc266a711051e41eff2cd91bd37dba5d96f7",
+  "binary_sha256": "c6d06d93ebf7bf40cef02be3a158db3ec3ae733688b3bec2dfc208fdb51f71f2",
+  "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "dependencies": {
+    "openssl": "3.5.7",
+    "zlib": "1.3.1",
+    "libzstd": "1.5.7"
+  },
+  "library_tree": "429a83d1ba5350c0846aeaee4efe821b463f6b85"
+}

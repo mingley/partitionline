@@ -1,0 +1,25 @@
+{
+  "distribution": "Apache Kafka 3.9.1 KRaft",
+  "url": "https://archive.apache.org/dist/kafka/3.9.1/kafka_2.13-3.9.1.tgz",
+  "distribution_sha256": "dd4399816e678946cab76e3bd1686103555e69bc8f2ab8686cda71aa15bc31a3",
+  "kafka_commit_from_startup_log": "f745dfdcee2b9851",
+  "cluster_id": "byI-r4nKR9OzNDjnf3ZoGg",
+  "bootstrap": "127.0.0.1:19094",
+  "controller": "127.0.0.1:19095",
+  "broker_nodes": 1,
+  "startup_log_excerpt": [
+    "[2026-10-02 16:04:37,171] INFO Kafka version: 3.9.1 (org.apache.kafka.common.utils.AppInfoParser)",
+    "[2026-10-02 16:04:37,171] INFO Kafka commitId: f745dfdcee2b9851 (org.apache.kafka.common.utils.AppInfoParser)"
+  ],
+  "test_topics": [
+    "c-peer-kl04-04-success",
+    "c-peer-kl04-04-success-02",
+    "c-peer-kl04-04-delivery-failure",
+    "c-peer-kl04-04-oversize",
+    "c-peer-kl04-04-harness-02"
+  ],
+  "limits": [
+    "Native loopback correctness validation on cloud VM; no controlled-host performance qualification",
+    "RF1/minISR2 probe delivered all records; no quorum2 claim"
+  ]
+}

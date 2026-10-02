@@ -1,0 +1,9 @@
+{
+  "before_hw": 0,
+  "after_hw": 0,
+  "hw_delta": 0,
+  "acknowledged": 0,
+  "client_exit_code": 1,
+  "requested": 32,
+  "integrity_ok": false
+}

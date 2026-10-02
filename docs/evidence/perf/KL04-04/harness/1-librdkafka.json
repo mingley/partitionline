@@ -1,0 +1,376 @@
+{
+  "schema_version": "1.0.0",
+  "contract_version": "1.1.0",
+  "suite_hold": {
+    "status": "active",
+    "policy": "Unsigned samples do not lift Suite HOLD",
+    "note": "Adapter validation only; no comparison or scenario qualification"
+  },
+  "scenario": {
+    "scenario_id": "librdkafka-c-peer-smoke",
+    "profile": "bulk",
+    "tier": "exploratory",
+    "peer": "librdkafka",
+    "cell_disposition": "executed",
+    "equal_semantics": {
+      "durability": {
+        "replication_factor": 1,
+        "min_insync_replicas": 1
+      },
+      "acks": 1,
+      "idempotence": false,
+      "isolation": "read_uncommitted",
+      "security": {
+        "protocol": "PLAINTEXT",
+        "mechanism": "NONE"
+      }
+    }
+  },
+  "provenance": {
+    "source": {
+      "git_commit": "cda065af2e62e34eecb2b07ddbcf6fbdfe33a15f",
+      "git_branch": "main",
+      "repo_url": "https://github.com/mingley/partitionline",
+      "clean": false,
+      "tree_hash": "cb3c101b75d0c2394728bc3c6268780eb538937a",
+      "library_repository": "https://github.com/confluentinc/librdkafka.git",
+      "library_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "library_tag": "v2.15.0",
+      "peer_source_sha256": "cd45474f095813b390413437eac7167020bed3a2ac8cf40cddb66c21a55dbf64",
+      "note": "Source tree may include parallel work; adapter bytes and pinned native library are hashed in build manifest"
+    },
+    "binary": {
+      "name": "librdkafka-native-c-peer",
+      "path": "/workspace/work/c-peer/c-peer",
+      "sha256": "fcb7d49106fa6ff78460f510f27d63393a6ec36b40cfefa90b63e4c3b030c04b"
+    },
+    "config": {
+      "path": "docs/evidence/perf/KL04-04/harness/1-librdkafka.json.effective-config.json",
+      "sha256": "9f0ee674ab0821c275f5a6918f3cf59c0aa6d980a4db54819dce66dc94208bff",
+      "effective_settings": {
+        "bootstrap": "127.0.0.1:19094",
+        "topic": "c-peer-kl04-04-harness-02",
+        "count": 32,
+        "warmup": 0,
+        "payload_bytes": 100,
+        "partitions": 6,
+        "acks": 1,
+        "linger_ms": 5.0,
+        "batch_size_bytes": 1000000,
+        "batch_num_messages": 32768,
+        "max_in_flight": 5,
+        "queue_max_messages": 1000000,
+        "queue_max_kbytes": 32768,
+        "delivery_timeout_ms": 30000,
+        "flush_timeout_ms": 35000,
+        "run_timeout_ms": 120000,
+        "consume_timeout_ms": 30000,
+        "record_seed": 1592590337,
+        "latency_samples": 0,
+        "idempotence": false,
+        "compression": "none",
+        "isolation_level": "read_uncommitted",
+        "payload_mode": "constant-x",
+        "key_mode": "none",
+        "sasl_mechanism": "",
+        "has_sasl_credentials": false,
+        "has_custom_ca": false,
+        "has_client_identity": false,
+        "security_protocol": "PLAINTEXT",
+        "partitioner": "explicit_round_robin",
+        "connections_per_broker": 1,
+        "socket_nagle_disable": true,
+        "delivery_definition": "successful delivery callback with acks!=0; enqueue never acknowledged",
+        "record_id_definition": "key=be64(index)||be64(splitmix64(seed^index)); splitmix64 value stream",
+        "unsupported": [
+          "open-loop latency",
+          "transactions",
+          "groups/share",
+          "OAuth/OIDC refresh",
+          "GSSAPI"
+        ],
+        "librdkafka_effective": {
+          "builtin.features": "gzip,snappy,ssl,sasl,regex,lz4,sasl_plain,sasl_scram,plugins,zstd,sasl_oauthbearer",
+          "max.in.flight.requests.per.connection": "5",
+          "socket.timeout.ms": "60000",
+          "socket.nagle.disable": "true",
+          "connections.max.idle.ms": "0",
+          "allow.auto.create.topics": "false",
+          "security.protocol": "plaintext",
+          "sasl.mechanisms": "GSSAPI",
+          "enable.idempotence": "false",
+          "queue.buffering.max.messages": "1000000",
+          "queue.buffering.max.kbytes": "32768",
+          "queue.buffering.max.ms": "5",
+          "message.send.max.retries": "2147483647",
+          "retry.backoff.ms": "100",
+          "compression.codec": "none",
+          "batch.num.messages": "32768",
+          "batch.size": "1000000",
+          "sticky.partitioning.linger.ms": "0",
+          "request.required.acks": "1",
+          "message.timeout.ms": "30000",
+          "partitioner": "consistent_random"
+        }
+      }
+    },
+    "toolchains": {
+      "compiler": "cc (Debian 14.2.0-19) 14.2.0",
+      "runtime": "native C / librdkafka 2.15.0",
+      "build_tool": "GNU Make 4.4.1",
+      "library_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab"
+    },
+    "broker": {
+      "image": "native:apache-kafka-3.9.1",
+      "version": "3.9.1",
+      "mode": "kraft",
+      "cluster_id": "byI-r4nKR9OzNDjnf3ZoGg",
+      "node_count": 1,
+      "endpoints": [
+        "127.0.0.1:19094"
+      ],
+      "identity_note": "Image/version supplied by operator; cluster ID, nodes, RF and minISR queried by C driver. Version is not inferred from ApiVersions"
+    },
+    "host": {
+      "hostname": "c8ea22bb3ef9",
+      "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+      "os_family": "linux",
+      "kernel_version": "6.18.44",
+      "arch": "x86_64",
+      "cpu": {
+        "model": "AMD EPYC 9V74 80-Core Processor",
+        "physical_cores": 5,
+        "logical_cores": 5,
+        "frequency_mhz": 2596.15
+      },
+      "memory": {
+        "total_bytes": 18882699264,
+        "unit": "bytes"
+      }
+    },
+    "topology": {
+      "environment": "loopback",
+      "rtt_ms": 0.0,
+      "rtt_unit": "milliseconds",
+      "client_nodes": 1,
+      "broker_nodes": 1,
+      "network_interface": "lo",
+      "rtt_note": "RTT unmeasured unless RTT_MS supplied"
+    },
+    "timestamps": {
+      "start_time_utc": "2026-10-02T16:10:18.496215Z",
+      "end_time_utc": "2026-10-02T16:10:18.574542Z",
+      "duration_seconds": 0.078327,
+      "duration_unit": "seconds"
+    },
+    "seeds": {
+      "payload_seed": "0x5eed0001",
+      "key_seed": "0x5eed0001",
+      "partition_seed": "explicit index modulo partitions",
+      "repetition_seed": "0x5EED0004"
+    },
+    "artifacts": [
+      {
+        "path": "docs/evidence/perf/KL04-04/harness/1-librdkafka.json.raw.json",
+        "type": "raw_delivery",
+        "sha256": "cc9f7ce579b1b72d5f1c3d031d32c9458652bad0c209d921104e22be483805e3",
+        "size_bytes": 1957
+      },
+      {
+        "path": "docs/evidence/perf/KL04-04/harness/1-librdkafka.json.samples.csv",
+        "type": "raw_latency",
+        "sha256": "fbaa4b9a44d15fab611c002f8ae8afb499b9ebecbfbe546179cf1a12dfcda8f2",
+        "size_bytes": 21
+      },
+      {
+        "path": "docs/evidence/perf/KL04-04/harness/1-librdkafka.json.effective-config.json",
+        "type": "effective_config",
+        "sha256": "9f0ee674ab0821c275f5a6918f3cf59c0aa6d980a4db54819dce66dc94208bff",
+        "size_bytes": 2122
+      },
+      {
+        "path": "docs/evidence/perf/KL04-04/harness/1-librdkafka.json.stderr.log",
+        "type": "stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/evidence/perf/KL04-04/harness/1-librdkafka.json.build-manifest.json",
+        "type": "build_manifest",
+        "sha256": "10fdb5ac97e3e71e6b5c18c9ecde6b45409d11b8afd6a26a6148cc2afcd59d18",
+        "size_bytes": 887
+      }
+    ]
+  },
+  "execution": {
+    "phase": "steady_state",
+    "warmup_completed": true,
+    "warmup_records": 0,
+    "warmup_duration_seconds": 0.0,
+    "steady_state_duration_seconds": 0.004581541,
+    "repetition_index": 1,
+    "total_repetitions": 1,
+    "pairing_order": "see order.json",
+    "coordinated_omission_avoidance": {
+      "enabled": false,
+      "schedule_type": "closed_loop"
+    },
+    "contract_sample_floors_met": false,
+    "note": "Single adapter correctness check; a campaign must independently enforce contract warmup/repetition/sample floors"
+  },
+  "outcomes": {
+    "offered": 32,
+    "accepted": 32,
+    "acknowledged": 32,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0,
+    "consumed": 0
+  },
+  "measurements": {
+    "throughput": {
+      "records_per_second": 6984.549521656579,
+      "records_per_second_unit": "records/s",
+      "megabytes_per_second": 0.6984549521656579,
+      "megabytes_per_second_unit": "MB/s",
+      "total_bytes_transferred": 3200,
+      "total_bytes_unit": "bytes",
+      "mb_definition": "1 MB=1000000 value bytes; excludes keys/protocol"
+    },
+    "latency": {
+      "sample_count": 0,
+      "unit": "microseconds",
+      "p50": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "p99_9": 0.0,
+      "min": 0,
+      "max": 0,
+      "mean": 0,
+      "stddev": 0,
+      "confidence_interval_95": {
+        "lower": 0.0,
+        "upper": 0.0,
+        "unit": "microseconds",
+        "method": "200 fixed-seed bootstrap p99 resamples; population capped at 10000"
+      },
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "min_us": 0,
+            "max_us": 0,
+            "count": 0
+          }
+        ]
+      },
+      "definition": "First LATENCY_SAMPLES IDs sampled; queue attempt to successful delivery callback, includes local backpressure; closed-loop diagnostic, no open-loop latency claim"
+    },
+    "client_resources": {
+      "cpu_utilization_pct": 12.156727565207401,
+      "cpu_unit": "percent",
+      "user_cpu_seconds": 0.00627,
+      "system_cpu_seconds": 0.003252,
+      "cpu_seconds_unit": "seconds",
+      "allocations": {
+        "total_allocated_bytes": 0,
+        "allocation_count": 0,
+        "unit": "bytes",
+        "note": "Uninstrumented, not measured"
+      },
+      "rss": {
+        "peak_rss_bytes": 29360128,
+        "average_rss_bytes": 0,
+        "unit": "bytes",
+        "note": "Peak from C getrusage; average unmeasured"
+      },
+      "threads_count": 8,
+      "threads_note": "rd_kafka_thread_cnt plus driver main thread; CPU/RSS cover C produce + audit, not steady-state isolation"
+    },
+    "broker_resources": {
+      "cpu_utilization_pct": 0,
+      "cpu_unit": "percent",
+      "peak_rss_bytes": 0,
+      "rss_unit": "bytes",
+      "disk_write_bytes": 0,
+      "disk_write_unit": "bytes",
+      "note": "Unmeasured external broker"
+    },
+    "errors": [],
+    "callback_failures": 0,
+    "warmup_callback_failures": 0,
+    "queue_full_retries": 0
+  },
+  "integrity": {
+    "verified": false,
+    "record_ids": {
+      "start_id": 0,
+      "end_id": 31,
+      "expected_count": 32,
+      "verified_count": 0,
+      "missing_ids_count": 32,
+      "duplicate_ids_count": 0,
+      "checksum_algorithm": "exact deterministic bytes",
+      "payload_checksum_matches": false
+    },
+    "high_watermark_audit": {
+      "partitions": [
+        {
+          "partition": 0,
+          "start_offset": 0,
+          "end_offset": 6,
+          "offset_delta": 6
+        },
+        {
+          "partition": 1,
+          "start_offset": 0,
+          "end_offset": 6,
+          "offset_delta": 6
+        },
+        {
+          "partition": 2,
+          "start_offset": 0,
+          "end_offset": 5,
+          "offset_delta": 5
+        },
+        {
+          "partition": 3,
+          "start_offset": 0,
+          "end_offset": 5,
+          "offset_delta": 5
+        },
+        {
+          "partition": 4,
+          "start_offset": 0,
+          "end_offset": 5,
+          "offset_delta": 5
+        },
+        {
+          "partition": 5,
+          "start_offset": 0,
+          "end_offset": 5,
+          "offset_delta": 5
+        }
+      ],
+      "total_offset_delta": 32,
+      "matches_acknowledged": true
+    },
+    "idempotence_sequence_verified": false,
+    "integrity_failure": false
+  },
+  "repetition_history": {
+    "total_attempts": 1,
+    "failed_attempts": 0,
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "repetition_index": 1,
+        "status": "passed_measurement",
+        "integrity_failure": false,
+        "error_message": null,
+        "timestamp_utc": "2026-10-02T16:10:18.574542Z"
+      }
+    ]
+  }
+}

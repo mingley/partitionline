@@ -1,0 +1,283 @@
+{
+  "card": "KL04-04",
+  "suite_hold": "active",
+  "comparison_claim": false,
+  "adapter_tests": {
+    "passed": 6,
+    "failed": 0
+  },
+  "shared_validator_tests": {
+    "passed": 17,
+    "failed": 0
+  },
+  "runs": [
+    {
+      "artifact": "docs/evidence/perf/KL04-04/success.json",
+      "expected": "successful native produce/HW/receipt validation",
+      "experiment_verdict": "passed_validation",
+      "schema_valid": true,
+      "schema_error": null,
+      "shared_validator_valid": true,
+      "validator_errors": [],
+      "outcomes": {
+        "offered": 256,
+        "accepted": 256,
+        "acknowledged": 256,
+        "rejected": 0,
+        "timed_out": 0,
+        "unknown": 0,
+        "consumed": 256
+      },
+      "callback_failures": 0,
+      "warmup_callback_failures": 0,
+      "equal_semantics": {
+        "durability": {
+          "replication_factor": 1,
+          "min_insync_replicas": 1
+        },
+        "acks": -1,
+        "idempotence": true,
+        "isolation": "read_uncommitted",
+        "security": {
+          "protocol": "PLAINTEXT",
+          "mechanism": "NONE"
+        }
+      },
+      "artifact_hash_checks": [
+        {
+          "path": "docs/evidence/perf/KL04-04/success.json.raw.json",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/success.json.samples.csv",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/success.json.effective-config.json",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/success.json.stderr.log",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/success.json.build-manifest.json",
+          "sha256_matches": true,
+          "size_matches": true
+        }
+      ]
+    },
+    {
+      "artifact": "docs/evidence/perf/KL04-04/delivery-failure.json",
+      "expected": "oversized delivery must fail with callback errors",
+      "experiment_verdict": "retained_failure",
+      "schema_valid": true,
+      "schema_error": null,
+      "shared_validator_valid": false,
+      "validator_errors": [
+        "Integrity failure: result indicates integrity_failure=true"
+      ],
+      "outcomes": {
+        "offered": 32,
+        "accepted": 32,
+        "acknowledged": 0,
+        "rejected": 0,
+        "timed_out": 0,
+        "unknown": 32,
+        "consumed": 0
+      },
+      "callback_failures": 32,
+      "warmup_callback_failures": 0,
+      "equal_semantics": {
+        "durability": {
+          "replication_factor": 1,
+          "min_insync_replicas": 1
+        },
+        "acks": -1,
+        "idempotence": true,
+        "isolation": "read_uncommitted",
+        "security": {
+          "protocol": "PLAINTEXT",
+          "mechanism": "NONE"
+        }
+      },
+      "artifact_hash_checks": [
+        {
+          "path": "docs/evidence/perf/KL04-04/delivery-failure.json.raw.json",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/delivery-failure.json.samples.csv",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/delivery-failure.json.effective-config.json",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/delivery-failure.json.stderr.log",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/delivery-failure.json.build-manifest.json",
+          "sha256_matches": true,
+          "size_matches": true
+        }
+      ]
+    },
+    {
+      "artifact": "docs/evidence/perf/KL04-04/initial-broker-loss.json",
+      "expected": "retain warmup failure and unaudited counts from exited broker",
+      "experiment_verdict": "retained_failure",
+      "schema_valid": false,
+      "schema_error": "0 is less than the minimum of 1",
+      "shared_validator_valid": false,
+      "validator_errors": [
+        "Integrity failure: result indicates integrity_failure=true",
+        "integrity.high_watermark_audit.matches_acknowledged must be true",
+        "Integrity check failed: verified record IDs (0) != expected (256)",
+        "Integrity check failed: missing 256 record IDs. Throughput numbers cannot be accepted without 100% record ID verification.",
+        "Integrity check failed: payload_checksum_matches is false"
+      ],
+      "outcomes": {
+        "offered": 256,
+        "accepted": 256,
+        "acknowledged": 256,
+        "rejected": 0,
+        "timed_out": 0,
+        "unknown": 0,
+        "consumed": 0
+      },
+      "callback_failures": 0,
+      "warmup_callback_failures": 10000,
+      "equal_semantics": {
+        "durability": {
+          "replication_factor": 0,
+          "min_insync_replicas": 0
+        },
+        "acks": -1,
+        "idempotence": true,
+        "isolation": "read_uncommitted",
+        "security": {
+          "protocol": "PLAINTEXT",
+          "mechanism": "NONE"
+        }
+      },
+      "artifact_hash_checks": [
+        {
+          "path": "docs/evidence/perf/KL04-04/initial-broker-loss.json.raw.json",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/initial-broker-loss.json.samples.csv",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/initial-broker-loss.json.effective-config.json",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/initial-broker-loss.json.stderr.log",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/initial-broker-loss.json.build-manifest.json",
+          "sha256_matches": true,
+          "size_matches": true
+        }
+      ]
+    },
+    {
+      "artifact": "docs/evidence/perf/KL04-04/min-isr-probe.json",
+      "expected": "RF1/minISR2 should inject delivery failure",
+      "experiment_verdict": "failed_to_inject_delivery_error",
+      "schema_valid": true,
+      "schema_error": null,
+      "shared_validator_valid": true,
+      "validator_errors": [],
+      "outcomes": {
+        "offered": 32,
+        "accepted": 32,
+        "acknowledged": 32,
+        "rejected": 0,
+        "timed_out": 0,
+        "unknown": 0,
+        "consumed": 32
+      },
+      "callback_failures": 0,
+      "warmup_callback_failures": 0,
+      "equal_semantics": {
+        "durability": {
+          "replication_factor": 1,
+          "min_insync_replicas": 2
+        },
+        "acks": -1,
+        "idempotence": true,
+        "isolation": "read_uncommitted",
+        "security": {
+          "protocol": "PLAINTEXT",
+          "mechanism": "NONE"
+        }
+      },
+      "artifact_hash_checks": [
+        {
+          "path": "docs/evidence/perf/KL04-04/min-isr-probe.json.raw.json",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/min-isr-probe.json.samples.csv",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/min-isr-probe.json.effective-config.json",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/min-isr-probe.json.stderr.log",
+          "sha256_matches": true,
+          "size_matches": true
+        },
+        {
+          "path": "docs/evidence/perf/KL04-04/min-isr-probe.json.build-manifest.json",
+          "sha256_matches": true,
+          "size_matches": true
+        }
+      ]
+    }
+  ],
+  "harness": {
+    "before_hw": 0,
+    "after_hw": 32,
+    "hw_delta": 32,
+    "acknowledged": 32,
+    "client_exit_code": 0,
+    "requested": 32,
+    "integrity_ok": true
+  },
+  "adapter_source_sha256": "836a34d0c66d770d13fc256a155b5c025f1a8755f56ca089f98e1c32a7b20da6",
+  "harness_failure": {
+    "before_hw": 0,
+    "after_hw": 0,
+    "hw_delta": 0,
+    "acknowledged": 0,
+    "client_exit_code": 1,
+    "requested": 32,
+    "integrity_ok": false,
+    "expected_exit_code": 1
+  }
+}

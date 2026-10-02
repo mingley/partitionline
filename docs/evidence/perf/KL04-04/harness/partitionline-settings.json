@@ -1,0 +1,19 @@
+{
+  "KAFKA_BOOTSTRAP": "127.0.0.1:19094",
+  "KAFKA_TOPIC": "c-peer-kl04-04-harness-02",
+  "COUNT": "32",
+  "PAYLOAD_BYTES": "100",
+  "ACKS": "1",
+  "LINGER_MS": "5",
+  "MAX_IN_FLIGHT": "5",
+  "CONNECTIONS": "1",
+  "COMPRESSION": "none",
+  "IDEMPOTENT": null,
+  "batch_bytes": 1000000,
+  "batch_records": 32768,
+  "buffer_memory_bytes": 33554432,
+  "partitioner": "default null-key round robin",
+  "payload": "constant x, null key",
+  "warmup_records": 0,
+  "comparison_limit": "C also has an independent record queue cap; connection routing differs across implementations. Equal-semantics campaign and receipt IDs are not established by this script."
+}
