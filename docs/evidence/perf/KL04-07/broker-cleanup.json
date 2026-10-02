@@ -1,0 +1,9 @@
+{
+  "pid": 110664,
+  "verified_config_argument": "/workspace/work/bench-history/native/server.properties",
+  "signal": "SIGTERM",
+  "started_at_utc": "2026-10-02T19:33:53.390706+00:00",
+  "broker_port_closed": true,
+  "completed_at_utc": "2026-10-02T19:33:54.193408+00:00",
+  "status": "graceful_owned_process_shutdown"
+}

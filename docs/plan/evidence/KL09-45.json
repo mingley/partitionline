@@ -1,0 +1,2308 @@
+{
+  "id": "KL09-45",
+  "status": "done",
+  "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+  "baseline_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+  "disposition": "accepted",
+  "hypothesis": "A capped poll rebuilds and checks every held record even after its delivery cap is met. Per-partition VecDeque queues plus compact contiguous-run order metadata allow capped polls to inspect arrival-run heads, skip held paused runs and stop at the cap while preserving global arrival order.",
+  "cells": [
+    "nb-fetch-capped-paused",
+    "nb-fetch-bulk",
+    "nb-fetch-1000p"
+  ],
+  "host": "AMD EPYC 9V74 80-Core Processor; x86_64 Linux 6.18.44; affinity exposes 5 CPUs, cgroup cpu.max=400000 100000; runtime client and inherited broker pinned to CPU 3; builds/tests pinned to CPUs 0\u20131, other workers off CPU 3; cpufreq governor/driver unavailable, host frequency policy unmanaged; rustc 1.99.0 (b940084d7 2026-09-28), cargo 1.99.0; default optimized release profile; CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1.",
+  "tested_source": {
+    "baseline_tree": "bef1435baf6b18a9a78aa0a6d6bd433ab6e24def",
+    "candidate_tree": "9c4a11786a87f21954ee75427573be3d3f019a81",
+    "consumer_blob": "70659f61aa9f345a76066e6839cf0efcb8a6b7aa",
+    "consumer_sha256": "407ddc39c0817dace4bdd67d0cf94f829a118fb1b28ddabc5a14b4289808dc1c",
+    "candidate_relation": "Clean exact pushed API commit in isolated checkout, differing from corrected baseline only in src/consumer.rs and the three listed owned regression-test files. Runtime binaries were frozen before paired measurement; both source and harness have exact git provenance.",
+    "patch_sha256": "ab5800ea1c9f56078ca6ef8bc3ea90837bf59b8eb8f1ac0c074d8513155d1eae",
+    "frozen_runtime_sha256": {
+      "baseline": "973f3344c7569fb40b9911276c899de08c569dd360e62982d47d48ff231865f2",
+      "candidate": "9c9e4979ca07b63557bda788b2dbf76ec65218208f805a0eb418b4af14ed400f"
+    }
+  },
+  "harness_correction": {
+    "original_source_sha": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+    "baseline_commit": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+    "problem": "The old driver paused partitions 1\u20135 before Fetch, so it held zero paused records and fetched only 20,000 active records, contradicting the named 100k paused-backlog cell. Its original measured CPU 1.115496 ms/poll and 27.0955 allocs/poll are preserved and excluded from A/B.",
+    "fix": "Perform and verify the first capped prefill poll before pausing. Cursor minus delivered-position checks fail closed unless all 100,000 records for the five paused partitions are held. Execution artifacts carry actual paused_backlog_records and prefill_buffered_bytes.",
+    "proof": {
+      "fetched_records": 120000,
+      "paused_backlog_records": 100000,
+      "buffered_records_after_prefill": 119999,
+      "prefill_buffered_bytes": 13919884,
+      "fetch_requests": 1,
+      "delivered_records": 2000,
+      "delivered_partition": 0
+    },
+    "negative_check": "Old-fixture proof check exits 1 as expected: 20,000 fetched instead of 120,000.",
+    "e2e": "Corrected harness release e2e against original consumer: 1 passed, 0 failed, 0 ignored; consumer candidate excluded from baseline commit."
+  },
+  "commands": [
+    "export CARGO_HOME=/workspace/work/cargo RUSTUP_HOME=/workspace/work/rustup PATH=/workspace/work/cargo/bin:$PATH CARGO_TARGET_DIR=/workspace/work/consumer-lookups/candidate-target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1",
+    "taskset -c 0,1 cargo build --offline --locked --release --manifest-path /workspace/work/consumer-pending/baseline/benchmarks/runtime/Cargo.toml --bins (exit 0; original aeb205dd hypothesis build)",
+    "taskset -c 3 /workspace/work/consumer-pending/baseline-bin/runtime --cell nb-fetch-capped-paused --out /workspace/work/consumer-pending/first-baseline --repetitions 1 (exit 0; original fixture, excluded)",
+    "taskset -c 0,1 cargo test --offline --locked --manifest-path /workspace/work/consumer-pending/baseline/Cargo.toml --test consumer_fetch_semantics --test consumer_close_commit --test fetch_buffer_budget capped_pending -- --test-threads=1 (3 baseline invariant tests pass, exit 0)",
+    "taskset -c 0,1 cargo test --release --offline --locked --manifest-path /workspace/work/consumer-pending/baseline/benchmarks/runtime/Cargo.toml --test e2e capped_paused_cell_prefills_real_client_held_backlog -- --test-threads=1 (exit 0; harness-only correction, original consumer)",
+    "taskset -c 0,1 cargo build --offline --locked --release --manifest-path /workspace/work/consumer-pending/baseline/benchmarks/runtime/Cargo.toml --bins (exit 0; corrected harness build, local 5e2b3626 tree-identical to pushed 072ef8f9)",
+    "taskset -c 3 /workspace/work/consumer-pending/baseline-bin/runtime --cell nb-fetch-capped-paused --out /workspace/work/consumer-pending/corrected-first-baseline --repetitions 1 (exit 0; exact clean 072ef8f9 baseline-first before candidate timing)",
+    "taskset -c 0,1 cargo test --offline --locked --manifest-path /workspace/work/consumer-pending/candidate/Cargo.toml --test consumer_fetch_semantics --test consumer_close_commit --test fetch_buffer_budget -- --test-threads=2 (88 passed,1 existing ignored, exit 0)",
+    "taskset -c 0,1 cargo clippy --offline --locked --lib --test consumer_fetch_semantics --test consumer_close_commit --test fetch_buffer_budget -- -D warnings (isolated candidate cwd; final exit 0)",
+    "taskset -c 0,1 cargo test --offline --locked --test fetch_buffer_budget capped_pending_large -- --test-threads=1 (isolated candidate cwd; final checked conversion, 1 passed, exit 0)",
+    "taskset -c 0,1 cargo build --offline --locked --release --manifest-path /workspace/work/consumer-pending/candidate/benchmarks/runtime/Cargo.toml --bins (exit 0)",
+    "python3 /workspace/work/consumer-pending/run-pairs.py (10 interleaved runs; 5 A/5 B, all exit 0)",
+    "python3 scripts/benchmark-report.py <each sanitized result.json> --quiet --json (12/12 valid, 0 errors)",
+    "rustfmt --edition 2021 src/consumer.rs tests/consumer_fetch_semantics.rs tests/consumer_close_commit.rs tests/fetch_buffer_budget.rs benchmarks/runtime/src/fdrive.rs benchmarks/runtime/src/main.rs benchmarks/runtime/tests/e2e.rs (exit 0)",
+    "git diff --check (owned files; exit 0)",
+    "sha256sum -c  checksums.sha256 (all companion artifacts verified)",
+    "python3 /workspace/work/consumer-pending/run-guards.py (20 interleaved guard runs: five A/B pairs each bulk and 1000p; runtime exits 0; initial parser-only failure retained)",
+    "python3 scripts/benchmark-report.py <each additional sanitized guard result.json> --quiet --json (20/20 valid, 0 errors; combined32/32)",
+    "taskset -c 2 python3 /workspace/work/consumer-pending/run-rss-corroboration.py (20 additional bulk runs,10 A/B pairs, all exit0; CPU3 runtime/client/broker, CPU2 observer)",
+    "taskset -c 2 python3 <wait4 true/rustc/cargo control> (all exit0; compiler descendant RSS identified, guard-wait4-control.log)",
+    "python3 scripts/benchmark-report.py <each additional bulk sanitized result> --quiet --json (20/20 valid, 0 errors; combined52/52)",
+    "taskset -c 2 python3 /workspace/work/consumer-pending/run-hwm-corroboration.py (20 further bulk runs,10 A/B pairs, all exit 0; CPU 3 runtime/client/broker, CPU 2 observer)",
+    "python3 /workspace/work/consumer-pending/calculate-hwm-stats.py (25-pair bulk aggregate,10-pair VmHWM cohort, all 20 client maxima corroborated within 0.2%; exit0)",
+    "python3 scripts/benchmark-report.py <each final bulk sanitized result> --quiet --json (20/20 valid, 0 errors; combined72/72)",
+    "python3 <archive and unchanged named-row verification> (72 results,144 sidecar hashes,40 observer JSONs verified; original named rows unchanged; exit 0)"
+  ],
+  "results": {
+    "primary": {
+      "baseline_median": 7390639.0,
+      "candidate_median": 25431.5,
+      "delta_pct": -99.65589578925449,
+      "baseline_ci95": [
+        7336570.0,
+        7564630.0
+      ],
+      "candidate_ci95": [
+        24904.0,
+        28055.5
+      ],
+      "ci95_pct": [
+        -99.66219934890906,
+        -99.62912264049926
+      ],
+      "repetitions": 5,
+      "baseline_values": [
+        7564630.0,
+        7456039.0,
+        7336570.0,
+        7372395.5,
+        7390639.0
+      ],
+      "candidate_values": [
+        28055.5,
+        25431.5,
+        24985.0,
+        24904.0,
+        26724.5
+      ],
+      "metric": "CPU nanoseconds per capped poll"
+    },
+    "allocations": {
+      "unit": "per capped poll",
+      "baseline_median": 79.218,
+      "candidate_median": 63.2715,
+      "delta_pct": -20.12989472089677,
+      "baseline_ci95": [
+        79.218,
+        79.218
+      ],
+      "candidate_ci95": [
+        63.2715,
+        63.2715
+      ],
+      "ci95_pct": [
+        -20.12989472089677,
+        -20.12989472089677
+      ],
+      "repetitions": 5,
+      "baseline_values": [
+        79.218,
+        79.218,
+        79.218,
+        79.218,
+        79.218
+      ],
+      "candidate_values": [
+        63.2715,
+        63.2715,
+        63.2715,
+        63.2715,
+        63.2715
+      ],
+      "identical_counts_in_every_repetition": true,
+      "allocated_bytes_per_poll": {
+        "baseline_median": 37791210.695,
+        "candidate_median": 62721.685,
+        "delta_pct": -99.83403102508093,
+        "baseline_ci95": [
+          37791210.695,
+          37791210.695
+        ],
+        "candidate_ci95": [
+          62721.685,
+          62721.685
+        ],
+        "ci95_pct": [
+          -99.83403102508093,
+          -99.83403102508093
+        ],
+        "repetitions": 5,
+        "baseline_values": [
+          37791210.695,
+          37791210.695,
+          37791210.695,
+          37791210.695,
+          37791210.695
+        ],
+        "candidate_values": [
+          62721.685,
+          62721.685,
+          62721.685,
+          62721.685,
+          62721.685
+        ]
+      }
+    },
+    "instructions": {
+      "measured": false,
+      "reason": "No consumer runtime instruction-count cell exists. Codec production/instruction-gate paths were not modified; no baseline budget raised."
+    },
+    "guardrails": {
+      "cpu_ns_per_poll": {
+        "baseline_median": 7390639.0,
+        "candidate_median": 25431.5,
+        "delta_pct": -99.65589578925449,
+        "baseline_ci95": [
+          7336570.0,
+          7564630.0
+        ],
+        "candidate_ci95": [
+          24904.0,
+          28055.5
+        ],
+        "ci95_pct": [
+          -99.66219934890906,
+          -99.62912264049926
+        ],
+        "repetitions": 5,
+        "baseline_values": [
+          7564630.0,
+          7456039.0,
+          7336570.0,
+          7372395.5,
+          7390639.0
+        ],
+        "candidate_values": [
+          28055.5,
+          25431.5,
+          24985.0,
+          24904.0,
+          26724.5
+        ]
+      },
+      "phase_sampled_peak_rss_bytes": {
+        "baseline_median": 77242368,
+        "candidate_median": 55549952,
+        "delta_pct": -28.08357195885035,
+        "baseline_ci95": [
+          77209600.0,
+          77348864.0
+        ],
+        "candidate_ci95": [
+          50987008.0,
+          57315328.0
+        ],
+        "ci95_pct": [
+          -34.022367095987704,
+          -25.76657824933687
+        ],
+        "repetitions": 5,
+        "baseline_values": [
+          77221888,
+          77348864,
+          77279232,
+          77209600,
+          77242368
+        ],
+        "candidate_values": [
+          51572736,
+          55549952,
+          50987008,
+          57315328,
+          57262080
+        ]
+      },
+      "whole_process_peak_rss_bytes": {
+        "baseline_median": 77176832,
+        "candidate_median": 62926848,
+        "delta_pct": -18.46406963167392,
+        "baseline_ci95": [
+          77103104.0,
+          77242368.0
+        ],
+        "candidate_ci95": [
+          62857216.0,
+          63004672.0
+        ],
+        "ci95_pct": [
+          -18.623395906246685,
+          -18.36323107950324
+        ],
+        "repetitions": 5,
+        "baseline_values": [
+          77176832,
+          77242368,
+          77234176,
+          77164544,
+          77103104
+        ],
+        "candidate_values": [
+          63004672,
+          62857216,
+          62926848,
+          62980096,
+          62926848
+        ]
+      },
+      "threshold_regression_pct": 2,
+      "rss_note": "Linux RSS sampler parser was already repaired before corrected baseline. Whole-process RUSAGE peak is also included as a conservative guardrail because10 ms sampling misses some short candidate initialization peaks.",
+      "bulk_authoritative_maximum_resident_memory": {
+        "baseline_median": 63684608,
+        "candidate_median": 63655936,
+        "delta_pct": -0.04502186776433881,
+        "ci95_pct": [
+          -0.07716049382715529,
+          0.06433764395548103
+        ],
+        "repetitions": 25,
+        "baseline_values": [
+          63758336,
+          63692800,
+          63754240,
+          63651840,
+          63627264,
+          63631360,
+          63664128,
+          63668224,
+          63528960,
+          63762432,
+          63696896,
+          63561728,
+          63754240,
+          63561728,
+          63762432,
+          63700992,
+          63762432,
+          63610880,
+          63684608,
+          63664128,
+          63545344,
+          63631360,
+          63696896,
+          63696896,
+          63766528
+        ],
+        "candidate_values": [
+          63647744,
+          63676416,
+          63397888,
+          63590400,
+          63705088,
+          63655936,
+          63651840,
+          63717376,
+          63717376,
+          63664128,
+          63778816,
+          63655936,
+          63651840,
+          63729664,
+          63733760,
+          63717376,
+          63660032,
+          63623168,
+          63520768,
+          63709184,
+          63549440,
+          63737856,
+          63328256,
+          63655936,
+          63631360
+        ]
+      },
+      "bulk_vmhwm_corroboration": {
+        "baseline_median": 63690752.0,
+        "candidate_median": 63643648.0,
+        "delta_pct": -0.0739573619730538,
+        "ci95_pct": [
+          -0.23475688191407773,
+          0.07077140835103357
+        ],
+        "repetitions": 10,
+        "baseline_values": [
+          63700992,
+          63762432,
+          63610880,
+          63684608,
+          63664128,
+          63545344,
+          63631360,
+          63815680,
+          63696896,
+          63766528
+        ],
+        "candidate_values": [
+          63717376,
+          63660032,
+          63623168,
+          63520768,
+          63709184,
+          63549440,
+          63737856,
+          63328256,
+          63655936,
+          63631360
+        ]
+      },
+      "bulk_cpu_ns_per_round": {
+        "baseline_median": 49500000.0,
+        "candidate_median": 48691000.0,
+        "delta_pct": -1.6343434343434327,
+        "ci95_pct": [
+          -4.636760930487782,
+          2.385626151750664
+        ],
+        "repetitions": 25,
+        "baseline_values": [
+          76984000.0,
+          51402000.0,
+          51553000.0,
+          56282000.0,
+          49924000.0,
+          49500000.0,
+          50258000.0,
+          50229000.0,
+          47951000.0,
+          46311000.0,
+          47483000.0,
+          45002000.0,
+          45612000.0,
+          55557000.0,
+          49440000.0,
+          49680000.0,
+          56554000.0,
+          44260000.0,
+          45658000.0,
+          51027000.0,
+          52232000.0,
+          48836000.0,
+          46638000.0,
+          47573000.0,
+          44229000.0
+        ],
+        "candidate_values": [
+          51357000.0,
+          54583000.0,
+          48661000.0,
+          71358000.0,
+          51838000.0,
+          50512000.0,
+          50416000.0,
+          49845000.0,
+          45586000.0,
+          45627000.0,
+          45221000.0,
+          47078000.0,
+          48030000.0,
+          48878000.0,
+          51430000.0,
+          48691000.0,
+          51115000.0,
+          43114000.0,
+          45121000.0,
+          46711000.0,
+          48478000.0,
+          46246000.0,
+          44558000.0,
+          51540000.0,
+          48894000.0
+        ]
+      },
+      "bulk_records_per_second": {
+        "baseline_median": 112470.56469586653,
+        "candidate_median": 111950.05236463698,
+        "delta_pct": -0.4627987177241222,
+        "ci95_pct": [
+          -3.0314650097878038,
+          2.520501253733576
+        ],
+        "repetitions": 25,
+        "baseline_values": [
+          93331.79945631987,
+          100601.24333076633,
+          112968.48050045127,
+          103780.69544979976,
+          113967.32539685773,
+          112389.86172866375,
+          111098.46378543651,
+          111896.69616444477,
+          113773.84769534177,
+          116713.39627900769,
+          116335.9756452031,
+          121361.28894669596,
+          116741.52094075548,
+          107224.67933829699,
+          112470.56469586653,
+          111979.15172153249,
+          109110.37358802721,
+          119829.26390956226,
+          116366.31947475827,
+          112620.04515511973,
+          108326.3118474792,
+          110853.09560428788,
+          113512.2689281822,
+          115255.26860790692,
+          112272.90426330589
+        ],
+        "candidate_values": [
+          107331.550992753,
+          95451.87471109103,
+          114954.29899879862,
+          95560.17078265265,
+          102800.98925597564,
+          109874.30851565335,
+          111267.31744361491,
+          115996.12083452783,
+          116915.2798970215,
+          117579.47690677931,
+          118552.22388174917,
+          116038.96356318524,
+          109957.52775035238,
+          111562.30439816033,
+          103507.84784081388,
+          109061.05888080059,
+          112345.30606060404,
+          120394.94308973178,
+          117593.27650093398,
+          115458.63480520983,
+          115763.70724196568,
+          108180.74592376844,
+          111950.05236463698,
+          105541.93580849752,
+          111973.77323409605
+        ]
+      },
+      "method_note": "Named-cell phase and self RSS improve. Supplemental bulk memory guard uses verified client maximum (RUSAGE_SELF plus matched VmHWM); coarse phase sample increases remain explicitly reported and not passing. See guardrail_review for method revision, controls and limits."
+    },
+    "other_metrics": {
+      "rec_s": {
+        "baseline_median": 133.6014473275118,
+        "candidate_median": 11862.394515436132,
+        "delta_pct": 8778.941622807835,
+        "baseline_ci95": [
+          130.47830910325766,
+          134.6404933183567
+        ],
+        "candidate_ci95": [
+          11105.727547983739,
+          12110.679353281488
+        ],
+        "ci95_pct": [
+          8283.999216468708,
+          8894.826931186188
+        ],
+        "repetitions": 5,
+        "baseline_values": [
+          130.47830910325766,
+          132.4633657666467,
+          134.6404933183567,
+          133.91549713005165,
+          133.6014473275118
+        ],
+        "candidate_values": [
+          11376.541175055749,
+          11105.727547983739,
+          12110.679353281488,
+          11891.722348070998,
+          11862.394515436132
+        ]
+      },
+      "p99_us": {
+        "baseline_median": 10153.569999999996,
+        "candidate_median": 0.0,
+        "delta_pct": -100.0,
+        "baseline_ci95": [
+          9597.059999999998,
+          10881.17
+        ],
+        "candidate_ci95": [
+          0.0,
+          0.0
+        ],
+        "ci95_pct": [
+          -100.0,
+          -100.0
+        ],
+        "repetitions": 5,
+        "baseline_values": [
+          10153.569999999996,
+          9627.529999999999,
+          9597.059999999998,
+          10631.339999999998,
+          10881.17
+        ],
+        "candidate_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "rss_mean_bytes": {
+        "baseline_median": 76485933,
+        "candidate_median": 13697746,
+        "delta_pct": -82.09115655293111,
+        "baseline_ci95": [
+          76430945.0,
+          76603529.0
+        ],
+        "candidate_ci95": [
+          12834588.0,
+          14345329.0
+        ],
+        "ci95_pct": [
+          -83.24543507649628,
+          -81.23366077369599
+        ],
+        "repetitions": 5,
+        "baseline_values": [
+          76441808,
+          76603529,
+          76517890,
+          76430945,
+          76485933
+        ],
+        "candidate_values": [
+          14345329,
+          12834588,
+          13697746,
+          13645703,
+          13774366
+        ]
+      }
+    },
+    "net_production_lines": 109,
+    "correctness": {
+      "passed": 88,
+      "failed": 0,
+      "skipped": 1,
+      "new_skips": 0,
+      "per_suite": [
+        {
+          "name": "consumer_fetch_semantics",
+          "passed": 61,
+          "failed": 0,
+          "skipped": 1,
+          "ignored": "live_fetch_session_recovery_required(existing live-broker test)"
+        },
+        {
+          "name": "consumer_close_commit",
+          "passed": 17,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "fetch_buffer_budget",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0
+        }
+      ],
+      "supplemental": "Three new invariants first pass against parent behavior; final checked-conversion budget case passes again; corrected harness e2e passes against original consumer; final core/owned-test Clippy-Dwarnings passes."
+    },
+    "integrity": {
+      "paired_runs": 10,
+      "paired_delivered_ids_verified": 20000,
+      "paired_fetched_records": 1200000,
+      "paused_records_each_run": 100000,
+      "validation_failures": 0,
+      "mismatches": 0,
+      "artifact_validation": {
+        "valid": 72,
+        "failed": 0
+      },
+      "guard_runs": 60,
+      "guard_delivered_ids_verified": 1100000,
+      "guard_validation_failures": 0,
+      "guard_mismatches": 0,
+      "guard_fetched_records": 6850000
+    },
+    "preserved_development_failures": [
+      {
+        "artifact": "baseline-invariants-compile-failure.log",
+        "exit": 101,
+        "reason": "New send_all test initially did not bind its Vec<RecordMetadata> result; corrected before invariant execution."
+      },
+      {
+        "artifact": "candidate-clippy-sign-cast-failure.log",
+        "exit": 101,
+        "reason": "New budget test cast i64 to usize; replaced with checked conversion, then targeted test and Clippy pass."
+      },
+      {
+        "artifact": "harness-old-fixture-negative.log",
+        "exit": 1,
+        "expected": true,
+        "reason": "New backlog proof rejects original inaccurate fixture."
+      },
+      {
+        "artifact": "guard-parser-key-failure.log",
+        "exit": 1,
+        "reason": "Initial analysis script used capped-cell-only cpu_ns_per_poll on valid bulk A0 artifact. Parser changed to cpu_ns_per_round; original successful A0 measurement reused without replacement."
+      }
+    ],
+    "guard_cells": {
+      "nb-fetch-bulk": {
+        "metrics": {
+          "rss_peak_bytes": {
+            "baseline_median": 50851840,
+            "candidate_median": 55119872,
+            "delta_pct": 8.39307289569069,
+            "ci95_pct": [
+              -19.35370811720174,
+              19.991292990857644
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              54489088,
+              45641728,
+              50851840,
+              58433536,
+              47042560
+            ],
+            "candidate_values": [
+              55119872,
+              50024448,
+              55451648,
+              47124480,
+              56446976
+            ]
+          },
+          "rss_mean_bytes": {
+            "baseline_median": 13050766,
+            "candidate_median": 13485756,
+            "delta_pct": 3.333061063235676,
+            "ci95_pct": [
+              -16.01783049817286,
+              21.357135983834663
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              16057880,
+              12476825,
+              13294933,
+              11711973,
+              13050766
+            ],
+            "candidate_values": [
+              13485756,
+              12123769,
+              13557304,
+              14213315,
+              13372006
+            ]
+          },
+          "process_peak_rss_bytes": {
+            "baseline_median": 63692800,
+            "candidate_median": 63647744,
+            "delta_pct": -0.07073954983922714,
+            "ci95_pct": [
+              -0.5589463539993567,
+              0.12231234710957661
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              63758336,
+              63692800,
+              63754240,
+              63651840,
+              63627264
+            ],
+            "candidate_values": [
+              63647744,
+              63676416,
+              63397888,
+              63590400,
+              63705088
+            ]
+          },
+          "rec_s": {
+            "baseline_median": 103780.69544979976,
+            "candidate_median": 102800.98925597564,
+            "delta_pct": -0.944015830283218,
+            "ci95_pct": [
+              -9.797839952809817,
+              14.999980304660387
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              93331.79945631987,
+              100601.24333076633,
+              112968.48050045127,
+              103780.69544979976,
+              113967.32539685773
+            ],
+            "candidate_values": [
+              107331.550992753,
+              95451.87471109103,
+              114954.29899879862,
+              95560.17078265265,
+              102800.98925597564
+            ]
+          },
+          "p99_us": {
+            "baseline_median": 144496.0,
+            "candidate_median": 149384.0,
+            "delta_pct": 3.3827926032554467,
+            "ci95_pct": [
+              -18.44994255258995,
+              16.918164172562776
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              166239.0,
+              151962.0,
+              131057.0,
+              144496.0,
+              127768.0
+            ],
+            "candidate_values": [
+              135568.0,
+              160348.0,
+              129902.0,
+              163482.0,
+              149384.0
+            ]
+          },
+          "cpu_ns_per_round": {
+            "baseline_median": 51553000.0,
+            "candidate_median": 51838000.0,
+            "delta_pct": 0.5528291273058761,
+            "ci95_pct": [
+              -33.288735321625275,
+              26.786539213247586
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              76984000.0,
+              51402000.0,
+              51553000.0,
+              56282000.0,
+              49924000.0
+            ],
+            "candidate_values": [
+              51357000.0,
+              54583000.0,
+              48661000.0,
+              71358000.0,
+              51838000.0
+            ]
+          },
+          "allocs_per_round": {
+            "baseline_median": 135446.0,
+            "candidate_median": 135446.0,
+            "delta_pct": 0.0,
+            "ci95_pct": [
+              0.0,
+              0.0
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0
+            ],
+            "candidate_values": [
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0
+            ]
+          },
+          "allocated_bytes_per_round": {
+            "baseline_median": 108189035.0,
+            "candidate_median": 108189035.0,
+            "delta_pct": 0.0,
+            "ci95_pct": [
+              0.0,
+              0.0
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0
+            ],
+            "candidate_values": [
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0
+            ]
+          }
+        },
+        "unit": "per fetch round for CPU and allocations; records/second for throughput; bytes for RSS; microseconds for p99",
+        "order": "A0 B0 B1 A1 A2 B2 B3 A3 A4 B4",
+        "mechanism": "Uncapped and unpaused finish_fetch returns the fetched Vec directly; PendingRecords::extend is bypassed."
+      },
+      "nb-fetch-1000p": {
+        "metrics": {
+          "rss_peak_bytes": {
+            "baseline_median": 7139328,
+            "candidate_median": 5517312,
+            "delta_pct": -22.71944922547332,
+            "ci95_pct": [
+              -37.17350746268657,
+              52.68735806207418
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              5410816,
+              7139328,
+              7962624,
+              5431296,
+              8781824
+            ],
+            "candidate_values": [
+              8261632,
+              5447680,
+              5451776,
+              7823360,
+              5517312
+            ]
+          },
+          "rss_mean_bytes": {
+            "baseline_median": 4973714,
+            "candidate_median": 4754090,
+            "delta_pct": -4.415694187482433,
+            "ci95_pct": [
+              -9.605412468360598,
+              12.85566467974677
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              4596394,
+              4973714,
+              5028717,
+              4562261,
+              5259264
+            ],
+            "candidate_values": [
+              5187291,
+              4640085,
+              4691968,
+              5060315,
+              4754090
+            ]
+          },
+          "process_peak_rss_bytes": {
+            "baseline_median": 10485760,
+            "candidate_median": 10485760,
+            "delta_pct": 0.0,
+            "ci95_pct": [
+              0.0,
+              4.0000000000000036
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              9830400,
+              10485760,
+              10485760,
+              10485760,
+              10485760
+            ],
+            "candidate_values": [
+              10223616,
+              10485760,
+              10485760,
+              10485760,
+              10485760
+            ]
+          },
+          "rec_s": {
+            "baseline_median": 161097.26829134228,
+            "candidate_median": 164322.60741066368,
+            "delta_pct": 2.0021066486915373,
+            "ci95_pct": [
+              -6.513178253254703,
+              17.261089964704702
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              164402.82875452822,
+              143999.43275743446,
+              150576.60978780792,
+              161097.26829134228,
+              163486.56951291987
+            ],
+            "candidate_values": [
+              153694.9794643527,
+              168855.30439435967,
+              164322.60741066368,
+              153001.86601075786,
+              169221.31054053144
+            ]
+          },
+          "p99_us": {
+            "baseline_median": 18583.0,
+            "candidate_median": 16683.0,
+            "delta_pct": -10.224398643921862,
+            "ci95_pct": [
+              -45.56450088823374,
+              -3.404550981413934
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              17271.0,
+              26457.0,
+              18583.0,
+              20173.0,
+              18448.0
+            ],
+            "candidate_values": [
+              16683.0,
+              14402.0,
+              17442.0,
+              17262.0,
+              15385.0
+            ]
+          },
+          "cpu_ns_per_round": {
+            "baseline_median": 9472000.0,
+            "candidate_median": 8355000.0,
+            "delta_pct": -11.792652027027028,
+            "ci95_pct": [
+              -35.456595264937995,
+              25.60177364864864
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              9472000.0,
+              12418000.0,
+              9225000.0,
+              10194000.0,
+              8940000.0
+            ],
+            "candidate_values": [
+              11897000.0,
+              8015000.0,
+              8355000.0,
+              8775000.0,
+              8047000.0
+            ]
+          },
+          "allocs_per_round": {
+            "baseline_median": 21318.0,
+            "candidate_median": 21318.0,
+            "delta_pct": 0.0,
+            "ci95_pct": [
+              0.0,
+              0.0
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              21318.0,
+              21318.0,
+              21318.0,
+              21318.0,
+              21318.0
+            ],
+            "candidate_values": [
+              21318.0,
+              21318.0,
+              21318.0,
+              21318.0,
+              21318.0
+            ]
+          },
+          "allocated_bytes_per_round": {
+            "baseline_median": 9363336.0,
+            "candidate_median": 9363336.0,
+            "delta_pct": 0.0,
+            "ci95_pct": [
+              0.0,
+              0.0
+            ],
+            "repetitions": 5,
+            "baseline_values": [
+              9363336.0,
+              9363336.0,
+              9363336.0,
+              9363336.0,
+              9363336.0
+            ],
+            "candidate_values": [
+              9363336.0,
+              9363336.0,
+              9363336.0,
+              9363336.0,
+              9363336.0
+            ]
+          }
+        },
+        "unit": "per fetch round for CPU and allocations; records/second for throughput; bytes for RSS; microseconds for p99",
+        "order": "A0 B0 B1 A1 A2 B2 B3 A3 A4 B4",
+        "mechanism": "Uncapped and unpaused finish_fetch returns the fetched Vec directly; PendingRecords::extend is bypassed."
+      }
+    },
+    "guardrail_review": {
+      "state": "completed; authoritative maximum-resident guardrails pass",
+      "authority": "Client RUSAGE_SELF maximum resident memory, corroborated by direct client VmHWM after executable confirmation. The final 20 runs match within 0.2% (19 exactly). Persistent high-water cannot miss a transient peak between reads. Both measurements concern the client; runtime VmHWM conservatively also covers setup and teardown.",
+      "coarse_phase_samples": {
+        "original5_bulk_delta_pct": 8.39307289569069,
+        "original5_ci95_pct": [
+          -19.35370811720174,
+          19.991292990857644
+        ],
+        "final10_hwm_bulk_delta_pct": -0.8955351786785526,
+        "final10_hwm_ci95_pct": [
+          -18.97166841552991,
+          25.87011123071403
+        ],
+        "disposition": "Original two coarse 10 ms peak estimates exceed the 2% guard and are not labelled passing. They capture different lower portions of a brief ~63.7 MB peak: original baseline samples45.6\u201358.4 MB, candidate47.1\u201356.4 MB, while exact maxima are unchanged. All estimates and raw data remain visible; verified maximum resident memory resolves actual peak retention rather than discarding a losing estimate.",
+        "additional10_smaps_bulk_delta_pct": 16.934336247204705,
+        "additional10_smaps_ci95_pct": [
+          0.6317533745296311,
+          30.600358422939067
+        ]
+      },
+      "instantaneous_external_samples": "First 10-pair 1 ms smaps observer captures only95.08\u2013100.19% of client-self peak (median97.75%), so it is insufficient alone for a 2% maximum-resident guard. Final10-pair persistent VmHWM removes the sampling miss and verifies the exact peak.",
+      "wait4_exclusion": "Linux parent wait4 includes waited descendants. Runtime artifact provenance spawns rustc --version after measurement; controlled rustc peak85,192,704 bytes versus true9,568,256 and cargo11,628,544. Thus external wait4~85.2 MB reflects compiler provenance, not client-self. Raw values and control proof remain archived.",
+      "bulk_all25": "CPU median -1.634%, allocations and bytes identical, local throughput -0.463%, client-self peak -0.045% with95%CI [-0.077%,+0.064%]. Final10 corroborating VmHWM median -0.074% with95%CI [-0.235%,+0.071%]. Guard medians meet2%; CPU/throughput CIs remain broad and do not prove a sub2% upper bound.",
+      "sparse1000p": "Five pairs: CPU median -11.793%, allocations/bytes identical, local throughput +2.002%, sampled peak -22.719%, self peak unchanged. Broad timing/RSS CIs are retained; no performance claim derives from these guard cells.",
+      "extend_mechanism": "Both uncapped, unpaused cells bypass PendingRecords::extend through original finish_fetch direct-return path. No production change was needed after the guard concern; all paired measurements use the same frozen A/B binaries.",
+      "original_named_pairs_unchanged": true
+    },
+    "bulk_rss_corroboration": {
+      "all15": {
+        "metrics": {
+          "cpu_ns_per_round": {
+            "baseline_median": 49924000.0,
+            "candidate_median": 49845000.0,
+            "delta_pct": -0.15824052559890722,
+            "ci95_pct": [
+              -4.910314773744218,
+              3.016585209518463
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              76984000.0,
+              51402000.0,
+              51553000.0,
+              56282000.0,
+              49924000.0,
+              49500000.0,
+              50258000.0,
+              50229000.0,
+              47951000.0,
+              46311000.0,
+              47483000.0,
+              45002000.0,
+              45612000.0,
+              55557000.0,
+              49440000.0
+            ],
+            "candidate_values": [
+              51357000.0,
+              54583000.0,
+              48661000.0,
+              71358000.0,
+              51838000.0,
+              50512000.0,
+              50416000.0,
+              49845000.0,
+              45586000.0,
+              45627000.0,
+              45221000.0,
+              47078000.0,
+              48030000.0,
+              48878000.0,
+              51430000.0
+            ]
+          },
+          "allocs_per_round": {
+            "baseline_median": 135446.0,
+            "candidate_median": 135446.0,
+            "delta_pct": 0.0,
+            "ci95_pct": [
+              0.0,
+              0.0
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0
+            ],
+            "candidate_values": [
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0
+            ]
+          },
+          "allocated_bytes_per_round": {
+            "baseline_median": 108189035.0,
+            "candidate_median": 108189035.0,
+            "delta_pct": 0.0,
+            "ci95_pct": [
+              0.0,
+              0.0
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0
+            ],
+            "candidate_values": [
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0
+            ]
+          },
+          "process_peak_rss_bytes": {
+            "baseline_median": 63668224,
+            "candidate_median": 63664128,
+            "delta_pct": -0.006433350488932454,
+            "ci95_pct": [
+              -0.15419209765499264,
+              0.11586739620212949
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              63758336,
+              63692800,
+              63754240,
+              63651840,
+              63627264,
+              63631360,
+              63664128,
+              63668224,
+              63528960,
+              63762432,
+              63696896,
+              63561728,
+              63754240,
+              63561728,
+              63762432
+            ],
+            "candidate_values": [
+              63647744,
+              63676416,
+              63397888,
+              63590400,
+              63705088,
+              63655936,
+              63651840,
+              63717376,
+              63717376,
+              63664128,
+              63778816,
+              63655936,
+              63651840,
+              63729664,
+              63733760
+            ]
+          },
+          "rec_s": {
+            "baseline_median": 112470.56469586653,
+            "candidate_median": 111267.31744361491,
+            "delta_pct": -1.0698330318740235,
+            "ci95_pct": [
+              -5.662370424387553,
+              3.1346478504796327
+            ],
+            "repetitions": 15,
+            "baseline_values": [
+              93331.79945631987,
+              100601.24333076633,
+              112968.48050045127,
+              103780.69544979976,
+              113967.32539685773,
+              112389.86172866375,
+              111098.46378543651,
+              111896.69616444477,
+              113773.84769534177,
+              116713.39627900769,
+              116335.9756452031,
+              121361.28894669596,
+              116741.52094075548,
+              107224.67933829699,
+              112470.56469586653
+            ],
+            "candidate_values": [
+              107331.550992753,
+              95451.87471109103,
+              114954.29899879862,
+              95560.17078265265,
+              102800.98925597564,
+              109874.30851565335,
+              111267.31744361491,
+              115996.12083452783,
+              116915.2798970215,
+              117579.47690677931,
+              118552.22388174917,
+              116038.96356318524,
+              109957.52775035238,
+              111562.30439816033,
+              103507.84784081388
+            ]
+          }
+        }
+      },
+      "additional10": {
+        "metrics": {
+          "cpu_ns_per_round": {
+            "baseline_median": 48695500.0,
+            "candidate_median": 48454000.0,
+            "delta_pct": -0.49593904980953507,
+            "ci95_pct": [
+              -4.379990359829833,
+              2.8145920147047976
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              49500000.0,
+              50258000.0,
+              50229000.0,
+              47951000.0,
+              46311000.0,
+              47483000.0,
+              45002000.0,
+              45612000.0,
+              55557000.0,
+              49440000.0
+            ],
+            "candidate_values": [
+              50512000.0,
+              50416000.0,
+              49845000.0,
+              45586000.0,
+              45627000.0,
+              45221000.0,
+              47078000.0,
+              48030000.0,
+              48878000.0,
+              51430000.0
+            ]
+          },
+          "rss_peak_bytes": {
+            "baseline_median": 50370560.0,
+            "candidate_median": 58900480.0,
+            "delta_pct": 16.934336247204705,
+            "ci95_pct": [
+              0.6317533745296311,
+              30.600358422939067
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              45580288,
+              63401984,
+              45027328,
+              45572096,
+              56332288,
+              58605568,
+              54882304,
+              62316544,
+              45858816,
+              45711360
+            ],
+            "candidate_values": [
+              58335232,
+              62722048,
+              56360960,
+              55853056,
+              59465728,
+              61820928,
+              52834304,
+              59699200,
+              56696832,
+              60370944
+            ]
+          },
+          "rss_mean_bytes": {
+            "baseline_median": 12274593.5,
+            "candidate_median": 12137217.5,
+            "delta_pct": -1.1191898126809652,
+            "ci95_pct": [
+              -4.985953566585922,
+              0.582810971575265
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              12176952,
+              12898759,
+              12207217,
+              12767459,
+              12139098,
+              12341970,
+              12145664,
+              12642906,
+              12941635,
+              11993998
+            ],
+            "candidate_values": [
+              12037233,
+              12835726,
+              12278362,
+              11834789,
+              12168252,
+              12494245,
+              11352425,
+              12106183,
+              12361500,
+              12032323
+            ]
+          },
+          "process_peak_rss_bytes": {
+            "baseline_median": 63666176.0,
+            "candidate_median": 63690752.0,
+            "delta_pct": 0.03860134461350917,
+            "ci95_pct": [
+              -0.1413427561837488,
+              0.24487691712848925
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              63631360,
+              63664128,
+              63668224,
+              63528960,
+              63762432,
+              63696896,
+              63561728,
+              63754240,
+              63561728,
+              63762432
+            ],
+            "candidate_values": [
+              63655936,
+              63651840,
+              63717376,
+              63717376,
+              63664128,
+              63778816,
+              63655936,
+              63651840,
+              63729664,
+              63733760
+            ]
+          },
+          "rec_s": {
+            "baseline_median": 113122.20619560414,
+            "candidate_median": 113779.21261634407,
+            "delta_pct": 0.5807935000877507,
+            "ci95_pct": [
+              -4.385229618108166,
+              3.3984373564606596
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              112389.86172866375,
+              111098.46378543651,
+              111896.69616444477,
+              113773.84769534177,
+              116713.39627900769,
+              116335.9756452031,
+              121361.28894669596,
+              116741.52094075548,
+              107224.67933829699,
+              112470.56469586653
+            ],
+            "candidate_values": [
+              109874.30851565335,
+              111267.31744361491,
+              115996.12083452783,
+              116915.2798970215,
+              117579.47690677931,
+              118552.22388174917,
+              116038.96356318524,
+              109957.52775035238,
+              111562.30439816033,
+              103507.84784081388
+            ]
+          },
+          "external_rss_peak_bytes": {
+            "baseline_median": 61698048.0,
+            "candidate_median": 62674944.0,
+            "delta_pct": 1.5833499302927656,
+            "ci95_pct": [
+              -2.3613058934803144,
+              2.7456743937470662
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              61956096,
+              63787008,
+              63631360,
+              60403712,
+              61202432,
+              62681088,
+              61378560,
+              63750144,
+              61247488,
+              61440000
+            ],
+            "candidate_values": [
+              60563456,
+              62816256,
+              61898752,
+              62533632,
+              61812736,
+              62922752,
+              63217664,
+              60723200,
+              62996480,
+              63389696
+            ]
+          },
+          "external_wait4_peak_rss_bytes": {
+            "baseline_median": 85221376.0,
+            "candidate_median": 85221376.0,
+            "delta_pct": 0.0,
+            "ci95_pct": [
+              0.0,
+              0.03365546420501797
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              85155840,
+              85192704,
+              85192704,
+              85221376,
+              85221376,
+              85192704,
+              85221376,
+              85221376,
+              85221376,
+              85221376
+            ],
+            "candidate_values": [
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85155840,
+              85221376
+            ]
+          }
+        }
+      },
+      "observer_coverage_self_pct": {
+        "min": 95.08059316569955,
+        "median": 97.75471560622199,
+        "max": 100.19301293186643
+      },
+      "wait4_note": "External wait4 peak includes waited descendants on Linux. Runtime provenance calls rustc --version after measured phase; isolated control rustc peak85,192,704 bytes versus true9,568,256 and cargo11,628,544. Therefore external wait4~85.2MB is compiler provenance peak, not client-self. Preserve it, but compare observer coverage against runtime internal RUSAGE_SELF peak~63.7MB.",
+      "method": "External smaps_rollup reads following exe confirmation with1ms sleeps; actual intervals approximately1.15\u20131.18ms. Covers client runtime lifetime including measured phase and teardown. Original10ms phase sampler unchanged. Additional10 pairs have observer overhead offCPU3, original5 do not; all15 metrics preserve cohorts. Sampling alone misses up to4.92% of exact client-self peak, so this is incomplete peak corroboration."
+    },
+    "bulk_hwm_corroboration": {
+      "all25": {
+        "metrics": {
+          "cpu_ns_per_round": {
+            "baseline_median": 49500000.0,
+            "candidate_median": 48691000.0,
+            "delta_pct": -1.6343434343434327,
+            "ci95_pct": [
+              -4.636760930487782,
+              2.385626151750664
+            ],
+            "repetitions": 25,
+            "baseline_values": [
+              76984000.0,
+              51402000.0,
+              51553000.0,
+              56282000.0,
+              49924000.0,
+              49500000.0,
+              50258000.0,
+              50229000.0,
+              47951000.0,
+              46311000.0,
+              47483000.0,
+              45002000.0,
+              45612000.0,
+              55557000.0,
+              49440000.0,
+              49680000.0,
+              56554000.0,
+              44260000.0,
+              45658000.0,
+              51027000.0,
+              52232000.0,
+              48836000.0,
+              46638000.0,
+              47573000.0,
+              44229000.0
+            ],
+            "candidate_values": [
+              51357000.0,
+              54583000.0,
+              48661000.0,
+              71358000.0,
+              51838000.0,
+              50512000.0,
+              50416000.0,
+              49845000.0,
+              45586000.0,
+              45627000.0,
+              45221000.0,
+              47078000.0,
+              48030000.0,
+              48878000.0,
+              51430000.0,
+              48691000.0,
+              51115000.0,
+              43114000.0,
+              45121000.0,
+              46711000.0,
+              48478000.0,
+              46246000.0,
+              44558000.0,
+              51540000.0,
+              48894000.0
+            ]
+          },
+          "allocs_per_round": {
+            "baseline_median": 135446.0,
+            "candidate_median": 135446.0,
+            "delta_pct": 0.0,
+            "ci95_pct": [
+              0.0,
+              0.0
+            ],
+            "repetitions": 25,
+            "baseline_values": [
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0
+            ],
+            "candidate_values": [
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0,
+              135446.0
+            ]
+          },
+          "allocated_bytes_per_round": {
+            "baseline_median": 108189035.0,
+            "candidate_median": 108189035.0,
+            "delta_pct": 0.0,
+            "ci95_pct": [
+              0.0,
+              0.0
+            ],
+            "repetitions": 25,
+            "baseline_values": [
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0
+            ],
+            "candidate_values": [
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0,
+              108189035.0
+            ]
+          },
+          "process_peak_rss_bytes": {
+            "baseline_median": 63684608,
+            "candidate_median": 63655936,
+            "delta_pct": -0.04502186776433881,
+            "ci95_pct": [
+              -0.07716049382715529,
+              0.06433764395548103
+            ],
+            "repetitions": 25,
+            "baseline_values": [
+              63758336,
+              63692800,
+              63754240,
+              63651840,
+              63627264,
+              63631360,
+              63664128,
+              63668224,
+              63528960,
+              63762432,
+              63696896,
+              63561728,
+              63754240,
+              63561728,
+              63762432,
+              63700992,
+              63762432,
+              63610880,
+              63684608,
+              63664128,
+              63545344,
+              63631360,
+              63696896,
+              63696896,
+              63766528
+            ],
+            "candidate_values": [
+              63647744,
+              63676416,
+              63397888,
+              63590400,
+              63705088,
+              63655936,
+              63651840,
+              63717376,
+              63717376,
+              63664128,
+              63778816,
+              63655936,
+              63651840,
+              63729664,
+              63733760,
+              63717376,
+              63660032,
+              63623168,
+              63520768,
+              63709184,
+              63549440,
+              63737856,
+              63328256,
+              63655936,
+              63631360
+            ]
+          },
+          "rec_s": {
+            "baseline_median": 112470.56469586653,
+            "candidate_median": 111950.05236463698,
+            "delta_pct": -0.4627987177241222,
+            "ci95_pct": [
+              -3.0314650097878038,
+              2.520501253733576
+            ],
+            "repetitions": 25,
+            "baseline_values": [
+              93331.79945631987,
+              100601.24333076633,
+              112968.48050045127,
+              103780.69544979976,
+              113967.32539685773,
+              112389.86172866375,
+              111098.46378543651,
+              111896.69616444477,
+              113773.84769534177,
+              116713.39627900769,
+              116335.9756452031,
+              121361.28894669596,
+              116741.52094075548,
+              107224.67933829699,
+              112470.56469586653,
+              111979.15172153249,
+              109110.37358802721,
+              119829.26390956226,
+              116366.31947475827,
+              112620.04515511973,
+              108326.3118474792,
+              110853.09560428788,
+              113512.2689281822,
+              115255.26860790692,
+              112272.90426330589
+            ],
+            "candidate_values": [
+              107331.550992753,
+              95451.87471109103,
+              114954.29899879862,
+              95560.17078265265,
+              102800.98925597564,
+              109874.30851565335,
+              111267.31744361491,
+              115996.12083452783,
+              116915.2798970215,
+              117579.47690677931,
+              118552.22388174917,
+              116038.96356318524,
+              109957.52775035238,
+              111562.30439816033,
+              103507.84784081388,
+              109061.05888080059,
+              112345.30606060404,
+              120394.94308973178,
+              117593.27650093398,
+              115458.63480520983,
+              115763.70724196568,
+              108180.74592376844,
+              111950.05236463698,
+              105541.93580849752,
+              111973.77323409605
+            ]
+          }
+        }
+      },
+      "additional10_hwm": {
+        "metrics": {
+          "cpu_ns_per_round": {
+            "baseline_median": 48204500.0,
+            "candidate_median": 47594500.0,
+            "delta_pct": -1.265442023047636,
+            "ci95_pct": [
+              -6.915474199653526,
+              5.510531333968971
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              49680000.0,
+              56554000.0,
+              44260000.0,
+              45658000.0,
+              51027000.0,
+              52232000.0,
+              48836000.0,
+              46638000.0,
+              47573000.0,
+              44229000.0
+            ],
+            "candidate_values": [
+              48691000.0,
+              51115000.0,
+              43114000.0,
+              45121000.0,
+              46711000.0,
+              48478000.0,
+              46246000.0,
+              44558000.0,
+              51540000.0,
+              48894000.0
+            ]
+          },
+          "rss_peak_bytes": {
+            "baseline_median": 47796224.0,
+            "candidate_median": 47368192.0,
+            "delta_pct": -0.8955351786785526,
+            "ci95_pct": [
+              -18.97166841552991,
+              25.87011123071403
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              45649920,
+              63332352,
+              45662208,
+              56217600,
+              45613056,
+              56795136,
+              60309504,
+              45645824,
+              49930240,
+              45309952
+            ],
+            "candidate_values": [
+              44969984,
+              45608960,
+              45572096,
+              57655296,
+              47292416,
+              57475072,
+              47443968,
+              61939712,
+              62971904,
+              45580288
+            ]
+          },
+          "rss_mean_bytes": {
+            "baseline_median": 12397795.0,
+            "candidate_median": 12127957.5,
+            "delta_pct": -2.17649590108564,
+            "ci95_pct": [
+              -5.589403448631469,
+              3.5353298180365034
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              12426353,
+              13653333,
+              11797202,
+              11634326,
+              12819114,
+              12830612,
+              12224512,
+              12369237,
+              12753806,
+              11293127
+            ],
+            "candidate_values": [
+              11562097,
+              11960547,
+              12214272,
+              12216922,
+              13075114,
+              12153313,
+              12301365,
+              11747100,
+              12102602,
+              12067953
+            ]
+          },
+          "process_peak_rss_bytes": {
+            "baseline_median": 63690752.0,
+            "candidate_median": 63643648.0,
+            "delta_pct": -0.0739573619730538,
+            "ci95_pct": [
+              -0.2218720859191614,
+              0.07077140835103357
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              63700992,
+              63762432,
+              63610880,
+              63684608,
+              63664128,
+              63545344,
+              63631360,
+              63696896,
+              63696896,
+              63766528
+            ],
+            "candidate_values": [
+              63717376,
+              63660032,
+              63623168,
+              63520768,
+              63709184,
+              63549440,
+              63737856,
+              63328256,
+              63655936,
+              63631360
+            ]
+          },
+          "rec_s": {
+            "baseline_median": 112446.47470921281,
+            "candidate_median": 112159.53964735004,
+            "delta_pct": -0.2551747954791628,
+            "ci95_pct": [
+              -3.26810788050389,
+              3.2442772785926444
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              111979.15172153249,
+              109110.37358802721,
+              119829.26390956226,
+              116366.31947475827,
+              112620.04515511973,
+              108326.3118474792,
+              110853.09560428788,
+              113512.2689281822,
+              115255.26860790692,
+              112272.90426330589
+            ],
+            "candidate_values": [
+              109061.05888080059,
+              112345.30606060404,
+              120394.94308973178,
+              117593.27650093398,
+              115458.63480520983,
+              115763.70724196568,
+              108180.74592376844,
+              111950.05236463698,
+              105541.93580849752,
+              111973.77323409605
+            ]
+          },
+          "external_rss_peak_bytes": {
+            "baseline_median": 61861888.0,
+            "candidate_median": 62046208.0,
+            "delta_pct": 0.2979540488644572,
+            "ci95_pct": [
+              -2.7062361092953346,
+              2.116758797357421
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              61042688,
+              61882368,
+              61841408,
+              61636608,
+              60260352,
+              62660608,
+              60477440,
+              63819776,
+              62455808,
+              63889408
+            ],
+            "candidate_values": [
+              62316544,
+              63381504,
+              61575168,
+              61775872,
+              60956672,
+              60354560,
+              63844352,
+              62443520,
+              62353408,
+              59748352
+            ]
+          },
+          "external_client_vmhwm_bytes": {
+            "baseline_median": 63690752.0,
+            "candidate_median": 63643648.0,
+            "delta_pct": -0.0739573619730538,
+            "ci95_pct": [
+              -0.23475688191407773,
+              0.07077140835103357
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              63700992,
+              63762432,
+              63610880,
+              63684608,
+              63664128,
+              63545344,
+              63631360,
+              63815680,
+              63696896,
+              63766528
+            ],
+            "candidate_values": [
+              63717376,
+              63660032,
+              63623168,
+              63520768,
+              63709184,
+              63549440,
+              63737856,
+              63328256,
+              63655936,
+              63631360
+            ]
+          },
+          "external_wait4_peak_rss_bytes": {
+            "baseline_median": 85221376.0,
+            "candidate_median": 85221376.0,
+            "delta_pct": 0.0,
+            "ci95_pct": [
+              0.0,
+              0.03365546420501797
+            ],
+            "repetitions": 10,
+            "baseline_values": [
+              85221376,
+              85221376,
+              85221376,
+              85155840,
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85164032
+            ],
+            "candidate_values": [
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85221376,
+              85221376
+            ]
+          }
+        }
+      },
+      "vmhwm_verification": {
+        "runs": 20,
+        "exact_matches": 19,
+        "within_0_2pct": 20,
+        "range_delta_pct": [
+          0.0,
+          0.18648318436114142
+        ],
+        "median_delta_pct": 0.0,
+        "single_positive_delta_explanation": "A22 lifetime VmHWM 63,815,680 versus phase-end RUSAGE_SELF 63,696,896 bytes (+0.18648%); lifetime observer includes minor later allocation. Allother19 match exactly.",
+        "verified": true
+      },
+      "method": "External observer on CPU 2 confirms /proc/PID/exe equals frozen runtime, then polls smaps_rollup Rss and status VmHWM with 1 ms sleeps; actual median intervals around 1.17\u20131.21 ms. VmHWM retains the client maximum and includes runtime initialization, measured phase and teardown. Runtime internal RUSAGE_SELF peak is read after measured phase. All 20 client VmHWM values match within 0.2%; 19 match exactly. Original five, first 10 smaps-only and final 10 high-water cohorts remain separate. All 25 aggregates cover unchanged CPU/allocation/throughput/self-peak metrics; observer overhead is present only in the last 20 pairs.",
+      "authoritative_peak": "Client RUSAGE_SELF peak corroborated by direct client VmHWM. Instantaneous 10 ms/1 ms RSS samples undercount transient peaks, are retained as coarse estimates, and their original increases are explicitly not declared passing. Parent wait4 includes rustc provenance descendant; preserved and excluded from client guardrail."
+    }
+  },
+  "acceptance_met": [
+    "Corrected harness landed independently on main before measurements. Exact pinned corrected baseline is measured first and proves the card's real 100k paused-backlog workload. Original inaccurate fixture data is retained and explicitly excluded.",
+    "Deterministic acceptance: allocations per capped poll fall 20.13%, exceeding 5%, with identical counts in all five A/B repetitions. CPU per poll also falls 99.66%, with paired bootstrap 95% CI excluding zero; local wall throughput improves by well over 3%.",
+    "Named-cell CPU and both RSS measures improve. Supplemental bulk CPU/allocation/throughput guards pass on all 25 medians and1000p guards pass on five medians. Exact client RUSAGE_SELF maximum is unchanged and final10-pair VmHWM corroborates it in every run; no authoritative peak guard regresses2%. Prior coarse10ms peak estimates that rose8.393%/16.934% remain explicitly visible and are not labelled passing.",
+    "Capped polls stop at the delivery cap and inspect compact arrival runs rather than cloning/hashing/rebuilding every retained record. Per-partition queues release when emptied or dropped; no pool, new dependency, unsafe code, public API or default change.",
+    "Exact global arrival order is retained even when older paused records resume after a later Fetch round. Tests pin independent pause/resume/seek byte accounting and delivered-offset commits.",
+    "All listed correctness suites pass, with the single pre-existing ignored live-broker test and no new skips. Net production addition 109 lines; no allocation/instruction budget raised."
+  ],
+  "artifacts": [
+    "docs/evidence/perf/KL09-45/artifact-validation.json",
+    "docs/evidence/perf/KL09-45/baseline-build.log",
+    "docs/evidence/perf/KL09-45/baseline-invariants-compile-failure.log",
+    "docs/evidence/perf/KL09-45/baseline-invariants.log",
+    "docs/evidence/perf/KL09-45/calculate-hwm-stats.py",
+    "docs/evidence/perf/KL09-45/candidate-build.log",
+    "docs/evidence/perf/KL09-45/candidate-clippy-sign-cast-failure.log",
+    "docs/evidence/perf/KL09-45/candidate-clippy.log",
+    "docs/evidence/perf/KL09-45/candidate-final-budget-test.log",
+    "docs/evidence/perf/KL09-45/candidate-tests.log",
+    "docs/evidence/perf/KL09-45/checksums.sha256",
+    "docs/evidence/perf/KL09-45/consumer-and-tests.patch",
+    "docs/evidence/perf/KL09-45/corrected-baseline-build.log",
+    "docs/evidence/perf/KL09-45/corrected-first-baseline.log",
+    "docs/evidence/perf/KL09-45/final-verification.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-15-A.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-15-B.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-16-A.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-16-B.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-17-A.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-17-B.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-18-A.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-18-B.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-19-A.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-19-B.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-20-A.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-20-B.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-21-A.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-21-B.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-22-A.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-22-B.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-23-A.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-23-B.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-24-A.log",
+    "docs/evidence/perf/KL09-45/guard-hwm-pair-24-B.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-1000p-pair-00-A.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-1000p-pair-00-B.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-1000p-pair-01-A.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-1000p-pair-01-B.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-1000p-pair-02-A.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-1000p-pair-02-B.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-1000p-pair-03-A.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-1000p-pair-03-B.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-1000p-pair-04-A.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-1000p-pair-04-B.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-bulk-pair-00-A.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-bulk-pair-00-B.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-bulk-pair-01-A.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-bulk-pair-01-B.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-bulk-pair-02-A.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-bulk-pair-02-B.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-bulk-pair-03-A.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-bulk-pair-03-B.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-bulk-pair-04-A.log",
+    "docs/evidence/perf/KL09-45/guard-nb-fetch-bulk-pair-04-B.log",
+    "docs/evidence/perf/KL09-45/guard-parser-key-failure.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-05-A.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-05-B.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-06-A.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-06-B.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-07-A.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-07-B.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-08-A.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-08-B.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-09-A.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-09-B.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-10-A.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-10-B.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-11-A.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-11-B.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-12-A.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-12-B.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-13-A.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-13-B.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-14-A.log",
+    "docs/evidence/perf/KL09-45/guard-rss-pair-14-B.log",
+    "docs/evidence/perf/KL09-45/guard-wait4-control.log",
+    "docs/evidence/perf/KL09-45/harness-e2e-baseline.log",
+    "docs/evidence/perf/KL09-45/harness-old-fixture-negative.log",
+    "docs/evidence/perf/KL09-45/harness-proposal.patch",
+    "docs/evidence/perf/KL09-45/measurements.json",
+    "docs/evidence/perf/KL09-45/pair-00-A.log",
+    "docs/evidence/perf/KL09-45/pair-00-B.log",
+    "docs/evidence/perf/KL09-45/pair-01-A.log",
+    "docs/evidence/perf/KL09-45/pair-01-B.log",
+    "docs/evidence/perf/KL09-45/pair-02-A.log",
+    "docs/evidence/perf/KL09-45/pair-02-B.log",
+    "docs/evidence/perf/KL09-45/pair-03-A.log",
+    "docs/evidence/perf/KL09-45/pair-03-B.log",
+    "docs/evidence/perf/KL09-45/pair-04-A.log",
+    "docs/evidence/perf/KL09-45/pair-04-B.log",
+    "docs/evidence/perf/KL09-45/raw-artifacts.tar.gz",
+    "docs/evidence/perf/KL09-45/run-guards.py",
+    "docs/evidence/perf/KL09-45/run-hwm-corroboration.py",
+    "docs/evidence/perf/KL09-45/run-pairs.py",
+    "docs/evidence/perf/KL09-45/run-rss-corroboration.py"
+  ],
+  "limits": [
+    "Local/unsigned exploratory null-broker optimization evidence; no Kafka throughput comparison or public performance claim. Suite HOLD remains active.",
+    "The named cell uses synthetic uncompressed read_uncommitted records; committed offsets, seek, pause/resume and assignment retention are correctness-tested rather than additional performance cells.",
+    "Capped polls still inspect arrival-run metadata for paused runs. A workload with very many alternating short runs may cost more than the six contiguous partition queues measured here; retained records themselves are not rescanned.",
+    "RSS sampler uses10 ms intervals; whole-process RUSAGE peak supplements it and can include setup/artifact work. Both independent RSS metrics improve.",
+    "Most candidate capped drains take below 1\u00b5s, so the harness quantizes their reported p99 to 0\u00b5s. This is a resolution limit and is not a zero-latency claim.",
+    "Client and broker are pinnedCPU3, but host CPU frequency is unmanaged and other workers may build on different affinity CPUs within the shared 4-core cgroup quota. Deterministic allocation counts provide the acceptance route.",
+    "Original incorrect20k active-only measurement remains archived as historical/excluded data. It must not be merged into the corrected-cell paired statistics.",
+    "Supplemental bulk/1000p single-round timing guards have broad paired CIs; median changes meet2% but cannot statistically exclude all2% regressions. They exercise unchanged uncapped fast paths; deterministic allocation/byte counts are identical.",
+    "Original5 and first10 additional bulk cohorts show +8.393% and +16.934% coarse10ms sampled peak estimates. These estimates remain reported as exceeding2%, not passing. Verified direct client maximum resident memory is authoritative after explicit method review: RUSAGE_SELF and persistent VmHWM agree within 0.2% in20runs.",
+    "Observer covers runtime lifetime, while internal selfpeak is read at phase end; one baseline lifetime peak is0.186% higher from later allocation. External wait4 covers rustc provenance descendant~85.2MB and is excluded from client self guardrail using retained controlled probes.",
+    "External smaps_rollup current RSS can exceed kernel resident counters slightly due Linux RSS accounting; persistent VmHWM is compared to RUSAGE_SELF rather than instantaneous sample max.",
+    "Final evidence preserves initial named five pairs, first supplemental five pairs, first10 smaps-only pairs and final10 VmHWM pairs separately; no outcome was replaced. Observer overhead exists in last20 bulk pairs only and is stated in aggregate provenance."
+  ]
+}

@@ -1,0 +1,75 @@
+test_cli_empty_input_exits_2_fail_closed (test_checker.TestCLIIntegration.test_cli_empty_input_exits_2_fail_closed)
+Empty input must not exit 0. ... ok
+test_cli_empty_json_object_exits_2_fail_closed (test_checker.TestCLIIntegration.test_cli_empty_json_object_exits_2_fail_closed) ... ok
+test_cli_invalid_file_exits_1 (test_checker.TestCLIIntegration.test_cli_invalid_file_exits_1) ... ok
+test_cli_json_flag (test_checker.TestCLIIntegration.test_cli_json_flag) ... ok
+test_cli_missing_file_exits_2 (test_checker.TestCLIIntegration.test_cli_missing_file_exits_2) ... ok
+test_cli_valid_file_exits_0 (test_checker.TestCLIIntegration.test_cli_valid_file_exits_0) ... ok
+test_cli_valid_stdin_exits_0 (test_checker.TestCLIIntegration.test_cli_valid_stdin_exits_0) ... ok
+test_empty_attempted_records_fails (test_checker.TestEmptyHistoryFailClosed.test_empty_attempted_records_fails) ... ok
+test_empty_consumed_records_fails (test_checker.TestEmptyHistoryFailClosed.test_empty_consumed_records_fails) ... ok
+test_empty_list_fails (test_checker.TestEmptyHistoryFailClosed.test_empty_list_fails) ... ok
+test_empty_object_fails (test_checker.TestEmptyHistoryFailClosed.test_empty_object_fails) ... ok
+test_empty_string_fails (test_checker.TestEmptyHistoryFailClosed.test_empty_string_fails) ... ok
+test_missing_attempted_records_fails (test_checker.TestEmptyHistoryFailClosed.test_missing_attempted_records_fails) ... ok
+test_missing_consumed_records_fails (test_checker.TestEmptyHistoryFailClosed.test_missing_consumed_records_fails) ... ok
+test_whitespace_string_fails (test_checker.TestEmptyHistoryFailClosed.test_whitespace_string_fails) ... ok
+test_aborted_transaction_exposure_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_aborted_transaction_exposure_fails)
+Records from an aborted transaction must not be exposed to read_committed consumer. ... ok
+test_acks0_cannot_claim_acked_status (test_checker.TestInvalidHistoriesFailWithCounterexample.test_acks0_cannot_claim_acked_status)
+Acks=0 cannot be labeled acknowledged throughput. ... ok
+test_control_record_exposure_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_control_record_exposure_fails)
+Control markers (e.g. COMMIT / ABORT) must never be emitted as application records. ... ok
+test_data_loss_under_acks1_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_data_loss_under_acks1_fails)
+Acked record is missing from consumed output. ... ok
+test_failed_record_exposure_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_failed_record_exposure_fails)
+Record marked failed by producer must not be consumed. ... ok
+test_key_corruption_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_key_corruption_fails) ... ok
+test_key_ordering_violation_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_key_ordering_violation_fails)
+Records for same key must preserve produce order. ... ok
+test_non_atomic_output_offset_history_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_non_atomic_output_offset_history_fails)
+Output records consumed, but declared input offset was never committed. ... ok
+test_non_atomic_transaction_output_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_non_atomic_transaction_output_fails)
+Partial delivery of committed transaction records violates atomicity. ... ok
+test_non_monotonic_offset_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_non_monotonic_offset_fails)
+Offsets within partition must strictly increase. ... ok
+test_offsets_committed_for_aborted_transaction_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_offsets_committed_for_aborted_transaction_fails)
+Offsets must not be committed when transaction aborts. ... ok
+test_partition_corruption_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_partition_corruption_fails) ... ok
+test_partition_ordering_violation_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_partition_ordering_violation_fails)
+Records on partition 0 produced in order r1 then r2, but consumed r2 then r1. ... ok
+test_payload_corruption_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_payload_corruption_fails)
+Consumed payload does not match attempted payload. ... ok
+test_phantom_record_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_phantom_record_fails)
+Consumed record that was never produced. ... ok
+test_share_delivery_redelivery_after_accept_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_share_delivery_redelivery_after_accept_fails)
+Share record must not be redelivered after being ACCEPTED. ... ok
+test_share_delivery_redelivery_after_reject_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_share_delivery_redelivery_after_reject_fails)
+Share record must not be redelivered after being REJECTED. ... ok
+test_share_delivery_without_release_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_share_delivery_without_release_fails)
+Share record delivered twice without intermediate release. ... ok
+test_synthetic_missing_duplicate_swap_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_synthetic_missing_duplicate_swap_fails)
+Total count matches (3 produced, 3 consumed), but r3 is lost and r2 is duplicated! ... ok
+test_topic_corruption_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_topic_corruption_fails) ... ok
+test_uncommitted_transaction_exposure_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_uncommitted_transaction_exposure_fails)
+Records from an open/uncommitted transaction must not be exposed under read_committed. ... ok
+test_unexpected_duplicate_under_idempotence_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_unexpected_duplicate_under_idempotence_fails)
+Idempotence forbids duplicate deliveries. ... ok
+test_unexpected_duplicate_without_retry_fails (test_checker.TestInvalidHistoriesFailWithCounterexample.test_unexpected_duplicate_without_retry_fails)
+Even non-idempotent producer must not duplicate cleanly acked record without ambiguous retry. ... ok
+test_clean_single_partition_acks1 (test_checker.TestValidHistories.test_clean_single_partition_acks1) ... ok
+test_cross_topic_order_independence (test_checker.TestValidHistories.test_cross_topic_order_independence)
+Checker must not compare offsets or ordering across different topics. ... ok
+test_multi_partition_with_per_partition_order (test_checker.TestValidHistories.test_multi_partition_with_per_partition_order) ... ok
+test_valid_acks0_loss_tolerated (test_checker.TestValidHistories.test_valid_acks0_loss_tolerated)
+In acks=0 fire-and-forget, lost records are tolerated, but consumed records must be uncorrupted. ... ok
+test_valid_share_delivery_lifecycle (test_checker.TestValidHistories.test_valid_share_delivery_lifecycle)
+KIP-932 share group delivery with accept, release, redelivery, accept, reject. ... ok
+test_valid_transactional_read_committed (test_checker.TestValidHistories.test_valid_transactional_read_committed) ... ok
+test_valid_transactional_read_uncommitted (test_checker.TestValidHistories.test_valid_transactional_read_uncommitted)
+Under read_uncommitted, aborted records may appear. ... ok
+
+----------------------------------------------------------------------
+Ran 45 tests in 0.323s
+
+OK

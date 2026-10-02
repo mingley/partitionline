@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "verdict": "failed",
+  "implementation_claim": false,
+  "error": "API 0: unsupported implementation/qualification claim"
+}

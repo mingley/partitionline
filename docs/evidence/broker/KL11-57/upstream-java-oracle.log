@@ -1,0 +1,4 @@
+4.1.2 PASS keys=93 headers=292 removed=4 produce_schema_min=3 produce_upstream_advertised_min=0
+4.2.1 PASS keys=93 headers=300 removed=4 produce_schema_min=3 produce_upstream_advertised_min=0
+4.3.1 PASS keys=93 headers=302 removed=4 produce_schema_min=3 produce_upstream_advertised_min=0
+Three deliberate mutations failed the independent upstream assertion.

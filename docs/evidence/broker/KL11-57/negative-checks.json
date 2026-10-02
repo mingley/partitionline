@@ -1,0 +1,319 @@
+{
+  "schema_version": 1,
+  "expected_rejection_cases": [
+    {
+      "case": "changed-source-pin",
+      "expected_exit_code": 1,
+      "actual_exit_code": 1,
+      "verdict": "failed",
+      "expectation_met": true,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--matrix",
+        "/workspace/work/broker-api-inventory/negative/changed-source-pin/api-matrix.json",
+        "--features",
+        "/workspace/work/broker-api-inventory/negative/changed-source-pin/features.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-57/changed-source-pin.json"
+      ],
+      "mutation": {
+        "json_pointer": "/releases/0/commit",
+        "operation": "replace",
+        "before": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+        "after": "0000000000000000000000000000000000000000"
+      },
+      "matrix_input_sha256": "d11fadb1e480eddb6ad1695b50a552efdac107d8da68873efcf270ff3424b045",
+      "features_input_sha256": "aaeada1187c0334951eb3e4bb80cfada83308518a8435b997771b19a81b3ccd2",
+      "retained_archives_sha256": {
+        "4.1.2": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+        "4.2.1": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+        "4.3.1": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332"
+      },
+      "report": "docs/evidence/broker/KL11-57/changed-source-pin.json",
+      "log": "docs/evidence/broker/KL11-57/changed-source-pin.log"
+    },
+    {
+      "case": "missing-matrix-pair",
+      "expected_exit_code": 1,
+      "actual_exit_code": 1,
+      "verdict": "failed",
+      "expectation_met": true,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--matrix",
+        "/workspace/work/broker-api-inventory/negative/missing-matrix-pair/api-matrix.json",
+        "--features",
+        "/workspace/work/broker-api-inventory/negative/missing-matrix-pair/features.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-57/missing-matrix-pair.json"
+      ],
+      "mutation": {
+        "json_pointer": "/releases/0/inventory/1",
+        "operation": "remove",
+        "before": {
+          "api_key": 1,
+          "name": "FETCH",
+          "message_name": "Fetch",
+          "disposition": "active",
+          "listener_classification": "broker_and_controller",
+          "listeners": [
+            "broker",
+            "controller"
+          ],
+          "cluster_action": false,
+          "forwardable": false,
+          "latest_version_unstable": false,
+          "stable_valid_versions": "4-18",
+          "request": {
+            "path": "clients/src/main/resources/common/message/FetchRequest.json",
+            "sha256": "cff74a782123765a4d85c289ebab0103b20cb4c335251a5ad14828247b9f52dc",
+            "name": "FetchRequest",
+            "valid_versions": "4-18",
+            "flexible_versions": "12+",
+            "effective_flexible_versions": "12+",
+            "deprecated_versions": "none"
+          },
+          "response": {
+            "path": "clients/src/main/resources/common/message/FetchResponse.json",
+            "sha256": "102c7b46666469d29d9810d2437ed10cb66cd90ee1050820405b6acfff94e002",
+            "name": "FetchResponse",
+            "valid_versions": "4-18",
+            "flexible_versions": "12+",
+            "effective_flexible_versions": "12+",
+            "deprecated_versions": "none"
+          },
+          "headers": [
+            {
+              "api_version": 4,
+              "request_header_version": 1,
+              "response_header_version": 0
+            },
+            {
+              "api_version": 5,
+              "request_header_version": 1,
+              "response_header_version": 0
+            },
+            {
+              "api_version": 6,
+              "request_header_version": 1,
+              "response_header_version": 0
+            },
+            {
+              "api_version": 7,
+              "request_header_version": 1,
+              "response_header_version": 0
+            },
+            {
+              "api_version": 8,
+              "request_header_version": 1,
+              "response_header_version": 0
+            },
+            {
+              "api_version": 9,
+              "request_header_version": 1,
+              "response_header_version": 0
+            },
+            {
+              "api_version": 10,
+              "request_header_version": 1,
+              "response_header_version": 0
+            },
+            {
+              "api_version": 11,
+              "request_header_version": 1,
+              "response_header_version": 0
+            },
+            {
+              "api_version": 12,
+              "request_header_version": 2,
+              "response_header_version": 1
+            },
+            {
+              "api_version": 13,
+              "request_header_version": 2,
+              "response_header_version": 1
+            },
+            {
+              "api_version": 14,
+              "request_header_version": 2,
+              "response_header_version": 1
+            },
+            {
+              "api_version": 15,
+              "request_header_version": 2,
+              "response_header_version": 1
+            },
+            {
+              "api_version": 16,
+              "request_header_version": 2,
+              "response_header_version": 1
+            },
+            {
+              "api_version": 17,
+              "request_header_version": 2,
+              "response_header_version": 1
+            },
+            {
+              "api_version": 18,
+              "request_header_version": 2,
+              "response_header_version": 1
+            }
+          ],
+          "upstream_negotiation": {
+            "accepts_any_version_for_api_versions": false,
+            "broker_listener_advertised_minimum": 4,
+            "schema_minimum": 4,
+            "note": null
+          }
+        },
+        "after": null
+      },
+      "matrix_input_sha256": "7731fda60776a702d1e74e7ab46f64dd20a8d7d74f8d2703d3c17886db4c40af",
+      "features_input_sha256": "aaeada1187c0334951eb3e4bb80cfada83308518a8435b997771b19a81b3ccd2",
+      "retained_archives_sha256": {
+        "4.1.2": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+        "4.2.1": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+        "4.3.1": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332"
+      },
+      "report": "docs/evidence/broker/KL11-57/missing-matrix-pair.json",
+      "log": "docs/evidence/broker/KL11-57/missing-matrix-pair.log"
+    },
+    {
+      "case": "api-versions-response-header",
+      "expected_exit_code": 1,
+      "actual_exit_code": 1,
+      "verdict": "failed",
+      "expectation_met": true,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--matrix",
+        "/workspace/work/broker-api-inventory/negative/api-versions-response-header/api-matrix.json",
+        "--features",
+        "/workspace/work/broker-api-inventory/negative/api-versions-response-header/features.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-57/api-versions-response-header.json"
+      ],
+      "mutation": {
+        "json_pointer": "/releases/0/inventory/18/headers/4/response_header_version",
+        "operation": "replace",
+        "before": 0,
+        "after": 1
+      },
+      "matrix_input_sha256": "b7162cbc99b3ff01cf076035e3e26fe173a484a140d4ddb848a04be59d0081e7",
+      "features_input_sha256": "aaeada1187c0334951eb3e4bb80cfada83308518a8435b997771b19a81b3ccd2",
+      "retained_archives_sha256": {
+        "4.1.2": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+        "4.2.1": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+        "4.3.1": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332"
+      },
+      "report": "docs/evidence/broker/KL11-57/api-versions-response-header.json",
+      "log": "docs/evidence/broker/KL11-57/api-versions-response-header.log"
+    },
+    {
+      "case": "corrupt-per-file-hash",
+      "expected_exit_code": 1,
+      "actual_exit_code": 1,
+      "verdict": "failed",
+      "expectation_met": true,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--matrix",
+        "/workspace/work/broker-api-inventory/negative/corrupt-per-file-hash/api-matrix.json",
+        "--features",
+        "/workspace/work/broker-api-inventory/negative/corrupt-per-file-hash/features.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-57/corrupt-per-file-hash.json"
+      ],
+      "mutation": {
+        "json_pointer": "/releases/0/files_sha256/LICENSE",
+        "operation": "replace",
+        "before": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "after": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "matrix_input_sha256": "907ef87eaf6e3dba1d165f9e3a16fba8d1b42b58bb17a36f4f20f7e80928a1a8",
+      "features_input_sha256": "aaeada1187c0334951eb3e4bb80cfada83308518a8435b997771b19a81b3ccd2",
+      "retained_archives_sha256": {
+        "4.1.2": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+        "4.2.1": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+        "4.3.1": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332"
+      },
+      "report": "docs/evidence/broker/KL11-57/corrupt-per-file-hash.json",
+      "log": "docs/evidence/broker/KL11-57/corrupt-per-file-hash.log"
+    },
+    {
+      "case": "unsupported-implementation-claim",
+      "expected_exit_code": 1,
+      "actual_exit_code": 1,
+      "verdict": "failed",
+      "expectation_met": true,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--matrix",
+        "/workspace/work/broker-api-inventory/negative/unsupported-implementation-claim/api-matrix.json",
+        "--features",
+        "/workspace/work/broker-api-inventory/negative/unsupported-implementation-claim/features.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-57/unsupported-implementation-claim.json"
+      ],
+      "mutation": {
+        "json_pointer": "/features/0/implementation",
+        "operation": "replace",
+        "before": "missing",
+        "after": "implemented"
+      },
+      "matrix_input_sha256": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+      "features_input_sha256": "eb8721b11875a6b4a7641a0b15b6fa9cd31ab4f5c0569c8a064b667657c93e9f",
+      "retained_archives_sha256": {
+        "4.1.2": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+        "4.2.1": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+        "4.3.1": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332"
+      },
+      "report": "docs/evidence/broker/KL11-57/unsupported-implementation-claim.json",
+      "log": "docs/evidence/broker/KL11-57/unsupported-implementation-claim.log"
+    },
+    {
+      "case": "corrupt-retained-archive",
+      "expected_exit_code": 1,
+      "actual_exit_code": 1,
+      "verdict": "failed",
+      "expectation_met": true,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--matrix",
+        "/workspace/work/broker-api-inventory/negative/corrupt-retained-archive/api-matrix.json",
+        "--features",
+        "/workspace/work/broker-api-inventory/negative/corrupt-retained-archive/features.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-57/corrupt-retained-archive.json"
+      ],
+      "mutation": {
+        "json_pointer": null,
+        "operation": "flip byte at -10 xor1",
+        "before": null,
+        "after": null
+      },
+      "matrix_input_sha256": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+      "features_input_sha256": "aaeada1187c0334951eb3e4bb80cfada83308518a8435b997771b19a81b3ccd2",
+      "retained_archives_sha256": {
+        "4.1.2": "1b9d61b30f61f01f6d7d31de08b73aedef17283137d481817d1d99beed829a93",
+        "4.2.1": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+        "4.3.1": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332"
+      },
+      "report": "docs/evidence/broker/KL11-57/corrupt-retained-archive.json",
+      "log": "docs/evidence/broker/KL11-57/corrupt-retained-archive.log"
+    }
+  ],
+  "all_expected_rejections_observed": true
+}

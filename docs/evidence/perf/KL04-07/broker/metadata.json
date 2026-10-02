@@ -1,0 +1,9 @@
+{
+  "bootstrap": "127.0.0.1:47131",
+  "controller": 34291,
+  "pid": 110664,
+  "cluster_id": "qoc_dpgCSAKfeN6mY68JCg",
+  "topic": "kl04-07-e9e98322a3",
+  "kafka_home": "/workspace/work/c-peer/kafka_2.13-3.9.1",
+  "config": "/workspace/work/bench-history/native/server.properties"
+}

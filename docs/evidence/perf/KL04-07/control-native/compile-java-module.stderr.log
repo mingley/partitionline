@@ -1,0 +1,24 @@
+/workspace/partitionline/docs/evidence/perf/KL04-07/ControlRecords.java:8: error: package org.apache.kafka.clients.producer does not exist
+import org.apache.kafka.clients.producer.*;
+                               ^
+/workspace/partitionline/docs/evidence/perf/KL04-07/ControlRecords.java:42: error: cannot find symbol
+         KafkaProducer<byte[],byte[]> producer = new KafkaProducer<>(cfg)) {
+         ^
+  symbol:   class KafkaProducer
+  location: class ControlRecords
+/workspace/partitionline/docs/evidence/perf/KL04-07/ControlRecords.java:42: error: cannot find symbol
+         KafkaProducer<byte[],byte[]> producer = new KafkaProducer<>(cfg)) {
+                                                     ^
+  symbol:   class KafkaProducer
+  location: class ControlRecords
+/workspace/partitionline/docs/evidence/perf/KL04-07/ControlRecords.java:48: error: cannot find symbol
+        RecordMetadata md = producer.send(new ProducerRecord<>(topic,0,key,value)).get();
+        ^
+  symbol:   class RecordMetadata
+  location: class ControlRecords
+/workspace/partitionline/docs/evidence/perf/KL04-07/ControlRecords.java:48: error: cannot find symbol
+        RecordMetadata md = producer.send(new ProducerRecord<>(topic,0,key,value)).get();
+                                              ^
+  symbol:   class ProducerRecord
+  location: class ControlRecords
+5 errors

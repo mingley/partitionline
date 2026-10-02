@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/workspace/work/bench-history/resume-control.py", line 11, in <module>
+    run(['java','-Xmx128m','-m','jdk.compiler/com.sun.tools.javac.Main','-cp',cp,'-d',classes,out/'ControlRecords.java'],'compile-java-module')
+  File "/workspace/work/bench-history/resume-control.py", line 10, in run
+    if p.returncode: raise RuntimeError(f'{name} failed ({p.returncode}); previous artifacts retained')
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: compile-java-module failed (1); previous artifacts retained

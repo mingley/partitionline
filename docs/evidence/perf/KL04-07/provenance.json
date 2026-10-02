@@ -1,0 +1,88 @@
+{
+  "card": "KL04-07",
+  "captured_at_utc": "2026-10-02T19:33:53.035275+00:00",
+  "tested_source_commit": "c9a2e8c12dd12e056902b8b9410e1407f798fad6",
+  "source_binding": "Final-source benchmark files match this pushed commit byte-for-byte. They were compiled as dirty worktree files before that commit; the commit is a later content binding, not a claim that it was HEAD during compilation.",
+  "committed_parent_for_context": "5a1bf5cb9e2f83a7f60c73e4d7cc2f80499473d0",
+  "head_at_provenance_capture": "414138570664be8a146435535124cd85124ce773",
+  "full_precompile_working_tree_status": null,
+  "precompile_status_note": "The benchmark changes were uncommitted at compilation and initial native runs. A full contemporaneous git status and old binary hash were not retained. The final frozen files, core input hashes, current binary hashes, and later exact-source runs are retained instead.",
+  "working_tree_status_capture": "working-tree-status-at-provenance.txt",
+  "source_sha256": {
+    "examples/bench_produce.rs": "0477ab1a1e12fe580a2c57040f32cab867198204af2631aa0e9e8010a787badc",
+    "examples/bench_fetch.rs": "9f86dccaf4919dc8946b17e7ffdf964c7e0186a3a794cb52053f122ad1012ad2",
+    "examples/common/bench_history.rs": "4457ff7ff5f9b724e60b5707c29b944696ed5aa147cd6c0af059bccca78f981c",
+    "tests/bench_record_history.rs": "a9b1aeffd7a205f56bbd4f4dc9a47bc8850c40c6cae7cf85f21baadc851e2546",
+    "scripts/lab-a-integrity.sh": "49651fdfe9269cebc55d2dbb4b69f3c4e8de6c9073385bb719d8d530dbc39584",
+    "scripts/bench-record-history.py": "dea1869f5fffe2c3188060dd6163594ad003c406313ef89c9d43265349e50b17",
+    "tests/ci/test_bench_record_history.py": "9887026e5c416e8b1a5bec5e91742136ac3bbfdb18318bbbc86022eca60a2af6",
+    "docs/benchmark.md": "460deb90e631254c063b5366d9e11e8439519f9e60062ceef0ebb58d2c29752d"
+  },
+  "core_compile_input_sha256": "compile-input-hashes.json",
+  "final_binary_sha256": {
+    "bench_produce": {
+      "path": "/workspace/work/target-openloop/debug/examples/bench_produce",
+      "sha256": "e3add9177b2215d798756e3bac1eefe2e6d7e36a50bd58e7b7ccfd835bd89788",
+      "bytes": 74550128,
+      "modified_ns": 1790968912512780068
+    },
+    "bench_fetch": {
+      "path": "/workspace/work/target-openloop/debug/examples/bench_fetch",
+      "sha256": "19e3b461b4bc92bfcb6e8668a9fbdc5c2014ba0d637d62f5efc834a110405dce",
+      "bytes": 73138152,
+      "modified_ns": 1790968014073552313
+    }
+  },
+  "earlier_native_source": {
+    "runs": [
+      "native-run",
+      "acks0-native"
+    ],
+    "producer_snapshot": "source-snapshots/pre-stdout-correction/bench_produce.rs",
+    "producer_sha256": "2a5a93a4c04f7d28f964c2929b6ecd4a96f07cbac26ac96886354e7d78a15421",
+    "snapshot_method": "Reconstructed from final source by reversing the only subsequent source change: truthful partial local-completion stdout accounting. The two-line difference is retained in to-final.diff. Fetch and common helper content are unchanged.",
+    "historical_binary_sha256": null
+  },
+  "final_source_runs": [
+    "native-final",
+    "acks0-native-final"
+  ],
+  "control_run_source": "ControlRecords.java (Kafka Java client) plus final unchanged bench_fetch source",
+  "toolchains": {
+    "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1",
+    "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+    "python": "Python 3.12.14",
+    "java": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)"
+  },
+  "build": {
+    "profile": "dev, unoptimized + debuginfo",
+    "target_dir": "/workspace/work/target-openloop",
+    "incremental": false,
+    "jobs": 2,
+    "affinity": "0-2,4"
+  },
+  "host": {
+    "uname": "Linux c8ea22bb3ef9 6.18.44 #1 SMP Sat Sep 26 20:02:31 UTC 2026 x86_64 GNU/Linux",
+    "cpu_affinity": "0-2,4",
+    "single_host_loopback": true,
+    "shared_runner": true
+  },
+  "broker": {
+    "bootstrap": "127.0.0.1:47131",
+    "controller": 34291,
+    "pid": 110664,
+    "cluster_id": "qoc_dpgCSAKfeN6mY68JCg",
+    "topic": "kl04-07-e9e98322a3",
+    "kafka_home": "/workspace/work/c-peer/kafka_2.13-3.9.1",
+    "config": "/workspace/work/bench-history/native/server.properties",
+    "version": "Apache Kafka 3.9.1",
+    "replication_factor": 1,
+    "heap": "-Xms256m -Xmx256m",
+    "sha256_client_jar": "25c5e4eb059c35766f645c0e0bd2fe623a1ebdc18250957506b1edbf476d1272",
+    "config_sha256": "5970f7041678b3d35c3a61c5b77b121438dfdd471e07516dd3167c138dd99583"
+  },
+  "shared_checker_sha256": "539a379a4fa605f578b60f3686a22a1bf92d1cd67645b99d4e0a27ea247a03fe",
+  "result_schema": "Diagnostic correctness evidence only; not a benchmarks/result-schema.json campaign result.",
+  "qualification": false,
+  "suite_hold": "active"
+}

@@ -1,0 +1,13 @@
+{
+  "KAFKA_BOOTSTRAP": "127.0.0.1:47131",
+  "KAFKA_TOPIC": "kl04-07-e9e98322a3",
+  "COUNT": "128",
+  "PAYLOAD_BYTES": "100",
+  "ACKS": "1",
+  "LINGER_MS": "0",
+  "WARMUP_SECS": "0",
+  "RUNS": "1",
+  "PARTITIONS": "2",
+  "SEED": "1592590337",
+  "IDEMPOTENT": null
+}

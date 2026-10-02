@@ -1,0 +1,26 @@
+{
+  "original_archives_verified": 3,
+  "releases": [
+    {
+      "version": "4.1.2",
+      "commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "retained_archive_sha256": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+      "retained_files": 207,
+      "api_keys": 93
+    },
+    {
+      "version": "4.2.1",
+      "commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "retained_archive_sha256": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+      "retained_files": 207,
+      "api_keys": 93
+    },
+    {
+      "version": "4.3.1",
+      "commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "retained_archive_sha256": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332",
+      "retained_files": 208,
+      "api_keys": 93
+    }
+  ]
+}

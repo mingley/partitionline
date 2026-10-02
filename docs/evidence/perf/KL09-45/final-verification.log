@@ -1,0 +1,5 @@
+All 72 runtime result artifacts validate, 0 errors.
+Archive contains72 result JSONs,144 sidecars with independently recomputed SHA256 matches and40 external observer JSONs.
+All sanitized hostname fields are redacted. Original named10 paired rows match initial raw data exactly (paths alone normalized).
+95 companion artifacts now tracked; all file checksums verified before this log was added, and final manifest regenerated.
+Owned git diff --check exit0. Frozen baseline runtimeSHA256 973f3344c7569fb40b9911276c899de08c569dd360e62982d47d48ff231865f2; candidate9c9e4979ca07b63557bda788b2dbf76ec65218208f805a0eb418b4af14ed400f.

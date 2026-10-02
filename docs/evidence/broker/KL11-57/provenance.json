@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "task": "KL11-57",
+  "tested_base_sha": "77a1f00c82d4ca99520bcf063b1f1febadf5c4b2",
+  "shared_main_checkout": true,
+  "runtime": {
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "zlib_compile_version": "1.3.2",
+    "zlib_runtime_version": "1.3.2",
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "affinity": "0-2,4"
+  },
+  "source_files_sha256": {
+    "scripts/check-broker-api-matrix.py": "c52259c03b3e86a6d29e270d7238e80a0a721d6b61970c7cfdbea0c982dda6b2",
+    "tests/ci/test_broker_api_matrix.py": "8fe4c2a31d19637db998a9cdc23a2ffc1ec7b3edda1937293272ff5dedd07da8",
+    "tests/conformance/broker/api-matrix.json": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+    "tests/conformance/broker/features.json": "aaeada1187c0334951eb3e4bb80cfada83308518a8435b997771b19a81b3ccd2",
+    "tests/conformance/broker/upstream/README.md": "501543ee207d006ee5e19cd78e54ae2fb88092be5d0b4d9e5d09b562fe021660",
+    "tests/conformance/broker/upstream/apache-kafka-4.1.2-protocol.tar.gz": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+    "tests/conformance/broker/upstream/apache-kafka-4.2.1-protocol.tar.gz": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+    "tests/conformance/broker/upstream/apache-kafka-4.3.1-protocol.tar.gz": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332",
+    "tests/conformance/broker/upstream/retain-sources.py": "a8061e5daec396401fcb0c90201d0c086d8e59777be081d49c1632a2fc9aea13",
+    "docs/evidence/broker/KL11-57/MatrixRuntimeOracle.java": "30e422b050e639bc945d50de4b51c851e165f6e5f2e4842a860e6cd614010014",
+    "docs/evidence/broker/KL11-57/run-upstream-oracle.py": "52c18f76359dec8fd13b6c2b84b8fc8351414dc4ad44bb489ac833ab673446f2"
+  },
+  "upstream_pins": [
+    {
+      "version": "4.1.2",
+      "tag": "4.1.2",
+      "commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "original_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+      "retained_archive_sha256": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+      "retained_files": 207
+    },
+    {
+      "version": "4.2.1",
+      "tag": "4.2.1",
+      "commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "original_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+      "retained_archive_sha256": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+      "retained_files": 207
+    },
+    {
+      "version": "4.3.1",
+      "tag": "4.3.1",
+      "commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "original_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+      "retained_archive_sha256": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332",
+      "retained_files": 208
+    }
+  ],
+  "verification": "Original archive hashes checked before retention; regenerated retained archives and matrix compared byte for byte. Reviewed retained digests anchored independently in verifier. All per-file hashes checked. Independent compiled Apache metadata assertions and failing mutations retained.",
+  "commit_note": "Root coordinator will pin the pushed commit containing these exact frozen file hashes; other agents modified unrelated shared-main files concurrently."
+}

@@ -1,0 +1,6 @@
+rustc 1.99.0 (b940084d7 2026-09-28)
+cargo 1.99.0 (5f94df478 2026-08-27)
+observer {'VmHWM': '9412 kB', 'VmRSS': '9412 kB'}
+{"command": ["/usr/bin/true"], "exit": 0, "peak_bytes": 9568256}
+{"command": ["rustc", "--version"], "exit": 0, "peak_bytes": 85192704}
+{"command": ["cargo", "--version"], "exit": 0, "peak_bytes": 11628544}

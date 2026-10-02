@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "oracle": "Independent compiled ApiKeys/ApiMessageType in official Apache distributions; no broker/network in executions",
+  "source": "docs/evidence/broker/KL11-57/MatrixRuntimeOracle.java",
+  "source_sha256": "30e422b050e639bc945d50de4b51c851e165f6e5f2e4842a860e6cd614010014",
+  "runner": "docs/evidence/broker/KL11-57/run-upstream-oracle.py",
+  "runner_sha256": "52c18f76359dec8fd13b6c2b84b8fc8351414dc4ad44bb489ac833ab673446f2",
+  "java_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n",
+  "slf4j_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+  "positive_upstream_executions": 3,
+  "expected_failed_upstream_mutations": 3,
+  "total_api_key_assertions": 279,
+  "total_valid_header_pairs": 894,
+  "total_removed_key_request_response_rejections": 24,
+  "releases": [
+    {
+      "version": "4.1.2",
+      "distribution_provenance": {
+        "version": "4.1.2",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz",
+        "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+        "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+        "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+        "jar_build_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+        "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c"
+      },
+      "jar_path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "jar_properties": {
+        "commitId": "c82fd9b934b4c1e6",
+        "version": "4.1.2"
+      },
+      "compile_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "-d",
+        "/workspace/work/broker-api-inventory/java-4.1.2",
+        "docs/evidence/broker/KL11-57/MatrixRuntimeOracle.java"
+      ],
+      "compile_exit_code": 0,
+      "oracle_class_sha256": "68f99c1fb4e086a6bb177292dd55383ebdef5ed2d65a985d1aaaff9c3dcf8692",
+      "expected_tsv": "docs/evidence/broker/KL11-57/4.1.2-expected.tsv",
+      "expected_tsv_sha256": "63673b564038d17740ce15f1645c69d1ef560d86fc6b80b8ea830c49f18cce52",
+      "runtime_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/broker-api-inventory/java-4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "MatrixRuntimeOracle",
+        "docs/evidence/broker/KL11-57/4.1.2-expected.tsv"
+      ],
+      "exit_code": 0,
+      "output": "docs/evidence/broker/KL11-57/4.1.2-java-oracle.log",
+      "summary": "PASS keys=93 headers=292 removed=4 produce_schema_min=3 produce_upstream_advertised_min=0",
+      "deliberate_failing_variant": {
+        "mutation": "API 18 v4 expected response header changed from 0 to 1",
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/broker-api-inventory/java-4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "MatrixRuntimeOracle",
+          "docs/evidence/broker/KL11-57/4.1.2-header-mutant.tsv"
+        ],
+        "exit_code": 1,
+        "expected_tsv": "docs/evidence/broker/KL11-57/4.1.2-header-mutant.tsv",
+        "expected_tsv_sha256": "7ed5cfe6943a6b36a4c4d3d91b24e514f59a23359517825dc0ec47c90dcf592e",
+        "output": "docs/evidence/broker/KL11-57/4.1.2-header-mutant.log",
+        "assertion": "API key 18 mismatch: expected response header 1, actual upstream 0"
+      }
+    },
+    {
+      "version": "4.2.1",
+      "distribution_provenance": {
+        "version": "4.2.1",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.2.1/kafka_2.13-4.2.1.tgz",
+        "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+        "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+        "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+        "jar_build_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+        "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58"
+      },
+      "jar_path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "jar_properties": {
+        "commitId": "18d5ecd939c8d510",
+        "version": "4.2.1"
+      },
+      "compile_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "-d",
+        "/workspace/work/broker-api-inventory/java-4.2.1",
+        "docs/evidence/broker/KL11-57/MatrixRuntimeOracle.java"
+      ],
+      "compile_exit_code": 0,
+      "oracle_class_sha256": "68f99c1fb4e086a6bb177292dd55383ebdef5ed2d65a985d1aaaff9c3dcf8692",
+      "expected_tsv": "docs/evidence/broker/KL11-57/4.2.1-expected.tsv",
+      "expected_tsv_sha256": "c3c6fa70c518830d81d803bc4693eb407f85b63030a50ecb17779fba4d17aa74",
+      "runtime_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/broker-api-inventory/java-4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "MatrixRuntimeOracle",
+        "docs/evidence/broker/KL11-57/4.2.1-expected.tsv"
+      ],
+      "exit_code": 0,
+      "output": "docs/evidence/broker/KL11-57/4.2.1-java-oracle.log",
+      "summary": "PASS keys=93 headers=300 removed=4 produce_schema_min=3 produce_upstream_advertised_min=0",
+      "deliberate_failing_variant": {
+        "mutation": "API 18 v4 expected response header changed from 0 to 1",
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/broker-api-inventory/java-4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "MatrixRuntimeOracle",
+          "docs/evidence/broker/KL11-57/4.2.1-header-mutant.tsv"
+        ],
+        "exit_code": 1,
+        "expected_tsv": "docs/evidence/broker/KL11-57/4.2.1-header-mutant.tsv",
+        "expected_tsv_sha256": "804542c2601d38bad73ac2610fffa274000fb9c8288a73c4c2b37e6a47d95dda",
+        "output": "docs/evidence/broker/KL11-57/4.2.1-header-mutant.log",
+        "assertion": "API key 18 mismatch: expected response header 1, actual upstream 0"
+      }
+    },
+    {
+      "version": "4.3.1",
+      "distribution_provenance": {
+        "version": "4.3.1",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz",
+        "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+        "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+        "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+        "jar_build_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+        "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+      },
+      "jar_path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "jar_properties": {
+        "commitId": "26b251a451ce941d",
+        "version": "4.3.1"
+      },
+      "compile_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "-d",
+        "/workspace/work/broker-api-inventory/java-4.3.1",
+        "docs/evidence/broker/KL11-57/MatrixRuntimeOracle.java"
+      ],
+      "compile_exit_code": 0,
+      "oracle_class_sha256": "68f99c1fb4e086a6bb177292dd55383ebdef5ed2d65a985d1aaaff9c3dcf8692",
+      "expected_tsv": "docs/evidence/broker/KL11-57/4.3.1-expected.tsv",
+      "expected_tsv_sha256": "288d004b799b7f325372cf2223dfaf6fb488f9d51bb77f7937611810e71a7da6",
+      "runtime_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/broker-api-inventory/java-4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "MatrixRuntimeOracle",
+        "docs/evidence/broker/KL11-57/4.3.1-expected.tsv"
+      ],
+      "exit_code": 0,
+      "output": "docs/evidence/broker/KL11-57/4.3.1-java-oracle.log",
+      "summary": "PASS keys=93 headers=302 removed=4 produce_schema_min=3 produce_upstream_advertised_min=0",
+      "deliberate_failing_variant": {
+        "mutation": "API 18 v4 expected response header changed from 0 to 1",
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/broker-api-inventory/java-4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "MatrixRuntimeOracle",
+          "docs/evidence/broker/KL11-57/4.3.1-header-mutant.tsv"
+        ],
+        "exit_code": 1,
+        "expected_tsv": "docs/evidence/broker/KL11-57/4.3.1-header-mutant.tsv",
+        "expected_tsv_sha256": "dd6e66aac485a3a47d557b6126daca8d65f95bcc48d5319697cb16e8fb1de51c",
+        "output": "docs/evidence/broker/KL11-57/4.3.1-header-mutant.log",
+        "assertion": "API key 18 mismatch: expected response header 1, actual upstream 0"
+      }
+    }
+  ],
+  "limitations": [
+    "Compiled upstream generated API metadata assertions, not network handler tests.",
+    "Apache archive SHA512 provenance independently prepared by rpc_reuse agent and copied here; jar SHA256 and embedded commit/version verified locally before each execution.",
+    "Request-header ClientId encoding checked against retained schema; byte-level wire behavior belongs to KL11-04."
+  ]
+}

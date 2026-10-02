@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/workspace/work/bench-history/extra-native.py", line 26, in <module>
+    run(['javac','-cp',classpath,'-d',classes,out/'ControlRecords.java'],ctrl,'compile-java')
+  File "/workspace/work/bench-history/extra-native.py", line 10, in run
+    if p.returncode: raise RuntimeError(f'{name} failed: {p.returncode}; raw logs retained')
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: compile-java failed: 127; raw logs retained

@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "task": "KL11-57",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "9d1746e2bdd8702b48f676fa56d326ffa79a06c5",
+  "tested_base_sha": "77a1f00c82d4ca99520bcf063b1f1febadf5c4b2",
+  "source_files_sha256": {
+    "scripts/check-broker-api-matrix.py": "c52259c03b3e86a6d29e270d7238e80a0a721d6b61970c7cfdbea0c982dda6b2",
+    "tests/ci/test_broker_api_matrix.py": "8fe4c2a31d19637db998a9cdc23a2ffc1ec7b3edda1937293272ff5dedd07da8",
+    "tests/conformance/broker/api-matrix.json": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+    "tests/conformance/broker/features.json": "aaeada1187c0334951eb3e4bb80cfada83308518a8435b997771b19a81b3ccd2",
+    "tests/conformance/broker/upstream/README.md": "501543ee207d006ee5e19cd78e54ae2fb88092be5d0b4d9e5d09b562fe021660",
+    "tests/conformance/broker/upstream/apache-kafka-4.1.2-protocol.tar.gz": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+    "tests/conformance/broker/upstream/apache-kafka-4.2.1-protocol.tar.gz": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+    "tests/conformance/broker/upstream/apache-kafka-4.3.1-protocol.tar.gz": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332",
+    "tests/conformance/broker/upstream/retain-sources.py": "a8061e5daec396401fcb0c90201d0c086d8e59777be081d49c1632a2fc9aea13",
+    "docs/evidence/broker/KL11-57/MatrixRuntimeOracle.java": "30e422b050e639bc945d50de4b51c851e165f6e5f2e4842a860e6cd614010014",
+    "docs/evidence/broker/KL11-57/run-upstream-oracle.py": "52c18f76359dec8fd13b6c2b84b8fc8351414dc4ad44bb489ac833ab673446f2"
+  },
+  "commands": [
+    "taskset -c 0-2,4 python3 -B tests/conformance/broker/upstream/retain-sources.py --original-dir /workspace/work/broker-api --output-dir /workspace/work/broker-api-inventory/reproduced",
+    "Byte-for-byte comparison of regenerated retained archives and api-matrix.json",
+    "taskset -c 0-2,4 python3 -B scripts/check-broker-api-matrix.py --report docs/evidence/broker/KL11-57/matrix-verification.json",
+    "taskset -c 0-2,4 python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v",
+    "Six CLI corrupt pin/pair/header/file hash/archive/implementation-claim executions, each expected exit1; exact commands/input mutations/hashes retained in negative-checks.json",
+    "taskset -c 0-2,4 python3 -B docs/evidence/broker/KL11-57/run-upstream-oracle.py --jars /workspace/work/broker-wire/jars --provenance-dir /workspace/work/broker-wire/releases --work-dir /workspace/work/broker-api-inventory",
+    "Python ast.parse of verifier, retainer, tests, and oracle runner",
+    "git diff --check",
+    "Root source integration: verify all11 frozen source hashes against pushed 9d1746e2bdd8702b48f676fa56d326ffa79a06c5; rerun verifier and24mutation tests successfully."
+  ],
+  "results": {
+    "target_releases": [
+      "4.1.2",
+      "4.2.1",
+      "4.3.1"
+    ],
+    "assigned_api_keys_per_release": 93,
+    "active_api_keys_per_release": 89,
+    "removed_api_keys_per_release": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "listener_classification_counts_per_release": {
+      "broker_only": 48,
+      "controller_only": 12,
+      "broker_and_controller": 29,
+      "removed": 4
+    },
+    "retained_file_counts": [
+      207,
+      207,
+      208
+    ],
+    "header_pairs_per_release": [
+      292,
+      300,
+      302
+    ],
+    "original_archive_hashes_and_reproduction": "passed",
+    "static_verifier": "passed",
+    "guard_tests": {
+      "passed": 24,
+      "failed": 0
+    },
+    "deliberate_cli_failures": {
+      "expected_rejections": 6,
+      "observed_rejections": 6,
+      "actual_failed_verdicts_retained": true
+    },
+    "independent_compiled_java": {
+      "positive_executions": 3,
+      "api_row_assertions": 279,
+      "header_pairs": 894,
+      "removed_request_response_rejections": 24,
+      "expected_failed_mutations": 3,
+      "observed_failed_mutations": 3
+    },
+    "implemented_api_versions": [],
+    "broker_handlers_added": 0,
+    "non_api_contract_rows_preserved": 55,
+    "syntax_and_diff_check": "passed"
+  },
+  "failed_attempts": [
+    {
+      "kind": "development_test_assumptions",
+      "command": "python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v",
+      "passed": 22,
+      "failed": 2,
+      "details": [
+        "Vote was expected on both listeners; exact source and compiled Apache APIs show controller-only.",
+        "ShareFetchv2 was expected only in4.3.1; exact source and compiled Apache APIs show v2in4.2.1."
+      ],
+      "disposition": "Incorrect fixed-value spot-check expectations corrected; source-derived matrix unchanged. Final24tests pass. Initial raw terminal log not saved."
+    },
+    {
+      "kind": "scratch_manifest_command_syntax_error",
+      "details": "Intermediate inline Python manifest generator had mismatched closing braces and failed before any Java executions.",
+      "disposition": "Replaced with retained run-upstream-oracle.py; all3independent executions and all3failing mutations passed their expectations."
+    }
+  ],
+  "artifacts": [
+    "tests/conformance/broker/api-matrix.json",
+    "tests/conformance/broker/features.json",
+    "tests/conformance/broker/upstream/",
+    "scripts/check-broker-api-matrix.py",
+    "tests/ci/test_broker_api_matrix.py",
+    "docs/evidence/broker/KL11-57/",
+    "docs/plan/evidence/KL11-57.json"
+  ],
+  "limitations": [
+    "Static upstream inventory and compiled generated-metadata checks; no broker handler or API advertisement implementation is inferred.",
+    "Active API implementation statuses remain missing/not_run. Removedkeys4-7 are explicitly notapplicable upstream because Apache removed them in4.0 while reserving their IDs.",
+    "Produce schema minimum3 and upstream broker-listener advertisement minimum0 are separate facts; future partitionline advertises only actual tested support.",
+    "Request ClientId encoding checked against retained schema; independent byte-level wire fixtures belong toKL11-04.",
+    "Retained gzip reproduction uses Python3.12.14/zlib1.3.2; other compressors must not silently replace reviewed digests.",
+    "No network semantics, storage/replication/security/durability, production, performance, or full-goal qualification is claimed."
+  ],
+  "committed_source_note": "All 11 frozen implementation and independent oracle source files match the exact pushed source SHA. Original precommit base is retained separately and is not claimed as source."
+}

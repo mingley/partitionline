@@ -1,0 +1,19 @@
+--- pre-stdout-correction/bench_produce.rs
++++ final/examples/bench_produce.rs
+@@ -295,6 +295,7 @@
+     let metrics = producer.metrics();
+     let acknowledged_total = if acks == 0 { 0 } else { metrics.records_acked };
+     let locally_completed_total = if acks == 0 { metrics.records_acked } else { 0 };
++    let locally_completed = locally_completed_total.saturating_sub(warmup_count);
+     let acknowledged = if acks == 0 {
+         0
+     } else {
+@@ -324,7 +325,7 @@
+     let accepted_rec_s = measured_count as f64 / elapsed.max(1e-9);
+     println!(
+         "{{\"acked\":{acknowledged},\"accepted\":{measured_count},\"locally_completed\":{},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{acked_rec_s},\"accepted_rec_s\":{accepted_rec_s:.3},\"delivery_semantics\":\"{}\",\"payload_bytes\":{payload},\"acks\":{acks},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{idempotent},\"tls\":{tls_on},\"scram\":{scram_on},\"scram512\":{scram512_on},\"oauthbearer\":{oauth_on},\"record_history\":{},\"integrity_verified\":false,\"performance_claims_valid\":false,\"run_disposition\":\"{disposition}\"}}",
+-        if acks == 0 { measured_count } else { 0 }, if acks == 0 { "local_complete" } else { "broker_ack" }, compression.as_str(), journal.is_some()
++        locally_completed, if acks == 0 { "local_complete" } else { "broker_ack" }, compression.as_str(), journal.is_some()
+     );
+     if let Some(error) = failure {
+         return Err(error);

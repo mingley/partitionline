@@ -1,0 +1,1 @@
+Initial run-guards.py parsed valid bulk A0 artifact using capped-cell-only execution.cpu_ns_per_poll; KeyError (script exit 1). Bulk artifact exposes cpu_ns_per_round. Parser corrected; original A0 retained and reused, no measurement rerun or replacement. Runtime itself exited 0.

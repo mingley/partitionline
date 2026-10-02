@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "source_commit": "c9a2e8c12dd12e056902b8b9410e1407f798fad6",
+  "source_snapshots": 8,
+  "core_compile_inputs": 35,
+  "valid_final_source_records": 144,
+  "valid_java_transaction_records": 3,
+  "control_partition_end_offset": 4,
+  "matching_count_corruption_rejected": true,
+  "qualification": false
+}

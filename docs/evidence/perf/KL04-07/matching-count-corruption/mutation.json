@@ -1,0 +1,7 @@
+{
+  "kind": "synthetic matching-count fixture derived from retained native run",
+  "operation": "replace one consumed record with duplicate of first record, preserving total application count and offsets",
+  "expected_attempted_count": 128,
+  "expected_consumed_count": 128,
+  "expected_unique_consumed_ids": 127
+}

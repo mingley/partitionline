@@ -1,0 +1,1 @@
+{"source_commit": "c9a2e8c12dd12e056902b8b9410e1407f798fad6", "snapshotted_files": 8, "core_compile_inputs": 35, "broker_cleanup": "graceful_owned_process_shutdown"}

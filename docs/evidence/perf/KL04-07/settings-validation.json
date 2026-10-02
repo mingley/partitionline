@@ -1,0 +1,178 @@
+{
+  "status": "passed",
+  "case_count": 24,
+  "cases": [
+    {
+      "kind": "produce",
+      "settings": {
+        "COUNT": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "COUNT": "bad"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "COUNT": "-1"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "MEASURE_SECS": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "PAYLOAD_BYTES": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "CONNECTIONS": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "MAX_IN_FLIGHT": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "ACKS": "2"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "ACKS": "bad"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "IDEMPOTENT": "true"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "IDEMPOTENT": "1",
+        "ACKS": "1"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "WARMUP_SECS": "bad"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "RECORD_HISTORY": "unused.jsonl",
+        "COUNT": "1",
+        "PAYLOAD_BYTES": "23"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "produce",
+      "settings": {
+        "RECORD_HISTORY": "unused.jsonl"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "fetch",
+      "settings": {
+        "COUNT": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "fetch",
+      "settings": {
+        "COUNT": "bad"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "fetch",
+      "settings": {
+        "COUNT": "-1"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "fetch",
+      "settings": {
+        "VERIFY": "true"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "fetch",
+      "settings": {
+        "SEED": "bad"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "fetch",
+      "settings": {
+        "ISOLATION": "typo"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "fetch",
+      "settings": {
+        "MAX_WAIT_MS": "-1"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "fetch",
+      "settings": {
+        "MAX_BYTES": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "fetch",
+      "settings": {
+        "MIN_BYTES": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "kind": "fetch",
+      "settings": {
+        "RECORD_HISTORY": "unused.jsonl",
+        "VERIFY": "1"
+      },
+      "rejected_before_connection": true
+    }
+  ]
+}

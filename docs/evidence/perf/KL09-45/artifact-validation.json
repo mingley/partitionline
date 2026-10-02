@@ -1,0 +1,610 @@
+{
+  "valid": 72,
+  "failed": 0,
+  "runs": [
+    {
+      "artifact": "raw/first-baseline/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": false,
+      "excluded_original_fixture": true
+    },
+    {
+      "artifact": "raw/corrected-first-baseline/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": false,
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/paired/pair-00-A/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/paired/pair-00-B/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/paired/pair-01-A/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/paired/pair-01-B/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/paired/pair-02-A/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/paired/pair-02-B/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/paired/pair-03-A/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/paired/pair-03-B/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/paired/pair-04-A/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/paired/pair-04-B/nb-fetch-capped-paused-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-1000p/pair-00-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-1000p",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-1000p/pair-00-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-1000p",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-1000p/pair-01-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-1000p",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-1000p/pair-01-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-1000p",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-1000p/pair-02-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-1000p",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-1000p/pair-02-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-1000p",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-1000p/pair-03-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-1000p",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-1000p/pair-03-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-1000p",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-1000p/pair-04-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-1000p",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-1000p/pair-04-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-1000p",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-bulk/pair-00-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-bulk/pair-00-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-bulk/pair-01-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-bulk/pair-01-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-bulk/pair-02-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-bulk/pair-02-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-bulk/pair-03-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-bulk/pair-03-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-bulk/pair-04-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-paired/nb-fetch-bulk/pair-04-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-05-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-05-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-06-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-06-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-07-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-07-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-08-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-08-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-09-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-09-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-10-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-10-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-11-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-11-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-12-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-12-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-13-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-13-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-14-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-rss-corroboration/pair-14-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 RSS corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-15-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-15-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-16-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-16-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-17-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-17-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-18-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-18-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-19-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-19-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-20-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-20-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-21-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-21-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-22-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-22-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-23-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-23-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-24-A/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    },
+    {
+      "artifact": "raw/guard-hwm-corroboration/pair-24-B/nb-fetch-bulk-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "included_in_paired_analysis": true,
+      "guard_cell": "nb-fetch-bulk",
+      "cohort": "additional10 VmHWM corroboration",
+      "excluded_original_fixture": false
+    }
+  ]
+}

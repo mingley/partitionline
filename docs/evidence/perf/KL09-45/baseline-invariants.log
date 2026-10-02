@@ -1,0 +1,23 @@
+   Compiling partitionline v0.1.0 (/workspace/work/consumer-pending/baseline)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 24.49s
+     Running tests/consumer_close_commit.rs (/workspace/work/consumer-lookups/candidate-target/debug/deps/consumer_close_commit-4f3f0d72a72e1188)
+
+running 1 test
+test capped_pending_commit_tracks_each_paused_partition_independently ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.01s
+
+     Running tests/consumer_fetch_semantics.rs (/workspace/work/consumer-lookups/candidate-target/debug/deps/consumer_fetch_semantics-3410cd8345d8d2ba)
+
+running 1 test
+test capped_pending_order_survives_pause_and_later_fetch_rounds ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 61 filtered out; finished in 0.13s
+
+     Running tests/fetch_buffer_budget.rs (/workspace/work/consumer-lookups/candidate-target/debug/deps/fetch_buffer_budget-7bdbaf142ed8efa4)
+
+running 1 test
+test capped_pending_large_paused_partition_releases_only_sought_buffers ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.05s
+

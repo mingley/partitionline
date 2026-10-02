@@ -1,0 +1,21 @@
+test_acks0_acknowledgment_mislabel_fails_closed (test_bench_record_history.BenchHistoryTests.test_acks0_acknowledgment_mislabel_fails_closed) ... ok
+test_acks0_local_completion_is_never_promoted_to_acknowledged (test_bench_record_history.BenchHistoryTests.test_acks0_local_completion_is_never_promoted_to_acknowledged) ... ok
+test_acks0_requires_full_ids_for_benchmark_receipt_gate (test_bench_record_history.BenchHistoryTests.test_acks0_requires_full_ids_for_benchmark_receipt_gate) ... ok
+test_complete_history_passes_without_qualification (test_bench_record_history.BenchHistoryTests.test_complete_history_passes_without_qualification) ... ok
+test_control_offsets_are_gaps_not_application_records (test_bench_record_history.BenchHistoryTests.test_control_offsets_are_gaps_not_application_records) ... ok
+test_exposed_control_marker_is_a_correctness_failure (test_bench_record_history.BenchHistoryTests.test_exposed_control_marker_is_a_correctness_failure) ... ok
+test_failed_verdict_is_retained_and_cannot_be_overwritten (test_bench_record_history.BenchHistoryTests.test_failed_verdict_is_retained_and_cannot_be_overwritten) ... ok
+test_harness_preserves_matching_count_failure_and_raw_artifacts (test_bench_record_history.BenchHistoryTests.test_harness_preserves_matching_count_failure_and_raw_artifacts) ... ok
+test_harness_rejects_invalid_settings_before_broker_mutation (test_bench_record_history.BenchHistoryTests.test_harness_rejects_invalid_settings_before_broker_mutation) ... ok
+test_independent_generator_matches_rust_golden (test_bench_record_history.BenchHistoryTests.test_independent_generator_matches_rust_golden) ... ok
+test_matching_count_missing_duplicate_swap_fails (test_bench_record_history.BenchHistoryTests.test_matching_count_missing_duplicate_swap_fails) ... ok
+test_matching_count_payload_corruption_fails (test_bench_record_history.BenchHistoryTests.test_matching_count_payload_corruption_fails) ... ok
+test_partial_and_failed_histories_fail_closed (test_bench_record_history.BenchHistoryTests.test_partial_and_failed_histories_fail_closed) ... ok
+test_per_key_reordering_with_increasing_offsets_fails (test_bench_record_history.BenchHistoryTests.test_per_key_reordering_with_increasing_offsets_fails) ... ok
+test_producer_hash_is_checked_against_independent_generator (test_bench_record_history.BenchHistoryTests.test_producer_hash_is_checked_against_independent_generator) ... ok
+test_zero_or_malformed_count_and_missing_hash_fail_closed (test_bench_record_history.BenchHistoryTests.test_zero_or_malformed_count_and_missing_hash_fail_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.658s
+
+OK

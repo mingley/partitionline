@@ -1,0 +1,16 @@
+   Compiling partitionline v0.1.0 (/workspace/work/consumer-pending/baseline)
+error: unused result of type `Vec<RecordMetadata>`
+   --> tests/consumer_close_commit.rs:816:5
+    |
+816 | /     producer
+817 | |         .send_all([
+818 | |             ProduceRecord::to("t").partition(0).value(&b"a"[..]),
+819 | |             ProduceRecord::to("t").partition(0).value(&b"b"[..]),
+...   |
+823 | |         .await
+824 | |         .unwrap();
+    | |__________________^
+    |
+    = note: requested on the command line with `-D unused-results`
+
+error: could not compile `partitionline` (test "consumer_close_commit") due to 1 previous error

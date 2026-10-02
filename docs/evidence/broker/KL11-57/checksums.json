@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "files": {
+    "docs/evidence/broker/KL11-57/4.1.2-expected.tsv": {
+      "sha256": "63673b564038d17740ce15f1645c69d1ef560d86fc6b80b8ea830c49f18cce52",
+      "bytes": 6971
+    },
+    "docs/evidence/broker/KL11-57/4.1.2-header-mutant.log": {
+      "sha256": "397c19999830eb16fa5d93e097149cb45fcad15dc5ac2cc7053eb490d950575e",
+      "bytes": 1898
+    },
+    "docs/evidence/broker/KL11-57/4.1.2-header-mutant.tsv": {
+      "sha256": "7ed5cfe6943a6b36a4c4d3d91b24e514f59a23359517825dc0ec47c90dcf592e",
+      "bytes": 6971
+    },
+    "docs/evidence/broker/KL11-57/4.1.2-java-compile.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/evidence/broker/KL11-57/4.1.2-java-oracle.log": {
+      "sha256": "8362a12a27c441af8748f1072792466aa3289876034a8e0d0c55ac25a031c5c6",
+      "bytes": 7061
+    },
+    "docs/evidence/broker/KL11-57/4.2.1-expected.tsv": {
+      "sha256": "c3c6fa70c518830d81d803bc4693eb407f85b63030a50ecb17779fba4d17aa74",
+      "bytes": 7024
+    },
+    "docs/evidence/broker/KL11-57/4.2.1-header-mutant.log": {
+      "sha256": "98128916ceb3eaf1ef411d4ca41a8e4a7b503050053aab6c185300cdb65b0c3f",
+      "bytes": 1909
+    },
+    "docs/evidence/broker/KL11-57/4.2.1-header-mutant.tsv": {
+      "sha256": "804542c2601d38bad73ac2610fffa274000fb9c8288a73c4c2b37e6a47d95dda",
+      "bytes": 7024
+    },
+    "docs/evidence/broker/KL11-57/4.2.1-java-compile.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/evidence/broker/KL11-57/4.2.1-java-oracle.log": {
+      "sha256": "137150852f0c78ff215f32becb7023be896785075d587fd5b743a659644a6b94",
+      "bytes": 7114
+    },
+    "docs/evidence/broker/KL11-57/4.3.1-expected.tsv": {
+      "sha256": "288d004b799b7f325372cf2223dfaf6fb488f9d51bb77f7937611810e71a7da6",
+      "bytes": 7036
+    },
+    "docs/evidence/broker/KL11-57/4.3.1-header-mutant.log": {
+      "sha256": "98128916ceb3eaf1ef411d4ca41a8e4a7b503050053aab6c185300cdb65b0c3f",
+      "bytes": 1909
+    },
+    "docs/evidence/broker/KL11-57/4.3.1-header-mutant.tsv": {
+      "sha256": "dd6e66aac485a3a47d557b6126daca8d65f95bcc48d5319697cb16e8fb1de51c",
+      "bytes": 7036
+    },
+    "docs/evidence/broker/KL11-57/4.3.1-java-compile.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/evidence/broker/KL11-57/4.3.1-java-oracle.log": {
+      "sha256": "e3c338a0811a66dfa21232c088ca82aab484be851f542eb0517cedf5078a5ede",
+      "bytes": 7126
+    },
+    "docs/evidence/broker/KL11-57/MatrixRuntimeOracle.java": {
+      "sha256": "30e422b050e639bc945d50de4b51c851e165f6e5f2e4842a860e6cd614010014",
+      "bytes": 3521
+    },
+    "docs/evidence/broker/KL11-57/README.md": {
+      "sha256": "9d8a863d916bfc283c61a3ad987748bb904d7991e8a56ce5513c3d97256f5cf1",
+      "bytes": 4741
+    },
+    "docs/evidence/broker/KL11-57/api-versions-response-header.json": {
+      "sha256": "bb9a14600173e7f37da21f32929d8135b5ae27dbad4b4dc88318f4b8065e2d55",
+      "bytes": 136
+    },
+    "docs/evidence/broker/KL11-57/api-versions-response-header.log": {
+      "sha256": "bb9a14600173e7f37da21f32929d8135b5ae27dbad4b4dc88318f4b8065e2d55",
+      "bytes": 136
+    },
+    "docs/evidence/broker/KL11-57/changed-source-pin.json": {
+      "sha256": "c46c34e3ed5ebf019167ea622cd13b24dfd0027a1400f1e9c6544bea1b22caab",
+      "bytes": 133
+    },
+    "docs/evidence/broker/KL11-57/changed-source-pin.log": {
+      "sha256": "c46c34e3ed5ebf019167ea622cd13b24dfd0027a1400f1e9c6544bea1b22caab",
+      "bytes": 133
+    },
+    "docs/evidence/broker/KL11-57/corrupt-per-file-hash.json": {
+      "sha256": "04d57519ba2c81d666b0825360d0f0d2b7d9e49bfff2bdcd2bb8cd0c7d61d282",
+      "bytes": 143
+    },
+    "docs/evidence/broker/KL11-57/corrupt-per-file-hash.log": {
+      "sha256": "04d57519ba2c81d666b0825360d0f0d2b7d9e49bfff2bdcd2bb8cd0c7d61d282",
+      "bytes": 143
+    },
+    "docs/evidence/broker/KL11-57/corrupt-retained-archive.json": {
+      "sha256": "9cccc4df136c06fc1541f16a56e75c220f74feaeb2825088eb60f31f9f916386",
+      "bytes": 131
+    },
+    "docs/evidence/broker/KL11-57/corrupt-retained-archive.log": {
+      "sha256": "9cccc4df136c06fc1541f16a56e75c220f74feaeb2825088eb60f31f9f916386",
+      "bytes": 131
+    },
+    "docs/evidence/broker/KL11-57/matrix-verification.json": {
+      "sha256": "678d3de3a1dc7473305e76e62c299eb605de4e37c15cc8e382f61367ba30c917",
+      "bytes": 2136
+    },
+    "docs/evidence/broker/KL11-57/matrix-verification.log": {
+      "sha256": "678d3de3a1dc7473305e76e62c299eb605de4e37c15cc8e382f61367ba30c917",
+      "bytes": 2136
+    },
+    "docs/evidence/broker/KL11-57/missing-matrix-pair.json": {
+      "sha256": "bb9a14600173e7f37da21f32929d8135b5ae27dbad4b4dc88318f4b8065e2d55",
+      "bytes": 136
+    },
+    "docs/evidence/broker/KL11-57/missing-matrix-pair.log": {
+      "sha256": "bb9a14600173e7f37da21f32929d8135b5ae27dbad4b4dc88318f4b8065e2d55",
+      "bytes": 136
+    },
+    "docs/evidence/broker/KL11-57/mutation-tests.log": {
+      "sha256": "bb98365f092d4e5babd4535d24cea4f5da93ca8965bf04eb824eb1e9a584c9ad",
+      "bytes": 3833
+    },
+    "docs/evidence/broker/KL11-57/negative-checks.json": {
+      "sha256": "ac6a6b212980401d3eee7bcd9aa9874764e22455bf44383bb6b02bda90b309c4",
+      "bytes": 13065
+    },
+    "docs/evidence/broker/KL11-57/provenance.json": {
+      "sha256": "a25a23ad55e746d598b0975eb0ea1d3ed91533c476b05d7f58f024ec23ed0ca8",
+      "bytes": 3725
+    },
+    "docs/evidence/broker/KL11-57/retention-reproduction.json": {
+      "sha256": "c4d20a97764f3fe52289f83dbb2609b1786ffcbeb7f31de30a669e538d634918",
+      "bytes": 808
+    },
+    "docs/evidence/broker/KL11-57/run-upstream-oracle.py": {
+      "sha256": "52c18f76359dec8fd13b6c2b84b8fc8351414dc4ad44bb489ac833ab673446f2",
+      "bytes": 7243
+    },
+    "docs/evidence/broker/KL11-57/unsupported-implementation-claim.json": {
+      "sha256": "12f72eba215f5228b49b4aa84c7595dc7593c249392958454c3ca9dbb0cfed1d",
+      "bytes": 150
+    },
+    "docs/evidence/broker/KL11-57/unsupported-implementation-claim.log": {
+      "sha256": "12f72eba215f5228b49b4aa84c7595dc7593c249392958454c3ca9dbb0cfed1d",
+      "bytes": 150
+    },
+    "docs/evidence/broker/KL11-57/upstream-java-oracle.json": {
+      "sha256": "a6781a527a058491c2c5dcdc9158b4f6ecf1ee7863c5efc32a445c220e476156",
+      "bytes": 10938
+    },
+    "docs/evidence/broker/KL11-57/upstream-java-oracle.log": {
+      "sha256": "fb7f4c35b604d8701b6eca4e5c9a63e5198d8648b02e7eb8ceee3edfbf073a72",
+      "bytes": 358
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"transactional_application_records": 3, "transactional_log_end_offset": 4, "control_offsets_counted_as_application_records": false, "compiler_fallback": "jdk.compiler module; original missing javac attempt retained"}

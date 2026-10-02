@@ -1,0 +1,12 @@
+    Checking partitionline v0.1.0 (/workspace/partitionline)
+warning: this lint expectation is unfulfilled
+  --> examples/bench_fetch.rs:10:10
+   |
+10 | #[expect(dead_code, reason = "shared benchmark helper includes producer-only optional settings")]
+   |          ^^^^^^^^^
+   |
+   = note: shared benchmark helper includes producer-only optional settings
+   = note: `#[warn(unfulfilled_lint_expectations)]` on by default
+
+warning: `partitionline` (example "bench_fetch") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.12s

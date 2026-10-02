@@ -1,0 +1,109 @@
+   Compiling partitionline v0.1.0 (/workspace/work/consumer-pending/candidate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 38.41s
+     Running tests/consumer_close_commit.rs (/workspace/work/consumer-lookups/candidate-target/debug/deps/consumer_close_commit-4f3f0d72a72e1188)
+
+running 17 tests
+test auto_commit_on_leave_with_long_interval_does_not_commit ... ok
+test auto_commit_on_poll_interval_still_commits ... ok
+test capped_pending_commit_tracks_each_paused_partition_independently ... ok
+test commit_after_capped_poll_must_not_commit_buffered_records ... ok
+test capped_poll_crash_with_interval_auto_commit_does_not_skip_prefetched_records ... ok
+test commit_after_capped_poll_with_seek ... ok
+test commit_after_capped_poll_with_pause_and_resume ... ok
+test default_leave_does_not_offset_commit ... ok
+test commit_with_metadata_preserves_explicit_offsets ... ok
+test expired_interval_does_not_commit_before_first_application_delivery ... ok
+test interval_auto_commit_does_not_commit_batch_about_to_be_returned ... ok
+test max_poll_expiry_commits_only_delivered_position ... ok
+test rebalance_preserves_buffered_records_for_retained_partitions ... ok
+test static_member_unsubscribe_then_commit_sends_no_offset_commit ... ok
+test unsubscribe_with_auto_commit_does_not_commit_positions ... ok
+test zero_interval_does_not_commit_before_first_application_delivery ... ok
+test kip848_fencing_rejoin_preserves_delivered_position ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+
+     Running tests/consumer_fetch_semantics.rs (/workspace/work/consumer-lookups/candidate-target/debug/deps/consumer_fetch_semantics-3410cd8345d8d2ba)
+
+running 62 tests
+test capped_pending_order_survives_pause_and_later_fetch_rounds ... ok
+test aborted_transaction_spanning_across_fetches_must_return_subsequent_committed_record ... ok
+test committed_transaction_after_abort_for_same_pid_must_be_visible ... ok
+test control_only_batch_advances_delivered_position_and_fetch_cursor ... ok
+test fetch_mixed_version_both_bootstrap_leader_orders ... ok
+test control_scenario_aligned_batch_delivers_and_shuts_down ... ok
+test fetch_mixed_version_multi_partition_distinct_leaders ... ok
+test fetch_mixed_version_preferred_replica_uses_replica_version ... ok
+test fetch_mixed_version_leader_movement_and_reconnect ... ok
+test fetch_offset_filter_multiple_partitions ... ok
+test fetch_offset_filter_must_not_bypass_aborted_or_control_filtering ... ok
+test fetch_offset_filter_compressed_batches ... ok
+test fetch_offset_filter_must_not_regress_position_or_lose_later_records ... ok
+test fetch_session_recovery_broker_restart_recreates_session_without_losing_offsets ... ok
+test fetch_session_recovery_cancelled_round_and_wakeup_recreate_without_position_advance ... ok
+test fetch_session_recovery_close_uses_one_budget_across_stalled_brokers_and_zero_is_immediate ... ok
+test fetch_session_recovery_empty_throttled_full_response_declines_session_until_quota_expires ... ok
+test fetch_session_recovery_group_close_retires_session_without_automatic_offset_commit ... ok
+test fetch_offset_filter_sparse_and_compacted_offsets ... ok
+test fetch_session_recovery_pause_all_unassign_and_leader_move_retire_server_state ... ok
+test fetch_session_recovery_peer_error_preserves_healthy_records_exactly_once ... ok
+test fetch_session_recovery_recreated_topic_reassignment_discards_previous_id_buffer ... ok
+test fetch_session_recovery_rejects_incomplete_full_and_extra_incremental_partitions ... ok
+test fetch_session_recovery_repeated_errors_are_bounded_by_original_request_deadline ... ok
+test fetch_session_recovery_top_level_errors_retry_without_applying_poison_data ... ok
+test fetch_session_recovery_truncated_or_wrong_identity_response_forces_next_full_request ... ok
+test fetch_session_recovery_terminal_retirement_obeys_broker_quota_and_close_budget ... ok
+test fetch_throttle_caller_cancellation_does_not_mutate_default_wait ... ok
+test fetch_throttle_delays_next_request_without_delaying_returned_records ... ok
+test fetch_throttle_delivers_pending_records_and_bounds_one_shot_wait ... ok
+test fetch_throttle_interval_starts_at_each_response_completion ... ok
+test fetch_throttle_observes_peer_body_discarded_at_buffer_limit ... ok
+test fetch_throttle_preserves_interval_during_idle_reconnection ... ok
+test fetch_throttle_other_broker_progress_and_legacy_version ... ok
+test fetch_throttle_wait_consumes_request_deadline ... ok
+test fetch_throttle_wakeup_preserves_positions_and_quota ... ok
+test fixture_broker_drop_aborts_tasks ... ok
+test fixture_broker_wire_handshake_and_bounded_shutdown ... ok
+test fixture_builds_abort_then_commit_control_marker_sequence ... ok
+test fixture_builds_one_partition_retry_beside_successful_partition ... ok
+test fixture_builds_out_of_range_partition_response ... ok
+test fixture_builds_whole_batch_with_records_before_requested_offset_without_prefiltering ... ok
+test incremental_fetch_sessions_are_broker_local_with_legacy_peer_fallback ... ok
+test incremental_fetch_sessions_deliver_new_records_and_only_send_changed_offsets ... ok
+test incremental_fetch_sessions_forget_paused_partitions_and_add_resumed_partitions ... ok
+test incremental_fetch_sessions_reduce_unchanged_request_bytes_across_versions ... ok
+test live_fetch_session_recovery_required ... ignored, requires the owned digest-pinned KL05-07 broker and explicit observer ports
+test max_poll_records_distinguishes_delivered_position_and_fetch_cursor ... ok
+test mixed_partition_retry_aborted_must_not_advance_positions_for_discarded_records ... ok
+test fetch_throttle_version_boundary_zero_and_invalid_values ... ok
+test mixed_partition_retry_must_preserve_successful_records ... ok
+test mixed_partition_retry_with_preferred_replica_redirect_must_preserve_successful_records ... ok
+test nontransactional_records_sharing_aborted_pid_must_be_visible ... ok
+test mixed_partition_retry_with_transport_failure_must_preserve_successful_records ... ok
+test out_of_range_preferred_replica_resets_if_leader_also_out_of_range ... ok
+test out_of_range_preferred_replica_retries_at_leader_before_destructive_reset ... ok
+test out_of_range_with_reset_earliest_resolves_log_start_and_clears_stale_state ... ok
+test out_of_range_with_reset_latest_resolves_high_watermark_and_clears_stale_state ... ok
+test out_of_range_with_reset_none_must_fail_without_advancing ... ok
+test read_committed_multiple_aborted_intervals_and_pids ... ok
+test read_committed_stops_at_last_stable_offset_boundary ... ok
+test seek_inside_batch_must_not_return_earlier_records ... ok
+
+test result: ok. 61 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 4.42s
+
+     Running tests/fetch_buffer_budget.rs (/workspace/work/consumer-lookups/candidate-target/debug/deps/fetch_buffer_budget-7bdbaf142ed8efa4)
+
+running 10 tests
+test batch_exceeding_hard_decode_ceiling_fails_cleanly ... ok
+test capped_pending_large_paused_partition_releases_only_sought_buffers ... ok
+test drop_and_clear_releases_all_memory ... ok
+test multi_partition_single_broker_budget_stops_at_ceiling ... ok
+test oversized_first_batch_larger_than_soft_limit_preserves_progress ... ok
+test pause_holds_buffers_and_does_not_commit_undelivered ... ok
+test seek_releases_buffer_and_does_not_commit_undelivered ... ok
+test slow_processing_and_max_poll_records_bounds_memory_across_brokers ... ok
+test zero_buffer_memory_allows_unbounded_buffering ... ok
+test batch_past_budget_is_not_decompressed ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.91s
+

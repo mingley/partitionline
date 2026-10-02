@@ -1,0 +1,1 @@
+{"consumed":128,"elapsed_s":0.033763,"consumed_rec_s":3791.135,"partitions":2,"max_wait_ms":100,"max_bytes":16777216,"verified":128,"verify_mismatches":0,"verify_gaps":0,"record_history":true,"integrity_verified":true,"performance_claims_valid":false,"run_disposition":"executed"}

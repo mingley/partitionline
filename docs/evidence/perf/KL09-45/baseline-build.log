@@ -1,0 +1,5 @@
+   Compiling partitionline v0.1.0 (/workspace/work/consumer-pending/baseline)
+   Compiling codec v0.1.0 (/workspace/work/consumer-pending/baseline/benchmarks/codec)
+   Compiling nullbroker v0.1.0 (/workspace/work/consumer-pending/baseline/benchmarks/nullbroker)
+   Compiling runtime v0.1.0 (/workspace/work/consumer-pending/baseline/benchmarks/runtime)
+    Finished `release` profile [optimized] target(s) in 1m 07s
