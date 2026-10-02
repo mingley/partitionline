@@ -6515,6 +6515,7 @@
         "benchmarks/runtime/src/stalled_dial.rs",
         "benchmarks/runtime/src/lib.rs",
         "benchmarks/runtime/tests/e2e.rs",
+        "tests/common/stalled_dial.rs",
         "tests/bootstrap_dials.rs",
         "docs/plan/evidence/KL09-71.json",
         "docs/evidence/perf/KL09-71/",
