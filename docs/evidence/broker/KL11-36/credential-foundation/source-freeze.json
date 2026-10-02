@@ -1,0 +1,10 @@
+{
+  "base_source_sha": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+  "files": {
+    "partitionline-broker/src/security/credentials.rs": "68c31f3d2aebfe4606d0b4012ae295720ddc549e821e9928fd7199947701f938",
+    "partitionline-broker/src/security/sasl.rs": "92b84bfb8a8fbad1998660428fb5043b26eee258cae610ae14ef18318168cbe7",
+    "partitionline-broker/tests/sasl_credentials.rs": "236b35f4af17caad577c389465597961d303269cf00f2d0c42903360ea11e333"
+  },
+  "scope": "Bounded durable credential actor and immutable admitted PLAIN/SCRAM generation; socket and wire administration integration pending.",
+  "qualification": "not_run"
+}

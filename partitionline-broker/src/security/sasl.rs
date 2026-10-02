@@ -52,7 +52,7 @@ pub enum Error {
     Cancelled,
     /// OS cryptographic randomness is unavailable.
     Randomness,
-    /// Credential generation counter cannot be advanced.
+    /// Credential service is disabled or its generation cannot be advanced.
     Unavailable,
 }
 impl fmt::Display for Error {
@@ -123,7 +123,7 @@ impl Limits {
         }
         Ok(())
     }
-    fn identity(self, identity: &str) -> bool {
+    pub(crate) fn identity(self, identity: &str) -> bool {
         !identity.is_empty()
             && identity.len() <= self.identity_bytes
             && !identity.chars().any(char::is_control)
@@ -151,7 +151,7 @@ impl Algorithm {
             Self::Sha512 => "SCRAM-SHA-512",
         }
     }
-    fn size(self) -> usize {
+    pub(crate) fn size(self) -> usize {
         match self {
             Self::Sha256 => 32,
             Self::Sha512 => 64,
@@ -203,6 +203,9 @@ impl Secret {
     pub fn new(bytes: Vec<u8>) -> Self {
         Self(Zeroizing::new(bytes))
     }
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 impl fmt::Debug for Secret {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -243,6 +246,26 @@ impl fmt::Debug for Credential {
     }
 }
 impl Credential {
+    pub(crate) fn from_salted_password(
+        algorithm: Algorithm,
+        salt: Vec<u8>,
+        iterations: u32,
+        salted: Secret,
+        limits: Limits,
+    ) -> Result<Self, Error> {
+        limits.validate()?;
+        if !(16..=limits.salt_bytes).contains(&salt.len())
+            || !(4096..=limits.iterations).contains(&iterations)
+            || salted.0.len() != algorithm.size()
+        {
+            return Err(Error::InvalidCredential);
+        }
+        keys_from_salted(algorithm, &salted.0, salt, iterations)
+    }
+
+    pub(crate) fn iterations(&self) -> u32 {
+        self.iterations
+    }
     /// Validate an imported salted verifier under the configured bounds.
     pub fn from_form(form: CredentialForm, limits: Limits) -> Result<Self, Error> {
         limits.validate()?;
@@ -283,9 +306,18 @@ fn derive(
         Algorithm::Sha256 => pbkdf2_hmac::<Sha256>(password, &salt, iterations, &mut salted),
         Algorithm::Sha512 => pbkdf2_hmac::<Sha512>(password, &salt, iterations, &mut salted),
     }
-    let client_key = algorithm.mac(&salted, b"Client Key")?;
+    keys_from_salted(algorithm, &salted, salt, iterations)
+}
+
+fn keys_from_salted(
+    algorithm: Algorithm,
+    salted: &[u8],
+    salt: Vec<u8>,
+    iterations: u32,
+) -> Result<Credential, Error> {
+    let client_key = algorithm.mac(salted, b"Client Key")?;
     let stored_key = Zeroizing::new(algorithm.hash(&client_key));
-    let server_key = algorithm.mac(&salted, b"Server Key")?;
+    let server_key = algorithm.mac(salted, b"Server Key")?;
     Ok(Credential {
         algorithm,
         salt,
@@ -308,6 +340,11 @@ struct Inner {
 /// Shared immutable credential generations and bounded expensive-work pools.
 #[derive(Clone)]
 pub struct Service(Arc<Inner>);
+
+pub(crate) enum PublicationError<E> {
+    Validation(Error),
+    Commit(E),
+}
 impl fmt::Debug for Service {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("Service { [REDACTED] }")
@@ -343,6 +380,51 @@ impl Service {
     }
     /// Replace all salted verifiers atomically; existing sessions retain their generation.
     pub fn replace(&self, records: Vec<(String, Credential)>) -> Result<u64, Error> {
+        match self.publish_after(records, || Ok::<(), std::convert::Infallible>(())) {
+            Ok(generation) => Ok(generation),
+            Err(PublicationError::Validation(error)) => Err(error),
+            Err(PublicationError::Commit(never)) => match never {},
+        }
+    }
+
+    // The storage actor calls this on its blocking thread. Every validation and
+    // allocation and the failfast lock acquisition precedes durable I/O. There
+    // is no await with the guard and no allocation between fsync and publication.
+    pub(crate) fn publish_after<E>(
+        &self,
+        records: Vec<(String, Credential)>,
+        synchronize: impl FnOnce() -> Result<(), E>,
+    ) -> Result<u64, PublicationError<E>> {
+        let map = self
+            .validated_records(records)
+            .map_err(PublicationError::Validation)?;
+        let mut snapshot = self
+            .0
+            .snapshot
+            .try_write()
+            .map_err(|_| PublicationError::Validation(Error::Busy))?;
+        let generation = snapshot
+            .generation
+            .checked_add(1)
+            .ok_or(PublicationError::Validation(Error::Unavailable))?;
+        let prepared = Arc::new(Snapshot {
+            generation,
+            records: map,
+        });
+        synchronize().map_err(PublicationError::Commit)?;
+        *snapshot = prepared;
+        Ok(generation)
+    }
+
+    pub(crate) fn disable(&self) {
+        self.0.admissions.close();
+        self.0.workers.close();
+    }
+
+    fn validated_records(
+        &self,
+        records: Vec<(String, Credential)>,
+    ) -> Result<HashMap<(String, Algorithm), Arc<Credential>>, Error> {
         if records.len() > self.0.limits.credentials {
             return Err(Error::InvalidCredential);
         }
@@ -359,16 +441,7 @@ impl Service {
                 return Err(Error::InvalidCredential);
             }
         }
-        let mut snapshot = self.0.snapshot.try_write().map_err(|_| Error::Busy)?;
-        let generation = snapshot
-            .generation
-            .checked_add(1)
-            .ok_or(Error::Unavailable)?;
-        *snapshot = Arc::new(Snapshot {
-            generation,
-            records: map,
-        });
-        Ok(generation)
+        Ok(map)
     }
     /// Observe bounds without exposing credential material.
     pub fn work_counts(&self) -> WorkCounts {
@@ -382,7 +455,10 @@ impl Service {
             .admissions
             .clone()
             .try_acquire_owned()
-            .map_err(|_| Error::Busy)
+            .map_err(|error| match error {
+                tokio::sync::TryAcquireError::Closed => Error::Unavailable,
+                tokio::sync::TryAcquireError::NoPermits => Error::Busy,
+            })
     }
     fn snapshot(&self) -> Result<Arc<Snapshot>, Error> {
         Ok(self.0.snapshot.try_read().map_err(|_| Error::Busy)?.clone())
@@ -396,7 +472,10 @@ impl Service {
             .workers
             .clone()
             .try_acquire_owned()
-            .map_err(|_| Error::Busy)?;
+            .map_err(|error| match error {
+                tokio::sync::TryAcquireError::Closed => Error::Unavailable,
+                tokio::sync::TryAcquireError::NoPermits => Error::Busy,
+            })?;
         let cancelled = Arc::new(AtomicBool::new(false));
         let _cancel_on_drop = CancelOnDrop(cancelled.clone());
         tokio::task::spawn_blocking(move || {
@@ -445,49 +524,16 @@ impl Service {
         if message.0.len() > self.0.limits.message_bytes {
             return Err(Error::InvalidMessage);
         }
-        let _admission = self.admission()?;
-        let snapshot = self.snapshot()?;
-        let limits = self.0.limits;
-        self.work(move || {
-            let parts: Vec<_> = message.0.split(|b| *b == 0).take(4).collect();
-            if parts.len() != 3 {
-                return Err(Error::InvalidMessage);
-            }
-            let authz = std::str::from_utf8(parts[0]).map_err(|_| Error::InvalidMessage)?;
-            let name = std::str::from_utf8(parts[1]).map_err(|_| Error::InvalidMessage)?;
-            let password = parts[2];
-            if !limits.identity(name)
-                || (!authz.is_empty() && !limits.identity(authz))
-                || !limits.password(password)
-            {
-                return Err(Error::InvalidMessage);
-            }
-            if !authz.is_empty() && authz != name {
-                return Err(Error::AuthenticationFailed);
-            }
-            let credential = snapshot
-                .records
-                .get(&(name.to_owned(), Algorithm::Sha256))
-                .or_else(|| snapshot.records.get(&(name.to_owned(), Algorithm::Sha512)))
-                .ok_or(Error::AuthenticationFailed)?;
-            let candidate = derive(
-                credential.algorithm,
-                password,
-                credential.salt.clone(),
-                credential.iterations,
-            )?;
-            if !credential
-                .algorithm
-                .equal(&candidate.stored_key, &credential.stored_key)
-            {
-                return Err(Error::AuthenticationFailed);
-            }
-            Ok(Identity {
-                name: name.to_owned(),
-                generation: snapshot.generation,
-            })
+        self.begin_plain()?.finish(message).await
+    }
+    /// Capture one credential generation and admission for a PLAIN exchange.
+    pub fn begin_plain(&self) -> Result<PlainSession, Error> {
+        let admission = self.admission()?;
+        Ok(PlainSession {
+            service: self.clone(),
+            snapshot: self.snapshot()?,
+            _admission: admission,
         })
-        .await
     }
     /// Admit a one-shot SCRAM session capturing the current credential generation.
     pub fn scram(&self, algorithm: Algorithm) -> Result<ScramSession, Error> {
@@ -500,6 +546,73 @@ impl Service {
             challenge: None,
             started: false,
         })
+    }
+}
+
+/// One admitted PLAIN exchange; final verification consumes its captured generation.
+pub struct PlainSession {
+    service: Service,
+    snapshot: Arc<Snapshot>,
+    _admission: OwnedSemaphorePermit,
+}
+impl fmt::Debug for PlainSession {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("PlainSession { [REDACTED] }")
+    }
+}
+impl PlainSession {
+    /// Verify an owned zeroizing token outside Tokio against the captured generation.
+    pub async fn finish(self, message: Secret) -> Result<Identity, Error> {
+        if message.0.len() > self.service.0.limits.message_bytes {
+            return Err(Error::InvalidMessage);
+        }
+        let Self {
+            service,
+            snapshot,
+            _admission,
+        } = self;
+        let limits = service.0.limits;
+        service
+            .work(move || {
+                let parts: Vec<_> = message.0.split(|b| *b == 0).take(4).collect();
+                if parts.len() != 3 {
+                    return Err(Error::InvalidMessage);
+                }
+                let authz = std::str::from_utf8(parts[0]).map_err(|_| Error::InvalidMessage)?;
+                let name = std::str::from_utf8(parts[1]).map_err(|_| Error::InvalidMessage)?;
+                let password = parts[2];
+                if !limits.identity(name)
+                    || (!authz.is_empty() && !limits.identity(authz))
+                    || !limits.password(password)
+                {
+                    return Err(Error::InvalidMessage);
+                }
+                if !authz.is_empty() && authz != name {
+                    return Err(Error::AuthenticationFailed);
+                }
+                let credential = snapshot
+                    .records
+                    .get(&(name.to_owned(), Algorithm::Sha256))
+                    .or_else(|| snapshot.records.get(&(name.to_owned(), Algorithm::Sha512)))
+                    .ok_or(Error::AuthenticationFailed)?;
+                let candidate = derive(
+                    credential.algorithm,
+                    password,
+                    credential.salt.clone(),
+                    credential.iterations,
+                )?;
+                if !credential
+                    .algorithm
+                    .equal(&candidate.stored_key, &credential.stored_key)
+                {
+                    return Err(Error::AuthenticationFailed);
+                }
+                Ok(Identity {
+                    name: name.to_owned(),
+                    generation: snapshot.generation,
+                })
+            })
+            .await
     }
 }
 
