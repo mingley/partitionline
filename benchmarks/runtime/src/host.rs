@@ -5,6 +5,7 @@
 //! (documented below) apply only where the platform exposes no exact
 //! source; fallbacks always err toward the observed value.
 
+#[cfg(target_os = "macos")]
 use std::ffi::CStr;
 
 /// Machine facts for `provenance.host`.
