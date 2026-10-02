@@ -1,0 +1,463 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-03",
+  "source_sha": "9577234d15084fb9c7956c616d759e9c13cdfad2",
+  "result": "passed",
+  "validated_at_utc": "2026-10-02T19:47:38.414760+00:00",
+  "scope": "Safe, synchronous, bounded single-partition opaque-payload journal foundation; no Kafka record-batch or replication semantics.",
+  "provenance": {
+    "method": "Tests ran from an immutable git archive of the exact committed source, not the concurrently changing main checkout. Each recorded source file was byte-compared with its git object.",
+    "snapshot_command": "git archive 9577234d15084fb9c7956c616d759e9c13cdfad2 partitionline-broker clippy.toml docs/evidence/broker/KL11-03 | tar -x -C /workspace/work/journal/source",
+    "cwd": "/workspace/work/journal/source",
+    "environment": {
+      "CARGO_HOME": "/workspace/work/cargo",
+      "RUSTUP_HOME": "/workspace/work/rustup",
+      "PATH": "/workspace/work/cargo/bin:$PATH",
+      "CARGO_TARGET_DIR": "/workspace/work/target-broker",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "1",
+      "PL_JOURNAL_TEST_TMP": "/workspace/work/journal-tests"
+    },
+    "build_resources": "One Cargo job, incremental disabled, CPUs0-2,4; CPU3 excluded. The shared broker target was reserved for this validation and package artifacts were cleaned before the final pinned run.",
+    "clean_command": "cargo clean --manifest-path partitionline-broker/Cargo.toml -p partitionline-broker",
+    "platform": {
+      "os": "Linux",
+      "kernel": "6.18.44",
+      "architecture": "x86_64",
+      "filesystem": "overlayfs",
+      "stable_rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "msrv_rustc": "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+      "python": "CPython 3.12.14"
+    },
+    "source_files": [
+      {
+        "path": "partitionline-broker/Cargo.toml",
+        "sha256": "50f3edb9f0f1c738bbb68f2755a8c85d4da18e9e5459498876db3ca020a02594",
+        "archive_matches_commit": true
+      },
+      {
+        "path": "partitionline-broker/Cargo.lock",
+        "sha256": "fd2a66ff73beee49873ac1686ba7737d5fe321101d29560325d77efd18b515a9",
+        "archive_matches_commit": true
+      },
+      {
+        "path": "partitionline-broker/src/lib.rs",
+        "sha256": "7725a2e41f1ea190e00cbc8c4d0243f57c6e0afb86b9eeeea704f7ebd268ab73",
+        "archive_matches_commit": true
+      },
+      {
+        "path": "partitionline-broker/src/journal.rs",
+        "sha256": "40b360da2d2880aaf4d810b634822c478de85eaef418ac9c9cf7e5c485efa5fe",
+        "archive_matches_commit": true
+      },
+      {
+        "path": "partitionline-broker/src/transport.rs",
+        "sha256": "68899b58b93b1c5697af4abc1a1fbd00b81d921dee882df31b306d0da09b1ba5",
+        "archive_matches_commit": true
+      },
+      {
+        "path": "partitionline-broker/tests/journal.rs",
+        "sha256": "99d4184beaef96a70ed23483ee3131cfa74bb81935a1c0f224586067058771b8",
+        "archive_matches_commit": true
+      },
+      {
+        "path": "partitionline-broker/tests/transport.rs",
+        "sha256": "7f0ce85062c4297be4af2e049be3441332e727b1e744e48ea70b13115f303bab",
+        "archive_matches_commit": true
+      },
+      {
+        "path": "partitionline-broker/README.md",
+        "sha256": "250dc507a48c29534478a7d25dd3b7fab7d97fb99510d2b12468a522b6c82800",
+        "archive_matches_commit": true
+      },
+      {
+        "path": "clippy.toml",
+        "sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+        "archive_matches_commit": true
+      },
+      {
+        "path": "docs/evidence/broker/KL11-03/verify-format.py",
+        "sha256": "b86cbd4edfcbde629d38fe7c80d56a6498a4d957d34c510a75cbe1b5e0b4f833",
+        "archive_matches_commit": true
+      },
+      {
+        "path": "docs/evidence/broker/KL11-03/sample.bin",
+        "sha256": "255fd0e596cb2fe5207eceb41d308a3e8ede1fe6dc4f6fcc8989a0c8c29526d8",
+        "archive_matches_commit": true
+      }
+    ]
+  },
+  "commands": [
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo test --locked --manifest-path partitionline-broker/Cargo.toml",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-03/stable.log",
+      "journal_unit_passed": 11,
+      "journal_integration_passed": 15,
+      "transport_regression_passed": 16,
+      "doctests": 0,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-03/clippy-stable.log"
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps",
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-03/rustdoc-stable.log"
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-03/fmt-stable.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 test --locked --manifest-path partitionline-broker/Cargo.toml",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-03/msrv.log",
+      "journal_unit_passed": 11,
+      "journal_integration_passed": 15,
+      "transport_regression_passed": 16,
+      "doctests": 0,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-03/clippy-msrv.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps",
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-03/rustdoc-msrv.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-03/fmt-msrv.log"
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo test --locked --manifest-path partitionline-broker/Cargo.toml --test journal actual_file_matches_documented_checksums_and_can_be_retained_for_oracle -- --exact",
+      "environment_additions": {
+        "PL_JOURNAL_ARTIFACT_OUTPUT": "/workspace/work/journal/postcommit-output"
+      },
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-03/artifact-test.log",
+      "passed": 1,
+      "filtered_out": 14
+    },
+    {
+      "command": "python3 -B /workspace/work/journal/source/docs/evidence/broker/KL11-03/verify-format.py /workspace/work/journal/postcommit-output/sample.bin --source-sha 9577234d15084fb9c7956c616d759e9c13cdfad2 --output docs/evidence/broker/KL11-03/format-check.json",
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0,
+      "result": "docs/evidence/broker/KL11-03/format-check.json"
+    },
+    {
+      "command": "cmp docs/evidence/broker/KL11-03/sample.bin /workspace/work/journal/postcommit-output/sample.bin",
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    }
+  ],
+  "case_counts": {
+    "per_toolchain": {
+      "journal_unit": 11,
+      "journal_integration": 15,
+      "journal_total": 26,
+      "transport_regression": 16,
+      "all_tests": 42,
+      "doctests": 0,
+      "failed": 0,
+      "ignored": 0
+    },
+    "toolchains": 2,
+    "combined_test_passes": 84,
+    "extra_artifact_test_passes": 1,
+    "incomplete_final_entry_prefixes": 45,
+    "partial_write_budgets_bytes": [
+      1,
+      7,
+      20,
+      31,
+      32,
+      34
+    ],
+    "child_process_exit_modes": [
+      "after_synchronized_appends",
+      "after_synchronized_append_plus_five_byte_incomplete_header"
+    ],
+    "short_read_bytes": 3,
+    "interrupted_reads": 4,
+    "streamed_crc_test_payload_bytes": 8201,
+    "sample_entries": 2,
+    "sample_bytes": 115
+  },
+  "journal_unit_tests": [
+    "journal::tests::bounded_index_capacity_and_rejections_never_write",
+    "journal::tests::complete_recovery_sync_failure_never_reports_durable_state",
+    "journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed",
+    "journal::tests::early_zero_read_does_not_become_a_successful_tail_repair",
+    "journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair",
+    "journal::tests::partial_header_and_payload_writes_poison_without_advancing",
+    "journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls",
+    "journal::tests::success_synchronizes_complete_bytes_before_return",
+    "journal::tests::tail_repair_truncate_and_sync_errors_never_report_success",
+    "journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss",
+    "journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery"
+  ],
+  "journal_integration_tests": [
+    "actual_file_matches_documented_checksums_and_can_be_retained_for_oracle",
+    "complete_payload_and_header_corruption_never_truncate",
+    "durable_restart_preserves_explicit_record_counts_and_logical_ranges",
+    "every_incomplete_tail_prefix_repairs_to_last_complete_entry",
+    "external_file_growth_poisons_append_without_offset_advance",
+    "failed_open_releases_ownership_and_positive_limits_are_validated",
+    "fetch_output_charges_entry_storage_and_never_returns_partial_failure",
+    "file_and_index_budgets_hold_on_append_and_recovery",
+    "file_header_identity_and_partial_prefix_damage_fail_closed",
+    "interior_missing_payload_with_later_entry_is_not_a_torn_final_entry",
+    "invalid_append_and_offset_overflow_leave_committed_state_unchanged",
+    "live_inode_aliases_are_rejected_and_guard_releases_after_drop",
+    "process_exit_without_destructors_recovers_durable_and_incomplete_entries",
+    "protected_invalid_lengths_counts_and_offset_gaps_fail_closed",
+    "simultaneous_new_file_open_rejects_a_second_live_handle"
+  ],
+  "acceptance_evidence": [
+    {
+      "contract": "Only report durable append after synchronization; preserve committed offset and poison on failed/partial writes.",
+      "cases": [
+        "success_synchronizes_complete_bytes_before_return",
+        "partial_header_and_payload_writes_poison_without_advancing",
+        "zero_write_and_sync_failure_poison_with_ambiguous_recovery",
+        "complete_recovery_sync_failure_never_reports_durable_state"
+      ]
+    },
+    {
+      "contract": "Recover through partial reads and Interrupted; repair only demonstrably incomplete final entry and report truncation; reject interior corruption.",
+      "cases": [
+        "recovery_loops_through_partial_reads_and_interrupted_calls",
+        "early_zero_read_does_not_become_a_successful_tail_repair",
+        "every_incomplete_tail_prefix_repairs_to_last_complete_entry",
+        "tail_repair_truncate_and_sync_errors_never_report_success",
+        "valid_later_header_prevents_repair_after_interior_byte_loss",
+        "interior_missing_payload_with_later_entry_is_not_a_torn_final_entry",
+        "complete_payload_and_header_corruption_never_truncate",
+        "file_header_identity_and_partial_prefix_damage_fail_closed"
+      ]
+    },
+    {
+      "contract": "Validate positive limits and checked lengths/offset arithmetic before payload or index allocation; bound disk, retained index and fetch output.",
+      "cases": [
+        "header_length_bomb_fails_before_tail_allocation_or_repair",
+        "bounded_index_capacity_and_rejections_never_write",
+        "protected_invalid_lengths_counts_and_offset_gaps_fail_closed",
+        "file_and_index_budgets_hold_on_append_and_recovery",
+        "fetch_output_charges_entry_storage_and_never_returns_partial_failure",
+        "invalid_append_and_offset_overflow_leave_committed_state_unchanged",
+        "corrupted_file_header_and_recovery_offset_overflow_fail_closed",
+        "failed_open_releases_ownership_and_positive_limits_are_validated"
+      ]
+    },
+    {
+      "contract": "Real file restart/process exit preserves explicit record-count offsets; reject simultaneous local writers and external growth.",
+      "cases": [
+        "durable_restart_preserves_explicit_record_counts_and_logical_ranges",
+        "process_exit_without_destructors_recovers_durable_and_incomplete_entries",
+        "simultaneous_new_file_open_rejects_a_second_live_handle",
+        "live_inode_aliases_are_rejected_and_guard_releases_after_drop",
+        "external_file_growth_poisons_append_without_offset_advance"
+      ]
+    },
+    {
+      "contract": "Independent byte-layout and checksum evidence from actual Rust-produced file.",
+      "cases": [
+        "actual_file_matches_documented_checksums_and_can_be_retained_for_oracle"
+      ],
+      "artifact": "docs/evidence/broker/KL11-03/sample.bin",
+      "checker": "docs/evidence/broker/KL11-03/verify-format.py",
+      "result": "docs/evidence/broker/KL11-03/format-check.json"
+    }
+  ],
+  "independent_format_check": {
+    "artifact_sha256": "255fd0e596cb2fe5207eceb41d308a3e8ede1fe6dc4f6fcc8989a0c8c29526d8",
+    "artifact_matches_fresh_pinned_rust_output": true,
+    "implementation": "Python standard-library parser with independently implemented bitwise Castagnoli CRC32C; checks known vector123456789, file header CRC, both entry header CRCs, both payload CRCs, exact payloads/counts/offset continuity and full file consumption.",
+    "source_pin": "9577234d15084fb9c7956c616d759e9c13cdfad2",
+    "base_offset": 7,
+    "next_offset": 12,
+    "record_counts": [
+      3,
+      2
+    ],
+    "external_peer_requirement": "Not applicable to this custom private journal format; no Kafka semantic interop claim."
+  },
+  "bounds": {
+    "default": {
+      "entry_bytes": 1048576,
+      "file_bytes": 1073741824,
+      "index_entries": 65536,
+      "fetch_owned_bytes": 16777216
+    },
+    "hard_maxima": {
+      "entry_bytes": 67108864,
+      "file_bytes": 1099511627776,
+      "index_entries": 1000000,
+      "fetch_owned_bytes": 134217728
+    },
+    "crc_recovery_scratch_bytes": 4096,
+    "incomplete_payload_inspection": "Available tail is bounded below the already-validated entry limit; a valid later header refuses repair.",
+    "index_capacity": "At most configured index entries; growth can transiently retain old/new buffers totaling at most twice the configured capacity.",
+    "fetch_charge": "sum(size_of::<Entry>() + payload.len()) checked before allocation; oversized first result errors, later oversized result ends a bounded fetch.",
+    "excluded": "Allocator overhead/process RSS, caller-retained fetch outputs and total number of live journals must be bounded by caller."
+  },
+  "failures_and_resolution": [
+    {
+      "stage": "Before source freeze, strict Clippy",
+      "failure": "unwrap_used lint in non-test fixture helpers.",
+      "resolution": "Helpers now return Results, with unwrap confined to named tests; both final pinned strict all-target Clippy runs pass.",
+      "behavioral_test_failure": false
+    },
+    {
+      "stage": "Before final exact-source run, shared build target",
+      "failure": "Another isolated transport-only snapshot reused the target during journal validation, yielding a cached library without journal exports and unresolved-import compilation errors.",
+      "resolution": "No working-source mtime issue was involved. Cleaned only broker package artifacts, reserved target exclusively and reran the complete exact committed source on both toolchains.",
+      "behavioral_test_failure": false
+    }
+  ],
+  "limitations": [
+    "The API uses synchronous File I/O and must run on a dedicated storage thread or bounded blocking executor.",
+    "Process-local normalized-path and Unix inode guards prevent local duplicate writers. Cross-process exclusive ownership remains the caller contract; this is not an operating-system file lock.",
+    "Successful append uses File::sync_data; open/recovery syncs accepted data and the resolved parent directory. The configured filesystem must support directory synchronization.",
+    "Synthetic I/O faults, torn-prefix files and child-process exit without destructors do not qualify physical power loss, storage hardware flush behavior, network filesystems or Windows.",
+    "A complete entry whose append sync failed may reappear after reopening. That append outcome is ambiguous; recovery synchronizes accepted bytes before success.",
+    "A partial file header fails closed. Tail inspection conservatively refuses repair if opaque torn payload bytes happen to contain a checksum-valid later-offset entry header.",
+    "Checksums detect corruption but do not authenticate hostile rewriting. Paths are trusted configuration. External mutation is unsupported; observed growth/integrity changes fail closed.",
+    "Unsigned64-bit logical offsets and opaque payload record counts do not validate Kafka signed offsets or record batches. No replication, transaction durability, retention or production broker qualification is claimed.",
+    "The standalone broker remains publish=false and adds no dependencies/default features to the client."
+  ],
+  "logs": [
+    {
+      "path": "docs/evidence/broker/KL11-03/stable.log",
+      "sha256": "e7feaa87e2fc591a6cb7670105ca9df00184be24753d748bb5da1867a315da1d",
+      "bytes": 4143
+    },
+    {
+      "path": "docs/evidence/broker/KL11-03/msrv.log",
+      "sha256": "fbfaf0bafebbcf7306b45f344e9d7abb9628e4b1191ed808ff04e9f0dc4d7d09",
+      "bytes": 4143
+    },
+    {
+      "path": "docs/evidence/broker/KL11-03/clippy-stable.log",
+      "sha256": "2130527a661d81d3dfd5372a156f1d641d3a423e25128ffc3b2005d71f18a3c5",
+      "bytes": 167
+    },
+    {
+      "path": "docs/evidence/broker/KL11-03/clippy-msrv.log",
+      "sha256": "37afee4cfd16229eac21ee43e24506313de18202f3944ae651804814ba0b6207",
+      "bytes": 167
+    },
+    {
+      "path": "docs/evidence/broker/KL11-03/rustdoc-stable.log",
+      "sha256": "0e89f5d00e950c19094916b5c5409e67fa17692df20499e50edf1a3b735323d5",
+      "bytes": 246
+    },
+    {
+      "path": "docs/evidence/broker/KL11-03/rustdoc-msrv.log",
+      "sha256": "4a359c11b01a8a5c53d995bb9082760d10bed39829363ac4297abead251d3f9a",
+      "bytes": 246
+    },
+    {
+      "path": "docs/evidence/broker/KL11-03/fmt-stable.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/evidence/broker/KL11-03/fmt-msrv.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/evidence/broker/KL11-03/artifact-test.log",
+      "sha256": "8bdcdc3cfc06cfbe572d0ca7341fbc7f0b9166ef3d30bf034fa166760ad73c5d",
+      "bytes": 368
+    }
+  ],
+  "results": {
+    "outcome": "passed",
+    "case_counts": {
+      "per_toolchain": {
+        "journal_unit": 11,
+        "journal_integration": 15,
+        "journal_total": 26,
+        "transport_regression": 16,
+        "all_tests": 42,
+        "doctests": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "toolchains": 2,
+      "combined_test_passes": 84,
+      "extra_artifact_test_passes": 1,
+      "incomplete_final_entry_prefixes": 45,
+      "partial_write_budgets_bytes": [
+        1,
+        7,
+        20,
+        31,
+        32,
+        34
+      ],
+      "child_process_exit_modes": [
+        "after_synchronized_appends",
+        "after_synchronized_append_plus_five_byte_incomplete_header"
+      ],
+      "short_read_bytes": 3,
+      "interrupted_reads": 4,
+      "streamed_crc_test_payload_bytes": 8201,
+      "sample_entries": 2,
+      "sample_bytes": 115
+    },
+    "independent_format_check": {
+      "artifact_sha256": "255fd0e596cb2fe5207eceb41d308a3e8ede1fe6dc4f6fcc8989a0c8c29526d8",
+      "artifact_matches_fresh_pinned_rust_output": true,
+      "implementation": "Python standard-library parser with independently implemented bitwise Castagnoli CRC32C; checks known vector123456789, file header CRC, both entry header CRCs, both payload CRCs, exact payloads/counts/offset continuity and full file consumption.",
+      "source_pin": "9577234d15084fb9c7956c616d759e9c13cdfad2",
+      "base_offset": 7,
+      "next_offset": 12,
+      "record_counts": [
+        3,
+        2
+      ],
+      "external_peer_requirement": "Not applicable to this custom private journal format; no Kafka semantic interop claim."
+    },
+    "limitations": [
+      "The API uses synchronous File I/O and must run on a dedicated storage thread or bounded blocking executor.",
+      "Process-local normalized-path and Unix inode guards prevent local duplicate writers. Cross-process exclusive ownership remains the caller contract; this is not an operating-system file lock.",
+      "Successful append uses File::sync_data; open/recovery syncs accepted data and the resolved parent directory. The configured filesystem must support directory synchronization.",
+      "Synthetic I/O faults, torn-prefix files and child-process exit without destructors do not qualify physical power loss, storage hardware flush behavior, network filesystems or Windows.",
+      "A complete entry whose append sync failed may reappear after reopening. That append outcome is ambiguous; recovery synchronizes accepted bytes before success.",
+      "A partial file header fails closed. Tail inspection conservatively refuses repair if opaque torn payload bytes happen to contain a checksum-valid later-offset entry header.",
+      "Checksums detect corruption but do not authenticate hostile rewriting. Paths are trusted configuration. External mutation is unsupported; observed growth/integrity changes fail closed.",
+      "Unsigned64-bit logical offsets and opaque payload record counts do not validate Kafka signed offsets or record batches. No replication, transaction durability, retention or production broker qualification is claimed.",
+      "The standalone broker remains publish=false and adds no dependencies/default features to the client."
+    ]
+  }
+}

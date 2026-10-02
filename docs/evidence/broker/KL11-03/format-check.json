@@ -1,0 +1,24 @@
+{
+  "source_sha": "9577234d15084fb9c7956c616d759e9c13cdfad2",
+  "python": "3.12.14",
+  "artifact_bytes": 115,
+  "artifact_sha256": "255fd0e596cb2fe5207eceb41d308a3e8ede1fe6dc4f6fcc8989a0c8c29526d8",
+  "entries": [
+    {
+      "first_offset": 7,
+      "record_count": 3,
+      "payload": "first-payload",
+      "payload_crc32c": 1305469972
+    },
+    {
+      "first_offset": 10,
+      "record_count": 2,
+      "payload": "second-payload",
+      "payload_crc32c": 464034626
+    }
+  ],
+  "base_offset": 7,
+  "next_offset": 12,
+  "checker": "independent bitwise Castagnoli CRC32C, standard-library only",
+  "scope": "custom journal format; no Kafka semantics/replication qualification"
+}
