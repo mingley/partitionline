@@ -7,6 +7,7 @@
 //! semantics are verified. Production and comparative performance qualification
 //! require the separate, evidence-backed completion gates.
 
+pub mod catalog;
 pub mod journal;
 pub mod protocol;
 pub mod transport;
