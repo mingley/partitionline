@@ -1,0 +1,507 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-60",
+  "source_sha": "2f94a62406f5880f0b365e3bc09560a39b104972",
+  "result": "passed",
+  "validated_at_utc": "2026-10-02T20:33:07.055760+00:00",
+  "scope": "Independent broker allocation-free borrowed record-batch admission foundation; no Produce handler, API advertisement or codec/transaction/idempotence implementation.",
+  "provenance": {
+    "method": "All compiler/test/lint/doc/fmt commands ran from a git archive of the exact committed source. 258 source/fixture files were individually byte-compared with git blobs. Independent Java oracle replay compared all freshly Apache-generated fixture bytes with the committed fixtures.",
+    "archive_command": "git archive 2f94a62406f5880f0b365e3bc09560a39b104972 partitionline-broker clippy.toml tests/conformance/broker/implemented-api-versions.json docs/evidence/broker/KL11-59/topic-name-cases.tsv docs/evidence/broker/KL11-60 docs/evidence/broker/KL11-57/upstream-java-oracle.json | tar -x -C /workspace/work/broker-records/source",
+    "cwd": "/workspace/work/broker-records/source",
+    "environment": {
+      "CARGO_HOME": "/workspace/work/cargo",
+      "RUSTUP_HOME": "/workspace/work/rustup",
+      "PATH": "/workspace/work/cargo/bin:$PATH",
+      "CARGO_TARGET_DIR": "/workspace/work/target-broker-records",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "1",
+      "PL_RECORDS_TEST_TMP": "/workspace/work/broker-records/tests",
+      "PL_JOURNAL_TEST_TMP": "/workspace/work/broker-records/journal-tests",
+      "PL_CATALOG_TEST_TMP": "/workspace/work/broker-records/catalog-tests"
+    },
+    "affinity": "CPUs 0-2,4, CPU3 excluded; one Cargo job, incremental disabled.",
+    "target_isolation": "Dedicated target-broker-records; broker package artifacts were cleaned before switching from shared-checkout draft to exact-source snapshot. No other agent used this target.",
+    "clean_command": "cargo clean --manifest-path /workspace/work/broker-records/source/partitionline-broker/Cargo.toml -p partitionline-broker",
+    "source_manifest": "docs/evidence/broker/KL11-60/source-hashes.json",
+    "platform": {
+      "os": "Linux",
+      "kernel": "6.18.44",
+      "architecture": "x86_64",
+      "filesystem": "overlayfs",
+      "rustc_stable": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "rustc_msrv": "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+      "cargo_stable": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "cargo_msrv": "cargo 1.85.0 (d73d2caf9 2024-12-31)",
+      "python": "CPython 3.12.14",
+      "java": "OpenJDK 21.0.12.1",
+      "openssl": "OpenSSL 3.5.7 9 Jun 2026"
+    }
+  },
+  "commands": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "command": "taskset -c 0-2,4 cargo test --locked --manifest-path partitionline-broker/Cargo.toml",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/stable-default.log"
+    },
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "command": "taskset -c 0-2,4 cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets -- -D warnings",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/clippy-stable-default.log"
+    },
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "command": "taskset -c 0-2,4 cargo doc --locked --manifest-path partitionline-broker/Cargo.toml --no-deps",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/rustdoc-stable-default.log",
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "command": "taskset -c 0-2,4 cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-features",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/stable-all-features.log"
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "command": "taskset -c 0-2,4 cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/clippy-stable-all-features.log"
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "command": "taskset -c 0-2,4 cargo doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/rustdoc-stable-all-features.log",
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/fmt-stable.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 test --locked --manifest-path partitionline-broker/Cargo.toml",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/msrv-default.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets -- -D warnings",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/clippy-msrv-default.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 doc --locked --manifest-path partitionline-broker/Cargo.toml --no-deps",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/rustdoc-msrv-default.log",
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 test --locked --manifest-path partitionline-broker/Cargo.toml --all-features",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/msrv-all-features.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -- -D warnings",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/clippy-msrv-all-features.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/rustdoc-msrv-all-features.log",
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/fmt-msrv.log"
+    },
+    {
+      "command": "python3 -B docs/evidence/broker/KL11-60/run-apache-oracle.py --kafka-jar /workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar --slf4j-jar /workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar --codec-dir /workspace/work/c-peer/kafka_2.13-3.9.1/libs --work-dir /workspace/work/broker-records/pinned-oracle",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-60/pinned-oracle.log",
+      "result": "docs/evidence/broker/KL11-60/apache-oracle.json"
+    }
+  ],
+  "full_broker_test_matrix": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "passed": 79,
+      "unit": 13,
+      "catalog_integration": 14,
+      "journal_integration": 15,
+      "protocol_integration": 9,
+      "records_integration": 12,
+      "tls_integration": 0,
+      "transport_integration": 16,
+      "doctests": 0,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-60/stable-default.log"
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "passed": 94,
+      "unit": 13,
+      "catalog_integration": 14,
+      "journal_integration": 15,
+      "protocol_integration": 9,
+      "records_integration": 12,
+      "tls_integration": 15,
+      "transport_integration": 16,
+      "doctests": 0,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-60/stable-all-features.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "passed": 79,
+      "unit": 13,
+      "catalog_integration": 14,
+      "journal_integration": 15,
+      "protocol_integration": 9,
+      "records_integration": 12,
+      "tls_integration": 0,
+      "transport_integration": 16,
+      "doctests": 0,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-60/msrv-default.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "passed": 94,
+      "unit": 13,
+      "catalog_integration": 14,
+      "journal_integration": 15,
+      "protocol_integration": 9,
+      "records_integration": 12,
+      "tls_integration": 15,
+      "transport_integration": 16,
+      "doctests": 0,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-60/msrv-all-features.log"
+    }
+  ],
+  "case_counts": {
+    "feature_toolchain_cells": 4,
+    "all_broker_test_passes": 346,
+    "records_named_tests_per_cell": 12,
+    "records_named_test_passes_total": 48,
+    "apache_fixture_cases_per_cell": 58,
+    "rust_fixture_case_passes_total": 232,
+    "basic_batch_truncations_per_cell": 74,
+    "incomplete_trailing_prefixes_per_cell": 11,
+    "protected_bit_mutations_per_cell": 424,
+    "damaged_unsupported_feature_cases_per_cell": 7,
+    "independent_budget_cases_per_cell": 8,
+    "invalid_limit_cases_per_cell": 16,
+    "signed_timestamp_varlong_cases_per_cell": 3,
+    "record_enclosure_cases_per_cell": 3,
+    "independent_apache_replay_executions": 2,
+    "apache_fixture_outcomes_per_execution": 58,
+    "failed_final_checks": 0,
+    "ignored_tests": 0
+  },
+  "records_tests": [
+    "apache_generated_valid_features_and_hostile_fixtures_have_typed_outcomes",
+    "borrowed_projection_preserves_input_and_independent_batch_bases",
+    "damaged_unsupported_batches_still_fail_checksum_first",
+    "each_protected_bit_flip_fails_checksum_before_record_parsing",
+    "every_independent_byte_and_work_budget_is_checked",
+    "every_truncation_and_incomplete_trailing_prefix_is_rejected",
+    "exact_byte_and_count_limits_admit_the_complete_batch",
+    "limits_are_positive_and_have_checked_hard_maxima",
+    "rejected_admission_leaves_journal_state_and_validated_restart_bytes_intact",
+    "signed_timestamp_varlong_boundaries_are_checked_without_wrapping",
+    "variable_fields_cannot_read_beyond_the_enclosing_record",
+    "zero_header_records_are_accepted_and_header_keys_values_remain_nullable_correctly"
+  ],
+  "acceptance": [
+    {
+      "contract": "Validate magic/protected CRC, batch/record enclosure, count/offset arithmetic, varints, nullable keys/values and header structure before successful admission.",
+      "evidence": [
+        "apache_generated_valid_features_and_hostile_fixtures_have_typed_outcomes",
+        "each_protected_bit_flip_fails_checksum_before_record_parsing",
+        "every_truncation_and_incomplete_trailing_prefix_is_rejected",
+        "signed_timestamp_varlong_boundaries_are_checked_without_wrapping",
+        "variable_fields_cannot_read_beyond_the_enclosing_record",
+        "zero_header_records_are_accepted_and_header_keys_values_remain_nullable_correctly"
+      ]
+    },
+    {
+      "contract": "Bound input/byte sizes, batch/record/header work and retained validation state without allocation.",
+      "evidence": [
+        "every_independent_byte_and_work_budget_is_checked",
+        "limits_are_positive_and_have_checked_hard_maxima",
+        "exact_byte_and_count_limits_admit_the_complete_batch",
+        "borrowed_projection_preserves_input_and_independent_batch_bases"
+      ]
+    },
+    {
+      "contract": "Recognized unsupported features return typed errors; damaged unsupported packets still fail protected CRC validation first.",
+      "evidence": [
+        "apache_generated_valid_features_and_hostile_fixtures_have_typed_outcomes",
+        "damaged_unsupported_batches_still_fail_checksum_first"
+      ],
+      "features": [
+        "legacy magic 0/1",
+        "gzip",
+        "Snappy",
+        "LZ4",
+        "Zstandard",
+        "idempotent producer metadata",
+        "transactional",
+        "control",
+        "delete horizon",
+        "LogAppendTime"
+      ]
+    },
+    {
+      "contract": "Retain exact independent Apache-built bytes and actual negative/parser outcomes; separate intentional stricter admission from upstream parsing.",
+      "oracle": "docs/evidence/broker/KL11-60/apache-oracle.json",
+      "source": "docs/evidence/broker/KL11-60/RecordsOracle.java",
+      "runner": "docs/evidence/broker/KL11-60/run-apache-oracle.py",
+      "fixture_manifest": "partitionline-broker/tests/fixtures/records/expectations.tsv"
+    },
+    {
+      "contract": "Compose validated original bytes/explicit record count with the journal and recover exact data without admitting rejected inputs.",
+      "evidence": [
+        "rejected_admission_leaves_journal_state_and_validated_restart_bytes_intact"
+      ],
+      "limitation": "Foundation composition test, not integrated Produce or new physical-power-loss/replication qualification."
+    }
+  ],
+  "independent_apache": {
+    "version": "4.3.1",
+    "kafka_jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+    "details": "docs/evidence/broker/KL11-60/apache-oracle.json",
+    "fixtures": 58,
+    "fixture_bytes": 4478,
+    "supported_admitted_sets": 6,
+    "recognized_unsupported_feature_sets": 11,
+    "hostile_and_strict_sets": 41,
+    "upstream_parser_accepted": 36,
+    "upstream_parser_rejected": 22,
+    "stricter_rejects_where_upstream_parser_accepts": 19,
+    "fresh_replay_executions": 2,
+    "all_fresh_bytes_match_commit": true,
+    "parser": "MemoryRecords.validBytes + complete batch/record iteration + ensureValid; not a broker LogValidator/Produce handler."
+  },
+  "allocation_and_work_bounds": {
+    "implementation": "Borrowed immutable slices, scalar counters, fixed-size stack cursors; no Vec/Box/String/collection/index/recursion, no declared-length allocation and no I/O in validation.",
+    "demonstration": "Source-level ownership/allocation audit, private validated token construction, checked byte/count ceilings and pointer/object-size/exact-budget tests. No allocator instrumentation or process RSS claim.",
+    "validated_token_machine_words": 5,
+    "batch_iterator_maximum_machine_words_tested": 6,
+    "default": {
+      "input_bytes": 16777216,
+      "batch_bytes": 1048576,
+      "batches": 1024,
+      "records": 65536,
+      "record_bytes": 1048576,
+      "individual_field_bytes": 1048576,
+      "headers_per_record": 1024,
+      "total_headers": 65536
+    },
+    "hard_maxima": {
+      "each_byte_limit": 67108864,
+      "each_count_limit": 1000000
+    },
+    "enforcement": "All byte/count budgets are positive. Outer input and batch bounds precede checksums; record/field bounds precede slicing; aggregate records/header counts precede loops; minimum encoded sizes reject impossible counts.",
+    "excluded": "Caller-owned/retained input, collected borrowed projections, concurrent calls and unrelated crate/process allocations."
+  },
+  "failures_and_resolution": [
+    {
+      "stage": "Initial draft cargo test --test records",
+      "failure": "Missing test-crate documentation under deny(missing_docs), plus unused-mut File warning.",
+      "raw_log": "docs/evidence/broker/KL11-60/failures/missing-crate-docs.log",
+      "resolution": "Added test crate documentation and removed unused mut; every final strict gate passes."
+    },
+    {
+      "stage": "First compiled fixture test",
+      "failure": "Fixture bad-count-mismatch changed count to 2 while last delta remained 0. Expected length rejection, actual typed Offset rejection correctly detected inconsistent protected metadata first.",
+      "raw_log": "docs/evidence/broker/KL11-60/failures/mixed-count-delta-expectation.log",
+      "retained_original_bytes": "docs/evidence/broker/KL11-60/failures/mixed-count-delta-original.bin",
+      "resolution": "Kept original failing bytes/log. Isolated payload/count mismatch by also setting last delta 1, then regenerated/replayed Apache fixtures. Production validation logic was unchanged; all 58 final expectations pass."
+    }
+  ],
+  "limitations": [
+    "Only nonempty ordinary uncompressed magic 2 batches are admitted. Legacy/compressed/transaction/control/idempotent/delete-horizon/log-append-time features remain typed unsupported and unadvertised.",
+    "This is a stricter admission subset, not a general Fetch/compaction decoder: positive counts, contiguous in-batch deltas, canonical varints, valid UTF-8 header keys and complete-input consumption are required.",
+    "Batch base offsets are checked independently; producer batches commonly each start at zero. A future handler must assign offsets and enforce signed offset/topic/authorization/timestamp/Produce policy.",
+    "The independent Apache evidence executes low-level official builders/parsers, not a running Kafka broker or LogValidator. Upstream parser acceptance is not broker acceptance. Exact differing outcomes are retained.",
+    "Native codec jars are external oracle-only dependencies. This task changes neither broker/client manifests nor client record code/default dependency graph.",
+    "CRC32C detects corruption and does not authenticate adversarial rewriting. Limits bound bytes/work/retained validator state, not process RSS or caller-retained input/concurrency.",
+    "The journal composition inherits its synchronous blocking-executor, cross-process ownership and Linux directory-sync filesystem contracts. Restart tests do not qualify physical power loss, network filesystems, replication or production durability.",
+    "Full integrated source tests pass including optional TLS, but the records foundation implements no Produce handler/advertisement, acknowledgements, replicas, transactions, sequencing or broker qualification."
+  ],
+  "artifacts": [
+    {
+      "path": "docs/evidence/broker/KL11-60/README.md",
+      "sha256": "2f6f4c5228d5efb17829e1afd68f71ddd07d40782c4e02d1ed24fe17f41afa49",
+      "bytes": 6058
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/RecordsOracle.java",
+      "sha256": "0e103c41b332d3b7a78f22c21664f9fc38caf265ab0c4339f8a7b779628520c1",
+      "bytes": 16929
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/apache-compile.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/apache-execute.log",
+      "sha256": "39f28a978bf30ebbb447236244ecf591cad9b70dc1f87876b2b0eecb7c38326e",
+      "bytes": 16490
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/apache-oracle.json",
+      "sha256": "f5962c4fc601fb8d119015a44b62f7434bb0bbd71a9b33e4e11458917337e8d6",
+      "bytes": 42171
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/apache-reproduce.log",
+      "sha256": "39f28a978bf30ebbb447236244ecf591cad9b70dc1f87876b2b0eecb7c38326e",
+      "bytes": 16490
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/clippy-msrv-all-features.log",
+      "sha256": "22df14971684e52ff139eea8c42644924fc5207d2175fe1a40461834aade490d",
+      "bytes": 513
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/clippy-msrv-default.log",
+      "sha256": "d1a8c895a9112a215793d9b5f2b93185890400e031f4401a72d8f5e24b1fb13e",
+      "bytes": 174
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/clippy-stable-all-features.log",
+      "sha256": "b4653d5036ec4857d5c16d8d0829f91e4571880f7742f813b660f13e1d86761d",
+      "bytes": 513
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/clippy-stable-default.log",
+      "sha256": "7afdd98f4222d5ea2b7b8f25a59de10d9bc6e6b25077211f871a61be9addc304",
+      "bytes": 174
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/failures/missing-crate-docs.log",
+      "sha256": "bab0a887cc90b0f020ff169fded8c0498c1ab5d63b5facd099ef8421a972bbba",
+      "bytes": 1333
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/failures/mixed-count-delta-expectation.log",
+      "sha256": "5ef1bcb45d980ff7efba09782d4fd744d13cd31c777e3570dcaa5e8c0106f299",
+      "bytes": 1812
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/failures/mixed-count-delta-original.bin",
+      "sha256": "c45669231d7a9855dc77a455d57a15d834fb115db242b29975c6d785d0d4dbe9",
+      "bytes": 74
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/fmt-msrv.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/fmt-stable.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/msrv-all-features.log",
+      "sha256": "65a064ecd3dd16841e1ba0c8e5e067181a9f51cfb1024457fa3b30ba1fbfaaf1",
+      "bytes": 9350
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/msrv-default.log",
+      "sha256": "70428809c96582ee676f8f94c64e7f7e8e468aea28da018813473a0d05369ffe",
+      "bytes": 7829
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/pinned-oracle.log",
+      "sha256": "968e6ee5678d822c420280f986c3155b7f3704a4e6891881feb10157eb1d041f",
+      "bytes": 175
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/run-apache-oracle.py",
+      "sha256": "e79d5900d7d2a6c808b17cbd363478fc03efd1b47708dd927b568a26b6b04a33",
+      "bytes": 6680
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/rustdoc-msrv-all-features.log",
+      "sha256": "c992b501a27c41ea1ec5ea889b295722aa3d7447fb69172ed111ca165ddf211e",
+      "bytes": 261
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/rustdoc-msrv-default.log",
+      "sha256": "53fc5b12c6a3fa0571e9a1784c6c88997c3096ed9e23683cca18a0ba39ed2a8a",
+      "bytes": 261
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/rustdoc-stable-all-features.log",
+      "sha256": "5e5b310a644cc217e2f0b03a097c687a1854863a0128b9b21c540e456de1d181",
+      "bytes": 261
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/rustdoc-stable-default.log",
+      "sha256": "32ad7a4ec88cef6517046b1b35e5f12c7bd7a349518e9be72bd1c49ef44933e1",
+      "bytes": 261
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/source-hashes.json",
+      "sha256": "afd9d9d13ab9cab81b32fc22fcd5d4c7f15d62f3fdb8ade416265abbddafa3fa",
+      "bytes": 54912
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/stable-all-features.log",
+      "sha256": "a4d66e64e872bc9fe5d08d6932c7b5456ce27bf8459c9ef8bf336c5478f084a1",
+      "bytes": 9350
+    },
+    {
+      "path": "docs/evidence/broker/KL11-60/stable-default.log",
+      "sha256": "3e27aa9b58b3f59d2ec1c1e9c4e75815b0d3db0f8c2460fdae9c4e1f54c3b28a",
+      "bytes": 7829
+    }
+  ]
+}

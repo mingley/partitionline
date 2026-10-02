@@ -1,0 +1,35 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.26s
+     Running tests/records.rs (/workspace/work/target-broker-records/debug/deps/records-122e286a4509d3ae)
+
+running 12 tests
+test apache_generated_valid_features_and_hostile_fixtures_have_typed_outcomes ... FAILED
+test borrowed_projection_preserves_input_and_independent_batch_bases ... ok
+test damaged_unsupported_batches_still_fail_checksum_first ... ok
+test each_protected_bit_flip_fails_checksum_before_record_parsing ... ok
+test exact_byte_and_count_limits_admit_the_complete_batch ... ok
+test limits_are_positive_and_have_checked_hard_maxima ... ok
+test every_truncation_and_incomplete_trailing_prefix_is_rejected ... ok
+test signed_timestamp_varlong_boundaries_are_checked_without_wrapping ... ok
+test variable_fields_cannot_read_beyond_the_enclosing_record ... ok
+test zero_header_records_are_accepted_and_header_keys_values_remain_nullable_correctly ... ok
+test every_independent_byte_and_work_budget_is_checked ... ok
+test rejected_admission_leaves_journal_state_and_validated_restart_bytes_intact ... ok
+
+failures:
+
+---- apache_generated_valid_features_and_hostile_fixtures_have_typed_outcomes stdout ----
+
+thread 'apache_generated_valid_features_and_hostile_fixtures_have_typed_outcomes' (160465) panicked at tests/records.rs:115:9:
+assertion `left == right` failed: bad-count-mismatch
+  left: "offset"
+ right: "length"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    apache_generated_valid_features_and_hostile_fixtures_have_typed_outcomes
+
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--test records`

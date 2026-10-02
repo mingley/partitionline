@@ -59,8 +59,8 @@
         "-cp",
         "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
         "-d",
-        "/workspace/work/broker-records/reproduction/classes",
-        "/workspace/partitionline/docs/evidence/broker/KL11-60/RecordsOracle.java"
+        "/workspace/work/broker-records/pinned-oracle/classes",
+        "/workspace/work/broker-records/source/docs/evidence/broker/KL11-60/RecordsOracle.java"
       ],
       "exit_code": 0,
       "log": "docs/evidence/broker/KL11-60/apache-compile.log"
@@ -74,9 +74,9 @@
         "-Xms16m",
         "-Xmx64m",
         "-cp",
-        "/workspace/work/broker-records/reproduction/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "/workspace/work/broker-records/pinned-oracle/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
         "RecordsOracle",
-        "/workspace/work/broker-records/reproduction/execute"
+        "/workspace/work/broker-records/pinned-oracle/execute"
       ],
       "exit_code": 0,
       "log": "docs/evidence/broker/KL11-60/apache-execute.log"
@@ -90,9 +90,9 @@
         "-Xms16m",
         "-Xmx64m",
         "-cp",
-        "/workspace/work/broker-records/reproduction/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "/workspace/work/broker-records/pinned-oracle/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
         "RecordsOracle",
-        "/workspace/work/broker-records/reproduction/reproduce"
+        "/workspace/work/broker-records/pinned-oracle/reproduce"
       ],
       "exit_code": 0,
       "log": "docs/evidence/broker/KL11-60/apache-reproduce.log"
@@ -1119,5 +1119,6 @@
     "stricter_admission_rejections": 19
   },
   "reproduction": "Two fresh executions reproduced all 58 retained fixture bytes and identical parser outcomes.",
-  "scope": "Official Apache MemoryRecords builders, validBytes, batch.ensureValid and complete record iteration/record.ensureValid. No running broker, LogValidator or Produce handler is exercised."
+  "scope": "Official Apache MemoryRecords builders, validBytes, batch.ensureValid and complete record iteration/record.ensureValid. No running broker, LogValidator or Produce handler is exercised.",
+  "broker_source_sha": "2f94a62406f5880f0b365e3bc09560a39b104972"
 }

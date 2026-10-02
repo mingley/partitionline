@@ -1,0 +1,8 @@
+{
+  "fixtures": 58,
+  "supported_and_accepted": 6,
+  "unsupported_features": 11,
+  "upstream_rejected": 22,
+  "upstream_accepted": 36,
+  "stricter_admission_rejections": 19
+}
