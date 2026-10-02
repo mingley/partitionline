@@ -371,15 +371,15 @@ pub(crate) struct ThrottleTracker {
 
 impl ThrottleTracker {
     pub(crate) fn observe(&self, millis: i32) {
-        let counter = if millis < 0 {
-            &self.invalid_responses
-        } else if millis > 0 {
-            let millis = u64::try_from(millis).unwrap_or(0);
-            Self::saturating_add(&self.requested_millis, millis);
-            let _ = self.max_millis.fetch_max(millis, Ordering::Relaxed);
-            &self.responses
-        } else {
-            return;
+        let counter = match millis.cmp(&0) {
+            std::cmp::Ordering::Less => &self.invalid_responses,
+            std::cmp::Ordering::Greater => {
+                let millis = u64::try_from(millis).unwrap_or(0);
+                Self::saturating_add(&self.requested_millis, millis);
+                let _ = self.max_millis.fetch_max(millis, Ordering::Relaxed);
+                &self.responses
+            }
+            std::cmp::Ordering::Equal => return,
         };
         Self::saturating_add(counter, 1);
     }

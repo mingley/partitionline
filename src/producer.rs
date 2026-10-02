@@ -3146,7 +3146,7 @@ async fn retry_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<Pendin
         weak: &'a std::sync::Weak<Shared>,
         rx: &'a mut mpsc::Receiver<Pending>,
     }
-    impl<'a> Drop for RxDrain<'a> {
+    impl Drop for RxDrain<'_> {
         fn drop(&mut self) {
             if let Some(shared) = self.weak.upgrade() {
                 while let Ok(p) = self.rx.try_recv() {
@@ -3181,7 +3181,7 @@ struct RetryGuard<'a> {
     p: Option<Pending>,
 }
 
-impl<'a> Drop for RetryGuard<'a> {
+impl Drop for RetryGuard<'_> {
     fn drop(&mut self) {
         if let Some(p) = self.p.take() {
             fail_pendings(self.shared, vec![p], Error::Timeout);

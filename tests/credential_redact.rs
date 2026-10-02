@@ -887,6 +887,7 @@ async fn tls_rotation_emits_no_key_material_to_tracing() {
         server_name: Some("localhost".into()),
     };
     let addr = mock.addr.clone();
+    #[cfg(feature = "tracing")]
     let key_before = fix.client_key.clone();
 
     #[cfg(feature = "tracing")]
@@ -922,7 +923,7 @@ async fn tls_rotation_emits_no_key_material_to_tracing() {
     })
     .await;
     #[cfg(not(feature = "tracing"))]
-    let (key_after, rotated_tls) = {
+    let (_key_after, rotated_tls) = {
         let producer = Producer::new(
             ProducerConfig::bootstrap([addr.clone()])
                 .tls(tls.clone())
