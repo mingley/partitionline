@@ -1,0 +1,14 @@
+$ taskset -c 0-2,4 java -cp /workspace/work/broker-log-oracle/storage-probe/4.3.1:/workspace/work/broker-log-oracle/storage-jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/broker-log-oracle/storage-jars/4.3.1/kafka-metadata-4.3.1.jar:/workspace/work/broker-log-oracle/storage-jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/broker-log-oracle/storage-jars/4.3.1/kafka-transaction-coordinator-4.3.1.jar:/workspace/work/broker-log-oracle/storage-jars/4.3.1/kafka-group-coordinator-4.3.1.jar:/workspace/work/broker-log-oracle/storage-jars/4.3.1/kafka-group-coordinator-api-4.3.1.jar:/workspace/work/broker-log-oracle/storage-jars/4.3.1/kafka-server-4.3.1.jar:/workspace/work/broker-log-oracle/storage-jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar LogStorageProbe /workspace/work/broker-log-oracle/storage-probe/4.3.1/segment-attempt-1 /workspace/partitionline/docs/evidence/broker/KL11-68/storage-component-4.3.1.json
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+Exception in thread "main" java.lang.NoClassDefFoundError: com/yammer/metrics/core/Gauge
+	at org.apache.kafka.storage.internals.log.LogSegment.<clinit>(LogSegment.java:75)
+	at LogStorageProbe.main(LogStorageProbe.java:53)
+Caused by: java.lang.ClassNotFoundException: com.yammer.metrics.core.Gauge
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:641)
+	at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:188)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:526)
+	... 2 more
+
+exit_code=1

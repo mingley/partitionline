@@ -1,0 +1,7 @@
+$ taskset -c 0-2,4 java -cp /workspace/work/broker-log-oracle/storage-probes/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/metrics-core-2.2.0.jar LogStorageProbe /workspace/work/broker-log-oracle/storage-probes/4.3.1/segments-jpmdoq_b/replay /workspace/work/broker-log-oracle/storage-probes/4.3.1/segments-jpmdoq_b/replay.json
+{"reads":12,"timestamp_searches":17}
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+
+exit_code=0

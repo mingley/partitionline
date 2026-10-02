@@ -1,0 +1,3 @@
+$ taskset -c 0-2,4 java --add-modules jdk.compiler com.sun.tools.javac.Main -Xlint:all -Werror -cp /workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar -d /workspace/work/broker-log-oracle/fetch/4.3.1/classes /workspace/work/broker-log-oracle/fetch/4.3.1/FetchOracle.java
+
+exit_code=0

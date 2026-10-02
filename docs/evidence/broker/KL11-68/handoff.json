@@ -1,0 +1,49 @@
+{
+  "task": "KL11-68",
+  "phase": "first independent uncompressed wire/source batch",
+  "status": "frozen for parent source push; runtime/restart/native qualification pending handler integration",
+  "claim_sha": "06b9a9c57586db0f568335909e151abc7da9b062",
+  "production_source_sha": null,
+  "profiles": {
+    "Produce": [
+      3,
+      13
+    ],
+    "Fetch": [
+      4,
+      6
+    ],
+    "ListOffsets": [
+      1,
+      3
+    ]
+  },
+  "fixture_cases": 1074,
+  "produce_cases": 708,
+  "fetch_listoffset_cases": 366,
+  "apache_source_files": 81,
+  "native_source_files": 1,
+  "actual_storage_reads": 36,
+  "actual_timestamp_searches": 51,
+  "cross_release_wire_bytes_identical": true,
+  "strict_java_compilation": true,
+  "double_generation_hash_identity": true,
+  "limitations": [
+    "No Rust handler or full Apache broker runtime in this phase.",
+    "No durability or replication conclusion from assembled success bytes.",
+    "Initial uncompressed profile; compression peers pending separately pinned codec lane.",
+    "Native magic2 requires actual advertised Produce>=3 and Fetch>=4.",
+    "Local43 restrictions and null87 rejection explicitly stricter than Apache support.",
+    "Component partial-tail read and negative segment acceptance are distinct from local complete-batch/broker bounds."
+  ],
+  "retained_failures": [
+    "failures/produce-attempt-1/",
+    "failures/produce-attempt-2/",
+    "logs/storage-runtime-4.3.1-attempt-1.txt"
+  ],
+  "source_paths": [
+    "docs/evidence/broker/KL11-68/",
+    "partitionline-broker/tests/fixtures/produce/",
+    "partitionline-broker/tests/fixtures/fetch/"
+  ]
+}

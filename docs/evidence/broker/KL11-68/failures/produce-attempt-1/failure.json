@@ -1,0 +1,206 @@
+{
+  "failure": "AssertionError: complete file replay hashes differed",
+  "source_sha256": "b99712d66239c3a669f21668e1c2a7f1b45b612c74b84f55f09db15c182b9125",
+  "actual_difference": [
+    {
+      "name": "produce-v3-unsupported-control",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "cf7c898715c9f335763007829d1b5eeef7d031da20ebf1219fd8567f62b0eee0",
+      "second_request_sha256": "4c4f59f1bb20b3f8aec1e2ebc9e5b9e3a57059dca1320c6b749efd6b324579eb"
+    },
+    {
+      "name": "produce-v3-unsupported-logappendtime",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "8c16c6a52c2f102289b481133c7048c7e2b182d9dba411b4bdaa8a4da29625da",
+      "second_request_sha256": "83618c07a0e92920c345558e26ef38fd18a9a696fc79c2f0170a350866ad3aa1"
+    },
+    {
+      "name": "produce-v4-unsupported-control",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "5712505b92a3856b0418d2d57c208ee914bea8ab739816b1404f93ee363a58b5",
+      "second_request_sha256": "7c8e418367c729fa3fa6b423089cb9b7bc0f7ff0d16d4c5480915e05ec0e62d2"
+    },
+    {
+      "name": "produce-v4-unsupported-logappendtime",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "d8758f429b066ed516ed1a88be1d849862e61ed44cb43f52901724fc34bea809",
+      "second_request_sha256": "436921d26d8da702d52564cff83337a7fac1c66d2020117e474330f71bf32ebf"
+    },
+    {
+      "name": "produce-v5-unsupported-control",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "f03ba5beba65895933aeba06d77b1aa6edaa9c7438f11eda7592ab3e53bb40b6",
+      "second_request_sha256": "884b2e4d0f0ea80cd64ebb5b0c7dc171aac06fc9ee6dbeaaa1cd15addc7a2956"
+    },
+    {
+      "name": "produce-v5-unsupported-logappendtime",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "3fb4d6cd9b510280b4b0f54ba9637e92686f657e004df73c4fc700bc2f028ed1",
+      "second_request_sha256": "96a9337365c099060f5a1270dc43894cb8258d63e8134bc5a8396d2f9c0261d6"
+    },
+    {
+      "name": "produce-v6-unsupported-control",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "f6a1e79fbeee6f2f7cac57e6e3fddf638a1cd83f04545a3bbfa7a90cbaea2e85",
+      "second_request_sha256": "9ea35b60d9d041beda5bd1b63d3a7a9feeb5f34d91b9ca240eb130cbf9b513d2"
+    },
+    {
+      "name": "produce-v6-unsupported-logappendtime",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "fed6a8354a1d5350f252da3ba843e7a4f1f679635853475769591874d185fa83",
+      "second_request_sha256": "822d8bbdbe746858fda34231cf0be644118cf2847fa990bf8c8dbde549f8990f"
+    },
+    {
+      "name": "produce-v7-unsupported-control",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "c01afd7aa587d2f8900cb4baa0aea9cd8a78ab65edb5882bc931e9ab7a2f42de",
+      "second_request_sha256": "92462d0a0aacfd4bbe7b1411508d58faf29587e7da6ad08fcb3e01ecbb1e0eb1"
+    },
+    {
+      "name": "produce-v7-unsupported-logappendtime",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "f538b5e7ba0e6962b6b82c9092d39b804e3791d86b7e04649f934e6d80e04001",
+      "second_request_sha256": "6691d5bdfe2069159631e51c837ea22ac27c0aa078afa484da2249350f9dc0c9"
+    },
+    {
+      "name": "produce-v8-unsupported-control",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "9badff36980dd796cff94cae3306f63f31705e9644ae92b9ae2eb6c8db86c31a",
+      "second_request_sha256": "136867b783f13882dc7c25462d27859948bfd170cddbcb9bae4bf814dc8fad57"
+    },
+    {
+      "name": "produce-v8-unsupported-logappendtime",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "97c8b04e3a75ae14c45a7b33972f8d45e538e221cf86c568269d5858a762f5fd",
+      "second_request_sha256": "76eea8e8471f22327da2d3ea4ae67266977c9bb89eb8c5c69a6d19993e6e6551"
+    },
+    {
+      "name": "produce-v9-unsupported-control",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "079a6a4398fce194dadb4af8aebd840f547dee5fbdbdf6f9e9c2c010c71c2fde",
+      "second_request_sha256": "38b85bd374b04547af72d24341ff4ba4789196a7cc24619dde51cec5e5a1cb3c"
+    },
+    {
+      "name": "produce-v9-unsupported-logappendtime",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "93b3c4ce4f3a3813e8ba83aa164423a36c9d6abb828e849c54dce91468116b88",
+      "second_request_sha256": "3609ccc95e575b970f35d1936ee1f1531f0fa368652ab84aee2dd8311498209a"
+    },
+    {
+      "name": "produce-v10-unsupported-control",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "65537c0035e11fd2a9210cd1f18e5759600a969be25b0207152425903875014e",
+      "second_request_sha256": "52f9f10bf2898d345428ccdf075db29bc0126c8a72087e636336e6f75e47df3d"
+    },
+    {
+      "name": "produce-v10-unsupported-logappendtime",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "9dce1f734efc573b79d5d690c6b170a3b9e5c212688683cf9203ccb27fd86954",
+      "second_request_sha256": "29d981fdb25706b9673d7d24c1359eb16d6fe9c45fbb1453a02e8d27857878a9"
+    },
+    {
+      "name": "produce-v11-unsupported-control",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "3d2b3686b82984bda3bd89bd4e516bcaad236b630bf73b5dabf504a9d14d41a1",
+      "second_request_sha256": "559ba2a76da4b619f8568e420b94f5c5b4f3a5ef68422281b6225dc1f1df847c"
+    },
+    {
+      "name": "produce-v11-unsupported-logappendtime",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "f3995feebec04fd9c3d9531e96d55102b08ad9bef78631f93ad8ab69fc30f73a",
+      "second_request_sha256": "c1e444fcf13c690bfaaaecc4cb867e6d46a68109d1a5f918e045acf572536373"
+    },
+    {
+      "name": "produce-v12-unsupported-control",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "ba828984c1e661b068c9d07e03df8d9bf2c6d3cda5ba9bcecb9c5d295233933e",
+      "second_request_sha256": "150423ca1351f1e10610f71c3016da0c3ccf8529494c9e34bfb45bf27b32aeea"
+    },
+    {
+      "name": "produce-v12-unsupported-logappendtime",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "8740c86567c1f7ea588e15067b48c79ed98e4d24ce12e6c9ce82f6c83e544f56",
+      "second_request_sha256": "8cf95e95d412403b711371b8e46dcc08232c96f25d6e34ae9fafba3cb8bd33f9"
+    },
+    {
+      "name": "produce-v13-unsupported-control",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "b46d76186ba83c110748c7fbe8ced7db991106b14e562cc346eae65e136b6f27",
+      "second_request_sha256": "6bd6a8507d4e2e060b5a1b0f75c0300bed052fce1f813563862ed5872b970dcb"
+    },
+    {
+      "name": "produce-v13-unsupported-logappendtime",
+      "changed_fields": [
+        "request_hex",
+        "request_sha256"
+      ],
+      "first_request_sha256": "077f5f9ffb911035332eb38bd2e5484950b311c88e815f2e0a7dd9f5c21a6cad",
+      "second_request_sha256": "7089a785b9d90394c6b01bb34692af84fd570a2826854dfc5a35b2d84444b4a0"
+    }
+  ],
+  "cause": "Apache convenience factories for withEndTransactionMarker and withRecords(LogAppendTime) both fill timestamps using current wallclock. Both require explicit bounded builders and fixed timestamps.",
+  "not_a_product_failure": true
+}

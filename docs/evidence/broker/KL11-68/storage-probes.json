@@ -1,0 +1,270 @@
+{
+  "source_sha256": "ce11486b0d8a4d1306454ee05742ed0f4c70a95e7cc30ba4633bc970e28b8cbf",
+  "scope": "Actual LogSegment/FileRecords methods. Component acceptance is not full broker acceptance.",
+  "releases": [
+    {
+      "release": "4.1.2",
+      "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "record_package": "org.apache.kafka.common.record",
+      "adapted_source_sha256": "0478d09d302439a0cf3c3b465b881992ad23da6fd77998dd7b1d8b78d47f2f22",
+      "classpath": [
+        {
+          "name": "kafka-clients-4.1.2.jar",
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        {
+          "name": "slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "name": "kafka-storage-4.1.2.jar",
+          "sha256": "0b6e818863408e778a5b243fa30d34c5c8363f3cdc1e8784f1cd16c91628bed8"
+        },
+        {
+          "name": "kafka-storage-api-4.1.2.jar",
+          "sha256": "dabfc8288872176c19913f3195697c4a26bb1f4610ece624b0bade998a630059"
+        },
+        {
+          "name": "kafka-server-common-4.1.2.jar",
+          "sha256": "98a36786a7d23fd868f0462df374be32518cae61e7a9aa720055d5560e46f4f1"
+        },
+        {
+          "name": "metrics-core-2.2.0.jar",
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        }
+      ],
+      "compile": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "--add-modules",
+          "jdk.compiler",
+          "com.sun.tools.javac.Main",
+          "-Xlint:all",
+          "-Werror",
+          "-cp",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/metrics-core-2.2.0.jar",
+          "-d",
+          "/workspace/work/broker-log-oracle/storage-probes/4.1.2/classes",
+          "/workspace/work/broker-log-oracle/storage-probes/4.1.2/LogStorageProbe.java"
+        ],
+        "exit_code": 0,
+        "log": "logs/storage-4.1.2-attempt-1-compile.txt"
+      },
+      "runtime": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/broker-log-oracle/storage-probes/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/metrics-core-2.2.0.jar",
+          "LogStorageProbe",
+          "/workspace/work/broker-log-oracle/storage-probes/4.1.2/segments-qawhp111/first",
+          "/workspace/work/broker-log-oracle/storage-probes/4.1.2/segments-qawhp111/first.json"
+        ],
+        "exit_code": 0,
+        "log": "logs/storage-4.1.2-attempt-1-runtime.txt"
+      },
+      "replay": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/broker-log-oracle/storage-probes/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/broker-log-oracle/storage-probes/4.1.2/metrics-core-2.2.0.jar",
+          "LogStorageProbe",
+          "/workspace/work/broker-log-oracle/storage-probes/4.1.2/segments-qawhp111/replay",
+          "/workspace/work/broker-log-oracle/storage-probes/4.1.2/segments-qawhp111/replay.json"
+        ],
+        "exit_code": 0,
+        "log": "logs/storage-4.1.2-attempt-1-replay.txt"
+      },
+      "class_sha256": "473d28d09d8c927ce39224e89a28dc369afe196c1f50e0449672a354dde795ee",
+      "result": "storage-component-4.1.2.json",
+      "result_sha256": "c39a00324e69eb293b18e027bf5200430be0569f63bb49941d2c944392c387f1",
+      "reads": 12,
+      "timestamp_searches": 17
+    },
+    {
+      "release": "4.2.1",
+      "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "record_package": "org.apache.kafka.common.record",
+      "adapted_source_sha256": "0478d09d302439a0cf3c3b465b881992ad23da6fd77998dd7b1d8b78d47f2f22",
+      "classpath": [
+        {
+          "name": "kafka-clients-4.2.1.jar",
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        {
+          "name": "slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "name": "kafka-storage-4.2.1.jar",
+          "sha256": "fa7d6dfafb686d91470f97126aae33edca050cf01620a07b97bb77a306588767"
+        },
+        {
+          "name": "kafka-storage-api-4.2.1.jar",
+          "sha256": "39caf3d0a4ac413eb2290325ea9bf48c854aa70a9234dd7ebff5bc9c6c01cb4d"
+        },
+        {
+          "name": "kafka-server-common-4.2.1.jar",
+          "sha256": "1d7e1649ea211ca0cd8f067ec7ef0ac174f2a058f9fb76b325ebcbe086c3828f"
+        },
+        {
+          "name": "metrics-core-2.2.0.jar",
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        }
+      ],
+      "compile": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "--add-modules",
+          "jdk.compiler",
+          "com.sun.tools.javac.Main",
+          "-Xlint:all",
+          "-Werror",
+          "-cp",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/metrics-core-2.2.0.jar",
+          "-d",
+          "/workspace/work/broker-log-oracle/storage-probes/4.2.1/classes",
+          "/workspace/work/broker-log-oracle/storage-probes/4.2.1/LogStorageProbe.java"
+        ],
+        "exit_code": 0,
+        "log": "logs/storage-4.2.1-attempt-1-compile.txt"
+      },
+      "runtime": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/broker-log-oracle/storage-probes/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/metrics-core-2.2.0.jar",
+          "LogStorageProbe",
+          "/workspace/work/broker-log-oracle/storage-probes/4.2.1/segments-x4zsh9di/first",
+          "/workspace/work/broker-log-oracle/storage-probes/4.2.1/segments-x4zsh9di/first.json"
+        ],
+        "exit_code": 0,
+        "log": "logs/storage-4.2.1-attempt-1-runtime.txt"
+      },
+      "replay": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/broker-log-oracle/storage-probes/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.2.1/metrics-core-2.2.0.jar",
+          "LogStorageProbe",
+          "/workspace/work/broker-log-oracle/storage-probes/4.2.1/segments-x4zsh9di/replay",
+          "/workspace/work/broker-log-oracle/storage-probes/4.2.1/segments-x4zsh9di/replay.json"
+        ],
+        "exit_code": 0,
+        "log": "logs/storage-4.2.1-attempt-1-replay.txt"
+      },
+      "class_sha256": "473d28d09d8c927ce39224e89a28dc369afe196c1f50e0449672a354dde795ee",
+      "result": "storage-component-4.2.1.json",
+      "result_sha256": "c39a00324e69eb293b18e027bf5200430be0569f63bb49941d2c944392c387f1",
+      "reads": 12,
+      "timestamp_searches": 17
+    },
+    {
+      "release": "4.3.1",
+      "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "record_package": "org.apache.kafka.common.record.internal",
+      "adapted_source_sha256": "ce11486b0d8a4d1306454ee05742ed0f4c70a95e7cc30ba4633bc970e28b8cbf",
+      "classpath": [
+        {
+          "name": "kafka-clients-4.3.1.jar",
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        {
+          "name": "slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "name": "kafka-storage-4.3.1.jar",
+          "sha256": "9c64393854251b11633382472d6df8ea5985bd423a41397d93bdbc64a128f3a7"
+        },
+        {
+          "name": "kafka-storage-api-4.3.1.jar",
+          "sha256": "74fb0434cc9d9e6ed61d7351431bea36fbc8af5f9323f65f4c5da0ac5cb0e5b9"
+        },
+        {
+          "name": "kafka-server-common-4.3.1.jar",
+          "sha256": "a6091f8dff9cd45720e5686ac1658f35e02d5826e4fc14eb19c2bc51ac0ad654"
+        },
+        {
+          "name": "metrics-core-2.2.0.jar",
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        }
+      ],
+      "compile": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "--add-modules",
+          "jdk.compiler",
+          "com.sun.tools.javac.Main",
+          "-Xlint:all",
+          "-Werror",
+          "-cp",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/metrics-core-2.2.0.jar",
+          "-d",
+          "/workspace/work/broker-log-oracle/storage-probes/4.3.1/classes",
+          "/workspace/work/broker-log-oracle/storage-probes/4.3.1/LogStorageProbe.java"
+        ],
+        "exit_code": 0,
+        "log": "logs/storage-4.3.1-attempt-1-compile.txt"
+      },
+      "runtime": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/broker-log-oracle/storage-probes/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/metrics-core-2.2.0.jar",
+          "LogStorageProbe",
+          "/workspace/work/broker-log-oracle/storage-probes/4.3.1/segments-jpmdoq_b/first",
+          "/workspace/work/broker-log-oracle/storage-probes/4.3.1/segments-jpmdoq_b/first.json"
+        ],
+        "exit_code": 0,
+        "log": "logs/storage-4.3.1-attempt-1-runtime.txt"
+      },
+      "replay": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/broker-log-oracle/storage-probes/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/broker-log-oracle/storage-probes/4.3.1/metrics-core-2.2.0.jar",
+          "LogStorageProbe",
+          "/workspace/work/broker-log-oracle/storage-probes/4.3.1/segments-jpmdoq_b/replay",
+          "/workspace/work/broker-log-oracle/storage-probes/4.3.1/segments-jpmdoq_b/replay.json"
+        ],
+        "exit_code": 0,
+        "log": "logs/storage-4.3.1-attempt-1-replay.txt"
+      },
+      "class_sha256": "b9ced3a09a90edcf4d6c18023b032efda5ce5080500709013157da467b285446",
+      "result": "storage-component-4.3.1.json",
+      "result_sha256": "c39a00324e69eb293b18e027bf5200430be0569f63bb49941d2c944392c387f1",
+      "reads": 12,
+      "timestamp_searches": 17
+    }
+  ],
+  "cross_release_outcomes_identical": true,
+  "total_reads": 36,
+  "total_timestamp_searches": 51
+}

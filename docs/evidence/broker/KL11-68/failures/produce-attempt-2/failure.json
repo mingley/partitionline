@@ -1,0 +1,5 @@
+{
+  "failure": "AssertionError: replay hashes differed after only LogAppendTime convenience builder fixed",
+  "cause": "Apache withEndTransactionMarker also uses current wallclock. Replace with explicit bounded control builder and fixed marker timestamp.",
+  "not_a_product_failure": true
+}
