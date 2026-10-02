@@ -1,0 +1,11 @@
+{
+  "base_source_sha": "4fedc99e5d948b041f6ea7ff2ff11ef30d2debf1",
+  "files": {
+    "partitionline-broker/src/produce.rs": "adbbcf96cb239d641c4916ec0903cd9ca53b01bb6d5965e5e635fadee5ae192d",
+    "partitionline-broker/src/metadata.rs": "9ac1b2a453367cf85729da0d2183a8927547b88a961be6c32af896f705d94322",
+    "partitionline-broker/tests/produce.rs": "0ca64b3cfc5367837e7caf78cb39d156d4f263ba1f3561972a76561c85bcff3b"
+  },
+  "focused_report": "frozen-development/validation.json",
+  "scope": "Ordinary single-node Produce3-13 optional data router; default and metadata-only advertisement unchanged. Full exact-source gates and real Java/native peer qualification remain pending.",
+  "qualification": "not_run"
+}

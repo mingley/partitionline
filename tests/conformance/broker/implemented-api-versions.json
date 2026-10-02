@@ -176,7 +176,7 @@
     }
   ],
   "metadata_source": "partitionline-broker/src/metadata.rs",
-  "metadata_source_sha256": "078fdbd186f911b62154fbfa6a3e268a5ef047ed86dac3cca46a9acaca32fbe9",
+  "metadata_source_sha256": "9ac1b2a453367cf85729da0d2183a8927547b88a961be6c32af896f705d94322",
   "metadata_test_source": "partitionline-broker/tests/metadata.rs",
   "metadata_test_source_sha256": "a500a6cbc819d9fdef11a9bce27ef03153ddde39221a15b5442e3ae9b7aba17c",
   "metadata_fixture_root": "partitionline-broker/tests/fixtures/metadata",

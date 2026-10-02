@@ -19,7 +19,7 @@
 
 use crate::{
     catalog::{self, Catalog, Topic, TopicId},
-    journal,
+    journal, produce,
     protocol::{self, ApiVersionsHandler, RequestHeader},
     transport::Handler,
 };
@@ -32,7 +32,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::{
-    sync::{mpsc, oneshot, Mutex},
+    sync::{mpsc, oneshot, Mutex, Semaphore},
     task::JoinHandle,
 };
 
@@ -149,10 +149,17 @@ pub enum Error {
     StoragePoisoned,
     /// A canceled in-flight client no longer has a response receiver.
     Canceled,
+    /// Ordinary data profile parsing/startup/storage lifecycle failed.
+    Produce(produce::Error),
 }
 impl From<protocol::Error> for Error {
     fn from(value: protocol::Error) -> Self {
         Self::Protocol(value)
+    }
+}
+impl From<produce::Error> for Error {
+    fn from(value: produce::Error) -> Self {
+        Self::Produce(value)
     }
 }
 impl std::fmt::Display for Error {
@@ -169,7 +176,13 @@ struct Job {
 }
 enum Command {
     Request(Job),
+    Data(DataJob),
     Stop,
+}
+struct DataJob {
+    request: Vec<u8>,
+    admitted: Instant,
+    reply: oneshot::Sender<Result<Option<Vec<u8>>, Error>>,
 }
 
 /// Composed bounded Kafka handler and exclusive asynchronous catalog owner.
@@ -186,6 +199,8 @@ pub struct Router {
     stopping: Arc<AtomicBool>,
     failed: AtomicBool,
     task: Mutex<Option<JoinHandle<()>>>,
+    data: bool,
+    data_slots: Semaphore,
 }
 impl Router {
     /// Open/replay on a blocking actor; cancellation before startup drops it.
@@ -193,8 +208,35 @@ impl Router {
         path: impl Into<PathBuf>,
         config: Config,
     ) -> Result<(Self, journal::Recovery), Error> {
+        Self::open_inner(path.into(), config, None).await
+    }
+    /// Open the ordinary data profile on the same exclusive blocking actor.
+    ///
+    /// Every catalog lookup/delete and partition append is serialized. Partition
+    /// files are bounded retained history, keyed by UUID/index rather than names.
+    /// acks-1 has only RF1 local-fsync semantics; no replication is configured.
+    pub async fn open_with_store(
+        path: impl Into<PathBuf>,
+        config: Config,
+        store: produce::Config,
+    ) -> Result<(Self, journal::Recovery), Error> {
+        store.validate()?;
+        if config
+            .max_queued_requests
+            .saturating_mul(config.max_response_bytes)
+            > 512 * 1024 * 1024
+        {
+            return Err(produce::Error::InvalidConfig.into());
+        }
+        Self::open_inner(path.into(), config, Some(store)).await
+    }
+    async fn open_inner(
+        path: PathBuf,
+        config: Config,
+        store: Option<produce::Config>,
+    ) -> Result<(Self, journal::Recovery), Error> {
         config.validate()?;
-        let path = path.into();
+        let data = store.is_some();
         let (sender, receiver) = mpsc::channel(config.max_queued_requests);
         let (ready_tx, ready_rx) = oneshot::channel();
         let stopping = Arc::new(AtomicBool::new(false));
@@ -203,8 +245,18 @@ impl Router {
         let task = tokio::task::spawn_blocking(move || {
             match Catalog::open(path, worker_config.catalog_limits) {
                 Ok((catalog, recovery)) => {
+                    let store = match store
+                        .map(|config| produce::Store::open(config, &catalog))
+                        .transpose()
+                    {
+                        Ok(store) => store,
+                        Err(error) => {
+                            let _ = ready_tx.send(Err(error.into()));
+                            return;
+                        }
+                    };
                     if ready_tx.send(Ok(recovery)).is_ok() {
-                        actor(catalog, receiver, &worker_config, &worker_stop);
+                        actor(catalog, store, receiver, &worker_config, &worker_stop);
                     }
                 }
                 Err(error) => {
@@ -212,7 +264,22 @@ impl Router {
                 }
             }
         });
-        let recovery = ready_rx.await.map_err(|_| Error::ActorFailed)??;
+        let recovery = match ready_rx.await {
+            Ok(Ok(recovery)) => recovery,
+            Ok(Err(error)) => {
+                // A failed store startup still owned Catalog until its closure
+                // exited. Join before returning so immediate reopen cannot race
+                // resource/ownership cleanup. Cancellation still requests no
+                // blocking destructor: dropping ready_rx makes the worker exit.
+                let _ = task.await;
+                return Err(error);
+            }
+            Err(_) => {
+                let _ = task.await;
+                return Err(Error::ActorFailed);
+            }
+        };
+        let data_slots = Semaphore::new(config.max_queued_requests);
         Ok((
             Self {
                 config,
@@ -220,6 +287,8 @@ impl Router {
                 stopping,
                 failed: AtomicBool::new(false),
                 task: Mutex::new(Some(task)),
+                data,
+                data_slots,
             },
             recovery,
         ))
@@ -254,14 +323,64 @@ impl Router {
     }
     /// Dispatch one transport-bounded payload; no frame prefix is included.
     pub async fn respond(&self, request: Vec<u8>) -> Result<Vec<u8>, Error> {
+        self.dispatch(request)
+            .await?
+            .ok_or_else(|| produce::Error::NoResponse.into())
+    }
+    /// Dispatch a bounded payload; `None` means successful acks0 and no wire bytes.
+    /// Errors close the transport connection. Metadata-only routers reject Produce.
+    pub async fn dispatch(&self, request: Vec<u8>) -> Result<Option<Vec<u8>>, Error> {
         if self.stopping.load(Ordering::Acquire) {
             return Err(Error::Stopped);
         }
+        if self.data && request.get(..2) == Some(&[0, 0]) {
+            // Keep admitted data jobs and completed, unconsumed actor replies
+            // bounded together. Once transferred, Vec ownership/budgets belong
+            // to the caller, as for the transport's connection/handler limits.
+            let _slot = self
+                .data_slots
+                .try_acquire()
+                .map_err(|_| Error::QueueFull)?;
+            if request.len() > self.config.protocol_limits.max_request_bytes() {
+                return Err(protocol::Error::RequestTooLarge.into());
+            }
+            let version = i16::from_be_bytes(
+                request
+                    .get(2..4)
+                    .ok_or(protocol::Error::Truncated)?
+                    .try_into()
+                    .map_err(|_| protocol::Error::Truncated)?,
+            );
+            if !(3..=13).contains(&version) {
+                return Err(Error::UnsupportedVersion {
+                    api_key: 0,
+                    version,
+                });
+            }
+            let (reply, receiver) = oneshot::channel();
+            self.sender
+                .try_send(Command::Data(DataJob {
+                    request,
+                    admitted: Instant::now(),
+                    reply,
+                }))
+                .map_err(|error| match error {
+                    mpsc::error::TrySendError::Full(_) => Error::QueueFull,
+                    mpsc::error::TrySendError::Closed(_) => Error::Stopped,
+                })?;
+            return receiver.await.map_err(|_| Error::ActorFailed)?;
+        }
         let (key, _) = prefix(&request, &self.config)?;
         if key == 18 {
-            return ApiVersionsHandler::composed(self.config.protocol_limits)
-                .respond(&request)
-                .map_err(Into::into);
+            let handler = if self.data {
+                ApiVersionsHandler::with_advertised(
+                    self.config.protocol_limits,
+                    &produce::DATA_API_VERSIONS,
+                )
+            } else {
+                ApiVersionsHandler::composed(self.config.protocol_limits)
+            };
+            return handler.respond(&request).map(Some).map_err(Into::into);
         }
         let (reply, receiver) = oneshot::channel();
         let job = Job {
@@ -275,7 +394,7 @@ impl Router {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => Error::Stopped,
             })?;
-        receiver.await.map_err(|_| Error::ActorFailed)?
+        receiver.await.map_err(|_| Error::ActorFailed)?.map(Some)
     }
 }
 impl Drop for Router {
@@ -286,11 +405,12 @@ impl Drop for Router {
 impl Handler for Router {
     type Error = Error;
     async fn handle(&self, request: Vec<u8>) -> Result<Option<Vec<u8>>, Error> {
-        self.respond(request).await.map(Some)
+        self.dispatch(request).await
     }
 }
 fn actor(
     mut catalog: Catalog,
+    mut store: Option<produce::Store>,
     mut receiver: mpsc::Receiver<Command>,
     config: &Config,
     stopping: &AtomicBool,
@@ -320,6 +440,26 @@ fn actor(
                 );
                 let _ = job.reply.send(result);
             }
+            Command::Data(job) => {
+                if job.reply.is_closed() {
+                    continue;
+                }
+                let result = if catalog.is_poisoned() {
+                    Err(Error::StoragePoisoned)
+                } else if let Some(store) = store.as_mut() {
+                    produce::process(&catalog, store, &job.request, config, job.admitted, || {
+                        if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
+                            Err(produce::Error::Canceled)
+                        } else {
+                            Ok(())
+                        }
+                    })
+                    .map_err(Into::into)
+                } else {
+                    Err(protocol::Error::UnimplementedApi(0).into())
+                };
+                let _ = job.reply.send(result);
+            }
         }
     }
     receiver.close();
@@ -328,8 +468,14 @@ fn actor(
     }
 }
 fn reject(command: Command) {
-    if let Command::Request(job) = command {
-        let _ = job.reply.send(Err(Error::Stopped));
+    match command {
+        Command::Request(job) => {
+            let _ = job.reply.send(Err(Error::Stopped));
+        }
+        Command::Data(job) => {
+            let _ = job.reply.send(Err(Error::Stopped));
+        }
+        Command::Stop => {}
     }
 }
 
@@ -1401,6 +1547,9 @@ mod tests {
     use std::{error::Error as StdError, sync::atomic::AtomicU64};
     static NEXT: AtomicU64 = AtomicU64::new(0);
     fn parked_actor() -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
+        parked_profile(false)
+    }
+    fn parked_profile(data: bool) -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
         let path = std::env::temp_dir().join(format!(
             "partitionline-actor-{}-{}",
             std::process::id(),
@@ -1418,8 +1567,28 @@ mod tests {
             if gate.recv().is_err() {
                 return;
             }
-            if let Ok((catalog, _)) = Catalog::open(worker_path, worker_config.catalog_limits) {
-                actor(catalog, receiver, &worker_config, &worker_stop);
+            if let Ok((mut catalog, _)) = Catalog::open(&worker_path, worker_config.catalog_limits)
+            {
+                let store = if data {
+                    let mut id = [0; 16];
+                    id[15] = 2;
+                    let Ok(id) = TopicId::new(id) else {
+                        return;
+                    };
+                    if catalog.create("alpha", id, 2).is_err() {
+                        return;
+                    }
+                    let Ok(store) = produce::Store::open(
+                        produce::Config::new(worker_path.with_extension("parts")),
+                        &catalog,
+                    ) else {
+                        return;
+                    };
+                    Some(store)
+                } else {
+                    None
+                };
+                actor(catalog, store, receiver, &worker_config, &worker_stop);
             }
         });
         (
@@ -1429,6 +1598,8 @@ mod tests {
                 stopping,
                 failed: AtomicBool::new(false),
                 task: Mutex::new(Some(task)),
+                data,
+                data_slots: Semaphore::new(1),
             }),
             release,
             path,
@@ -1583,6 +1754,134 @@ mod tests {
         assert!(matches!(router.shutdown().await, Err(Error::ActorFailed)));
         assert!(matches!(router.shutdown().await, Err(Error::ActorFailed)));
         assert!(!path.exists());
+        Ok(())
+    }
+    #[tokio::test]
+    async fn queued_data_cancel_and_full_admission_never_append() -> Result<(), Box<dyn StdError>> {
+        let (router, release, path) = parked_profile(true);
+        let input =
+            include_bytes!("../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin").to_vec();
+        let waiting = tokio::spawn({
+            let router = Arc::clone(&router);
+            let input = input.clone();
+            async move { router.dispatch(input).await }
+        });
+        full(&router).await?;
+        assert!(matches!(
+            router.dispatch(input.clone()).await,
+            Err(Error::QueueFull)
+        ));
+        waiting.abort();
+        assert!(waiting.await.is_err());
+        release.send(())?;
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while router.sender.capacity() == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        let response = router
+            .dispatch(input)
+            .await?
+            .ok_or("missing data response")?;
+        assert_eq!(&response[25..33], &0i64.to_be_bytes());
+        router.shutdown().await?;
+        tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            std::fs::remove_file(&path)?;
+            std::fs::remove_dir_all(path.with_extension("parts"))
+        })
+        .await??;
+        Ok(())
+    }
+    #[tokio::test]
+    async fn unconsumed_data_receipt_keeps_admission_bounded() -> Result<(), Box<dyn StdError>> {
+        let (router, release, path) = parked_profile(true);
+        let input =
+            include_bytes!("../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin").to_vec();
+        let mut pending = Box::pin(router.dispatch(input.clone()));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(_) => {
+                std::task::Poll::Ready(Err("parked data actor completed unexpectedly"))
+            }
+        })
+        .await?;
+        release.send(())?;
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while router.sender.capacity() == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        // FIFO metadata completion proves the prior Produce receipt exists,
+        // without polling its receiver or transferring the owned response Vec.
+        router.respond(request(3)).await?;
+        assert!(matches!(
+            router.dispatch(input.clone()).await,
+            Err(Error::QueueFull)
+        ));
+        let result = pending.await?.ok_or("missing receipt")?;
+        assert_eq!(&result[25..33], &0i64.to_be_bytes());
+        let result = router
+            .dispatch(input)
+            .await?
+            .ok_or("missing second receipt")?;
+        assert_eq!(&result[25..33], &1i64.to_be_bytes());
+        router.shutdown().await?;
+        tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            std::fs::remove_file(&path)?;
+            std::fs::remove_dir_all(path.with_extension("parts"))
+        })
+        .await??;
+        Ok(())
+    }
+    #[tokio::test]
+    async fn committed_data_with_lost_receipt_replays_without_deduplication(
+    ) -> Result<(), Box<dyn StdError>> {
+        let path = std::env::temp_dir().join(format!(
+            "partitionline-data-receipt-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        tokio::task::spawn_blocking(move || -> Result<(), Error> {
+            let config = Config::new(0, "127.0.0.1".into(), 19095, "data-receipt".into());
+            let (mut catalog, _) =
+                Catalog::open(&path, config.catalog_limits).map_err(Error::Catalog)?;
+            let mut id = [0; 16];
+            id[15] = 2;
+            catalog
+                .create("alpha", TopicId::new(id).map_err(Error::Catalog)?, 2)
+                .map_err(Error::Catalog)?;
+            let store_config = produce::Config::new(path.with_extension("parts"));
+            let mut store = produce::Store::open(store_config.clone(), &catalog)?;
+            let input =
+                include_bytes!("../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin");
+            let (reply, receiver) = oneshot::channel::<Result<Option<Vec<u8>>, Error>>();
+            let result =
+                produce::process(&catalog, &mut store, input, &config, Instant::now(), || {
+                    Ok(())
+                })?;
+            drop(receiver);
+            assert!(reply.send(Ok(result)).is_err());
+            drop(store);
+            let mut recovered = produce::Store::open(store_config, &catalog)?;
+            let result = produce::process(
+                &catalog,
+                &mut recovered,
+                input,
+                &config,
+                Instant::now(),
+                || Ok(()),
+            )?
+            .ok_or(Error::ActorFailed)?;
+            assert_eq!(&result[25..33], &1i64.to_be_bytes());
+            drop(recovered);
+            drop(catalog);
+            std::fs::remove_file(&path).map_err(produce::Error::Io)?;
+            std::fs::remove_dir_all(path.with_extension("parts")).map_err(produce::Error::Io)?;
+            Ok(())
+        })
+        .await??;
         Ok(())
     }
 }
