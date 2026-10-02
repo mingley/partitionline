@@ -8651,7 +8651,10 @@
         "tests/consumer_fetch_semantics.rs",
         "docs/plan/evidence/KL09-47.json",
         "docs/evidence/perf/KL09-47/",
-        "docs/plan/tasks.json"
+        "docs/plan/tasks.json",
+        "benchmarks/runtime/src/fdrive.rs",
+        "benchmarks/runtime/src/main.rs",
+        "benchmarks/runtime/tests/e2e.rs"
       ]
     },
     {
@@ -13438,7 +13441,8 @@
         "KL11-57",
         "KL11-58",
         "KL11-59",
-        "KL11-60"
+        "KL11-60",
+        "KL11-61"
       ],
       "files": [
         "docs/plan/evidence/KL11-56.json"
@@ -13720,6 +13724,46 @@
         "partitionline-broker/tests/fixtures/records/",
         "docs/plan/evidence/KL11-60.json",
         "docs/evidence/broker/KL11-60/",
+        "docs/plan/tasks.json"
+      ]
+    },
+    {
+      "id": "KL11-61",
+      "title": "Keep broker qualification assets outside the published client package",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL11-01",
+        "KL11-57",
+        "KL04-07"
+      ],
+      "files": [
+        "Cargo.toml",
+        "docs/benchmark.md",
+        "docs/evidence/broker/KL11-57/README.md",
+        "docs/evidence/broker/KL11-57/checksums.sha256"
+      ],
+      "deliverable": "Explicit broker-conformance exclusion from the client package and usable immutable links for external benchmark tooling.",
+      "acceptance": [
+        "Client package excludes broker source archives, matrices and implementation registry, while retaining existing client tests/examples/fixtures.",
+        "Root dependency graph, defaults and features stay unchanged; extracted package compiles/tests on stable and Rust1.85.",
+        "Correct the inventory evidence wording and associated checksum; packaged benchmark documentation links to immutable source for referenced new external tools.",
+        "Retain exact source/package lists and integration validation without inferring production or comparative qualification."
+      ],
+      "validation": [
+        "cargo package --list --allow-dirty --locked",
+        "Validate extracted package on stable and Rust1.85; strict integrated client checks."
+      ],
+      "evidence": [],
+      "write_set": [
+        "Cargo.toml",
+        "docs/benchmark.md",
+        "docs/evidence/broker/KL11-57/README.md",
+        "docs/evidence/broker/KL11-57/checksums.sha256",
+        "docs/plan/evidence/KL11-61.json",
+        "docs/evidence/broker/KL11-61/",
         "docs/plan/tasks.json"
       ]
     }
