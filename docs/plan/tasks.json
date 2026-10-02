@@ -5984,7 +5984,8 @@
         "docs/evidence/perf/KL09-45/",
         "docs/plan/tasks.json",
         "benchmarks/runtime/src/main.rs",
-        "benchmarks/runtime/tests/e2e.rs"
+        "benchmarks/runtime/tests/e2e.rs",
+        "benchmarks/runtime/src/fdrive.rs"
       ]
     },
     {
