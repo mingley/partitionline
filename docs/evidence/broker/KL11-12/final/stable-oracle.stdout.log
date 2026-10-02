@@ -1,0 +1,15 @@
+{
+  "verdict": "passed",
+  "counts": {
+    "seeds": 16,
+    "events": 8523,
+    "campaigns": 551,
+    "elections": 155,
+    "denials": 894,
+    "restarts": 32,
+    "journals": 48
+  },
+  "oracle": "independent causal Raft state machine plus bitwise CRC32C actual-journal comparison",
+  "scope": "fixed-member election and supplied durable log summaries; no wire, replication, leases or full KRaft qualification",
+  "production_qualification": false
+}

@@ -1,0 +1,17 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/raft-election/candidate/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.78s
+     Running tests/raft_election.rs (/workspace/work/target-raft-candidate/debug/deps/raft_election-50226853dc3aa99e)
+
+running 9 tests
+test duplicate_stale_negative_and_misrouted_responses_cannot_create_a_majority ... ok
+test a_real_peer_vote_elects_and_stale_leader_assertions_are_fenced ... ok
+test durable_log_freshness_uses_term_then_index_and_denials_persist_higher_term ... ok
+test exhausted_storage_poison_prevents_even_repeat_grants_until_recovery ... ok
+test membership_clock_term_and_timeout_bounds_fail_explicitly ... ok
+test seeded_timers_are_reproducible_node_separated_and_always_bounded ... ok
+test synchronized_vote_survives_restart_and_never_changes_in_same_term ... ok
+test torn_unconfirmed_tail_repairs_but_checksummed_double_vote_and_corruption_fail_closed ... ok
+test deterministic_seeded_losing_partition_and_restart_histories ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

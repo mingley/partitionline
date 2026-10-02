@@ -1,0 +1,5 @@
+{
+  "base_sha": "d6fffc978b8b9ae627ed8b8b93a796e466ba592b",
+  "source_method": "git archive committed broker plus owned draft raft sources/test; only scratch lib adds raft export",
+  "claimed_as_pushed_source": false
+}

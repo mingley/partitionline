@@ -1,9 +1,5 @@
 //! Public client API: builders, send_all, headers, seek helpers.
 #![expect(
-    dead_code,
-    reason = "tests/common mock helpers are shared; this file uses a subset"
-)]
-#![expect(
     unused_results,
     reason = "tests discard RecordMetadata when only the fetch side matters"
 )]

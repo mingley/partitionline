@@ -1,0 +1,518 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-12",
+  "status": "done",
+  "acceptance_met": true,
+  "result": "passed",
+  "source_sha": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+  "validated_at_utc": "2026-10-02T21:08:19.904721+00:00",
+  "scope": "Durable bounded fixed-member election primitives and caller-confirmed log summaries; no wire support or replication/commit authority.",
+  "tested_source": "Exact pushed git archive; no concurrent main/draft overlay. All 302 recorded source/reference/fixture files compared with Git objects; unchanged before/after every gate on both toolchains.",
+  "commands": [
+    {
+      "name": "clean-broker",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "exit_code": 0,
+      "seconds": 0.021,
+      "log": "docs/evidence/broker/KL11-12/final/stable-clean-broker.log",
+      "log_sha256": "9d64974b8cf4d7095e1cc0c60bea4bf6822b593916dd17db7f9f9674a7a3843f",
+      "toolchain": "stable"
+    },
+    {
+      "name": "default-election-tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--lib",
+        "--test",
+        "raft_election"
+      ],
+      "exit_code": 0,
+      "seconds": 0.757,
+      "log": "docs/evidence/broker/KL11-12/final/stable-default-election-tests.log",
+      "log_sha256": "461dd8beba6f2142fb2c99bd3cdcd4876ae4206b0fa0b1bacf978affb7f5b15b",
+      "PL_RAFT_HISTORY_DIR": "/workspace/partitionline/docs/evidence/broker/KL11-12/final/stable-histories",
+      "toolchain": "stable"
+    },
+    {
+      "name": "allfeature-election-tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--lib",
+        "--test",
+        "raft_election"
+      ],
+      "exit_code": 0,
+      "seconds": 7.438,
+      "log": "docs/evidence/broker/KL11-12/final/stable-allfeature-election-tests.log",
+      "log_sha256": "00a98b354d444206d91b5dfd97f3ffa040ca50df537fbe2ea64ea8ac0b875c3d",
+      "toolchain": "stable"
+    },
+    {
+      "name": "fmt",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 0.109,
+      "log": "docs/evidence/broker/KL11-12/final/stable-fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "toolchain": "stable"
+    },
+    {
+      "name": "strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 4.951,
+      "log": "docs/evidence/broker/KL11-12/final/stable-strict-clippy.log",
+      "log_sha256": "9ca8da46997c673b7f0a2d0972839833f526ecdb9bdcf0676f2ca9bd00941fd4",
+      "toolchain": "stable"
+    },
+    {
+      "name": "strict-rustdoc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "seconds": 0.318,
+      "log": "docs/evidence/broker/KL11-12/final/stable-strict-rustdoc.log",
+      "log_sha256": "40e021e291de0318ed09ed0cfbb21a94a7e6585614f4c26348e36e7fdbdca51d",
+      "toolchain": "stable"
+    },
+    {
+      "name": "strict-default-doctests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "seconds": 0.087,
+      "log": "docs/evidence/broker/KL11-12/final/stable-strict-default-doctests.log",
+      "log_sha256": "6d6c7697887282cd486189ca62a9ec3293540fa3a8c01cf8e39a7e5be5adf6f4",
+      "toolchain": "stable"
+    },
+    {
+      "name": "strict-allfeature-doctests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "seconds": 0.089,
+      "log": "docs/evidence/broker/KL11-12/final/stable-strict-allfeature-doctests.log",
+      "log_sha256": "6d6c7697887282cd486189ca62a9ec3293540fa3a8c01cf8e39a7e5be5adf6f4",
+      "toolchain": "stable"
+    },
+    {
+      "name": "clean-broker",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "exit_code": 0,
+      "seconds": 0.066,
+      "log": "docs/evidence/broker/KL11-12/final/1.85.0-clean-broker.log",
+      "log_sha256": "fede2d932d99897fdad34539db210632aaf8ef175904d9396a13343aaa386721",
+      "toolchain": "1.85.0"
+    },
+    {
+      "name": "default-election-tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--lib",
+        "--test",
+        "raft_election"
+      ],
+      "exit_code": 0,
+      "seconds": 7.019,
+      "log": "docs/evidence/broker/KL11-12/final/1.85.0-default-election-tests.log",
+      "log_sha256": "0a861b488966c143da055ce2989a68baf4dc130a700818b8878632ede7f8e8d8",
+      "PL_RAFT_HISTORY_DIR": "/workspace/partitionline/docs/evidence/broker/KL11-12/final/1.85.0-histories",
+      "toolchain": "1.85.0"
+    },
+    {
+      "name": "allfeature-election-tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--lib",
+        "--test",
+        "raft_election"
+      ],
+      "exit_code": 0,
+      "seconds": 7.493,
+      "log": "docs/evidence/broker/KL11-12/final/1.85.0-allfeature-election-tests.log",
+      "log_sha256": "d2cb7cb6d71140aaec269eb981e8d21c4f01c6f086d432f021d6665a06eeab2d",
+      "toolchain": "1.85.0"
+    },
+    {
+      "name": "fmt",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 0.148,
+      "log": "docs/evidence/broker/KL11-12/final/1.85.0-fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "toolchain": "1.85.0"
+    },
+    {
+      "name": "strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 4.843,
+      "log": "docs/evidence/broker/KL11-12/final/1.85.0-strict-clippy.log",
+      "log_sha256": "4b3a8404a92e15e59495b7fae2ff93f163976ecf2e14d0c8a084d997a8e8add5",
+      "toolchain": "1.85.0"
+    },
+    {
+      "name": "strict-rustdoc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "seconds": 0.496,
+      "log": "docs/evidence/broker/KL11-12/final/1.85.0-strict-rustdoc.log",
+      "log_sha256": "62fabb875753eeb5cadefac1d6f077ba753c96179a45cd9db1d8c3f752f170ad",
+      "toolchain": "1.85.0"
+    },
+    {
+      "name": "strict-default-doctests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "seconds": 0.077,
+      "log": "docs/evidence/broker/KL11-12/final/1.85.0-strict-default-doctests.log",
+      "log_sha256": "6d6c7697887282cd486189ca62a9ec3293540fa3a8c01cf8e39a7e5be5adf6f4",
+      "toolchain": "1.85.0"
+    },
+    {
+      "name": "strict-allfeature-doctests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/raft-election/final-18194a1/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "seconds": 0.092,
+      "log": "docs/evidence/broker/KL11-12/final/1.85.0-strict-allfeature-doctests.log",
+      "log_sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878",
+      "toolchain": "1.85.0"
+    }
+  ],
+  "resources": {
+    "affinity": "0-2,4",
+    "jobs": 2,
+    "incremental": false,
+    "debug_information": false,
+    "dedicated_target": "/workspace/work/target-raft-final",
+    "isolation": "Sequential exact-source toolchain lanes, broker package cleaned first; no shared target owner."
+  },
+  "results": {
+    "stable": {
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "default_and_all_feature_invocations_each": {
+        "library_passed": 17,
+        "election_unit_subset": 4,
+        "election_integration_passed": 9,
+        "failed": 0,
+        "ignored": 0
+      },
+      "fmt_strict_clippy_strict_rustdoc": "passed",
+      "strict_default_all_feature_doctest_compilations": "passed",
+      "doctest_cases": 0,
+      "recorded_commands": 8,
+      "source_unchanged": true
+    },
+    "1.85.0": {
+      "rustc": "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+      "default_and_all_feature_invocations_each": {
+        "library_passed": 17,
+        "election_unit_subset": 4,
+        "election_integration_passed": 9,
+        "failed": 0,
+        "ignored": 0
+      },
+      "fmt_strict_clippy_strict_rustdoc": "passed",
+      "strict_default_all_feature_doctest_compilations": "passed",
+      "doctest_cases": 0,
+      "recorded_commands": 8,
+      "source_unchanged": true
+    }
+  },
+  "independent_oracle": {
+    "source": "docs/evidence/broker/KL11-12/oracle.py",
+    "source_sha": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+    "independence": "Separately stated causal state machine; imports no Rust source/decision/PRNG. Existing independent bitwise CRC32C decodes actual file snapshots and compares all persisted states with the causal model.",
+    "stable_and_msrv_verdict": "passed",
+    "per_toolchain_counts": {
+      "seeds": 16,
+      "events": 8523,
+      "campaigns": 551,
+      "elections": 155,
+      "denials": 894,
+      "restarts": 32,
+      "journals": 48
+    },
+    "seed_domain": "1..=16, three nodes, 112 steps each, 3..9 ms timers, 512 snapshots per node",
+    "partitions": "Node 1 isolated at steps 8..35, node 3 at 60..95; explicit owner lose_quorum callback for isolated leaders.",
+    "restarts": "Node 2 at steps 48 and 84 for every seed.",
+    "histories_and_48_journals_byte_identical_across_toolchains": true,
+    "negative_cases": 12,
+    "expected_model_rejections": 12,
+    "observed_model_rejections": 12,
+    "expected_cli_exit_code_per_case": 1,
+    "observed_cli_rejections": 12,
+    "counterexamples": [
+      "double-vote",
+      "stale-log-grant",
+      "stale-leader",
+      "duplicate-election",
+      "campaign-before-persistence",
+      "forged-majority",
+      "restart-rollback",
+      "log-rollback",
+      "unbounded-timeout",
+      "leader-without-election",
+      "actual-journal-crc",
+      "checksummed-durable-double-vote"
+    ],
+    "raw_negative_fixtures_preserved": true,
+    "log_content_or_replication_qualification": false
+  },
+  "upstream": {
+    "release_pins": [
+      {
+        "version": "4.1.2",
+        "commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+        "original_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+        "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c"
+      },
+      {
+        "version": "4.2.1",
+        "commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+        "original_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+        "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/18d5ecd939c8d510fdd72d0abb1f7099659dcd58"
+      },
+      {
+        "version": "4.3.1",
+        "commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+        "original_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+        "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+      }
+    ],
+    "retained_files_per_release": 13,
+    "method": "Original archives hashed against pinned inventory before bounded regular-member selection; retained files include LICENSE and NOTICE.",
+    "reference_comparison": "docs/evidence/broker/KL11-12/upstream-distinction.md",
+    "java_election_execution": false,
+    "wire_exchange": false,
+    "full_kraft_compatibility": false
+  },
+  "retained_failures_and_corrections": [
+    {
+      "kind": "wrong Apache archive member paths",
+      "exit_code": 1,
+      "observed_error": "AssertionError: ['clients/src/main/resources/common/message/QuorumStateData.json', 'raft/src/main/java/org/apache/kafka/raft/OffsetAndEpoch.java']",
+      "resolution": "Selected actual raft/resources and server-common paths; all 13 files retained and hashed for all three releases."
+    },
+    {
+      "kind": "synthetic fixture had duplicate identical vote instead of changed candidate",
+      "observed": "First generator rejected the extra snapshots; this did not prove durable double-vote rejection. Superseded raw fixture is retained.",
+      "resolution": "Generator chooses a different candidate and requires the durable double-vote reason; final generator validates that reason."
+    },
+    {
+      "kind": "valid higher term plus deadline overflow left old volatile leader diagnostic visible",
+      "observed": "Source review, not an observed prior behavioral run failure.",
+      "resolution": "Demote before timer setup for all three higher-term input paths; candidate v2 adds and passes the explicit regression."
+    },
+    {
+      "kind": "final harness output path passed relative instead of absolute",
+      "exit_code": 101,
+      "observed_error": "Error: Os { code: 2, kind: NotFound, message: \"No such file or directory\" } in retained-history test (17 library cases passed, 8/9 integration passed)",
+      "raw_run": "development/frozen-run-relative-output/",
+      "resolution": "Scratch harness resolves all paths to absolute; source unchanged; complete clean frozen matrix passes in final/."
+    }
+  ],
+  "artifacts": [
+    "docs/evidence/broker/KL11-12/README.md",
+    "docs/evidence/broker/KL11-12/final/",
+    "docs/evidence/broker/KL11-12/oracle.py",
+    "docs/evidence/broker/KL11-12/oracle-tests.py",
+    "docs/evidence/broker/KL11-12/upstream/",
+    "docs/evidence/broker/KL11-12/upstream-distinction.md",
+    "docs/evidence/broker/KL11-12/validate-frozen.py",
+    "docs/evidence/broker/KL11-12/development/",
+    "docs/evidence/broker/KL11-12/SHA256SUMS"
+  ],
+  "limitations": [
+    "Fixed membership of 1..64 voters and caller-trusted peer identities; no authentication or dynamic voter/directory handling.",
+    "Leader role is an election result, not a lease or commit permission; replication owner must detect quorum loss and call lose_quorum.",
+    "observe_leader provides local term/identity fencing, not standalone remote-election proof. Actual histories only supply previously elected leaders.",
+    "Caller-confirmed positive term/index summaries, empty (0,0), do not validate content or represent Kafka nonempty epoch-zero logs, reconcile/truncate data, replicate or track commit.",
+    "Checked u64 term/index domain differs from signed Kafka wire epoch/offset domains; no pre-vote or Vote/Begin/End RPC/API advertisement.",
+    "Positive bounded caller-clock timeouts and deterministic PRNG are scheduler primitives; no cryptographic randomness, uniform-distribution or real-time performance qualification.",
+    "Snapshot budget includes initialization, maximum 65,536; full-state journal has no automatic compaction, and exhaustion poisons until recovery.",
+    "Injected private store isolates ambiguous election persistence consequences; physical power loss remains unqualified.",
+    "Reuse Journal synchronous dedicated-thread requirement, process-local ownership guard, caller cross-process exclusivity, CRC corruption-only detection and Linux overlayfs validation limits.",
+    "Finite 16-seed histories, Apache source references and 13 passing election tests do not establish full KRaft compatibility or production qualification.",
+    "Strict all-targets Clippy compiles other broker suites, but only library and raft_election behavior ran here; root integrated QA is separate."
+  ],
+  "production_qualification": false,
+  "blocked_reason": null
+}

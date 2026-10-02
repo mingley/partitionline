@@ -1,0 +1,15 @@
+{
+  "verdict": "failed",
+  "line": 23,
+  "error": "invalid vote tally/duplicate election",
+  "counts": {
+    "seeds": 1,
+    "events": 23,
+    "campaigns": 1,
+    "elections": 1,
+    "denials": 0,
+    "restarts": 0,
+    "journals": 0
+  },
+  "production_qualification": false
+}

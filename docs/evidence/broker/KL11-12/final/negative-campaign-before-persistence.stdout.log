@@ -1,0 +1,15 @@
+{
+  "verdict": "failed",
+  "line": 18,
+  "error": "actual state differs from independent model: expected {'term': 1, 'vote': 2, 'log_term': 0, 'log_index': 0, 'role': 'Candidate', 'leader': None, 'grants': 1, 'poisoned': False, 'states': 2}, actual {'term': 1, 'vote': 2, 'log_term': 0, 'log_index': 0, 'role': 'Candidate', 'leader': None, 'deadline': 14, 'grants': 1, 'poisoned': False, 'states': 1}",
+  "counts": {
+    "seeds": 1,
+    "events": 18,
+    "campaigns": 1,
+    "elections": 0,
+    "denials": 0,
+    "restarts": 0,
+    "journals": 0
+  },
+  "production_qualification": false
+}

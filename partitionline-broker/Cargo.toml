@@ -10,8 +10,13 @@ description = "Experimental Rust Kafka broker; production qualification tracked 
 [features]
 default = []
 tls = ["dep:rustls", "dep:tokio-rustls"]
+sasl = ["dep:base64", "dep:hmac", "dep:pbkdf2", "dep:sha2"]
 
 [dependencies]
+base64 = { version = "0.23", optional = true }
+hmac = { version = "0.13", optional = true, features = ["zeroize"] }
+pbkdf2 = { version = "0.13", optional = true, default-features = false, features = ["hmac"] }
+sha2 = { version = "0.11", optional = true, features = ["zeroize"] }
 bytes = "1"
 crc32c = "0.6"
 getrandom = "0.4"

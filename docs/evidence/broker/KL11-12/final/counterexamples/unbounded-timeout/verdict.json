@@ -1,0 +1,15 @@
+{
+  "verdict": "failed",
+  "line": 2,
+  "error": "random timeout outside declared absolute bounds",
+  "counts": {
+    "seeds": 1,
+    "events": 2,
+    "campaigns": 0,
+    "elections": 0,
+    "denials": 0,
+    "restarts": 0,
+    "journals": 0
+  },
+  "production_qualification": false
+}

@@ -1,0 +1,15 @@
+{
+  "verdict": "failed",
+  "line": 118,
+  "error": "invalid affirmative/negative vote response",
+  "counts": {
+    "seeds": 1,
+    "events": 118,
+    "campaigns": 11,
+    "elections": 2,
+    "denials": 3,
+    "restarts": 0,
+    "journals": 0
+  },
+  "production_qualification": false
+}

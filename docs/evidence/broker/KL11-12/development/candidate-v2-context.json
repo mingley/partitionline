@@ -1,0 +1,10 @@
+{
+  "kind": "private precommit candidate; draft export; not pushed source",
+  "base_archive_commit": "d6fffc978b8b9ae627ed8b8b93a796e466ba592b",
+  "source_sha256": {
+    "partitionline-broker/src/lib.rs": "e6735ce6caf22c23fb18123dcadb23f2dd5d5a564d863a23e0879266c42f3aac",
+    "partitionline-broker/src/raft/mod.rs": "dcac62f6d1a750548dd9f3b9e62f374e235a39f58f7e95219351348d1ee488bc",
+    "partitionline-broker/src/raft/election.rs": "600cce238dc4dfebbc4b0173cd48fa817090073d87aa1dd4da3b758b27fadf0b",
+    "partitionline-broker/tests/raft_election.rs": "53b3062d3d795fa4d89ba4d89305c10306c73f3cec6e194902eb3b1c0bd333b8"
+  }
+}

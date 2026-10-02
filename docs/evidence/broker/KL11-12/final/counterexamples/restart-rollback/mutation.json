@@ -1,0 +1,9 @@
+{
+  "kind": "synthetic counterexample derived from actual Rust seed history",
+  "source_history": "/workspace/partitionline/docs/evidence/broker/KL11-12/final/stable-histories/history.jsonl",
+  "source_sha256": "9aaf3cef6edf8abf74b1147c6372b169905ab06e7bcef0e4c0560ce7a5a24967",
+  "seed": 1,
+  "mutation": "discard a persisted term/vote during restart",
+  "raw_failed_fixture_retained": true,
+  "production_qualification": false
+}

@@ -1,0 +1,244 @@
+{
+  "source_sha": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+  "oracle_source_sha256": "b0d13093e2fb2484315688a0f8617ee77f2374e666030d17af69d64adbea3f5c",
+  "commands": [
+    {
+      "name": "1.85.0-oracle",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/1.85.0-histories/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/1.85.0-oracle.json"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "1.85.0-oracle.stdout.log",
+      "stderr": "1.85.0-oracle.stderr.log"
+    },
+    {
+      "name": "negative-actual-journal-crc",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/actual-journal-crc/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/actual-journal-crc/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-actual-journal-crc.stdout.log",
+      "stderr": "negative-actual-journal-crc.stderr.log"
+    },
+    {
+      "name": "negative-campaign-before-persistence",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/campaign-before-persistence/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/campaign-before-persistence/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-campaign-before-persistence.stdout.log",
+      "stderr": "negative-campaign-before-persistence.stderr.log"
+    },
+    {
+      "name": "negative-checksummed-durable-double-vote",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/checksummed-durable-double-vote/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/checksummed-durable-double-vote/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-checksummed-durable-double-vote.stdout.log",
+      "stderr": "negative-checksummed-durable-double-vote.stderr.log"
+    },
+    {
+      "name": "negative-double-vote",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/double-vote/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/double-vote/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-double-vote.stdout.log",
+      "stderr": "negative-double-vote.stderr.log"
+    },
+    {
+      "name": "negative-duplicate-election",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/duplicate-election/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/duplicate-election/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-duplicate-election.stdout.log",
+      "stderr": "negative-duplicate-election.stderr.log"
+    },
+    {
+      "name": "negative-forged-majority",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/forged-majority/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/forged-majority/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-forged-majority.stdout.log",
+      "stderr": "negative-forged-majority.stderr.log"
+    },
+    {
+      "name": "negative-leader-without-election",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/leader-without-election/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/leader-without-election/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-leader-without-election.stdout.log",
+      "stderr": "negative-leader-without-election.stderr.log"
+    },
+    {
+      "name": "negative-log-rollback",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/log-rollback/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/log-rollback/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-log-rollback.stdout.log",
+      "stderr": "negative-log-rollback.stderr.log"
+    },
+    {
+      "name": "negative-restart-rollback",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/restart-rollback/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/restart-rollback/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-restart-rollback.stdout.log",
+      "stderr": "negative-restart-rollback.stderr.log"
+    },
+    {
+      "name": "negative-stale-leader",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/stale-leader/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/stale-leader/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-stale-leader.stdout.log",
+      "stderr": "negative-stale-leader.stderr.log"
+    },
+    {
+      "name": "negative-stale-log-grant",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/stale-log-grant/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/stale-log-grant/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-stale-log-grant.stdout.log",
+      "stderr": "negative-stale-log-grant.stderr.log"
+    },
+    {
+      "name": "negative-unbounded-timeout",
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/unbounded-timeout/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples/unbounded-timeout/cli-verdict.json"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "negative-unbounded-timeout.stdout.log",
+      "stderr": "negative-unbounded-timeout.stderr.log"
+    }
+  ],
+  "expected_cli_rejections": 12,
+  "observed_cli_rejections": 12,
+  "toolchain_histories_and_48_journals_byte_identical": true,
+  "history_files_sha256": {
+    "seed-12-node-1.journal": "d02674e20898722381eab0c0c6d83efe0e7447bb01457f8e8895a114ca67317b",
+    "seed-4-node-1.journal": "ebd77ee145107ff1c7e0b1a3b34352c48c6bd8cf5b85c610ed6f420c5663d543",
+    "seed-12-node-2.journal": "ac1dc99e0559c0bfd0121d7eefc4352cb6873f005cbbfcc22b0abd815133de3d",
+    "seed-2-node-3.journal": "34950085454bb47f0c455921ee867560fe6c5875d6e89700b48a8ee538ce5e3c",
+    "history.jsonl": "9aaf3cef6edf8abf74b1147c6372b169905ab06e7bcef0e4c0560ce7a5a24967",
+    "seed-14-node-3.journal": "562757edb0e425529368143ad8640b028b4830edd2c0cc263050fce20071a964",
+    "seed-5-node-1.journal": "40e6ca7ba03880d0e9157f90ef86fd880f84484701357dfb7ec440d29cfd991a",
+    "seed-15-node-3.journal": "475b5c6e3c0c6409095ec5f789cf76dd0dcebf5d4f48c9f5ee0f1259c5ac2563",
+    "seed-7-node-2.journal": "cfe7824e9a6683c0d9d76a140508fe8290922a0d6a111b80be6224c2d3957f40",
+    "seed-8-node-3.journal": "38b9d37f732005edae2b9a67cf4ef692413a2dbb3d1e02a2f0aa11b7d129baf5",
+    "seed-9-node-3.journal": "ea718fdfb3b2d2360605226d9be84fb5fa83946fdcc1c5e803b14d2d037e965f",
+    "seed-1-node-3.journal": "19da29840a55be3ff0e94c3dd84663824b389c9cae7f4a36f1a01dc22446adb8",
+    "seed-9-node-1.journal": "d3b943ac8ff56ba61a7c554732c52c5b9bd6bb57e682fba48ad5730faa909ce8",
+    "seed-16-node-2.journal": "d90f2909984667c0d6bfd55a210e071aa2c94a82890eebe3fdc972d8381fb017",
+    "seed-1-node-2.journal": "62a9b507665377011df46f291252dd410a79fd70be9642b3cd8d8b491705b93f",
+    "seed-1-node-1.journal": "13f8ba371b4fcf505bd25c69b8ab61a0de4bd1a39e4fa788d8a6b75969258776",
+    "seed-6-node-1.journal": "a270268f1e494afcf426f4571b8f51016eee0ed711df3013898f7eee3f9a6712",
+    "seed-8-node-2.journal": "64d21c9fdeb14eba1b080e2ab1ee917c47b5c92e39b41b0e571332bbbcb0b794",
+    "seed-2-node-1.journal": "37f86007567919edc22c660c32a28eeb2e23cc157e0001777016672f055ffa1b",
+    "seed-13-node-1.journal": "e9a8fe6c7293143b38ce9af762cd5d4b428c7f70d2c015ec0eeb80a543ce1df8",
+    "seed-13-node-3.journal": "295dd0bea8fc491b48bff1557c4132a1f9ef72bc20eb9fb93dac01e1677ea25e",
+    "seed-11-node-3.journal": "1082679c38536af65feabf97856dfc5d21a414604022f7496d7db250b291a862",
+    "seed-3-node-2.journal": "92da34f77a6af47d92e5648af92b149c0c4601026ad6b4be9e851965f6813c3a",
+    "seed-16-node-3.journal": "c158540bde5656e43458c906157f8a7d9dee412a4db8870bd00fc58b3e9ba261",
+    "seed-5-node-3.journal": "06e97c9301d5f6ac52a8a953496d284ae46f47d7d2c0d2217ee36bb689901c62",
+    "seed-2-node-2.journal": "4b1f634db4542fa70c9e93a489391339e651c3114e550c72638c2e6dc8a47aa1",
+    "seed-7-node-3.journal": "a9b313d3cd20f83c8625c2e12a415baa64dbf0720ad4d4b6f22de2c2a8e3444d",
+    "seed-7-node-1.journal": "8bcfc898ec59ebcf38b3c02c73898f4eb124152c1a576b07dbbb18030e9ae24d",
+    "seed-11-node-1.journal": "6326e4e9663a1dc455b1a611b1aec6ac0ad4336523a30d8a2573922baf70043e",
+    "seed-3-node-1.journal": "1d4e3abe67c7fa7b0ad237945220470646805144f2bb020c19954ad6f55a3ba4",
+    "seed-11-node-2.journal": "8ba8ead1f26aae1e9118a55e57e739d8f1880e7b648cd52a8c8d155279806b89",
+    "seed-10-node-1.journal": "475e5ca88c4a0735d26e33b1ba3e81e6f5cbb6506d4e0fc30bb8d09fdec8642f",
+    "seed-10-node-3.journal": "eab93657dae4b15f2034e41762be659e4d136932ef08cdbd4f27cf036b5987be",
+    "seed-6-node-3.journal": "b211914f574929c23bcdd9b229cae8d8cadc3b264de2778caaafbd3202a3ac60",
+    "seed-5-node-2.journal": "198add9ee993c95a3585d3f79ea592ad813601abfd160cdb6e6c42e9a8c306bb",
+    "seed-3-node-3.journal": "554ba98076624b9baa71f3121ad3b7d7ebea16e824bb0d1c1e03049710ca96a3",
+    "seed-9-node-2.journal": "80f2871058292f7bf974356d4070c511d327cfd65cc44a9c788c3de08986c00f",
+    "seed-14-node-2.journal": "95adfdf2385935708dae9f474d489a0536be0ec1f8d789c14e3b85dbd497a337",
+    "seed-4-node-2.journal": "e5cd54be124db099cb7b3de449b9efdb07afce38653b14451fa4a554c9262f97",
+    "seed-4-node-3.journal": "37634b3a5329d88fe69c53df25008c223a73d719beef9c166d38ac57d747560c",
+    "seed-15-node-2.journal": "b5b85dfbf6e31c08e62d7dad2bdbc90bc348be41bf456d4751e0282efdecb34a",
+    "seed-10-node-2.journal": "4b69f01178c4d286d059c9ed379c4692c04658f0b55698620a14e7426fbb1be9",
+    "seed-12-node-3.journal": "fc7c93bcd0950ade24013889d2166e003e53b94964eb3449d8e037dede04eaae",
+    "seed-6-node-2.journal": "8d5d880902b54ce7328e124d717ef16eb8fb6395e71e7119ee25b6f3168e5156",
+    "seed-8-node-1.journal": "d3c3d08504b3e2d6a692be2c5a0c1dc6c2cbe0946df5fa98fa7c22baf1c9e451",
+    "seed-16-node-1.journal": "7f37b0108ab807f8c99b0b6e6c74f3eb0834847a6aeff60f44bb1e6cb8ca7eb3",
+    "seed-14-node-1.journal": "b19b9ab12d81e75cbaeac6a164e3e1518baa4fd43ae0c827aefe31407237fbe1",
+    "seed-15-node-1.journal": "4a8044e9925e2440288ae9fedccfa2d7440b2deb410772d9ab65ed347494ea31",
+    "seed-13-node-2.journal": "f00a742ac584d24213015c8be19368db87a9a9c9d816c9ef0a74fd1409f25a7c"
+  },
+  "production_qualification": false,
+  "verdict": "passed"
+}

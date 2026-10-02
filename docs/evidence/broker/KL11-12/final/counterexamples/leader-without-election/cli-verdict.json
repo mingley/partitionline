@@ -1,0 +1,15 @@
+{
+  "verdict": "failed",
+  "line": 24,
+  "error": "asserted leader has no actual majority election in this history",
+  "counts": {
+    "seeds": 1,
+    "events": 24,
+    "campaigns": 1,
+    "elections": 1,
+    "denials": 0,
+    "restarts": 0,
+    "journals": 0
+  },
+  "production_qualification": false
+}

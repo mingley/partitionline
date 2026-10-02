@@ -1,0 +1,15 @@
+{
+  "verdict": "failed",
+  "line": 50,
+  "error": "mixed empty/nonempty log",
+  "counts": {
+    "seeds": 1,
+    "events": 50,
+    "campaigns": 3,
+    "elections": 1,
+    "denials": 0,
+    "restarts": 0,
+    "journals": 0
+  },
+  "production_qualification": false
+}

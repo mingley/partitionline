@@ -1,0 +1,95 @@
+{
+  "positive_actual_history": {
+    "verdict": "passed",
+    "counts": {
+      "seeds": 16,
+      "events": 8523,
+      "campaigns": 551,
+      "elections": 155,
+      "denials": 894,
+      "restarts": 32,
+      "journals": 48
+    },
+    "oracle": "independent causal Raft state machine plus bitwise CRC32C actual-journal comparison",
+    "scope": "fixed-member election and supplied durable log summaries; no wire, replication, leases or full KRaft qualification",
+    "production_qualification": false
+  },
+  "negative_cases": 12,
+  "expected_rejections": 12,
+  "observed_rejections": 12,
+  "counterexamples": [
+    {
+      "case": "double-vote",
+      "verdict": "failed",
+      "line": 118,
+      "error": "invalid affirmative/negative vote response"
+    },
+    {
+      "case": "stale-log-grant",
+      "verdict": "failed",
+      "line": 52,
+      "error": "invalid affirmative/negative vote response"
+    },
+    {
+      "case": "stale-leader",
+      "verdict": "failed",
+      "line": 179,
+      "error": "stale leader accepted"
+    },
+    {
+      "case": "duplicate-election",
+      "verdict": "failed",
+      "line": 23,
+      "error": "invalid vote tally/duplicate election"
+    },
+    {
+      "case": "campaign-before-persistence",
+      "verdict": "failed",
+      "line": 18,
+      "error": "actual state differs from independent model: expected {'term': 1, 'vote': 2, 'log_term': 0, 'log_index': 0, 'role': 'Candidate', 'leader': None, 'grants': 1, 'poisoned': False, 'states': 2}, actual {'term': 1, 'vote': 2, 'log_term': 0, 'log_index': 0, 'role': 'Candidate', 'leader': None, 'deadline': 14, 'grants': 1, 'poisoned': False, 'states': 1}"
+    },
+    {
+      "case": "forged-majority",
+      "verdict": "failed",
+      "line": 19,
+      "error": "counted grant lacks an actual preceding durable vote"
+    },
+    {
+      "case": "restart-rollback",
+      "verdict": "failed",
+      "line": 228,
+      "error": "actual state differs from independent model: expected {'term': 9, 'vote': None, 'log_term': 7, 'log_index': 2, 'role': 'Follower', 'leader': None, 'grants': 0, 'poisoned': False, 'states': 12}, actual {'term': 8, 'vote': None, 'log_term': 7, 'log_index': 2, 'role': 'Follower', 'leader': None, 'deadline': 53, 'grants': 0, 'poisoned': False, 'states': 12}"
+    },
+    {
+      "case": "log-rollback",
+      "verdict": "failed",
+      "line": 50,
+      "error": "mixed empty/nonempty log"
+    },
+    {
+      "case": "unbounded-timeout",
+      "verdict": "failed",
+      "line": 2,
+      "error": "random timeout outside declared absolute bounds"
+    },
+    {
+      "case": "leader-without-election",
+      "verdict": "failed",
+      "line": 24,
+      "error": "asserted leader has no actual majority election in this history"
+    },
+    {
+      "case": "actual-journal-crc",
+      "verdict": "failed",
+      "line": 541,
+      "error": "payload checksum/truncation"
+    },
+    {
+      "case": "checksummed-durable-double-vote",
+      "verdict": "failed",
+      "line": 541,
+      "error": "durable double vote or vote erased"
+    }
+  ],
+  "production_qualification": false
+}

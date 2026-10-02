@@ -1,0 +1,15 @@
+{
+  "verdict": "failed",
+  "line": 179,
+  "error": "stale leader accepted",
+  "counts": {
+    "seeds": 1,
+    "events": 179,
+    "campaigns": 14,
+    "elections": 3,
+    "denials": 20,
+    "restarts": 0,
+    "journals": 0
+  },
+  "production_qualification": false
+}

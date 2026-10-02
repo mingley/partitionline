@@ -1,0 +1,30 @@
+{
+  "qualification_input": false,
+  "candidate_base_archive_commit": "d6fffc978b8b9ae627ed8b8b93a796e466ba592b",
+  "candidate_context": "Private candidate overlays, including a draft lib export. These are not claimed as pushed source; final immutable validation is separate.",
+  "development_corrections": [
+    {
+      "kind": "wrong Apache archive member paths",
+      "exit_code": 1,
+      "observed_error": "AssertionError: ['clients/src/main/resources/common/message/QuorumStateData.json', 'raft/src/main/java/org/apache/kafka/raft/OffsetAndEpoch.java']",
+      "resolution": "Selected actual raft/resources and server-common paths; all 13 files retained and hashed for all three releases."
+    },
+    {
+      "kind": "synthetic fixture had duplicate identical vote instead of changed candidate",
+      "observed": "First generator rejected the extra snapshots; this did not prove durable double-vote rejection. Superseded raw fixture is retained.",
+      "resolution": "Generator chooses a different candidate and requires the durable double-vote reason; final generator validates that reason."
+    },
+    {
+      "kind": "valid higher term plus deadline overflow left old volatile leader diagnostic visible",
+      "observed": "Source review, not an observed prior behavioral run failure.",
+      "resolution": "Demote before timer setup for all three higher-term input paths; candidate v2 adds and passes the explicit regression."
+    },
+    {
+      "kind": "final harness output path passed relative instead of absolute",
+      "exit_code": 101,
+      "observed_error": "Error: Os { code: 2, kind: NotFound, message: \"No such file or directory\" } in retained-history test (17 library cases passed, 8/9 integration passed)",
+      "raw_run": "development/frozen-run-relative-output/",
+      "resolution": "Scratch harness resolves all paths to absolute; source unchanged; complete clean frozen matrix passes in final/."
+    }
+  ]
+}

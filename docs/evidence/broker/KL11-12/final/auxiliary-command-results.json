@@ -1,0 +1,34 @@
+{
+  "source_sha": "18194a1a3635ac82b6eaeb4958fd44a318911d32",
+  "commands": [
+    {
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/stable-histories/history.jsonl",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/stable-oracle.json"
+      ],
+      "exit_code": 0,
+      "stdout": "stable-oracle.stdout.log",
+      "stderr": "stable-oracle.stderr.log"
+    },
+    {
+      "argv": [
+        "python3",
+        "/workspace/work/raft-election/final-18194a1/docs/evidence/broker/KL11-12/oracle-tests.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/stable-histories/history.jsonl",
+        "/workspace/partitionline/docs/evidence/broker/KL11-12/final/counterexamples"
+      ],
+      "exit_code": 0,
+      "stdout": "counterexamples.stdout.log",
+      "stderr": "counterexamples.stderr.log"
+    }
+  ],
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "affinity": "0-2,4"
+  },
+  "verdict": "passed",
+  "production_qualification": false
+}

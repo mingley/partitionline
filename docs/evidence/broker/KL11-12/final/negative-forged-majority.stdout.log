@@ -1,0 +1,15 @@
+{
+  "verdict": "failed",
+  "line": 19,
+  "error": "counted grant lacks an actual preceding durable vote",
+  "counts": {
+    "seeds": 1,
+    "events": 19,
+    "campaigns": 1,
+    "elections": 0,
+    "denials": 0,
+    "restarts": 0,
+    "journals": 0
+  },
+  "production_qualification": false
+}

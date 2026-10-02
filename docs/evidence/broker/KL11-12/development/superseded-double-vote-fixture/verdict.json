@@ -1,0 +1,15 @@
+{
+  "verdict": "failed",
+  "line": 541,
+  "error": "durable double vote or vote erased",
+  "counts": {
+    "seeds": 1,
+    "events": 541,
+    "campaigns": 36,
+    "elections": 11,
+    "denials": 57,
+    "restarts": 2,
+    "journals": 0
+  },
+  "production_qualification": false
+}
