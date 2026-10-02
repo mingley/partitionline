@@ -73,7 +73,7 @@ const THROTTLE_MS: i32 = 42;
 
 fn crate_spoken(api: &str) -> Vec<i16> {
     match api {
-        "Produce" => (3..=12).collect(),
+        "Produce" => (3..=13).collect(),
         "Fetch" => (4..=17).collect(),
         "Metadata" => (1..=13).collect(),
         "ListOffsets" => (1..=10).collect(),
@@ -87,7 +87,7 @@ fn expected_pin_supported(api: &str, pin: &str) -> Vec<i16> {
         // 3.9.1 ProduceRequest.json validVersions 0-11.
         ("Produce", "3.9.1") => (3..=11).collect(),
         // 4.1.0 ProduceRequest.json validVersions 3-13; crate speaks 3-12.
-        ("Produce", "4.1.0") => (3..=12).collect(),
+        ("Produce", "4.1.0") => (3..=13).collect(),
         // 3.9.1 FetchRequest.json validVersions 0-17 (v17 is KIP-853).
         ("Fetch", "3.9.1") => (4..=17).collect(),
         // 4.1.0 FetchRequest.json validVersions 4-18; crate speaks 4-17.
@@ -210,9 +210,38 @@ fn produce_roundtrip(version: i16, gated_present: bool) {
         ProducePartitionResponse::partition_response("ok-topic", 1, NOT_LEADER_OR_FOLLOWER);
     let parts = vec![success, unknown, not_leader];
     let mut buf = BytesMut::new();
-    encode_produce_response_with_throttle(&mut buf, version, &parts, THROTTLE_MS).unwrap();
+    let identities = vec![
+        ("ok-topic".to_string(), [1; 16]),
+        ("missing-topic".to_string(), [2; 16]),
+    ];
+    if version == 13 {
+        partitionline::protocol::api::encode_produce_response_with_topic_ids(
+            &mut buf,
+            &parts,
+            &[],
+            THROTTLE_MS,
+            &identities,
+        )
+        .unwrap();
+    } else {
+        encode_produce_response_with_throttle(&mut buf, version, &parts, THROTTLE_MS).unwrap();
+    }
     let mut cur = buf.as_ref();
-    let (decoded, _endpoints, throttle) = decode_produce_response(&mut cur, version).unwrap();
+    let (decoded, _endpoints, throttle) = if version == 13 {
+        let (mut parts, endpoints, throttle, ids) =
+            partitionline::protocol::api::decode_produce_response_with_topic_ids(&mut cur).unwrap();
+        for (part, id) in parts.iter_mut().zip(ids) {
+            part.topic = identities
+                .iter()
+                .find(|(_, known)| *known == id)
+                .unwrap()
+                .0
+                .clone();
+        }
+        (parts, endpoints, throttle)
+    } else {
+        decode_produce_response(&mut cur, version).unwrap()
+    };
     leftover_empty(cur, &format!("Produce v{version}"));
     assert_eq!(throttle, THROTTLE_MS, "Produce v{version} throttle");
     assert_eq!(decoded.len(), 3, "Produce v{version} partition count");
@@ -266,9 +295,26 @@ fn produce_roundtrip(version: i16, gated_present: bool) {
     );
 
     let mut conv = BytesMut::new();
-    encode_produce_response(&mut conv, version, &parts).unwrap();
+    if version == 13 {
+        partitionline::protocol::api::encode_produce_response_with_topic_ids(
+            &mut conv,
+            &parts,
+            &[],
+            0,
+            &identities,
+        )
+        .unwrap();
+    } else {
+        encode_produce_response(&mut conv, version, &parts).unwrap();
+    }
     let mut cur = conv.as_ref();
-    let (_, _, throttle0) = decode_produce_response(&mut cur, version).unwrap();
+    let throttle0 = if version == 13 {
+        partitionline::protocol::api::decode_produce_response_with_topic_ids(&mut cur)
+            .unwrap()
+            .2
+    } else {
+        decode_produce_response(&mut cur, version).unwrap().2
+    };
     leftover_empty(cur, &format!("Produce v{version} convenience throttle"));
     assert_eq!(
         throttle0, 0,
@@ -1657,7 +1703,7 @@ fn rust_produce_output_decodes_with_apache_when_java_available() {
         };
         encode_produce_request(&mut req_buf, version, txn_id, -1, 5000, &[topic])
             .expect("encode produce request in Rust");
-        let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+        let req_hex: String = produce_oracle_hex(&req_buf);
 
         let req_out = std::process::Command::new(&java_bin)
             .args([
@@ -1702,7 +1748,7 @@ fn rust_produce_output_decodes_with_apache_when_java_available() {
         }
         encode_produce_response_with_throttle(&mut resp_buf, version, &[part], throttle_ms)
             .expect("encode produce response in Rust");
-        let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+        let resp_hex: String = produce_oracle_hex(&resp_buf);
 
         let resp_out = std::process::Command::new(&java_bin)
             .args([
@@ -2466,7 +2512,7 @@ fn rust_fetch_output_decodes_with_apache_when_java_available() {
             )
             .expect("encode fetch request in Rust");
         }
-        let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+        let req_hex: String = produce_oracle_hex(&req_buf);
 
         let req_out = std::process::Command::new(&java_bin)
             .args([
@@ -2532,7 +2578,7 @@ fn rust_fetch_output_decodes_with_apache_when_java_available() {
             encode_fetch_response_with_throttle(&mut resp_buf, version, &[topic_resp], throttle_ms)
                 .expect("encode fetch response in Rust");
         }
-        let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+        let resp_hex: String = produce_oracle_hex(&resp_buf);
 
         let resp_out = std::process::Command::new(&java_bin)
             .args([
@@ -3105,7 +3151,7 @@ fn rust_metadata_output_decodes_with_apache_when_java_available() {
             include_cluster_auth,
         )
         .expect("encode metadata request in Rust");
-        let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+        let req_hex: String = produce_oracle_hex(&req_buf);
 
         let req_out = std::process::Command::new(&java_bin)
             .args([
@@ -3181,7 +3227,7 @@ fn rust_metadata_output_decodes_with_apache_when_java_available() {
         };
         encode_metadata_response(&mut resp_buf, version, &resp)
             .expect("encode metadata response in Rust");
-        let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+        let resp_hex: String = produce_oracle_hex(&resp_buf);
 
         let resp_out = std::process::Command::new(&java_bin)
             .args([
@@ -3793,7 +3839,7 @@ fn rust_list_offsets_output_decodes_with_apache_when_java_available() {
             timeout_ms,
         )
         .expect("encode list offsets request in Rust");
-        let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+        let req_hex: String = produce_oracle_hex(&req_buf);
 
         let req_out = std::process::Command::new(&java_bin)
             .args([
@@ -3840,7 +3886,7 @@ fn rust_list_offsets_output_decodes_with_apache_when_java_available() {
             throttle_ms,
         )
         .expect("encode list offsets response in Rust");
-        let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+        let resp_hex: String = produce_oracle_hex(&resp_buf);
 
         let resp_out = std::process::Command::new(&java_bin)
             .args([
@@ -5088,4 +5134,332 @@ fn current_group_nullable_struct_marker_matches_apache_signed_byte_semantics() {
         empty[marker + 1] = 0;
         assert!(decode_consumer_group_heartbeat_response(&mut empty.as_slice(), version).is_err());
     }
+}
+
+/// KL05-11: independently generated Produce13 identities, errors and tags.
+#[test]
+fn produce_v13_pinned_topic_id_fixtures_and_legacy_fallback() {
+    use partitionline::protocol::api::{
+        decode_produce_request_with_topic_ids, decode_produce_response_with_topic_ids,
+        encode_produce_request_with_topic_ids, encode_produce_response_with_topic_ids,
+    };
+    let identities = vec![
+        (
+            "alpha".to_string(),
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 17],
+        ),
+        (
+            "béta".to_string(),
+            [0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 18],
+        ),
+    ];
+    let cells: [(&str, &[u8], &[u8]); 6] = [
+        (
+            "empty",
+            include_bytes!("fixtures/protocol_oracles/produce_v13_empty_request.bin"),
+            include_bytes!("fixtures/protocol_oracles/produce_v13_empty_response.bin"),
+        ),
+        (
+            "paired",
+            include_bytes!("fixtures/protocol_oracles/produce_v13_paired_request.bin"),
+            include_bytes!("fixtures/protocol_oracles/produce_v13_paired_response.bin"),
+        ),
+        (
+            "reversed",
+            include_bytes!("fixtures/protocol_oracles/produce_v13_reversed_request.bin"),
+            include_bytes!("fixtures/protocol_oracles/produce_v13_reversed_response.bin"),
+        ),
+        (
+            "errors",
+            include_bytes!("fixtures/protocol_oracles/produce_v13_errors_request.bin"),
+            include_bytes!("fixtures/protocol_oracles/produce_v13_errors_response.bin"),
+        ),
+        (
+            "tagged",
+            include_bytes!("fixtures/protocol_oracles/produce_v13_tagged_request.bin"),
+            include_bytes!("fixtures/protocol_oracles/produce_v13_tagged_response.bin"),
+        ),
+        (
+            "zero-id",
+            include_bytes!("fixtures/protocol_oracles/produce_v13_zero_id_request.bin"),
+            include_bytes!("fixtures/protocol_oracles/produce_v13_zero_id_response.bin"),
+        ),
+    ];
+    for (cell, request, response) in cells {
+        let mut cur = request;
+        let (tid, acks, timeout, mut topics, request_ids) =
+            decode_produce_request_with_topic_ids(&mut cur).unwrap();
+        assert!(cur.is_empty(), "{cell} request consumption");
+        assert_eq!((tid.as_deref(), acks, timeout), (None, -1, 1234));
+        assert_eq!(topics.len(), if cell == "empty" { 0 } else { 2 });
+        for (i, (topic, id)) in topics.iter_mut().zip(&request_ids).enumerate() {
+            assert!(topic.topic.is_empty());
+            if cell == "zero-id" && i == 0 {
+                assert_eq!(*id, [0; 16]);
+            } else {
+                assert_eq!(*id, identities[i].1);
+            }
+            topic.topic.clone_from(&identities[i].0);
+            assert_eq!(topic.partitions[0].index, i32::try_from(i * 3).unwrap());
+            let record = &topic.partitions[0].records.records[0];
+            assert_eq!(record.timestamp, 42 + i64::try_from(i).unwrap());
+            assert_eq!(record.key.as_deref(), Some(format!("key-{i}").as_bytes()));
+            assert_eq!(
+                record.value.as_deref(),
+                Some(format!("value-{i}").as_bytes())
+            );
+        }
+        let mut cur = response;
+        let (mut parts, endpoints, throttle, response_ids) =
+            decode_produce_response_with_topic_ids(&mut cur).unwrap();
+        assert!(cur.is_empty(), "{cell} response consumption");
+        assert_eq!(throttle, 37);
+        assert_eq!(parts.len(), topics.len());
+        for (part, id) in parts.iter_mut().zip(&response_ids) {
+            assert!(part.topic.is_empty());
+            let index = if cell == "zero-id" && *id == [0; 16] {
+                0
+            } else {
+                identities
+                    .iter()
+                    .position(|(_, known)| known == id)
+                    .unwrap()
+            };
+            part.topic.clone_from(&identities[index].0);
+            assert_eq!(part.partition, i32::try_from(index * 3).unwrap());
+            assert_eq!(
+                part.error_code,
+                if cell == "errors" && index == 0 {
+                    100
+                } else {
+                    0
+                }
+            );
+            assert_eq!(
+                part.base_offset,
+                if cell == "errors" && index == 0 {
+                    -1
+                } else {
+                    100 + i64::try_from(index).unwrap() * 3
+                }
+            );
+            assert_eq!(
+                part.current_leader_id,
+                if cell == "tagged" { 7 } else { -1 }
+            );
+        }
+        let mut encoded = BytesMut::new();
+        if cell == "zero-id" {
+            let invalid = vec![(identities[0].0.clone(), [0; 16]), identities[1].clone()];
+            assert!(encode_produce_request_with_topic_ids(
+                &mut encoded,
+                None,
+                -1,
+                1234,
+                &topics,
+                &invalid
+            )
+            .is_err());
+            assert!(
+                encoded.is_empty(),
+                "zero identity must fail before emitting bytes"
+            );
+        } else {
+            encode_produce_request_with_topic_ids(
+                &mut encoded,
+                None,
+                -1,
+                1234,
+                &topics,
+                &identities,
+            )
+            .unwrap();
+            // Unknown request tags are intentionally skipped; compare canonical
+            // encoding to the independent untagged paired bytes.
+            let canonical = if cell == "tagged" {
+                cells[1].1
+            } else {
+                request
+            };
+            assert_eq!(
+                encoded.as_ref(),
+                canonical,
+                "{cell} independent request bytes"
+            );
+            encoded.clear();
+            encode_produce_response_with_topic_ids(
+                &mut encoded,
+                &parts,
+                &endpoints,
+                throttle,
+                &identities,
+            )
+            .unwrap();
+            assert_eq!(
+                encoded.as_ref(),
+                response,
+                "{cell} independent response bytes"
+            );
+        }
+        if cell == "paired" {
+            for version in 3..=12 {
+                encoded.clear();
+                encode_produce_request(&mut encoded, version, None, -1, 1234, &topics).unwrap();
+                let mut cur = encoded.as_ref();
+                let decoded = decode_produce_request(&mut cur, version).unwrap();
+                assert!(cur.is_empty());
+                assert_eq!(decoded.3[0].topic, "alpha");
+                assert_eq!(decoded.3[1].topic, "béta");
+            }
+            encoded.clear();
+            assert!(encode_produce_request(&mut encoded, 13, None, -1, 1234, &topics).is_err());
+            assert!(encoded.is_empty());
+            let mut cur = request;
+            assert!(decode_produce_request(&mut cur, 13).is_err());
+            let mut cur = response;
+            assert!(decode_produce_response(&mut cur, 13).is_err());
+        }
+    }
+}
+
+#[test]
+fn produce_v13_rejects_missing_ambiguous_and_truncated_identities() {
+    use partitionline::protocol::api::{
+        decode_produce_request_with_topic_ids, decode_produce_response_with_topic_ids,
+        encode_produce_request_with_topic_ids,
+    };
+    let request = include_bytes!("fixtures/protocol_oracles/produce_v13_paired_request.bin");
+    let response = include_bytes!("fixtures/protocol_oracles/produce_v13_paired_response.bin");
+    let (.., mut topics, _) =
+        decode_produce_request_with_topic_ids(&mut request.as_slice()).unwrap();
+    topics[0].topic = "a".into();
+    topics[1].topic = "b".into();
+    for ids in [
+        vec![],
+        vec![("a".into(), [1; 16])],
+        vec![
+            ("a".into(), [1; 16]),
+            ("a".into(), [2; 16]),
+            ("b".into(), [3; 16]),
+        ],
+        vec![("a".into(), [1; 16]), ("b".into(), [1; 16])],
+    ] {
+        let mut out = BytesMut::new();
+        assert!(
+            encode_produce_request_with_topic_ids(&mut out, None, -1, 1, &topics, &ids).is_err()
+        );
+        assert!(out.is_empty());
+    }
+    for end in 0..request.len() {
+        assert!(
+            decode_produce_request_with_topic_ids(&mut &request[..end]).is_err(),
+            "request prefix{end}"
+        );
+    }
+    for end in 0..response.len() {
+        assert!(
+            decode_produce_response_with_topic_ids(&mut &response[..end]).is_err(),
+            "response prefix{end}"
+        );
+    }
+}
+
+/// Explicit opt-in fresh Apache decode, with checksum-pinned released jars.
+#[test]
+fn produce_v13_rust_output_decodes_with_current_apache_when_requested() {
+    let Some(jars) = std::env::var_os("PARTITIONLINE_PRODUCE_V13_JARS") else {
+        println!(
+            "Produce13 live Java decode not requested; independent offline fixtures remain active"
+        );
+        return;
+    };
+    let classes = std::env::var_os("PARTITIONLINE_PRODUCE_V13_CLASSES")
+        .expect("configured live Java gate requires compiled target-specific classes");
+    use partitionline::protocol::api::{
+        encode_produce_request_with_topic_ids, encode_produce_response_with_topic_ids,
+    };
+    let identities = vec![
+        (
+            "alpha".to_string(),
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 17],
+        ),
+        (
+            "béta".to_string(),
+            [0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 18],
+        ),
+    ];
+    let topics: Vec<_> = (0..2)
+        .map(|i| ProduceTopicData {
+            topic: identities[i].0.clone(),
+            partitions: vec![ProducePartitionData {
+                index: i32::try_from(i * 3).unwrap(),
+                records: RecordBatch::from_records(vec![Record {
+                    offset: 0,
+                    timestamp: 42 + i64::try_from(i).unwrap(),
+                    key: Some(Bytes::from(format!("key-{i}"))),
+                    value: Some(Bytes::from(format!("value-{i}"))),
+                    headers: vec![],
+                }]),
+            }],
+        })
+        .collect();
+    let parts: Vec<_> = (0..2)
+        .map(|i| {
+            ProducePartitionResponse::partition_response_with_offsets(
+                &identities[i].0,
+                i32::try_from(i * 3).unwrap(),
+                0,
+                100 + i64::try_from(i).unwrap() * 3,
+                -1,
+                0,
+            )
+        })
+        .collect();
+    let mut request = BytesMut::new();
+    let mut response = BytesMut::new();
+    encode_produce_request_with_topic_ids(&mut request, None, -1, 1234, &topics, &identities)
+        .unwrap();
+    encode_produce_response_with_topic_ids(&mut response, &parts, &[], 37, &identities).unwrap();
+    for version in ["4.1.2", "4.2.1", "4.3.1"] {
+        let jars = std::path::Path::new(&jars);
+        let classes = std::path::Path::new(&classes).join(format!("java-{version}-final"));
+        let jar = jars.join(format!("kafka-clients-{version}.jar"));
+        let slf4j = jars.join("slf4j-api-1.7.36.jar");
+        let cp = format!(
+            "{}:{}:{}",
+            classes.display(),
+            jar.display(),
+            slf4j.display()
+        );
+        let result = std::process::Command::new("java")
+            .args([
+                "-cp",
+                &cp,
+                "ProduceV13Fixtures",
+                &jar.to_string_lossy(),
+                &produce_oracle_hex(&request),
+                "--decode-rust",
+                &produce_oracle_hex(&response),
+            ])
+            .output()
+            .expect("execute pinned Apache decode");
+        assert!(
+            result.status.success(),
+            "Apache{version} rejected Rust Produce13: {}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        let output = String::from_utf8(result.stdout).unwrap();
+        assert!(output.contains("OK: Produce13 Rust request/response"));
+        println!("Apache {version}: {output}");
+    }
+}
+
+fn produce_oracle_hex(bytes: &[u8]) -> String {
+    let digits = b"0123456789abcdef";
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        out.push(char::from(digits[usize::from(byte >> 4)]));
+        out.push(char::from(digits[usize::from(byte & 15)]));
+    }
+    out
 }

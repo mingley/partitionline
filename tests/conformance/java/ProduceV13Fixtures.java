@@ -17,9 +17,13 @@ import org.apache.kafka.common.protocol.types.RawTaggedField;
 import org.apache.kafka.common.record.MemoryRecords;
 import org.apache.kafka.common.record.SimpleRecord;
 
-/** Apache 4.1.0 body serializer for KIP-516 Produce topic IDs. */
+/** Independently pinned Apache body serializer for KIP-516 Produce topic IDs. */
 public final class ProduceV13Fixtures {
-    static final String PIN="180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb";
+    static final java.util.Map<String,String> PINS=java.util.Map.of(
+        "180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb","4.1.0",
+        "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed","4.1.2",
+        "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159","4.2.1",
+        "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e","4.3.1");
     static String sha(byte[] data) throws Exception {
         return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
     }
@@ -35,10 +39,47 @@ public final class ProduceV13Fixtures {
         else Files.write(path,data);
     }
     public static void main(String[] args) throws Exception {
-        if(args.length<2||args.length>3) throw new IllegalArgumentException("<pinned-jar> <output> [--verify]");
+        if(args.length<2||args.length>4) throw new IllegalArgumentException("<pinned-jar> <output> [--verify]");
         Path jar=Path.of(args[0]);
         Path loaded=Path.of(ProduceRequestData.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-        if(!Files.isSameFile(jar,loaded)||!sha(Files.readAllBytes(jar)).equals(PIN)) throw new AssertionError("wrong Apache 4.1.0 jar");
+        if(!Files.isSameFile(jar,loaded)||!PINS.containsKey(sha(Files.readAllBytes(jar)))) throw new AssertionError("wrong pinned Apache jar");
+        if(args.length==4 && args[2].equals("--decode-rust")) {
+            byte[] requestBytes=HexFormat.of().parseHex(args[1]);
+            byte[] responseBytes=HexFormat.of().parseHex(args[3]);
+            var requestBuffer=ByteBuffer.wrap(requestBytes);
+            var responseBuffer=ByteBuffer.wrap(responseBytes);
+            var request=new ProduceRequestData(new ByteBufferAccessor(requestBuffer),(short)13);
+            var response=new ProduceResponseData(new ByteBufferAccessor(responseBuffer),(short)13);
+            if(requestBuffer.hasRemaining()||responseBuffer.hasRemaining()) throw new AssertionError("unconsumed Rust body bytes");
+            if(request.acks()!=-1||request.timeoutMs()!=1234||request.topicData().size()!=2||response.responses().size()!=2||response.throttleTimeMs()!=37)
+                throw new AssertionError("Rust body top-level fields differ");
+            for(int i=0;i<2;i++) {
+                var id=new Uuid(i+1,i+17);
+                var topic=request.topicData().find("",id);
+                if(topic==null||topic.partitionData().size()!=1||topic.partitionData().get(0).index()!=i*3)
+                    throw new AssertionError("Rust request identity/partition mismatch");
+                var records=(MemoryRecords)topic.partitionData().get(0).records();
+                int recordCount=0;
+                for(var batch:records.batches()) {
+                    batch.ensureValid();
+                    for(var record:batch) {
+                        byte[] key=new byte[record.key().remaining()];record.key().duplicate().get(key);
+                        byte[] value=new byte[record.value().remaining()];record.value().duplicate().get(value);
+                        if(record.timestamp()!=42L+i||!Arrays.equals(key,("key-"+i).getBytes(StandardCharsets.UTF_8))||!Arrays.equals(value,("value-"+i).getBytes(StandardCharsets.UTF_8)))
+                            throw new AssertionError("Rust record content mismatch");
+                        recordCount++;
+                    }
+                }
+                if(recordCount!=1)throw new AssertionError("Rust record count mismatch");
+                var result=response.responses().find("",id);
+                if(result==null||result.partitionResponses().size()!=1)throw new AssertionError("Rust response identity mismatch");
+                var part=result.partitionResponses().get(0);
+                if(part.index()!=i*3||part.errorCode()!=0||part.baseOffset()!=100+i*3||part.logAppendTimeMs()!=-1||part.logStartOffset()!=0)
+                    throw new AssertionError("Rust response outcome mismatch");
+            }
+            System.out.println("OK: Produce13 Rust request/response two topic IDs, records/CRC, offsets and throttle");
+            return;
+        }
         boolean verify=args.length==3&&args[2].equals("--verify");
         Path dir=Path.of(args[1]);Files.createDirectories(dir);
         for(String cell:new String[]{"empty","paired","reversed","errors","tagged","zero-id"}) {

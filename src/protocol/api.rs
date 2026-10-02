@@ -2297,7 +2297,7 @@ impl ProducePartitionResponse {
     /// ([`MetadataResponse::NO_LEADER_ID`] /
     /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). Encode below v5 omits
     /// `logStartOffset`; decode fills [`Self::INVALID_OFFSET`]. Encode
-    /// still writes independently. This crate speaks 3–12. This is not
+    /// still writes independently. This crate speaks 3–13. This is not
     /// [`Self::partition_response`] / [`ProduceResponse::to_data`] /
     /// [`ProduceRequest::error_response`].
     #[must_use]
@@ -2333,7 +2333,7 @@ impl ProducePartitionResponse {
     /// ([`MetadataResponse::NO_LEADER_ID`] /
     /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). Encode below v8 omits
     /// `errorMessage`; decode fills `None`. Encode still writes
-    /// independently. This crate speaks 3–12. This is not
+    /// independently. This crate speaks 3–13. This is not
     /// [`Self::partition_response`] /
     /// [`Self::partition_response_with_offsets`] /
     /// [`ProduceResponse::to_data`] / [`ProduceRequest::error_response`].
@@ -2359,7 +2359,7 @@ impl ProducePartitionResponse {
     /// ([`MetadataResponse::NO_LEADER_ID`] /
     /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). Encode below v8 omits
     /// `recordErrors`; decode fills empty. Encode still writes
-    /// independently. This crate speaks 3–12. This is not
+    /// independently. This crate speaks 3–13. This is not
     /// [`Self::partition_response`] /
     /// [`Self::partition_response_with_offsets`] /
     /// [`Self::partition_response_with_message`] /
@@ -2396,7 +2396,7 @@ impl ProducePartitionResponse {
     /// is the Apache JSON default ([`MetadataResponse::NO_LEADER_ID`] /
     /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). Encode below v8 omits
     /// `recordErrors` and `errorMessage`; decode fills empty / `None`.
-    /// Encode still writes independently. This crate speaks 3–12. This is
+    /// Encode still writes independently. This crate speaks 3–13. This is
     /// not [`Self::partition_response`] /
     /// [`Self::partition_response_with_offsets`] /
     /// [`Self::partition_response_with_message`] /
@@ -2442,7 +2442,7 @@ impl ProducePartitionResponse {
     /// [`MetadataResponse::NO_LEADER_ID`] /
     /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]. Encode still writes
     /// independently (`current_leader_id` below 0 omits the tag even on
-    /// v10+). This crate speaks 3–12. This is not
+    /// v10+). This crate speaks 3–13. This is not
     /// [`Self::partition_response`] /
     /// [`Self::partition_response_with_offsets`] /
     /// [`Self::partition_response_with_message`] /
@@ -2500,11 +2500,12 @@ impl ProduceRequest {
     /// Oldest allowed version is 3 (Java `ApiKeys.PRODUCE.oldestVersion()`
     /// on Kafka 4.0, matching this crate's spoken floor). Latest is
     /// [`Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`] when
-    /// `use_transaction_v1_version` is true, otherwise 12 (Java
-    /// `ApiKeys.PRODUCE.latestVersion()`). The one-argument Java
+    /// `use_transaction_v1_version` is true, otherwise 13 (Java
+    /// `ApiKeys.PRODUCE.latestVersion()` on the pinned current releases).
+    /// The one-argument Java
     /// `builder(data)` is this helper with `false`. Acks, timeout, and
     /// Topics are the caller's values. Encode still writes independently
-    /// of this Builder range. This crate speaks 3–12. This is not
+    /// of this Builder range. This crate speaks 3–13. This is not
     /// [`Self::is_transaction_v2_requested`] / [`Self::build`] /
     /// [`Self::validate_records`].
     #[must_use]
@@ -2512,7 +2513,7 @@ impl ProduceRequest {
         if use_transaction_v1_version {
             (3, Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2)
         } else {
-            (3, 12)
+            (3, 13)
         }
     }
 
@@ -2545,7 +2546,7 @@ impl ProduceRequest {
     /// [`RecordBatch::MAGIC_VALUE_V2`]. zstd is not spoken as a codec;
     /// this helper still rejects the attribute bits below v7. Encode
     /// still rejects zstd (`Compression::from_attributes`). This crate
-    /// speaks 3–12. This is not [`Self::has_transactional_records`] /
+    /// speaks 3–13. This is not [`Self::has_transactional_records`] /
     /// [`Self::partition_sizes`] / [`Self::error_response`] /
     /// [`Self::builder`] / `Builder.build`.
     pub fn validate_records(version: i16, batches: &[RecordBatch]) -> Result<()> {
@@ -2579,7 +2580,7 @@ impl ProduceRequest {
     /// Calls [`Self::validate_records`] for each partition's records
     /// (crate partitions hold one [`RecordBatch`]). Empty Topics is
     /// success. Official Java skips a partition when `records` is not
-    /// `instanceof Records`. This crate speaks 3–12. This is not
+    /// `instanceof Records`. This crate speaks 3–13. This is not
     /// [`Self::validate_records`] / [`Self::partition_sizes`] /
     /// [`Self::error_response`] / [`Self::has_transactional_records`] /
     /// [`Self::builder`].
@@ -2739,11 +2740,11 @@ impl ProduceResponse {
 /// (KIP-951). v11 is TRANSACTION_ABORTABLE
 /// (same layout as v10). v12 is the same layout (KIP-890 Part 2
 /// transaction V2: Produce also does AddPartitionsToTxn). Kafka 4.0
-/// removed v0–v2. This crate speaks 3–12. v13+ (topic IDs) are not spoken.
+/// removed v0–v2. This crate speaks 3–13; v13 requires explicit identity-aware helpers.
 fn produce_flexible(version: i16) -> Result<bool> {
     match version {
         3..=8 => Ok(false),
-        9..=12 => Ok(true),
+        9..=13 => Ok(true),
         other => Err(Error::protocol(format!(
             "Produce version {other} is not implemented"
         ))),
@@ -2810,6 +2811,76 @@ pub fn encode_produce_request(
     timeout_ms: i32,
     topics: &[ProduceTopicData],
 ) -> Result<()> {
+    encode_produce_request_fields(
+        buf,
+        version,
+        transactional_id,
+        acks,
+        timeout_ms,
+        topics,
+        None,
+    )
+}
+
+/// Encode Produce v13 using explicitly resolved nonzero topic IDs.
+///
+/// Names remain local public metadata; only UUIDs are transmitted. A missing,
+/// zero or ambiguous identity fails before encoding. v3-v12 callers retain
+/// [`encode_produce_request`].
+pub fn encode_produce_request_with_topic_ids(
+    buf: &mut BytesMut,
+    transactional_id: Option<&str>,
+    acks: i16,
+    timeout_ms: i32,
+    topics: &[ProduceTopicData],
+    topic_ids: &[(String, [u8; 16])],
+) -> Result<()> {
+    encode_produce_request_fields(
+        buf,
+        13,
+        transactional_id,
+        acks,
+        timeout_ms,
+        topics,
+        Some(topic_ids),
+    )
+}
+
+fn produce_topic_id(topic: &str, identities: &[(String, [u8; 16])]) -> Result<[u8; 16]> {
+    let mut found = identities.iter().filter(|(name, _)| name == topic);
+    let id = found
+        .next()
+        .map(|(_, id)| *id)
+        .ok_or_else(|| Error::Unsupported(format!("Produce v13 missing topic ID for {topic}")))?;
+    if id == [0; 16]
+        || found.next().is_some()
+        || identities
+            .iter()
+            .any(|(name, other)| name != topic && *other == id)
+    {
+        return Err(Error::protocol(format!(
+            "Produce v13 invalid or ambiguous topic ID for {topic}"
+        )));
+    }
+    Ok(id)
+}
+
+fn encode_produce_request_fields(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: Option<&str>,
+    acks: i16,
+    timeout_ms: i32,
+    topics: &[ProduceTopicData],
+    topic_ids: Option<&[(String, [u8; 16])]>,
+) -> Result<()> {
+    if version == 13 {
+        let identities = topic_ids
+            .ok_or_else(|| Error::Unsupported("Produce v13 requires explicit topic IDs".into()))?;
+        for topic in topics {
+            let _ = produce_topic_id(&topic.topic, identities)?;
+        }
+    }
     let flexible = produce_flexible(version)?;
     if version >= 3 {
         buf::put_string(buf, flexible, transactional_id)?;
@@ -2821,7 +2892,8 @@ pub fn encode_produce_request(
         if version <= 12 {
             buf::put_string(buf, flexible, Some(&topic.topic))?;
         } else {
-            buf.extend_from_slice(&[0u8; 16]);
+            let id = produce_topic_id(&topic.topic, topic_ids.unwrap_or(&[]))?;
+            buf.extend_from_slice(&id);
         }
         buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
         for part in &topic.partitions {
@@ -2854,6 +2926,42 @@ pub fn decode_produce_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(Option<String>, i16, i32, Vec<ProduceTopicData>)> {
+    if version == 13 {
+        return Err(Error::Unsupported(
+            "Produce v13 requires the identity-aware decoder".into(),
+        ));
+    }
+    let (transactional_id, acks, timeout_ms, topics, _) =
+        decode_produce_request_fields(buf, version)?;
+    Ok((transactional_id, acks, timeout_ms, topics))
+}
+
+/// Decoded Produce request: transactional ID, acks, timeout, topics, and raw IDs.
+/// Identity-aware decoding returns one ID per topic; name-based versions return
+/// an empty ID vector.
+pub type DecodedProduceRequestWithTopicIds = (
+    Option<String>,
+    i16,
+    i32,
+    Vec<ProduceTopicData>,
+    Vec<[u8; 16]>,
+);
+
+/// Decode Produce v13, returning one raw UUID per topic in the same order.
+///
+/// Topic names in the returned structs are empty because v13 omits names.
+/// Resolve IDs from a request snapshot, never mutable latest metadata. Zero
+/// IDs remain visible as invalid runtime identities; no name is fabricated.
+pub fn decode_produce_request_with_topic_ids<B: Buf>(
+    buf: &mut B,
+) -> Result<DecodedProduceRequestWithTopicIds> {
+    decode_produce_request_fields(buf, 13)
+}
+
+fn decode_produce_request_fields<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<DecodedProduceRequestWithTopicIds> {
     let flexible = produce_flexible(version)?;
     let transactional_id = if version >= 3 {
         buf::get_string(buf, flexible)?
@@ -2864,11 +2972,12 @@ pub fn decode_produce_request<B: Buf>(
     let timeout_ms = buf::get_i32(buf)?;
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(topic_count);
+    let mut identities = Vec::new();
     for _ in 0..topic_count {
         let topic = if version <= 12 {
             buf::get_string(buf, flexible)?.unwrap_or_default()
         } else {
-            let _id = buf::get_uuid(buf)?;
+            identities.push(buf::get_uuid(buf)?);
             String::new()
         };
         let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -2895,7 +3004,7 @@ pub fn decode_produce_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((transactional_id, acks, timeout_ms, topics))
+    Ok((transactional_id, acks, timeout_ms, topics, identities))
 }
 
 /// Produce v8+ `RecordErrors` (`BatchIndexAndErrorMessage`). Flexible
@@ -2950,8 +3059,8 @@ pub fn encode_produce_response(
 /// Encode Produce v3–v12 with ThrottleTimeMs.
 ///
 /// ThrottleTimeMs is JSON `1+`: written after Responses on every spoken
-/// version (this crate speaks 3–12). v3–v8 are classic. v9–v12 are
-/// flexible. Kafka 4.0 `validVersions` is `3-12`. v13+ is not spoken.
+/// version (this name-based helper supports 3–12). v3–v8 are classic. v9–v12 are
+/// flexible. Kafka 4.0 `validVersions` is `3-12`. v13 requires explicit topic IDs.
 /// Official Java `getErrorResponse` sets `throttleTimeMs` from the
 /// argument. Convenience encode still writes `0`. There is no top-level
 /// ErrorCode. NodeEndpoints stay empty (use
@@ -2984,6 +3093,36 @@ fn encode_produce_response_fields(
     endpoints: &[NodeEndpoint],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
+    encode_produce_response_id_fields(buf, version, parts, endpoints, throttle_time_ms, None)
+}
+
+/// Encode Produce v13 responses with explicit nonzero topic IDs.
+/// Existing response structs retain local names and their public layouts.
+pub fn encode_produce_response_with_topic_ids(
+    buf: &mut BytesMut,
+    parts: &[ProducePartitionResponse],
+    endpoints: &[NodeEndpoint],
+    throttle_time_ms: i32,
+    topic_ids: &[(String, [u8; 16])],
+) -> Result<()> {
+    encode_produce_response_id_fields(buf, 13, parts, endpoints, throttle_time_ms, Some(topic_ids))
+}
+
+fn encode_produce_response_id_fields(
+    buf: &mut BytesMut,
+    version: i16,
+    parts: &[ProducePartitionResponse],
+    endpoints: &[NodeEndpoint],
+    throttle_time_ms: i32,
+    topic_ids: Option<&[(String, [u8; 16])]>,
+) -> Result<()> {
+    if version == 13 {
+        let identities = topic_ids
+            .ok_or_else(|| Error::Unsupported("Produce v13 requires explicit topic IDs".into()))?;
+        for part in parts {
+            let _ = produce_topic_id(&part.topic, identities)?;
+        }
+    }
     let flexible = produce_flexible(version)?;
     // Group by topic, preserving first-seen order.
     let mut order: Vec<String> = Vec::new();
@@ -2997,7 +3136,8 @@ fn encode_produce_response_fields(
         if version <= 12 {
             buf::put_string(buf, flexible, Some(topic))?;
         } else {
-            buf.extend_from_slice(&[0u8; 16]);
+            let id = produce_topic_id(topic, topic_ids.unwrap_or(&[]))?;
+            buf.extend_from_slice(&id);
         }
         let grouped: Vec<&ProducePartitionResponse> =
             parts.iter().filter(|p| &p.topic == topic).collect();
@@ -3042,7 +3182,7 @@ fn encode_produce_response_fields(
 /// ThrottleTimeMs.
 ///
 /// Returns `(partitions, node_endpoints, throttle_time_ms)`.
-/// ThrottleTimeMs is JSON `1+`; this crate speaks 3–12 so the field is
+/// ThrottleTimeMs is JSON `1+`; the name-based helper supports 3–12 so the field is
 /// always on the wire. Versions below 2 fill [`RecordBatch::NO_TIMESTAMP`].
 /// Versions below 5 fill [`ProducePartitionResponse::INVALID_OFFSET`] for
 /// log start.
@@ -3050,14 +3190,48 @@ pub fn decode_produce_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(Vec<ProducePartitionResponse>, Vec<NodeEndpoint>, i32)> {
+    if version == 13 {
+        return Err(Error::Unsupported(
+            "Produce v13 requires the identity-aware decoder".into(),
+        ));
+    }
+    let (parts, endpoints, throttle, _) = decode_produce_response_fields(buf, version)?;
+    Ok((parts, endpoints, throttle))
+}
+
+/// Decoded Produce response: partitions, endpoints, throttle, and raw IDs.
+/// Identity-aware decoding returns one ID per partition result; name-based
+/// versions return an empty ID vector.
+pub type DecodedProduceResponseWithTopicIds = (
+    Vec<ProducePartitionResponse>,
+    Vec<NodeEndpoint>,
+    i32,
+    Vec<[u8; 16]>,
+);
+
+/// Decode Produce v13 results and one raw UUID per partition result.
+/// Topic names are absent on the wire; callers must resolve each UUID through
+/// the snapshot retained with the corresponding request before acknowledging.
+pub fn decode_produce_response_with_topic_ids<B: Buf>(
+    buf: &mut B,
+) -> Result<DecodedProduceResponseWithTopicIds> {
+    decode_produce_response_fields(buf, 13)
+}
+
+fn decode_produce_response_fields<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<DecodedProduceResponseWithTopicIds> {
     let flexible = produce_flexible(version)?;
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::new();
+    let mut identities = Vec::new();
     for _ in 0..topic_count {
+        let mut topic_id = [0; 16];
         let topic = if version <= 12 {
             buf::get_string(buf, flexible)?.unwrap_or_default()
         } else {
-            let _id = buf::get_uuid(buf)?;
+            topic_id = buf::get_uuid(buf)?;
             String::new()
         };
         let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -3091,6 +3265,9 @@ pub fn decode_produce_response<B: Buf>(
                     RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 )
             };
+            if version >= 13 {
+                identities.push(topic_id);
+            }
             out.push(ProducePartitionResponse {
                 topic: topic.clone(),
                 partition,
@@ -3114,7 +3291,7 @@ pub fn decode_produce_response<B: Buf>(
     } else {
         Vec::new()
     };
-    Ok((out, endpoints, throttle_time_ms))
+    Ok((out, endpoints, throttle_time_ms, identities))
 }
 
 #[cfg(test)]
@@ -3404,17 +3581,17 @@ mod tests {
 
     #[test]
     fn produce_request_builder_matches_java() {
-        // Java 4.0 ProduceRequest.builder: oldest is
+        // Java 4.1.2/4.2.1/4.3.1 ProduceRequest.builder: oldest is
         // ApiKeys.PRODUCE.oldestVersion() (3 on Kafka 4.0); latest is
         // LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 when
         // useTransactionV1Version, otherwise ApiKeys.PRODUCE.latestVersion()
-        // (12). Official Java ProduceRequest.builder. The one-argument
+        // (13). Official Java ProduceRequest.builder. The one-argument
         // builder(data) is this helper with false. Encode still writes
-        // independently. This crate speaks 3-12. This is not
+        // independently. This crate speaks 3-13. This is not
         // isTransactionV2Requested / Builder.build / validateRecords.
         let (oldest, latest) = ProduceRequest::builder(false);
         assert_eq!(oldest, 3);
-        assert_eq!(latest, 12);
+        assert_eq!(latest, 13);
         assert_eq!(
             ProduceRequest::builder(true),
             (3, ProduceRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2)
@@ -3448,9 +3625,33 @@ mod tests {
 
     fn leftover_empty_produce_builder(version: i16, topics: &[ProduceTopicData]) {
         let mut buf = BytesMut::new();
-        encode_produce_request(&mut buf, version, None, 1, 0, topics).unwrap();
+        let identities: Vec<_> = topics
+            .iter()
+            .enumerate()
+            .map(|(index, topic)| {
+                (
+                    topic.topic.clone(),
+                    u128::try_from(index + 1).unwrap().to_be_bytes(),
+                )
+            })
+            .collect();
+        if version == 13 {
+            encode_produce_request_with_topic_ids(&mut buf, None, 1, 0, topics, &identities)
+                .unwrap();
+        } else {
+            encode_produce_request(&mut buf, version, None, 1, 0, topics).unwrap();
+        }
         let mut cur = buf.as_ref();
-        let (.., decoded) = decode_produce_request(&mut cur, version).unwrap();
+        let decoded = if version == 13 {
+            let (.., topics, ids) = decode_produce_request_with_topic_ids(&mut cur).unwrap();
+            assert_eq!(
+                ids,
+                identities.iter().map(|(_, id)| *id).collect::<Vec<_>>()
+            );
+            topics
+        } else {
+            decode_produce_request(&mut cur, version).unwrap().3
+        };
         leftover_empty(
             &cur,
             match (version, topics.is_empty()) {
@@ -5498,7 +5699,7 @@ mod tests {
         buf.clear();
         assert!(
             encode_produce_request(&mut buf, 13, None, 1, 1500, &topics).is_err(),
-            "Produce v13+ (topic IDs) is not spoken"
+            "name-only helpers require explicit topic IDs at Produce v13"
         );
     }
 
@@ -5596,7 +5797,7 @@ mod tests {
         buf.clear();
         assert!(
             encode_produce_response(&mut buf, 13, &parts).is_err(),
-            "Produce v13+ (topic IDs) is not spoken"
+            "name-only helpers require explicit topic IDs at Produce v13"
         );
     }
 

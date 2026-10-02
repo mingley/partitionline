@@ -95,7 +95,14 @@ registry status was re-checked at source `ca50ca1` (KL07-07).
 | Sticky unkeyed partitioner | Not implemented (round-robin instead) | `producer.sticky_partitioner` (`missing`) |
 | Signed Suite HOLD / Lab A | **Unsigned** — Suite HOLD remains | — (qualification gate, not a feature entry) |
 | macOS Intel / other host architectures | May build; no CI support promise for these cells | — (CI dimension, not a feature entry) |
-| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `producer.v13_wire`, `manual_consumer.v18_wire` (`missing`) |
+| Every Kafka API version | Demand-led (KL-05); see [gaps.md](gaps.md) | `producer.v13_wire` (`present`); `manual_consumer.v18_wire` (`missing`) |
+
+Produce13 topic IDs are qualified by independent Apache 4.1.2/4.2.1/4.3.1
+serialization and live Java decoding of fresh Rust requests/responses, plus
+deterministic peer tests for topic recreation, immutable response identity,
+missing IDs, delivery-budget retries, and v3–v12 fallback. TransactionV1 retains
+v11; finalized `transaction.version >=2` with EndTxn5 enables v12/v13, fixed at
+producer initialization. This does not qualify a live multi-broker deployment.
 
 ListOffsets now supports v1–v11 with explicit KIP-1023 earliest pending upload
 (`-6`, `OffsetSpec::earliest_pending_upload`). Admin and manual consumers refresh
@@ -157,7 +164,7 @@ under production SLOs. Use the blank
 [adopter exercise template](adopter-exercise.md) to record runs when they
 happen — the template itself is **UNFILLED** and is not evidence.
 
-Produce quota scheduling supports negotiated v6–v12 across all connections to
+Produce quota scheduling supports negotiated v6–v13 across all connections to
 one broker, while v3–v5 retain server throttling. Positive waits share the existing
 delivery deadline and close budget. The fixed-size `ProducerMetrics.throttle`
 snapshot reports requested time and invalid negative responses. Deterministic

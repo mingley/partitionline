@@ -37,7 +37,7 @@
       "profile": "core",
       "client_advertised_range": {
         "min": 3,
-        "max": 12
+        "max": 13
       },
       "client_spoken_versions": [
         3,
@@ -49,7 +49,8 @@
         9,
         10,
         11,
-        12
+        12,
+        13
       ],
       "apache_3_9_1_valid_versions": {
         "min": 0,
@@ -63,7 +64,7 @@
         "min": 3,
         "max": 13
       },
-      "notes": "Versions 0-2 removed in Kafka 4.0; v12 is KIP-890 Part 2 txn V2; v13+ adds topic IDs (unsupported in client)."
+      "notes": "Versions0-2 removed in Kafka4.0; v12 is KIP-890 Part2 transactionV2; v13 uses topic IDs (KIP-516). KL05-11 qualifies explicit IDs and runtime response identity; transactionV1 stays <=11."
     },
     "Fetch": {
       "api_key": 1,
@@ -1024,18 +1025,18 @@
       "reason": "ListOffsets v10 adds TimeoutMs (KIP-1075); Apache Kafka 3.9.1 ListOffsetsRequest.json validVersions is 0-9. Kafka 4.0+ only."
     },
     {
-      "id": "proto-unsupported-produce-v13-client-cap",
+      "id": "proto-diff-produce-v13-apache-3-9-1",
       "api_family": "Produce",
       "api_version": 13,
       "profile": "core",
       "adapter": "none",
       "source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
       "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
-      "peer_version_pin": "4.1.0",
-      "peer_pin": "4.1.0",
+      "peer_version_pin": "3.9.1",
+      "peer_pin": "3.9.1",
       "disposition": "unsupported",
       "denominator": true,
-      "reason": "Produce v13 adds topic IDs (KIP-890 Part 2 / KIP-932); partitionline runtime cap is v12. Unsupported in client."
+      "reason": "Produce13 topic IDs (KIP-516) are implemented in KL05-11; Apache3.9.1 supports only versions0-11. This peer/version cell remains unsupported."
     },
     {
       "id": "proto-unsupported-fetch-v18-client-cap",
@@ -1077,7 +1078,7 @@
       "peer_pin": "4.1.0",
       "disposition": "blocked",
       "denominator": true,
-      "reason": "Independent Apache Java Produce wire fixture generator pending implementation in KL01-03 / KL01-04; blocked on test tooling."
+      "reason": "Exhaustive independent Produce v3-v12 Java wire qualification remains blocked in this historical cell. KL05-11 separately qualifies only v13 against the three current pinned Apache releases in explicit versioned cells; those results do not promote older-version local round trips."
     },
     {
       "id": "proto-differential-fetch-apache-java",
@@ -1720,6 +1721,66 @@
       "evidence": "docs/plan/evidence/KL01-13.json",
       "artifacts": [
         "docs/evidence/conformance/KL01-13/run-02/summary.json"
+      ]
+    },
+    {
+      "id": "proto-produce-v13-independent-apache-4-1-2",
+      "api_family": "Produce",
+      "api_version": 13,
+      "profile": "core",
+      "adapter": "apache-java",
+      "source_pin": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "immutable_source_pin": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "source_kind": "upstream_generated_wire_fixtures",
+      "peer_version_pin": "4.1.2",
+      "peer_pin": "4.1.2",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "KL05-11: six Java-generated request/response fixture cells (twelve bodies) independently verified against checksum-pinned Apache distribution, parsed by Rust; fresh Rust records/CRC/topic IDs/responses decoded by actual Java processes. Covers Produce13 body semantics only, not live Kafka deployment or older-version independent qualification.",
+      "evidence": "docs/plan/evidence/KL05-11.json",
+      "artifacts": [
+        "tests/conformance/produce-v13-delta.json",
+        "tests/fixtures/protocol_oracles/produce_v13_manifest.json"
+      ]
+    },
+    {
+      "id": "proto-produce-v13-independent-apache-4-2-1",
+      "api_family": "Produce",
+      "api_version": 13,
+      "profile": "core",
+      "adapter": "apache-java",
+      "source_pin": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "immutable_source_pin": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "source_kind": "upstream_generated_wire_fixtures",
+      "peer_version_pin": "4.2.1",
+      "peer_pin": "4.2.1",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "KL05-11: six Java-generated request/response fixture cells (twelve bodies) independently verified against checksum-pinned Apache distribution, parsed by Rust; fresh Rust records/CRC/topic IDs/responses decoded by actual Java processes. Covers Produce13 body semantics only, not live Kafka deployment or older-version independent qualification.",
+      "evidence": "docs/plan/evidence/KL05-11.json",
+      "artifacts": [
+        "tests/conformance/produce-v13-delta.json",
+        "tests/fixtures/protocol_oracles/produce_v13_manifest.json"
+      ]
+    },
+    {
+      "id": "proto-produce-v13-independent-apache-4-3-1",
+      "api_family": "Produce",
+      "api_version": 13,
+      "profile": "core",
+      "adapter": "apache-java",
+      "source_pin": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "immutable_source_pin": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_kind": "upstream_generated_wire_fixtures",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "KL05-11: six Java-generated request/response fixture cells (twelve bodies) independently verified against checksum-pinned Apache distribution, parsed by Rust; fresh Rust records/CRC/topic IDs/responses decoded by actual Java processes. Covers Produce13 body semantics only, not live Kafka deployment or older-version independent qualification.",
+      "evidence": "docs/plan/evidence/KL05-11.json",
+      "artifacts": [
+        "tests/conformance/produce-v13-delta.json",
+        "tests/fixtures/protocol_oracles/produce_v13_manifest.json"
       ]
     }
   ]

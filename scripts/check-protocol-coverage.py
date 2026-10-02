@@ -122,7 +122,7 @@ PINNED_APACHE_APIS: Dict[int, Dict[str, Any]] = {
 
 # Client spoken version ranges in partitionline
 CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
-    0: list(range(3, 13)),   # Produce: 3-12
+    0: list(range(3, 14)),   # Produce: 3-13
     1: list(range(4, 18)),   # Fetch: 4-17
     2: list(range(1, 12)),   # ListOffsets: 1-11
     3: list(range(1, 14)),   # Metadata: 1-13
@@ -246,7 +246,7 @@ CLASSIFIED_VERSION_GAPS: Dict[Tuple[int, int], Dict[str, Any]] = {
     (0, 1): {"pin": "3.9.1", "direction": "pin_only", "reason": "Produce v0-v2 classic format removed in Kafka 4.0; client starts at v3"},
     (0, 2): {"pin": "3.9.1", "direction": "pin_only", "reason": "Produce v0-v2 classic format removed in Kafka 4.0; client starts at v3"},
     (0, 12): {"pin": "3.9.1", "direction": "client_only", "reason": "Produce v12 is KIP-890 Part 2 txn V2; Kafka 3.9.1 max is v11 (Kafka 4.0+ only, cases.json)"},
-    (0, 13): {"pin": "4.1.0+", "direction": "upstream_cap", "reason": "Produce v13 adds topic IDs (KIP-516); client capped at v12 (producer.v13_wire missing in features.json, cases.json)"},
+    (0, 13): {"pin": "3.9.1", "direction": "client_only", "reason": "Produce v13 uses topic IDs (KIP-516); Kafka 3.9.1 max is v11. Implemented against Apache 4.1.2/4.2.1/4.3.1 fixtures with Metadata identity and request-snapshot response mapping (KL05-11)."},
 
     # Fetch (1)
     (1, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4"},

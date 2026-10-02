@@ -346,7 +346,21 @@ protocol. See `examples/metrics.rs`. Optional `tracing` spans are covered
 in [Tracing](#tracing-optional-feature) below; [CIVILIZATION.md](CIVILIZATION.md)
 is **history** (the historical foundation plan), not a feature tracker.
 
-Produce v6–v12 responses mute new Produce requests to that broker for positive
+Producer negotiates Produce v3–v13. Version13 replaces topic names on the wire
+with nonzero IDs from Metadata v10+. Responses resolve against the UUID/name
+snapshot sent with that request, so concurrent metadata changes cannot rename an
+acknowledgement. `UNKNOWN_TOPIC_ID` invalidates the cached identity and refreshes
+metadata before retrying within the original delivery deadline. A missing or
+ambiguous identity fails clearly before writing the request. Older peers retain
+v3–v12 name-based requests; a peer without Metadata10+ is capped at v12.
+
+Transactional producers use v12/v13 only when the initialization ApiVersions
+snapshot finalizes `transaction.version` at level2 or higher and supports EndTxn5.
+Otherwise Produce stays at v11 and explicitly adds transaction partitions.
+The selected transaction mode stays fixed for that producer's lifetime; recreate
+it after changing cluster transaction feature levels.
+
+Produce v6–v13 responses mute new Produce requests to that broker for positive
 `throttle_time_ms`, across its connection slots. Other brokers continue sending;
 already transmitted responses remain readable. The wait consumes the original
 `delivery_timeout` and bounded close can interrupt it. Produce v3–v5 use server

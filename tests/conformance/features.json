@@ -74,11 +74,11 @@
   {
     "id": "producer.v13_wire",
     "profile": "producer",
-    "layer": "wire_helper",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/ROADMAP.md:KL-05",
-    "notes": "Produce v13 (topic IDs) delta is not implemented; tracked in KL05-11."
+    "layer": "runtime",
+    "disposition": "present",
+    "entrypoint": "partitionline::producer::Producer::send",
+    "evidence": "tests/full_surface.rs:produce_v13_uses_metadata_topic_ids_and_preserves_public_names",
+    "notes": "KL05-11: negotiated Produce13 with nonzero Metadata10+ topic IDs, immutable sent UUID/name snapshot, private UNKNOWN_TOPIC_ID metadata invalidation/retry within delivery deadline. TransactionV1 remains <=11; finalized transaction.version >=2 plus EndTxn5 enables v12/13. Independent Apache 4.1.2/4.2.1/4.3.1 fixtures and live Rust-byte Java decodes; v3-v12 preserved."
   },
   {
     "id": "producer.murmur2_partitioner",

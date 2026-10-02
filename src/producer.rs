@@ -12,8 +12,8 @@ use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
 use crate::partitioner::{to_positive, Partitioner, PartitionerBox};
 use crate::protocol::api::{
-    decode_metadata_response, decode_produce_response, encode_metadata_request, ApiVersion,
-    ProduceRequest,
+    decode_metadata_response, decode_produce_response, decode_produce_response_with_topic_ids,
+    encode_metadata_request, ApiVersion, ProduceRequest,
 };
 use crate::protocol::api_keys::{
     pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, END_TXN, FIND_COORDINATOR,
@@ -867,6 +867,8 @@ struct Shared {
     /// Transaction coordinator. `None` when `transactional.id` is unset.
     txn: Mutex<Option<BrokerConn>>,
     metadata_version: i16,
+    /// Fixed at initialization: finalized transaction.version >= 2 and EndTxn v5.
+    transaction_v2: bool,
     add_partitions_version: i16,
     add_offsets_version: i16,
     end_txn_version: i16,
@@ -1332,11 +1334,16 @@ impl Producer {
         let find_coord_version = pick(&versions, FIND_COORDINATOR, 1, 6).ok_or_else(|| {
             Error::Unsupported("broker does not support FindCoordinator v1-6".into())
         })?;
-        if let Some(pv) = pick(&versions, PRODUCE, 3, 12) {
+        if let Some(pv) = pick(&versions, PRODUCE, 3, 13) {
             meta.set_produce_version(pv);
         }
         let metadata_version = pick(&versions, METADATA, 1, 13)
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+        let transaction_v2 =
+            resp.finalized_features.iter().any(|feature| {
+                feature.name == "transaction.version" && feature.max_version_level >= 2
+            }) && pick(&versions, END_TXN, 0, 5) == Some(5);
+        let transaction_max = if transaction_v2 { 5 } else { 4 };
         let (add_partitions_version, add_offsets_version, end_txn_version, txn_offset_version) =
             if cfg.transactional_id.is_some() {
                 let add_p = pick(&versions, ADD_PARTITIONS_TO_TXN, 0, 3).ok_or_else(|| {
@@ -1345,11 +1352,12 @@ impl Producer {
                 let add_o = pick(&versions, ADD_OFFSETS_TO_TXN, 0, 4).ok_or_else(|| {
                     Error::Unsupported("broker does not support AddOffsetsToTxn".into())
                 })?;
-                let end = pick(&versions, END_TXN, 0, 5)
+                let end = pick(&versions, END_TXN, 0, transaction_max)
                     .ok_or_else(|| Error::Unsupported("broker does not support EndTxn".into()))?;
-                let toc = pick(&versions, TXN_OFFSET_COMMIT, 0, 5).ok_or_else(|| {
-                    Error::Unsupported("broker does not support TxnOffsetCommit".into())
-                })?;
+                let toc =
+                    pick(&versions, TXN_OFFSET_COMMIT, 0, transaction_max).ok_or_else(|| {
+                        Error::Unsupported("broker does not support TxnOffsetCommit".into())
+                    })?;
                 (add_p, add_o, end, toc)
             } else {
                 (0, 0, 0, 0)
@@ -1403,6 +1411,7 @@ impl Producer {
             meta: Mutex::new(meta),
             txn: Mutex::new(txn),
             metadata_version,
+            transaction_v2,
             add_partitions_version,
             add_offsets_version,
             end_txn_version,
@@ -2558,15 +2567,34 @@ fn pick(
         .and_then(|v| pick_version(v.min_version, v.max_version, client_min, client_max))
 }
 
-async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
+async fn open_conn(addr: &str, cfg: &ProducerConfig, transaction_v2: bool) -> Result<BrokerConn> {
     let mut conn =
         BrokerConn::connect_tls(addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
             .await?;
     let versions_resp =
         crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
+    // Topic identity requires Metadata10+, and transactionV1 must retain the
+    // v11 ceiling: v12/13 imply transactionV2 on the partition leader.
+    // A supported EndTxn range alone does not enable the finalized feature.
+    let mut produce_max = if versions_resp
+        .api_version(METADATA)
+        .is_some_and(|v| v.max_version >= 10)
+    {
+        13
+    } else {
+        12
+    };
+    if cfg.transactional_id.is_some()
+        && (!transaction_v2
+            || versions_resp
+                .api_version(END_TXN)
+                .is_none_or(|v| v.max_version < 5))
+    {
+        produce_max = ProduceRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2;
+    }
     if let Some(pv) = versions_resp
         .api_version(PRODUCE)
-        .and_then(|v| pick_version(v.min_version, v.max_version, 3, 12))
+        .and_then(|v| pick_version(v.min_version, v.max_version, 3, produce_max))
     {
         conn.set_produce_version(pv);
     }
@@ -2595,7 +2623,7 @@ async fn discover_typed_coord(
     // FindCoordinator 14/15 is one pass of the bootstrap list; try again.
     for _ in 0..3 {
         for addr in &cfg.bootstrap {
-            let mut hop = match open_conn(addr, cfg).await {
+            let mut hop = match open_conn(addr, cfg, false).await {
                 Ok(c) => c,
                 Err(e) => {
                     last = e;
@@ -2627,7 +2655,7 @@ async fn discover_typed_coord(
             if coord_addr == hop.addr() {
                 return Ok(hop);
             }
-            return open_conn(&coord_addr, cfg).await;
+            return open_conn(&coord_addr, cfg, false).await;
         }
         match &last {
             Error::Broker { code, .. } if error::coordinator_retriable(*code) => {}
@@ -3101,10 +3129,10 @@ async fn spawn_slot_worker(
     if shared.closed.load(Ordering::SeqCst) {
         return Err(Error::Closed);
     }
-    let conn = open_conn(addr, &shared.cfg).await?;
+    let conn = open_conn(addr, &shared.cfg, shared.transaction_v2).await?;
     if conn.produce_version() < 0 {
         return Err(Error::Unsupported(format!(
-            "broker at {addr} does not support Produce v3-12"
+            "broker at {addr} does not support usable Produce v3-13"
         )));
     }
     if shared.closed.load(Ordering::SeqCst) {
@@ -3317,6 +3345,9 @@ struct Worker {
 struct InFlight {
     correlation: i32,
     version: i16,
+    // Snapshot of identities actually sent; latest metadata may describe a
+    // recreated topic when an older response arrives.
+    topic_ids: Vec<(String, [u8; 16])>,
     groups: Vec<(Arc<str>, i32, Vec<Pending>)>,
 }
 
@@ -3606,11 +3637,11 @@ impl Worker {
         if self.in_flight.is_empty() && self.conn.idle_expired(self.shared.cfg.connections_max_idle)
         {
             let addr = self.conn.addr().to_string();
-            match open_conn(&addr, &self.shared.cfg).await {
+            match open_conn(&addr, &self.shared.cfg, self.shared.transaction_v2).await {
                 Ok(c) if c.produce_version() >= 0 => self.conn = c,
                 Ok(_) => {
                     let e = Error::Unsupported(format!(
-                        "broker at {addr} does not support Produce v3-12"
+                        "broker at {addr} does not support usable Produce v3-13"
                     ));
                     let pending = std::mem::take(&mut self.pending);
                     fail_pendings(&self.shared, pending, clone_err(&e));
@@ -3652,6 +3683,55 @@ impl Worker {
         if groups.is_empty() {
             return Ok(());
         }
+        let version = self.conn.produce_version();
+        let topic_ids = if version >= 13 {
+            let identities = {
+                let cluster = self.shared.cluster.lock();
+                let mut identities = Vec::new();
+                let mut missing = None;
+                for (topic, _, _) in &groups {
+                    if identities
+                        .iter()
+                        .any(|(name, _): &(String, [u8; 16])| name == topic.as_ref())
+                    {
+                        continue;
+                    }
+                    match cluster
+                        .topic_ids
+                        .get(topic.as_ref())
+                        .copied()
+                        .filter(|id| *id != [0; 16])
+                    {
+                        Some(id) => {
+                            if identities.iter().any(|(_, previous)| *previous == id) {
+                                missing = Some(format!("{topic} (ambiguous UUID)"));
+                                break;
+                            }
+                            identities.push((topic.to_string(), id));
+                        }
+                        None => {
+                            missing = Some(topic.to_string());
+                            break;
+                        }
+                    }
+                }
+                missing.map_or(Ok(identities), |topic| {
+                    Err(Error::Unsupported(format!(
+                        "Produce v13 missing nonzero Metadata topic ID for {topic}"
+                    )))
+                })
+            };
+            match identities {
+                Ok(ids) => ids,
+                Err(error) => {
+                    fail_groups(&self.shared, groups, clone_err(&error));
+                    self.note_fail(error.clone());
+                    return Err(error);
+                }
+            }
+        } else {
+            Vec::new()
+        };
         let producer_id = self.shared.producer_id.load(Ordering::SeqCst);
         let producer_epoch = self.shared.producer_epoch.load(Ordering::SeqCst);
         let epoch_gen = self.shared.epoch_gen.load(Ordering::SeqCst);
@@ -3731,6 +3811,7 @@ impl Worker {
             acks,
             timeout_ms,
             &groups,
+            &topic_ids,
             compression,
             now,
             producer_id,
@@ -3814,6 +3895,7 @@ impl Worker {
         self.in_flight.push_back(InFlight {
             correlation,
             version,
+            topic_ids,
             groups,
         });
         Ok(())
@@ -3877,8 +3959,41 @@ impl Worker {
             }
         };
         let mut body = body;
-        let (responses, endpoints, throttle_ms) = match decode_produce_response(&mut body, version)
-        {
+        let decoded = if version >= 13 {
+            decode_produce_response_with_topic_ids(&mut body).and_then(
+                |(mut parts, endpoints, throttle, ids)| {
+                    let inf = guard.inf.as_ref().ok_or_else(|| {
+                        Error::protocol("missing Produce request identity snapshot")
+                    })?;
+                    let mut seen = HashSet::new();
+                    for (part, id) in parts.iter_mut().zip(ids) {
+                        let name = inf
+                            .topic_ids
+                            .iter()
+                            .find(|(_, sent)| *sent == id && id != [0; 16])
+                            .map(|(name, _)| name)
+                            .ok_or_else(|| {
+                                Error::protocol(
+                                    "Produce v13 response UUID is absent from sent snapshot",
+                                )
+                            })?;
+                        if !inf.groups.iter().any(|(topic, index, _)| {
+                            topic.as_ref() == name && *index == part.partition
+                        }) || !seen.insert((name.clone(), part.partition))
+                        {
+                            return Err(Error::protocol(
+                                "Produce v13 unsolicited or duplicate partition response",
+                            ));
+                        }
+                        part.topic.clone_from(name);
+                    }
+                    Ok((parts, endpoints, throttle))
+                },
+            )
+        } else {
+            decode_produce_response(&mut body, version)
+        };
+        let (responses, endpoints, throttle_ms) = match decoded {
             Ok(r) => r,
             Err(e) => {
                 if let Some(inf) = guard.inf.take() {
@@ -3912,8 +4027,11 @@ impl Worker {
                 }
                 Some(r) if r.error_code != 0 => {
                     let e = Error::broker(r.error_code, format!("{topic}-{part}"));
-                    if e.is_retriable() {
-                        let applied = r.current_leader_id >= 0
+                    // UNKNOWN_TOPIC_ID refresh is producer-private; it does
+                    // not change the public Error retry category contract.
+                    if e.is_retriable() || r.error_code == error::UNKNOWN_TOPIC_ID {
+                        let applied = r.error_code != error::UNKNOWN_TOPIC_ID
+                            && r.current_leader_id >= 0
                             && self.shared.cluster.lock().apply_current_leader(
                                 topic.as_ref(),
                                 part,
@@ -4500,6 +4618,7 @@ fn encode_produce_body(
     acks: i16,
     timeout_ms: i32,
     groups: &[(Arc<str>, i32, Vec<Pending>)],
+    topic_ids: &[(String, [u8; 16])],
     compression: Compression,
     now: i64,
     producer_id: i64,
@@ -4509,7 +4628,8 @@ fn encode_produce_body(
 ) -> Result<()> {
     // v9–v12 share this compact request layout (v10+ CurrentLeader is
     // response-only; v12 transaction V2 is Produce-does-AddPartitionsToTxn).
-    // Must stay in sync with `encode_produce_request`.
+    // v13 substitutes the retained UUID for each compact topic name.
+    // Must stay in sync with the identity-aware and name-based protocol helpers.
     let flexible = version >= 9;
     let transactional = transactional_id.is_some();
     if version >= 3 {
@@ -4525,7 +4645,19 @@ fn encode_produce_body(
     }
     crate::protocol::buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for topic in topics {
-        crate::protocol::buf::put_string(buf, flexible, Some(topic.as_ref()))?;
+        if version >= 13 {
+            let id = topic_ids
+                .iter()
+                .find(|(name, _)| name == topic.as_ref())
+                .map(|(_, id)| id)
+                .filter(|id| **id != [0; 16])
+                .ok_or_else(|| {
+                    Error::Unsupported(format!("Produce v13 missing topic ID for {topic}"))
+                })?;
+            buf.extend_from_slice(id);
+        } else {
+            crate::protocol::buf::put_string(buf, flexible, Some(topic.as_ref()))?;
+        }
         let idxs: Vec<usize> = groups
             .iter()
             .enumerate()

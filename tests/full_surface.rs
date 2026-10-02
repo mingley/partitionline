@@ -15489,3 +15489,190 @@ async fn list_offsets_v11_trailing_or_missing_results_fail_closed() {
     let error = consumer.list_offsets("t", 0, -6).await.unwrap_err();
     assert!(error.to_string().contains("missing requested partition"));
 }
+
+#[tokio::test]
+async fn produce_v13_uses_metadata_topic_ids_and_preserves_public_names() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(PRODUCE, 13);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let result = producer
+        .send(ProduceRecord::to("t").partition(0).value(&b"topic-id"[..]))
+        .await
+        .unwrap();
+    assert_eq!(result.topic, "t");
+    assert_eq!(result.partition, 0);
+    assert_eq!(result.offset, 0);
+    assert_eq!(mock.last_produce_version(), Some(13));
+    let sent = mock.produce_sent_topic_ids();
+    assert_eq!(sent.len(), 1);
+    assert_eq!(sent[0].0, "t");
+    assert_ne!(sent[0].1, [0; 16]);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn produce_v13_stale_id_refreshes_without_extending_delivery_budget() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(PRODUCE, 13);
+    mock.recreate_topic_on_next_produce("t", [0x71; 16]);
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .retry_backoff(Duration::from_millis(1)),
+    )
+    .await
+    .unwrap();
+    let result = producer
+        .send(ProduceRecord::to("t").partition(0).value(&b"retry-id"[..]))
+        .await
+        .unwrap();
+    assert_eq!(result.topic, "t");
+    assert_eq!(result.offset, 0);
+    let sent = mock.produce_sent_topic_ids();
+    assert_eq!(sent.len(), 2);
+    assert_ne!(sent[0].1, sent[1].1);
+    assert_eq!(sent[1].1, [0x71; 16]);
+    producer.close().await.unwrap();
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(PRODUCE, 13);
+    mock.set_produce_error(error::UNKNOWN_TOPIC_ID);
+    let mut config = ProducerConfig::bootstrap([mock.addr.clone()]);
+    config.linger = Duration::ZERO;
+    config.delivery_timeout = Duration::from_millis(100);
+    config.retry_backoff = Duration::from_millis(10);
+    config.retry_backoff_max = Duration::from_millis(10);
+    let producer = Producer::new(config).await.unwrap();
+    let start = Instant::now();
+    assert!(matches!(
+        producer
+            .send(ProduceRecord::to("t").value(&b"deadline"[..]))
+            .await,
+        Err(Error::Timeout)
+    ));
+    assert!(start.elapsed() < Duration::from_millis(500));
+    assert!(mock.produce_sent_topic_ids().len() > 1);
+    let _ = producer.close().await;
+}
+
+#[tokio::test]
+async fn produce_v13_response_identity_uses_sent_snapshot_after_metadata_change() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(PRODUCE, 13);
+    mock.set_produce_response_delay(Duration::from_millis(120));
+    let mut config = ProducerConfig::bootstrap([mock.addr.clone()]);
+    config.linger = Duration::ZERO;
+    config.metadata_max_age = Duration::ZERO;
+    let producer = Producer::new(config).await.unwrap();
+    let result = {
+        let send = producer.send(ProduceRecord::to("t").value(&b"old-generation"[..]));
+        tokio::pin!(send);
+        tokio::select! { result=&mut send => panic!("response arrived before snapshot test: {result:?}"),
+        _=async { while mock.produce_sent_topic_ids().is_empty(){tokio::task::yield_now().await;} } => {} }
+        mock.set_topic_id("t", [0x72; 16]);
+        producer.partitions_for("t").await.unwrap();
+        send.await.unwrap()
+    };
+    assert_eq!(result.topic, "t");
+    assert_eq!(result.offset, 0);
+    assert_ne!(mock.produce_sent_topic_ids()[0].1, [0x72; 16]);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn produce_v13_unsent_uuid_and_missing_metadata_id_fail_clearly() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(PRODUCE, 13);
+    mock.set_produce_response_id([0xEE; 16]);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    assert!(matches!(
+        producer
+            .send(ProduceRecord::to("t").value(&b"bad-response"[..]))
+            .await,
+        Err(Error::Protocol(_))
+    ));
+    let _ = producer.close().await;
+    let mock = common::Mock::start().await;
+    mock.set_api_max(PRODUCE, 13);
+    mock.set_topic_id("t", [0; 16]);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    assert!(matches!(
+        producer
+            .send(ProduceRecord::to("t").value(&b"no-id"[..]))
+            .await,
+        Err(Error::Unsupported(_))
+    ));
+    assert!(mock.produce_sent_topic_ids().is_empty());
+    let _ = producer.close().await;
+}
+
+#[tokio::test]
+async fn produce_v13_retains_older_name_versions_and_metadata_fallback() {
+    for version in 3..=12 {
+        let mock = common::Mock::start().await;
+        mock.set_api_max(PRODUCE, version);
+        let producer =
+            Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+                .await
+                .unwrap();
+        let result = producer
+            .send(ProduceRecord::to("t").value(&b"name-fallback"[..]))
+            .await
+            .unwrap();
+        assert_eq!(result.topic, "t");
+        assert_eq!(mock.last_produce_version(), Some(version));
+        assert!(mock.produce_sent_topic_ids().is_empty());
+        producer.close().await.unwrap();
+    }
+    let mock = common::Mock::start().await;
+    mock.set_api_max(PRODUCE, 13);
+    mock.set_api_max(METADATA, 9);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"old-metadata"[..]))
+        .await
+        .unwrap();
+    assert_eq!(mock.last_produce_version(), Some(12));
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn produce_v13_transaction_v2_semantics_and_classic_ceiling() {
+    for (feature, end_version, produce_version, explicit_add) in [
+        (Some(2), 5, 13, false),
+        (Some(1), 5, 11, true),
+        (None, 5, 11, true),
+        (Some(2), 4, 11, true),
+    ] {
+        let mock = common::Mock::start().await;
+        mock.set_api_max(PRODUCE, 13);
+        mock.set_api_max(END_TXN, end_version);
+        mock.set_transaction_version(feature);
+        let mut config = ProducerConfig::bootstrap([mock.addr.clone()]);
+        config.linger = Duration::ZERO;
+        config.transactional_id = Some("v13-txn".into());
+        let producer = Producer::new(config).await.unwrap();
+        producer.begin_transaction().await.unwrap();
+        let result = producer
+            .send(ProduceRecord::to("t").partition(0).value(&b"txn-v13"[..]))
+            .await
+            .unwrap();
+        assert_eq!(result.topic, "t");
+        assert_eq!(mock.last_produce_version(), Some(produce_version));
+        assert_eq!(mock.add_partitions_to_txn_calls() > 0, explicit_add);
+        producer.commit_transaction().await.unwrap();
+        producer.close().await.unwrap();
+    }
+}

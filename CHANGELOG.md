@@ -7,6 +7,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Producer supports Produce v13 using nonzero Metadata topic IDs and maps replies
+  through the identity snapshot sent with each request. Stale IDs refresh and
+  retry within the original delivery deadline; v3–v12 fallback remains available.
+  TransactionV1 stays at v11 unless the initialization snapshot finalizes
+  `transaction.version >=2` and supports EndTxn5. Independent Apache
+  4.1.2/4.2.1/4.3.1 fixtures and live Java decoding cover the wire delta (KL05-11).
+
 - `Consumer::fetch` no longer decompresses fetched batches it cannot keep. Each
   batch is framed and CRC-checked when its response arrives but decoded only
   when applied, so batches past `buffer_memory` stay compressed and are fetched
@@ -30,7 +37,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `ConsumerMetrics` adds `throttle` (`metrics::ThrottleStats`); exhaustive struct
   literals must add the field or use `..Default::default()`.
 
-- Producer honors positive broker quotas for Produce v6–v12 across connection
+- Producer honors positive broker quotas for Produce v6–v13 across connection
   slots, retaining original delivery and close budgets while other brokers and
   in-flight acknowledgements make progress. `ProducerMetrics` adds `throttle`
   (`metrics::ThrottleStats`); callers using exhaustive struct literals must add

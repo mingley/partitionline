@@ -14,6 +14,8 @@ pub(crate) struct Cluster {
     pub(crate) brokers: HashMap<i32, String>,
     /// Topic → leader `node_id` by partition index.
     pub(crate) leaders: HashMap<String, Vec<i32>>,
+    /// Nonzero Metadata v10+ topic identity, invalidated with leader metadata.
+    pub(crate) topic_ids: HashMap<String, [u8; 16]>,
     /// Topic → Metadata `leader_epoch` by partition index.
     pub(crate) leader_epochs: HashMap<String, Vec<i32>>,
     /// Metadata `controller_id`, or `None` until the first Metadata response.
@@ -40,7 +42,13 @@ impl Cluster {
                 continue;
             };
             if t.error_code != 0 {
+                let _ = self.topic_ids.remove(name);
                 continue;
+            }
+            if version >= 10 && t.topic_id != [0; 16] {
+                let _ = self.topic_ids.insert(name.clone(), t.topic_id);
+            } else {
+                let _ = self.topic_ids.remove(name);
             }
             let mut max_idx = -1i32;
             for p in &t.partitions {
@@ -83,6 +91,7 @@ impl Cluster {
 
     /// Drop cached leaders for `topic` so the next lookup refetches Metadata.
     pub(crate) fn invalidate_topic(&mut self, topic: &str) {
+        let _removed = self.topic_ids.remove(topic);
         let _removed = self.leaders.remove(topic);
         let _removed = self.leader_epochs.remove(topic);
         let _removed = self.topic_fetched_at.remove(topic);

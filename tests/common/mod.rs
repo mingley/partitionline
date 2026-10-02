@@ -120,11 +120,11 @@ use partitionline::protocol::admin::{
     ElectLeadersTopic,
 };
 use partitionline::protocol::api::{
-    decode_metadata_request_topics, decode_produce_request, encode_api_versions_response,
-    encode_metadata_response, encode_produce_response_with_endpoints,
-    encode_produce_response_with_throttle, ApiVersion, ApiVersionsResponse, Broker,
-    FinalizedFeatureKey, MetadataRequestTopic, MetadataResponse, NodeEndpoint, PartitionMetadata,
-    ProducePartitionResponse, SupportedFeatureKey, TopicMetadata,
+    decode_metadata_request_topics, decode_produce_request, decode_produce_request_with_topic_ids,
+    encode_api_versions_response, encode_metadata_response, encode_produce_response_with_endpoints,
+    encode_produce_response_with_throttle, encode_produce_response_with_topic_ids, ApiVersion,
+    ApiVersionsResponse, Broker, FinalizedFeatureKey, MetadataRequestTopic, MetadataResponse,
+    NodeEndpoint, PartitionMetadata, ProducePartitionResponse, SupportedFeatureKey, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
@@ -283,6 +283,11 @@ struct State {
     last_producer_id: Option<i64>,
     last_produce_producer_epoch: Option<i16>,
     last_produce_version: Option<i16>,
+    produce_topic_id_names: HashMap<[u8; 16], String>,
+    produce_sent_topic_ids: Vec<(String, [u8; 16])>,
+    produce_recreate_once: Option<(String, [u8; 16])>,
+    produce_response_id: Option<[u8; 16]>,
+    produce_response_delay: Option<Duration>,
     expected_seq: HashMap<(i64, i16, String, i32), i32>,
     last_produce_base_sequence: Option<i32>,
     produce_sequences: Vec<(i64, i16, i32, i32)>,
@@ -422,6 +427,7 @@ struct State {
     update_features_not_controller: u32,
     last_feature_update: Option<(String, i16, bool)>,
     features: HashMap<String, i16>,
+    transaction_version: Option<i16>,
     last_alter_user_scram_node: Option<i32>,
     alter_user_scram_not_controller: u32,
     last_describe_user_scram_node: Option<i32>,
@@ -741,6 +747,11 @@ fn new_state(
         last_producer_id: None,
         last_produce_producer_epoch: None,
         last_produce_version: None,
+        produce_topic_id_names: HashMap::new(),
+        produce_sent_topic_ids: Vec::new(),
+        produce_recreate_once: None,
+        produce_response_id: None,
+        produce_response_delay: None,
         expected_seq: HashMap::new(),
         last_produce_base_sequence: None,
         produce_sequences: Vec::new(),
@@ -869,6 +880,7 @@ fn new_state(
         update_features_not_controller: 0,
         last_feature_update: None,
         features: HashMap::new(),
+        transaction_version: Some(2),
         last_alter_user_scram_node: None,
         alter_user_scram_not_controller: 0,
         last_describe_user_scram_node: None,
@@ -1930,6 +1942,24 @@ impl Mock {
         self.state.lock().last_produce_producer_epoch
     }
 
+    pub fn produce_sent_topic_ids(&self) -> Vec<(String, [u8; 16])> {
+        self.state.lock().produce_sent_topic_ids.clone()
+    }
+    pub fn set_topic_id(&self, topic: &str, id: [u8; 16]) {
+        self.state
+            .lock()
+            .topic_id_overrides
+            .insert(topic.to_string(), id);
+    }
+    pub fn recreate_topic_on_next_produce(&self, topic: &str, id: [u8; 16]) {
+        self.state.lock().produce_recreate_once = Some((topic.to_string(), id));
+    }
+    pub fn set_produce_response_id(&self, id: [u8; 16]) {
+        self.state.lock().produce_response_id = Some(id);
+    }
+    pub fn set_produce_response_delay(&self, delay: Duration) {
+        self.state.lock().produce_response_delay = Some(delay);
+    }
     pub fn last_produce_version(&self) -> Option<i16> {
         self.state.lock().last_produce_version
     }
@@ -2112,6 +2142,10 @@ impl Mock {
 
     pub fn hide_broker_from_metadata(&self, node_id: i32) {
         let _ = self.state.lock().hidden_brokers.insert(node_id);
+    }
+
+    pub fn set_transaction_version(&self, level: Option<i16>) {
+        self.state.lock().transaction_version = level;
     }
 
     pub fn set_api_max(&self, api_key: i16, max: i16) {
@@ -4304,11 +4338,21 @@ fn versions(st: &State, node_id: i32) -> ApiVersionsResponse {
             },
         ],
         finalized_features_epoch: Some(1),
-        finalized_features: vec![FinalizedFeatureKey {
-            name: "metadata.version".into(),
-            max_version_level: 20,
-            min_version_level: 1,
-        }],
+        finalized_features: {
+            let mut features = vec![FinalizedFeatureKey {
+                name: "metadata.version".into(),
+                max_version_level: 20,
+                min_version_level: 1,
+            }];
+            if let Some(level) = st.transaction_version {
+                features.push(FinalizedFeatureKey {
+                    name: "transaction.version".into(),
+                    min_version_level: level,
+                    max_version_level: level,
+                });
+            }
+            features
+        },
         zk_migration_ready: false,
     }
 }
@@ -4544,6 +4588,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 } else {
                     metadata_for(&st, &host, port, include_topic)
                 };
+                if header.api_version >= 10 {
+                    for topic in &md.topics {
+                        if let Some(name) = &topic.name {
+                            if topic.topic_id != [0; 16] {
+                                st.produce_topic_id_names
+                                    .insert(topic.topic_id, name.clone());
+                            }
+                        }
+                    }
+                }
                 encode_metadata_response(&mut body, header.api_version, &md).unwrap();
             }
             CREATE_TOPICS => {
@@ -6284,8 +6338,33 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .or_else(|| st.api_max.get(&PRODUCE).copied())
                         .unwrap_or(12)
                 };
+                let (mut decoded, raw_ids) = if header.api_version >= 13 {
+                    let (tid, acks, timeout, topics, ids) =
+                        decode_produce_request_with_topic_ids(&mut frame).unwrap();
+                    ((tid, acks, timeout, topics), ids)
+                } else {
+                    (
+                        decode_produce_request(&mut frame, header.api_version).unwrap(),
+                        Vec::new(),
+                    )
+                };
+                let mut sent_ids = Vec::new();
+                if header.api_version >= 13 {
+                    let mut st = state.lock();
+                    for (topic, id) in decoded.3.iter_mut().zip(raw_ids) {
+                        topic.topic = st
+                            .produce_topic_id_names
+                            .get(&id)
+                            .cloned()
+                            .unwrap_or_else(|| format!("unknown-{id:?}"));
+                        sent_ids.push((topic.topic.clone(), id));
+                        st.produce_sent_topic_ids.push((topic.topic.clone(), id));
+                    }
+                    if let Some((name, id)) = st.produce_recreate_once.take() {
+                        st.topic_id_overrides.insert(name, id);
+                    }
+                }
                 if header.api_version > max_supported {
-                    let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
                     let mut parts = Vec::new();
                     {
                         let mut st = state.lock();
@@ -6312,150 +6391,197 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             });
                         }
                     }
-                    encode_produce_response_with_endpoints(
-                        &mut body,
-                        header.api_version,
-                        &parts,
-                        &[],
-                    )
-                    .unwrap();
+                    if header.api_version == 13 {
+                        encode_produce_response_with_topic_ids(
+                            &mut body,
+                            &parts,
+                            &[],
+                            0,
+                            &sent_ids,
+                        )
+                        .unwrap();
+                    } else {
+                        encode_produce_response_with_endpoints(
+                            &mut body,
+                            header.api_version,
+                            &parts,
+                            &[],
+                        )
+                        .unwrap();
+                    }
                     write_frame(&mut stream, &body).await.ok();
                     continue;
                 }
-                let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
                 let txn_id = decoded.0;
                 let mut parts = Vec::new();
-                let mut st = state.lock();
-                st.last_produce_version = Some(header.api_version);
-                st.last_produce_version_by_node
-                    .insert(node_id, header.api_version);
-                if header.api_version >= 12 && txn_id.is_some() {
-                    // Produce v12 transaction V2: the partition leader
-                    // also performs AddPartitionsToTxn.
-                    st.in_txn = true;
-                }
-                let forced = match (st.produce_error, st.produce_error_left) {
-                    (Some(_), Some(0)) => {
-                        st.produce_error = None;
-                        st.produce_error_left = None;
-                        None
+                let (should_drop_resp, response_delay) = {
+                    let mut st = state.lock();
+                    st.last_produce_version = Some(header.api_version);
+                    st.last_produce_version_by_node
+                        .insert(node_id, header.api_version);
+                    if header.api_version >= 12 && txn_id.is_some() {
+                        // Produce v12 transaction V2: the partition leader
+                        // also performs AddPartitionsToTxn.
+                        st.in_txn = true;
                     }
-                    (Some(c), Some(left)) => {
-                        st.produce_error_left = Some(left.saturating_sub(1));
-                        if left <= 1 {
+                    let forced = match (st.produce_error, st.produce_error_left) {
+                        (Some(_), Some(0)) => {
                             st.produce_error = None;
                             st.produce_error_left = None;
+                            None
                         }
-                        Some(c)
-                    }
-                    (Some(c), None) => Some(c),
-                    (None, _) => None,
-                };
-                for topic in decoded.3 {
-                    for p in topic.partitions {
-                        st.last_producer_id = Some(p.records.producer_id);
-                        st.last_produce_producer_epoch = Some(p.records.producer_epoch);
-                        let key = (topic.topic.clone(), p.index);
-                        let nrec = p.records.records.len() as i32;
-                        // KL09-14: observe encoded batch sizes for bound tests.
-                        let batch_bytes = p.records.size_in_bytes().unwrap();
-                        st.produce_batches
-                            .push((topic.topic.clone(), p.index, nrec, batch_bytes));
-                        let leader = st
-                            .partition_leaders
-                            .get(&(topic.topic.clone(), p.index))
-                            .copied()
-                            .unwrap_or(node_id);
-                        // Fencing: this transactional.id moved to a newer
-                        // (pid, epoch), so this stale identity is fenced
-                        // (KL03-10). Broker-authoritative state wins over the
-                        // forced-error knob.
-                        let fenced = txn_id.as_ref().is_some_and(|t| {
-                            st.txn_identities.get(t).is_some_and(|(fpid, fepoch)| {
-                                p.records.producer_id == *fpid && p.records.producer_epoch < *fepoch
-                            })
-                        });
-                        let mut error_code = if leader != node_id {
-                            6
-                        } else if st.in_txn && txn_id.is_none() {
-                            error::INVALID_TXN_STATE
-                        } else if fenced {
-                            error::PRODUCER_FENCED
-                        } else {
-                            forced.unwrap_or(0)
-                        };
-                        if error_code == 0 {
-                            let pid = p.records.producer_id;
-                            let epoch = p.records.producer_epoch;
-                            let seq = p.records.base_sequence;
-                            st.last_produce_base_sequence = Some(seq);
-                            st.produce_sequences.push((pid, epoch, seq, nrec));
-                            let mut is_duplicate = false;
-                            let mut dup_base_offset = 0i64;
-                            if pid >= 0 && seq >= 0 {
-                                let skey = (pid, epoch, topic.topic.clone(), p.index);
-                                let bkey = (pid, epoch, topic.topic.clone(), p.index, seq);
-                                let expected = *st.expected_seq.get(&skey).unwrap_or(&0);
-                                if let Some(&(prev_offset, prev_count)) =
-                                    st.appended_batches.get(&bkey)
-                                {
-                                    if prev_count == nrec {
-                                        is_duplicate = true;
-                                        dup_base_offset = prev_offset;
-                                    } else {
-                                        error_code = 45;
-                                    }
-                                } else if seq != expected {
-                                    error_code = 45;
-                                } else {
-                                    st.expected_seq.insert(skey, expected + nrec);
-                                }
+                        (Some(c), Some(left)) => {
+                            st.produce_error_left = Some(left.saturating_sub(1));
+                            if left <= 1 {
+                                st.produce_error = None;
+                                st.produce_error_left = None;
                             }
-                            let start = *st.next_offset.get(&key).unwrap_or(&0);
+                            Some(c)
+                        }
+                        (Some(c), None) => Some(c),
+                        (None, _) => None,
+                    };
+                    for topic in decoded.3 {
+                        for p in topic.partitions {
+                            st.last_producer_id = Some(p.records.producer_id);
+                            st.last_produce_producer_epoch = Some(p.records.producer_epoch);
+                            let key = (topic.topic.clone(), p.index);
+                            let nrec = p.records.records.len() as i32;
+                            // KL09-14: observe encoded batch sizes for bound tests.
+                            let batch_bytes = p.records.size_in_bytes().unwrap();
+                            st.produce_batches.push((
+                                topic.topic.clone(),
+                                p.index,
+                                nrec,
+                                batch_bytes,
+                            ));
+                            let leader = st
+                                .partition_leaders
+                                .get(&(topic.topic.clone(), p.index))
+                                .copied()
+                                .unwrap_or(node_id);
+                            // Fencing: this transactional.id moved to a newer
+                            // (pid, epoch), so this stale identity is fenced
+                            // (KL03-10). Broker-authoritative state wins over the
+                            // forced-error knob.
+                            let fenced = txn_id.as_ref().is_some_and(|t| {
+                                st.txn_identities.get(t).is_some_and(|(fpid, fepoch)| {
+                                    p.records.producer_id == *fpid
+                                        && p.records.producer_epoch < *fepoch
+                                })
+                            });
+                            let stale_id = header.api_version >= 13
+                                && sent_ids
+                                    .iter()
+                                    .find(|(name, _)| name == &topic.topic)
+                                    .is_none_or(|(_, sent)| {
+                                        *sent == [0; 16] || *sent != topic_id_for(&st, &topic.topic)
+                                    });
+                            let mut error_code = if stale_id {
+                                error::UNKNOWN_TOPIC_ID
+                            } else if leader != node_id {
+                                6
+                            } else if st.in_txn && txn_id.is_none() {
+                                error::INVALID_TXN_STATE
+                            } else if fenced {
+                                error::PRODUCER_FENCED
+                            } else {
+                                forced.unwrap_or(0)
+                            };
                             if error_code == 0 {
-                                st.accepted_produce.push(node_id);
-                                st.last_produce_txn_id = txn_id.clone();
-                                let base_offset = if is_duplicate {
-                                    dup_base_offset
-                                } else {
+                                let pid = p.records.producer_id;
+                                let epoch = p.records.producer_epoch;
+                                let seq = p.records.base_sequence;
+                                st.last_produce_base_sequence = Some(seq);
+                                st.produce_sequences.push((pid, epoch, seq, nrec));
+                                let mut is_duplicate = false;
+                                let mut dup_base_offset = 0i64;
+                                if pid >= 0 && seq >= 0 {
+                                    let skey = (pid, epoch, topic.topic.clone(), p.index);
                                     let bkey = (pid, epoch, topic.topic.clone(), p.index, seq);
-                                    if pid >= 0 && seq >= 0 {
-                                        st.appended_batches.insert(bkey, (start, nrec));
-                                    }
-                                    let mut n = 0i64;
-                                    for mut rec in p.records.records {
-                                        rec.offset = start + n;
-                                        st.log_producer.insert(
-                                            (topic.topic.clone(), p.index, rec.offset),
-                                            pid,
-                                        );
-                                        st.log.entry(key.clone()).or_default().push(rec);
-                                        n += 1;
-                                    }
-                                    st.next_offset.insert(key, start + n);
-                                    if st.in_txn {
-                                        for o in 0..n {
-                                            st.txn_pending.push((
-                                                topic.topic.clone(),
-                                                p.index,
-                                                start + o,
-                                            ));
+                                    let expected = *st.expected_seq.get(&skey).unwrap_or(&0);
+                                    if let Some(&(prev_offset, prev_count)) =
+                                        st.appended_batches.get(&bkey)
+                                    {
+                                        if prev_count == nrec {
+                                            is_duplicate = true;
+                                            dup_base_offset = prev_offset;
+                                        } else {
+                                            error_code = 45;
                                         }
+                                    } else if seq != expected {
+                                        error_code = 45;
+                                    } else {
+                                        st.expected_seq.insert(skey, expected + nrec);
                                     }
-                                    start
-                                };
-                                parts.push(ProducePartitionResponse {
-                                    topic: topic.topic.clone(),
-                                    partition: p.index,
-                                    error_code: 0,
-                                    base_offset,
-                                    log_append_time_ms: RecordBatch::NO_TIMESTAMP,
-                                    log_start_offset: 0,
-                                    current_leader_id: -1,
-                                    current_leader_epoch: -1,
-                                    record_errors: Vec::new(),
-                                    error_message: None,
-                                });
+                                }
+                                let start = *st.next_offset.get(&key).unwrap_or(&0);
+                                if error_code == 0 {
+                                    st.accepted_produce.push(node_id);
+                                    st.last_produce_txn_id = txn_id.clone();
+                                    let base_offset = if is_duplicate {
+                                        dup_base_offset
+                                    } else {
+                                        let bkey = (pid, epoch, topic.topic.clone(), p.index, seq);
+                                        if pid >= 0 && seq >= 0 {
+                                            st.appended_batches.insert(bkey, (start, nrec));
+                                        }
+                                        let mut n = 0i64;
+                                        for mut rec in p.records.records {
+                                            rec.offset = start + n;
+                                            st.log_producer.insert(
+                                                (topic.topic.clone(), p.index, rec.offset),
+                                                pid,
+                                            );
+                                            st.log.entry(key.clone()).or_default().push(rec);
+                                            n += 1;
+                                        }
+                                        st.next_offset.insert(key, start + n);
+                                        if st.in_txn {
+                                            for o in 0..n {
+                                                st.txn_pending.push((
+                                                    topic.topic.clone(),
+                                                    p.index,
+                                                    start + o,
+                                                ));
+                                            }
+                                        }
+                                        start
+                                    };
+                                    parts.push(ProducePartitionResponse {
+                                        topic: topic.topic.clone(),
+                                        partition: p.index,
+                                        error_code: 0,
+                                        base_offset,
+                                        log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+                                        log_start_offset: 0,
+                                        current_leader_id: -1,
+                                        current_leader_epoch: -1,
+                                        record_errors: Vec::new(),
+                                        error_message: None,
+                                    });
+                                } else {
+                                    let (current_leader_id, current_leader_epoch) =
+                                        kip951_current_leader(
+                                            &st,
+                                            &topic.topic,
+                                            p.index,
+                                            leader,
+                                            node_id,
+                                        );
+                                    parts.push(ProducePartitionResponse {
+                                        topic: topic.topic.clone(),
+                                        partition: p.index,
+                                        error_code,
+                                        base_offset: ProducePartitionResponse::INVALID_OFFSET,
+                                        log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+                                        log_start_offset: 0,
+                                        current_leader_id,
+                                        current_leader_epoch,
+                                        record_errors: Vec::new(),
+                                        error_message: None,
+                                    });
+                                }
                             } else {
                                 let (current_leader_id, current_leader_epoch) =
                                     kip951_current_leader(
@@ -6478,90 +6604,97 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                     error_message: None,
                                 });
                             }
-                        } else {
-                            let (current_leader_id, current_leader_epoch) =
-                                kip951_current_leader(&st, &topic.topic, p.index, leader, node_id);
-                            parts.push(ProducePartitionResponse {
-                                topic: topic.topic.clone(),
-                                partition: p.index,
-                                error_code,
-                                base_offset: ProducePartitionResponse::INVALID_OFFSET,
-                                log_append_time_ms: RecordBatch::NO_TIMESTAMP,
-                                log_start_offset: 0,
-                                current_leader_id,
-                                current_leader_epoch,
-                                record_errors: Vec::new(),
-                                error_message: None,
-                            });
                         }
                     }
-                }
-                let endpoints = node_endpoints_for(&st, parts.iter().map(|p| p.current_leader_id));
-                let throttle = st
-                    .produce_throttles
-                    .get_mut(&node_id)
-                    .and_then(VecDeque::pop_front);
-                if let Some(throttle) = throttle {
-                    // Quota fixtures use healthy leaders. Keep the original
-                    // endpoint encoder for the leader-movement fault fixtures.
-                    assert!(endpoints.is_empty());
-                    encode_produce_response_with_throttle(
-                        &mut body,
-                        header.api_version,
-                        &parts,
-                        throttle,
-                    )
-                    .unwrap();
-                } else {
-                    encode_produce_response_with_endpoints(
-                        &mut body,
-                        header.api_version,
-                        &parts,
-                        &endpoints,
-                    )
-                    .unwrap();
-                }
-                let should_drop_resp = {
-                    let node_match = match st.produce_drop_response_node {
-                        Some(target) => target == node_id,
-                        None => true,
-                    };
-                    if node_match {
-                        if let Some(c) = st.produce_drop_response_after_appends {
-                            if c <= 1 {
-                                st.produce_drop_response_after_appends = None;
-                                true
-                            } else {
-                                st.produce_drop_response_after_appends = Some(c - 1);
-                                false
-                            }
+                    let endpoints =
+                        node_endpoints_for(&st, parts.iter().map(|p| p.current_leader_id));
+                    let throttle = st
+                        .produce_throttles
+                        .get_mut(&node_id)
+                        .and_then(VecDeque::pop_front);
+                    if header.api_version >= 13 {
+                        let identities = if let Some(id) = st.produce_response_id {
+                            sent_ids
+                                .iter()
+                                .map(|(name, _)| (name.clone(), id))
+                                .collect::<Vec<_>>()
                         } else {
-                            match (st.produce_drop_response, st.produce_drop_response_left) {
-                                (Some(true), Some(0)) => {
-                                    st.produce_drop_response = None;
-                                    st.produce_drop_response_left = None;
+                            sent_ids.clone()
+                        };
+                        encode_produce_response_with_topic_ids(
+                            &mut body,
+                            &parts,
+                            &endpoints,
+                            throttle.unwrap_or(0),
+                            &identities,
+                        )
+                        .unwrap();
+                    } else if let Some(throttle) = throttle {
+                        // Quota fixtures use healthy leaders. Keep the original
+                        // endpoint encoder for the leader-movement fault fixtures.
+                        assert!(endpoints.is_empty());
+                        encode_produce_response_with_throttle(
+                            &mut body,
+                            header.api_version,
+                            &parts,
+                            throttle,
+                        )
+                        .unwrap();
+                    } else {
+                        encode_produce_response_with_endpoints(
+                            &mut body,
+                            header.api_version,
+                            &parts,
+                            &endpoints,
+                        )
+                        .unwrap();
+                    }
+                    let should_drop_resp = {
+                        let node_match = match st.produce_drop_response_node {
+                            Some(target) => target == node_id,
+                            None => true,
+                        };
+                        if node_match {
+                            if let Some(c) = st.produce_drop_response_after_appends {
+                                if c <= 1 {
+                                    st.produce_drop_response_after_appends = None;
+                                    true
+                                } else {
+                                    st.produce_drop_response_after_appends = Some(c - 1);
                                     false
                                 }
-                                (Some(true), Some(left)) => {
-                                    st.produce_drop_response_left = Some(left.saturating_sub(1));
-                                    if left <= 1 {
+                            } else {
+                                match (st.produce_drop_response, st.produce_drop_response_left) {
+                                    (Some(true), Some(0)) => {
                                         st.produce_drop_response = None;
                                         st.produce_drop_response_left = None;
+                                        false
                                     }
-                                    true
+                                    (Some(true), Some(left)) => {
+                                        st.produce_drop_response_left =
+                                            Some(left.saturating_sub(1));
+                                        if left <= 1 {
+                                            st.produce_drop_response = None;
+                                            st.produce_drop_response_left = None;
+                                        }
+                                        true
+                                    }
+                                    (Some(true), None) => {
+                                        st.produce_drop_response = None;
+                                        true
+                                    }
+                                    _ => false,
                                 }
-                                (Some(true), None) => {
-                                    st.produce_drop_response = None;
-                                    true
-                                }
-                                _ => false,
                             }
+                        } else {
+                            false
                         }
-                    } else {
-                        false
-                    }
+                    };
+                    (should_drop_resp, st.produce_response_delay)
                 };
-                drop(st);
+                if let Some(delay) = response_delay {
+                    tokio::time::sleep(delay).await;
+                }
                 if should_drop_resp {
                     break;
                 }
