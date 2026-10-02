@@ -1,0 +1,45 @@
+{
+  "journal_bytes": 350,
+  "next_offset": 12,
+  "entries": [
+    {
+      "first": 7,
+      "records": 4,
+      "payload_bytes": 188
+    },
+    {
+      "first": 11,
+      "records": 1,
+      "payload_bytes": 74
+    }
+  ],
+  "batches": [
+    {
+      "base": 7,
+      "records": 1,
+      "bytes": 74
+    },
+    {
+      "base": 8,
+      "records": 3,
+      "bytes": 114
+    },
+    {
+      "base": 11,
+      "records": 1,
+      "bytes": 74
+    }
+  ],
+  "verified_record_offsets": [
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "sha256": {
+    "assigned-basic.bin": "f0f81770b932d7888c2177894bcd839054711960eb1d48c987b768b426e39e0e",
+    "assigned-multiple.bin": "5555db81fbc88ea10117f9c02a600f795a7663526df48f77e77475d566ec3f81",
+    "partition.journal": "3a9944c273c8e1207dd6b5954bff9a7f2de4a0d98bada20a09568ced5285f9f5"
+  }
+}

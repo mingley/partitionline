@@ -1,0 +1,197 @@
+{
+  "commands": [
+    {
+      "name": "compile",
+      "argv": [
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/partition-store/independent-proof-retry1/classes",
+        "/workspace/partitionline/docs/evidence/broker/KL11-65/AssignedBatchOracle.java"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "compile.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "compile.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "stable-original-multiple",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-multiple-batches.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "stable/original-multiple.jsonl": "3caeba8e0a4ebd2a6af3bd92c550bda7e7ce9202961bf652b6fe580fc1ef910b",
+        "stable-original-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      }
+    },
+    {
+      "name": "stable-assigned-multiple",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/work/partition-store/final-results-retry1/proof-stable/assigned-multiple.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "stable/assigned-multiple.jsonl": "caeba2d6b4a2b2b071e633692192723e870036f5d9173f07b5c0d32ea5a591c7",
+        "stable-assigned-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      }
+    },
+    {
+      "name": "stable-original-basic",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "stable/original-basic.jsonl": "87ed278a479f8dccaf1570c656bb06c73dce7ef18e82c24c4f1de7b52e78b8cc",
+        "stable-original-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      }
+    },
+    {
+      "name": "stable-assigned-basic",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/work/partition-store/final-results-retry1/proof-stable/assigned-basic.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "stable/assigned-basic.jsonl": "3294f20f3fc4eac3047b7584beade3f0ad3eb3ea0960481213b8c2a087ce0a42",
+        "stable-assigned-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      }
+    },
+    {
+      "name": "stable-verify",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/partitionline/docs/evidence/broker/KL11-65/verify-proof.py",
+        "--proof",
+        "/workspace/work/partition-store/final-results-retry1/proof-stable",
+        "--fixtures",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records",
+        "--oracle",
+        "/workspace/work/partition-store/independent-proof-retry1/stable"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "stable-verify.stdout.log": "ec9858fc5869d1b54eae21ee7c4c699e9892b7930a08d39d38ef8e1dc4de868e",
+        "stable-verify.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "1.85.0-original-multiple",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-multiple-batches.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "1.85.0/original-multiple.jsonl": "3caeba8e0a4ebd2a6af3bd92c550bda7e7ce9202961bf652b6fe580fc1ef910b",
+        "1.85.0-original-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      }
+    },
+    {
+      "name": "1.85.0-assigned-multiple",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/work/partition-store/final-results-retry1/proof-1.85.0/assigned-multiple.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "1.85.0/assigned-multiple.jsonl": "caeba2d6b4a2b2b071e633692192723e870036f5d9173f07b5c0d32ea5a591c7",
+        "1.85.0-assigned-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      }
+    },
+    {
+      "name": "1.85.0-original-basic",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "1.85.0/original-basic.jsonl": "87ed278a479f8dccaf1570c656bb06c73dce7ef18e82c24c4f1de7b52e78b8cc",
+        "1.85.0-original-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      }
+    },
+    {
+      "name": "1.85.0-assigned-basic",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/work/partition-store/final-results-retry1/proof-1.85.0/assigned-basic.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "1.85.0/assigned-basic.jsonl": "3294f20f3fc4eac3047b7584beade3f0ad3eb3ea0960481213b8c2a087ce0a42",
+        "1.85.0-assigned-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      }
+    },
+    {
+      "name": "1.85.0-verify",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/partitionline/docs/evidence/broker/KL11-65/verify-proof.py",
+        "--proof",
+        "/workspace/work/partition-store/final-results-retry1/proof-1.85.0",
+        "--fixtures",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records",
+        "--oracle",
+        "/workspace/work/partition-store/independent-proof-retry1/1.85.0"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "1.85.0-verify.stdout.log": "ec9858fc5869d1b54eae21ee7c4c699e9892b7930a08d39d38ef8e1dc4de868e",
+        "1.85.0-verify.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "inputs": {
+    "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+    "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+    "/workspace/partitionline/docs/evidence/broker/KL11-65/AssignedBatchOracle.java": "fee7b2335add029334c9e8abae3b50200b41670c510383af8cb2252303dc3189",
+    "/workspace/partitionline/docs/evidence/broker/KL11-65/verify-proof.py": "ee8bb5920075600cfdece17bebc4f2725f2e67a41201552598d8bc357bca7658",
+    "/workspace/partitionline/docs/evidence/broker/KL11-65/run-proof.py": "6fb5c0f890999e65634d852b0e6e2f0cfaa3f540b53a429fecd8cc1186cafe25",
+    "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-multiple-batches.bin": "f757b5cfd489b3ac17ff26941cffb09a95e48abab863a63479699f78546ae30a",
+    "/workspace/work/partition-store/final-results-retry1/proof-stable/assigned-multiple.bin": "5555db81fbc88ea10117f9c02a600f795a7663526df48f77e77475d566ec3f81",
+    "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28",
+    "/workspace/work/partition-store/final-results-retry1/proof-stable/assigned-basic.bin": "f0f81770b932d7888c2177894bcd839054711960eb1d48c987b768b426e39e0e",
+    "/workspace/work/partition-store/final-results-retry1/proof-1.85.0/assigned-multiple.bin": "5555db81fbc88ea10117f9c02a600f795a7663526df48f77e77475d566ec3f81",
+    "/workspace/work/partition-store/final-results-retry1/proof-1.85.0/assigned-basic.bin": "f0f81770b932d7888c2177894bcd839054711960eb1d48c987b768b426e39e0e"
+  },
+  "byte_identical_toolchain_outputs": true
+}

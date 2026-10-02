@@ -1,0 +1,31 @@
+   Compiling libc v0.2.189
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling syn v3.0.6
+   Compiling crc32c v0.6.8
+   Compiling getrandom v0.4.3
+   Compiling tokio-macros v2.7.2
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling bytes v1.12.1
+   Compiling cfg-if v1.0.5
+   Compiling pin-project-lite v0.2.17
+   Compiling tokio v1.53.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/partition-store/candidate/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 8.71s
+     Running tests/partition.rs (/workspace/work/target-partition-store/debug/deps/partition-59775e1ffb5b8906)
+
+running 7 tests
+test external_payload_change_poisoned_live_handle_returns_no_partial_output ... ok
+test configured_entry_index_output_and_disk_budgets_prevent_growth ... ok
+test assigned_batches_preserve_all_other_bytes_and_survive_restart ... ok
+test invalid_later_batch_and_unsupported_features_never_append_a_prefix ... ok
+test signed_offset_end_bound_is_checked_before_any_write ... ok
+test outer_checksummed_forged_counts_offsets_crc_and_batch_gaps_fail_recovery ... ok
+test every_incomplete_final_entry_prefix_repairs_to_the_previous_whole_input ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

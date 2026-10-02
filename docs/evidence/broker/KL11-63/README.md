@@ -31,3 +31,23 @@ python3 docs/evidence/broker/KL11-63/pin-upstream.py
 The first stable live attempt against 6b4d3306fd517decbc01839ae25835c695de7572 passed all three Java create/forced-version batches but failed the actual librdkafka all-topics Metadata call. Its logs, histories, catalog and failed status are retained under `live/stable/attempt-1/`. `capture-native-all.py` then used a separately labeled bounded fake discovery endpoint to capture the actual pinned C client request; this endpoint is diagnostic and supplies no broker/runtime qualification. `analyze-native-all.py` executes all three official Java parsers on that exact frame. The native request is 33 bytes without the transport prefix (37 on the wire), parses 30 bytes, and leaves exactly `000000`. Its fields are all-topics/null selector, auto-creation false, and authorized operations false. The official canonical serializer emits 30 bytes. Pinned librdkafka `rdkafka_request.c`/`rdkafka_buf.h` explain why: the flexible all-topics branch leaves a four-byte zero placeholder rather than shrinking it to a one-byte compact null.
 
 The narrowly scoped handler compatibility rule permits exactly three zero tail bytes only for flexible Metadata all-topics/null selectors. Named and empty selectors, classic Metadata, other tail lengths/values, Create and Delete remain strict. The corpus retains the actual native request as a positive compatibility case plus nine rejection controls per release; live Java requests repeat those rejection controls. The C peer continues using the actual all-topics API, not a converted named-topic query. Full Apache broker/controller execution is not asserted by the parser component evidence.
+
+## Qualified live result
+
+Exact pushed source `4e70bbd1cfab39c59e975989b0d480b032dbe0de` passes the complete independent live run on stable Rust 1.99.0 and MSRV 1.85.0. Each toolchain runs all three official Java releases through forced requests for every advertised pair, actual AdminClient create/validate/describe/list operations, and a separate server-process restart. All six saved topic IDs are retained across restart, and all six delete/recreate histories obtain different IDs. The actual librdkafka 2.15.0 C all-topics Metadata/Create/Delete APIs also pass both create and restart phases, including error36 for existing creation and error3 for missing deletion. The runs perform 3,162 Java assertions, 142 C assertions and 84 explicit EOF rejection requests. Four real server processes exit successfully; their catalog files, source snapshots' byte-hash verification, binary identities, raw logs and exact wire histories are retained.
+
+`validation.json` summarizes these outcomes and the original failed attempt. `summarize.py` independently checks the retained histories, UUID relationships, actual native request versions, exact-source peer hashes and every successful run before rebuilding that summary and its artifact index. These are default-feature live Rust builds; the metadata worker retains the separate complete broker default/all-feature and strict Rust qualification.
+
+```sh
+python3 docs/evidence/broker/KL11-63/run-live.py \
+  --source-sha 4e70bbd1cfab39c59e975989b0d480b032dbe0de \
+  --scratch /workspace/work/broker-metadata-live \
+  --toolchain stable --port 19125 --attempt 2
+python3 docs/evidence/broker/KL11-63/run-live.py \
+  --source-sha 4e70bbd1cfab39c59e975989b0d480b032dbe0de \
+  --scratch /workspace/work/broker-metadata-live \
+  --toolchain 1.85.0 --port 19125 --attempt 1
+python3 docs/evidence/broker/KL11-63/summarize.py
+```
+
+The retained attempt paths are immutable reproduction artifacts; a new run should use fresh scratch and attempt numbers and retain its new outcomes separately. The recorded restart is controlled shutdown/reopen, with no machine or power-loss injection.

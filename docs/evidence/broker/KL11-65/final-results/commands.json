@@ -1,0 +1,41 @@
+{
+  "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+  "commands": [
+    {
+      "toolchain": "stable",
+      "name": "clean",
+      "command": [
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.07088473900148529,
+      "log": "stable-clean.log",
+      "test_totals": []
+    },
+    {
+      "toolchain": "stable",
+      "name": "default-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "partition"
+      ],
+      "exit_code": 101,
+      "elapsed_seconds": 1.250007672002539,
+      "log": "stable-default-tests.log",
+      "test_totals": []
+    }
+  ]
+}

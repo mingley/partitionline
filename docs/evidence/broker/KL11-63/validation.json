@@ -1,0 +1,488 @@
+{
+  "id": "KL11-63",
+  "status": "accepted",
+  "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+  "initial_remote_fixture_source_sha": "9c6a9b3539bd0bf3eae8dc851d18186029a656b8",
+  "initial_local_fixture_context_sha": "b2937766eec6638f1e3a5d978a76bb937e0750f3",
+  "failed_pre_compat_handler_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+  "source_hashes": {
+    "MetadataOracle.java": "1c79ecf8b23bc56fea3c2975d130394face53ed3dbd3ff6148a08aa0ebc4171c",
+    "generate.py": "c7b0a6fd4fdcf832e086c4bf40762d6dca61540e947aaf22a9c925c6539f8250",
+    "MetadataPeer.java": "b7202b6872ac93bb2147046637906224d2784a16fc2582504ce1f4c5e0d201ed",
+    "metadata-peer.c": "91147bb8c1c73044e89e20c5470edd0e6f21b10a2d5d8bcf1d6b0dabac4fa5bc",
+    "run-live.py": "16f3e67bbf0391e8377f99cbbdd9ee5b15b8b233247b78a0e48a95a492596d8c",
+    "CapturedRequestProbe.java": "f16651c81f58775db39fb0275d29ab114e86b27ac52cebf13eb4fd6bbb6541de",
+    "capture-native-all.py": "9eaa6c8d0b6818030fbc3a0d67acab9a40371984c42394cdced4549490d3f229",
+    "analyze-native-all.py": "6c6deb2f194e48cfe5c21cc8be0c137382bc868e7d56d62eb70f53bf69b1a7f1",
+    "TopicPolicyProbe.java": "e5de930d6281bfc5581737b7e8b8b4bdc83a22ece9b77e82490a841f31d53aea"
+  },
+  "oracle": {
+    "releases": [
+      "4.1.2",
+      "4.2.1",
+      "4.3.1"
+    ],
+    "declared_cases": 555,
+    "response_goldens": 522,
+    "deliberate_rejections": 33,
+    "every_advertised_pair_per_release": 28,
+    "repeated_generator_bytes_identical": true,
+    "cross_release_cases_identical": true,
+    "generation_report": "oracle-generation.json",
+    "upstream_pins": "upstream-pins.json"
+  },
+  "live": [
+    {
+      "toolchain": "stable",
+      "attempt": 2,
+      "status": "pass",
+      "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+      "snapshot_unchanged": true,
+      "snapshot_file_count": 1360,
+      "rust_test_binary_sha256": "716bb66cefcd9e02f0785e58aa4dc5afff8072d1f50400f3809aecb90d662abe",
+      "server_processes": [
+        {
+          "phase": "create",
+          "pid": 283397,
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "/workspace/work/broker-metadata-live/stable/attempt-2/target/debug/deps/metadata-91614346aa96c69c",
+            "--exact",
+            "serve_live_probe",
+            "--nocapture"
+          ],
+          "port": 19125,
+          "exit_code": 0,
+          "journal_sha256": "1f60749f4ff180ec912b3e93280551e6f2e19272fb9e3359d97a812abcc9c061"
+        },
+        {
+          "phase": "restart",
+          "pid": 283486,
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "/workspace/work/broker-metadata-live/stable/attempt-2/target/debug/deps/metadata-91614346aa96c69c",
+            "--exact",
+            "serve_live_probe",
+            "--nocapture"
+          ],
+          "port": 19125,
+          "exit_code": 0,
+          "journal_sha256": "4cceb629f6a9c3267d13663d607f2a5bbf71941f632aec98959bde0445430d99"
+        }
+      ],
+      "java": [
+        {
+          "release": "4.1.2",
+          "create_assertions": 522,
+          "restart_assertions": 5,
+          "advertised_pairs_forced": 28,
+          "rejected_eof_count": 14,
+          "before_restart_uuid": "dMJKYa8NS86T8MBAtAXWPQ",
+          "after_restart_uuid": "dMJKYa8NS86T8MBAtAXWPQ",
+          "recreated_uuid": "OIfEnhXDR4SPeSUwvCpo0w",
+          "uuid_retained": true,
+          "recreated_uuid_changed": true,
+          "name": "peer-4-1-2-persistent",
+          "history_files": [
+            "live/stable/attempt-2/histories/4.1.2-create-history.json",
+            "live/stable/attempt-2/histories/4.1.2-restart-history.json"
+          ]
+        },
+        {
+          "release": "4.2.1",
+          "create_assertions": 522,
+          "restart_assertions": 5,
+          "advertised_pairs_forced": 28,
+          "rejected_eof_count": 14,
+          "before_restart_uuid": "G8cug1RhSpKU7ld7yJvOWA",
+          "after_restart_uuid": "G8cug1RhSpKU7ld7yJvOWA",
+          "recreated_uuid": "e9bGuib9QAeAkOhbzgIpWA",
+          "uuid_retained": true,
+          "recreated_uuid_changed": true,
+          "name": "peer-4-2-1-persistent",
+          "history_files": [
+            "live/stable/attempt-2/histories/4.2.1-create-history.json",
+            "live/stable/attempt-2/histories/4.2.1-restart-history.json"
+          ]
+        },
+        {
+          "release": "4.3.1",
+          "create_assertions": 522,
+          "restart_assertions": 5,
+          "advertised_pairs_forced": 28,
+          "rejected_eof_count": 14,
+          "before_restart_uuid": "ORpRKP3oSGuUBGgI-eyWuw",
+          "after_restart_uuid": "ORpRKP3oSGuUBGgI-eyWuw",
+          "recreated_uuid": "7F4nvbrITjCrudhme99UNA",
+          "uuid_retained": true,
+          "recreated_uuid_changed": true,
+          "name": "peer-4-3-1-persistent",
+          "history_files": [
+            "live/stable/attempt-2/histories/4.3.1-create-history.json",
+            "live/stable/attempt-2/histories/4.3.1-restart-history.json"
+          ]
+        }
+      ],
+      "c": [
+        {
+          "phase": "create",
+          "assertions": 42,
+          "outcomes": [
+            {
+              "peer": "librdkafka",
+              "version": "2.15.0",
+              "phase": "create"
+            },
+            {
+              "operation": "create",
+              "name": "peer-c-validate",
+              "validate_only": true,
+              "error": 0
+            },
+            {
+              "operation": "metadata",
+              "name": "peer-c-validate",
+              "found": false,
+              "topics": 3
+            },
+            {
+              "operation": "create",
+              "name": "peer-c-persistent",
+              "validate_only": false,
+              "error": 0
+            },
+            {
+              "operation": "metadata",
+              "name": "peer-c-persistent",
+              "found": true,
+              "topics": 4
+            },
+            {
+              "operation": "create",
+              "name": "peer-c-persistent",
+              "validate_only": false,
+              "error": 36
+            },
+            {
+              "status": "pass",
+              "assertions": 42
+            }
+          ],
+          "wire_versions": [
+            [
+              "ApiVersion",
+              "3"
+            ],
+            [
+              "CreateTopics",
+              "4"
+            ],
+            [
+              "Metadata",
+              "13"
+            ]
+          ],
+          "actual_all_topics_api": true,
+          "log": "live/stable/attempt-2/c-create.txt"
+        },
+        {
+          "phase": "restart",
+          "assertions": 29,
+          "outcomes": [
+            {
+              "peer": "librdkafka",
+              "version": "2.15.0",
+              "phase": "restart"
+            },
+            {
+              "operation": "metadata",
+              "name": "peer-c-persistent",
+              "found": true,
+              "topics": 1
+            },
+            {
+              "operation": "delete",
+              "name": "peer-c-persistent",
+              "error": 0
+            },
+            {
+              "operation": "metadata",
+              "name": "peer-c-persistent",
+              "found": false,
+              "topics": 0
+            },
+            {
+              "operation": "delete",
+              "name": "peer-c-missing",
+              "error": 3
+            },
+            {
+              "status": "pass",
+              "assertions": 29
+            }
+          ],
+          "wire_versions": [
+            [
+              "ApiVersion",
+              "3"
+            ],
+            [
+              "DeleteTopics",
+              "4"
+            ],
+            [
+              "Metadata",
+              "13"
+            ]
+          ],
+          "actual_all_topics_api": true,
+          "log": "live/stable/attempt-2/c-restart.txt"
+        }
+      ],
+      "validation": "live/stable/attempt-2/validation.json"
+    },
+    {
+      "toolchain": "1.85.0",
+      "attempt": 1,
+      "status": "pass",
+      "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+      "snapshot_unchanged": true,
+      "snapshot_file_count": 1360,
+      "rust_test_binary_sha256": "876f99d3e17169f0a821f07407f0a535590c796ad7858336fa763dbe12db9e8e",
+      "server_processes": [
+        {
+          "phase": "create",
+          "pid": 285339,
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "/workspace/work/broker-metadata-live/1-85-0/attempt-1/target/debug/deps/metadata-8a2401a315e9d6a4",
+            "--exact",
+            "serve_live_probe",
+            "--nocapture"
+          ],
+          "port": 19125,
+          "exit_code": 0,
+          "journal_sha256": "26ee863408da9040eace7ea5b2f4d8c55c769c6372ca4e1816d4c7cd5ce6df76"
+        },
+        {
+          "phase": "restart",
+          "pid": 285503,
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "/workspace/work/broker-metadata-live/1-85-0/attempt-1/target/debug/deps/metadata-8a2401a315e9d6a4",
+            "--exact",
+            "serve_live_probe",
+            "--nocapture"
+          ],
+          "port": 19125,
+          "exit_code": 0,
+          "journal_sha256": "4f1f1df9b41a10cd2b22a37eb34de140ac298cee3ca9203816e8a9e4d821428d"
+        }
+      ],
+      "java": [
+        {
+          "release": "4.1.2",
+          "create_assertions": 522,
+          "restart_assertions": 5,
+          "advertised_pairs_forced": 28,
+          "rejected_eof_count": 14,
+          "before_restart_uuid": "RBeLt2l4RsmZwmlvwjfyVg",
+          "after_restart_uuid": "RBeLt2l4RsmZwmlvwjfyVg",
+          "recreated_uuid": "WPCkVukPSyOKqwpNDdhz7A",
+          "uuid_retained": true,
+          "recreated_uuid_changed": true,
+          "name": "peer-4-1-2-persistent",
+          "history_files": [
+            "live/1-85-0/attempt-1/histories/4.1.2-create-history.json",
+            "live/1-85-0/attempt-1/histories/4.1.2-restart-history.json"
+          ]
+        },
+        {
+          "release": "4.2.1",
+          "create_assertions": 522,
+          "restart_assertions": 5,
+          "advertised_pairs_forced": 28,
+          "rejected_eof_count": 14,
+          "before_restart_uuid": "_zFKGBnaTQmGedEiI1Bsfw",
+          "after_restart_uuid": "_zFKGBnaTQmGedEiI1Bsfw",
+          "recreated_uuid": "tZeWsOZ0S0Kv6ursZAI66w",
+          "uuid_retained": true,
+          "recreated_uuid_changed": true,
+          "name": "peer-4-2-1-persistent",
+          "history_files": [
+            "live/1-85-0/attempt-1/histories/4.2.1-create-history.json",
+            "live/1-85-0/attempt-1/histories/4.2.1-restart-history.json"
+          ]
+        },
+        {
+          "release": "4.3.1",
+          "create_assertions": 522,
+          "restart_assertions": 5,
+          "advertised_pairs_forced": 28,
+          "rejected_eof_count": 14,
+          "before_restart_uuid": "DAPwobNISqCZI_rQ8Hu7tQ",
+          "after_restart_uuid": "DAPwobNISqCZI_rQ8Hu7tQ",
+          "recreated_uuid": "J-QrSiTISme5UqmgNUHxew",
+          "uuid_retained": true,
+          "recreated_uuid_changed": true,
+          "name": "peer-4-3-1-persistent",
+          "history_files": [
+            "live/1-85-0/attempt-1/histories/4.3.1-create-history.json",
+            "live/1-85-0/attempt-1/histories/4.3.1-restart-history.json"
+          ]
+        }
+      ],
+      "c": [
+        {
+          "phase": "create",
+          "assertions": 42,
+          "outcomes": [
+            {
+              "peer": "librdkafka",
+              "version": "2.15.0",
+              "phase": "create"
+            },
+            {
+              "operation": "create",
+              "name": "peer-c-validate",
+              "validate_only": true,
+              "error": 0
+            },
+            {
+              "operation": "metadata",
+              "name": "peer-c-validate",
+              "found": false,
+              "topics": 3
+            },
+            {
+              "operation": "create",
+              "name": "peer-c-persistent",
+              "validate_only": false,
+              "error": 0
+            },
+            {
+              "operation": "metadata",
+              "name": "peer-c-persistent",
+              "found": true,
+              "topics": 4
+            },
+            {
+              "operation": "create",
+              "name": "peer-c-persistent",
+              "validate_only": false,
+              "error": 36
+            },
+            {
+              "status": "pass",
+              "assertions": 42
+            }
+          ],
+          "wire_versions": [
+            [
+              "ApiVersion",
+              "3"
+            ],
+            [
+              "CreateTopics",
+              "4"
+            ],
+            [
+              "Metadata",
+              "13"
+            ]
+          ],
+          "actual_all_topics_api": true,
+          "log": "live/1-85-0/attempt-1/c-create.txt"
+        },
+        {
+          "phase": "restart",
+          "assertions": 29,
+          "outcomes": [
+            {
+              "peer": "librdkafka",
+              "version": "2.15.0",
+              "phase": "restart"
+            },
+            {
+              "operation": "metadata",
+              "name": "peer-c-persistent",
+              "found": true,
+              "topics": 1
+            },
+            {
+              "operation": "delete",
+              "name": "peer-c-persistent",
+              "error": 0
+            },
+            {
+              "operation": "metadata",
+              "name": "peer-c-persistent",
+              "found": false,
+              "topics": 0
+            },
+            {
+              "operation": "delete",
+              "name": "peer-c-missing",
+              "error": 3
+            },
+            {
+              "status": "pass",
+              "assertions": 29
+            }
+          ],
+          "wire_versions": [
+            [
+              "ApiVersion",
+              "3"
+            ],
+            [
+              "DeleteTopics",
+              "4"
+            ],
+            [
+              "Metadata",
+              "13"
+            ]
+          ],
+          "actual_all_topics_api": true,
+          "log": "live/1-85-0/attempt-1/c-restart.txt"
+        }
+      ],
+      "validation": "live/1-85-0/attempt-1/validation.json"
+    }
+  ],
+  "java_assertions_total": 3162,
+  "c_assertions_total": 142,
+  "rejected_eof_requests_total": 84,
+  "retained_failure": {
+    "validation": "live/stable/attempt-1/validation.json",
+    "reason": "Actual pinned librdkafka flexible all-topics Metadata request retains three zero bytes after canonical fields; original strict handler rejected it. Three official Apache parsers accept fields and leave exactly those bytes. Scoped compatibility correction is tested; original failed attempt is retained.",
+    "catalog": "live/stable/attempt-1/catalog-failed-attempt.journal"
+  },
+  "native_compatibility": {
+    "exact_frame_sha256": "617352cc7cfe21b49abca06778a07b969a4b73bf6a34d9b127c7a58e40629ef4",
+    "wire_length": 37,
+    "without_transport_prefix": 33,
+    "apache_consumed": 30,
+    "apache_remaining_hex": "000000",
+    "canonical_length": 30,
+    "scope": "Exactly three zero body-tail bytes for flexible Metadata all-topics/null selectors only; no general suffix/Create/Delete relaxation.",
+    "capture": "native-all-topics/capture.json",
+    "actual_apache_parser_results": "native-all-topics/apache-parser.json"
+  },
+  "limits": [
+    "Golden responses express the declared single-node policy and execute official serialization/parsing; no full Apache broker/controller runtime equivalence claim.",
+    "Live peers cover the advertised local metadata/admin subset, not Produce, replication, ACLs or arbitrary topic configurations.",
+    "Restart is an orderly process shutdown/reopen with the same durable catalog, not an injected machine/power loss.",
+    "Live Rust builds use default broker features on stable and MSRV; the metadata worker separately owns full default/all-feature unit and strict Rust lint/doc qualification.",
+    "Native compatibility allowance is the exact observed flexible null-selector padding; other suffixes/flags remain strict."
+  ]
+}

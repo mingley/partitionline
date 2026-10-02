@@ -1,0 +1,689 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-65",
+  "status": "done",
+  "acceptance_met": true,
+  "result": "passed",
+  "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+  "implemented_source_sha": "5ed1e83fe5868417829f5ce98cde306eae12fb73",
+  "validated_at_utc": "2026-10-02T21:58:33.961370+00:00",
+  "scope": "Bounded whole-input ordinary batch storage with assigned signed offsets, fsync-before-success and validated recovery.",
+  "commands": [
+    {
+      "cell": "stable-default",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        21,
+        14,
+        15,
+        8,
+        7,
+        9,
+        9,
+        12,
+        0,
+        16
+      ],
+      "passed_tests": 111,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-default-test.log"
+    },
+    {
+      "cell": "stable-default",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-default-clippy.log"
+    },
+    {
+      "cell": "stable-default",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+stable",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-default-doc.log"
+    },
+    {
+      "cell": "stable-all-features",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        21,
+        14,
+        15,
+        8,
+        7,
+        9,
+        9,
+        12,
+        15,
+        16
+      ],
+      "passed_tests": 126,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-all-features-test.log"
+    },
+    {
+      "cell": "stable-all-features",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-all-features-clippy.log"
+    },
+    {
+      "cell": "stable-all-features",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+stable",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/stable",
+        "-j",
+        "2",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/stable-all-features-doc.log"
+    },
+    {
+      "cell": "stable",
+      "check": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "log": "docs/evidence/broker/KL11-05/final/stable-fmt.log"
+    },
+    {
+      "cell": "1.85.0-default",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        21,
+        14,
+        15,
+        8,
+        7,
+        9,
+        9,
+        12,
+        0,
+        16
+      ],
+      "passed_tests": 111,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-default-test.log"
+    },
+    {
+      "cell": "1.85.0-default",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-default-clippy.log"
+    },
+    {
+      "cell": "1.85.0-default",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-default-doc.log"
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        21,
+        14,
+        15,
+        8,
+        7,
+        9,
+        9,
+        12,
+        15,
+        16
+      ],
+      "passed_tests": 126,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-test.log"
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-clippy.log"
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/metadata-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-doc.log"
+    },
+    {
+      "cell": "1.85.0",
+      "check": "fmt",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "log": "docs/evidence/broker/KL11-05/final/1.85.0-fmt.log"
+    },
+    {
+      "name": "compile",
+      "argv": [
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/partition-store/independent-proof-retry1/classes",
+        "/workspace/partitionline/docs/evidence/broker/KL11-65/AssignedBatchOracle.java"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "compile.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "compile.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+    },
+    {
+      "name": "stable-original-multiple",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-multiple-batches.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "stable/original-multiple.jsonl": "3caeba8e0a4ebd2a6af3bd92c550bda7e7ce9202961bf652b6fe580fc1ef910b",
+        "stable-original-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      },
+      "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+    },
+    {
+      "name": "stable-assigned-multiple",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/work/partition-store/final-results-retry1/proof-stable/assigned-multiple.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "stable/assigned-multiple.jsonl": "caeba2d6b4a2b2b071e633692192723e870036f5d9173f07b5c0d32ea5a591c7",
+        "stable-assigned-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      },
+      "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+    },
+    {
+      "name": "stable-original-basic",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "stable/original-basic.jsonl": "87ed278a479f8dccaf1570c656bb06c73dce7ef18e82c24c4f1de7b52e78b8cc",
+        "stable-original-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      },
+      "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+    },
+    {
+      "name": "stable-assigned-basic",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/work/partition-store/final-results-retry1/proof-stable/assigned-basic.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "stable/assigned-basic.jsonl": "3294f20f3fc4eac3047b7584beade3f0ad3eb3ea0960481213b8c2a087ce0a42",
+        "stable-assigned-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      },
+      "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+    },
+    {
+      "name": "stable-verify",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/partitionline/docs/evidence/broker/KL11-65/verify-proof.py",
+        "--proof",
+        "/workspace/work/partition-store/final-results-retry1/proof-stable",
+        "--fixtures",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records",
+        "--oracle",
+        "/workspace/work/partition-store/independent-proof-retry1/stable"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "stable-verify.stdout.log": "ec9858fc5869d1b54eae21ee7c4c699e9892b7930a08d39d38ef8e1dc4de868e",
+        "stable-verify.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+    },
+    {
+      "name": "1.85.0-original-multiple",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-multiple-batches.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "1.85.0/original-multiple.jsonl": "3caeba8e0a4ebd2a6af3bd92c550bda7e7ce9202961bf652b6fe580fc1ef910b",
+        "1.85.0-original-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      },
+      "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+    },
+    {
+      "name": "1.85.0-assigned-multiple",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/work/partition-store/final-results-retry1/proof-1.85.0/assigned-multiple.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "1.85.0/assigned-multiple.jsonl": "caeba2d6b4a2b2b071e633692192723e870036f5d9173f07b5c0d32ea5a591c7",
+        "1.85.0-assigned-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      },
+      "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+    },
+    {
+      "name": "1.85.0-original-basic",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "1.85.0/original-basic.jsonl": "87ed278a479f8dccaf1570c656bb06c73dce7ef18e82c24c4f1de7b52e78b8cc",
+        "1.85.0-original-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      },
+      "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+    },
+    {
+      "name": "1.85.0-assigned-basic",
+      "argv": [
+        "java",
+        "-cp",
+        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "AssignedBatchOracle",
+        "/workspace/work/partition-store/final-results-retry1/proof-1.85.0/assigned-basic.bin"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "1.85.0/assigned-basic.jsonl": "3294f20f3fc4eac3047b7584beade3f0ad3eb3ea0960481213b8c2a087ce0a42",
+        "1.85.0-assigned-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+      },
+      "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+    },
+    {
+      "name": "1.85.0-verify",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/partitionline/docs/evidence/broker/KL11-65/verify-proof.py",
+        "--proof",
+        "/workspace/work/partition-store/final-results-retry1/proof-1.85.0",
+        "--fixtures",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records",
+        "--oracle",
+        "/workspace/work/partition-store/independent-proof-retry1/1.85.0"
+      ],
+      "exit_code": 0,
+      "outputs": {
+        "1.85.0-verify.stdout.log": "ec9858fc5869d1b54eae21ee7c4c699e9892b7930a08d39d38ef8e1dc4de868e",
+        "1.85.0-verify.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+    }
+  ],
+  "results": {
+    "root_partition_tests": {
+      "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+      "stable_default": 7,
+      "stable_all_features": 7,
+      "msrv_default": 7,
+      "msrv_all_features": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    "final_full_broker_tests": {
+      "stable_default": 111,
+      "stable_all_features": 126,
+      "msrv_default": 111,
+      "msrv_all_features": 126,
+      "strict_gates_passed": true,
+      "partition_tests_each_lane": 7
+    },
+    "storage_proof": {
+      "actual_journal_bytes": 350,
+      "entries": [
+        {
+          "base": 7,
+          "count": 4
+        },
+        {
+          "base": 11,
+          "count": 1
+        }
+      ],
+      "batch_bases": [
+        7,
+        8,
+        11
+      ],
+      "verified_record_offsets": [
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "next_offset": 12,
+      "java_decoder": "Apache Kafka4.3.1 actual MemoryRecords/RecordBatch/Record",
+      "java_jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "independent_commands_passed": 11,
+      "bitwise_crc_checkvector": "123456789 -> e3069283",
+      "byte_identical_all_toolchains_features": true,
+      "final_proof_artifacts": [
+        {
+          "path": "docs/evidence/broker/KL11-05/final/stable-default-partition-proof/assigned-basic.bin",
+          "sha256": "f0f81770b932d7888c2177894bcd839054711960eb1d48c987b768b426e39e0e"
+        },
+        {
+          "path": "docs/evidence/broker/KL11-05/final/stable-default-partition-proof/assigned-multiple.bin",
+          "sha256": "5555db81fbc88ea10117f9c02a600f795a7663526df48f77e77475d566ec3f81"
+        },
+        {
+          "path": "docs/evidence/broker/KL11-05/final/stable-default-partition-proof/partition.journal",
+          "sha256": "3a9944c273c8e1207dd6b5954bff9a7f2de4a0d98bada20a09568ced5285f9f5"
+        },
+        {
+          "path": "docs/evidence/broker/KL11-05/final/stable-all-features-partition-proof/assigned-basic.bin",
+          "sha256": "f0f81770b932d7888c2177894bcd839054711960eb1d48c987b768b426e39e0e"
+        },
+        {
+          "path": "docs/evidence/broker/KL11-05/final/stable-all-features-partition-proof/assigned-multiple.bin",
+          "sha256": "5555db81fbc88ea10117f9c02a600f795a7663526df48f77e77475d566ec3f81"
+        },
+        {
+          "path": "docs/evidence/broker/KL11-05/final/stable-all-features-partition-proof/partition.journal",
+          "sha256": "3a9944c273c8e1207dd6b5954bff9a7f2de4a0d98bada20a09568ced5285f9f5"
+        },
+        {
+          "path": "docs/evidence/broker/KL11-05/final/1.85.0-default-partition-proof/assigned-basic.bin",
+          "sha256": "f0f81770b932d7888c2177894bcd839054711960eb1d48c987b768b426e39e0e"
+        },
+        {
+          "path": "docs/evidence/broker/KL11-05/final/1.85.0-default-partition-proof/assigned-multiple.bin",
+          "sha256": "5555db81fbc88ea10117f9c02a600f795a7663526df48f77e77475d566ec3f81"
+        },
+        {
+          "path": "docs/evidence/broker/KL11-05/final/1.85.0-default-partition-proof/partition.journal",
+          "sha256": "3a9944c273c8e1207dd6b5954bff9a7f2de4a0d98bada20a09568ced5285f9f5"
+        },
+        {
+          "path": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-partition-proof/assigned-basic.bin",
+          "sha256": "f0f81770b932d7888c2177894bcd839054711960eb1d48c987b768b426e39e0e"
+        },
+        {
+          "path": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-partition-proof/assigned-multiple.bin",
+          "sha256": "5555db81fbc88ea10117f9c02a600f795a7663526df48f77e77475d566ec3f81"
+        },
+        {
+          "path": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-partition-proof/partition.journal",
+          "sha256": "3a9944c273c8e1207dd6b5954bff9a7f2de4a0d98bada20a09568ced5285f9f5"
+        }
+      ]
+    },
+    "failures_retained": [
+      "Initial final test ENOSPC at6b; same source retry passed.",
+      "Broader6b MSRV lint failed only metadata test format_collect helper. Corrected in4e70; final full strict matrix passes.",
+      "Initial independent producer combined SLF4J stderr with JSON stdout; JSON parse failed. Reproduction producer now preserves separate streams; eleven commands pass.",
+      "Sparse development archives missed root lint and referenced catalog/record/oracle fixtures. Actual final full-tree archive supersedes these developmental failures."
+    ],
+    "limits": [
+      "Ordinary uncompressed magic2 only; codecs/idempotence/transactions/control rejected.",
+      "One whole input is one fsynced journal entry; whole-entry fetch is storage API only.",
+      "Signed exclusive end must not exceed i64::MAX.",
+      "Caller owns storage-thread scheduling, retained outputs and cross-process path exclusivity.",
+      "I/O errors can leave ambiguous synchronized outcome; poisoned handles return no partial output.",
+      "Physical power loss/replication/wire service/production performance remain separate tasks."
+    ]
+  },
+  "artifacts": [
+    "docs/evidence/broker/KL11-65/artifact-checksums.json",
+    "docs/evidence/broker/KL11-05/final/validation.json"
+  ]
+}

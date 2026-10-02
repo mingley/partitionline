@@ -1,0 +1,6 @@
+{"kind":"batch","base":7,"last":7}
+{"kind":"record","offset":7,"timestamp":1000,"key":"6b","value":"76"}
+{"kind":"batch","base":8,"last":10}
+{"kind":"record","offset":8,"timestamp":1000,"key":null,"value":null}
+{"kind":"record","offset":9,"timestamp":1007,"key":"","value":"7061796c6f6164"}
+{"kind":"record","offset":10,"timestamp":1003,"key":"ff0010","value":""}

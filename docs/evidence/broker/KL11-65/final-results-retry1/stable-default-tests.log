@@ -1,0 +1,15 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/partition-store/final-6b4d330/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 0.85s
+     Running tests/partition.rs (/workspace/work/target-partition-store/debug/deps/partition-59775e1ffb5b8906)
+
+running 7 tests
+test external_payload_change_poisoned_live_handle_returns_no_partial_output ... ok
+test configured_entry_index_output_and_disk_budgets_prevent_growth ... ok
+test outer_checksummed_forged_counts_offsets_crc_and_batch_gaps_fail_recovery ... ok
+test assigned_batches_preserve_all_other_bytes_and_survive_restart ... ok
+test signed_offset_end_bound_is_checked_before_any_write ... ok
+test invalid_later_batch_and_unsupported_features_never_append_a_prefix ... ok
+test every_incomplete_final_entry_prefix_repairs_to_the_previous_whole_input ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

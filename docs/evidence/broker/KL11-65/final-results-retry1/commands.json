@@ -1,0 +1,238 @@
+{
+  "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+  "commands": [
+    {
+      "toolchain": "stable",
+      "name": "clean",
+      "command": [
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.022148856998683186,
+      "log": "stable-clean.log",
+      "test_totals": []
+    },
+    {
+      "toolchain": "stable",
+      "name": "default-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "partition"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.8715167829977872,
+      "log": "stable-default-tests.log",
+      "test_totals": [
+        [
+          "7",
+          "0",
+          "0"
+        ]
+      ]
+    },
+    {
+      "toolchain": "stable",
+      "name": "all-feature-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "partition",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 8.978441000999737,
+      "log": "stable-all-feature-tests.log",
+      "test_totals": [
+        [
+          "7",
+          "0",
+          "0"
+        ]
+      ]
+    },
+    {
+      "toolchain": "stable",
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.1347288959987054,
+      "log": "stable-fmt.log",
+      "test_totals": []
+    },
+    {
+      "toolchain": "stable",
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 4.42725536999933,
+      "log": "stable-strict-clippy.log",
+      "test_totals": []
+    },
+    {
+      "toolchain": "stable",
+      "name": "strict-rustdoc",
+      "command": [
+        "cargo",
+        "+stable",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.3498941069992725,
+      "log": "stable-strict-rustdoc.log",
+      "test_totals": []
+    },
+    {
+      "toolchain": "1.85.0",
+      "name": "clean",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.05413631500050542,
+      "log": "1.85.0-clean.log",
+      "test_totals": []
+    },
+    {
+      "toolchain": "1.85.0",
+      "name": "default-tests",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "partition"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 10.851080445998377,
+      "log": "1.85.0-default-tests.log",
+      "test_totals": [
+        [
+          "7",
+          "0",
+          "0"
+        ]
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "name": "all-feature-tests",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "partition",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 12.672124638000241,
+      "log": "1.85.0-all-feature-tests.log",
+      "test_totals": [
+        [
+          "7",
+          "0",
+          "0"
+        ]
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.1272018769996066,
+      "log": "1.85.0-fmt.log",
+      "test_totals": []
+    },
+    {
+      "toolchain": "1.85.0",
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 101,
+      "elapsed_seconds": 11.15732508200017,
+      "log": "1.85.0-strict-clippy.log",
+      "test_totals": []
+    }
+  ]
+}

@@ -1,0 +1,776 @@
+    Checking partitionline-broker v0.1.0 (/workspace/work/partition-store/candidate/partitionline-broker)
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:117:34
+    |
+117 |     let (mut catalog, initial) = Catalog::open(&path, Limits::default()).unwrap();
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+    = note: requested on the command line with `-D clippy::unwrap-used`
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:119:17
+    |
+119 |     let first = catalog.create("alpha", id(2), 3).unwrap();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:124:5
+    |
+124 |     catalog.create("beta", id(3), 2).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:125:5
+    |
+125 |     catalog.delete(id(2)).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:133:5
+    |
+133 |     catalog.create("alpha", id(4), 6).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:143:41
+    |
+143 |     assert_eq!(catalog.journal_bytes(), fs::metadata(&path).unwrap().len());
+    |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:146:9
+    |
+146 |         fs::copy(&path, output).unwrap();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:149:32
+    |
+149 |     let (catalog, recovered) = Catalog::open(&path, Limits::default()).unwrap();
+    |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on an `Option` value
+   --> tests/catalog.rs:164:16
+    |
+164 |     assert_eq!(catalog.by_name("alpha").unwrap().id(), id(4));
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on an `Option` value
+   --> tests/catalog.rs:165:16
+    |
+165 |     assert_eq!(catalog.by_id(id(3)).unwrap().partition_count(), 2);
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:186:27
+    |
+186 |                 let hex = std::str::from_utf8(pair).unwrap();
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:187:17
+    |
+187 |                 u8::from_str_radix(hex, 16).unwrap()
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:190:20
+    |
+190 |         let name = std::str::from_utf8(&bytes).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:205:9
+    |
+205 |         TopicId::new(u128::MAX.to_be_bytes()).unwrap().bytes(),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:214:28
+    |
+214 |     let (mut catalog, _) = Catalog::open(&path, Limits::default()).unwrap();
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:215:5
+    |
+215 |     catalog.create("topic.name", id(2), 3).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:216:20
+    |
+216 |     let original = read(&path).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:248:16
+    |
+248 |     assert_eq!(read(&path).unwrap(), original);
+    |                ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:259:5
+    |
+259 |     catalog.create("TOPIC.name", id(3), 1).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:260:5
+    |
+260 |     catalog.create("__consumer_offsets", id(4), 1).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:261:5
+    |
+261 |     catalog.create("part..name", id(5), 1).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:268:28
+    |
+268 |     let (mut catalog, _) = Catalog::open(temp.path("catalog"), Limits::default()).unwrap();
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:269:5
+    |
+269 |     catalog.create("topic.name", id(2), 3).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:270:5
+    |
+270 |     catalog.delete(id(2)).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:276:5
+    |
+276 |     catalog.create("topic_name", id(3), 1).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:300:32
+    |
+300 |         let (mut catalog, _) = Catalog::open(&path, limits).unwrap();
+    |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:301:9
+    |
+301 |         catalog.create("a", id(2), 1).unwrap();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:303:13
+    |
+303 |             catalog.delete(id(2)).unwrap();
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:305:24
+    |
+305 |         let original = read(&path).unwrap();
+    |                        ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap_err()` on a `Result` value
+   --> tests/catalog.rs:306:21
+    |
+306 |           let error = catalog
+    |  _____________________^
+307 | |             .create("b", id(3), if name == "per-topic" { 2 } else { 1 })
+308 | |             .unwrap_err();
+    | |_________________________^
+    |
+    = note: if this value is an `Ok`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:317:20
+    |
+317 |         assert_eq!(read(&path).unwrap(), original, "budget {name}");
+    |                    ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:320:9
+    |
+320 |         Catalog::open(&path, limits).unwrap();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:333:32
+    |
+333 |         let (mut catalog, _) = Catalog::open(&path, limits).unwrap();
+    |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:334:9
+    |
+334 |         catalog.create("a", id(2), 1).unwrap();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:335:24
+    |
+335 |         let original = read(&path).unwrap();
+    |                        ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap_err()` on a `Result` value
+   --> tests/catalog.rs:336:21
+    |
+336 |         let error = catalog.delete(id(2)).unwrap_err();
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Ok`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:345:20
+    |
+345 |         assert_eq!(read(&path).unwrap(), original);
+    |                    ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:354:28
+    |
+354 |     let (mut catalog, _) = Catalog::open(&path, Limits::default()).unwrap();
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:355:5
+    |
+355 |     catalog.create("a", id(2), 2).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:356:5
+    |
+356 |     catalog.create("b", id(3), 2).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:358:20
+    |
+358 |     let original = read(&path).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:368:20
+    |
+368 |         assert_eq!(read(&path).unwrap(), original);
+    |                    ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:370:24
+    |
+370 |     let (catalog, _) = Catalog::open(&path, Limits::default()).unwrap();
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:378:28
+    |
+378 |     let (mut catalog, _) = Catalog::open(&source, Limits::default()).unwrap();
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:379:5
+    |
+379 |     catalog.create("alpha", id(2), 3).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:381:5
+    |
+381 |     catalog.delete(id(2)).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:383:20
+    |
+383 |     let complete = read(&source).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:387:39
+    |
+387 |         let (mut catalog, recovery) = Catalog::open(&path, Limits::default()).unwrap();
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on an `Option` value
+   --> tests/catalog.rs:389:20
+    |
+389 |         assert_eq!(catalog.by_name("alpha").unwrap().id(), id(2));
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:395:20
+    |
+395 |         assert_eq!(read(&path).unwrap(), complete[..first_end]);
+    |                    ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:396:9
+    |
+396 |         catalog.delete(id(2)).unwrap();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:398:35
+    |
+398 |         let (catalog, recovery) = Catalog::open(&path, Limits::default()).unwrap();
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:409:28
+    |
+409 |     let (mut catalog, _) = Catalog::open(&source, Limits::default()).unwrap();
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:410:5
+    |
+410 |     catalog.create(&"a".repeat(249), id(2), 3).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:411:5
+    |
+411 |     catalog.create("later", id(3), 1).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:413:20
+    |
+413 |     let original = read(&source).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:425:16
+    |
+425 |     assert_eq!(read(&path).unwrap(), changed);
+    |                ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:437:16
+    |
+437 |     assert_eq!(read(&path).unwrap(), interior);
+    |                ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:517:24
+    |
+517 |         let original = read(&path).unwrap();
+    |                        ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:522:20
+    |
+522 |         assert_eq!(read(&path).unwrap(), original);
+    |                    ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:531:20
+    |
+531 |     let original = read(&path).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:536:16
+    |
+536 |     assert_eq!(read(&path).unwrap(), original);
+    |                ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:538:24
+    |
+538 |     let (catalog, _) = Catalog::open(&path, Limits::default()).unwrap();
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:548:5
+    |
+548 |     Catalog::open(&path, Limits::default()).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:555:28
+    |
+555 |     let (mut catalog, _) = Catalog::open(&path, Limits::default()).unwrap();
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:556:5
+    |
+556 |     catalog.create("alpha", id(2), 3).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:557:5
+    |
+557 | /     OpenOptions::new()
+558 | |         .append(true)
+559 | |         .open(&path)
+560 | |         .unwrap()
+561 | |         .write_all(b"PLENT")
+562 | |         .unwrap();
+    | |_________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:557:5
+    |
+557 | /     OpenOptions::new()
+558 | |         .append(true)
+559 | |         .open(&path)
+560 | |         .unwrap()
+    | |_________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:580:35
+    |
+580 |     let (mut catalog, recovery) = Catalog::open(&path, Limits::default()).unwrap();
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:583:5
+    |
+583 |     catalog.create("beta", id(3), 1).unwrap();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:591:20
+    |
+591 |         let mode = std::env::var(CHILD_MODE).unwrap();
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:592:32
+    |
+592 |         let (mut catalog, _) = Catalog::open(&path, Limits::default()).unwrap();
+    |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:593:9
+    |
+593 |         catalog.create("alpha", id(2), 3).unwrap();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:594:9
+    |
+594 |         catalog.delete(id(2)).unwrap();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:595:9
+    |
+595 |         catalog.create("beta", id(3), 2).unwrap();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:597:13
+    |
+597 | /             OpenOptions::new()
+598 | |                 .append(true)
+599 | |                 .open(&path)
+600 | |                 .unwrap()
+601 | |                 .write_all(b"PLENT")
+602 | |                 .unwrap();
+    | |_________________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:597:13
+    |
+597 | /             OpenOptions::new()
+598 | |                 .append(true)
+599 | |                 .open(&path)
+600 | |                 .unwrap()
+    | |_________________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:609:21
+    |
+609 |           let child = std::process::Command::new(std::env::current_exe().unwrap())
+    |  _____________________^
+610 | |             .args([
+611 | |                 "--exact",
+612 | |                 "process_exit_without_destructors_preserves_durable_history_and_reports_tails",
+...   |
+616 | |             .output()
+617 | |             .unwrap();
+    | |_____________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:609:48
+    |
+609 |         let child = std::process::Command::new(std::env::current_exe().unwrap())
+    |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:623:35
+    |
+623 |         let (catalog, recovery) = Catalog::open(&path, Limits::default()).unwrap();
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on an `Option` value
+   --> tests/catalog.rs:635:20
+    |
+635 |         assert_eq!(catalog.by_name("beta").unwrap().id(), id(3));
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is `None`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:663:9
+    |
+663 |         journal::Limits::new(282, 4096, 1, 4096).unwrap()
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> tests/catalog.rs:673:9
+    |
+673 |         journal::Limits::new(283, 4096, 1, 41).unwrap()
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: could not compile `partitionline-broker` (test "catalog") due to 83 previous errors

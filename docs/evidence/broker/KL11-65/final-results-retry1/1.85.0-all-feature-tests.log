@@ -1,0 +1,41 @@
+   Compiling zeroize v1.9.0
+   Compiling find-msvc-tools v0.1.14
+   Compiling shlex v2.0.1
+   Compiling cc v1.5.1
+   Compiling typenum v1.20.1
+   Compiling hybrid-array v0.4.15
+   Compiling ring v0.17.14
+   Compiling cmov v0.5.4
+   Compiling ctutils v0.4.2
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling getrandom v0.2.17
+   Compiling const-oid v0.10.2
+   Compiling untrusted v0.9.0
+   Compiling digest v0.11.3
+   Compiling rustls-pki-types v1.15.1
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling once_cell v1.21.4
+   Compiling subtle v2.6.1
+   Compiling hmac v0.13.0
+   Compiling cpufeatures v0.3.1
+   Compiling sha2 v0.11.0
+   Compiling pbkdf2 v0.13.0
+   Compiling tokio-rustls v0.26.6
+   Compiling base64 v0.23.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/partition-store/final-6b4d330/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 12.65s
+     Running tests/partition.rs (/workspace/work/target-partition-store/debug/deps/partition-cc68041fb8f7392b)
+
+running 7 tests
+test external_payload_change_poisoned_live_handle_returns_no_partial_output ... ok
+test configured_entry_index_output_and_disk_budgets_prevent_growth ... ok
+test invalid_later_batch_and_unsupported_features_never_append_a_prefix ... ok
+test assigned_batches_preserve_all_other_bytes_and_survive_restart ... ok
+test signed_offset_end_bound_is_checked_before_any_write ... ok
+test outer_checksummed_forged_counts_offsets_crc_and_batch_gaps_fail_recovery ... ok
+test every_incomplete_final_entry_prefix_repairs_to_the_previous_whole_input ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

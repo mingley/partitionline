@@ -1,0 +1,66 @@
+$ taskset -c 0-2,4 /workspace/work/broker-metadata-live/1-85-0/attempt-1/metadata-c-peer 127.0.0.1:19125 create
+{"peer":"librdkafka","version":"2.15.0","phase":"create"}
+{"operation":"create","name":"peer-c-validate","validate_only":true,"error":0}
+{"operation":"metadata","name":"peer-c-validate","found":false,"topics":3}
+{"operation":"create","name":"peer-c-persistent","validate_only":false,"error":0}
+{"operation":"metadata","name":"peer-c-persistent","found":true,"topics":4}
+{"operation":"create","name":"peer-c-persistent","validate_only":false,"error":36}
+{"status":"pass","assertions":42}
+%7|1790977978.099|INIT|metadata-c-peer#producer-1| [thrd:app]: librdkafka v2.15.0 (0x20f00ff) metadata-c-peer#producer-1 initialized (builtin.features gzip,snappy,ssl,sasl,regex,lz4,sasl_plain,sasl_scram,plugins,zstd,sasl_oauthbearer, GCC GXX PKGCONFIG INSTALL GNULD LDS C11THREADS LIBDL PLUGINS ZLIB SSL ZSTD HDRHISTOGRAM SYSLOG SNAPPY SOCKEM SASL_SCRAM SASL_OAUTHBEARER CRC32C_HW, debug 0x4080)
+%7|1790977978.100|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state initializing: Success
+%7|1790977978.100|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790977978.100|CONNECTED|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Connected (#1)
+%7|1790977978.100|FEATURE|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1790977978.100|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790977978.100|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790977978.100|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Sent ApiVersionRequest (v3, 49 bytes @ 0, CorrId 1)
+%7|1790977978.100|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Received ApiVersionResponse (v3, 36 bytes, CorrId 1, rtt 0.16ms)
+%7|1790977978.100|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Sent MetadataRequest (v13, 34 bytes @ 0, CorrId 2)
+%7|1790977978.100|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790977978.100|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790977978.142|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Received MetadataResponse (v13, 56 bytes, CorrId 2, rtt 41.97ms)
+%7|1790977978.142|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790977978.142|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790977978.142|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790977978.142|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790977978.142|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790977978.142|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790977978.142|CONNECTED|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Connected (#1)
+%7|1790977978.142|FEATURE|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1790977978.142|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790977978.142|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790977978.142|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790977978.142|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790977978.142|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent ApiVersionRequest (v3, 49 bytes @ 0, CorrId 1)
+%7|1790977978.143|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received ApiVersionResponse (v3, 36 bytes, CorrId 1, rtt 0.21ms)
+%7|1790977978.143|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790977978.143|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790977978.143|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: controller 127.0.0.1:19125/0
+%7|1790977978.143|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent MetadataRequest (v13, 34 bytes @ 0, CorrId 2)
+%7|1790977978.143|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent CreateTopicsRequest (v4, 69 bytes @ 0, CorrId 3)
+%7|1790977978.186|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received MetadataResponse (v13, 56 bytes, CorrId 2, rtt 43.29ms)
+%7|1790977978.186|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received CreateTopicsResponse (v4, 29 bytes, CorrId 3, rtt 43.36ms)
+%7|1790977978.186|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for response from broker: Success
+%7|1790977978.186|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent MetadataRequest (v13, 37 bytes @ 0, CorrId 4)
+%7|1790977978.230|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received MetadataResponse (v13, 353 bytes, CorrId 4, rtt 43.64ms)
+%7|1790977978.230|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state initializing: Success
+%7|1790977978.230|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790977978.230|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: controller 127.0.0.1:19125/0
+%7|1790977978.230|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent CreateTopicsRequest (v4, 71 bytes @ 0, CorrId 5)
+%7|1790977978.274|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received CreateTopicsResponse (v4, 31 bytes, CorrId 5, rtt 43.78ms)
+%7|1790977978.274|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for response from broker: Success
+%7|1790977978.274|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent MetadataRequest (v13, 37 bytes @ 0, CorrId 6)
+%7|1790977978.318|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received MetadataResponse (v13, 448 bytes, CorrId 6, rtt 43.73ms)
+%7|1790977978.318|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state initializing: Success
+%7|1790977978.318|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790977978.318|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: controller 127.0.0.1:19125/0
+%7|1790977978.318|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent CreateTopicsRequest (v4, 71 bytes @ 0, CorrId 7)
+%7|1790977978.362|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received CreateTopicsResponse (v4, 52 bytes, CorrId 7, rtt 43.77ms)
+%7|1790977978.362|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for response from broker: Success
+%7|1790977978.362|DESTROY|metadata-c-peer#producer-1| [thrd:app]: Terminating instance (destroy flags none (0x0))
+%7|1790977978.362|DESTROY|metadata-c-peer#producer-1| [thrd:main]: Destroy internal
+%7|1790977978.362|DESTROY|metadata-c-peer#producer-1| [thrd:main]: Removing all topics
+%7|1790977978.362|BRKTERM|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1790977978.362|BRKTERM|metadata-c-peer#producer-1| [thrd::0/internal]: :0/internal: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+
+exit_code=0

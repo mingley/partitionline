@@ -1,0 +1,49 @@
+$ taskset -c 0-2,4 /workspace/work/broker-metadata-live/1-85-0/attempt-1/metadata-c-peer 127.0.0.1:19125 restart
+{"peer":"librdkafka","version":"2.15.0","phase":"restart"}
+{"operation":"metadata","name":"peer-c-persistent","found":true,"topics":1}
+{"operation":"delete","name":"peer-c-persistent","error":0}
+{"operation":"metadata","name":"peer-c-persistent","found":false,"topics":0}
+{"operation":"delete","name":"peer-c-missing","error":3}
+{"status":"pass","assertions":29}
+%7|1790977981.254|INIT|metadata-c-peer#producer-1| [thrd:app]: librdkafka v2.15.0 (0x20f00ff) metadata-c-peer#producer-1 initialized (builtin.features gzip,snappy,ssl,sasl,regex,lz4,sasl_plain,sasl_scram,plugins,zstd,sasl_oauthbearer, GCC GXX PKGCONFIG INSTALL GNULD LDS C11THREADS LIBDL PLUGINS ZLIB SSL ZSTD HDRHISTOGRAM SYSLOG SNAPPY SOCKEM SASL_SCRAM SASL_OAUTHBEARER CRC32C_HW, debug 0x4080)
+%7|1790977981.255|CONNECTED|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Connected (#1)
+%7|1790977981.255|FEATURE|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1790977981.255|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Sent ApiVersionRequest (v3, 49 bytes @ 0, CorrId 1)
+%7|1790977981.255|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Received ApiVersionResponse (v3, 36 bytes, CorrId 1, rtt 0.22ms)
+%7|1790977981.255|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Sent MetadataRequest (v13, 34 bytes @ 0, CorrId 2)
+%7|1790977981.255|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Sent MetadataRequest (v13, 37 bytes @ 0, CorrId 3)
+%7|1790977981.302|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Received MetadataResponse (v13, 56 bytes, CorrId 2, rtt 47.07ms)
+%7|1790977981.302|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Received MetadataResponse (v13, 151 bytes, CorrId 3, rtt 47.12ms)
+%7|1790977981.302|DELETETOPICS|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS worker called in state initializing: Success
+%7|1790977981.302|ADMIN|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS: looking up controller
+%7|1790977981.302|DELETETOPICS|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS worker called in state waiting for controller: Success
+%7|1790977981.302|ADMIN|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS: looking up controller
+%7|1790977981.303|CONNECTED|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Connected (#1)
+%7|1790977981.303|FEATURE|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1790977981.303|DELETETOPICS|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS worker called in state waiting for controller: Success
+%7|1790977981.303|ADMIN|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS: looking up controller
+%7|1790977981.303|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent ApiVersionRequest (v3, 49 bytes @ 0, CorrId 1)
+%7|1790977981.303|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received ApiVersionResponse (v3, 36 bytes, CorrId 1, rtt 0.02ms)
+%7|1790977981.303|DELETETOPICS|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS worker called in state waiting for controller: Success
+%7|1790977981.303|ADMIN|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS: looking up controller
+%7|1790977981.303|ADMIN|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS: controller 127.0.0.1:19125/0
+%7|1790977981.303|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent MetadataRequest (v13, 34 bytes @ 0, CorrId 2)
+%7|1790977981.303|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent DeleteTopicsRequest (v4, 54 bytes @ 0, CorrId 3)
+%7|1790977981.346|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received MetadataResponse (v13, 56 bytes, CorrId 2, rtt 43.15ms)
+%7|1790977981.346|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received DeleteTopicsResponse (v4, 28 bytes, CorrId 3, rtt 43.17ms)
+%7|1790977981.346|DELETETOPICS|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS worker called in state waiting for response from broker: Success
+%7|1790977981.346|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent MetadataRequest (v13, 37 bytes @ 0, CorrId 4)
+%7|1790977981.390|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received MetadataResponse (v13, 56 bytes, CorrId 4, rtt 43.82ms)
+%7|1790977981.390|DELETETOPICS|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS worker called in state initializing: Success
+%7|1790977981.390|ADMIN|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS: looking up controller
+%7|1790977981.390|ADMIN|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS: controller 127.0.0.1:19125/0
+%7|1790977981.390|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent DeleteTopicsRequest (v4, 51 bytes @ 0, CorrId 5)
+%7|1790977981.434|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received DeleteTopicsResponse (v4, 25 bytes, CorrId 5, rtt 43.67ms)
+%7|1790977981.434|DELETETOPICS|metadata-c-peer#producer-1| [thrd:main]: DELETETOPICS worker called in state waiting for response from broker: Success
+%7|1790977981.434|DESTROY|metadata-c-peer#producer-1| [thrd:app]: Terminating instance (destroy flags none (0x0))
+%7|1790977981.434|DESTROY|metadata-c-peer#producer-1| [thrd:main]: Destroy internal
+%7|1790977981.434|DESTROY|metadata-c-peer#producer-1| [thrd:main]: Removing all topics
+%7|1790977981.434|BRKTERM|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1790977981.434|BRKTERM|metadata-c-peer#producer-1| [thrd::0/internal]: :0/internal: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+
+exit_code=0

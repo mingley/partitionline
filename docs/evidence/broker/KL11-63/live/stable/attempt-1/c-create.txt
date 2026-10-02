@@ -1,0 +1,58 @@
+$ taskset -c 0-2,4 /workspace/work/broker-metadata-live/stable/attempt-1/metadata-c-peer 127.0.0.1:19125 create
+{"peer":"librdkafka","version":"2.15.0","phase":"create"}
+{"operation":"create","name":"peer-c-validate","validate_only":true,"error":0}
+%7|1790976552.856|INIT|metadata-c-peer#producer-1| [thrd:app]: librdkafka v2.15.0 (0x20f00ff) metadata-c-peer#producer-1 initialized (builtin.features gzip,snappy,ssl,sasl,regex,lz4,sasl_plain,sasl_scram,plugins,zstd,sasl_oauthbearer, GCC GXX PKGCONFIG INSTALL GNULD LDS C11THREADS LIBDL PLUGINS ZLIB SSL ZSTD HDRHISTOGRAM SYSLOG SNAPPY SOCKEM SASL_SCRAM SASL_OAUTHBEARER CRC32C_HW, debug 0x4080)
+%7|1790976552.856|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state initializing: Success
+%7|1790976552.856|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790976552.856|CONNECTED|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Connected (#1)
+%7|1790976552.856|FEATURE|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1790976552.856|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Sent ApiVersionRequest (v3, 49 bytes @ 0, CorrId 1)
+%7|1790976552.856|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790976552.856|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790976552.856|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Received ApiVersionResponse (v3, 36 bytes, CorrId 1, rtt 0.17ms)
+%7|1790976552.856|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Sent MetadataRequest (v13, 34 bytes @ 0, CorrId 2)
+%7|1790976552.856|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790976552.856|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790976552.898|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 127.0.0.1:19125/bootstrap: Received MetadataResponse (v13, 56 bytes, CorrId 2, rtt 42.00ms)
+%7|1790976552.898|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790976552.898|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790976552.898|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790976552.898|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790976552.898|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790976552.898|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790976552.898|CONNECTED|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Connected (#1)
+%7|1790976552.898|FEATURE|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1790976552.898|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent ApiVersionRequest (v3, 49 bytes @ 0, CorrId 1)
+%7|1790976552.899|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received ApiVersionResponse (v3, 36 bytes, CorrId 1, rtt 0.23ms)
+%7|1790976552.899|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for controller: Success
+%7|1790976552.899|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: looking up controller
+%7|1790976552.899|ADMIN|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS: controller 127.0.0.1:19125/0
+%7|1790976552.899|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent MetadataRequest (v13, 34 bytes @ 0, CorrId 2)
+%7|1790976552.899|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent CreateTopicsRequest (v4, 69 bytes @ 0, CorrId 3)
+%7|1790976552.942|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received MetadataResponse (v13, 56 bytes, CorrId 2, rtt 43.33ms)
+%7|1790976552.942|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received CreateTopicsResponse (v4, 29 bytes, CorrId 3, rtt 43.40ms)
+%7|1790976552.942|CREATETOPICS|metadata-c-peer#producer-1| [thrd:main]: CREATETOPICS worker called in state waiting for response from broker: Success
+%7|1790976552.942|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent MetadataRequest (v13, 37 bytes @ 0, CorrId 4)
+%6|1790976552.942|FAIL|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Disconnected: connection closed by peer: receive 0 after POLLIN (after 43ms in state UP)
+%3|1790976552.942|ERROR|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 1/1 brokers are down
+%7|1790976552.942|REBOOTSTRAP|metadata-c-peer#producer-1| [thrd:main]: Starting re-bootstrap sequence
+%7|1790976552.942|RETRY|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Retrying MetadataRequest (v13, 37 bytes, retry 1/2, prev CorrId 4) in 100ms
+%7|1790976553.034|CONNECTED|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Connected (#2)
+%7|1790976553.034|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent ApiVersionRequest (v3, 49 bytes @ 0, CorrId 5)
+%7|1790976553.034|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received ApiVersionResponse (v3, 36 bytes, CorrId 5, rtt 0.24ms)
+%7|1790976553.034|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent MetadataRequest (v13, 34 bytes @ 0, CorrId 6)
+%7|1790976553.063|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent MetadataRequest (v13, 37 bytes @ 0, CorrId 7)
+%7|1790976553.063|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received MetadataResponse (v13, 56 bytes, CorrId 6, rtt 29.30ms)
+%6|1790976553.063|FAIL|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Disconnected: connection closed by peer: receive 0 after POLLIN (after 29ms in state UP, 1 identical error(s) suppressed)
+%7|1790976553.063|RETRY|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Retrying MetadataRequest (v13, 37 bytes, retry 2/2, prev CorrId 7) in 100ms
+%7|1790976553.064|REBOOTSTRAP|metadata-c-peer#producer-1| [thrd:main]: Starting re-bootstrap sequence
+%3|1790976553.063|ERROR|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/bootstrap]: 2/2 brokers are down
+%7|1790976553.326|CONNECTED|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Connected (#3)
+%7|1790976553.326|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent ApiVersionRequest (v3, 49 bytes @ 0, CorrId 8)
+%7|1790976553.326|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Received ApiVersionResponse (v3, 36 bytes, CorrId 8, rtt 0.22ms)
+%7|1790976553.326|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent MetadataRequest (v13, 37 bytes @ 0, CorrId 9)
+%7|1790976553.326|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Sent MetadataRequest (v13, 34 bytes @ 0, CorrId 10)
+%4|1790976553.326|FAIL|metadata-c-peer#producer-1| [thrd:127.0.0.1:19125/0]: 127.0.0.1:19125/0: Disconnected: connection reset by peer (after 0ms in state UP)
+assertion failed: metadata request
+
+exit_code=1

@@ -1,0 +1,9 @@
+{"kind":"batch","base":0,"last":0}
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+{"kind":"record","offset":0,"timestamp":1000,"key":"6b","value":"76"}
+{"kind":"batch","base":0,"last":2}
+{"kind":"record","offset":0,"timestamp":1000,"key":null,"value":null}
+{"kind":"record","offset":1,"timestamp":1007,"key":"","value":"7061796c6f6164"}
+{"kind":"record","offset":2,"timestamp":1003,"key":"ff0010","value":""}

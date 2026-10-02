@@ -1,0 +1,3 @@
+$ gcc -std=c11 -Wall -Wextra -Werror -pedantic -isystem /workspace/work/c-peer/source/src /workspace/partitionline/docs/evidence/broker/KL11-63/metadata-peer.c /workspace/work/c-peer/lib/librdkafka.so.1 -Wl,-rpath,/workspace/work/c-peer/lib -o /workspace/work/broker-metadata-live/stable/attempt-2/metadata-c-peer
+
+exit_code=0

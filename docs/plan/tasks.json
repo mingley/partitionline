@@ -19299,7 +19299,7 @@
       "title": "Generate independent Metadata/CreateTopics/DeleteTopics fixtures and peer probes",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-57",
@@ -19321,7 +19321,1043 @@
         "Run independent golden generator against all three pinned jars and reproduce every retained fixture.",
         "Record successful and rejected Java/C peer cases against exact pushed Rust source."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+                "schema_version": 1,
+                "task_id": "KL11-63",
+                "status": "done",
+                "acceptance_met": true,
+                "result": "passed",
+                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+                "validated_at_utc": "2026-10-02T22:00:17.910608+00:00",
+                "commands": [
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "metadata",
+                                        "--no-run",
+                                        "--message-format=json"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/rust-build.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "gcc",
+                                        "-std=c11",
+                                        "-Wall",
+                                        "-Wextra",
+                                        "-Werror",
+                                        "-pedantic",
+                                        "-isystem",
+                                        "/workspace/work/c-peer/source/src",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/metadata-peer.c",
+                                        "/workspace/work/c-peer/lib/librdkafka.so.1",
+                                        "-Wl,-rpath,/workspace/work/c-peer/lib",
+                                        "-o",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/metadata-c-peer"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/c-compile.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+                                        "-d",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/classes",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/MetadataPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/java-compile-4.1.2.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+                                        "-d",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/classes",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/MetadataPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/java-compile-4.2.1.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+                                        "-d",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/classes",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/MetadataPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/java-compile-4.3.1.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.1.2",
+                                        "19125",
+                                        "create",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/stable/attempt-2/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/java-4.1.2-create.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.2.1",
+                                        "19125",
+                                        "create",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/stable/attempt-2/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/java-4.2.1-create.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.3.1",
+                                        "19125",
+                                        "create",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/stable/attempt-2/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/java-4.3.1-create.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/metadata-c-peer",
+                                        "127.0.0.1:19125",
+                                        "create"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/c-create.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.1.2",
+                                        "19125",
+                                        "restart",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/stable/attempt-2/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/java-4.1.2-restart.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.2.1",
+                                        "19125",
+                                        "restart",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/stable/attempt-2/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/java-4.2.1-restart.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.3.1",
+                                        "19125",
+                                        "restart",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/stable/attempt-2/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/java-4.3.1-restart.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "/workspace/work/broker-metadata-live/stable/attempt-2/metadata-c-peer",
+                                        "127.0.0.1:19125",
+                                        "restart"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/stable/attempt-2/c-restart.txt",
+                                "toolchain": "stable",
+                                "command_report": "docs/evidence/broker/KL11-63/live/stable/attempt-2/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "metadata",
+                                        "--no-run",
+                                        "--message-format=json"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/rust-build.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "gcc",
+                                        "-std=c11",
+                                        "-Wall",
+                                        "-Wextra",
+                                        "-Werror",
+                                        "-pedantic",
+                                        "-isystem",
+                                        "/workspace/work/c-peer/source/src",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/metadata-peer.c",
+                                        "/workspace/work/c-peer/lib/librdkafka.so.1",
+                                        "-Wl,-rpath,/workspace/work/c-peer/lib",
+                                        "-o",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/metadata-c-peer"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/c-compile.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+                                        "-d",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/classes",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/MetadataPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/java-compile-4.1.2.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+                                        "-d",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/classes",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/MetadataPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/java-compile-4.2.1.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+                                        "-d",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/classes",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/MetadataPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/java-compile-4.3.1.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.1.2",
+                                        "19125",
+                                        "create",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/java-4.1.2-create.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.2.1",
+                                        "19125",
+                                        "create",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/java-4.2.1-create.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.3.1",
+                                        "19125",
+                                        "create",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/java-4.3.1-create.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/metadata-c-peer",
+                                        "127.0.0.1:19125",
+                                        "create"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/c-create.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.1.2",
+                                        "19125",
+                                        "restart",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/java-4.1.2-restart.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.2.1",
+                                        "19125",
+                                        "restart",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/java-4.2.1-restart.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "MetadataPeer",
+                                        "4.3.1",
+                                        "19125",
+                                        "restart",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/histories"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/java-4.3.1-restart.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "/workspace/work/broker-metadata-live/1-85-0/attempt-1/metadata-c-peer",
+                                        "127.0.0.1:19125",
+                                        "restart"
+                                ],
+                                "exit_code": 0,
+                                "log": "live/1-85-0/attempt-1/c-restart.txt",
+                                "toolchain": "1.85.0",
+                                "command_report": "docs/evidence/broker/KL11-63/live/1-85-0/attempt-1/validation.json",
+                                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de"
+                        },
+                        {
+                                "reproduction_producer": "docs/evidence/broker/KL11-63/generate.py",
+                                "report": "docs/evidence/broker/KL11-63/oracle-generation.json",
+                                "exit_code": 0,
+                                "cases": 555
+                        }
+                ],
+                "results": {
+                        "id": "KL11-63",
+                        "status": "accepted",
+                        "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+                        "initial_remote_fixture_source_sha": "9c6a9b3539bd0bf3eae8dc851d18186029a656b8",
+                        "initial_local_fixture_context_sha": "b2937766eec6638f1e3a5d978a76bb937e0750f3",
+                        "failed_pre_compat_handler_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+                        "source_hashes": {
+                                "MetadataOracle.java": "1c79ecf8b23bc56fea3c2975d130394face53ed3dbd3ff6148a08aa0ebc4171c",
+                                "generate.py": "c7b0a6fd4fdcf832e086c4bf40762d6dca61540e947aaf22a9c925c6539f8250",
+                                "MetadataPeer.java": "b7202b6872ac93bb2147046637906224d2784a16fc2582504ce1f4c5e0d201ed",
+                                "metadata-peer.c": "91147bb8c1c73044e89e20c5470edd0e6f21b10a2d5d8bcf1d6b0dabac4fa5bc",
+                                "run-live.py": "16f3e67bbf0391e8377f99cbbdd9ee5b15b8b233247b78a0e48a95a492596d8c",
+                                "CapturedRequestProbe.java": "f16651c81f58775db39fb0275d29ab114e86b27ac52cebf13eb4fd6bbb6541de",
+                                "capture-native-all.py": "9eaa6c8d0b6818030fbc3a0d67acab9a40371984c42394cdced4549490d3f229",
+                                "analyze-native-all.py": "6c6deb2f194e48cfe5c21cc8be0c137382bc868e7d56d62eb70f53bf69b1a7f1",
+                                "TopicPolicyProbe.java": "e5de930d6281bfc5581737b7e8b8b4bdc83a22ece9b77e82490a841f31d53aea"
+                        },
+                        "oracle": {
+                                "releases": [
+                                        "4.1.2",
+                                        "4.2.1",
+                                        "4.3.1"
+                                ],
+                                "declared_cases": 555,
+                                "response_goldens": 522,
+                                "deliberate_rejections": 33,
+                                "every_advertised_pair_per_release": 28,
+                                "repeated_generator_bytes_identical": true,
+                                "cross_release_cases_identical": true,
+                                "generation_report": "oracle-generation.json",
+                                "upstream_pins": "upstream-pins.json"
+                        },
+                        "live": [
+                                {
+                                        "toolchain": "stable",
+                                        "attempt": 2,
+                                        "status": "pass",
+                                        "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+                                        "snapshot_unchanged": true,
+                                        "snapshot_file_count": 1360,
+                                        "rust_test_binary_sha256": "716bb66cefcd9e02f0785e58aa4dc5afff8072d1f50400f3809aecb90d662abe",
+                                        "server_processes": [
+                                                {
+                                                        "phase": "create",
+                                                        "pid": 283397,
+                                                        "command": [
+                                                                "taskset",
+                                                                "-c",
+                                                                "0-2,4",
+                                                                "/workspace/work/broker-metadata-live/stable/attempt-2/target/debug/deps/metadata-91614346aa96c69c",
+                                                                "--exact",
+                                                                "serve_live_probe",
+                                                                "--nocapture"
+                                                        ],
+                                                        "port": 19125,
+                                                        "exit_code": 0,
+                                                        "journal_sha256": "1f60749f4ff180ec912b3e93280551e6f2e19272fb9e3359d97a812abcc9c061"
+                                                },
+                                                {
+                                                        "phase": "restart",
+                                                        "pid": 283486,
+                                                        "command": [
+                                                                "taskset",
+                                                                "-c",
+                                                                "0-2,4",
+                                                                "/workspace/work/broker-metadata-live/stable/attempt-2/target/debug/deps/metadata-91614346aa96c69c",
+                                                                "--exact",
+                                                                "serve_live_probe",
+                                                                "--nocapture"
+                                                        ],
+                                                        "port": 19125,
+                                                        "exit_code": 0,
+                                                        "journal_sha256": "4cceb629f6a9c3267d13663d607f2a5bbf71941f632aec98959bde0445430d99"
+                                                }
+                                        ],
+                                        "java": [
+                                                {
+                                                        "release": "4.1.2",
+                                                        "create_assertions": 522,
+                                                        "restart_assertions": 5,
+                                                        "advertised_pairs_forced": 28,
+                                                        "rejected_eof_count": 14,
+                                                        "before_restart_uuid": "dMJKYa8NS86T8MBAtAXWPQ",
+                                                        "after_restart_uuid": "dMJKYa8NS86T8MBAtAXWPQ",
+                                                        "recreated_uuid": "OIfEnhXDR4SPeSUwvCpo0w",
+                                                        "uuid_retained": true,
+                                                        "recreated_uuid_changed": true,
+                                                        "name": "peer-4-1-2-persistent",
+                                                        "history_files": [
+                                                                "live/stable/attempt-2/histories/4.1.2-create-history.json",
+                                                                "live/stable/attempt-2/histories/4.1.2-restart-history.json"
+                                                        ]
+                                                },
+                                                {
+                                                        "release": "4.2.1",
+                                                        "create_assertions": 522,
+                                                        "restart_assertions": 5,
+                                                        "advertised_pairs_forced": 28,
+                                                        "rejected_eof_count": 14,
+                                                        "before_restart_uuid": "G8cug1RhSpKU7ld7yJvOWA",
+                                                        "after_restart_uuid": "G8cug1RhSpKU7ld7yJvOWA",
+                                                        "recreated_uuid": "e9bGuib9QAeAkOhbzgIpWA",
+                                                        "uuid_retained": true,
+                                                        "recreated_uuid_changed": true,
+                                                        "name": "peer-4-2-1-persistent",
+                                                        "history_files": [
+                                                                "live/stable/attempt-2/histories/4.2.1-create-history.json",
+                                                                "live/stable/attempt-2/histories/4.2.1-restart-history.json"
+                                                        ]
+                                                },
+                                                {
+                                                        "release": "4.3.1",
+                                                        "create_assertions": 522,
+                                                        "restart_assertions": 5,
+                                                        "advertised_pairs_forced": 28,
+                                                        "rejected_eof_count": 14,
+                                                        "before_restart_uuid": "ORpRKP3oSGuUBGgI-eyWuw",
+                                                        "after_restart_uuid": "ORpRKP3oSGuUBGgI-eyWuw",
+                                                        "recreated_uuid": "7F4nvbrITjCrudhme99UNA",
+                                                        "uuid_retained": true,
+                                                        "recreated_uuid_changed": true,
+                                                        "name": "peer-4-3-1-persistent",
+                                                        "history_files": [
+                                                                "live/stable/attempt-2/histories/4.3.1-create-history.json",
+                                                                "live/stable/attempt-2/histories/4.3.1-restart-history.json"
+                                                        ]
+                                                }
+                                        ],
+                                        "c": [
+                                                {
+                                                        "phase": "create",
+                                                        "assertions": 42,
+                                                        "outcomes": [
+                                                                {
+                                                                        "peer": "librdkafka",
+                                                                        "version": "2.15.0",
+                                                                        "phase": "create"
+                                                                },
+                                                                {
+                                                                        "operation": "create",
+                                                                        "name": "peer-c-validate",
+                                                                        "validate_only": true,
+                                                                        "error": 0
+                                                                },
+                                                                {
+                                                                        "operation": "metadata",
+                                                                        "name": "peer-c-validate",
+                                                                        "found": false,
+                                                                        "topics": 3
+                                                                },
+                                                                {
+                                                                        "operation": "create",
+                                                                        "name": "peer-c-persistent",
+                                                                        "validate_only": false,
+                                                                        "error": 0
+                                                                },
+                                                                {
+                                                                        "operation": "metadata",
+                                                                        "name": "peer-c-persistent",
+                                                                        "found": true,
+                                                                        "topics": 4
+                                                                },
+                                                                {
+                                                                        "operation": "create",
+                                                                        "name": "peer-c-persistent",
+                                                                        "validate_only": false,
+                                                                        "error": 36
+                                                                },
+                                                                {
+                                                                        "status": "pass",
+                                                                        "assertions": 42
+                                                                }
+                                                        ],
+                                                        "wire_versions": [
+                                                                [
+                                                                        "ApiVersion",
+                                                                        "3"
+                                                                ],
+                                                                [
+                                                                        "CreateTopics",
+                                                                        "4"
+                                                                ],
+                                                                [
+                                                                        "Metadata",
+                                                                        "13"
+                                                                ]
+                                                        ],
+                                                        "actual_all_topics_api": true,
+                                                        "log": "live/stable/attempt-2/c-create.txt"
+                                                },
+                                                {
+                                                        "phase": "restart",
+                                                        "assertions": 29,
+                                                        "outcomes": [
+                                                                {
+                                                                        "peer": "librdkafka",
+                                                                        "version": "2.15.0",
+                                                                        "phase": "restart"
+                                                                },
+                                                                {
+                                                                        "operation": "metadata",
+                                                                        "name": "peer-c-persistent",
+                                                                        "found": true,
+                                                                        "topics": 1
+                                                                },
+                                                                {
+                                                                        "operation": "delete",
+                                                                        "name": "peer-c-persistent",
+                                                                        "error": 0
+                                                                },
+                                                                {
+                                                                        "operation": "metadata",
+                                                                        "name": "peer-c-persistent",
+                                                                        "found": false,
+                                                                        "topics": 0
+                                                                },
+                                                                {
+                                                                        "operation": "delete",
+                                                                        "name": "peer-c-missing",
+                                                                        "error": 3
+                                                                },
+                                                                {
+                                                                        "status": "pass",
+                                                                        "assertions": 29
+                                                                }
+                                                        ],
+                                                        "wire_versions": [
+                                                                [
+                                                                        "ApiVersion",
+                                                                        "3"
+                                                                ],
+                                                                [
+                                                                        "DeleteTopics",
+                                                                        "4"
+                                                                ],
+                                                                [
+                                                                        "Metadata",
+                                                                        "13"
+                                                                ]
+                                                        ],
+                                                        "actual_all_topics_api": true,
+                                                        "log": "live/stable/attempt-2/c-restart.txt"
+                                                }
+                                        ],
+                                        "validation": "live/stable/attempt-2/validation.json"
+                                },
+                                {
+                                        "toolchain": "1.85.0",
+                                        "attempt": 1,
+                                        "status": "pass",
+                                        "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+                                        "snapshot_unchanged": true,
+                                        "snapshot_file_count": 1360,
+                                        "rust_test_binary_sha256": "876f99d3e17169f0a821f07407f0a535590c796ad7858336fa763dbe12db9e8e",
+                                        "server_processes": [
+                                                {
+                                                        "phase": "create",
+                                                        "pid": 285339,
+                                                        "command": [
+                                                                "taskset",
+                                                                "-c",
+                                                                "0-2,4",
+                                                                "/workspace/work/broker-metadata-live/1-85-0/attempt-1/target/debug/deps/metadata-8a2401a315e9d6a4",
+                                                                "--exact",
+                                                                "serve_live_probe",
+                                                                "--nocapture"
+                                                        ],
+                                                        "port": 19125,
+                                                        "exit_code": 0,
+                                                        "journal_sha256": "26ee863408da9040eace7ea5b2f4d8c55c769c6372ca4e1816d4c7cd5ce6df76"
+                                                },
+                                                {
+                                                        "phase": "restart",
+                                                        "pid": 285503,
+                                                        "command": [
+                                                                "taskset",
+                                                                "-c",
+                                                                "0-2,4",
+                                                                "/workspace/work/broker-metadata-live/1-85-0/attempt-1/target/debug/deps/metadata-8a2401a315e9d6a4",
+                                                                "--exact",
+                                                                "serve_live_probe",
+                                                                "--nocapture"
+                                                        ],
+                                                        "port": 19125,
+                                                        "exit_code": 0,
+                                                        "journal_sha256": "4f1f1df9b41a10cd2b22a37eb34de140ac298cee3ca9203816e8a9e4d821428d"
+                                                }
+                                        ],
+                                        "java": [
+                                                {
+                                                        "release": "4.1.2",
+                                                        "create_assertions": 522,
+                                                        "restart_assertions": 5,
+                                                        "advertised_pairs_forced": 28,
+                                                        "rejected_eof_count": 14,
+                                                        "before_restart_uuid": "RBeLt2l4RsmZwmlvwjfyVg",
+                                                        "after_restart_uuid": "RBeLt2l4RsmZwmlvwjfyVg",
+                                                        "recreated_uuid": "WPCkVukPSyOKqwpNDdhz7A",
+                                                        "uuid_retained": true,
+                                                        "recreated_uuid_changed": true,
+                                                        "name": "peer-4-1-2-persistent",
+                                                        "history_files": [
+                                                                "live/1-85-0/attempt-1/histories/4.1.2-create-history.json",
+                                                                "live/1-85-0/attempt-1/histories/4.1.2-restart-history.json"
+                                                        ]
+                                                },
+                                                {
+                                                        "release": "4.2.1",
+                                                        "create_assertions": 522,
+                                                        "restart_assertions": 5,
+                                                        "advertised_pairs_forced": 28,
+                                                        "rejected_eof_count": 14,
+                                                        "before_restart_uuid": "_zFKGBnaTQmGedEiI1Bsfw",
+                                                        "after_restart_uuid": "_zFKGBnaTQmGedEiI1Bsfw",
+                                                        "recreated_uuid": "tZeWsOZ0S0Kv6ursZAI66w",
+                                                        "uuid_retained": true,
+                                                        "recreated_uuid_changed": true,
+                                                        "name": "peer-4-2-1-persistent",
+                                                        "history_files": [
+                                                                "live/1-85-0/attempt-1/histories/4.2.1-create-history.json",
+                                                                "live/1-85-0/attempt-1/histories/4.2.1-restart-history.json"
+                                                        ]
+                                                },
+                                                {
+                                                        "release": "4.3.1",
+                                                        "create_assertions": 522,
+                                                        "restart_assertions": 5,
+                                                        "advertised_pairs_forced": 28,
+                                                        "rejected_eof_count": 14,
+                                                        "before_restart_uuid": "DAPwobNISqCZI_rQ8Hu7tQ",
+                                                        "after_restart_uuid": "DAPwobNISqCZI_rQ8Hu7tQ",
+                                                        "recreated_uuid": "J-QrSiTISme5UqmgNUHxew",
+                                                        "uuid_retained": true,
+                                                        "recreated_uuid_changed": true,
+                                                        "name": "peer-4-3-1-persistent",
+                                                        "history_files": [
+                                                                "live/1-85-0/attempt-1/histories/4.3.1-create-history.json",
+                                                                "live/1-85-0/attempt-1/histories/4.3.1-restart-history.json"
+                                                        ]
+                                                }
+                                        ],
+                                        "c": [
+                                                {
+                                                        "phase": "create",
+                                                        "assertions": 42,
+                                                        "outcomes": [
+                                                                {
+                                                                        "peer": "librdkafka",
+                                                                        "version": "2.15.0",
+                                                                        "phase": "create"
+                                                                },
+                                                                {
+                                                                        "operation": "create",
+                                                                        "name": "peer-c-validate",
+                                                                        "validate_only": true,
+                                                                        "error": 0
+                                                                },
+                                                                {
+                                                                        "operation": "metadata",
+                                                                        "name": "peer-c-validate",
+                                                                        "found": false,
+                                                                        "topics": 3
+                                                                },
+                                                                {
+                                                                        "operation": "create",
+                                                                        "name": "peer-c-persistent",
+                                                                        "validate_only": false,
+                                                                        "error": 0
+                                                                },
+                                                                {
+                                                                        "operation": "metadata",
+                                                                        "name": "peer-c-persistent",
+                                                                        "found": true,
+                                                                        "topics": 4
+                                                                },
+                                                                {
+                                                                        "operation": "create",
+                                                                        "name": "peer-c-persistent",
+                                                                        "validate_only": false,
+                                                                        "error": 36
+                                                                },
+                                                                {
+                                                                        "status": "pass",
+                                                                        "assertions": 42
+                                                                }
+                                                        ],
+                                                        "wire_versions": [
+                                                                [
+                                                                        "ApiVersion",
+                                                                        "3"
+                                                                ],
+                                                                [
+                                                                        "CreateTopics",
+                                                                        "4"
+                                                                ],
+                                                                [
+                                                                        "Metadata",
+                                                                        "13"
+                                                                ]
+                                                        ],
+                                                        "actual_all_topics_api": true,
+                                                        "log": "live/1-85-0/attempt-1/c-create.txt"
+                                                },
+                                                {
+                                                        "phase": "restart",
+                                                        "assertions": 29,
+                                                        "outcomes": [
+                                                                {
+                                                                        "peer": "librdkafka",
+                                                                        "version": "2.15.0",
+                                                                        "phase": "restart"
+                                                                },
+                                                                {
+                                                                        "operation": "metadata",
+                                                                        "name": "peer-c-persistent",
+                                                                        "found": true,
+                                                                        "topics": 1
+                                                                },
+                                                                {
+                                                                        "operation": "delete",
+                                                                        "name": "peer-c-persistent",
+                                                                        "error": 0
+                                                                },
+                                                                {
+                                                                        "operation": "metadata",
+                                                                        "name": "peer-c-persistent",
+                                                                        "found": false,
+                                                                        "topics": 0
+                                                                },
+                                                                {
+                                                                        "operation": "delete",
+                                                                        "name": "peer-c-missing",
+                                                                        "error": 3
+                                                                },
+                                                                {
+                                                                        "status": "pass",
+                                                                        "assertions": 29
+                                                                }
+                                                        ],
+                                                        "wire_versions": [
+                                                                [
+                                                                        "ApiVersion",
+                                                                        "3"
+                                                                ],
+                                                                [
+                                                                        "DeleteTopics",
+                                                                        "4"
+                                                                ],
+                                                                [
+                                                                        "Metadata",
+                                                                        "13"
+                                                                ]
+                                                        ],
+                                                        "actual_all_topics_api": true,
+                                                        "log": "live/1-85-0/attempt-1/c-restart.txt"
+                                                }
+                                        ],
+                                        "validation": "live/1-85-0/attempt-1/validation.json"
+                                }
+                        ],
+                        "java_assertions_total": 3162,
+                        "c_assertions_total": 142,
+                        "rejected_eof_requests_total": 84,
+                        "retained_failure": {
+                                "validation": "live/stable/attempt-1/validation.json",
+                                "reason": "Actual pinned librdkafka flexible all-topics Metadata request retains three zero bytes after canonical fields; original strict handler rejected it. Three official Apache parsers accept fields and leave exactly those bytes. Scoped compatibility correction is tested; original failed attempt is retained.",
+                                "catalog": "live/stable/attempt-1/catalog-failed-attempt.journal"
+                        },
+                        "native_compatibility": {
+                                "exact_frame_sha256": "617352cc7cfe21b49abca06778a07b969a4b73bf6a34d9b127c7a58e40629ef4",
+                                "wire_length": 37,
+                                "without_transport_prefix": 33,
+                                "apache_consumed": 30,
+                                "apache_remaining_hex": "000000",
+                                "canonical_length": 30,
+                                "scope": "Exactly three zero body-tail bytes for flexible Metadata all-topics/null selectors only; no general suffix/Create/Delete relaxation.",
+                                "capture": "native-all-topics/capture.json",
+                                "actual_apache_parser_results": "native-all-topics/apache-parser.json"
+                        },
+                        "limits": [
+                                "Golden responses express the declared single-node policy and execute official serialization/parsing; no full Apache broker/controller runtime equivalence claim.",
+                                "Live peers cover the advertised local metadata/admin subset, not Produce, replication, ACLs or arbitrary topic configurations.",
+                                "Restart is an orderly process shutdown/reopen with the same durable catalog, not an injected machine/power loss.",
+                                "Live Rust builds use default broker features on stable and MSRV; the metadata worker separately owns full default/all-feature unit and strict Rust lint/doc qualification.",
+                                "Native compatibility allowance is the exact observed flexible null-selector padding; other suffixes/flags remain strict."
+                        ]
+                },
+                "artifacts": [
+                        "docs/evidence/broker/KL11-63/artifact-hashes.json",
+                        "docs/evidence/broker/KL11-63/SHA256SUMS"
+                ]
+        }
+      ],
       "write_set": [
         "partitionline-broker/tests/fixtures/metadata/",
         "docs/evidence/broker/KL11-63/",
@@ -20358,7 +21394,7 @@
       "title": "Bind validated ordinary Kafka batches to assigned durable offsets",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-03",
@@ -20380,7 +21416,697 @@
         "Run real-file append/restart/truncation/corruption/budget/offset-domain tests stable and1.85.",
         "Use independently generated Apache batches and decode actual persisted bytes with pinned Apache Java; preserve failed attempts."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+                "schema_version": 1,
+                "task_id": "KL11-65",
+                "status": "done",
+                "acceptance_met": true,
+                "result": "passed",
+                "source_sha": "4e70bbd1cfab39c59e975989b0d480b032dbe0de",
+                "implemented_source_sha": "5ed1e83fe5868417829f5ce98cde306eae12fb73",
+                "validated_at_utc": "2026-10-02T21:58:33.961370+00:00",
+                "scope": "Bounded whole-input ordinary batch storage with assigned signed offsets, fsync-before-success and validated recovery.",
+                "commands": [
+                        {
+                                "cell": "stable-default",
+                                "check": "test",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/stable",
+                                        "-j",
+                                        "2",
+                                        "--all-targets"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [
+                                        21,
+                                        14,
+                                        15,
+                                        8,
+                                        7,
+                                        9,
+                                        9,
+                                        12,
+                                        0,
+                                        16
+                                ],
+                                "passed_tests": 111,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/stable-default-test.log"
+                        },
+                        {
+                                "cell": "stable-default",
+                                "check": "clippy",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "clippy",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/stable",
+                                        "-j",
+                                        "2",
+                                        "--all-targets",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [],
+                                "passed_tests": 0,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/stable-default-clippy.log"
+                        },
+                        {
+                                "cell": "stable-default",
+                                "check": "doc",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "doc",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/stable",
+                                        "-j",
+                                        "2",
+                                        "--no-deps"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [],
+                                "passed_tests": 0,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/stable-default-doc.log"
+                        },
+                        {
+                                "cell": "stable-all-features",
+                                "check": "test",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/stable",
+                                        "-j",
+                                        "2",
+                                        "--all-features",
+                                        "--all-targets"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [
+                                        21,
+                                        14,
+                                        15,
+                                        8,
+                                        7,
+                                        9,
+                                        9,
+                                        12,
+                                        15,
+                                        16
+                                ],
+                                "passed_tests": 126,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/stable-all-features-test.log"
+                        },
+                        {
+                                "cell": "stable-all-features",
+                                "check": "clippy",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "clippy",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/stable",
+                                        "-j",
+                                        "2",
+                                        "--all-features",
+                                        "--all-targets",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [],
+                                "passed_tests": 0,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/stable-all-features-clippy.log"
+                        },
+                        {
+                                "cell": "stable-all-features",
+                                "check": "doc",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "doc",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/stable",
+                                        "-j",
+                                        "2",
+                                        "--all-features",
+                                        "--no-deps"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [],
+                                "passed_tests": 0,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/stable-all-features-doc.log"
+                        },
+                        {
+                                "cell": "stable",
+                                "check": "fmt",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "fmt",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--check"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "log": "docs/evidence/broker/KL11-05/final/stable-fmt.log"
+                        },
+                        {
+                                "cell": "1.85.0-default",
+                                "check": "test",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/1.85.0",
+                                        "-j",
+                                        "2",
+                                        "--all-targets"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [
+                                        21,
+                                        14,
+                                        15,
+                                        8,
+                                        7,
+                                        9,
+                                        9,
+                                        12,
+                                        0,
+                                        16
+                                ],
+                                "passed_tests": 111,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/1.85.0-default-test.log"
+                        },
+                        {
+                                "cell": "1.85.0-default",
+                                "check": "clippy",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clippy",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/1.85.0",
+                                        "-j",
+                                        "2",
+                                        "--all-targets",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [],
+                                "passed_tests": 0,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/1.85.0-default-clippy.log"
+                        },
+                        {
+                                "cell": "1.85.0-default",
+                                "check": "doc",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "doc",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/1.85.0",
+                                        "-j",
+                                        "2",
+                                        "--no-deps"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [],
+                                "passed_tests": 0,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/1.85.0-default-doc.log"
+                        },
+                        {
+                                "cell": "1.85.0-all-features",
+                                "check": "test",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/1.85.0",
+                                        "-j",
+                                        "2",
+                                        "--all-features",
+                                        "--all-targets"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [
+                                        21,
+                                        14,
+                                        15,
+                                        8,
+                                        7,
+                                        9,
+                                        9,
+                                        12,
+                                        15,
+                                        16
+                                ],
+                                "passed_tests": 126,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-test.log"
+                        },
+                        {
+                                "cell": "1.85.0-all-features",
+                                "check": "clippy",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clippy",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/1.85.0",
+                                        "-j",
+                                        "2",
+                                        "--all-features",
+                                        "--all-targets",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [],
+                                "passed_tests": 0,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-clippy.log"
+                        },
+                        {
+                                "cell": "1.85.0-all-features",
+                                "check": "doc",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "doc",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--locked",
+                                        "--target-dir",
+                                        "/workspace/work/metadata-final/targets/1.85.0",
+                                        "-j",
+                                        "2",
+                                        "--all-features",
+                                        "--no-deps"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "test_counts": [],
+                                "passed_tests": 0,
+                                "ignored_tests": 0,
+                                "log": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-doc.log"
+                        },
+                        {
+                                "cell": "1.85.0",
+                                "check": "fmt",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "fmt",
+                                        "--manifest-path",
+                                        "/workspace/work/metadata-final/source/partitionline-broker/Cargo.toml",
+                                        "--check"
+                                ],
+                                "exit_code": 0,
+                                "verdict": "passed",
+                                "log": "docs/evidence/broker/KL11-05/final/1.85.0-fmt.log"
+                        },
+                        {
+                                "name": "compile",
+                                "argv": [
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/partition-store/independent-proof-retry1/classes",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-65/AssignedBatchOracle.java"
+                                ],
+                                "exit_code": 0,
+                                "outputs": {
+                                        "compile.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                        "compile.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                                },
+                                "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+                        },
+                        {
+                                "name": "stable-original-multiple",
+                                "argv": [
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "AssignedBatchOracle",
+                                        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-multiple-batches.bin"
+                                ],
+                                "exit_code": 0,
+                                "outputs": {
+                                        "stable/original-multiple.jsonl": "3caeba8e0a4ebd2a6af3bd92c550bda7e7ce9202961bf652b6fe580fc1ef910b",
+                                        "stable-original-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+                                },
+                                "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+                        },
+                        {
+                                "name": "stable-assigned-multiple",
+                                "argv": [
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "AssignedBatchOracle",
+                                        "/workspace/work/partition-store/final-results-retry1/proof-stable/assigned-multiple.bin"
+                                ],
+                                "exit_code": 0,
+                                "outputs": {
+                                        "stable/assigned-multiple.jsonl": "caeba2d6b4a2b2b071e633692192723e870036f5d9173f07b5c0d32ea5a591c7",
+                                        "stable-assigned-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+                                },
+                                "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+                        },
+                        {
+                                "name": "stable-original-basic",
+                                "argv": [
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "AssignedBatchOracle",
+                                        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin"
+                                ],
+                                "exit_code": 0,
+                                "outputs": {
+                                        "stable/original-basic.jsonl": "87ed278a479f8dccaf1570c656bb06c73dce7ef18e82c24c4f1de7b52e78b8cc",
+                                        "stable-original-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+                                },
+                                "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+                        },
+                        {
+                                "name": "stable-assigned-basic",
+                                "argv": [
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "AssignedBatchOracle",
+                                        "/workspace/work/partition-store/final-results-retry1/proof-stable/assigned-basic.bin"
+                                ],
+                                "exit_code": 0,
+                                "outputs": {
+                                        "stable/assigned-basic.jsonl": "3294f20f3fc4eac3047b7584beade3f0ad3eb3ea0960481213b8c2a087ce0a42",
+                                        "stable-assigned-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+                                },
+                                "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+                        },
+                        {
+                                "name": "stable-verify",
+                                "argv": [
+                                        "python3",
+                                        "-B",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-65/verify-proof.py",
+                                        "--proof",
+                                        "/workspace/work/partition-store/final-results-retry1/proof-stable",
+                                        "--fixtures",
+                                        "/workspace/partitionline/partitionline-broker/tests/fixtures/records",
+                                        "--oracle",
+                                        "/workspace/work/partition-store/independent-proof-retry1/stable"
+                                ],
+                                "exit_code": 0,
+                                "outputs": {
+                                        "stable-verify.stdout.log": "ec9858fc5869d1b54eae21ee7c4c699e9892b7930a08d39d38ef8e1dc4de868e",
+                                        "stable-verify.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                                },
+                                "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+                        },
+                        {
+                                "name": "1.85.0-original-multiple",
+                                "argv": [
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "AssignedBatchOracle",
+                                        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-multiple-batches.bin"
+                                ],
+                                "exit_code": 0,
+                                "outputs": {
+                                        "1.85.0/original-multiple.jsonl": "3caeba8e0a4ebd2a6af3bd92c550bda7e7ce9202961bf652b6fe580fc1ef910b",
+                                        "1.85.0-original-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+                                },
+                                "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+                        },
+                        {
+                                "name": "1.85.0-assigned-multiple",
+                                "argv": [
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "AssignedBatchOracle",
+                                        "/workspace/work/partition-store/final-results-retry1/proof-1.85.0/assigned-multiple.bin"
+                                ],
+                                "exit_code": 0,
+                                "outputs": {
+                                        "1.85.0/assigned-multiple.jsonl": "caeba2d6b4a2b2b071e633692192723e870036f5d9173f07b5c0d32ea5a591c7",
+                                        "1.85.0-assigned-multiple.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+                                },
+                                "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+                        },
+                        {
+                                "name": "1.85.0-original-basic",
+                                "argv": [
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "AssignedBatchOracle",
+                                        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin"
+                                ],
+                                "exit_code": 0,
+                                "outputs": {
+                                        "1.85.0/original-basic.jsonl": "87ed278a479f8dccaf1570c656bb06c73dce7ef18e82c24c4f1de7b52e78b8cc",
+                                        "1.85.0-original-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+                                },
+                                "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+                        },
+                        {
+                                "name": "1.85.0-assigned-basic",
+                                "argv": [
+                                        "java",
+                                        "-cp",
+                                        "/workspace/work/partition-store/independent-proof-retry1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "AssignedBatchOracle",
+                                        "/workspace/work/partition-store/final-results-retry1/proof-1.85.0/assigned-basic.bin"
+                                ],
+                                "exit_code": 0,
+                                "outputs": {
+                                        "1.85.0/assigned-basic.jsonl": "3294f20f3fc4eac3047b7584beade3f0ad3eb3ea0960481213b8c2a087ce0a42",
+                                        "1.85.0-assigned-basic.stderr.log": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+                                },
+                                "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+                        },
+                        {
+                                "name": "1.85.0-verify",
+                                "argv": [
+                                        "python3",
+                                        "-B",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-65/verify-proof.py",
+                                        "--proof",
+                                        "/workspace/work/partition-store/final-results-retry1/proof-1.85.0",
+                                        "--fixtures",
+                                        "/workspace/partitionline/partitionline-broker/tests/fixtures/records",
+                                        "--oracle",
+                                        "/workspace/work/partition-store/independent-proof-retry1/1.85.0"
+                                ],
+                                "exit_code": 0,
+                                "outputs": {
+                                        "1.85.0-verify.stdout.log": "ec9858fc5869d1b54eae21ee7c4c699e9892b7930a08d39d38ef8e1dc4de868e",
+                                        "1.85.0-verify.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                                },
+                                "evidence": "docs/evidence/broker/KL11-65/independent-proof-retry1/commands.json"
+                        }
+                ],
+                "results": {
+                        "root_partition_tests": {
+                                "source_sha": "6b4d3306fd517decbc01839ae25835c695de7572",
+                                "stable_default": 7,
+                                "stable_all_features": 7,
+                                "msrv_default": 7,
+                                "msrv_all_features": 7,
+                                "failed": 0,
+                                "ignored": 0
+                        },
+                        "final_full_broker_tests": {
+                                "stable_default": 111,
+                                "stable_all_features": 126,
+                                "msrv_default": 111,
+                                "msrv_all_features": 126,
+                                "strict_gates_passed": true,
+                                "partition_tests_each_lane": 7
+                        },
+                        "storage_proof": {
+                                "actual_journal_bytes": 350,
+                                "entries": [
+                                        {
+                                                "base": 7,
+                                                "count": 4
+                                        },
+                                        {
+                                                "base": 11,
+                                                "count": 1
+                                        }
+                                ],
+                                "batch_bases": [
+                                        7,
+                                        8,
+                                        11
+                                ],
+                                "verified_record_offsets": [
+                                        7,
+                                        8,
+                                        9,
+                                        10,
+                                        11
+                                ],
+                                "next_offset": 12,
+                                "java_decoder": "Apache Kafka4.3.1 actual MemoryRecords/RecordBatch/Record",
+                                "java_jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+                                "independent_commands_passed": 11,
+                                "bitwise_crc_checkvector": "123456789 -> e3069283",
+                                "byte_identical_all_toolchains_features": true,
+                                "final_proof_artifacts": [
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/stable-default-partition-proof/assigned-basic.bin",
+                                                "sha256": "f0f81770b932d7888c2177894bcd839054711960eb1d48c987b768b426e39e0e"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/stable-default-partition-proof/assigned-multiple.bin",
+                                                "sha256": "5555db81fbc88ea10117f9c02a600f795a7663526df48f77e77475d566ec3f81"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/stable-default-partition-proof/partition.journal",
+                                                "sha256": "3a9944c273c8e1207dd6b5954bff9a7f2de4a0d98bada20a09568ced5285f9f5"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/stable-all-features-partition-proof/assigned-basic.bin",
+                                                "sha256": "f0f81770b932d7888c2177894bcd839054711960eb1d48c987b768b426e39e0e"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/stable-all-features-partition-proof/assigned-multiple.bin",
+                                                "sha256": "5555db81fbc88ea10117f9c02a600f795a7663526df48f77e77475d566ec3f81"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/stable-all-features-partition-proof/partition.journal",
+                                                "sha256": "3a9944c273c8e1207dd6b5954bff9a7f2de4a0d98bada20a09568ced5285f9f5"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/1.85.0-default-partition-proof/assigned-basic.bin",
+                                                "sha256": "f0f81770b932d7888c2177894bcd839054711960eb1d48c987b768b426e39e0e"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/1.85.0-default-partition-proof/assigned-multiple.bin",
+                                                "sha256": "5555db81fbc88ea10117f9c02a600f795a7663526df48f77e77475d566ec3f81"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/1.85.0-default-partition-proof/partition.journal",
+                                                "sha256": "3a9944c273c8e1207dd6b5954bff9a7f2de4a0d98bada20a09568ced5285f9f5"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-partition-proof/assigned-basic.bin",
+                                                "sha256": "f0f81770b932d7888c2177894bcd839054711960eb1d48c987b768b426e39e0e"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-partition-proof/assigned-multiple.bin",
+                                                "sha256": "5555db81fbc88ea10117f9c02a600f795a7663526df48f77e77475d566ec3f81"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-05/final/1.85.0-all-features-partition-proof/partition.journal",
+                                                "sha256": "3a9944c273c8e1207dd6b5954bff9a7f2de4a0d98bada20a09568ced5285f9f5"
+                                        }
+                                ]
+                        },
+                        "failures_retained": [
+                                "Initial final test ENOSPC at6b; same source retry passed.",
+                                "Broader6b MSRV lint failed only metadata test format_collect helper. Corrected in4e70; final full strict matrix passes.",
+                                "Initial independent producer combined SLF4J stderr with JSON stdout; JSON parse failed. Reproduction producer now preserves separate streams; eleven commands pass.",
+                                "Sparse development archives missed root lint and referenced catalog/record/oracle fixtures. Actual final full-tree archive supersedes these developmental failures."
+                        ],
+                        "limits": [
+                                "Ordinary uncompressed magic2 only; codecs/idempotence/transactions/control rejected.",
+                                "One whole input is one fsynced journal entry; whole-entry fetch is storage API only.",
+                                "Signed exclusive end must not exceed i64::MAX.",
+                                "Caller owns storage-thread scheduling, retained outputs and cross-process path exclusivity.",
+                                "I/O errors can leave ambiguous synchronized outcome; poisoned handles return no partial output.",
+                                "Physical power loss/replication/wire service/production performance remain separate tasks."
+                        ]
+                },
+                "artifacts": [
+                        "docs/evidence/broker/KL11-65/artifact-checksums.json",
+                        "docs/evidence/broker/KL11-05/final/validation.json"
+                ]
+        }
+      ],
       "write_set": [
         "partitionline-broker/src/partition.rs",
         "partitionline-broker/tests/partition.rs",
