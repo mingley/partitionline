@@ -83,11 +83,17 @@ pub(crate) fn key(seed: u64, partition: i32) -> Bytes {
 }
 
 pub(crate) fn hex(value: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
+    fn digit(nibble: u8) -> char {
+        char::from(if nibble < 10 {
+            b'0' + nibble
+        } else {
+            b'a' + nibble - 10
+        })
+    }
     let mut out = String::with_capacity(value.len().saturating_mul(2));
     for byte in value {
-        out.push(char::from(HEX[usize::from(byte >> 4)]));
-        out.push(char::from(HEX[usize::from(byte & 15)]));
+        out.push(digit(byte >> 4));
+        out.push(digit(byte & 15));
     }
     out
 }
