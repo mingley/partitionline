@@ -1,0 +1,99 @@
+{
+  "native_exit_code": 0,
+  "timing_assertions": [
+    {
+      "elapsed_ms": 10013.230454,
+      "event": "timing_assertion",
+      "lower_ms": 10000.0,
+      "name": "NO_FLUSH",
+      "passed": true,
+      "upper_ms": 15000.0
+    },
+    {
+      "elapsed_ms": 2.18929,
+      "event": "timing_assertion",
+      "lower_ms": 0.0,
+      "name": "FLUSH",
+      "passed": true,
+      "upper_ms": 2500.0
+    }
+  ],
+  "assertions_pass": true,
+  "expected_timing_bounds": {
+    "NO_FLUSH": [
+      10000,
+      15000
+    ],
+    "FLUSH": [
+      0,
+      2500
+    ]
+  },
+  "delivered_count": 100,
+  "independently_consumed_count": 100,
+  "high_watermark": [
+    {
+      "event": "high_watermark",
+      "low": 0,
+      "high": 100
+    }
+  ],
+  "variant": "normal",
+  "behavior_pass": true,
+  "peer": "partitionline",
+  "topic": "kl01-13-partitionline-normal-8dde2247",
+  "history_checker_exit_code": 0,
+  "audit_exit_code": 0,
+  "source_pin": {
+    "repository": "https://github.com/confluentinc/librdkafka.git",
+    "tag": "v2.15.0",
+    "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+    "source_path": "tests/0125-immediate_flush.c",
+    "source_sha256": "1528ed781bf3aae5f1ea0a503e0059bd6c6de5c7f529279cbdda2445f423eb8e",
+    "selected_entry": "main_0125_immediate_flush",
+    "selected_assertion": "do_test_flush_overrides_linger_ms_time",
+    "excluded_sibling": "main_0125_immediate_flush_mock"
+  },
+  "source_git_commit": "5e2b3626517383bd7953b6285daea9dc2cc7ab70",
+  "build_provenance": {
+    "path": "docs/evidence/conformance/KL01-13/run-02/behavior-build-manifest.json",
+    "sha256": "6be8893dabd60916597c508300bd45962eb00f0df2018eb1d1b5b9eabcfd6dd7",
+    "compiled_source_commit": "5e2b3626517383bd7953b6285daea9dc2cc7ab70",
+    "compiled_source_digest": "893ca79078a794523c623cefd671af96add5d5afe08664a11c0d2647ad97c85e"
+  },
+  "source_clean": false,
+  "binary_sha256": "8932203ed80980796d32410ec7a21d3fa5eb95ceb45979238cf3fa08578c3e4d",
+  "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "oracle": "independent native C direct-assignment consumer + broker ListOffsets",
+  "adapters": {
+    "upstream_source_unchanged": true,
+    "shim_source_sha256": "588dc6e9b4012bbf20c2be4aa943d4bb4aac35ad436151e6605484eba84439c4",
+    "rust_adapter_sha256": "0ff806823b80098128bbfccd584fe05ec19fbb0e5db6e76400adc6a568fbe102"
+  },
+  "artifacts": [
+    {
+      "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.events.jsonl",
+      "type": "raw_events",
+      "sha256": "00b483dc4b7ffdf1bd604fa104af90d788ff977f5866f3933adbad36b9f2e33d",
+      "size_bytes": 14507
+    },
+    {
+      "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.history.json",
+      "type": "history",
+      "sha256": "c0a25ee6639b3a14d576d6a8b53214893cf799119b044ff65cfe2e6f4011fe96",
+      "size_bytes": 67261
+    },
+    {
+      "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.history-check.json",
+      "type": "history_verdict",
+      "sha256": "2a51fff78bee038a7b728ac6a5011a748932c51618581a0f6972c0a52b373d89",
+      "size_bytes": 497
+    },
+    {
+      "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.run.log",
+      "type": "stdout_stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    }
+  ]
+}

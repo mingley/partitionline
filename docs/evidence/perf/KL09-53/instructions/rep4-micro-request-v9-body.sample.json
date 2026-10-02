@@ -1,0 +1,15 @@
+{
+  "repetition": 4,
+  "case": "micro-request-v9-body",
+  "iterations": 100,
+  "collected_calls": 121,
+  "instructions_retired": 13945249,
+  "instructions_per_encode_case": 115249.99173553719,
+  "raw_callgrind_sha256": "2fc653e63f9d9a97f5d475e2d462e86673da6f7e7f9feed6201999f3b5d28c8c",
+  "encoded_sample_sha256": "7ac8a5640152f857f1a87da8a1f3824b777bc5c5d3e1581e3bea1cec46dcf151",
+  "encoded_bytes": 12653,
+  "steady_allocations_per_operation": 12,
+  "steady_allocated_bytes_per_operation": 32760,
+  "header_decode_checks_passed": false,
+  "compressed_callgrind_sha256": "40d69446fb6fafafd7af6811de169d32f5519e836d8cc39aa90c1fc83e0249ad"
+}

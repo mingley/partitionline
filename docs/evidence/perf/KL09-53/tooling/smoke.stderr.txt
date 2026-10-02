@@ -1,0 +1,11 @@
+==115114== Callgrind, a call-graph generating cache profiler
+==115114== Copyright (C) 2002-2017, and GNU GPL'd, by Josef Weidendorfer et al.
+==115114== Using Valgrind-3.24.0 and LibVEX; rerun with -h for copyright info
+==115114== Command: /usr/bin/true
+==115114== 
+==115114== For interactive control, run 'callgrind_control -h'.
+==115114== 
+==115114== Events    : Ir
+==115114== Collected : 165989
+==115114== 
+==115114== I   refs:      165,989

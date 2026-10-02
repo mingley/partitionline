@@ -1,0 +1,17 @@
+{
+  "all_valid": true,
+  "total_histories": 1,
+  "passed": 1,
+  "failed": 0,
+  "results": [
+    {
+      "history_id": "librdkafka-0125-flush-overrides-linger-librdkafka-omit-flush",
+      "valid": true,
+      "attempted_count": 100,
+      "consumed_count": 100,
+      "violations": [],
+      "minimal_counterexample": null,
+      "summary": "PASS: history 'librdkafka-0125-flush-overrides-linger-librdkafka-omit-flush' verified (100 attempted, 100 consumed, acks=1, delivery=partition)"
+    }
+  ]
+}

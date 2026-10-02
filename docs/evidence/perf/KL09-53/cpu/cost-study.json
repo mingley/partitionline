@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "baseline_sha": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+  "candidate_sha": null,
+  "all_arms_execute_baseline": true,
+  "binary_sha256": "b798af9b0995d894abe2c917845da246f34b54dbc785b51342f34136e2dbaff5",
+  "source_sha256": "234f3701ecbf09f68350718534b3347cde2742a77936096bcb68e5c26271c9e9",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "cpu_affinity": 3,
+  "repetitions": 5,
+  "processes": 25,
+  "header_iterations": 10000000,
+  "body_iterations": 100000,
+  "order": "Rotate the five cases by round index, reverse odd rounds; no candidate A/B comparison.",
+  "bootstrap": {
+    "resamples": 20000,
+    "seed": 53002,
+    "method": "percentile CI of median matched-round header/full-request CPU-cost share"
+  },
+  "cases": {
+    "header-classic": {
+      "cpu_ns_per_operation_samples": [
+        28.6124,
+        28.6202,
+        28.1574,
+        29.0559,
+        29.8125
+      ],
+      "cpu_ns_per_operation_median": 28.6202,
+      "wall_ns_per_operation_samples": [
+        28.4191538,
+        28.4285091,
+        27.9689767,
+        28.8650472,
+        29.6082207
+      ],
+      "wall_ns_per_operation_median": 28.4285091,
+      "steady_allocations_per_operation": [
+        0
+      ],
+      "steady_allocated_bytes_per_operation": [
+        0
+      ],
+      "encoded_bytes": [
+        23
+      ],
+      "encoded_sample_sha256": [
+        "b0551bda3792a78ec8c749e84037e77b50cecbf3574f836b7e75a5e2c9242117"
+      ]
+    },
+    "header-flexible": {
+      "cpu_ns_per_operation_samples": [
+        36.5915,
+        33.862899999999996,
+        35.23,
+        34.89339999999999,
+        33.1066
+      ],
+      "cpu_ns_per_operation_median": 34.89339999999999,
+      "wall_ns_per_operation_samples": [
+        36.3574593,
+        33.6539174,
+        35.0007016,
+        34.7071612,
+        32.9179913
+      ],
+      "wall_ns_per_operation_median": 34.7071612,
+      "steady_allocations_per_operation": [
+        0
+      ],
+      "steady_allocated_bytes_per_operation": [
+        0
+      ],
+      "encoded_bytes": [
+        24
+      ],
+      "encoded_sample_sha256": [
+        "c0e7eec282f40cc05cce62ca51ea09e14961c326e0bf7dd906bf6a6230efbb3a"
+      ]
+    },
+    "micro-request-v9-body": {
+      "cpu_ns_per_operation_samples": [
+        10152.17,
+        9679.49,
+        10515.79,
+        9516.19,
+        9375.1
+      ],
+      "cpu_ns_per_operation_median": 9679.49,
+      "wall_ns_per_operation_samples": [
+        10131.70438,
+        9661.02918,
+        10499.56543,
+        9498.94921,
+        9357.60727
+      ],
+      "wall_ns_per_operation_median": 9661.02918,
+      "steady_allocations_per_operation": [
+        12
+      ],
+      "steady_allocated_bytes_per_operation": [
+        32760
+      ],
+      "encoded_bytes": [
+        12653
+      ],
+      "encoded_sample_sha256": [
+        "7ac8a5640152f857f1a87da8a1f3824b777bc5c5d3e1581e3bea1cec46dcf151"
+      ]
+    },
+    "frame-classic": {
+      "cpu_ns_per_operation_samples": [
+        9203.8,
+        9050.44,
+        9390.31,
+        8585.8,
+        8488.69
+      ],
+      "cpu_ns_per_operation_median": 9050.44,
+      "wall_ns_per_operation_samples": [
+        9187.55714,
+        9034.54299,
+        9376.18566,
+        8568.55387,
+        8470.46814
+      ],
+      "wall_ns_per_operation_median": 9034.54299,
+      "steady_allocations_per_operation": [
+        0
+      ],
+      "steady_allocated_bytes_per_operation": [
+        0
+      ],
+      "encoded_bytes": [
+        12687
+      ],
+      "encoded_sample_sha256": [
+        "e491ac2bcf9f6db00dcc72962c739b014652b80264c6432ac2be8beffb2ecf50"
+      ]
+    },
+    "frame-flexible": {
+      "cpu_ns_per_operation_samples": [
+        11053.61,
+        9737.83,
+        9527.89,
+        9953.24,
+        9481.98
+      ],
+      "cpu_ns_per_operation_median": 9737.83,
+      "wall_ns_per_operation_samples": [
+        11023.26399,
+        9720.95473,
+        9511.01879,
+        9935.60244,
+        9465.20551
+      ],
+      "wall_ns_per_operation_median": 9720.95473,
+      "steady_allocations_per_operation": [
+        12
+      ],
+      "steady_allocated_bytes_per_operation": [
+        32760
+      ],
+      "encoded_bytes": [
+        12681
+      ],
+      "encoded_sample_sha256": [
+        "3f05e315fba69e0eb5703ba6b09681c6f11b67643f0556b4dc773d78189a1940"
+      ]
+    }
+  },
+  "header_cost_share": {
+    "classic": {
+      "metric": "header-only process CPU ns/op divided by full framed request process CPU ns/op",
+      "paired_share_pct_samples": [
+        0.3108759425454704,
+        0.3162299291526158,
+        0.2998559152999209,
+        0.33841808567634935,
+        0.35120260016563215
+      ],
+      "paired_median_share_pct": 0.3162299291526158,
+      "paired_median_share_ci95_pct": [
+        0.2998559152999209,
+        0.35120260016563215
+      ],
+      "ratio_of_medians_share_pct": 0.3162299291526158,
+      "interpretation": "Visibility estimate, not a candidate speedup. The numerator also includes dispatch/clear/black-box overhead. Process startup/setup are amortized, not attributed as instructions."
+    },
+    "flexible": {
+      "metric": "header-only process CPU ns/op divided by full framed request process CPU ns/op",
+      "paired_share_pct_samples": [
+        0.3310366477558011,
+        0.3477458530288575,
+        0.36975657779424403,
+        0.3505732806603678,
+        0.3491528140746975
+      ],
+      "paired_median_share_pct": 0.3491528140746975,
+      "paired_median_share_ci95_pct": [
+        0.3310366477558011,
+        0.36975657779424403
+      ],
+      "ratio_of_medians_share_pct": 0.3583282928537466,
+      "interpretation": "Visibility estimate, not a candidate speedup. The numerator also includes dispatch/clear/black-box overhead. Process startup/setup are amortized, not attributed as instructions."
+    }
+  },
+  "instructions": {
+    "measured": false,
+    "reason": "Valgrind/perf absent; configured apt metadata fetches denied by session proxy. CPU/rusage observations are not instruction counts."
+  },
+  "limits": [
+    "Baseline-only local unsigned cost study; no implementation candidate and no candidate A/B acceptance claim.",
+    "Existing micro-request/v9 encodes only a100-record Produce body and is retained as a separate unchanged shape; framed probe additionally encodes the actual request header.",
+    "Uses default13-byte client_id partitionline, Produce classicv8/flexiblev9,100seeded records, retained16KiB output buffer; other client-id lengths and tiny metadata/auth body shapes are not measured.",
+    "Process CPU includes fixture/setup and warmup, amortized across large loops; loop wall values are observations. Managed shared host has no frequency pinning.",
+    "The original named fresh-buffer body allocation census is separately saved in each micro-request-v9-body raw result; all timed probe cases use retained warmed buffers."
+  ]
+}

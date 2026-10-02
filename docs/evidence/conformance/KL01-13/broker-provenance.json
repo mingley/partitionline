@@ -1,0 +1,25 @@
+{
+  "distribution": "Apache Kafka3.9.1 native KRaft",
+  "bootstrap": "127.0.0.1:19104",
+  "controller": "127.0.0.1:19105",
+  "cluster_id": "Crh-86_dSoOG9wYqNkEyqQ",
+  "distribution_sha256": "dd4399816e678946cab76e3bd1686103555e69bc8f2ab8686cda71aa15bc31a3",
+  "startup_log_excerpt": [
+    "[2026-10-02 18:58:04,627] INFO Kafka version: 3.9.1 (org.apache.kafka.common.utils.AppInfoParser)",
+    "[2026-10-02 18:58:04,627] INFO Kafka commitId: f745dfdcee2b9851 (org.apache.kafka.common.utils.AppInfoParser)"
+  ],
+  "lifecycle": "Fresh unique one-partition RF1/minISR1 topics per client and variant. Separate mutable properties/logs from other broker tasks; no external topic deletion.",
+  "properties_sha256": "85d8ba7d3600a39b99b52f8620e323e39b971ceb0ad61b57b5ffa4ce7be6bd4e",
+  "effective_profile": {
+    "acks": 1,
+    "idempotence": false,
+    "linger_ms": 10000,
+    "payload_bytes": 50,
+    "partitions": 1,
+    "compression": "none",
+    "max_in_flight": 1,
+    "connections_per_broker": 1,
+    "security_protocol": "PLAINTEXT",
+    "isolation": "read_uncommitted"
+  }
+}

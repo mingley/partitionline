@@ -1,0 +1,599 @@
+{
+  "id": "KL09-53",
+  "status": "done",
+  "disposition": "rejected-no-gain",
+  "date": "2026-10-02",
+  "source_sha": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+  "baseline_sha": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+  "candidate_sha": null,
+  "outcome_branch": "Early rejection at performance-leadership section6 step2: the entire request-header encode contribution is below1% of the representative complete micro-request workload in both CPU and instructions. No implementation candidate was created; remaining implementation/acceptance criteria do not apply.",
+  "hypothesis": "Preencode client_id and other immutable request-header bytes on BrokerConn, patching correlation ID and frame length, to reduce per-request header encoding instructions while preserving classic/flexible wire bytes.",
+  "finding": "The borrowed encoder already avoids temporary String allocation. For the named100-record Produce shape, default-client header encoding is only350 classic/396 flexible instructions, against complete frames of96252.595/115704.223 instructions. CPU shares are0.316230%/0.349153%; instruction shares0.363627%/0.342252%, below the visibility threshold. Eliminating all measured header work would still be a sub-percent effect for this shape; actual preencoding must retain copying and patching. A production cache was therefore not warranted by this named workload.",
+  "cells": [
+    "micro-request"
+  ],
+  "coverage": {
+    "existing_named_cell": "micro-request/v9 and iai_request/v9 encode only a Produce request body with100records,16-byte keys,100-byte seeded random values,zero record headers; they do not call the request-header encoder. This original input/body encoder and its allocation budget remain unchanged.",
+    "supplemental_visibility_probe": "Evidence-local header-cost-probe.rs adds actual borrowed request-header encoding and complete frames using the same record shape. Producev8 classic/v9 flexible, default13-byte client_id partitionline, correlation IDs vary per operation, frame length is patched. All arms call the unchanged baseline encoder. This is a read-only visibility probe, not a newly shipped benchmark cell or candidate A/B.",
+    "baseline_not_candidate": "All50 measured child processes execute the same clean isolated baseline checkout and same binary. The five rounds compare baseline shapes; they are not five candidate acceptance pairs."
+  },
+  "host": {
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "logical_cores_reported": 5,
+    "os": "Linux6.18.44",
+    "arch": "x86_64",
+    "cpu_affinity": "Exclusive CPU3 windows coordinated with consumer_lookups; other builds confined to CPUs0-2,4.",
+    "frequency_policy": "Managed shared host; governor/frequency pinning unavailable. No CPU frequency claim.",
+    "rustc": "rustc1.99.0 (b940084d7 2026-09-28)",
+    "profile": "Locked workspace-excluded codec release libraries with default features; standalone Rust probe compiled rustc--edition=2021 -O -Cdebuginfo=1. The same binary was used in CPU and Callgrind studies."
+  },
+  "experiment": {
+    "cpu_rounds": 5,
+    "cpu_processes": 25,
+    "instruction_rounds": 5,
+    "instruction_processes": 25,
+    "shapes": [
+      "header-classic",
+      "header-flexible",
+      "micro-request-v9-body",
+      "frame-classic",
+      "frame-flexible"
+    ],
+    "order": "Five cases rotate by repetition index; reverse odd rounds. Every sample retained, no candidate or sampling extension.",
+    "source_sha256": "234f3701ecbf09f68350718534b3347cde2742a77936096bcb68e5c26271c9e9",
+    "binary_sha256": "b798af9b0995d894abe2c917845da246f34b54dbc785b51342f34136e2dbaff5",
+    "instruction_collection": "--collect-atstart=no --toggle-collect=header_cost_probe::encode_case; inclusive calls only;20warmups+1census+Nloopcalls, normalized byN+21.",
+    "bootstrap": {
+      "cpu": {
+        "resamples": 20000,
+        "seed": 53002
+      },
+      "instructions": {
+        "resamples": 20000,
+        "seed": 53003
+      },
+      "method": "Percentile95% CI for the median matched-round header/full-frame cost-share fraction; no candidate delta."
+    },
+    "artifact_validation": {
+      "validator": "docs/evidence/perf/KL09-53/validate-study.py",
+      "report": "docs/evidence/perf/KL09-53/validation.json",
+      "cpu_results": 25,
+      "instruction_results": 25,
+      "raw_callgrind_hashes": 25,
+      "compressed_callgrind_hashes": 25,
+      "confidence_intervals_reproduced": 4,
+      "encoded_sample_hashes_match_between_cpu_and_instruction_runs": true,
+      "standard_runtime_contract_validator_used": false
+    },
+    "metadata_correction": "Instruction summary tool_version was initially mislabeled flexible because a loop variable shadowed the captured version. Corrected from Valgrind--version and every raw creator/stderr; original summary and audit record retained. No sample/count/source/binary/statistic changed."
+  },
+  "commands": [
+    "export CARGO_HOME=/workspace/work/cargo RUSTUP_HOME=/workspace/work/rustup PATH=/workspace/work/cargo/bin:$PATH CARGO_INCREMENTAL=0; Rust builds use jobs2 and affinity0-2,4",
+    "git clone --shared --no-checkout /workspace/partitionline /workspace/work/request-header/baseline; git -C /workspace/work/request-header/baseline checkout --detach aeb205ddee136d915349ef9dd165d58e9d3aa109 (exit 0; clean isolated checkout)",
+    "taskset -c 0-2,4 cargo build --locked --release --jobs 2 --manifest-path /workspace/work/request-header/baseline/benchmarks/codec/Cargo.toml --lib --target-dir /workspace/work/target-request-header (exit 0)",
+    "taskset -c 0-2,4 rustc --edition=2021 -O -C debuginfo=1 docs/evidence/perf/KL09-53/header-cost-probe.rs -L dependency=/workspace/work/target-request-header/release/deps --extern codec=<locked rlib> --extern partitionline=<locked rlib> --extern bytes=<locked rlib> --extern serde_json=<locked rlib> --extern sha2=<locked rlib> -o /workspace/work/target-request-header/header-cost-probe (exit 0; source and binary SHA-256 recorded)",
+    "python3 docs/evidence/perf/KL09-53/run-header-cost.py --repo-root /workspace/work/request-header/baseline --target-dir /workspace/work/target-request-header --out /workspace/work/request-header/cost-study --cpu 3 --skip-build (exit 0;25child processes; exact commands in cpu/commands.json)",
+    "python3 docs/evidence/perf/KL09-53/run-header-instructions.py --repo-root /workspace/work/request-header/baseline --binary /workspace/work/target-request-header/header-cost-probe --valgrind /workspace/work/request-header/valgrind/usr/bin/valgrind --valgrind-lib /workspace/work/request-header/valgrind/usr/libexec/valgrind --out /workspace/work/request-header/instructions --cpu 3 (exit 0;25child processes; exact commands in instructions/commands.json)",
+    "CARGO_TARGET_DIR=/workspace/work/target-request-header-tests taskset -c 0-2,4 cargo test --locked --test protocol_oracles --test network_deadlines (exit 0;38passed,1existingignored)",
+    "CARGO_TARGET_DIR=/workspace/work/target-request-header-tests taskset -c 0-2,4 cargo test --locked --lib protocol::header::tests (exit 0;72passed,1028unrelatedfiltered)",
+    "CARGO_TARGET_DIR=/workspace/work/target-request-header-tests taskset -c 0-2,4 bash scripts/ci-protocol-oracles.sh --report /workspace/work/request-header/fixture-report.json (exit 0;offlinefixturelane)",
+    "CARGO_TARGET_DIR=/workspace/work/target-request-header-tests taskset -c 0-2,4 cargo fmt --all --check (exit 0)",
+    "CARGO_TARGET_DIR=/workspace/work/target-request-header-tests taskset -c 0-2,4 cargo clippy --locked --lib --all-features -- -D warnings (exit 0)",
+    "Valgrind3.24.0: fetched via policy-approved official https://deb.debian.org/debian trixie package metadata with private apt lists/cache; dpkg-deb -x into /workspace/work/request-header/valgrind; package SHA-256 matches authenticated metadata. No system install.",
+    "VALGRIND_LIB=/workspace/work/request-header/valgrind/usr/libexec/valgrind taskset -c 0-2,4 /workspace/work/request-header/valgrind/usr/bin/valgrind --tool=callgrind --callgrind-out-file=/workspace/work/request-header/packages/smoke.callgrind.out /usr/bin/true (exit 0;toolsmokeonly,notperformanceevidence)",
+    "python3 docs/evidence/perf/KL09-53/validate-study.py --output docs/evidence/perf/KL09-53/validation.json (exit 0;50resultsvalid;50raw/compressedCallgrindhashesverified;fourCIsreproduced)",
+    "sha256sum -c docs/evidence/perf/KL09-53/checksums.sha256 (all files valid)"
+  ],
+  "results": {
+    "primary": {
+      "metric": "request-header instruction fraction of complete framed request, percent",
+      "classic": {
+        "paired_share_pct_samples": [
+          0.3636265597304063,
+          0.3636265597304063,
+          0.3636265597304063,
+          0.3636265597304063,
+          0.3636265597304063
+        ],
+        "paired_median_share_pct": 0.3636265597304063,
+        "paired_median_share_ci95_pct": [
+          0.3636265597304063,
+          0.3636265597304063
+        ],
+        "ratio_of_medians_share_pct": 0.3636265597304063
+      },
+      "flexible": {
+        "paired_share_pct_samples": [
+          0.34225198463080303,
+          0.34225198463080303,
+          0.34225198463080303,
+          0.34225198463080303,
+          0.34225198463080303
+        ],
+        "paired_median_share_pct": 0.34225198463080303,
+        "paired_median_share_ci95_pct": [
+          0.34225198463080303,
+          0.34225198463080303
+        ],
+        "ratio_of_medians_share_pct": 0.34225198463080303
+      },
+      "repetitions": 5,
+      "candidate_median": null,
+      "interpretation": "Baseline cost visibility; both observed fractions below1%. No candidate A/B speedup exists."
+    },
+    "instructions": {
+      "unit": "Callgrind Ir per inclusive encode_case invocation",
+      "header_classic": 350.0,
+      "header_flexible": 396.0,
+      "frame_classic": {
+        "instructions_per_operation_samples": [
+          96252.59504132232,
+          96252.59504132232,
+          96252.59504132232,
+          96252.59504132232,
+          96252.59504132232
+        ],
+        "instructions_per_operation_median": 96252.59504132232
+      },
+      "frame_flexible": {
+        "instructions_per_operation_samples": [
+          115704.22314049587,
+          115704.22314049587,
+          115704.22314049587,
+          115704.22314049587,
+          115704.22314049587
+        ],
+        "instructions_per_operation_median": 115704.22314049587
+      },
+      "retained_buffer_original_body_shape": {
+        "instructions_per_operation_samples": [
+          115249.99173553719,
+          115249.99173553719,
+          115249.99173553719,
+          115249.99173553719,
+          115249.99173553719
+        ],
+        "instructions_per_operation_median": 115249.99173553719
+      },
+      "collection_scope": "Only inclusive header_cost_probe::encode_case calls (twenty warmups, one allocation census, N timed-loop calls); process/fixture/setup/output outside this function excluded. Divisor=N+21. No kernel instructions counted.",
+      "measured": true,
+      "tool_version": "valgrind-3.24.0",
+      "determinism": "All five independently launched runs of each shape returned the same instruction count; degenerate bootstrap intervals report only these fixed binary/input observations."
+    },
+    "cpu_visibility": {
+      "unit": "CPU ns per operation and matched-round header/full-frame fraction",
+      "cases": {
+        "header-classic": {
+          "cpu_ns_per_operation_samples": [
+            28.6124,
+            28.6202,
+            28.1574,
+            29.0559,
+            29.8125
+          ],
+          "cpu_ns_per_operation_median": 28.6202,
+          "wall_ns_per_operation_samples": [
+            28.4191538,
+            28.4285091,
+            27.9689767,
+            28.8650472,
+            29.6082207
+          ],
+          "wall_ns_per_operation_median": 28.4285091,
+          "steady_allocations_per_operation": [
+            0
+          ],
+          "steady_allocated_bytes_per_operation": [
+            0
+          ],
+          "encoded_bytes": [
+            23
+          ],
+          "encoded_sample_sha256": [
+            "b0551bda3792a78ec8c749e84037e77b50cecbf3574f836b7e75a5e2c9242117"
+          ]
+        },
+        "header-flexible": {
+          "cpu_ns_per_operation_samples": [
+            36.5915,
+            33.862899999999996,
+            35.23,
+            34.89339999999999,
+            33.1066
+          ],
+          "cpu_ns_per_operation_median": 34.89339999999999,
+          "wall_ns_per_operation_samples": [
+            36.3574593,
+            33.6539174,
+            35.0007016,
+            34.7071612,
+            32.9179913
+          ],
+          "wall_ns_per_operation_median": 34.7071612,
+          "steady_allocations_per_operation": [
+            0
+          ],
+          "steady_allocated_bytes_per_operation": [
+            0
+          ],
+          "encoded_bytes": [
+            24
+          ],
+          "encoded_sample_sha256": [
+            "c0e7eec282f40cc05cce62ca51ea09e14961c326e0bf7dd906bf6a6230efbb3a"
+          ]
+        },
+        "micro-request-v9-body": {
+          "cpu_ns_per_operation_samples": [
+            10152.17,
+            9679.49,
+            10515.79,
+            9516.19,
+            9375.1
+          ],
+          "cpu_ns_per_operation_median": 9679.49,
+          "wall_ns_per_operation_samples": [
+            10131.70438,
+            9661.02918,
+            10499.56543,
+            9498.94921,
+            9357.60727
+          ],
+          "wall_ns_per_operation_median": 9661.02918,
+          "steady_allocations_per_operation": [
+            12
+          ],
+          "steady_allocated_bytes_per_operation": [
+            32760
+          ],
+          "encoded_bytes": [
+            12653
+          ],
+          "encoded_sample_sha256": [
+            "7ac8a5640152f857f1a87da8a1f3824b777bc5c5d3e1581e3bea1cec46dcf151"
+          ]
+        },
+        "frame-classic": {
+          "cpu_ns_per_operation_samples": [
+            9203.8,
+            9050.44,
+            9390.31,
+            8585.8,
+            8488.69
+          ],
+          "cpu_ns_per_operation_median": 9050.44,
+          "wall_ns_per_operation_samples": [
+            9187.55714,
+            9034.54299,
+            9376.18566,
+            8568.55387,
+            8470.46814
+          ],
+          "wall_ns_per_operation_median": 9034.54299,
+          "steady_allocations_per_operation": [
+            0
+          ],
+          "steady_allocated_bytes_per_operation": [
+            0
+          ],
+          "encoded_bytes": [
+            12687
+          ],
+          "encoded_sample_sha256": [
+            "e491ac2bcf9f6db00dcc72962c739b014652b80264c6432ac2be8beffb2ecf50"
+          ]
+        },
+        "frame-flexible": {
+          "cpu_ns_per_operation_samples": [
+            11053.61,
+            9737.83,
+            9527.89,
+            9953.24,
+            9481.98
+          ],
+          "cpu_ns_per_operation_median": 9737.83,
+          "wall_ns_per_operation_samples": [
+            11023.26399,
+            9720.95473,
+            9511.01879,
+            9935.60244,
+            9465.20551
+          ],
+          "wall_ns_per_operation_median": 9720.95473,
+          "steady_allocations_per_operation": [
+            12
+          ],
+          "steady_allocated_bytes_per_operation": [
+            32760
+          ],
+          "encoded_bytes": [
+            12681
+          ],
+          "encoded_sample_sha256": [
+            "3f05e315fba69e0eb5703ba6b09681c6f11b67643f0556b4dc773d78189a1940"
+          ]
+        }
+      },
+      "classic_share": {
+        "metric": "header-only process CPU ns/op divided by full framed request process CPU ns/op",
+        "paired_share_pct_samples": [
+          0.3108759425454704,
+          0.3162299291526158,
+          0.2998559152999209,
+          0.33841808567634935,
+          0.35120260016563215
+        ],
+        "paired_median_share_pct": 0.3162299291526158,
+        "paired_median_share_ci95_pct": [
+          0.2998559152999209,
+          0.35120260016563215
+        ],
+        "ratio_of_medians_share_pct": 0.3162299291526158,
+        "interpretation": "Visibility estimate, not a candidate speedup. The numerator also includes dispatch/clear/black-box overhead. Process startup/setup are amortized, not attributed as instructions."
+      },
+      "flexible_share": {
+        "metric": "header-only process CPU ns/op divided by full framed request process CPU ns/op",
+        "paired_share_pct_samples": [
+          0.3310366477558011,
+          0.3477458530288575,
+          0.36975657779424403,
+          0.3505732806603678,
+          0.3491528140746975
+        ],
+        "paired_median_share_pct": 0.3491528140746975,
+        "paired_median_share_ci95_pct": [
+          0.3310366477558011,
+          0.36975657779424403
+        ],
+        "ratio_of_medians_share_pct": 0.3583282928537466,
+        "interpretation": "Visibility estimate, not a candidate speedup. The numerator also includes dispatch/clear/black-box overhead. Process startup/setup are amortized, not attributed as instructions."
+      },
+      "scope": "Python wait4 child user+system CPU covers the entire process, including fixture/setup, warmup, census, output and the long steady loop. Header loops10million calls, frame/body loops100000 calls; normalization amortizes startup. Loop wall values are recorded separately and are not instructions."
+    },
+    "allocations": {
+      "header_classic_per_operation": 0,
+      "header_flexible_per_operation": 0,
+      "header_allocated_bytes_per_operation": 0,
+      "header_census_samples": 20,
+      "retained_frame_classic_per_operation": 0,
+      "retained_frame_flexible_per_operation": 12,
+      "retained_frame_flexible_bytes_per_operation": 32760,
+      "original_named_body_fresh_buffer": {
+        "cell": "micro-request/v9",
+        "allocations": 17,
+        "allocated_bytes": 70766,
+        "samples": 10
+      },
+      "counting_tool": "Existing codec::census / codec::CountingAlloc from KL04-09/KL09-04; no unsafe code or runtime dependency added to production."
+    },
+    "guardrails": {
+      "evaluated_for_candidate": false,
+      "reason": "Early visibility rejection; no production candidate. CPU/instruction cost fractions and zero header allocation census are recorded, but there is no candidate latency/RSS/socket comparison or acceptance claim."
+    },
+    "net_production_lines": 0,
+    "correctness": {
+      "baseline_sha": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+      "unique_passed": 110,
+      "failed": 0,
+      "new_skipped": 0,
+      "suites": {
+        "protocol_oracles": {
+          "passed": 30,
+          "failed": 0,
+          "ignored_existing_live_broker": 1
+        },
+        "network_deadlines": {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        "protocol_header_unit_goldens": {
+          "passed": 72,
+          "failed": 0,
+          "ignored": 0,
+          "unrelated_filtered": 1028
+        }
+      },
+      "fixture_oracle_script": {
+        "exit": 0,
+        "passed": 30,
+        "existing_live_broker_ignored": 1,
+        "lane": "default offline fixtures; same suite execution not counted twice"
+      },
+      "format": "cargo fmt --all --check: clean",
+      "lint": "cargo clippy --locked --lib --all-features -- -D warnings: clean",
+      "source_diff": "src/net.rs and src/protocol/header.rs unchanged; no tests/request_header_cache.rs created. Classic/flexible encoding, tags, frame lengths, correlation IDs and auth/network semantics retain baseline code."
+    }
+  },
+  "tooling": {
+    "package": "valgrind1:3.24.0-3 amd64",
+    "sha256": "0359e30820ccee7ee5c8d4c951ca276e3978b18f157d71bd77981de05b344907",
+    "metadata": "docs/evidence/perf/KL09-53/tooling/valgrind.metadata.txt",
+    "verification": "docs/evidence/perf/KL09-53/tooling/verification.json",
+    "install_scope": "User-local extraction only; no system package or network-policy change.",
+    "initial_attempts": [
+      "System apt update was unavailable because system metadata is unwritable; user-private apt lists/cache were used instead.",
+      "Configured snapshot-mirror metadata downloads returned HTTP403 from the session proxy. Both failure logs are retained with private identifiers redacted. apt update exited0 with fetch warnings and no usable metadata; this was not counted as successful tooling.",
+      "Root identified the policy-approved official Debian mirror; metadata and package fetch succeeded, checksum verified and Callgrind smoke check passed."
+    ]
+  },
+  "acceptance_met": [
+    "Early below-1% cost-visibility branch reproduced from pinned clean baseline with actual headers and full request frames.",
+    "Allfive CPU rounds and allfive instruction rounds retained and statically validated, with25processes each and reproducible cost-share intervals.",
+    "No implementation candidate, header-cache API, buffer-retention policy, wire/auth/network behavior change or baseline increase created.",
+    "Unchanged baseline110unique correctness tests passed, zero failures and zero new skips; fixture oracle script, formatting and strict library/all-feature clippy passed."
+  ],
+  "artifacts": [
+    "docs/evidence/perf/KL09-53/README.md",
+    "docs/evidence/perf/KL09-53/cpu/checksums.sha256",
+    "docs/evidence/perf/KL09-53/cpu/commands.json",
+    "docs/evidence/perf/KL09-53/cpu/cost-study.json",
+    "docs/evidence/perf/KL09-53/cpu/rep0-frame-classic.json",
+    "docs/evidence/perf/KL09-53/cpu/rep0-frame-flexible.json",
+    "docs/evidence/perf/KL09-53/cpu/rep0-header-classic.json",
+    "docs/evidence/perf/KL09-53/cpu/rep0-header-flexible.json",
+    "docs/evidence/perf/KL09-53/cpu/rep0-micro-request-v9-body.json",
+    "docs/evidence/perf/KL09-53/cpu/rep1-frame-classic.json",
+    "docs/evidence/perf/KL09-53/cpu/rep1-frame-flexible.json",
+    "docs/evidence/perf/KL09-53/cpu/rep1-header-classic.json",
+    "docs/evidence/perf/KL09-53/cpu/rep1-header-flexible.json",
+    "docs/evidence/perf/KL09-53/cpu/rep1-micro-request-v9-body.json",
+    "docs/evidence/perf/KL09-53/cpu/rep2-frame-classic.json",
+    "docs/evidence/perf/KL09-53/cpu/rep2-frame-flexible.json",
+    "docs/evidence/perf/KL09-53/cpu/rep2-header-classic.json",
+    "docs/evidence/perf/KL09-53/cpu/rep2-header-flexible.json",
+    "docs/evidence/perf/KL09-53/cpu/rep2-micro-request-v9-body.json",
+    "docs/evidence/perf/KL09-53/cpu/rep3-frame-classic.json",
+    "docs/evidence/perf/KL09-53/cpu/rep3-frame-flexible.json",
+    "docs/evidence/perf/KL09-53/cpu/rep3-header-classic.json",
+    "docs/evidence/perf/KL09-53/cpu/rep3-header-flexible.json",
+    "docs/evidence/perf/KL09-53/cpu/rep3-micro-request-v9-body.json",
+    "docs/evidence/perf/KL09-53/cpu/rep4-frame-classic.json",
+    "docs/evidence/perf/KL09-53/cpu/rep4-frame-flexible.json",
+    "docs/evidence/perf/KL09-53/cpu/rep4-header-classic.json",
+    "docs/evidence/perf/KL09-53/cpu/rep4-header-flexible.json",
+    "docs/evidence/perf/KL09-53/cpu/rep4-micro-request-v9-body.json",
+    "docs/evidence/perf/KL09-53/header-cost-probe.rs",
+    "docs/evidence/perf/KL09-53/instructions/checksums.sha256",
+    "docs/evidence/perf/KL09-53/instructions/commands.json",
+    "docs/evidence/perf/KL09-53/instructions/instruction-study.before-version-correction.json",
+    "docs/evidence/perf/KL09-53/instructions/instruction-study.json",
+    "docs/evidence/perf/KL09-53/instructions/rep0-frame-classic.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep0-frame-classic.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep0-frame-classic.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep0-frame-classic.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep0-frame-flexible.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep0-frame-flexible.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep0-frame-flexible.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep0-frame-flexible.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep0-header-classic.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep0-header-classic.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep0-header-classic.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep0-header-classic.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep0-header-flexible.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep0-header-flexible.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep0-header-flexible.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep0-header-flexible.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep0-micro-request-v9-body.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep0-micro-request-v9-body.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep0-micro-request-v9-body.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep0-micro-request-v9-body.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep1-frame-classic.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep1-frame-classic.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep1-frame-classic.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep1-frame-classic.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep1-frame-flexible.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep1-frame-flexible.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep1-frame-flexible.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep1-frame-flexible.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep1-header-classic.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep1-header-classic.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep1-header-classic.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep1-header-classic.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep1-header-flexible.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep1-header-flexible.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep1-header-flexible.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep1-header-flexible.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep1-micro-request-v9-body.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep1-micro-request-v9-body.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep1-micro-request-v9-body.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep1-micro-request-v9-body.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep2-frame-classic.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep2-frame-classic.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep2-frame-classic.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep2-frame-classic.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep2-frame-flexible.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep2-frame-flexible.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep2-frame-flexible.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep2-frame-flexible.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep2-header-classic.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep2-header-classic.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep2-header-classic.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep2-header-classic.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep2-header-flexible.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep2-header-flexible.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep2-header-flexible.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep2-header-flexible.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep2-micro-request-v9-body.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep2-micro-request-v9-body.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep2-micro-request-v9-body.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep2-micro-request-v9-body.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep3-frame-classic.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep3-frame-classic.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep3-frame-classic.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep3-frame-classic.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep3-frame-flexible.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep3-frame-flexible.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep3-frame-flexible.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep3-frame-flexible.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep3-header-classic.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep3-header-classic.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep3-header-classic.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep3-header-classic.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep3-header-flexible.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep3-header-flexible.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep3-header-flexible.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep3-header-flexible.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep3-micro-request-v9-body.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep3-micro-request-v9-body.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep3-micro-request-v9-body.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep3-micro-request-v9-body.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep4-frame-classic.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep4-frame-classic.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep4-frame-classic.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep4-frame-classic.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep4-frame-flexible.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep4-frame-flexible.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep4-frame-flexible.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep4-frame-flexible.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep4-header-classic.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep4-header-classic.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep4-header-classic.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep4-header-classic.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep4-header-flexible.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep4-header-flexible.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep4-header-flexible.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep4-header-flexible.stdout.json",
+    "docs/evidence/perf/KL09-53/instructions/rep4-micro-request-v9-body.callgrind.out.gz",
+    "docs/evidence/perf/KL09-53/instructions/rep4-micro-request-v9-body.sample.json",
+    "docs/evidence/perf/KL09-53/instructions/rep4-micro-request-v9-body.stderr.txt",
+    "docs/evidence/perf/KL09-53/instructions/rep4-micro-request-v9-body.stdout.json",
+    "docs/evidence/perf/KL09-53/run-header-cost.py",
+    "docs/evidence/perf/KL09-53/run-header-instructions.py",
+    "docs/evidence/perf/KL09-53/tooling/apt-update-default-source.log",
+    "docs/evidence/perf/KL09-53/tooling/apt-update-official-mirror.log",
+    "docs/evidence/perf/KL09-53/tooling/apt-update.log",
+    "docs/evidence/perf/KL09-53/tooling/download.log",
+    "docs/evidence/perf/KL09-53/tooling/libc-version.txt",
+    "docs/evidence/perf/KL09-53/tooling/sanitization.json",
+    "docs/evidence/perf/KL09-53/tooling/smoke.stderr.txt",
+    "docs/evidence/perf/KL09-53/tooling/smoke.stdout.txt",
+    "docs/evidence/perf/KL09-53/tooling/valgrind.metadata.txt",
+    "docs/evidence/perf/KL09-53/tooling/verification.json",
+    "docs/evidence/perf/KL09-53/validate-study.py",
+    "docs/evidence/perf/KL09-53/validation.json",
+    "docs/evidence/perf/KL09-53/verification/baseline-build.txt",
+    "docs/evidence/perf/KL09-53/verification/baseline-correctness.txt",
+    "docs/evidence/perf/KL09-53/verification/fixture-report-summary.json",
+    "docs/evidence/perf/KL09-53/verification/fixture-report.json",
+    "docs/evidence/perf/KL09-53/verification/format.txt",
+    "docs/evidence/perf/KL09-53/verification/header-goldens.txt",
+    "docs/evidence/perf/KL09-53/verification/oracle-script.txt",
+    "docs/evidence/perf/KL09-53/verification/probe-build.txt",
+    "docs/evidence/perf/KL09-53/verification/strict-clippy.txt",
+    "docs/evidence/perf/KL09-53/checksums.sha256"
+  ],
+  "limits": [
+    "Local unsigned baseline microbenchmark visibility evidence; not a Kafka comparison or public performance claim. Suite HOLD remains active.",
+    "Existing named micro-request case is body-only; it cannot alone measure a header cache. The supplemental probe includes actual headers and complete frames while leaving the original cell/input and ratcheted baselines unchanged.",
+    "No production candidate, no candidate SHA, no candidate A/B comparison, no accepted optimization and no candidate guardrail delta. The early outcome branch applies; five baseline-shape rounds are not five candidate acceptance pairs.",
+    "Default13-byte client id, Produce classicv8/flexiblev9,100records,16-byte keys,100-byte random values,zero record headers and retained16KiB buffer only. Tiny metadata/auth bodies, long or invalid client IDs, other API versions and unknown incoming tags are not benchmarked; their unchanged code is covered only by existing tests where applicable.",
+    "Header instruction numerator includes correlation-ID work and dispatch/clear/black-box overhead; actual preencoding still must copy bytes and patch mutable fields. This is a visibility estimate, not a universal optimization speedup bound.",
+    "CPU/rusage includes process setup and warmup amortized across large loops; wall values are kept separately. Managed shared host has no frequency pinning or isolation of host-wide memory/cache effects.",
+    "Callgrind instructions are deterministic for this fixed binary/input and do not measure kernel/network/TLS/DNS cost. Degenerate confidence intervals reflect repeated identical counts, not coverage of unmeasured workloads.",
+    "No fresh Java fixture generation or live broker run was performed; the listed oracle script passed its default offline fixture path. With no encoder change, the Java byte-equivalence implementation criterion does not apply to this early rejection.",
+    "One existing live-broker protocol-oracle test is ignored; unrelated header-selection unit tests are filtered. Neither category is counted as passed.",
+    "The Valgrind package and executable are scratch tools, recorded by checksum rather than committed binaries. Initial denied tooling fetches and metadata-version correction are retained; no successful measurement was substituted for a failed one."
+  ],
+  "next_dependency_effect": "No tasks list KL09-53 in requires_accepted. Coordinator should close KL09-53 done/rejected-no-gain and preserve independent pending cards without claiming an accepted header cache."
+}

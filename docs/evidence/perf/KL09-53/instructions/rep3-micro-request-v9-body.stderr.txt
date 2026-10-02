@@ -1,0 +1,11 @@
+==117049== Callgrind, a call-graph generating cache profiler
+==117049== Copyright (C) 2002-2017, and GNU GPL'd, by Josef Weidendorfer et al.
+==117049== Using Valgrind-3.24.0 and LibVEX; rerun with -h for copyright info
+==117049== Command: /workspace/work/target-request-header/header-cost-probe micro-request-v9-body 100
+==117049== 
+==117049== For interactive control, run 'callgrind_control -h'.
+==117049== 
+==117049== Events    : Ir
+==117049== Collected : 13945249
+==117049== 
+==117049== I   refs:      13,945,249

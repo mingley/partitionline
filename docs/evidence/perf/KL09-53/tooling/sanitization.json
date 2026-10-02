@@ -1,0 +1,16 @@
+{
+  "files": [
+    {
+      "artifact": "docs/evidence/perf/KL09-53/tooling/apt-update.log",
+      "raw_sha256": "1e3add35fd187fa96cc9bd9b823279b0c57dd31ebcd4804f560644934971a823",
+      "sanitized_sha256": "190a9533adecda61a5a2022e3d535f986ce771a12a24ccf5a0b383ec49882471",
+      "action": "Private configured mirror hostname and proxy IP redacted; exit/status and HTTP403 failure unchanged."
+    },
+    {
+      "artifact": "docs/evidence/perf/KL09-53/tooling/apt-update-default-source.log",
+      "raw_sha256": "fa5990ebded83d36863f1fa39afea2682c718765b3b7c098a5873fc94d097890",
+      "sanitized_sha256": "3cecfe1c74772c969399da818280cf42a5a7c946b03606e321fc228c2ec44599",
+      "action": "Private configured mirror hostname and proxy IP redacted; exit/status and HTTP403 failure unchanged."
+    }
+  ]
+}

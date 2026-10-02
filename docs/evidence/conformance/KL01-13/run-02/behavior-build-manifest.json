@@ -1,0 +1,93 @@
+{
+  "source_snapshot": {
+    "core_and_adapter_files": {
+      "src/admin.rs": "0048055c21b301355d26a69c2b75e6c65d51b04bddf5b475507adf6007a9316b",
+      "src/cluster.rs": "f4d93a4a7dfd67de5279c38abef908be5d3ed4ca15508c5f2141f604431edf72",
+      "src/config.rs": "f2a4f9ed601e0c31437aa42d68743b041991330fdf5e2b0298ab30b948eb007c",
+      "src/consumer.rs": "407ddc39c0817dace4bdd67d0cf94f829a118fb1b28ddabc5a14b4289808dc1c",
+      "src/error.rs": "014c33e7716b004aa22ec46b4b7e0e9e67b54d982b69b8f152ee02eb421d45f2",
+      "src/group.rs": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+      "src/interceptor.rs": "15e71dbacfc19bd5716d82ea0afd2f1f61f63e78faa2c01cef812aaf34a0d7ab",
+      "src/lib.rs": "c4a080262360a958daf1c230ce613e5c01e7f7821315a4efe75d0713353d8104",
+      "src/metrics.rs": "de0e4bf04a491091f4e7be005f2b8bce3a4baa6e270dc90283553c751210e9bd",
+      "src/net.rs": "2632242b6a661a32c4bf39952b90dcf5b8e8a637be80d87aa729cdf34f17845c",
+      "src/partitioner.rs": "ad9c8977c4f5ef8b54284167020eb35d931e27fd5cc95a23d427c80bb9bd90b5",
+      "src/producer.rs": "b5c04d26e43638ecb32427c469113a0e7313d77edb7ba37464dcd342fe9785db",
+      "src/share.rs": "c21bec3df2c04b2923534e4cea1c17df48efcdc7623a3c7bd6126e5c434c195f",
+      "src/protocol/acl.rs": "39a9d56f0d586eaff84bd8e1f28d1d0f033a653dac46b5cdc4f2b18cef79f6f8",
+      "src/protocol/admin.rs": "2a3c3b49bc5531734563c4a289a2b34e4dd724224b4331e242fa4c81ab3e6b8b",
+      "src/protocol/api.rs": "2f8327bfed5750342534b7ef8f38f9e19e4451eccaaf3323b62b12dae49d9b8f",
+      "src/protocol/api_keys.rs": "95c9e6ceb3e996402217c2737c219c70c82c48f14147e72af59fb3221746ac1b",
+      "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+      "src/protocol/cgheartbeat.rs": "49311de5e97fb0e9402260c3dcea0534582952cc7c6d8777128e431c464932f4",
+      "src/protocol/epoch.rs": "76ec51fd15879b027f4bd499a5b58dcac30004b63e37e8aee117367ffade143d",
+      "src/protocol/fetch.rs": "81c0aa179f7cfc6185187f6b80d80b8176d23bc0972b4c2585cd7793a1b38f9c",
+      "src/protocol/group.rs": "0697f0f579dbd9ca57cd0f7ca5ba3162e4e407b7a536c11358a7eeac9031cb24",
+      "src/protocol/header.rs": "07f189a6474640e1a8e95c993d41b2ec2accfbab61695ac495703856d2d5862f",
+      "src/protocol/idem.rs": "6154128750f29bca3b79a8217e49b19b77ad988dbf7ad77c63647e5fea2f9e60",
+      "src/protocol/mod.rs": "14b234967992a14d550e710c9bf1a4b58be9bdc9bfcbf3303aa6f7ed26c3f3e4",
+      "src/protocol/oauth.rs": "0ce921f988b4058ad8a207cb609c920b20f9a0589da6773f57b4d090a109066f",
+      "src/protocol/offsets.rs": "be167364402bf33631717a3f45685b84680c4ffbb40a7093ff60f4fe7aeb7126",
+      "src/protocol/oidc.rs": "828343989f5615a3170c84f2f8d26056575d93046b3735f10e0eaa0c2a4fae56",
+      "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+      "src/protocol/sasl.rs": "fb893bf2ca86d110393ee0d61dbb21a5de562f17fe40182c079ab48c58634f50",
+      "src/protocol/scram.rs": "ed474ed5eb62d3cd6b0865653cec6c2d033acb2be0f88a6e9af785075402636c",
+      "src/protocol/share.rs": "127e4c92f3b768297a0abd91a5c196b91dc680d50f0678f90708de802f0ca908",
+      "src/protocol/txn.rs": "1d6ffe39571f136f33dd9a49eed73920d8c43f8b8ce10351099d37d411196bfc",
+      "Cargo.toml": "3c793ef93d218be93d187910e42bb9d53137708c5c324280b3159e3db082538a",
+      "Cargo.lock": "d35e6ba903c4f8b811997d06b9edf4e3612c3636dede83d07dda86570eddbca9",
+      "tests/conformance/librdkafka/rust/Cargo.toml": "5377fbb550415a45ce819bb97f5dc7ba9e66021e1cb06be8b975dad93b23aa60",
+      "tests/conformance/librdkafka/rust/Cargo.lock": "2c67770f1bee13fe774a510bdbec9f6d1105ec3adb8987d368acb6b4aa513616",
+      "tests/conformance/librdkafka/rust/src/main.rs": "0ff806823b80098128bbfccd584fe05ec19fbb0e5db6e76400adc6a568fbe102"
+    },
+    "source_digest": "893ca79078a794523c623cefd671af96add5d5afe08664a11c0d2647ad97c85e",
+    "git_commit": "5e2b3626517383bd7953b6285daea9dc2cc7ab70",
+    "git_clean": false
+  },
+  "source_unchanged_during_build": true,
+  "git_commit_after_build": "5e2b3626517383bd7953b6285daea9dc2cc7ab70",
+  "rust_binary_sha256": "8932203ed80980796d32410ec7a21d3fa5eb95ceb45979238cf3fa08578c3e4d",
+  "native_binary_sha256": "f2349a10f0a8e828d5bee4d2086d51fd75ce47d8b248e68a29f92db51257f972",
+  "native_library_build": {
+    "repository": "https://github.com/confluentinc/librdkafka.git",
+    "tag": "v2.15.0",
+    "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+    "baseline": "Historical Lab A v2.15.0 retained; no newer baseline selected.",
+    "configure_flags": [
+      "--enable-ssl",
+      "--enable-zlib",
+      "--enable-zstd",
+      "--disable-gssapi",
+      "--disable-curl",
+      "--disable-lz4-ext"
+    ],
+    "compiler": "cc (Debian 14.2.0-19) 14.2.0",
+    "build_tool": "GNU Make 4.4.1",
+    "peer_source_sha256": "cd45474f095813b390413437eac7167020bed3a2ac8cf40cddb66c21a55dbf64",
+    "binary_sha256": "fcb7d49106fa6ff78460f510f27d63393a6ec36b40cfefa90b63e4c3b030c04b",
+    "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+    "dependencies": {
+      "openssl": "3.5.7",
+      "zlib": "1.3.1",
+      "libzstd": "1.5.7"
+    },
+    "library_tree": "429a83d1ba5350c0846aeaee4efe821b463f6b85"
+  },
+  "shim_sources": {
+    "helpers.c": "588dc6e9b4012bbf20c2be4aa943d4bb4aac35ad436151e6605484eba84439c4",
+    "test.h": "3c3026a34095690418d15ac1d4cdf9ada93897d8fb085e2f8198ebb0810cf7ce"
+  },
+  "upstream_pin": {
+    "repository": "https://github.com/confluentinc/librdkafka.git",
+    "tag": "v2.15.0",
+    "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+    "source_path": "tests/0125-immediate_flush.c",
+    "source_sha256": "1528ed781bf3aae5f1ea0a503e0059bd6c6de5c7f529279cbdda2445f423eb8e",
+    "selected_entry": "main_0125_immediate_flush",
+    "selected_assertion": "do_test_flush_overrides_linger_ms_time",
+    "excluded_sibling": "main_0125_immediate_flush_mock"
+  },
+  "rust_compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+  "c_compiler": "cc (Debian 14.2.0-19) 14.2.0"
+}

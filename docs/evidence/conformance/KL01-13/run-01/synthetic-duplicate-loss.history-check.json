@@ -1,0 +1,101 @@
+{
+  "all_valid": false,
+  "total_histories": 1,
+  "passed": 0,
+  "failed": 1,
+  "results": [
+    {
+      "history_id": "librdkafka-0125-flush-overrides-linger-partitionline-normal-synthetic-duplicate-loss",
+      "valid": false,
+      "attempted_count": 100,
+      "consumed_count": 100,
+      "violations": [
+        {
+          "type": "SYNTHETIC_SWAP",
+          "message": "Synthetic swap detected: record(s) ['m-099'] lost while record(s) ['m-098'] duplicated (attempted: 100, consumed: 100)",
+          "record_ids": [
+            "m-098",
+            "m-099"
+          ],
+          "topic": null,
+          "partition": null,
+          "details": {
+            "missing_record_ids": [
+              "m-099"
+            ],
+            "duplicated_record_ids": [
+              "m-098"
+            ],
+            "attempted_count": 100,
+            "consumed_count": 100
+          }
+        },
+        {
+          "type": "DATA_LOSS",
+          "message": "Acked record 'm-099' on kl01-13-partitionline-normal-639f6166-0 was lost (never consumed)",
+          "record_ids": [
+            "m-099"
+          ],
+          "topic": "kl01-13-partitionline-normal-639f6166",
+          "partition": 0,
+          "details": {
+            "record_id": "m-099",
+            "topic": "kl01-13-partitionline-normal-639f6166",
+            "partition": 0
+          }
+        },
+        {
+          "type": "UNEXPECTED_DUPLICATE",
+          "message": "Record 'm-098' consumed 2 times without ambiguous retry",
+          "record_ids": [
+            "m-098"
+          ],
+          "topic": "kl01-13-partitionline-normal-639f6166",
+          "partition": 0,
+          "details": {
+            "record_id": "m-098",
+            "consumed_count": 2,
+            "idempotent": false
+          }
+        },
+        {
+          "type": "OFFSET_ORDERING_VIOLATION",
+          "message": "Non-monotonic offset order on kl01-13-partitionline-normal-639f6166-0: record 'm-098' (offset 98) <= record 'm-098' (offset 98)",
+          "record_ids": [
+            "m-098",
+            "m-098"
+          ],
+          "topic": "kl01-13-partitionline-normal-639f6166",
+          "partition": 0,
+          "details": {
+            "record_before": "m-098",
+            "offset_before": 98,
+            "record_after": "m-098",
+            "offset_after": 98
+          }
+        }
+      ],
+      "minimal_counterexample": {
+        "type": "SYNTHETIC_SWAP",
+        "message": "Synthetic swap detected: record(s) ['m-099'] lost while record(s) ['m-098'] duplicated (attempted: 100, consumed: 100)",
+        "record_ids": [
+          "m-098",
+          "m-099"
+        ],
+        "topic": null,
+        "partition": null,
+        "details": {
+          "missing_record_ids": [
+            "m-099"
+          ],
+          "duplicated_record_ids": [
+            "m-098"
+          ],
+          "attempted_count": 100,
+          "consumed_count": 100
+        }
+      },
+      "summary": "FAIL: 4 violation(s) in history 'librdkafka-0125-flush-overrides-linger-partitionline-normal-synthetic-duplicate-loss'. Counterexample: SYNTHETIC_SWAP: Synthetic swap detected: record(s) ['m-099'] lost while record(s) ['m-098'] duplicated (attempted: 100, consumed: 100)"
+    }
+  ]
+}

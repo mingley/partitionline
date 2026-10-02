@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "audited_source": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "peer_identity": "librdkafka, partitionline",
+  "peer_identities": [
+    "librdkafka",
+    "partitionline"
+  ],
+  "negotiated_api_versions": {},
+  "total_cases": 1,
+  "denominator_cases": 1,
+  "excluded_cases": 0,
+  "status_counts": {
+    "blocked": 0,
+    "not_run": 0,
+    "not_applicable": 0,
+    "local_consistency": 0,
+    "failed": 1,
+    "unsupported": 0,
+    "independent_pass": 0
+  },
+  "total_attempts": 4,
+  "passed_cases_count": 0,
+  "failing_cases": [
+    "librdkafka-0125-flush-overrides-linger"
+  ],
+  "blocked_cases": [],
+  "not_run_cases": [],
+  "unsupported_cases": [],
+  "flaky_cases": [],
+  "dispositions": {
+    "librdkafka-0125-flush-overrides-linger": "failed"
+  },
+  "cases": {
+    "librdkafka-0125-flush-overrides-linger": {
+      "id": "librdkafka-0125-flush-overrides-linger",
+      "in_denominator": true,
+      "final_status": "failed",
+      "first_status": "independent_pass",
+      "attempts_count": 4,
+      "attempts": [
+        {
+          "case_id": "librdkafka-0125-flush-overrides-linger",
+          "attempt": 1,
+          "status": "independent_pass",
+          "artifacts": [
+            "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.result.json"
+          ],
+          "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+          "peer_pin": "2.15.0",
+          "peer_identity": "librdkafka",
+          "reason": "librdkafka normal; selected assertion only",
+          "report_source": "docs/evidence/conformance/KL01-13/run-02/conformance-attempts.json"
+        },
+        {
+          "case_id": "librdkafka-0125-flush-overrides-linger",
+          "attempt": 2,
+          "status": "independent_pass",
+          "artifacts": [
+            "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.result.json"
+          ],
+          "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+          "peer_pin": "2.15.0",
+          "peer_identity": "partitionline",
+          "reason": "partitionline normal; selected assertion only",
+          "report_source": "docs/evidence/conformance/KL01-13/run-02/conformance-attempts.json"
+        },
+        {
+          "case_id": "librdkafka-0125-flush-overrides-linger",
+          "attempt": 3,
+          "status": "failed",
+          "artifacts": [
+            "docs/evidence/conformance/KL01-13/run-02/librdkafka-omit-flush.result.json"
+          ],
+          "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+          "peer_pin": "2.15.0",
+          "peer_identity": "librdkafka",
+          "reason": "librdkafka omit-flush; selected assertion only",
+          "report_source": "docs/evidence/conformance/KL01-13/run-02/conformance-attempts.json"
+        },
+        {
+          "case_id": "librdkafka-0125-flush-overrides-linger",
+          "attempt": 4,
+          "status": "failed",
+          "artifacts": [
+            "docs/evidence/conformance/KL01-13/run-02/partitionline-omit-flush.result.json"
+          ],
+          "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+          "peer_pin": "2.15.0",
+          "peer_identity": "partitionline",
+          "reason": "partitionline omit-flush; selected assertion only",
+          "report_source": "docs/evidence/conformance/KL01-13/run-02/conformance-attempts.json"
+        }
+      ],
+      "passed": false,
+      "notes": [
+        "Case failed on attempt 1; failure cannot be erased by rerun"
+      ]
+    }
+  },
+  "preserved_attempt_log": [
+    {
+      "case_id": "librdkafka-0125-flush-overrides-linger",
+      "attempt": 1,
+      "status": "independent_pass",
+      "artifacts": [
+        "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.result.json"
+      ],
+      "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "peer_pin": "2.15.0",
+      "peer_identity": "librdkafka",
+      "reason": "librdkafka normal; selected assertion only",
+      "report_source": "docs/evidence/conformance/KL01-13/run-02/conformance-attempts.json"
+    },
+    {
+      "case_id": "librdkafka-0125-flush-overrides-linger",
+      "attempt": 2,
+      "status": "independent_pass",
+      "artifacts": [
+        "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.result.json"
+      ],
+      "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "peer_pin": "2.15.0",
+      "peer_identity": "partitionline",
+      "reason": "partitionline normal; selected assertion only",
+      "report_source": "docs/evidence/conformance/KL01-13/run-02/conformance-attempts.json"
+    },
+    {
+      "case_id": "librdkafka-0125-flush-overrides-linger",
+      "attempt": 3,
+      "status": "failed",
+      "artifacts": [
+        "docs/evidence/conformance/KL01-13/run-02/librdkafka-omit-flush.result.json"
+      ],
+      "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "peer_pin": "2.15.0",
+      "peer_identity": "librdkafka",
+      "reason": "librdkafka omit-flush; selected assertion only",
+      "report_source": "docs/evidence/conformance/KL01-13/run-02/conformance-attempts.json"
+    },
+    {
+      "case_id": "librdkafka-0125-flush-overrides-linger",
+      "attempt": 4,
+      "status": "failed",
+      "artifacts": [
+        "docs/evidence/conformance/KL01-13/run-02/partitionline-omit-flush.result.json"
+      ],
+      "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "peer_pin": "2.15.0",
+      "peer_identity": "partitionline",
+      "reason": "partitionline omit-flush; selected assertion only",
+      "report_source": "docs/evidence/conformance/KL01-13/run-02/conformance-attempts.json"
+    }
+  ],
+  "success": false,
+  "exit_code": 1
+}

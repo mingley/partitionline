@@ -1,0 +1,80 @@
+   Compiling partitionline v0.1.0 (/workspace/work/request-header/baseline)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 22.81s
+     Running unittests src/lib.rs (/workspace/work/target-request-header-tests/debug/deps/partitionline-80ec805f930edf61)
+
+running 72 tests
+test protocol::header::tests::add_partitions_to_txn_v3_is_flexible_v2_is_not ... ok
+test protocol::header::tests::add_offsets_to_txn_v3_is_flexible_v2_is_not ... ok
+test protocol::header::tests::allocate_producer_ids_v0_is_flexible ... ok
+test protocol::header::tests::add_raft_voter_headers_are_always_flexible ... ok
+test protocol::header::tests::alter_client_quotas_v1_is_flexible_v0_is_not ... ok
+test protocol::header::tests::acl_apis_v2_are_flexible_v1_is_not ... ok
+test protocol::header::tests::alter_configs_v2_is_flexible_v1_is_not ... ok
+test protocol::header::tests::alter_partition_reassignments_v0_is_flexible ... ok
+test protocol::header::tests::alter_replica_log_dirs_v2_is_flexible_v1_is_not ... ok
+test protocol::header::tests::alter_share_group_offsets_v0_is_flexible ... ok
+test protocol::header::tests::alter_user_scram_credentials_v0_is_flexible ... ok
+test protocol::header::tests::api_versions_response_header_never_flexible ... ok
+test protocol::header::tests::assign_replicas_to_dirs_v0_is_flexible ... ok
+test protocol::header::tests::consumer_group_describe_v1_is_flexible ... ok
+test protocol::header::tests::create_delegation_token_v3_is_flexible ... ok
+test protocol::header::tests::consumer_group_heartbeat_v0_to_v1_are_flexible ... ok
+test protocol::header::tests::check_correlation_matches_java ... ok
+test protocol::header::tests::create_topics_v5_is_flexible_v4_is_not ... ok
+test protocol::header::tests::create_partitions_v2_is_flexible_v1_is_not ... ok
+test protocol::header::tests::delete_groups_v2_is_flexible_v1_is_not ... ok
+test protocol::header::tests::delete_records_v2_is_flexible_v1_is_not ... ok
+test protocol::header::tests::delete_share_group_offsets_v0_is_flexible ... ok
+test protocol::header::tests::delete_topics_v4_is_flexible_v3_is_not ... ok
+test protocol::header::tests::describe_client_quotas_v1_is_flexible_v0_is_not ... ok
+test protocol::header::tests::describe_cluster_v0_to_v2_are_flexible ... ok
+test protocol::header::tests::describe_configs_v4_is_flexible_v3_is_not ... ok
+test protocol::header::tests::describe_delegation_token_v3_is_flexible ... ok
+test protocol::header::tests::describe_groups_v6_is_flexible_v4_is_not ... ok
+test protocol::header::tests::describe_log_dirs_v4_is_flexible ... ok
+test protocol::header::tests::describe_producers_v0_is_flexible ... ok
+test protocol::header::tests::describe_quorum_headers_are_always_flexible ... ok
+test protocol::header::tests::describe_share_group_offsets_v0_is_flexible ... ok
+test protocol::header::tests::describe_topic_partitions_v0_is_flexible ... ok
+test protocol::header::tests::describe_transactions_v0_is_flexible ... ok
+test protocol::header::tests::describe_user_scram_credentials_v0_is_flexible ... ok
+test protocol::header::tests::elect_leaders_headers_match_apache_flexible_boundary ... ok
+test protocol::header::tests::end_txn_v3_is_flexible_v2_is_not ... ok
+test protocol::header::tests::fetch_v12_is_flexible_v11_is_not ... ok
+test protocol::header::tests::expire_delegation_token_v2_is_flexible ... ok
+test protocol::header::tests::get_telemetry_subscriptions_v0_is_flexible ... ok
+test protocol::header::tests::find_coordinator_v3_is_flexible_v2_is_not ... ok
+test protocol::header::tests::heartbeat_v4_is_flexible_v3_is_not ... ok
+test protocol::header::tests::init_producer_id_v2_is_flexible_v1_is_not ... ok
+test protocol::header::tests::incremental_alter_configs_v1_is_flexible_v0_is_not ... ok
+test protocol::header::tests::list_groups_v5_is_flexible_v2_is_not ... ok
+test protocol::header::tests::join_group_v6_is_flexible_v5_is_not ... ok
+test protocol::header::tests::leave_group_v4_is_flexible_v3_is_not ... ok
+test protocol::header::tests::list_config_resources_v1_is_flexible ... ok
+test protocol::header::tests::list_offsets_v6_is_flexible_v5_is_not ... ok
+test protocol::header::tests::list_partition_reassignments_v0_is_flexible ... ok
+test protocol::header::tests::list_transactions_is_flexible ... ok
+test protocol::header::tests::offset_commit_v8_is_flexible_v7_is_not ... ok
+test protocol::header::tests::offset_fetch_v6_is_flexible_v5_is_not ... ok
+test protocol::header::tests::offset_for_leader_epoch_v4_is_flexible_v3_is_not ... ok
+test protocol::header::tests::produce_v9_is_flexible_v8_is_not ... ok
+test protocol::header::tests::push_telemetry_v0_is_flexible ... ok
+test protocol::header::tests::remove_raft_voter_headers_are_always_flexible ... ok
+test protocol::header::tests::renew_delegation_token_v2_is_flexible ... ok
+test protocol::header::tests::request_header_display_matches_java ... ok
+test protocol::header::tests::request_header_client_id_is_classic_even_when_flexible ... ok
+test protocol::header::tests::request_header_size_matches_java ... ok
+test protocol::header::tests::sasl_handshake_v0_and_v1_are_classic ... ok
+test protocol::header::tests::share_acknowledge_v0_and_v1_are_flexible ... ok
+test protocol::header::tests::share_fetch_v0_and_v1_are_flexible ... ok
+test protocol::header::tests::share_group_describe_v0_and_v1_are_flexible ... ok
+test protocol::header::tests::share_group_heartbeat_v0_and_v1_are_flexible ... ok
+test protocol::header::tests::sync_group_v4_is_flexible_v3_is_not ... ok
+test protocol::header::tests::txn_offset_commit_v3_is_flexible_v2_is_not ... ok
+test protocol::header::tests::unregister_broker_v0_is_flexible ... ok
+test protocol::header::tests::update_features_v0_to_v2_are_flexible ... ok
+test protocol::header::tests::write_txn_markers_v1_is_flexible_v0_is_not ... ok
+test protocol::header::tests::sasl_authenticate_v2_is_flexible_v1_is_not ... ok
+
+test result: ok. 72 passed; 0 failed; 0 ignored; 0 measured; 1028 filtered out; finished in 0.00s
+

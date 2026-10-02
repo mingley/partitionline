@@ -1,0 +1,502 @@
+[
+  {
+    "repetition": 0,
+    "case": "header-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep0-header-classic.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-classic",
+      "10000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 0,
+    "case": "header-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep0-header-flexible.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-flexible",
+      "10000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 0,
+    "case": "micro-request-v9-body",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep0-micro-request-v9-body.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "micro-request-v9-body",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 0,
+    "case": "frame-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep0-frame-classic.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-classic",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 0,
+    "case": "frame-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep0-frame-flexible.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-flexible",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 1,
+    "case": "header-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep1-header-classic.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-classic",
+      "10000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 1,
+    "case": "frame-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep1-frame-flexible.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-flexible",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 1,
+    "case": "frame-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep1-frame-classic.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-classic",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 1,
+    "case": "micro-request-v9-body",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep1-micro-request-v9-body.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "micro-request-v9-body",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 1,
+    "case": "header-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep1-header-flexible.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-flexible",
+      "10000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 2,
+    "case": "micro-request-v9-body",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep2-micro-request-v9-body.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "micro-request-v9-body",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 2,
+    "case": "frame-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep2-frame-classic.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-classic",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 2,
+    "case": "frame-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep2-frame-flexible.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-flexible",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 2,
+    "case": "header-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep2-header-classic.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-classic",
+      "10000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 2,
+    "case": "header-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep2-header-flexible.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-flexible",
+      "10000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 3,
+    "case": "micro-request-v9-body",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep3-micro-request-v9-body.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "micro-request-v9-body",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 3,
+    "case": "header-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep3-header-flexible.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-flexible",
+      "10000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 3,
+    "case": "header-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep3-header-classic.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-classic",
+      "10000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 3,
+    "case": "frame-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep3-frame-flexible.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-flexible",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 3,
+    "case": "frame-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep3-frame-classic.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-classic",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 4,
+    "case": "frame-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep4-frame-flexible.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-flexible",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 4,
+    "case": "header-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep4-header-classic.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-classic",
+      "10000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 4,
+    "case": "header-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep4-header-flexible.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-flexible",
+      "10000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 4,
+    "case": "micro-request-v9-body",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep4-micro-request-v9-body.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "micro-request-v9-body",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  },
+  {
+    "repetition": 4,
+    "case": "frame-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/request-header/valgrind/usr/bin/valgrind",
+      "--tool=callgrind",
+      "--collect-atstart=no",
+      "--toggle-collect=header_cost_probe::encode_case",
+      "--callgrind-out-file=/workspace/work/request-header/instructions/rep4-frame-classic.callgrind.out",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-classic",
+      "100"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "VALGRIND_LIB": "/workspace/work/request-header/valgrind/usr/libexec/valgrind",
+    "exit_code": 0
+  }
+]

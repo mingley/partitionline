@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "baseline_sha": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+  "candidate_sha": null,
+  "all_arms_execute_baseline": true,
+  "binary_sha256": "b798af9b0995d894abe2c917845da246f34b54dbc785b51342f34136e2dbaff5",
+  "source_sha256": "234f3701ecbf09f68350718534b3347cde2742a77936096bcb68e5c26271c9e9",
+  "tool": "Callgrind",
+  "tool_version": "flexible",
+  "cpu_affinity": 3,
+  "repetitions": 5,
+  "processes": 25,
+  "order": "Rotate five cases by round index, reverse odd rounds; baseline-only, not candidate A/B",
+  "collection_scope": "Only inclusive header_cost_probe::encode_case calls (twenty warmups, one allocation census, N timed-loop calls); process/fixture/setup/output outside this function excluded. Divisor=N+21. No kernel instructions counted.",
+  "cases": {
+    "header-classic": {
+      "instructions_per_operation_samples": [
+        350.0,
+        350.0,
+        350.0,
+        350.0,
+        350.0
+      ],
+      "instructions_per_operation_median": 350.0
+    },
+    "header-flexible": {
+      "instructions_per_operation_samples": [
+        396.0,
+        396.0,
+        396.0,
+        396.0,
+        396.0
+      ],
+      "instructions_per_operation_median": 396.0
+    },
+    "micro-request-v9-body": {
+      "instructions_per_operation_samples": [
+        115249.99173553719,
+        115249.99173553719,
+        115249.99173553719,
+        115249.99173553719,
+        115249.99173553719
+      ],
+      "instructions_per_operation_median": 115249.99173553719
+    },
+    "frame-classic": {
+      "instructions_per_operation_samples": [
+        96252.59504132232,
+        96252.59504132232,
+        96252.59504132232,
+        96252.59504132232,
+        96252.59504132232
+      ],
+      "instructions_per_operation_median": 96252.59504132232
+    },
+    "frame-flexible": {
+      "instructions_per_operation_samples": [
+        115704.22314049587,
+        115704.22314049587,
+        115704.22314049587,
+        115704.22314049587,
+        115704.22314049587
+      ],
+      "instructions_per_operation_median": 115704.22314049587
+    }
+  },
+  "header_instruction_share": {
+    "classic": {
+      "paired_share_pct_samples": [
+        0.3636265597304063,
+        0.3636265597304063,
+        0.3636265597304063,
+        0.3636265597304063,
+        0.3636265597304063
+      ],
+      "paired_median_share_pct": 0.3636265597304063,
+      "paired_median_share_ci95_pct": [
+        0.3636265597304063,
+        0.3636265597304063
+      ],
+      "ratio_of_medians_share_pct": 0.3636265597304063
+    },
+    "flexible": {
+      "paired_share_pct_samples": [
+        0.34225198463080303,
+        0.34225198463080303,
+        0.34225198463080303,
+        0.34225198463080303,
+        0.34225198463080303
+      ],
+      "paired_median_share_pct": 0.34225198463080303,
+      "paired_median_share_ci95_pct": [
+        0.34225198463080303,
+        0.34225198463080303
+      ],
+      "ratio_of_medians_share_pct": 0.34225198463080303
+    }
+  },
+  "bootstrap": {
+    "resamples": 20000,
+    "seed": 53003,
+    "method": "percentile CI of median matched-round header/full-frame instruction-cost share"
+  },
+  "limits": [
+    "Default13-byte client_id; Producev8 classic/v9 flexible;100seeded records;retained16KiB output buffer. No tiny RPC bodies or long client IDs measured.",
+    "Header numerator includes dispatch/clear/black-box overhead and all header fields, including correlation ID; preencoding cannot eliminate all of it.",
+    "This does not change the original body-only micro-request benchmark, ratchet an instruction baseline, or demonstrate a candidate speedup.",
+    "Probe uses the existing codec CountingAlloc allocator; timed allocation counts are separately recorded. Instruction collection includes one census-enabled call and all other census-disabled calls."
+  ]
+}

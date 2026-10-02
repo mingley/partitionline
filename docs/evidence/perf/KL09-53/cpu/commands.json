@@ -1,0 +1,378 @@
+[
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "git",
+      "status",
+      "--porcelain"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 0,
+    "case": "header-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-classic",
+      "10000000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 0,
+    "case": "header-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-flexible",
+      "10000000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 0,
+    "case": "micro-request-v9-body",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "micro-request-v9-body",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 0,
+    "case": "frame-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-classic",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 0,
+    "case": "frame-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-flexible",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 1,
+    "case": "header-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-classic",
+      "10000000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 1,
+    "case": "frame-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-flexible",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 1,
+    "case": "frame-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-classic",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 1,
+    "case": "micro-request-v9-body",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "micro-request-v9-body",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 1,
+    "case": "header-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-flexible",
+      "10000000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 2,
+    "case": "micro-request-v9-body",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "micro-request-v9-body",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 2,
+    "case": "frame-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-classic",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 2,
+    "case": "frame-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-flexible",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 2,
+    "case": "header-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-classic",
+      "10000000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 2,
+    "case": "header-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-flexible",
+      "10000000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 3,
+    "case": "micro-request-v9-body",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "micro-request-v9-body",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 3,
+    "case": "header-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-flexible",
+      "10000000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 3,
+    "case": "header-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-classic",
+      "10000000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 3,
+    "case": "frame-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-flexible",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 3,
+    "case": "frame-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-classic",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 4,
+    "case": "frame-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-flexible",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 4,
+    "case": "header-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-classic",
+      "10000000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 4,
+    "case": "header-flexible",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "header-flexible",
+      "10000000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 4,
+    "case": "micro-request-v9-body",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "micro-request-v9-body",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "repetition": 4,
+    "case": "frame-classic",
+    "argv": [
+      "taskset",
+      "-c",
+      "3",
+      "/workspace/work/target-request-header/header-cost-probe",
+      "frame-classic",
+      "100000"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "rustc",
+      "--version"
+    ],
+    "cwd": "/workspace/work/request-header/baseline",
+    "exit_code": 0
+  }
+]

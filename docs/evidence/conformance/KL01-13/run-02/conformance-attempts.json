@@ -1,0 +1,45 @@
+{
+  "cases": [
+    {
+      "id": "librdkafka-0125-flush-overrides-linger",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "independent_pass",
+          "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+          "peer_pin": "2.15.0",
+          "peer_identity": "librdkafka",
+          "reason": "librdkafka normal; selected assertion only",
+          "artifact": "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.result.json"
+        },
+        {
+          "attempt": 2,
+          "status": "independent_pass",
+          "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+          "peer_pin": "2.15.0",
+          "peer_identity": "partitionline",
+          "reason": "partitionline normal; selected assertion only",
+          "artifact": "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.result.json"
+        },
+        {
+          "attempt": 3,
+          "status": "failed",
+          "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+          "peer_pin": "2.15.0",
+          "peer_identity": "librdkafka",
+          "reason": "librdkafka omit-flush; selected assertion only",
+          "artifact": "docs/evidence/conformance/KL01-13/run-02/librdkafka-omit-flush.result.json"
+        },
+        {
+          "attempt": 4,
+          "status": "failed",
+          "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+          "peer_pin": "2.15.0",
+          "peer_identity": "partitionline",
+          "reason": "partitionline omit-flush; selected assertion only",
+          "artifact": "docs/evidence/conformance/KL01-13/run-02/partitionline-omit-flush.result.json"
+        }
+      ]
+    }
+  ]
+}

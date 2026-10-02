@@ -1,0 +1,212 @@
+{
+  "card": "KL01-13",
+  "artifact_checks": [
+    {
+      "result": "docs/evidence/conformance/KL01-13/run-01/librdkafka-omit-flush.result.json",
+      "behavior_pass": false,
+      "history_pass": true,
+      "original_bounds_rechecked": true,
+      "artifacts": [
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/librdkafka-omit-flush.events.jsonl",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/librdkafka-omit-flush.history.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/librdkafka-omit-flush.history-check.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/librdkafka-omit-flush.run.log",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "result": "docs/evidence/conformance/KL01-13/run-01/partitionline-omit-flush.result.json",
+      "behavior_pass": false,
+      "history_pass": true,
+      "original_bounds_rechecked": true,
+      "artifacts": [
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/partitionline-omit-flush.events.jsonl",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/partitionline-omit-flush.history.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/partitionline-omit-flush.history-check.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/partitionline-omit-flush.run.log",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "result": "docs/evidence/conformance/KL01-13/run-01/partitionline-normal.result.json",
+      "behavior_pass": true,
+      "history_pass": true,
+      "original_bounds_rechecked": true,
+      "artifacts": [
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/partitionline-normal.events.jsonl",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/partitionline-normal.history.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/partitionline-normal.history-check.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/partitionline-normal.run.log",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "result": "docs/evidence/conformance/KL01-13/run-01/librdkafka-normal.result.json",
+      "behavior_pass": true,
+      "history_pass": true,
+      "original_bounds_rechecked": true,
+      "artifacts": [
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/librdkafka-normal.events.jsonl",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/librdkafka-normal.history.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/librdkafka-normal.history-check.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-01/librdkafka-normal.run.log",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "result": "docs/evidence/conformance/KL01-13/run-02/librdkafka-omit-flush.result.json",
+      "behavior_pass": false,
+      "history_pass": true,
+      "original_bounds_rechecked": true,
+      "artifacts": [
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-omit-flush.events.jsonl",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-omit-flush.history.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-omit-flush.history-check.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-omit-flush.run.log",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "result": "docs/evidence/conformance/KL01-13/run-02/partitionline-omit-flush.result.json",
+      "behavior_pass": false,
+      "history_pass": true,
+      "original_bounds_rechecked": true,
+      "artifacts": [
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-omit-flush.events.jsonl",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-omit-flush.history.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-omit-flush.history-check.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-omit-flush.run.log",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "result": "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.result.json",
+      "behavior_pass": true,
+      "history_pass": true,
+      "original_bounds_rechecked": true,
+      "artifacts": [
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.events.jsonl",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.history.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.history-check.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/partitionline-normal.run.log",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "result": "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.result.json",
+      "behavior_pass": true,
+      "history_pass": true,
+      "original_bounds_rechecked": true,
+      "artifacts": [
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.events.jsonl",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.history.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.history-check.json",
+          "verified": true
+        },
+        {
+          "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.run.log",
+          "verified": true
+        }
+      ]
+    }
+  ],
+  "upstream_source_byte_identical": true,
+  "runner_sha256": "e8e4e6fca274221c29c17e419a3de2c58babae4cd683f40267b7e6fd3af3ac6c",
+  "tests": {
+    "artifact_false_green_guards": 4,
+    "history_checker": 45,
+    "conformance_report": 29,
+    "failed": 0,
+    "protocol_coverage": 15
+  },
+  "retained_runs": [
+    "run-01",
+    "run-02"
+  ],
+  "retained_intentional_behavior_failures": 4,
+  "full_c_cpp_suite_pass": false
+}

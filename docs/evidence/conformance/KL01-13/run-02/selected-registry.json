@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "audited_source": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "cases": [
+    {
+      "id": "librdkafka-0125-flush-overrides-linger",
+      "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "peer_version_pin": "2.15.0",
+      "denominator": true,
+      "disposition": "independent_pass",
+      "reason": "Only selected 0125 flush-overrides-linger assertion"
+    }
+  ]
+}

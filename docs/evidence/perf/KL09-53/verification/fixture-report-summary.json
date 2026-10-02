@@ -1,0 +1,365 @@
+{
+  "schema_version": 1,
+  "audited_source": null,
+  "peer_identity": "fixture:apache/kafka:3.9.1, fixture:apache/kafka:4.1.0",
+  "peer_identities": [
+    "fixture:apache/kafka:3.9.1",
+    "fixture:apache/kafka:4.1.0"
+  ],
+  "negotiated_api_versions": {
+    "Produce": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "Fetch": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17
+    ],
+    "Metadata": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13
+    ],
+    "ListOffsets": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  "total_cases": 8,
+  "denominator_cases": 8,
+  "excluded_cases": 0,
+  "status_counts": {
+    "blocked": 0,
+    "independent_pass": 0,
+    "not_applicable": 0,
+    "local_consistency": 8,
+    "not_run": 0,
+    "unsupported": 0,
+    "failed": 0
+  },
+  "total_attempts": 8,
+  "passed_cases_count": 8,
+  "failing_cases": [],
+  "blocked_cases": [],
+  "not_run_cases": [],
+  "unsupported_cases": [],
+  "flaky_cases": [],
+  "dispositions": {
+    "matrix-cell-produce-3-9-1": "local_consistency",
+    "matrix-cell-produce-4-1-0": "local_consistency",
+    "matrix-cell-fetch-3-9-1": "local_consistency",
+    "matrix-cell-fetch-4-1-0": "local_consistency",
+    "matrix-cell-metadata-3-9-1": "local_consistency",
+    "matrix-cell-metadata-4-1-0": "local_consistency",
+    "matrix-cell-listoffsets-3-9-1": "local_consistency",
+    "matrix-cell-listoffsets-4-1-0": "local_consistency"
+  },
+  "cases": {
+    "matrix-cell-produce-3-9-1": {
+      "id": "matrix-cell-produce-3-9-1",
+      "in_denominator": true,
+      "final_status": "local_consistency",
+      "first_status": "local_consistency",
+      "attempts_count": 1,
+      "attempts": [
+        {
+          "case_id": "matrix-cell-produce-3-9-1",
+          "attempt": 1,
+          "status": "local_consistency",
+          "artifacts": [],
+          "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+          "peer_pin": "3.9.1",
+          "peer_identity": "fixture:apache/kafka:3.9.1",
+          "reason": "Cell Produce x 3.9.1 (versions 3-11): decoded required fields vs pinned Kafka 3.9.1. Fast offline consistency path.",
+          "report_source": "/workspace/work/request-header/fixture-report.json"
+        }
+      ],
+      "passed": true,
+      "notes": []
+    },
+    "matrix-cell-produce-4-1-0": {
+      "id": "matrix-cell-produce-4-1-0",
+      "in_denominator": true,
+      "final_status": "local_consistency",
+      "first_status": "local_consistency",
+      "attempts_count": 1,
+      "attempts": [
+        {
+          "case_id": "matrix-cell-produce-4-1-0",
+          "attempt": 1,
+          "status": "local_consistency",
+          "artifacts": [],
+          "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+          "peer_pin": "4.1.0",
+          "peer_identity": "fixture:apache/kafka:4.1.0",
+          "reason": "Cell Produce x 4.1.0 (versions 3-12): decoded required fields vs pinned Kafka 4.1.0. Fast offline consistency path.",
+          "report_source": "/workspace/work/request-header/fixture-report.json"
+        }
+      ],
+      "passed": true,
+      "notes": []
+    },
+    "matrix-cell-fetch-3-9-1": {
+      "id": "matrix-cell-fetch-3-9-1",
+      "in_denominator": true,
+      "final_status": "local_consistency",
+      "first_status": "local_consistency",
+      "attempts_count": 1,
+      "attempts": [
+        {
+          "case_id": "matrix-cell-fetch-3-9-1",
+          "attempt": 1,
+          "status": "local_consistency",
+          "artifacts": [],
+          "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+          "peer_pin": "3.9.1",
+          "peer_identity": "fixture:apache/kafka:3.9.1",
+          "reason": "Cell Fetch x 3.9.1 (versions 4-17): decoded required fields vs pinned Kafka 3.9.1. Fast offline consistency path.",
+          "report_source": "/workspace/work/request-header/fixture-report.json"
+        }
+      ],
+      "passed": true,
+      "notes": []
+    },
+    "matrix-cell-fetch-4-1-0": {
+      "id": "matrix-cell-fetch-4-1-0",
+      "in_denominator": true,
+      "final_status": "local_consistency",
+      "first_status": "local_consistency",
+      "attempts_count": 1,
+      "attempts": [
+        {
+          "case_id": "matrix-cell-fetch-4-1-0",
+          "attempt": 1,
+          "status": "local_consistency",
+          "artifacts": [],
+          "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+          "peer_pin": "4.1.0",
+          "peer_identity": "fixture:apache/kafka:4.1.0",
+          "reason": "Cell Fetch x 4.1.0 (versions 4-17): decoded required fields vs pinned Kafka 4.1.0. Fast offline consistency path.",
+          "report_source": "/workspace/work/request-header/fixture-report.json"
+        }
+      ],
+      "passed": true,
+      "notes": []
+    },
+    "matrix-cell-metadata-3-9-1": {
+      "id": "matrix-cell-metadata-3-9-1",
+      "in_denominator": true,
+      "final_status": "local_consistency",
+      "first_status": "local_consistency",
+      "attempts_count": 1,
+      "attempts": [
+        {
+          "case_id": "matrix-cell-metadata-3-9-1",
+          "attempt": 1,
+          "status": "local_consistency",
+          "artifacts": [],
+          "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+          "peer_pin": "3.9.1",
+          "peer_identity": "fixture:apache/kafka:3.9.1",
+          "reason": "Cell Metadata x 3.9.1 (versions 1-12): decoded required fields vs pinned Kafka 3.9.1. Fast offline consistency path.",
+          "report_source": "/workspace/work/request-header/fixture-report.json"
+        }
+      ],
+      "passed": true,
+      "notes": []
+    },
+    "matrix-cell-metadata-4-1-0": {
+      "id": "matrix-cell-metadata-4-1-0",
+      "in_denominator": true,
+      "final_status": "local_consistency",
+      "first_status": "local_consistency",
+      "attempts_count": 1,
+      "attempts": [
+        {
+          "case_id": "matrix-cell-metadata-4-1-0",
+          "attempt": 1,
+          "status": "local_consistency",
+          "artifacts": [],
+          "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+          "peer_pin": "4.1.0",
+          "peer_identity": "fixture:apache/kafka:4.1.0",
+          "reason": "Cell Metadata x 4.1.0 (versions 1-13): decoded required fields vs pinned Kafka 4.1.0. Fast offline consistency path.",
+          "report_source": "/workspace/work/request-header/fixture-report.json"
+        }
+      ],
+      "passed": true,
+      "notes": []
+    },
+    "matrix-cell-listoffsets-3-9-1": {
+      "id": "matrix-cell-listoffsets-3-9-1",
+      "in_denominator": true,
+      "final_status": "local_consistency",
+      "first_status": "local_consistency",
+      "attempts_count": 1,
+      "attempts": [
+        {
+          "case_id": "matrix-cell-listoffsets-3-9-1",
+          "attempt": 1,
+          "status": "local_consistency",
+          "artifacts": [],
+          "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+          "peer_pin": "3.9.1",
+          "peer_identity": "fixture:apache/kafka:3.9.1",
+          "reason": "Cell ListOffsets x 3.9.1 (versions 1-9): decoded required fields vs pinned Kafka 3.9.1. Fast offline consistency path.",
+          "report_source": "/workspace/work/request-header/fixture-report.json"
+        }
+      ],
+      "passed": true,
+      "notes": []
+    },
+    "matrix-cell-listoffsets-4-1-0": {
+      "id": "matrix-cell-listoffsets-4-1-0",
+      "in_denominator": true,
+      "final_status": "local_consistency",
+      "first_status": "local_consistency",
+      "attempts_count": 1,
+      "attempts": [
+        {
+          "case_id": "matrix-cell-listoffsets-4-1-0",
+          "attempt": 1,
+          "status": "local_consistency",
+          "artifacts": [],
+          "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+          "peer_pin": "4.1.0",
+          "peer_identity": "fixture:apache/kafka:4.1.0",
+          "reason": "Cell ListOffsets x 4.1.0 (versions 1-10): decoded required fields vs pinned Kafka 4.1.0. Fast offline consistency path.",
+          "report_source": "/workspace/work/request-header/fixture-report.json"
+        }
+      ],
+      "passed": true,
+      "notes": []
+    }
+  },
+  "preserved_attempt_log": [
+    {
+      "case_id": "matrix-cell-produce-3-9-1",
+      "attempt": 1,
+      "status": "local_consistency",
+      "artifacts": [],
+      "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+      "peer_pin": "3.9.1",
+      "peer_identity": "fixture:apache/kafka:3.9.1",
+      "reason": "Cell Produce x 3.9.1 (versions 3-11): decoded required fields vs pinned Kafka 3.9.1. Fast offline consistency path.",
+      "report_source": "/workspace/work/request-header/fixture-report.json"
+    },
+    {
+      "case_id": "matrix-cell-produce-4-1-0",
+      "attempt": 1,
+      "status": "local_consistency",
+      "artifacts": [],
+      "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+      "peer_pin": "4.1.0",
+      "peer_identity": "fixture:apache/kafka:4.1.0",
+      "reason": "Cell Produce x 4.1.0 (versions 3-12): decoded required fields vs pinned Kafka 4.1.0. Fast offline consistency path.",
+      "report_source": "/workspace/work/request-header/fixture-report.json"
+    },
+    {
+      "case_id": "matrix-cell-fetch-3-9-1",
+      "attempt": 1,
+      "status": "local_consistency",
+      "artifacts": [],
+      "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+      "peer_pin": "3.9.1",
+      "peer_identity": "fixture:apache/kafka:3.9.1",
+      "reason": "Cell Fetch x 3.9.1 (versions 4-17): decoded required fields vs pinned Kafka 3.9.1. Fast offline consistency path.",
+      "report_source": "/workspace/work/request-header/fixture-report.json"
+    },
+    {
+      "case_id": "matrix-cell-fetch-4-1-0",
+      "attempt": 1,
+      "status": "local_consistency",
+      "artifacts": [],
+      "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+      "peer_pin": "4.1.0",
+      "peer_identity": "fixture:apache/kafka:4.1.0",
+      "reason": "Cell Fetch x 4.1.0 (versions 4-17): decoded required fields vs pinned Kafka 4.1.0. Fast offline consistency path.",
+      "report_source": "/workspace/work/request-header/fixture-report.json"
+    },
+    {
+      "case_id": "matrix-cell-metadata-3-9-1",
+      "attempt": 1,
+      "status": "local_consistency",
+      "artifacts": [],
+      "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+      "peer_pin": "3.9.1",
+      "peer_identity": "fixture:apache/kafka:3.9.1",
+      "reason": "Cell Metadata x 3.9.1 (versions 1-12): decoded required fields vs pinned Kafka 3.9.1. Fast offline consistency path.",
+      "report_source": "/workspace/work/request-header/fixture-report.json"
+    },
+    {
+      "case_id": "matrix-cell-metadata-4-1-0",
+      "attempt": 1,
+      "status": "local_consistency",
+      "artifacts": [],
+      "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+      "peer_pin": "4.1.0",
+      "peer_identity": "fixture:apache/kafka:4.1.0",
+      "reason": "Cell Metadata x 4.1.0 (versions 1-13): decoded required fields vs pinned Kafka 4.1.0. Fast offline consistency path.",
+      "report_source": "/workspace/work/request-header/fixture-report.json"
+    },
+    {
+      "case_id": "matrix-cell-listoffsets-3-9-1",
+      "attempt": 1,
+      "status": "local_consistency",
+      "artifacts": [],
+      "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+      "peer_pin": "3.9.1",
+      "peer_identity": "fixture:apache/kafka:3.9.1",
+      "reason": "Cell ListOffsets x 3.9.1 (versions 1-9): decoded required fields vs pinned Kafka 3.9.1. Fast offline consistency path.",
+      "report_source": "/workspace/work/request-header/fixture-report.json"
+    },
+    {
+      "case_id": "matrix-cell-listoffsets-4-1-0",
+      "attempt": 1,
+      "status": "local_consistency",
+      "artifacts": [],
+      "source_pin": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+      "peer_pin": "4.1.0",
+      "peer_identity": "fixture:apache/kafka:4.1.0",
+      "reason": "Cell ListOffsets x 4.1.0 (versions 1-10): decoded required fields vs pinned Kafka 4.1.0. Fast offline consistency path.",
+      "report_source": "/workspace/work/request-header/fixture-report.json"
+    }
+  ],
+  "success": true,
+  "exit_code": 0
+}

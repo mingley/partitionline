@@ -1,0 +1,11 @@
+Err:1 https://snapshot.debian.org/archive/debian/20260828T000000Z trixie InRelease
+  Invalid response from proxy: HTTP/1.1 403 Forbidden  content-length: 16  content-type: text/plain  date: Fri, 02 Oct 2026 18:53:44 GMT  server: envoy  connection: close     [proxy IP redacted]
+Err:2 https://snapshot.debian.org/archive/debian/20260828T000000Z trixie-updates InRelease
+  Invalid response from proxy: HTTP/1.1 403 Forbidden  content-length: 16  content-type: text/plain  date: Fri, 02 Oct 2026 18:53:44 GMT  server: envoy  connection: close     [proxy IP redacted]
+Err:3 https://snapshot.debian.org/archive/debian-security/20260828T000000Z trixie-security InRelease
+  Invalid response from proxy: HTTP/1.1 403 Forbidden  content-length: 16  content-type: text/plain  date: Fri, 02 Oct 2026 18:53:44 GMT  server: envoy  connection: close     [proxy IP redacted]
+Reading package lists...
+W: Failed to fetch https://snapshot.debian.org/archive/debian/20260828T000000Z/dists/trixie/InRelease  Invalid response from proxy: HTTP/1.1 403 Forbidden  content-length: 16  content-type: text/plain  date: Fri, 02 Oct 2026 18:53:44 GMT  server: envoy  connection: close     [proxy IP redacted]
+W: Failed to fetch https://snapshot.debian.org/archive/debian/20260828T000000Z/dists/trixie-updates/InRelease  Invalid response from proxy: HTTP/1.1 403 Forbidden  content-length: 16  content-type: text/plain  date: Fri, 02 Oct 2026 18:53:44 GMT  server: envoy  connection: close     [proxy IP redacted]
+W: Failed to fetch https://snapshot.debian.org/archive/debian-security/20260828T000000Z/dists/trixie-security/InRelease  Invalid response from proxy: HTTP/1.1 403 Forbidden  content-length: 16  content-type: text/plain  date: Fri, 02 Oct 2026 18:53:44 GMT  server: envoy  connection: close     [proxy IP redacted]
+W: Some index files failed to download. They have been ignored, or old ones used instead.

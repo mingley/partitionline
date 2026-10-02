@@ -1,0 +1,99 @@
+{
+  "native_exit_code": 0,
+  "timing_assertions": [
+    {
+      "event": "timing_assertion",
+      "name": "NO_FLUSH",
+      "elapsed_ms": 10005.037165,
+      "lower_ms": 10000,
+      "upper_ms": 15000,
+      "passed": true
+    },
+    {
+      "event": "timing_assertion",
+      "name": "FLUSH",
+      "elapsed_ms": 1.048857,
+      "lower_ms": 0,
+      "upper_ms": 2500,
+      "passed": true
+    }
+  ],
+  "assertions_pass": true,
+  "expected_timing_bounds": {
+    "NO_FLUSH": [
+      10000,
+      15000
+    ],
+    "FLUSH": [
+      0,
+      2500
+    ]
+  },
+  "delivered_count": 100,
+  "independently_consumed_count": 100,
+  "high_watermark": [
+    {
+      "event": "high_watermark",
+      "low": 0,
+      "high": 100
+    }
+  ],
+  "variant": "normal",
+  "behavior_pass": true,
+  "peer": "librdkafka",
+  "topic": "kl01-13-librdkafka-normal-f5bff2da",
+  "history_checker_exit_code": 0,
+  "audit_exit_code": 0,
+  "source_pin": {
+    "repository": "https://github.com/confluentinc/librdkafka.git",
+    "tag": "v2.15.0",
+    "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+    "source_path": "tests/0125-immediate_flush.c",
+    "source_sha256": "1528ed781bf3aae5f1ea0a503e0059bd6c6de5c7f529279cbdda2445f423eb8e",
+    "selected_entry": "main_0125_immediate_flush",
+    "selected_assertion": "do_test_flush_overrides_linger_ms_time",
+    "excluded_sibling": "main_0125_immediate_flush_mock"
+  },
+  "source_git_commit": "5e2b3626517383bd7953b6285daea9dc2cc7ab70",
+  "build_provenance": {
+    "path": "docs/evidence/conformance/KL01-13/run-02/behavior-build-manifest.json",
+    "sha256": "6be8893dabd60916597c508300bd45962eb00f0df2018eb1d1b5b9eabcfd6dd7",
+    "compiled_source_commit": "5e2b3626517383bd7953b6285daea9dc2cc7ab70",
+    "compiled_source_digest": "893ca79078a794523c623cefd671af96add5d5afe08664a11c0d2647ad97c85e"
+  },
+  "source_clean": false,
+  "binary_sha256": "f2349a10f0a8e828d5bee4d2086d51fd75ce47d8b248e68a29f92db51257f972",
+  "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "oracle": "independent native C direct-assignment consumer + broker ListOffsets",
+  "adapters": {
+    "upstream_source_unchanged": true,
+    "shim_source_sha256": "588dc6e9b4012bbf20c2be4aa943d4bb4aac35ad436151e6605484eba84439c4",
+    "rust_adapter_sha256": "0ff806823b80098128bbfccd584fe05ec19fbb0e5db6e76400adc6a568fbe102"
+  },
+  "artifacts": [
+    {
+      "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.events.jsonl",
+      "type": "raw_events",
+      "sha256": "b213fddeca55effe32647473430fb3c5d742e14b7d1c25750da7df756da2497e",
+      "size_bytes": 46806
+    },
+    {
+      "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.history.json",
+      "type": "history",
+      "sha256": "d2bd1492f5734543d2f4c26cf9ab9a95d76097dc834f133dccb68f04f0f8efb9",
+      "size_bytes": 66658
+    },
+    {
+      "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.history-check.json",
+      "type": "history_verdict",
+      "sha256": "105fb943182c3e3c939a7af42b2832ddecbedc656f67afb9ef971aad41ac0aec",
+      "size_bytes": 491
+    },
+    {
+      "path": "docs/evidence/conformance/KL01-13/run-02/librdkafka-normal.run.log",
+      "type": "stdout_stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    }
+  ]
+}

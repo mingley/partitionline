@@ -1,0 +1,21 @@
+{
+  "valid": true,
+  "errors": 0,
+  "baseline_sha": "aeb205ddee136d915349ef9dd165d58e9d3aa109",
+  "candidate_sha": null,
+  "cpu_processes_validated": 25,
+  "instruction_processes_validated": 25,
+  "compressed_callgrind_checksums_verified": 25,
+  "decompressed_callgrind_checksums_verified": 25,
+  "original_named_body_census": {
+    "allocations": 17,
+    "bytes": 70766,
+    "samples": 10
+  },
+  "header_zero_allocation_samples": 20,
+  "confidence_intervals_reproduced": 4,
+  "tool_package_metadata_checksum_matches": true,
+  "source_and_binary_hashes_agree": true,
+  "standard_runtime_contract_validator_used": false,
+  "scope": "Read-only evidence-local visibility probes, not runtime result-contract artifacts or candidate A/B acceptance evidence."
+}

@@ -1,0 +1,15 @@
+{
+  "repetition": 3,
+  "case": "frame-flexible",
+  "iterations": 100,
+  "collected_calls": 121,
+  "instructions_retired": 14000211,
+  "instructions_per_encode_case": 115704.22314049587,
+  "raw_callgrind_sha256": "d1b8ee63ab98f2bc130e82e4b103fc72fa1da749cac1c2c17e6c1dbe2b9d9ec6",
+  "encoded_sample_sha256": "3f05e315fba69e0eb5703ba6b09681c6f11b67643f0556b4dc773d78189a1940",
+  "encoded_bytes": 12681,
+  "steady_allocations_per_operation": 12,
+  "steady_allocated_bytes_per_operation": 32760,
+  "header_decode_checks_passed": true,
+  "compressed_callgrind_sha256": "f257ad7104384069c13982477868166d4cb8997084134dd9f1ffff5aceba767c"
+}

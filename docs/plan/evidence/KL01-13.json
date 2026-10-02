@@ -1,0 +1,184 @@
+{
+  "id": "KL01-13",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "95b2419e4932a48f3274e82613691c250a2ee5fa",
+  "commands": [
+    "C_PEER_BUILD_DIR=/workspace/work/c-peer CASE_BUILD_DIR=/workspace/work/c-peer-behavior taskset -c 0-2,4 bash tests/conformance/librdkafka/build.sh",
+    "taskset -c 0-2,4 python3 tests/conformance/librdkafka/run.py --c-binary /workspace/work/c-peer/0125-peer --rust-binary /workspace/work/c-peer-behavior/rust-target/debug/partitionline-librdkafka-0125 --build-manifest /workspace/work/c-peer-behavior/behavior-build-manifest.json --kafka-home /workspace/work/c-peer/kafka_2.13-3.9.1 --bootstrap 127.0.0.1:19104 --output docs/evidence/conformance/KL01-13/run-02",
+    "python3 scripts/check-record-history.py --json <each of four run-02 actual histories> (exit0)",
+    "python3 scripts/check-record-history.py --json docs/evidence/conformance/KL01-13/run-02/synthetic-duplicate-loss.history.json (expected exit1)",
+    "python3 scripts/conformance-report.py docs/evidence/conformance/KL01-13/run-02/conformance-attempts.json --registry docs/evidence/conformance/KL01-13/run-02/selected-registry.json --json (expected exit1, preserves two deliberately failed attempts)",
+    "python3 -m unittest discover -s tests/conformance/librdkafka -p test_runner.py -v",
+    "python3 -m unittest discover -s tests/history -q",
+    "python3 -m unittest discover -s tests/conformance -p test_report.py -q",
+    "bash -n tests/conformance/librdkafka/build.sh benchmarks/peers/librdkafka/build-behavioral.sh",
+    "python3 -m py_compile tests/conformance/librdkafka/run.py tests/conformance/librdkafka/build-manifest.py",
+    "git diff --check",
+    "python3 -m unittest discover -s tests/conformance -p test_check_protocol_coverage.py -q",
+    "cargo fmt --manifest-path tests/conformance/librdkafka/rust/Cargo.toml --check",
+    "Root integration: SHA-256 verify all 38 compiled input files against pushed source 95b2419e4932a48f3274e82613691c250a2ee5fa",
+    "python3 -B -m unittest discover -s tests/conformance/librdkafka -p test_runner.py -v (pushed source,4passed)"
+  ],
+  "results": {
+    "upstream_pin": {
+      "repository": "https://github.com/confluentinc/librdkafka.git",
+      "tag": "v2.15.0",
+      "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "source_path": "tests/0125-immediate_flush.c",
+      "source_sha256": "1528ed781bf3aae5f1ea0a503e0059bd6c6de5c7f529279cbdda2445f423eb8e",
+      "selected_entry": "main_0125_immediate_flush",
+      "selected_assertion": "do_test_flush_overrides_linger_ms_time",
+      "excluded_sibling": "main_0125_immediate_flush_mock"
+    },
+    "upstream_source_byte_identical": true,
+    "selected_assertion": "10000-ms linger naturally delivers50 records in10000\u201315000ms; next50 flush(timeout2000) succeeds in<=2500ms; all100 consumed",
+    "run02": {
+      "librdkafka/omit-flush": {
+        "exit_code": 1,
+        "timings": [
+          {
+            "event": "timing_assertion",
+            "name": "NO_FLUSH",
+            "elapsed_ms": 10003.967275,
+            "lower_ms": 10000,
+            "upper_ms": 15000,
+            "passed": true
+          },
+          {
+            "event": "timing_assertion",
+            "name": "FLUSH",
+            "elapsed_ms": 10003.938058,
+            "lower_ms": 0,
+            "upper_ms": 2500,
+            "passed": false
+          }
+        ],
+        "delivered": 100,
+        "independently_consumed": 100,
+        "history_checker_exit": 0
+      },
+      "partitionline/omit-flush": {
+        "exit_code": 1,
+        "timings": [
+          {
+            "elapsed_ms": 10012.621418,
+            "event": "timing_assertion",
+            "lower_ms": 10000.0,
+            "name": "NO_FLUSH",
+            "passed": true,
+            "upper_ms": 15000.0
+          },
+          {
+            "elapsed_ms": 10014.149585000001,
+            "event": "timing_assertion",
+            "lower_ms": 0.0,
+            "name": "FLUSH",
+            "passed": false,
+            "upper_ms": 2500.0
+          }
+        ],
+        "delivered": 100,
+        "independently_consumed": 100,
+        "history_checker_exit": 0
+      },
+      "partitionline/normal": {
+        "exit_code": 0,
+        "timings": [
+          {
+            "elapsed_ms": 10013.230454,
+            "event": "timing_assertion",
+            "lower_ms": 10000.0,
+            "name": "NO_FLUSH",
+            "passed": true,
+            "upper_ms": 15000.0
+          },
+          {
+            "elapsed_ms": 2.18929,
+            "event": "timing_assertion",
+            "lower_ms": 0.0,
+            "name": "FLUSH",
+            "passed": true,
+            "upper_ms": 2500.0
+          }
+        ],
+        "delivered": 100,
+        "independently_consumed": 100,
+        "history_checker_exit": 0
+      },
+      "librdkafka/normal": {
+        "exit_code": 0,
+        "timings": [
+          {
+            "event": "timing_assertion",
+            "name": "NO_FLUSH",
+            "elapsed_ms": 10005.037165,
+            "lower_ms": 10000,
+            "upper_ms": 15000,
+            "passed": true
+          },
+          {
+            "event": "timing_assertion",
+            "name": "FLUSH",
+            "elapsed_ms": 1.048857,
+            "lower_ms": 0,
+            "upper_ms": 2500,
+            "passed": true
+          }
+        ],
+        "delivered": 100,
+        "independently_consumed": 100,
+        "history_checker_exit": 0
+      }
+    },
+    "normalized_peer_histories_equal": true,
+    "synthetic_duplicate_loss_exit_code": 1,
+    "minimal_counterexample": true,
+    "retained_failed_attempts_per_run": 2,
+    "retained_runs": [
+      "run-01",
+      "run-02"
+    ],
+    "aggregate_exit_code": 1,
+    "tests": {
+      "artifact_guards": 4,
+      "record_history": 45,
+      "conformance_report": 29,
+      "failed": 0,
+      "protocol_coverage": 15
+    },
+    "source_unchanged_during_build": true,
+    "compiled_source_digest": "893ca79078a794523c623cefd671af96add5d5afe08664a11c0d2647ad97c85e",
+    "native_library_reused_from": "KL04-04",
+    "whole_c_cpp_suite_pass": false,
+    "isolated_broker_cleanup": "Only the 19104/19105 broker using /workspace/work/c-peer-behavior/kraft.properties was stopped after validation; other brokers untouched"
+  },
+  "artifacts": [
+    "tests/conformance/librdkafka/",
+    "benchmarks/peers/librdkafka/build-behavioral.sh",
+    "tests/conformance/cases.json",
+    "docs/evidence/conformance/KL01-13/README.md",
+    "docs/evidence/conformance/KL01-13/validation.json",
+    "docs/evidence/conformance/KL01-13/broker-provenance.json",
+    "docs/evidence/conformance/KL01-13/run-01/",
+    "docs/evidence/conformance/KL01-13/run-02/",
+    "docs/plan/evidence/KL01-13.json"
+  ],
+  "limits": [
+    "One named upstream assertion adapted; sibling mock and other C/C++ tests excluded, never a whole-suite claim",
+    "Test-helper/API shape adaptations documented explicitly; unchanged upstream source uses normalized unique-ID fixture payloads",
+    "Omit-flush failures are intentional adapter mutations, not client defects; synthetic duplicate/loss is a checker control",
+    "Actual record histories remain valid for timing mutants; separate original timing assertion fails and remains recorded",
+    "Native loopback Kafka3.9.1 correctness check on cloud VM, not benchmark qualification or Suite HOLD lift",
+    "Parallel work made source_clean=false; run02 frozen build manifest records exact source bytes and proves no source change during compilation",
+    "Main crate native runtime dependencies unchanged; Rust adapter and C executable built in isolated scratch targets"
+  ],
+  "blocked_reason": null,
+  "original_reported_local_revision": "5e2b3626517383bd7953b6285daea9dc2cc7ab70",
+  "source_verification": {
+    "pushed_source_files_match_compiled_manifest": true,
+    "verified_file_count": 38,
+    "compiled_source_digest": "893ca79078a794523c623cefd671af96add5d5afe08664a11c0d2647ad97c85e",
+    "relation": "Original run records local revision5e2b3626 with dirty_tree=true. All actual core and Rust adapter input files in the retained manifest match this pushed source SHA byte-for-byte; raw run records remain unchanged."
+  }
+}

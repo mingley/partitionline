@@ -1,0 +1,7 @@
+{
+  "package": "valgrind_1%3a3.24.0-3_amd64.deb",
+  "sha256": "0359e30820ccee7ee5c8d4c951ca276e3978b18f157d71bd77981de05b344907",
+  "expected_metadata_sha256": "0359e30820ccee7ee5c8d4c951ca276e3978b18f157d71bd77981de05b344907",
+  "source": "https://deb.debian.org/debian trixie main",
+  "system_installation": false
+}
