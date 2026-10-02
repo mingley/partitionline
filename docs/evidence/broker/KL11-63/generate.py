@@ -57,7 +57,7 @@ def main():
             for direction in ['request', 'response']:
                 path = dest / f"{case['name']}.{direction}.bin"
                 if case[f'{direction}_hex'] is None:
-                    assert direction == 'response' and case['handler_policy'] == 'reject_neither_identity'
+                    assert direction == 'response' and case['handler_policy'] in {'reject_neither_identity', 'reject_unreviewed_trailing'}
                     assert not path.exists()
                     continue
                 assert path.read_bytes().hex() == case[f'{direction}_hex']

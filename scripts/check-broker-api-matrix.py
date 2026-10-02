@@ -68,8 +68,16 @@ SOURCE_PATHS = {
     "metadata_source": "partitionline-broker/src/metadata.rs",
     "metadata_test_source": "partitionline-broker/tests/metadata.rs",
 }
-METADATA_MANIFEST_SHA256 = {'4.1.2': '1ce4e69689096b0e8497d00556c43cfad40d3ad02cd3b6382c67fa5cf48e1f1d', '4.2.1': 'a9860bbb0002c40b5c27c69f82b475064dcba3dbe8f169bc234416329e0494f2', '4.3.1': 'd3bb310c0353fee92f4ff389f366352034f47a41adfd32a95120ead659dbcc4d'}
+METADATA_MANIFEST_SHA256 = {'4.1.2': '721dfc5e54a5f45cbb1dff288a1b64e49db28e864ba3d20691a5ee140d9e2d06', '4.2.1': '445ae5bfeebc59f8fbabb932cdf122bc7326139ffcad6be945db99db6f01f1ab', '4.3.1': 'e5d76d70e20d32fc7b132b08dec86b5d57a439cb0b35d2ed485125b02e25bd9b'}
 SCHEMA_ONLY_MANIFEST_SHA256 = {'4.1.2': '2dab8a229f45dd0e627004f2cbfb3bd368b360a252d25a732f81135baeeddfe8', '4.2.1': '9cf6ba0c67ab68a7e13cda4974c4d7ffb183af3f65d414a73f1385c47b64cc39', '4.3.1': '3174c0e93ce395178cdfe1c8740c346a6a5c546cd7250b286ed206a9adb13390'}
+
+REVIEWED_TRAILING_REJECTIONS = {
+    "metadata-v13-all-tail1": (3, 13), "metadata-v13-all-tail2": (3, 13),
+    "metadata-v13-all-tail4": (3, 13), "metadata-v13-all-tail-nonzero": (3, 13),
+    "metadata-v13-named-tail3": (3, 13), "metadata-v13-empty-tail3": (3, 13),
+    "metadata-v8-all-tail3": (3, 8), "create-v4-tail3": (19, 4), "delete-v6-tail3": (20, 6),
+}
+NATIVE_NULL_REQUEST_SHA256 = "617352cc7cfe21b49abca06778a07b969a4b73bf6a34d9b127c7a58e40629ef4"
 
 IMPLEMENTED_NOTES = {
     3: "Metadata0-13 persistent single-node catalog and Apache wire goldens; automatic creation disabled; qualification not_run.",
@@ -216,17 +224,27 @@ def verify_metadata_fixtures(registry, repository_root):
             coverage.add((key, version))
             rows.append(f"{name}\t{key}\t{version}\t{seed}\n")
             results[(release, name)] = case.get("response_hex")
+            if name == "native-v13-all-padding":
+                require((key, version) == (3, 13) and seed == "fixture" and
+                        digest(bytes.fromhex(case["request_hex"])) == NATIVE_NULL_REQUEST_SHA256,
+                        "captured native Metadata request pin mismatch")
             for direction in ("request", "response"):
                 value = case.get(direction + "_hex")
                 if direction == "response" and value is None:
-                    require(key == 3 and version in (12, 13) and name == f"metadata-v{version}-null-zero" and
-                            case.get("handler_policy") == "reject_neither_identity", "unreviewed metadata rejection policy")
+                    policy = case.get("handler_policy")
+                    require((key == 3 and version in (12, 13) and name == f"metadata-v{version}-null-zero" and
+                             policy == "reject_neither_identity") or
+                            (REVIEWED_TRAILING_REJECTIONS.get(name) == (key, version) and
+                             policy == "reject_unreviewed_trailing"), "unreviewed metadata rejection policy")
                     continue
                 require(isinstance(value, str) and re.fullmatch(r"(?:[0-9a-f]{2})*", value), "invalid metadata golden bytes")
                 path = f"{release}/{name}.{direction}.bin"
                 paths.add(path)
                 require((root / path).read_bytes() == bytes.fromhex(value), "metadata golden byte mismatch")
         require(coverage == required_pairs, f"{release}: missing advertised API/version golden")
+        require((release, "native-v13-all-padding") in results and
+                all((release, name) in results and results[(release, name)] is None
+                    for name in REVIEWED_TRAILING_REJECTIONS), "missing native compatibility controls")
         schema_root = root / release / "schema-only"
         historical_path = schema_root / "goldens.json"
         require(digest(historical_path.read_bytes()) == SCHEMA_ONLY_MANIFEST_SHA256[release],

@@ -4,7 +4,9 @@
 //! CreateTopics2..4 and DeleteTopics1..6. Create overrides are rejected with
 //! INVALID_CONFIG; automatic creation is disabled. Logical leaders/ISR are this
 //! configured node. This is not replicated storage, authorization or production
-//! qualification. The catalog journal is the custom format documented in
+//! qualification. Flexible Metadata null/all-topic selectors admit exactly
+//! three zero tail bytes for the pinned librdkafka2.15 array-reservation defect;
+//! all other trailing bytes fail. The catalog journal is the custom format documented in
 //! [`catalog`], not an Apache metadata log.
 //!
 //! One bounded blocking actor owns the catalog. Canceled queued requests are
@@ -375,6 +377,13 @@ fn process(
     match key {
         3 => {
             let parsed = read_metadata(&mut reader, version, flexible)?;
+            // Pinned librdkafka2.15 leaves its four-byte null-array reservation
+            // unshrunk. Apache consumes a canonical null/all-topics request and
+            // ignores the three remaining zero bytes. Admit exactly that bounded
+            // read-only shape; named/empty selectors and every other tail fail.
+            if flexible && parsed.topics.is_none() && reader.remaining == [0, 0, 0] {
+                let _ = reader.take(3)?;
+            }
             reader.finish()?;
             metadata(catalog, config, header, parsed, flexible)
         }

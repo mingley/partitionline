@@ -1,0 +1,20 @@
+$ taskset -c 0-2,4 /workspace/work/broker-metadata/metadata-c-peer 127.0.0.1:19126 all-probe
+{"peer":"librdkafka","version":"2.15.0","phase":"all-probe"}
+{"operation":"all-topics-diagnostic-only","error":0}
+{"status":"diagnostic-only"}
+%7|1790976817.330|CONNECTED|metadata-c-peer#producer-1| [thrd:127.0.0.1:19126/bootstrap]: 127.0.0.1:19126/bootstrap: Connected (#1)
+%7|1790976817.330|FEATURE|metadata-c-peer#producer-1| [thrd:127.0.0.1:19126/bootstrap]: 127.0.0.1:19126/bootstrap: Updated enabled protocol features +ApiVersion to ApiVersion
+%7|1790976817.330|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19126/bootstrap]: 127.0.0.1:19126/bootstrap: Sent ApiVersionRequest (v3, 49 bytes @ 0, CorrId 1)
+%7|1790976817.330|INIT|metadata-c-peer#producer-1| [thrd:app]: librdkafka v2.15.0 (0x20f00ff) metadata-c-peer#producer-1 initialized (builtin.features gzip,snappy,ssl,sasl,regex,lz4,sasl_plain,sasl_scram,plugins,zstd,sasl_oauthbearer, GCC GXX PKGCONFIG INSTALL GNULD LDS C11THREADS LIBDL PLUGINS ZLIB SSL ZSTD HDRHISTOGRAM SYSLOG SNAPPY SOCKEM SASL_SCRAM SASL_OAUTHBEARER CRC32C_HW, debug 0x4080)
+%7|1790976817.334|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19126/bootstrap]: 127.0.0.1:19126/bootstrap: Received ApiVersionResponse (v3, 36 bytes, CorrId 1, rtt 4.18ms)
+%7|1790976817.334|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19126/bootstrap]: 127.0.0.1:19126/bootstrap: Sent MetadataRequest (v13, 34 bytes @ 0, CorrId 2)
+%7|1790976817.334|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19126/bootstrap]: 127.0.0.1:19126/bootstrap: Received MetadataResponse (v13, 56 bytes, CorrId 2, rtt 0.23ms)
+%7|1790976817.334|SEND|metadata-c-peer#producer-1| [thrd:127.0.0.1:19126/bootstrap]: 127.0.0.1:19126/bootstrap: Sent MetadataRequest (v13, 37 bytes @ 0, CorrId 3)
+%7|1790976817.335|RECV|metadata-c-peer#producer-1| [thrd:127.0.0.1:19126/bootstrap]: 127.0.0.1:19126/bootstrap: Received MetadataResponse (v13, 56 bytes, CorrId 3, rtt 0.20ms)
+%7|1790976817.335|DESTROY|metadata-c-peer#producer-1| [thrd:app]: Terminating instance (destroy flags none (0x0))
+%7|1790976817.335|DESTROY|metadata-c-peer#producer-1| [thrd:main]: Destroy internal
+%7|1790976817.335|DESTROY|metadata-c-peer#producer-1| [thrd:main]: Removing all topics
+%7|1790976817.335|BRKTERM|metadata-c-peer#producer-1| [thrd:127.0.0.1:19126/0]: 127.0.0.1:19126/0: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+%7|1790976817.335|BRKTERM|metadata-c-peer#producer-1| [thrd::0/internal]: :0/internal: terminating: broker still has 3 refcnt(s), 0 buffer(s), 0 partition(s)
+
+exit_code=0

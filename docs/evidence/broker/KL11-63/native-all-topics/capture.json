@@ -1,0 +1,48 @@
+{
+  "scope": "Actual pinned librdkafka client frames captured by diagnostic fake discovery endpoint; no broker compatibility qualification. Response values originate in official golden serialization, with only correlation/advertised port adjusted for discovery.",
+  "port": 19126,
+  "native_source_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "native_library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "/workspace/work/broker-metadata/metadata-c-peer",
+    "127.0.0.1:19126",
+    "all-probe"
+  ],
+  "exit_code": 0,
+  "frames": [
+    {
+      "file": "frame-00-18-v3.request.bin",
+      "api_key": 18,
+      "version": 3,
+      "correlation_id": 1,
+      "client_id": "metadata-c-peer",
+      "length_without_prefix": 45,
+      "sha256": "fab8d368d3764808749e4e764942cc839a6958e135b5c8d488be895c70129e87",
+      "hex": "0012000300000001000f6d657461646174612d632d70656572000b6c696272646b61666b6107322e31352e3000"
+    },
+    {
+      "file": "frame-01-3-v13.request.bin",
+      "api_key": 3,
+      "version": 13,
+      "correlation_id": 2,
+      "client_id": "metadata-c-peer",
+      "length_without_prefix": 30,
+      "sha256": "5062c9670b998967b2de336ee74eec30645f984e4261dd06bbb1ea23c647bd30",
+      "hex": "0003000d00000002000f6d657461646174612d632d706565720001000000"
+    },
+    {
+      "file": "frame-02-3-v13.request.bin",
+      "api_key": 3,
+      "version": 13,
+      "correlation_id": 3,
+      "client_id": "metadata-c-peer",
+      "length_without_prefix": 33,
+      "sha256": "617352cc7cfe21b49abca06778a07b969a4b73bf6a34d9b127c7a58e40629ef4",
+      "hex": "0003000d00000003000f6d657461646174612d632d706565720000000000000000"
+    }
+  ],
+  "capture_errors": []
+}

@@ -1,5 +1,5 @@
 $ taskset -c 0-2,4 java -cp /workspace/work/broker-metadata/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar MetadataOracle 4.1.2 /workspace/partitionline/partitionline-broker/tests/fixtures/metadata/4.1.2
-{"release":"4.1.2","cases":175,"manifest_sha256":"1ce4e69689096b0e8497d00556c43cfad40d3ad02cd3b6382c67fa5cf48e1f1d"}
+{"release":"4.1.2","cases":185,"manifest_sha256":"721dfc5e54a5f45cbb1dff288a1b64e49db28e864ba3d20691a5ee140d9e2d06"}
 SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 SLF4J: Defaulting to no-operation (NOP) logger implementation
 SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.

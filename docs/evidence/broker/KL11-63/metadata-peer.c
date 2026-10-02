@@ -14,11 +14,15 @@ static void set(rd_kafka_conf_t *conf, const char *name, const char *value) {
 }
 static void metadata(rd_kafka_t *client, const char *name, int expected) {
     const struct rd_kafka_metadata *result = NULL;
-    require(rd_kafka_metadata(client, 1, NULL, &result, 10000) == RD_KAFKA_RESP_ERR_NO_ERROR, "metadata request");
+    require(rd_kafka_metadata(client, 1, NULL, &result, 10000) == RD_KAFKA_RESP_ERR_NO_ERROR, "all-topics metadata request");
     require(result != NULL && result->broker_cnt == 1 && result->brokers[0].id == 0, "single-node metadata");
     int found = 0;
     for (int i = 0; i < result->topic_cnt; i++) {
         if (strcmp(result->topics[i].topic, name) == 0) {
+            if (!expected) {
+                require(result->topics[i].err == RD_KAFKA_RESP_ERR_UNKNOWN_TOPIC_OR_PART, "missing topic error");
+                continue;
+            }
             found = 1;
             require(result->topics[i].err == RD_KAFKA_RESP_ERR_NO_ERROR, "topic metadata error");
             require(result->topics[i].partition_cnt == 2, "partition count");
@@ -78,7 +82,15 @@ int main(int argc, char **argv) {
     rd_kafka_queue_t *queue = rd_kafka_queue_new(client); require(queue != NULL, "queue allocation");
     const char *name = "peer-c-persistent";
     printf("{\"peer\":\"librdkafka\",\"version\":\"%s\",\"phase\":\"%s\"}\n", rd_kafka_version_str(), argv[2]);
-    if (strcmp(argv[2], "create") == 0) {
+    if (strcmp(argv[2], "all-probe") == 0) {
+        const struct rd_kafka_metadata *result = NULL;
+        rd_kafka_resp_err_t error_code = rd_kafka_metadata(client, 1, NULL, &result, 10000);
+        printf("{\"operation\":\"all-topics-diagnostic-only\",\"error\":%d}\n", (int) error_code);
+        if (result != NULL) rd_kafka_metadata_destroy(result);
+        rd_kafka_queue_destroy(queue); rd_kafka_destroy(client);
+        printf("{\"status\":\"diagnostic-only\"}\n");
+        return 0;
+    } else if (strcmp(argv[2], "create") == 0) {
         create(client, queue, "peer-c-validate", 1, RD_KAFKA_RESP_ERR_NO_ERROR);
         metadata(client, "peer-c-validate", 0);
         create(client, queue, name, 0, RD_KAFKA_RESP_ERR_NO_ERROR); metadata(client, name, 1);

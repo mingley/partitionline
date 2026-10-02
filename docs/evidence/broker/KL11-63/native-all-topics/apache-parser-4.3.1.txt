@@ -1,0 +1,5 @@
+$ taskset -c 0-2,4 java --add-modules jdk.compiler com.sun.tools.javac.Main -Xlint:all -Werror -cp /workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar -d /workspace/work/broker-metadata/classes /workspace/partitionline/docs/evidence/broker/KL11-63/CapturedRequestProbe.java
+compile_exit=0
+$ taskset -c 0-2,4 java -cp /workspace/work/broker-metadata/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar CapturedRequestProbe /workspace/partitionline/docs/evidence/broker/KL11-63/native-all-topics/frame-02-3-v13.request.bin
+{"input_length":33,"header_length":26,"consumed":30,"remaining":3,"remaining_hex":"000000","api_key":3,"version":13,"is_all_topics":true,"allow_auto_topic_creation":false,"include_topic_authorized_operations":false,"apache_parsed_request":"MetadataRequestData(topics=null, allowAutoTopicCreation=false, includeClusterAuthorizedOperations=false, includeTopicAuthorizedOperations=false)","canonical_hex":"0003000d00000003000f6d657461646174612d632d706565720000000000"}
+exit=0

@@ -173,3 +173,13 @@ delete-v6-both	20	6	fixture
 delete-v6-name-id-alias	20	6	fixture
 delete-v6-duplicate-name-plus-id	20	6	fixture
 delete-v6-name-plus-duplicate-id	20	6	fixture
+native-v13-all-padding	3	13	fixture
+metadata-v13-all-tail1	3	13	fixture
+metadata-v13-all-tail2	3	13	fixture
+metadata-v13-all-tail4	3	13	fixture
+metadata-v13-all-tail-nonzero	3	13	fixture
+metadata-v13-named-tail3	3	13	fixture
+metadata-v13-empty-tail3	3	13	fixture
+metadata-v8-all-tail3	3	8	fixture
+create-v4-tail3	19	4	fixture
+delete-v6-tail3	20	6	fixture

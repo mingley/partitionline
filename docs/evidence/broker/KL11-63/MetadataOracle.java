@@ -50,6 +50,74 @@ public final class MetadataOracle {
     private static String hash(byte[] bytes) throws Exception {
         return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
     }
+    private static byte[] requestFrame(ApiKeys key, short version, ApiMessage data) {
+        RequestHeader header = new RequestHeader(key, version, "metadata-oracle", 7);
+        return concat(encode(header.data(), header.headerVersion()), encode(data, version));
+    }
+    private static void rawCase(String name, byte[] frame, ApiMessage response,
+            String policy, String basis) throws Exception {
+        ByteBuffer buffer = ByteBuffer.wrap(frame);
+        RequestHeader header = RequestHeader.parse(buffer);
+        AbstractRequest request = AbstractRequest.parseRequest(header.apiKey(), header.apiVersion(),
+            new ByteBufferAccessor(buffer)).request;
+        int consumed = buffer.position();
+        byte[] remaining = new byte[buffer.remaining()]; buffer.get(remaining);
+        byte[] responseFrame = null;
+        if (response != null) {
+            short hv = header.apiKey().responseHeaderVersion(header.apiVersion());
+            responseFrame = concat(encode(new ResponseHeader(header.correlationId(), hv).data(), hv),
+                encode(response, header.apiVersion()));
+            ByteBuffer rb = ByteBuffer.wrap(responseFrame);
+            ResponseHeader.parse(rb, hv);
+            AbstractResponse parsed = AbstractResponse.parseResponse(header.apiKey(), new ByteBufferAccessor(rb), header.apiVersion());
+            if (rb.hasRemaining() || !Arrays.equals(encode(parsed.data(), header.apiVersion()), encode(response, header.apiVersion()))) {
+                throw new AssertionError("raw-case response round trip");
+            }
+        }
+        Files.write(output.resolve(name + ".request.bin"), frame);
+        if (responseFrame != null) Files.write(output.resolve(name + ".response.bin"), responseFrame);
+        CASES.add("{\"name\":" + quote(name) + ",\"api_key\":" + header.apiKey().id
+            + ",\"api_version\":" + header.apiVersion() + ",\"seed\":\"fixture\""
+            + ",\"request_hex\":" + quote(HexFormat.of().formatHex(frame))
+            + ",\"response_hex\":" + (responseFrame == null ? "null" : quote(HexFormat.of().formatHex(responseFrame)))
+            + ",\"request_sha256\":" + quote(hash(frame))
+            + ",\"response_sha256\":" + (responseFrame == null ? "null" : quote(hash(responseFrame)))
+            + ",\"handler_policy\":" + quote(policy) + ",\"basis\":" + quote(basis)
+            + ",\"apache_parsed_request\":" + quote(request.data().toString())
+            + ",\"apache_consumed\":" + consumed + ",\"apache_remaining_hex\":" + quote(HexFormat.of().formatHex(remaining)) + "}");
+        TSV.append(name).append('\t').append(header.apiKey().id).append('\t').append(header.apiVersion()).append("\tfixture\n");
+    }
+    private static void nativePadding() throws Exception {
+        byte[] actual = Files.readAllBytes(Path.of("docs/evidence/broker/KL11-63/native-all-topics/frame-02-3-v13.request.bin"));
+        if (!hash(actual).equals("617352cc7cfe21b49abca06778a07b969a4b73bf6a34d9b127c7a58e40629ef4")) throw new AssertionError("native capture pin");
+        MetadataResponseData response = metadataResponse((short) 13, false);
+        response.topics().add(topic((short) 13, "alpha", ALPHA, (short) 0, false));
+        response.topics().add(topic((short) 13, "__consumer_offsets", INTERNAL, (short) 0, false));
+        rawCase("native-v13-all-padding", actual, response, "accept_known_native_null_array_padding",
+            "Actual pinned librdkafka2.15.0 Metadata13 all-topics frame. Each Apache parser consumes canonical fields and leaves exactly three zero bytes. Scoped local compatibility accepts only this flexible all-topics/null-selector padding; response is Apache serialized declared fixture seed.");
+        byte[] all = requestFrame(ApiKeys.METADATA, (short) 13, metadataRequest((short) 13, null, false));
+        for (int length : new int[]{1, 2, 4}) rawCase("metadata-v13-all-tail" + length,
+            concat(all, new byte[length]), null, "reject_unreviewed_trailing", "Official Apache parses canonical fields leaving unreviewed trailing bytes; deliberate local rejection, never a permissive general suffix rule.");
+        rawCase("metadata-v13-all-tail-nonzero", concat(all, new byte[]{0, 0, 1}), null,
+            "reject_unreviewed_trailing", "Only the captured three-zero all-topics compatibility suffix is permitted.");
+        rawCase("metadata-v13-named-tail3", concat(requestFrame(ApiKeys.METADATA, (short) 13,
+            metadataRequest((short) 13, List.of(target("alpha", ZERO)), false)), new byte[3]), null,
+            "reject_unreviewed_trailing", "Named selector remains strict even for three-zero padding.");
+        rawCase("metadata-v13-empty-tail3", concat(requestFrame(ApiKeys.METADATA, (short) 13,
+            metadataRequest((short) 13, List.of(), false)), new byte[3]), null,
+            "reject_unreviewed_trailing", "Empty-array selector remains strict even for three-zero padding.");
+        rawCase("metadata-v8-all-tail3", concat(requestFrame(ApiKeys.METADATA, (short) 8,
+            metadataRequest((short) 8, null, false)), new byte[3]), null,
+            "reject_unreviewed_trailing", "Classic Metadata remains strict; native bug concerns flexible array placeholders only.");
+        CreateTopicsRequestData create = new CreateTopicsRequestData().setTimeoutMs(60_000);
+        create.topics().add(createTopic("extra", 1, (short) 1));
+        rawCase("create-v4-tail3", concat(requestFrame(ApiKeys.CREATE_TOPICS, (short) 4, create), new byte[3]),
+            null, "reject_unreviewed_trailing", "Create receives no trailing-data compatibility relaxation and must not mutate catalog.");
+        DeleteTopicsRequestData delete = new DeleteTopicsRequestData().setTimeoutMs(60_000)
+            .setTopics(List.of(deletion("alpha", ZERO)));
+        rawCase("delete-v6-tail3", concat(requestFrame(ApiKeys.DELETE_TOPICS, (short) 6, delete), new byte[3]),
+            null, "reject_unreviewed_trailing", "Delete receives no trailing-data compatibility relaxation and must not mutate catalog.");
+    }
     private static void emit(String name, ApiKeys key, short version, String seed,
                              ApiMessage request, ApiMessage response, String basis) throws Exception {
         RequestHeader header = new RequestHeader(key, version, "metadata-oracle", 7);
@@ -302,7 +370,7 @@ public final class MetadataOracle {
         if (args.length != 2) throw new IllegalArgumentException("release output-directory");
         output = Path.of(args[1]);
         Files.createDirectories(output);
-        versions(); metadata(); creates(); deletes();
+        versions(); metadata(); creates(); deletes(); nativePadding();
         String manifest = "{\"release\":" + quote(args[0]) + ",\"wire\":\"Kafka header plus body, without length prefix\",\"seed\":{\"node_id\":0,\"host\":\"127.0.0.1\",\"port\":19095,\"cluster_id\":\"partitionline-fixture\",\"alpha_id\":\"00000000000000000000000000000002\",\"internal_id\":\"00000000000000000000000000000003\"},\"cases\":[\n" + String.join(",\n", CASES) + "\n]}\n";
         Files.writeString(output.resolve("goldens.json"), manifest, StandardCharsets.UTF_8);
         Files.writeString(output.resolve("cases.tsv"), TSV.toString(), StandardCharsets.UTF_8);

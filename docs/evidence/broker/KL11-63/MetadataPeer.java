@@ -71,11 +71,15 @@ public final class MetadataPeer {
         return result;
     }
     private static void expectClosed(ApiKeys key, short version, ApiMessage data, String label) throws Exception {
+        expectClosed(key, version, data, label, new byte[0]);
+    }
+    private static void expectClosed(ApiKeys key, short version, ApiMessage data, String label, byte[] tail) throws Exception {
         RequestHeader header = new RequestHeader(key, version, "metadata-live-oracle", correlation++);
         byte[] head = encode(header.data(), header.headerVersion());
         byte[] body = encode(data, version);
-        byte[] frame = Arrays.copyOf(head, head.length + body.length);
+        byte[] frame = Arrays.copyOf(head, head.length + body.length + tail.length);
         System.arraycopy(body, 0, frame, head.length, body.length);
+        System.arraycopy(tail, 0, frame, head.length + body.length, tail.length);
         try (Socket socket = new Socket("127.0.0.1", port)) {
             socket.setSoTimeout(10_000);
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
@@ -135,6 +139,16 @@ public final class MetadataPeer {
         for (short version : new short[]{12, 13}) {
             expectClosed(ApiKeys.METADATA, version, request(version, null, Uuid.ZERO_UUID), "reject-neither-identity");
         }
+        for (int length : new int[]{1, 2, 4}) {
+            expectClosed(ApiKeys.METADATA, (short) 13, request((short) 13, null, null), "reject-all-topics-tail" + length, new byte[length]);
+        }
+        expectClosed(ApiKeys.METADATA, (short) 13, request((short) 13, null, null), "reject-all-topics-nonzero-tail", new byte[]{0, 0, 1});
+        expectClosed(ApiKeys.METADATA, (short) 13, request((short) 13, "alpha", null), "reject-named-tail3", new byte[3]);
+        expectClosed(ApiKeys.METADATA, (short) 13, new MetadataRequestData().setTopics(List.of()).setAllowAutoTopicCreation(false), "reject-empty-tail3", new byte[3]);
+        expectClosed(ApiKeys.METADATA, (short) 8, request((short) 8, null, null), "reject-classic-tail3", new byte[3]);
+        expectClosed(ApiKeys.CREATE_TOPICS, (short) 4, createData(prefix + "-trailing", 1, (short) 1, false), "reject-create-tail3", new byte[3]);
+        expectClosed(ApiKeys.DELETE_TOPICS, (short) 6, new DeleteTopicsRequestData().setTimeoutMs(30_000)
+            .setTopics(List.of(new DeleteTopicsRequestData.DeleteTopicState().setName("alpha"))), "reject-delete-tail3", new byte[3]);
         String base = prefix + "-raw";
         for (short version = 2; version <= 4; version++) create(version, base + version, version == 4 ? -1 : 2, version == 4 ? (short) -1 : 1, false);
         create((short) 3, base + "-validate", 1, (short) 1, true);

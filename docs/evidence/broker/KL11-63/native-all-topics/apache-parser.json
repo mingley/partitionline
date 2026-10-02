@@ -1,0 +1,116 @@
+{
+  "scope": "Actual Apache parser accepts fields and leaves3bytes; canonical serializer emits compactnull with no padding. No Apache broker/controller runtime claim.",
+  "native_frame": {
+    "file": "frame-02-3-v13.request.bin",
+    "api_key": 3,
+    "version": 13,
+    "correlation_id": 3,
+    "client_id": "metadata-c-peer",
+    "length_without_prefix": 33,
+    "sha256": "617352cc7cfe21b49abca06778a07b969a4b73bf6a34d9b127c7a58e40629ef4",
+    "hex": "0003000d00000003000f6d657461646174612d632d706565720000000000000000"
+  },
+  "probe_sha256": "f16651c81f58775db39fb0275d29ab114e86b27ac52cebf13eb4fd6bbb6541de",
+  "results": [
+    {
+      "release": "4.1.2",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/broker-metadata/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "CapturedRequestProbe",
+        "/workspace/partitionline/docs/evidence/broker/KL11-63/native-all-topics/frame-02-3-v13.request.bin"
+      ],
+      "exit_code": 0,
+      "parsed": {
+        "input_length": 33,
+        "header_length": 26,
+        "consumed": 30,
+        "remaining": 3,
+        "remaining_hex": "000000",
+        "api_key": 3,
+        "version": 13,
+        "is_all_topics": true,
+        "allow_auto_topic_creation": false,
+        "include_topic_authorized_operations": false,
+        "apache_parsed_request": "MetadataRequestData(topics=null, allowAutoTopicCreation=false, includeClusterAuthorizedOperations=false, includeTopicAuthorizedOperations=false)",
+        "canonical_hex": "0003000d00000003000f6d657461646174612d632d706565720000000000"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/broker-metadata/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "CapturedRequestProbe",
+        "/workspace/partitionline/docs/evidence/broker/KL11-63/native-all-topics/frame-02-3-v13.request.bin"
+      ],
+      "exit_code": 0,
+      "parsed": {
+        "input_length": 33,
+        "header_length": 26,
+        "consumed": 30,
+        "remaining": 3,
+        "remaining_hex": "000000",
+        "api_key": 3,
+        "version": 13,
+        "is_all_topics": true,
+        "allow_auto_topic_creation": false,
+        "include_topic_authorized_operations": false,
+        "apache_parsed_request": "MetadataRequestData(topics=null, allowAutoTopicCreation=false, includeClusterAuthorizedOperations=false, includeTopicAuthorizedOperations=false)",
+        "canonical_hex": "0003000d00000003000f6d657461646174612d632d706565720000000000"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/broker-metadata/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "CapturedRequestProbe",
+        "/workspace/partitionline/docs/evidence/broker/KL11-63/native-all-topics/frame-02-3-v13.request.bin"
+      ],
+      "exit_code": 0,
+      "parsed": {
+        "input_length": 33,
+        "header_length": 26,
+        "consumed": 30,
+        "remaining": 3,
+        "remaining_hex": "000000",
+        "api_key": 3,
+        "version": 13,
+        "is_all_topics": true,
+        "allow_auto_topic_creation": false,
+        "include_topic_authorized_operations": false,
+        "apache_parsed_request": "MetadataRequestData(topics=null, allowAutoTopicCreation=false, includeClusterAuthorizedOperations=false, includeTopicAuthorizedOperations=false)",
+        "canonical_hex": "0003000d00000003000f6d657461646174612d632d706565720000000000"
+      }
+    }
+  ],
+  "native_source_files": [
+    {
+      "path": "upstream/librdkafka-2.15.0/rdkafka_request.c",
+      "source_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "upstream_path": "src/rdkafka_request.c",
+      "sha256": "c2234ef3c33acab9ec1110459284a84f80889188715c1e37d3d2646426673354",
+      "url": "https://raw.githubusercontent.com/confluentinc/librdkafka/9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab/src/rdkafka_request.c"
+    },
+    {
+      "path": "upstream/librdkafka-2.15.0/rdkafka_buf.h",
+      "source_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "upstream_path": "src/rdkafka_buf.h",
+      "sha256": "552ddff14f20eaa03718359a2ecca57a98572f149da1f67ad8c79d4b391026ab",
+      "url": "https://raw.githubusercontent.com/confluentinc/librdkafka/9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab/src/rdkafka_buf.h"
+    }
+  ]
+}

@@ -343,7 +343,13 @@ async fn independent_apache_metadata_admin_goldens() -> Result<(), Box<dyn StdEr
                     assert_eq!(actual, expected, "{version}/{name}");
                     format!("\"{}\"", hex(&actual))
                 }
-                (Err(Error::InvalidTarget), None) => "null".to_owned(),
+                (
+                    Err(
+                        Error::InvalidTarget
+                        | Error::Protocol(partitionline_broker::protocol::Error::TrailingBytes),
+                    ),
+                    None,
+                ) => "null".to_owned(),
                 (actual, expected) => {
                     return Err(
                         format!("{version}/{name}: {actual:?} expected {expected:?}").into(),
@@ -395,7 +401,73 @@ async fn independent_apache_metadata_admin_goldens() -> Result<(), Box<dyn StdEr
     Ok(())
 }
 fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len().saturating_mul(2));
+    for &byte in bytes {
+        output.push(char::from(DIGITS[usize::from(byte >> 4)]));
+        output.push(char::from(DIGITS[usize::from(byte & 15)]));
+    }
+    output
+}
+
+#[tokio::test]
+async fn native_null_array_compatibility_is_exact_and_read_only() -> Result<(), Box<dyn StdError>> {
+    let path = scratch("native-null-array");
+    setup(path.clone(), true).await?;
+    let (router, _) = Router::open(path.clone(), config()).await?;
+    for version in 9i16..=13 {
+        let mut canonical = header(3, version);
+        canonical.push(0);
+        canonical.push(0);
+        if version <= 10 {
+            canonical.push(0);
+        }
+        canonical.push(0);
+        canonical.push(0);
+        let baseline = router.respond(canonical.clone()).await?;
+        let mut native = canonical.clone();
+        native.extend_from_slice(&[0, 0, 0]);
+        assert_eq!(router.respond(native).await?, baseline, "v{version}");
+        for tail in [&[0u8][..], &[0, 0][..], &[0, 0, 0, 0][..], &[0, 0, 1][..]] {
+            let mut invalid = canonical.clone();
+            invalid.extend_from_slice(tail);
+            assert!(matches!(
+                router.respond(invalid).await,
+                Err(Error::Protocol(
+                    partitionline_broker::protocol::Error::TrailingBytes
+                ))
+            ));
+        }
+        let mut empty = canonical;
+        empty[11] = 1;
+        empty.extend_from_slice(&[0, 0, 0]);
+        assert!(matches!(
+            router.respond(empty).await,
+            Err(Error::Protocol(
+                partitionline_broker::protocol::Error::TrailingBytes
+            ))
+        ));
+    }
+    let mut admin = create_request("never", 1, 1, false);
+    admin.extend_from_slice(&[0, 0, 0]);
+    assert!(matches!(
+        router.respond(admin).await,
+        Err(Error::Protocol(
+            partitionline_broker::protocol::Error::TrailingBytes
+        ))
+    ));
+    let mut admin = delete_request("alpha");
+    admin.extend_from_slice(&[0, 0, 0]);
+    assert!(matches!(
+        router.respond(admin).await,
+        Err(Error::Protocol(
+            partitionline_broker::protocol::Error::TrailingBytes
+        ))
+    ));
+    router.shutdown().await?;
+    assert_eq!(state(path.clone()).await?, (2, 2, 3));
+    fs::remove_file(path)?;
+    Ok(())
 }
 
 #[tokio::test]
