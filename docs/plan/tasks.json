@@ -1451,7 +1451,7 @@
       "deliverable": "An open-loop mode retaining the current sequential smoke mode under an explicit label.",
       "acceptance": ["Record intended arrival, actual enqueue, acknowledgment and optional independent receive times.", "Include schedule lag, queueing, rejection and timeout counts; a stalled client cannot hide latency by stopping the arrival clock.", "Report p50/p95/p99/p99.9 only at the declared sample floor and keep service-time versus end-to-end metrics distinct."],
       "validation": ["Run deterministic scheduler tests with a delayed/stalled fake peer.", "Show that a deliberately introduced pause appears in end-to-end latency rather than disappearing from the samples."],
-      "write_set": ["examples/bench_latency.rs", "benchmarks/tests/load_schedule.rs", "benchmarks/tests/open_loop.rs", "tests/bench_latency_open_loop.rs", "docs/open-loop-latency.md", "docs/plan/evidence/KL04-06.json", "docs/evidence/perf/KL04-06/", "docs/plan/tasks.json"],
+      "write_set": ["examples/bench_latency.rs", "examples/common/open_loop.rs", "benchmarks/tests/load_schedule.rs", "benchmarks/tests/open_loop.rs", "tests/bench_latency_open_loop.rs", "docs/open-loop-latency.md", "docs/plan/evidence/KL04-06.json", "docs/evidence/perf/KL04-06/", "docs/plan/tasks.json"],
       "evidence": []
     },
     {
