@@ -8036,13 +8036,14 @@
       "status": "pending",
       "owner": null,
       "depends_on": [
-        "KL11-02"
+        "KL11-02",
+        "KL11-57"
       ],
       "files": [
         "partitionline-broker/src/protocol.rs",
-        "tests/conformance/broker/api-matrix.json"
+        "partitionline-broker/tests/protocol.rs"
       ],
-      "deliverable": "Pinned classic/flexible headers and honest ApiVersions for actually implemented handlers.",
+      "deliverable": "Classic/flexible request headers and honest ApiVersions for actually implemented handlers, using the matrix pinned by KL11-57.",
       "acceptance": [
         "Use exact Apache source pins and golden fixtures; advertise only supported API/version pairs.",
         "Unknown/unsupported APIs, tags, lengths and malformed UTF-8 fail according to the pinned wire contract.",
@@ -9636,7 +9637,9 @@
         "KL10-16",
         "KL10-17",
         "KL09-71",
-        "KL09-72"
+        "KL09-72",
+        "KL11-57",
+        "KL11-58"
       ],
       "files": [
         "docs/plan/evidence/KL11-56.json"
@@ -9653,6 +9656,67 @@
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": []
+    },
+    {
+      "priority": "P0",
+      "kind": "implementation",
+      "owner": "codex-full-goal-20261002",
+      "evidence": [],
+      "id": "KL11-57",
+      "title": "Pin and classify current Apache broker API schemas",
+      "status": "in_progress",
+      "depends_on": [
+        "KL11-01"
+      ],
+      "files": [
+        "tests/conformance/broker/api-matrix.json",
+        "tests/conformance/broker/features.json",
+        "tests/conformance/broker/upstream/",
+        "scripts/check-broker-api-matrix.py"
+      ],
+      "deliverable": "Exact Apache 4.1.2/4.2.1/4.3.1 schema pins and fail-closed API/header/version inventory; no API implementation inferred.",
+      "acceptance": [
+        "Capture immutable source SHAs and checksums for request/response definitions and ApiKeys/header exceptions.",
+        "Inventory active/removed/controller/data API classifications and exact version/flexible ranges without inferring them from the client subset.",
+        "Validate duplicate/missing API keys, request-response pair agreement and retained upstream hashes."
+      ],
+      "validation": [
+        "Run matrix verifier against retained upstream schemas and negative mutations."
+      ],
+      "write_set": [
+        "tests/conformance/broker/api-matrix.json",
+        "tests/conformance/broker/features.json",
+        "tests/conformance/broker/upstream/",
+        "scripts/check-broker-api-matrix.py",
+        "tests/ci/test_broker_api_matrix.py",
+        "docs/plan/evidence/KL11-57.json",
+        "docs/evidence/broker/KL11-57/",
+        "docs/plan/tasks.json"
+      ]
+    },
+    {
+      "priority": "P0",
+      "kind": "implementation",
+      "owner": null,
+      "evidence": [],
+      "id": "KL11-58",
+      "title": "Continuously check the independent broker crate",
+      "status": "pending",
+      "depends_on": [
+        "KL11-02",
+        "KL11-03"
+      ],
+      "files": [
+        ".github/workflows/broker.yml"
+      ],
+      "deliverable": "Separate main/PR CI for broker format, strict lint/docs and stable/MSRV behavioral tests.",
+      "acceptance": [
+        "Locked dependency graph, stable and Rust1.85 behavioral suites, strict format/clippy/rustdoc.",
+        "Workflow checks the independent excluded crate and never marks production qualification complete."
+      ],
+      "validation": [
+        "Execute every workflow command locally; verify workflow syntax and retained results."
+      ]
     }
   ]
 }
