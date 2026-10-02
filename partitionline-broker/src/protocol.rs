@@ -270,16 +270,15 @@ impl Default for ApiVersionsHandler {
 impl ApiVersionsHandler {
     /// Use validated parsing caps, independently of transport admission caps.
     pub fn new(limits: Limits) -> Self {
-        Self {
-            limits,
-            advertised: &NEGOTIATION_ONLY,
-        }
+        Self::with_advertised(limits, &NEGOTIATION_ONLY)
     }
     pub(crate) fn composed(limits: Limits) -> Self {
-        Self {
-            limits,
-            advertised: &IMPLEMENTED_API_VERSIONS,
-        }
+        Self::with_advertised(limits, &IMPLEMENTED_API_VERSIONS)
+    }
+    // Listener handlers supply their own checked static runtime profile. This
+    // remains crate-private; defaults do not gain another listener's APIs.
+    pub(crate) fn with_advertised(limits: Limits, advertised: &'static [ApiVersion]) -> Self {
+        Self { limits, advertised }
     }
     /// Parsing caps used by this handler.
     pub fn limits(self) -> Limits {

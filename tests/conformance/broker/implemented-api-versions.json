@@ -25,7 +25,7 @@
     }
   ],
   "protocol_source": "partitionline-broker/src/protocol.rs",
-  "protocol_source_sha256": "1f01c4f1ce19dbcd4dee800b691e2542d3edc12eabed37ce8a10a89fb1fc4cf6",
+  "protocol_source_sha256": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
   "test_source": "partitionline-broker/tests/protocol.rs",
   "test_source_sha256": "a7ecc9ea9f1eb46cf26e20f96f91e3ba738d78dde1a298cc5329615d28923f23",
   "fixture_root": "partitionline-broker/tests/fixtures/protocol",
