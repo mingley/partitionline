@@ -18746,7 +18746,7 @@
       "title": "Requalify pending-queue sparse memory guard with a low-RSS launcher",
       "priority": "P1",
       "kind": "analysis",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL09-45",
@@ -18766,7 +18766,999 @@
         "Verify launcher source/binary hashes, actual observed child PID, exit propagation and artifact identities.",
         "Validate all fresh histories, result schemas and sidecar hashes; calculate paired statistics."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+                "id": "KL11-64",
+                "kind": "analysis",
+                "status": "done",
+                "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+                "baseline_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+                "disposition": "accepted",
+                "subject_card": "KL09-45",
+                "memory_guard_qualified": true,
+                "hypothesis": "The original sparse RUSAGE_SELF guard was read at phase end and affected by an inherited Python pre-exec maximum. Requalify actual original Rust lifetime maximum with the same verified low-current-RSS C launcher, an extra fork before exec, and persistent VmHWM of the exact emitted Rust child PID.",
+                "cells": [
+                        "nb-fetch-1000p"
+                ],
+                "host": "AMD EPYC 9V74 80-Core Processor; x86_64 Linux 6.18.44; affinity exposes CPUs 0\u20134, cgroup cpu.max=400000 100000. Frozen original optimized-release binaries, no rebuild. Runtime/launcher/inherited broker on CPU 3, observer CPU 2. Five live compiler/cargo processes stopped by coordinator for the full ten-process window and resumed immediately afterward; no new core build launches during measurement. Host frequency unmanaged. rustc 1.99.0(b940084d7 2026-09-28), cargo 1.99.0; C launcher compiled with cc (Debian 14.2.0-19) 14.2.0.",
+                "frozen_identities": {
+                        "baseline_runtime_sha256": "973f3344c7569fb40b9911276c899de08c569dd360e62982d47d48ff231865f2",
+                        "candidate_runtime_sha256": "9c9e4979ca07b63557bda788b2dbf76ec65218208f805a0eb418b4af14ed400f",
+                        "baseline_runtime_size_bytes": 7189144,
+                        "candidate_runtime_size_bytes": 7217496,
+                        "baseline_broker_sha256": "d4d2da703b55fcab1704d542786816ea9b4441257f2a9c35e0fe3038b2431863",
+                        "candidate_broker_sha256": "2e689c2a27274d8866f4014aa49450bfc5c9f9b82c6413a6cb2b751d691a1d7c",
+                        "launcher_sha256": "e4008078db50a97e6116cf45508779826a06d662624b68deba2069c0224ddaf3",
+                        "launcher_source_sha256": "2d78cca916147f7b29043f03944ba967ea3fb251f94d07ddc57a44fa37b6ded0",
+                        "launcher_identity": "Same source/binary verified in KL09-47: binary e4008078db50a97e6116cf45508779826a06d662624b68deba2069c0224ddaf3, source2d78cca916147f7b29043f03944ba967ea3fb251f94d07ddc57a44fa37b6ded0; copied without rebuilding or changing it.",
+                        "source_checkouts": "Exact original baseline072ef8f9 and candidate6f181217 are clean detached snapshots. Runtime hashes match prior KL09-45 evidence exactly before and after measurements. Current main changes are excluded.",
+                        "settings_sha256": "098e5aade2526858abc5d9c0295f162e7f93f4d8ef1fd89d20e78770307de9a1",
+                        "settings": {
+                                "partitions": 1000,
+                                "records_per_partition": 10,
+                                "target_records": 10000,
+                                "payload_bytes": 100,
+                                "records_per_batch": 500,
+                                "abort_every": 0,
+                                "codec": 0,
+                                "isolation": "read_uncommitted",
+                                "seed": 4269539330
+                        },
+                        "original_evidence_commit": "e255fe8c355f3a4d33ea7a464a4189b268b19ebf",
+                        "original_files_unchanged_sha256": {
+                                "docs/plan/evidence/KL09-45.json": "299447b4be5548155037124c692570f9fc721845aa6f6c184fc2c9b022f210ae",
+                                "docs/evidence/perf/KL09-45/raw-artifacts.tar.gz": "af1d09f6cd89c39be22f8f997359ea338ed00efabbe72d30ca0a8b52c38a4d00",
+                                "docs/evidence/perf/KL09-45/checksums.sha256": "0404d8b2fe0e2b689dc12cfafadbeaa7822107f61f2de8b858895baa2c72881b"
+                        }
+                },
+                "cohort": {
+                        "pairs": 5,
+                        "processes": 10,
+                        "order": "A0 B0 B1 A1 A2 B2 B3 A3 A4 B4",
+                        "predeclared": "Exactly five interleaved sparse pairs; no extensions to seek a pass. All original and fresh outcomes retained; no pooling across changed launcher methods.",
+                        "extensions": 0
+                },
+                "commands": [
+                        "sha256sum /workspace/work/consumer-pending/baseline-bin/runtime /workspace/work/consumer-pending/candidate-bin/runtime /workspace/work/pending-sparse-memory/low-rss-launcher /workspace/work/pending-sparse-memory/low-rss-launcher.c (hashes match frozen evidence)",
+                        "taskset -c 2 python3 /workspace/work/pending-sparse-memory/verify-launcher.py (three fork/exec controls plus exact exit17 propagation pass; exit0)",
+                        "taskset -c 2 python3 /workspace/work/pending-sparse-memory/run-pairs.py (exactly ten CPU3 frozen original runtime processes; all exit0)",
+                        "taskset -c 3 /workspace/work/pending-sparse-memory/low-rss-launcher <fresh-out/runtime.pid> /workspace/work/consumer-pending/{baseline,candidate}-bin/runtime --cell nb-fetch-1000p --out <fresh-out> --repetitions 1 (each exact runtime child observed after exe match)",
+                        "taskset -c 2 python3 /workspace/work/pending-sparse-memory/calculate-stats.py (20000 paired bootstrap resamples, seed20261002; exit0)",
+                        "python3 scripts/benchmark-report.py <each sanitized old/fresh result.json> --quiet --json (20/20 valid,0errors)",
+                        "python3 /workspace/work/pending-sparse-memory/record-evidence.py (40 sidecar hashes/sizes, original evidence/archive hashes unchanged, exact source/binary/config/cardinalities verified; exit0)",
+                        "sha256sum -c checksums.sha256 (all companion artifacts verified)"
+                ],
+                "results": {
+                        "primary": {
+                                "baseline_median": 13561856,
+                                "candidate_median": 13520896,
+                                "delta_pct": -0.30202355783751633,
+                                "baseline_ci95": [
+                                        13434880.0,
+                                        13627392.0
+                                ],
+                                "candidate_ci95": [
+                                        13463552.0,
+                                        13594624.0
+                                ],
+                                "ci95_pct": [
+                                        -0.543642404107525,
+                                        0.2134146341463472
+                                ],
+                                "repetitions": 5,
+                                "baseline_values": [
+                                        13627392,
+                                        13623296,
+                                        13561856,
+                                        13561856,
+                                        13434880
+                                ],
+                                "candidate_values": [
+                                        13594624,
+                                        13586432,
+                                        13488128,
+                                        13520896,
+                                        13463552
+                                ],
+                                "metric": "Actual Rust process lifetime maximum resident bytes; persistent VmHWM"
+                        },
+                        "phase_end_rusage_self": {
+                                "baseline_median": 9637888,
+                                "candidate_median": 9482240,
+                                "delta_pct": -1.614959626009349,
+                                "baseline_ci95": [
+                                        9392128.0,
+                                        9650176.0
+                                ],
+                                "candidate_ci95": [
+                                        9347072.0,
+                                        9580544.0
+                                ],
+                                "ci95_pct": [
+                                        -2.037351443123936,
+                                        -0.47972088966419246
+                                ],
+                                "repetitions": 5,
+                                "baseline_values": [
+                                        9650176,
+                                        9637888,
+                                        9584640,
+                                        9646080,
+                                        9392128
+                                ],
+                                "candidate_values": [
+                                        9453568,
+                                        9580544,
+                                        9482240,
+                                        9515008,
+                                        9347072
+                                ],
+                                "metric": "Rust RUSAGE_SELF maximum read at measured phase end, Python floor removed"
+                        },
+                        "all_frozen_guard_metrics": {
+                                "cpu_ns_per_round": {
+                                        "baseline_median": 8157000.0,
+                                        "candidate_median": 8115000.0,
+                                        "delta_pct": -0.5148951820522218,
+                                        "baseline_ci95": [
+                                                7622000.0,
+                                                10226000.0
+                                        ],
+                                        "candidate_ci95": [
+                                                7988000.0,
+                                                9756000.0
+                                        ],
+                                        "ci95_pct": [
+                                                -21.885390181889296,
+                                                19.602795145273987
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                10226000.0,
+                                                8311000.0,
+                                                7622000.0,
+                                                8157000.0,
+                                                7976000.0
+                                        ],
+                                        "candidate_values": [
+                                                7988000.0,
+                                                8115000.0,
+                                                8365000.0,
+                                                9756000.0,
+                                                8056000.0
+                                        ]
+                                },
+                                "allocs_per_round": {
+                                        "baseline_median": 21318.0,
+                                        "candidate_median": 21318.0,
+                                        "delta_pct": 0.0,
+                                        "baseline_ci95": [
+                                                21318.0,
+                                                21318.0
+                                        ],
+                                        "candidate_ci95": [
+                                                21318.0,
+                                                21318.0
+                                        ],
+                                        "ci95_pct": [
+                                                0.0,
+                                                0.0
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                21318.0,
+                                                21318.0,
+                                                21318.0,
+                                                21318.0,
+                                                21318.0
+                                        ],
+                                        "candidate_values": [
+                                                21318.0,
+                                                21318.0,
+                                                21318.0,
+                                                21318.0,
+                                                21318.0
+                                        ]
+                                },
+                                "allocated_bytes_per_round": {
+                                        "baseline_median": 9363336.0,
+                                        "candidate_median": 9363336.0,
+                                        "delta_pct": 0.0,
+                                        "baseline_ci95": [
+                                                9363336.0,
+                                                9363336.0
+                                        ],
+                                        "candidate_ci95": [
+                                                9363336.0,
+                                                9363336.0
+                                        ],
+                                        "ci95_pct": [
+                                                0.0,
+                                                0.0
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                9363336.0,
+                                                9363336.0,
+                                                9363336.0,
+                                                9363336.0,
+                                                9363336.0
+                                        ],
+                                        "candidate_values": [
+                                                9363336.0,
+                                                9363336.0,
+                                                9363336.0,
+                                                9363336.0,
+                                                9363336.0
+                                        ]
+                                },
+                                "phase_sampled_peak_rss_bytes": {
+                                        "baseline_median": 5431296,
+                                        "candidate_median": 5328896,
+                                        "delta_pct": -1.8853695324283604,
+                                        "baseline_ci95": [
+                                                5369856.0,
+                                                7667712.0
+                                        ],
+                                        "candidate_ci95": [
+                                                5324800.0,
+                                                8695808.0
+                                        ],
+                                        "ci95_pct": [
+                                                -30.502136752136757,
+                                                60.105580693815995
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                7667712,
+                                                5492736,
+                                                5431296,
+                                                5431296,
+                                                5369856
+                                        ],
+                                        "candidate_values": [
+                                                5328896,
+                                                5427200,
+                                                5328896,
+                                                8695808,
+                                                5324800
+                                        ]
+                                },
+                                "phase_average_rss_bytes": {
+                                        "baseline_median": 4671488,
+                                        "candidate_median": 4623701,
+                                        "delta_pct": -1.022950289072777,
+                                        "baseline_ci95": [
+                                                4555434.0,
+                                                5076699.0
+                                        ],
+                                        "candidate_ci95": [
+                                                4616192.0,
+                                                5233517.0
+                                        ],
+                                        "ci95_pct": [
+                                                -8.923081711167036,
+                                                12.031048779318287
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                5076699,
+                                                4736341,
+                                                4616874,
+                                                4671488,
+                                                4555434
+                                        ],
+                                        "candidate_values": [
+                                                4623701,
+                                                4722005,
+                                                4623701,
+                                                5233517,
+                                                4616192
+                                        ]
+                                },
+                                "process_peak_rss_bytes": {
+                                        "baseline_median": 9637888,
+                                        "candidate_median": 9482240,
+                                        "delta_pct": -1.614959626009349,
+                                        "baseline_ci95": [
+                                                9392128.0,
+                                                9650176.0
+                                        ],
+                                        "candidate_ci95": [
+                                                9347072.0,
+                                                9580544.0
+                                        ],
+                                        "ci95_pct": [
+                                                -2.037351443123936,
+                                                -0.47972088966419246
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                9650176,
+                                                9637888,
+                                                9584640,
+                                                9646080,
+                                                9392128
+                                        ],
+                                        "candidate_values": [
+                                                9453568,
+                                                9580544,
+                                                9482240,
+                                                9515008,
+                                                9347072
+                                        ]
+                                },
+                                "external_client_vmhwm_bytes": {
+                                        "baseline_median": 13561856,
+                                        "candidate_median": 13520896,
+                                        "delta_pct": -0.30202355783751633,
+                                        "baseline_ci95": [
+                                                13434880.0,
+                                                13627392.0
+                                        ],
+                                        "candidate_ci95": [
+                                                13463552.0,
+                                                13594624.0
+                                        ],
+                                        "ci95_pct": [
+                                                -0.543642404107525,
+                                                0.2134146341463472
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                13627392,
+                                                13623296,
+                                                13561856,
+                                                13561856,
+                                                13434880
+                                        ],
+                                        "candidate_values": [
+                                                13594624,
+                                                13586432,
+                                                13488128,
+                                                13520896,
+                                                13463552
+                                        ]
+                                },
+                                "rec_s": {
+                                        "baseline_median": 167881.89656312854,
+                                        "candidate_median": 169284.15233711584,
+                                        "delta_pct": 0.83526324320502,
+                                        "baseline_ci95": [
+                                                150530.0531971703,
+                                                170787.1806595678
+                                        ],
+                                        "candidate_ci95": [
+                                                162737.56612983395,
+                                                170017.18975798768
+                                        ],
+                                        "ci95_pct": [
+                                                -3.424720946165327,
+                                                12.458707574746342
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                150530.0531971703,
+                                                167662.07360328146,
+                                                170787.1806595678,
+                                                168508.51245184385,
+                                                167881.89656312854
+                                        ],
+                                        "candidate_values": [
+                                                169284.15233711584,
+                                                170017.18975798768,
+                                                168921.3899649275,
+                                                162737.56612983395,
+                                                169553.0703144721
+                                        ]
+                                },
+                                "p99_us": {
+                                        "baseline_median": 17761.0,
+                                        "candidate_median": 16650.0,
+                                        "delta_pct": -6.2552784190079365,
+                                        "baseline_ci95": [
+                                                14648.0,
+                                                19428.0
+                                        ],
+                                        "candidate_ci95": [
+                                                15728.0,
+                                                19763.0
+                                        ],
+                                        "ci95_pct": [
+                                                -11.446427566015426,
+                                                34.919442927362084
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                19428.0,
+                                                18018.0,
+                                                14832.0,
+                                                14648.0,
+                                                17761.0
+                                        ],
+                                        "candidate_values": [
+                                                17646.0,
+                                                16650.0,
+                                                16095.0,
+                                                19763.0,
+                                                15728.0
+                                        ]
+                                }
+                        },
+                        "other_metrics": {
+                                "cpu_ns_per_record": {
+                                        "baseline_median": 815.7,
+                                        "candidate_median": 811.5,
+                                        "delta_pct": -0.514895182052233,
+                                        "baseline_ci95": [
+                                                762.2,
+                                                1022.6
+                                        ],
+                                        "candidate_ci95": [
+                                                798.8,
+                                                975.6
+                                        ],
+                                        "ci95_pct": [
+                                                -21.885390181889306,
+                                                19.602795145273987
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                1022.6,
+                                                831.1,
+                                                762.2,
+                                                815.7,
+                                                797.6
+                                        ],
+                                        "candidate_values": [
+                                                798.8,
+                                                811.5,
+                                                836.5,
+                                                975.6,
+                                                805.6
+                                        ]
+                                },
+                                "allocations_per_record": {
+                                        "baseline_median": 2.1318,
+                                        "candidate_median": 2.1318,
+                                        "delta_pct": 0.0,
+                                        "baseline_ci95": [
+                                                2.1318,
+                                                2.1318
+                                        ],
+                                        "candidate_ci95": [
+                                                2.1318,
+                                                2.1318
+                                        ],
+                                        "ci95_pct": [
+                                                0.0,
+                                                0.0
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                2.1318,
+                                                2.1318,
+                                                2.1318,
+                                                2.1318,
+                                                2.1318
+                                        ],
+                                        "candidate_values": [
+                                                2.1318,
+                                                2.1318,
+                                                2.1318,
+                                                2.1318,
+                                                2.1318
+                                        ]
+                                },
+                                "allocated_bytes_per_record": {
+                                        "baseline_median": 936.3336,
+                                        "candidate_median": 936.3336,
+                                        "delta_pct": 0.0,
+                                        "baseline_ci95": [
+                                                936.3336,
+                                                936.3336
+                                        ],
+                                        "candidate_ci95": [
+                                                936.3336,
+                                                936.3336
+                                        ],
+                                        "ci95_pct": [
+                                                0.0,
+                                                0.0
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                936.3336,
+                                                936.3336,
+                                                936.3336,
+                                                936.3336,
+                                                936.3336
+                                        ],
+                                        "candidate_values": [
+                                                936.3336,
+                                                936.3336,
+                                                936.3336,
+                                                936.3336,
+                                                936.3336
+                                        ]
+                                },
+                                "external_sample_peak_rss_bytes": {
+                                        "baseline_median": 13561856,
+                                        "candidate_median": 13520896,
+                                        "delta_pct": -0.30202355783751633,
+                                        "baseline_ci95": [
+                                                13434880.0,
+                                                13627392.0
+                                        ],
+                                        "candidate_ci95": [
+                                                13463552.0,
+                                                13594624.0
+                                        ],
+                                        "ci95_pct": [
+                                                -0.543642404107525,
+                                                0.2134146341463472
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                13627392,
+                                                13623296,
+                                                13561856,
+                                                13561856,
+                                                13434880
+                                        ],
+                                        "candidate_values": [
+                                                13594624,
+                                                13586432,
+                                                13488128,
+                                                13520896,
+                                                13463552
+                                        ]
+                                },
+                                "external_wait4_peak_rss_bytes": {
+                                        "baseline_median": 85221376,
+                                        "candidate_median": 85221376,
+                                        "delta_pct": 0.0,
+                                        "baseline_ci95": [
+                                                85155840.0,
+                                                85221376.0
+                                        ],
+                                        "candidate_ci95": [
+                                                85155840.0,
+                                                85221376.0
+                                        ],
+                                        "ci95_pct": [
+                                                -0.07690089397289768,
+                                                0.07696007696007534
+                                        ],
+                                        "repetitions": 5,
+                                        "baseline_values": [
+                                                85221376,
+                                                85209088,
+                                                85221376,
+                                                85155840,
+                                                85221376
+                                        ],
+                                        "candidate_values": [
+                                                85155840,
+                                                85221376,
+                                                85221376,
+                                                85221376,
+                                                85221376
+                                        ]
+                                }
+                        },
+                        "original_sparse_guard_metrics": {
+                                "metrics": {
+                                        "rss_peak_bytes": {
+                                                "baseline_median": 7139328,
+                                                "candidate_median": 5517312,
+                                                "delta_pct": -22.71944922547332,
+                                                "ci95_pct": [
+                                                        -37.17350746268657,
+                                                        52.68735806207418
+                                                ],
+                                                "repetitions": 5,
+                                                "baseline_values": [
+                                                        5410816,
+                                                        7139328,
+                                                        7962624,
+                                                        5431296,
+                                                        8781824
+                                                ],
+                                                "candidate_values": [
+                                                        8261632,
+                                                        5447680,
+                                                        5451776,
+                                                        7823360,
+                                                        5517312
+                                                ]
+                                        },
+                                        "rss_mean_bytes": {
+                                                "baseline_median": 4973714,
+                                                "candidate_median": 4754090,
+                                                "delta_pct": -4.415694187482433,
+                                                "ci95_pct": [
+                                                        -9.605412468360598,
+                                                        12.85566467974677
+                                                ],
+                                                "repetitions": 5,
+                                                "baseline_values": [
+                                                        4596394,
+                                                        4973714,
+                                                        5028717,
+                                                        4562261,
+                                                        5259264
+                                                ],
+                                                "candidate_values": [
+                                                        5187291,
+                                                        4640085,
+                                                        4691968,
+                                                        5060315,
+                                                        4754090
+                                                ]
+                                        },
+                                        "process_peak_rss_bytes": {
+                                                "baseline_median": 10485760,
+                                                "candidate_median": 10485760,
+                                                "delta_pct": 0.0,
+                                                "ci95_pct": [
+                                                        0.0,
+                                                        4.0000000000000036
+                                                ],
+                                                "repetitions": 5,
+                                                "baseline_values": [
+                                                        9830400,
+                                                        10485760,
+                                                        10485760,
+                                                        10485760,
+                                                        10485760
+                                                ],
+                                                "candidate_values": [
+                                                        10223616,
+                                                        10485760,
+                                                        10485760,
+                                                        10485760,
+                                                        10485760
+                                                ]
+                                        },
+                                        "rec_s": {
+                                                "baseline_median": 161097.26829134228,
+                                                "candidate_median": 164322.60741066368,
+                                                "delta_pct": 2.0021066486915373,
+                                                "ci95_pct": [
+                                                        -6.513178253254703,
+                                                        17.261089964704702
+                                                ],
+                                                "repetitions": 5,
+                                                "baseline_values": [
+                                                        164402.82875452822,
+                                                        143999.43275743446,
+                                                        150576.60978780792,
+                                                        161097.26829134228,
+                                                        163486.56951291987
+                                                ],
+                                                "candidate_values": [
+                                                        153694.9794643527,
+                                                        168855.30439435967,
+                                                        164322.60741066368,
+                                                        153001.86601075786,
+                                                        169221.31054053144
+                                                ]
+                                        },
+                                        "p99_us": {
+                                                "baseline_median": 18583.0,
+                                                "candidate_median": 16683.0,
+                                                "delta_pct": -10.224398643921862,
+                                                "ci95_pct": [
+                                                        -45.56450088823374,
+                                                        -3.404550981413934
+                                                ],
+                                                "repetitions": 5,
+                                                "baseline_values": [
+                                                        17271.0,
+                                                        26457.0,
+                                                        18583.0,
+                                                        20173.0,
+                                                        18448.0
+                                                ],
+                                                "candidate_values": [
+                                                        16683.0,
+                                                        14402.0,
+                                                        17442.0,
+                                                        17262.0,
+                                                        15385.0
+                                                ]
+                                        },
+                                        "cpu_ns_per_round": {
+                                                "baseline_median": 9472000.0,
+                                                "candidate_median": 8355000.0,
+                                                "delta_pct": -11.792652027027028,
+                                                "ci95_pct": [
+                                                        -35.456595264937995,
+                                                        25.60177364864864
+                                                ],
+                                                "repetitions": 5,
+                                                "baseline_values": [
+                                                        9472000.0,
+                                                        12418000.0,
+                                                        9225000.0,
+                                                        10194000.0,
+                                                        8940000.0
+                                                ],
+                                                "candidate_values": [
+                                                        11897000.0,
+                                                        8015000.0,
+                                                        8355000.0,
+                                                        8775000.0,
+                                                        8047000.0
+                                                ]
+                                        },
+                                        "allocs_per_round": {
+                                                "baseline_median": 21318.0,
+                                                "candidate_median": 21318.0,
+                                                "delta_pct": 0.0,
+                                                "ci95_pct": [
+                                                        0.0,
+                                                        0.0
+                                                ],
+                                                "repetitions": 5,
+                                                "baseline_values": [
+                                                        21318.0,
+                                                        21318.0,
+                                                        21318.0,
+                                                        21318.0,
+                                                        21318.0
+                                                ],
+                                                "candidate_values": [
+                                                        21318.0,
+                                                        21318.0,
+                                                        21318.0,
+                                                        21318.0,
+                                                        21318.0
+                                                ]
+                                        },
+                                        "allocated_bytes_per_round": {
+                                                "baseline_median": 9363336.0,
+                                                "candidate_median": 9363336.0,
+                                                "delta_pct": 0.0,
+                                                "ci95_pct": [
+                                                        0.0,
+                                                        0.0
+                                                ],
+                                                "repetitions": 5,
+                                                "baseline_values": [
+                                                        9363336.0,
+                                                        9363336.0,
+                                                        9363336.0,
+                                                        9363336.0,
+                                                        9363336.0
+                                                ],
+                                                "candidate_values": [
+                                                        9363336.0,
+                                                        9363336.0,
+                                                        9363336.0,
+                                                        9363336.0,
+                                                        9363336.0
+                                                ]
+                                        }
+                                },
+                                "unit": "per fetch round for CPU and allocations; records/second for throughput; bytes for RSS; microseconds for p99",
+                                "order": "A0 B0 B1 A1 A2 B2 B3 A3 A4 B4",
+                                "mechanism": "Uncapped and unpaused finish_fetch returns the fetched Vec directly; PendingRecords::extend is bypassed."
+                        },
+                        "threshold_regression_pct": 2,
+                        "qualification": "Actual lifetime peak median regression is at most2%; fresh pairedCI[-0.5436,+0.2134]% also stays below2%. No correction to original pending-queue production is indicated by this memory requalification.",
+                        "integrity": {
+                                "fresh_verified_records": 100000,
+                                "fresh_partitions_each_run": 1000,
+                                "fresh_records_each_partition": 10,
+                                "fresh_fetch_rounds_each_run": 1,
+                                "fresh_fetch_requests_each_run": 1,
+                                "mismatches": 0,
+                                "validation_failures": 0,
+                                "all_runtime_results_valid": 20,
+                                "sidecar_hashes_verified": 40,
+                                "actual_child_observers_valid": 10
+                        },
+                        "net_production_lines": 0
+                },
+                "memory_scope_and_controls": {
+                        "launcher_control": "Python parent9.175MB\u2192C parent retains9.437MB pre-exec SELF despite~0.659MB currentRSS. Extra fork fresh child has0 reported pre-exec SELF/~0.254MBcurrentRSS; tiny execprobe peak0.393MB, eliminating Python floor. Three controls and exit17 propagation pass on identical launcher bytes.",
+                        "observed_pid": "Launcher writes the actual fresh Rust child PID. Observer stores observed_runtime_pid and launcher_pid, asserts they differ, then confirms exact /proc/childPID/exe before sampling. All10 exit codes, PID identities and observers are retained in raw archive.",
+                        "phase_vs_lifetime": {
+                                "runs": 10,
+                                "exact_matches": 0,
+                                "range_delta_pct": [
+                                        40.594479830148614,
+                                        44.04031551270815
+                                ],
+                                "median_delta_pct": 41.95673614984972,
+                                "explanation": "Runtime SELF read at phase end, lifetime VmHWM also includes later binary provenance/hash and artifact work; launcher controls prove Python pre-exec floor removed. Distinct scope is intentional and not a claimed corroborating match."
+                        },
+                        "scope_explanation": "Actual lifetime VmHWM medians13.562MB/13.521MB include later binary hash/provenance/artifact work, versus truthful phase-end SELF9.638MB/9.482MB. The~40\u201344% difference is scope, not a claimed match or residual Python floor. Original SELF medians10.486MB/10.486MB had inherited-floor and phase-end limitations; never retroactively treated as lifetime maxima.",
+                        "observer_coverage": {
+                                "minimum_peak_plateau_samples": 22,
+                                "minimum_peak_plateau_ms": 24.538305,
+                                "maximum_last_sample_to_exit_ms": 2.349091,
+                                "runs": [
+                                        {
+                                                "pair": 0,
+                                                "variant": "A",
+                                                "actual_runtime_pid": 207919,
+                                                "peak_plateau_samples": 23,
+                                                "peak_plateau_ms": 27.635629,
+                                                "last_sample_to_exit_ms": 2.349091,
+                                                "observer_interval_ms": {
+                                                        "median": 1.1698235000000001,
+                                                        "p95": 1.28975075,
+                                                        "max": 2.133949
+                                                }
+                                        },
+                                        {
+                                                "pair": 0,
+                                                "variant": "B",
+                                                "actual_runtime_pid": 207961,
+                                                "peak_plateau_samples": 22,
+                                                "peak_plateau_ms": 24.625535,
+                                                "last_sample_to_exit_ms": 1.208382,
+                                                "observer_interval_ms": {
+                                                        "median": 1.158166,
+                                                        "p95": 1.2338308,
+                                                        "max": 1.497234
+                                                }
+                                        },
+                                        {
+                                                "pair": 1,
+                                                "variant": "B",
+                                                "actual_runtime_pid": 207983,
+                                                "peak_plateau_samples": 24,
+                                                "peak_plateau_ms": 27.048759,
+                                                "last_sample_to_exit_ms": 1.181491,
+                                                "observer_interval_ms": {
+                                                        "median": 1.162463,
+                                                        "p95": 1.2297735,
+                                                        "max": 1.29432
+                                                }
+                                        },
+                                        {
+                                                "pair": 1,
+                                                "variant": "A",
+                                                "actual_runtime_pid": 208005,
+                                                "peak_plateau_samples": 22,
+                                                "peak_plateau_ms": 24.538305,
+                                                "last_sample_to_exit_ms": 1.168242,
+                                                "observer_interval_ms": {
+                                                        "median": 1.1753865000000001,
+                                                        "p95": 1.3328965,
+                                                        "max": 1.485277
+                                                }
+                                        },
+                                        {
+                                                "pair": 2,
+                                                "variant": "A",
+                                                "actual_runtime_pid": 208027,
+                                                "peak_plateau_samples": 22,
+                                                "peak_plateau_ms": 24.60209,
+                                                "last_sample_to_exit_ms": 2.277715,
+                                                "observer_interval_ms": {
+                                                        "median": 1.1569690000000001,
+                                                        "p95": 1.22848325,
+                                                        "max": 1.330885
+                                                }
+                                        },
+                                        {
+                                                "pair": 2,
+                                                "variant": "B",
+                                                "actual_runtime_pid": 208049,
+                                                "peak_plateau_samples": 23,
+                                                "peak_plateau_ms": 25.944974,
+                                                "last_sample_to_exit_ms": 1.171947,
+                                                "observer_interval_ms": {
+                                                        "median": 1.159508,
+                                                        "p95": 1.233342,
+                                                        "max": 1.465351
+                                                }
+                                        },
+                                        {
+                                                "pair": 3,
+                                                "variant": "B",
+                                                "actual_runtime_pid": 208071,
+                                                "peak_plateau_samples": 28,
+                                                "peak_plateau_ms": 31.631614,
+                                                "last_sample_to_exit_ms": 1.186408,
+                                                "observer_interval_ms": {
+                                                        "median": 1.1658825,
+                                                        "p95": 1.3038478499999997,
+                                                        "max": 1.508201
+                                                }
+                                        },
+                                        {
+                                                "pair": 3,
+                                                "variant": "A",
+                                                "actual_runtime_pid": 208113,
+                                                "peak_plateau_samples": 25,
+                                                "peak_plateau_ms": 28.005532,
+                                                "last_sample_to_exit_ms": 1.201051,
+                                                "observer_interval_ms": {
+                                                        "median": 1.1578110000000001,
+                                                        "p95": 1.21202125,
+                                                        "max": 1.257365
+                                                }
+                                        },
+                                        {
+                                                "pair": 4,
+                                                "variant": "A",
+                                                "actual_runtime_pid": 208136,
+                                                "peak_plateau_samples": 24,
+                                                "peak_plateau_ms": 26.988358,
+                                                "last_sample_to_exit_ms": 1.177546,
+                                                "observer_interval_ms": {
+                                                        "median": 1.158016,
+                                                        "p95": 1.2172386,
+                                                        "max": 1.457164
+                                                }
+                                        },
+                                        {
+                                                "pair": 4,
+                                                "variant": "B",
+                                                "actual_runtime_pid": 208158,
+                                                "peak_plateau_samples": 24,
+                                                "peak_plateau_ms": 26.984863,
+                                                "last_sample_to_exit_ms": 1.173158,
+                                                "observer_interval_ms": {
+                                                        "median": 1.159638,
+                                                        "p95": 1.1877583999999999,
+                                                        "max": 1.234951
+                                                }
+                                        }
+                                ]
+                        },
+                        "wait4_excluded": "External parent wait4 covers launcher/runtime/compiler descendants; rustc provenance child can reach~85MB. It is retained as diagnostic and excluded from actual client maximum.",
+                        "large_prior_cells": "Original named/bulk SELF peaks exceed inherited Python floor and separate prior bulk VmHWM corroboration already exists. No repeat solely for this discovery; their original artifacts remain unchanged."
+                },
+                "limits": [
+                        "This is a follow-up measurement analysis, not a new optimization or Kafka/public performance claim; Suite HOLD unchanged.",
+                        "All frozen original driver record ID/offset/hash/key checks pass and every partition delivers ten records; fetched/offered/verified all equal10000, so target truncation does not leave a returned tail. Original harness does not emit ordered offset lists or explicitly detect duplicate offsets with equal counts; this limitation is disclosed without changing frozen harness.",
+                        "No statistical superiority claim for actual lifetime memory: pairedCI crosseszero while comfortably inside2% guard. CPU/throughput/p99 timing CIs remain broad despite paused local builds and unmanaged host frequency.",
+                        "Observer requested1ms sleeps; actual intervals include scheduling/read overhead. Persistent VmHWM survives transient sample gaps; final peak plateaus persist at least22samples/24.54ms and lastsample-to-exit gap is at most2.35ms. This does not supply exact measured-phase boundaries.",
+                        "Old10 sparse artifacts and all original KL09-45 evidence remain unchanged and preserved; fresh5pair statistics are separate. No unchanged-code extensions, no raised budget, no production/test/harness edits."
+                ],
+                "artifacts": [
+                        "docs/evidence/perf/KL09-45/checksums.sha256",
+                        "docs/evidence/perf/KL09-45/raw-artifacts.tar.gz",
+                        "docs/evidence/perf/KL11-64/artifact-validation.json",
+                        "docs/evidence/perf/KL11-64/calculate-stats.py",
+                        "docs/evidence/perf/KL11-64/checksums.sha256",
+                        "docs/evidence/perf/KL11-64/evidence-build.log",
+                        "docs/evidence/perf/KL11-64/final-verification.log",
+                        "docs/evidence/perf/KL11-64/launcher-control.log",
+                        "docs/evidence/perf/KL11-64/low-rss-launcher.c",
+                        "docs/evidence/perf/KL11-64/measurements.json",
+                        "docs/evidence/perf/KL11-64/original-sparse-metrics.json",
+                        "docs/evidence/perf/KL11-64/pair-00-A.log",
+                        "docs/evidence/perf/KL11-64/pair-00-B.log",
+                        "docs/evidence/perf/KL11-64/pair-01-A.log",
+                        "docs/evidence/perf/KL11-64/pair-01-B.log",
+                        "docs/evidence/perf/KL11-64/pair-02-A.log",
+                        "docs/evidence/perf/KL11-64/pair-02-B.log",
+                        "docs/evidence/perf/KL11-64/pair-03-A.log",
+                        "docs/evidence/perf/KL11-64/pair-03-B.log",
+                        "docs/evidence/perf/KL11-64/pair-04-A.log",
+                        "docs/evidence/perf/KL11-64/pair-04-B.log",
+                        "docs/evidence/perf/KL11-64/paired-execution.log",
+                        "docs/evidence/perf/KL11-64/prior-launcher-build-final.log",
+                        "docs/evidence/perf/KL11-64/prior-launcher-control-final.log",
+                        "docs/evidence/perf/KL11-64/prior-rss-exec-control.log",
+                        "docs/evidence/perf/KL11-64/raw-artifacts.tar.gz",
+                        "docs/evidence/perf/KL11-64/record-evidence.py",
+                        "docs/evidence/perf/KL11-64/rss-exec-control.c",
+                        "docs/evidence/perf/KL11-64/run-pairs.py",
+                        "docs/evidence/perf/KL11-64/statistics.log",
+                        "docs/evidence/perf/KL11-64/verify-launcher.py",
+                        "docs/plan/evidence/KL09-45.json"
+                ]
+        }
+      ],
       "write_set": [
         "docs/evidence/perf/KL11-64/",
         "docs/plan/evidence/KL11-64.json",

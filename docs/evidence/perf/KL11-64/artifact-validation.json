@@ -1,0 +1,230 @@
+{
+  "valid": 20,
+  "failed": 0,
+  "original_results": 10,
+  "fresh_results": 10,
+  "sidecar_hashes_verified": 40,
+  "observer_records": 10,
+  "runs": [
+    {
+      "artifact": "raw/original/pair-00-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "original",
+      "source_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+      "original_result_sha256": "c8c7a27ebb504a42fcfd954acafe12f24aacadadf183bd4e012bb60fc51d8d62",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/original/pair-00-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "original",
+      "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+      "original_result_sha256": "8a2266f76c9addf17ace7b9e2a7e71b1328c1785141d737df365e0d574cacfe1",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/original/pair-01-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "original",
+      "source_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+      "original_result_sha256": "820a1e16c6d5920545e9a7e7e9d7c1444bebe8edde357f39edd84d598597f93d",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/original/pair-01-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "original",
+      "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+      "original_result_sha256": "43f2d044abb58562aa0f7f9492fee86c95f36dfe970af177124f8cb9440f7ea0",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/original/pair-02-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "original",
+      "source_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+      "original_result_sha256": "fc220469b19be22b759dc2c87225e35357c45432a90028ff5561c165b124e3d1",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/original/pair-02-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "original",
+      "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+      "original_result_sha256": "6fd8c65885c62e3d2c08c7ee3dd61939d606657367b97df26f59d2e2a5ff176d",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/original/pair-03-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "original",
+      "source_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+      "original_result_sha256": "a11e1de08adf687aee0295a8c11cfeecef9dcef0ea8f70c600ddf0e10408be89",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/original/pair-03-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "original",
+      "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+      "original_result_sha256": "ed0a9cc3e09680e9a51f4f02f38172d20cc569b4a252cb65bd53db9ec77731e7",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/original/pair-04-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "original",
+      "source_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+      "original_result_sha256": "6fd933d503635f19a7310c33b105992f5acf5e1ae40845e002580047f78bc731",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/original/pair-04-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "original",
+      "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+      "original_result_sha256": "1f30e1aa6e4f44c11db8308048646d8c93174d60336eec4da8c78b7ae25ea047",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/fresh/pair-00-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "fresh",
+      "source_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+      "original_result_sha256": "f7eec71de5fbefd6a655f2e399a4068ef2093a4ee931a72dae6074776578d1e3",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/fresh/pair-00-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "fresh",
+      "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+      "original_result_sha256": "642da9bed58252c263cfbacd0f880d76a65e88abe8fed1d2bdc4a46851f199b9",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/fresh/pair-01-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "fresh",
+      "source_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+      "original_result_sha256": "3b347578e9ac292f5c102d05a2ef35ff88c7a8dac5a904624d292739e7549889",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/fresh/pair-01-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "fresh",
+      "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+      "original_result_sha256": "22c4443f67a82c3c6011a07e4bd9ee2ace268059d88d58c2446d988cc080e933",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/fresh/pair-02-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "fresh",
+      "source_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+      "original_result_sha256": "b7debcf339526b8ae66ff5eb02d9234359cbf2996bd02d6a10db29048f05d01e",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/fresh/pair-02-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "fresh",
+      "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+      "original_result_sha256": "bd5292e1b960594ef2872591ac460c4f05c13c5ed16113b4d2003de82c27442a",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/fresh/pair-03-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "fresh",
+      "source_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+      "original_result_sha256": "7cc4ded5d34345454a05484d00de27dd87fa0879beabd199550e574627c6ad65",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/fresh/pair-03-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "fresh",
+      "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+      "original_result_sha256": "d070f0526f90f5293e2425bd5cc56f4332d318eae140bd51aaf30292c15641bc",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/fresh/pair-04-A/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "fresh",
+      "source_sha": "072ef8f90cec41bdf8c60243c47bdfb2c030584c",
+      "original_result_sha256": "a243b2d387731103e6a7cef0c62f6075b60392d06f1dac7e4feb1bf69d969c4a",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    },
+    {
+      "artifact": "raw/fresh/pair-04-B/nb-fetch-1000p-rep0.result.json",
+      "valid": true,
+      "errors": 0,
+      "cohort": "fresh",
+      "source_sha": "6f181217ac9555de66012b8609eacb890d7507f6",
+      "original_result_sha256": "b407b6d86a9c4e93916bcb8bc70bfb4946ceae5ffea76a2b7d1f9f1193deedd2",
+      "verified_records": 10000,
+      "partition_count": 1000,
+      "records_each_partition": 10
+    }
+  ]
+}
