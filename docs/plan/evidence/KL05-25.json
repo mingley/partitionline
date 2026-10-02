@@ -1,0 +1,209 @@
+{
+  "id": "KL05-25",
+  "status": "done",
+  "source_sha": "079e76e2774016d8fd19898c27ecc25b4b41a125",
+  "implementation_source_sha": "0c2341c7de88cc24581377a82c0b2d7fa29eb5d7",
+  "acceptance_met": true,
+  "validation_source": "Exact git-archive snapshot of source_sha under /workspace/work/avro/source; separate stable/MSRV target directories. The final source refinement exports payload directly from the actual emitted frame.",
+  "commands": [
+    "cargo test --locked --manifest-path partitionline-schema/Cargo.toml",
+    "cargo test --locked --manifest-path partitionline-schema/Cargo.toml --all-features",
+    "cargo test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features",
+    "cargo test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --features avro",
+    "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml",
+    "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml --all-features",
+    "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features",
+    "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --features avro",
+    "cargo clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings",
+    "RUSTDOCFLAGS='-D warnings' cargo doc --locked --manifest-path partitionline-schema/Cargo.toml --no-deps --all-features",
+    "cargo fmt --manifest-path partitionline-schema/Cargo.toml -- --check",
+    "cargo tree --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --features avro -e normal",
+    "bash scripts/check-schema-companion-scaffold.sh",
+    "PL_AVRO_ORACLE_OUTPUT=/workspace/work/avro/rust-output cargo test --locked --manifest-path partitionline-schema/Cargo.toml --features avro --test avro",
+    "/workspace/work/avro/venv/bin/python -B partitionline-schema/tests/oracles/avro/generate.py --wheel /workspace/work/avro/downloads/avro-1.12.1-py2.py3-none-any.whl --output partitionline-schema/tests/fixtures/avro --verify --rust-output /workspace/work/avro/rust-output",
+    "git diff --check"
+  ],
+  "environment": {
+    "rust_stable": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "rust_msrv": "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+    "python": "CPython 3.12.14",
+    "cpu_affinity": "taskset -c 0-2,4",
+    "platform": "Linux x86_64"
+  },
+  "results": {
+    "stable": {
+      "default": {
+        "lib_passed": 43,
+        "avro_passed": 0,
+        "cache_passed": 17,
+        "protobuf_passed": 13,
+        "doctests_passed": 1,
+        "total_passed": 74,
+        "failed": 0,
+        "ignored": 0
+      },
+      "all-features": {
+        "lib_passed": 43,
+        "avro_passed": 14,
+        "cache_passed": 17,
+        "protobuf_passed": 13,
+        "doctests_passed": 2,
+        "total_passed": 89,
+        "failed": 0,
+        "ignored": 0
+      },
+      "no-default": {
+        "lib_passed": 4,
+        "avro_passed": 0,
+        "cache_passed": 0,
+        "protobuf_passed": 13,
+        "doctests_passed": 1,
+        "total_passed": 18,
+        "failed": 0,
+        "ignored": 0
+      },
+      "no-default-avro": {
+        "lib_passed": 4,
+        "avro_passed": 14,
+        "cache_passed": 0,
+        "protobuf_passed": 13,
+        "doctests_passed": 2,
+        "total_passed": 33,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "msrv_1_85": {
+      "default": {
+        "lib_passed": 43,
+        "avro_passed": 0,
+        "cache_passed": 17,
+        "protobuf_passed": 13,
+        "doctests_passed": 1,
+        "total_passed": 74,
+        "failed": 0,
+        "ignored": 0
+      },
+      "all-features": {
+        "lib_passed": 43,
+        "avro_passed": 14,
+        "cache_passed": 17,
+        "protobuf_passed": 13,
+        "doctests_passed": 2,
+        "total_passed": 89,
+        "failed": 0,
+        "ignored": 0
+      },
+      "no-default": {
+        "lib_passed": 4,
+        "avro_passed": 0,
+        "cache_passed": 0,
+        "protobuf_passed": 13,
+        "doctests_passed": 1,
+        "total_passed": 18,
+        "failed": 0,
+        "ignored": 0
+      },
+      "no-default-avro": {
+        "lib_passed": 4,
+        "avro_passed": 14,
+        "cache_passed": 0,
+        "protobuf_passed": 13,
+        "doctests_passed": 2,
+        "total_passed": 33,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "clippy": "passed",
+    "strict_rustdoc": "passed",
+    "fmt": "passed",
+    "scaffold": "passed",
+    "dependency_tree": "avro + no default features has no normal dependencies",
+    "diff_check": "passed"
+  },
+  "avro_test_names": [
+    "apache_peer_framing_borrows_exact_avro_datum",
+    "independent_writer_reader_resolution_references_defaults_nulls_bidirectional",
+    "incompatible_change_and_missing_default_preserve_codec_failures",
+    "unresolved_reference_and_invalid_schema_fail_construction",
+    "unknown_writer_and_oversized_input_never_invoke_decoder",
+    "schema_text_and_reference_counts_fail_before_resolution",
+    "duplicate_or_empty_reference_inputs_fail_before_codec",
+    "exact_combined_schema_budget_and_limit_configuration_boundaries",
+    "generic_header_errors_are_structured",
+    "truncated_malformed_and_trailing_datums_cannot_succeed",
+    "oversized_writer_values_fail_before_payload_encoding",
+    "independent_primitive_null_is_an_empty_datum_in_both_directions",
+    "overflow_failed_encoder_and_wrong_reported_lengths_never_return_success",
+    "bounded_datum_sweep_never_panics_and_success_reencodes_canonically"
+  ],
+  "interop": {
+    "peer": "Apache Avro Python",
+    "version": "1.12.1",
+    "license": "Apache-2.0",
+    "distribution": "avro-1.12.1-py2.py3-none-any.whl",
+    "distribution_sha256": "970475dd6457924533966fe761be607c759d5a48390cc8fbed472f7c9a8868f2",
+    "io_source_sha256": "c38e54a31cbfdab203cb65df9ed651b8e41ce2245f331936fc7a7f87b9a8217e",
+    "schema_source_sha256": "7f6b1b9ca64dc2955d4cac96a610c8c0dd1954da4274535ba47f885b5c81ed8f",
+    "source_pin_policy": "Generator verifies every installed avro Python source against the hash-pinned wheel; full source hashes and fixture hashes are in tests/fixtures/avro/manifest.json.",
+    "fixture_artifacts_verified": 25,
+    "independent_datum_cases": 5,
+    "reverse_actual_rust_datum_cases": 5,
+    "incompatible_reader_checks": 8,
+    "missing_reference_parser_checks": 1,
+    "schema_resolution": [
+      "named common.Metadata resolved independently in writer/reader namespaces",
+      "field order changes and int-to-long promotion",
+      "reader-added string, null-union and referenced boolean defaults",
+      "null and present string union branches, UTF-8, int32 min/max",
+      "int-to-string and required-field-without-default reject at datum decode",
+      "unresolved named reference rejects at schema parse"
+    ],
+    "emitted_sha256": {
+      "intmax.frame.bin": "c0af3ddc0fc087795124845ec5ea604b038b36b8c15e96c819ff389d33c935ab",
+      "intmax.payload.bin": "abe80d6472a50e9acb3e325d5002a208349db105d903b87ab18ae6004457d9bc",
+      "negative.frame.bin": "86bf6198a67de61cdf48dde30fa568f539b7124f1ddd035fc8d06136af7a6ddc",
+      "negative.payload.bin": "df1741be011af5eba0238447d43ba6fac22143118e24229f0ee54904fb4674f9",
+      "null.frame.bin": "601b4e40e7b5c662fcadd5d670e7011becc4fb5850f402ebf7e9296e2512633b",
+      "null.payload.bin": "50ac7bcccb909b9f5a544b7f60a1109a56e9ffe9484847a74febad22b085ba7a",
+      "present.frame.bin": "e2236e9c3403363c02e05dead0f8b7787a6bd6bc8a07141fb97a9dbbc6ce6a91",
+      "present.payload.bin": "2803fb1e6951f7a803050140bdb8be5702d72ea8bbf6675ca10b5c47b7cd07b0",
+      "root-null.frame.bin": "c9fbac009d8eda5d25c9aabb2b6794bc9a801afd17adef7878c6539204eb0f82",
+      "root-null.payload.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "defaults": {
+    "complete_frame_bytes": 1048576,
+    "combined_schema_reference_utf8_bytes": 2097152,
+    "combined_references": 64
+  },
+  "behavior": [
+    "Non-default dependency-free avro feature; core/default companion dependency graphs and lockfiles unchanged.",
+    "Borrowed explicit writer/reader root JSON and flattened resolved named-reference sets are bounded together before codec resolution; empty inputs and duplicate names within either set fail before codec entry.",
+    "Caller-selected Codec resolves writer/reader schemas once and retains immutable selections; defaults, unions, named references, promotions and compatibility are explicit codec responsibilities.",
+    "Encoding obtains exact writer-schema datum length, checks overflow/frame limit before allocation, reserves one bounded frame fallibly, and supplies only its exact payload slice.",
+    "Decode borrows the bounded frame payload and rejects unknown writer IDs before entering the codec. Reported partial writes and incomplete/over-reported consumption cannot return success.",
+    "Structured input/header/schema-ID/length/size/reservation failures preserve selected codec failures. No schema text or payload is embedded in adapter diagnostics.",
+    "No registry lookup, registration, compatibility policy or reference traversal is implicit; raw Avro datums use Confluent five-byte framing, including an empty datum for primitive null."
+  ],
+  "artifacts": [
+    "partitionline-schema/Cargo.toml",
+    "partitionline-schema/src/lib.rs",
+    "partitionline-schema/src/avro.rs",
+    "partitionline-schema/tests/avro.rs",
+    "partitionline-schema/tests/oracles/avro/generate.py",
+    "partitionline-schema/tests/oracles/avro/README.md",
+    "partitionline-schema/tests/fixtures/avro/manifest.json",
+    "partitionline-schema/README.md",
+    "docs/plan/evidence/KL05-25.json"
+  ],
+  "limits": [
+    "The adapter is a caller-selected codec contract, not a built-in general-purpose Avro parser/serializer. Test codecs recognize only checked-in fixture schemas.",
+    "Frame/schema-input bounds constrain adapter-owned output and inputs, not codec parsing, retained schemas, recursion, scratch, decoded objects or process RSS; the application must separately bound those codec allocations.",
+    "Offline pinned Apache peer fixtures and actual emitted-output verification; no live Schema Registry, Kafka broker or production codec qualification is claimed.",
+    "The existing default registry feature still uses Rustls/Ring and requires a C compiler; no new native/codec dependency is added.",
+    "Current root CI does not automatically exercise the workspace-excluded companion; recorded stable/MSRV/peer checks are local controlled runs."
+  ],
+  "blocked_reason": null
+}

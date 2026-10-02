@@ -497,7 +497,7 @@ serialize a card. Full acceptance criteria and validation are in
 | KL09-54 | P1 | analysis | Measure write shape, syscalls and TLS record coalescing | KL09-13 | - |
 | KL09-55 | P2 | implementation | Read directly into the frame buffer during stalled writes | KL09-54 | net |
 | KL09-56 | P1 | implementation | Share one TLS client configuration per client | KL06-05, KL09-11 | net |
-| KL09-57 | P1 | implementation | Dial bootstrap and broker connections in bounded parallel | KL09-10, KL09-11 | net |
+| KL09-57 | P1 | analysis | Dial bootstrap and broker connections in bounded parallel | KL09-71, KL09-72 | net |
 | KL09-58 | P2 | implementation | Expose socket buffer sizes and measure on injected-RTT cells | KL07-10, KL09-11, KL09-02 | net, producer, consumer |
 | KL09-59 | P2 | implementation | Reuse one OIDC token manager across connection opens | KL06-04, KL09-11 | net |
 | KL09-60 | P1 | implementation | Add a linger-zero direct write path for idle connections | KL04-06, KL09-20, KL09-23 | producer |
@@ -511,6 +511,8 @@ serialize a card. Full acceptance criteria and validation are in
 | KL09-68 | P1 | benchmark | Register franz-go and client-ceiling cells in the orchestrator | KL04-08, KL09-65, KL09-66 | - |
 | KL09-69 | P1 | analysis | Re-profile after the first optimization wave and re-rank | KL09-13, KL09-15, KL09-16, KL09-17, KL09-19, KL09-31, KL09-38, KL09-42 | - |
 | KL09-70 | P1 | analysis | Audit a fastest-client claim against the frozen gate | KL04-12, KL04-14, KL09-67, KL09-68, KL09-69 | - |
+| KL09-71 | P1 | implementation | Dial bootstrap addresses with bounded parallelism | KL09-10, KL09-11 | net |
+| KL09-72 | P1 | implementation | Open multi-broker connection sets in bounded parallel | KL09-71, KL09-10, KL09-11 | consumer, producer, net |
 <!-- KL09-INDEX:END -->
 
 These cards in other lanes are also performance features:
