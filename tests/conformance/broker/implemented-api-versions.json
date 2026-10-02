@@ -12,7 +12,7 @@
   "protocol_source": "partitionline-broker/src/protocol.rs",
   "protocol_source_sha256": "72c879d42e9a981507583df1db44b4296cd709d038a4a3d4e748058e3b4a60be",
   "test_source": "partitionline-broker/tests/protocol.rs",
-  "test_source_sha256": "aa173009e420c3f636ac7129506bf3b3512b24b71a954e97bda5196866f23326",
+  "test_source_sha256": "29917ccfff722734f640497931e506cf32ae13ea6a4661fca5aead95482c1ade",
   "fixture_root": "partitionline-broker/tests/fixtures/protocol",
   "fixtures_sha256": {
     "4.1.2/client-invalid-utf8.request.bin": "962621cd6f7d095b5332821e9e6b39be192ffd2aa9bf8a902b1793bf44a82245",

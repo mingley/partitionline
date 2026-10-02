@@ -362,7 +362,13 @@ const FLEXIBLE: &[u8] = include_bytes!("fixtures/protocol/4.3.1/v3-flexible.requ
 const REGISTRY: &str = include_str!("../../tests/conformance/broker/implemented-api-versions.json");
 
 fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut result = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        result.push(char::from(DIGITS[usize::from(byte >> 4)]));
+        result.push(char::from(DIGITS[usize::from(byte & 15)]));
+    }
+    result
 }
 fn registry_string(key: &str) -> &str {
     let suffix = REGISTRY.split_once(&format!("\"{key}\": \"")).unwrap().1;
