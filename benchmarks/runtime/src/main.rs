@@ -702,6 +702,16 @@ fn run_fetch(
             0.0
         }),
     );
+    if cell.id == "nb-fetch-capped-paused" {
+        extra.insert(
+            "paused_backlog_records".to_owned(),
+            serde_json::Value::from(fout.paused_backlog_records),
+        );
+        extra.insert(
+            "prefill_buffered_bytes".to_owned(),
+            serde_json::Value::from(fout.prefill_buffered_bytes),
+        );
+    }
     extra.insert(
         "fetch_requests".to_owned(),
         serde_json::Value::from(counts.fetch_requests),

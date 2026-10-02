@@ -35,6 +35,10 @@ pub struct FetchOutcome {
     pub errors: Vec<String>,
     /// Paused partitions that delivered records (must stay empty).
     pub paused_delivered: BTreeMap<i32, u64>,
+    /// Actual synthetic records retained in the five paused queues after prefill.
+    pub paused_backlog_records: u64,
+    /// Buffered key/value/header bytes immediately after the prefill poll.
+    pub prefill_buffered_bytes: usize,
     /// The drive hit the cell timeout.
     pub timed_out: bool,
 }
@@ -103,7 +107,8 @@ pub async fn drive_fetch(consumer: &mut Consumer, cell: &FetchCellDef, out: &mut
                 return;
             }
         }
-        if !cell.paused_partitions.is_empty() {
+        let pause_after_prefill = cell.id == "nb-fetch-capped-paused";
+        if !pause_after_prefill && !cell.paused_partitions.is_empty() {
             let paused: Vec<TopicPartition> = cell
                 .paused_partitions
                 .iter()
@@ -159,6 +164,49 @@ pub async fn drive_fetch(consumer: &mut Consumer, cell: &FetchCellDef, out: &mut
                         record_error(out, e);
                     }
                 }
+            }
+            if pause_after_prefill && out.rounds == 1 {
+                // Fetch all six sparse logs before pausing: the named cell
+                // requires 100k client-held paused records, not just a single
+                // active partition with the other five excluded from Fetch.
+                let mut backlog = 0u64;
+                for &partition in &cell.paused_partitions {
+                    let held = consumer
+                        .fetch_cursor(cell.topic, partition)
+                        .and_then(|cursor| {
+                            consumer
+                                .position(cell.topic, partition)
+                                .map(|position| cursor.saturating_sub(position))
+                        });
+                    match held {
+                        Ok(records) if records >= 0 => backlog += records as u64,
+                        Ok(_) => {
+                            record_error(out, "negative paused prefill backlog".to_owned());
+                            return;
+                        }
+                        Err(e) => {
+                            record_error(out, format!("paused prefill position: {e}"));
+                            return;
+                        }
+                    }
+                }
+                out.paused_backlog_records = backlog;
+                out.prefill_buffered_bytes = consumer.buffered_bytes();
+                let expected = cell
+                    .synth_records_per_partition
+                    .saturating_mul(cell.paused_partitions.len() as u64);
+                if backlog != expected || out.prefill_buffered_bytes == 0 {
+                    record_error(
+                        out,
+                        format!("paused prefill backlog {backlog}, expected {expected}"),
+                    );
+                    return;
+                }
+                consumer.pause(
+                    cell.paused_partitions
+                        .iter()
+                        .map(|p| TopicPartition::new(cell.topic, *p)),
+                );
             }
             if !cell.app_delay_per_batch.is_zero() {
                 tokio::time::sleep(cell.app_delay_per_batch).await;

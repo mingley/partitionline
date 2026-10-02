@@ -153,3 +153,19 @@ fn connect_matrix_verifies_stalled_tcp_cases() {
     assert_eq!(doc["provenance"]["artifacts"].as_array().unwrap().len(), 10);
     let _ = std::fs::remove_dir_all(&out_dir);
 }
+
+#[test]
+fn capped_paused_cell_prefills_real_client_held_backlog() {
+    let (doc, out_dir) = run_cell("nb-fetch-capped-paused");
+    assert_eq!(doc["outcomes"]["consumed"], 2_000);
+    assert_eq!(doc["execution"]["fetch_rounds"], 2_000);
+    assert_eq!(doc["execution"]["fetch_requests"], 1);
+    assert_eq!(doc["execution"]["fetched_records"], 120_000);
+    assert_eq!(doc["execution"]["paused_backlog_records"], 100_000);
+    assert_eq!(doc["execution"]["prefill_buffered_bytes"], 119_999 * 116);
+    assert_eq!(
+        doc["execution"]["per_partition_delivered"],
+        serde_json::json!([{"partition":0,"records":2_000}])
+    );
+    let _ = std::fs::remove_dir_all(&out_dir);
+}
