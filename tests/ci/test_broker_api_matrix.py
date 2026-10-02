@@ -128,7 +128,7 @@ class BrokerApiMatrix(unittest.TestCase):
             self.assertEqual(row["upstream_negotiation"]["schema_minimum"], 3)
             self.assertEqual(row["upstream_negotiation"]["broker_listener_advertised_minimum"], 0)
             self.assertEqual(row["headers"][0]["api_version"], 3)
-        self.assertEqual(self.features["implemented_api_versions"], [])
+        self.assertEqual(self.features["implemented_api_versions"], MATRIX.IMPLEMENTED)
 
     def test_retention_is_byte_preserving_and_deterministic(self):
         for release in self.matrix["releases"]:
@@ -310,6 +310,107 @@ class BrokerApiMatrix(unittest.TestCase):
             result = json.loads(report.read_text(encoding="utf-8"))
             self.assertEqual(result["verdict"], "failed")
             self.assertIn("immutable source pin mismatch", result["error"])
+
+
+    def implementation_mutation(self, mutate_registry=None, mutate_files=None, mutate_report=None):
+        """Synthetic report exercises validation; Rust tests prove real behavior."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            registry = MATRIX.load_json(ROOT / MATRIX.REGISTRY_PATH)
+            for label in ("protocol_source", "test_source"):
+                target = root / registry[label]
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / registry[label], target)
+            shutil.copytree(ROOT / registry["fixture_root"], root / registry["fixture_root"])
+            report = {"schema_version": 1, "implemented_api_versions": copy.deepcopy(MATRIX.IMPLEMENTED),
+                      "protocol_source_sha256": registry["protocol_source_sha256"],
+                      "test_source_sha256": registry["test_source_sha256"], "case_results": []}
+            for version in MATRIX.TARGETS:
+                golden = MATRIX.load_json(root / registry["fixture_root"] / version / "goldens.json")
+                report["case_results"].extend({"release": version, "case": case["name"],
+                                               "response_hex": case["response_hex"]} for case in golden["cases"])
+            if mutate_registry:
+                mutate_registry(registry)
+            if mutate_files:
+                mutate_files(root, registry)
+            if mutate_report:
+                mutate_report(report)
+            registry_path, report_path = root / "registry.json", root / "report.json"
+            registry_path.write_text(json.dumps(registry), encoding="utf-8")
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            inventories = {row["version"]: row["inventory"] for row in self.matrix["releases"]}
+            return MATRIX.verify_implementation(registry_path, root, inventories, report_path)
+
+    def test_checked_registry_and_synthetic_report_gate(self):
+        registry, report = self.implementation_mutation()
+        self.assertEqual(registry["implemented_api_versions"], MATRIX.IMPLEMENTED)
+        self.assertTrue(report["compiled_handler_report_checked"])
+        self.assertEqual(report["golden_cases"], 99)
+        self.assertEqual(report["qualification"], "not_run")
+
+    def test_registry_forged_extra_or_out_of_range_claims_fail(self):
+        claims = ([], [{"api_key": 18, "min_version": 0, "max_version": 5}],
+                  [{"api_key": 18, "min_version": -1, "max_version": 4}],
+                  [{"api_key": 3, "min_version": 0, "max_version": 4}],
+                  MATRIX.IMPLEMENTED * 2,
+                  [dict(MATRIX.IMPLEMENTED[0], min_version=False)],
+                  [dict(MATRIX.IMPLEMENTED[0], max_version=4.0)])
+        for claim in claims:
+            with self.subTest(claim=claim), self.assertRaisesRegex(ValueError, "implementation claim"):
+                self.implementation_mutation(lambda r: r.__setitem__("implemented_api_versions", claim))
+
+    def test_registry_cannot_claim_qualification_or_unchecked_source(self):
+        for field, value in (("qualification", "passed"), ("implementation_gate", "none"),
+                             ("protocol_source", "../outside"), ("test_source_sha256", "0" * 64),
+                             ("fixture_root", "../outside")):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self.implementation_mutation(lambda r: r.__setitem__(field, value))
+        with self.assertRaisesRegex(ValueError, "source checksum"):
+            self.implementation_mutation(mutate_files=lambda root, r: (root / r["protocol_source"]).write_text("forged"))
+
+    def test_registry_missing_extra_and_changed_fixtures_fail(self):
+        mutations = (
+            lambda root, r: (root / r["fixture_root"] / "4.3.1/v0-named.response.bin").unlink(),
+            lambda root, r: (root / r["fixture_root"] / "extra.bin").write_bytes(b"extra"),
+            lambda root, r: (root / r["fixture_root"] / "4.3.1/v0-named.response.bin").write_bytes(b"wrong"),
+        )
+        for mutate in mutations:
+            with self.assertRaises(ValueError):
+                self.implementation_mutation(mutate_files=mutate)
+
+    def test_self_rehashed_golden_rewrite_still_fails_independent_pin(self):
+        def mutate(root, registry):
+            path = root / registry["fixture_root"] / "4.3.1/goldens.json"
+            golden = MATRIX.load_json(path)
+            golden["cases"][0]["response_hex"] = "00"
+            path.write_text(json.dumps(golden), encoding="utf-8")
+            registry["fixtures_sha256"]["4.3.1/goldens.json"] = MATRIX.digest(path.read_bytes())
+        with self.assertRaisesRegex(ValueError, "independent golden manifest"):
+            self.implementation_mutation(mutate_files=mutate)
+
+    def test_compiled_handler_report_corruption_fails(self):
+        mutations = (
+            lambda r: r.__setitem__("protocol_source_sha256", "0" * 64),
+            lambda r: r["implemented_api_versions"][0].__setitem__("max_version", 5),
+            lambda r: r["case_results"].pop(),
+            lambda r: r["case_results"].__setitem__(0, r["case_results"][1]),
+            lambda r: r["case_results"][0].__setitem__("response_hex", "00"),
+            lambda r: r["case_results"][11].pop("response_hex"),
+            lambda r: r["case_results"][0].__setitem__("case", "forged"),
+        )
+        for mutate in mutations:
+            with self.assertRaises(ValueError):
+                self.implementation_mutation(mutate_report=mutate)
+
+    def test_feature_versions_and_local_gate_cannot_be_forged(self):
+        for mutate in (
+            lambda f: f["features"][18].__setitem__("implemented_versions", "0-5"),
+            lambda f: f["features"][18].__setitem__("qualification", "passed"),
+            lambda f: f["features"][3].__setitem__("implemented_versions", "0"),
+            lambda f: f.__setitem__("implementation_registry", "elsewhere"),
+        ):
+            with self.assertRaises(ValueError):
+                self.verify_mutation(mutate_features=mutate)
 
 
 if __name__ == "__main__":

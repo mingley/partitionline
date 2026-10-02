@@ -8,6 +8,7 @@
 //! require the separate, evidence-backed completion gates.
 
 pub mod journal;
+pub mod protocol;
 pub mod transport;
 
 #[cfg(feature = "tls")]

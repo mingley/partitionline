@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Verify the broker inventory against retained Apache sources, without extraction.
 
-This inventories upstream protocol definitions. It neither implements an API nor
-authorizes advertising any version from the partitionline broker.
+The upstream inventory is separate from the checked local handler registry.
+Registry source/fixture checks do not establish production qualification. An
+optional report from the compiled Rust golden test verifies actual response bytes.
 """
 import argparse
 import gzip
@@ -54,6 +55,94 @@ MAX_MEMBER_BYTES = 512 * 1024
 MAX_MEMBERS = 256
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 SCOPE = "Pinned upstream broker protocol inventory; no implementation or advertisement claim"
+IMPLEMENTED = [{"api_key": 18, "min_version": 0, "max_version": 4}]
+REGISTRY_PATH = "tests/conformance/broker/implemented-api-versions.json"
+IMPLEMENTED_NOTE = "ApiVersions0-4 header/body handler verified against Apache goldens; other broker APIs and production qualification remain missing."
+# Independent Apache generator outputs. Changing a registry's hashes alone
+# cannot bless changed wire bytes or fabricated upstream observations.
+GOLDEN_MANIFEST_SHA256 = {'4.1.2': 'ca8d4a2e1badf53a829b8286e19775b57f5361b9ba608819321102444ba1a040', '4.2.1': 'ca8d4a2e1badf53a829b8286e19775b57f5361b9ba608819321102444ba1a040', '4.3.1': 'ca8d4a2e1badf53a829b8286e19775b57f5361b9ba608819321102444ba1a040'}
+
+
+def checked_implemented(value):
+    require(isinstance(value, list) and value == IMPLEMENTED and
+            all(isinstance(row, dict) and row.keys() == {"api_key", "min_version", "max_version"} and
+                all(type(number) is int for number in row.values()) for row in value),
+            "forged/extra/out-of-range implementation claim")
+    return value
+
+
+def verify_implementation(registry_path, repository_root, inventories, handler_report=None):
+    registry = load_json(registry_path)
+    require(registry.get("schema_version") == 1 and
+            registry.get("scope") == "Checked local handler registry; production qualification remains not_run" and
+            registry.get("implementation_gate") == "KL11-04" and
+            registry.get("qualification") == "not_run", "invalid implementation registry scope/gate")
+    checked_implemented(registry.get("implemented_api_versions"))
+    for version, inventory in inventories.items():
+        row = inventory[18]
+        require(row["disposition"] == "active" and "broker" in row["listeners"] and
+                all(row[kind]["valid_versions"] == "0-4" for kind in ("request", "response")),
+                f"{version}: implementation outside upstream contract")
+    for label, expected in (("protocol_source", "partitionline-broker/src/protocol.rs"),
+                            ("test_source", "partitionline-broker/tests/protocol.rs")):
+        require(registry.get(label) == expected, "unexpected implementation source path")
+        require(registry.get(label + "_sha256") == digest((repository_root / expected).read_bytes()),
+                f"{label}: implementation source checksum mismatch")
+    require(registry.get("fixture_root") == "partitionline-broker/tests/fixtures/protocol",
+            "unexpected implementation fixture path")
+    root = repository_root / registry["fixture_root"]
+    files = [path for path in sorted(root.rglob("*")) if path.is_file()]
+    require(len(files) == 135 and all(not path.is_symlink() and path.stat().st_size <= 128 * 1024
+                                    for path in files), "unbounded/symlink implementation fixtures")
+    actual = {str(path.relative_to(root)): digest(path.read_bytes()) for path in files}
+    require(registry.get("fixtures_sha256") == actual, "implementation fixture checksum map mismatch")
+    expected_paths, expected_results = set(), {}
+    for version in TARGETS:
+        manifest = root / version / "goldens.json"
+        require(digest(manifest.read_bytes()) == GOLDEN_MANIFEST_SHA256[version],
+                f"{version}: independent golden manifest checksum mismatch")
+        golden = load_json(manifest)
+        require(golden.get("api18_min") == 0 and golden.get("api18_max") == 4,
+                "golden advertisement range mismatch")
+        cases = golden.get("cases")
+        require(isinstance(cases, list) and len(cases) == 33, "missing golden cases")
+        expected_paths.add(f"{version}/goldens.json")
+        for case in cases:
+            name = case["name"]
+            require(re.fullmatch(r"[a-z0-9-]+", name) and (version, name) not in expected_results,
+                    "unsafe/duplicate golden case")
+            expected_results[(version, name)] = case["response_hex"]
+            for direction in ("request", "response"):
+                value = case[direction + "_hex"]
+                if value is not None:
+                    path = f"{version}/{name}.{direction}.bin"
+                    expected_paths.add(path)
+                    require((root / path).read_bytes() == bytes.fromhex(value), "golden byte mismatch")
+    require(actual.keys() == expected_paths, "missing/extra implementation fixtures")
+    report_checked = False
+    if handler_report is not None:
+        report = load_json(handler_report)
+        checked_implemented(report.get("implemented_api_versions"))
+        require(report.get("schema_version") == 1 and
+                all(report.get(label + "_sha256") == registry[label + "_sha256"]
+                    for label in ("protocol_source", "test_source")),
+                "compiled handler report/source/registry mismatch")
+        results = report.get("case_results")
+        require(isinstance(results, list) and len(results) == 99, "incomplete compiled handler report")
+        observed = {}
+        for result in results:
+            require(isinstance(result, dict) and result.keys() == {"release", "case", "response_hex"},
+                    "invalid compiled handler case shape")
+            pair = (result.get("release"), result.get("case"))
+            require(pair not in observed, "duplicate compiled handler case")
+            observed[pair] = result.get("response_hex")
+        require(observed == expected_results, "compiled handler/golden response mismatch")
+        report_checked = True
+    return registry, {"implemented_api_versions": IMPLEMENTED,
+                      "source_and_fixture_hashes_checked": True,
+                      "golden_cases": len(expected_results),
+                      "compiled_handler_report_checked": report_checked,
+                      "qualification": "not_run"}
 
 
 def require(condition, message):
@@ -376,7 +465,8 @@ def projected_feature(row_by_version):
     }
 
 
-def verify(matrix_path, features_path, upstream_dir=None):
+def verify(matrix_path, features_path, upstream_dir=None, registry_path=None,
+           repository_root=None, handler_report=None):
     matrix, features = load_json(matrix_path), load_json(features_path)
     require(matrix.get("schema_version") == 1 and matrix.get("scope") == SCOPE and
             matrix.get("implementation_claim") is False, "invalid broker inventory schema/scope")
@@ -411,7 +501,13 @@ def verify(matrix_path, features_path, upstream_dir=None):
                         "header_version_pairs": sum(len(row["headers"]) for row in inventory)})
     require(features.get("schema_version") == 1 and features.get("target_releases") == list(TARGETS) and
             features.get("upstream_pin_gate") == "KL11-57", "features release/inventory gate mismatch")
-    require(features.get("implemented_api_versions") == [], "inventory cannot claim implemented API versions")
+    registry, implementation = verify_implementation(
+        registry_path or ROOT / REGISTRY_PATH, repository_root or ROOT,
+        inventories, handler_report)
+    checked_implemented(features.get("implemented_api_versions"))
+    require(features.get("implemented_api_versions") == registry["implemented_api_versions"] and
+            features.get("implementation_registry") == REGISTRY_PATH,
+            "features/implementation registry mismatch")
     feature_rows = features.get("features")
     require(isinstance(feature_rows, list), "missing feature rows")
     ids = [row.get("id") for row in feature_rows]
@@ -425,15 +521,24 @@ def verify(matrix_path, features_path, upstream_dir=None):
             api_features[key] = row
     require(api_features.keys() == EXPECTED_KEYS, "missing API features")
     for key, row in api_features.items():
-        require(row.get("id") == f"api.{key}" and row.get("implementation") == "missing" and
+        require(row.get("id") == f"api.{key}" and row.get("implementation") == ("implemented" if key == 18 else "missing") and
                 row.get("qualification") == "not_run", f"API {key}: unsupported implementation/qualification claim")
+        if key == 18:
+            require(row.get("implemented_versions") == "0-4" and row.get("implementation_gate") == "KL11-04",
+                    "API18 implementation version/gate mismatch")
+        else:
+            require("implemented_versions" not in row and "implementation_gate" not in row,
+                    f"API {key}: forged implementation metadata")
         projection = projected_feature({version: inventory[key] for version, inventory in inventories.items()})
+        if key == 18:
+            projection["note"] = IMPLEMENTED_NOTE
         require(all(row.get(field) == value for field, value in projection.items()), f"API {key}: feature/source classification mismatch")
     return {"schema_version": 1, "verdict": "passed", "implementation_claim": False,
-            "releases": reports, "checks": ["immutable source pins", "bounded archives without extraction",
+            "releases": reports, "local_implementation": implementation, "checks": ["immutable source pins", "bounded archives without extraction",
                 "archive and per-file hashes", "93 unique complete request/response pairs per release",
                 "ApiKeys flags and listener classifications", "exact valid/flexible/deprecated/stable ranges",
-                "generator-derived header versions and exceptions", "truthful feature dispositions"],
+                "generator-derived header versions and exceptions", "truthful feature dispositions",
+                "checked local implementation registry and source/fixture hashes"],
             "limitations": ["Static upstream inventory, not handler behavior or broker qualification.",
                 "Future advertisement must use actual implemented and tested versions; upstream Produce minimum-0 workaround is not a partitionline support claim."]}
 
@@ -443,9 +548,13 @@ def main():
     parser.add_argument("--matrix", type=Path, default=ROOT / "tests/conformance/broker/api-matrix.json")
     parser.add_argument("--features", type=Path, default=ROOT / "tests/conformance/broker/features.json")
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--registry", type=Path, default=ROOT / REGISTRY_PATH)
+    parser.add_argument("--handler-report", type=Path,
+                        help="JSON emitted by the compiled Rust protocol golden test")
     args = parser.parse_args()
     try:
-        report = verify(args.matrix, args.features)
+        report = verify(args.matrix, args.features, registry_path=args.registry,
+                        handler_report=args.handler_report)
     except (ValueError, KeyError, TypeError, OSError, EOFError, tarfile.TarError) as error:
         report = {"schema_version": 1, "verdict": "failed", "implementation_claim": False, "error": str(error)}
     if args.report:

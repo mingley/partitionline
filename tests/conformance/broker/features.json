@@ -7,7 +7,13 @@
     "4.3.1"
   ],
   "upstream_pin_gate": "KL11-57",
-  "implemented_api_versions": [],
+  "implemented_api_versions": [
+    {
+      "api_key": 18,
+      "min_version": 0,
+      "max_version": 4
+    }
+  ],
   "features": [
     {
       "id": "api.0",
@@ -841,7 +847,7 @@
       "id": "api.18",
       "api_key": 18,
       "name": "API_VERSIONS",
-      "implementation": "missing",
+      "implementation": "implemented",
       "qualification": "not_run",
       "version_ranges": {
         "4.1.2": {
@@ -867,7 +873,7 @@
         }
       },
       "owner_task": "KL11-04",
-      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "note": "ApiVersions0-4 header/body handler verified against Apache goldens; other broker APIs and production qualification remain missing.",
       "upstream_disposition": "active",
       "upstream_applicability": "required",
       "upstream_listeners": {
@@ -885,7 +891,9 @@
         ]
       },
       "inventory_gate": "KL11-57",
-      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json",
+      "implemented_versions": "0-4",
+      "implementation_gate": "KL11-04"
     },
     {
       "id": "api.19",
@@ -4828,5 +4836,6 @@
       "qualification": "not_run",
       "owner_task": "KL11-56"
     }
-  ]
+  ],
+  "implementation_registry": "tests/conformance/broker/implemented-api-versions.json"
 }
