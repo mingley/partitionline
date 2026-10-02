@@ -1,0 +1,150 @@
+{
+  "id": "KL05-27",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "9c5a89ccaf3021e5715e894653ff501b19032192",
+  "date": "2026-10-02",
+  "profile": {
+    "id": "partitionline.json-schema.draft2020-12.v1",
+    "feature": "json-schema (optional; empty dependency feature)",
+    "dialect": "https://json-schema.org/draft/2020-12/schema",
+    "unsupported_dialects": "Explicit root/reference dialect selections fail before codec preparation, with no fallback. The selected codec must reject inconsistent embedded $schema declarations and unsupported required vocabularies.",
+    "references": "Complete explicit flattened offline resource sets, unique URI within each writer/reader selection. Codec validates URI/$id/anchor/dynamic-reference semantics and rejects missing resources; implicit network retrieval is outside the contract.",
+    "compatibility": "Encode validates actual serialized JSON against writer. Decode validates the same instance against writer and reader, then deserializes without coercion/default insertion/rewriting. This is per-instance validation, not a global backward/forward compatibility proof.",
+    "format": "annotation vocabulary; no implicit format assertions",
+    "validation_provider": "Caller-selected Codec; no built-in JSON parser/serializer/JSON Schema validator added",
+    "registry_mutation": false,
+    "publication": false,
+    "new_production_dependencies": []
+  },
+  "commands": [
+    "cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --all-features (102 tests + 3 doctests, exit 0)",
+    "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml --all-features (102 tests + 3 doctests, exit 0)",
+    "cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml (73 tests + 1 doctest, exit 0)",
+    "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml (73 tests + 1 doctest, exit 0)",
+    "cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --features json-schema (32 tests + 2 doctests, exit 0)",
+    "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --features json-schema (32 tests + 2 doctests, exit 0)",
+    "cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features (17 tests + 1 doctest, exit 0)",
+    "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features (17 tests + 1 doctest, exit 0)",
+    "JSON_SCHEMA_RUST_OUTPUT=$WORK/json-schema/rust-output-stable cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --features json-schema --test json_schema (15 tests after final test-output writer refinement, exit 0)",
+    "JSON_SCHEMA_RUST_OUTPUT=$WORK/json-schema/rust-output-msrv cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --features json-schema --test json_schema (15 tests after final test-output writer refinement, exit 0)",
+    "$WORK/json-schema/venv/bin/python partitionline-schema/tests/oracles/json_schema/generate.py --wheel-dir $WORK/json-schema/wheels --output partitionline-schema/tests/fixtures/json_schema --verify --rust-output $WORK/json-schema/rust-output-stable (63 exact fixtures, 27 cases, 10 actual Rust frames independently validated, exit 0)",
+    "$WORK/json-schema/venv/bin/python partitionline-schema/tests/oracles/json_schema/generate.py --wheel-dir $WORK/json-schema/wheels --output partitionline-schema/tests/fixtures/json_schema --verify --rust-output $WORK/json-schema/rust-output-msrv (63 exact fixtures, 27 cases, 10 actual Rust frames independently validated, exit 0)",
+    "cargo +stable tree --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --features json-schema -e normal,build (no normal/build dependencies, exit 0)",
+    "cargo +stable clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-features --all-targets -- -D warnings (exit 0)",
+    "RUSTDOCFLAGS='-D warnings' cargo +stable doc --locked --manifest-path partitionline-schema/Cargo.toml --all-features --no-deps (exit 0)",
+    "cargo +stable fmt --check --manifest-path partitionline-schema/Cargo.toml (exit 0)",
+    "git diff --check -- partitionline-schema (exit 0)",
+    "taskset -c 0-2,4 cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --features json-schema --test json_schema at committed source 9c5a89ccaf3021e5715e894653ff501b19032192 (15 passed, exit 0)",
+    "taskset -c 0-2,4 cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features --features json-schema --test json_schema at committed source 9c5a89ccaf3021e5715e894653ff501b19032192 (15 passed, exit 0)",
+    "Pinned oracle --verify --rust-output for freshly generated committed-source stable/MSRV frames (63 fixtures and 10 actual Rust frames each, exit 0)"
+  ],
+  "results": {
+    "toolchains": [
+      "Rust 1.99.0",
+      "Rust 1.85.0"
+    ],
+    "new_json_adapter_tests_per_toolchain": 15,
+    "full_matrix_per_toolchain": {
+      "all_features": {
+        "tests": 102,
+        "doctests": 3,
+        "failed": 0
+      },
+      "default_only": {
+        "tests": 73,
+        "doctests": 1,
+        "json_tests_enabled": 0,
+        "failed": 0
+      },
+      "no_default_json": {
+        "tests": 32,
+        "doctests": 2,
+        "failed": 0
+      },
+      "no_default_no_json": {
+        "tests": 17,
+        "doctests": 1,
+        "json_tests_enabled": 0,
+        "failed": 0
+      }
+    },
+    "independent_peer": {
+      "name": "python-jsonschema",
+      "version": "4.26.0",
+      "license": "MIT",
+      "python": "3.12.14",
+      "validator_wheel_sha256": "d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce",
+      "all_peer_dependencies_pinned": true,
+      "wheel_and_installed_source_checks": true,
+      "fixture_artifacts_verified": 63,
+      "instance_cases": 27,
+      "valid_instances": 10,
+      "invalid_instances": 17,
+      "actual_rust_frames_checked_per_toolchain": 10,
+      "unresolved_offline_reference_rejected": true,
+      "numeric_parser": "Exact Python integer/Decimal parser; mathematically integral decimal tokens become int before validation; validator unmodified."
+    },
+    "behavior_checked": [
+      "Explicit version/dialect; unsupported root/reference dialects fail before codec calls",
+      "Combined writer/reader schema text and URI byte budget, reference-count budget, duplicate/empty resources",
+      "Known writer ID, bounded complete frame, UTF-8 and nonempty document checks",
+      "Validation of actual serialized payload; partial writes/reads and overflow cannot return success",
+      "Writer and reader checks run before decoding; failure stops subsequent codec work",
+      "Null is literal JSON, default annotation does not rewrite it, boolean schemas are delegated explicitly",
+      "Exact int64 min/max, above-f64 integer, decimal boundary representations, exponent integer/fraction forms",
+      "Fractional/out-of-range/wrong-type, NaN/Infinity, leading zero and trailing/missing JSON rejection",
+      "Reader constraint differences preserve codec validation failure without automatic compatibility assumptions"
+    ],
+    "default_features_unchanged": true,
+    "companion_lockfile_unchanged": true,
+    "no_json_normal_or_build_dependencies": true,
+    "core_crate_unchanged": true,
+    "committed_snapshot_verification": {
+      "source_sha": "9c5a89ccaf3021e5715e894653ff501b19032192",
+      "source_files_match_committed_bytes": true,
+      "source_file_sha256_count": 12,
+      "stable_focused_tests_passed": 15,
+      "msrv_focused_tests_passed": 15,
+      "independent_actual_rust_frames_checked_per_toolchain": 10,
+      "failed": 0
+    }
+  },
+  "artifacts": [
+    "partitionline-schema/Cargo.toml",
+    "partitionline-schema/src/lib.rs",
+    "partitionline-schema/src/json_schema.rs",
+    "partitionline-schema/tests/json_schema.rs",
+    "partitionline-schema/tests/oracles/json_schema/README.md",
+    "partitionline-schema/tests/oracles/json_schema/generate.py",
+    "partitionline-schema/tests/oracles/json_schema/peer-lock.json",
+    "partitionline-schema/tests/oracles/json_schema/requirements.txt",
+    "partitionline-schema/tests/fixtures/json_schema/manifest.json",
+    "partitionline-schema/tests/fixtures/json_schema/",
+    "partitionline-schema/README.md"
+  ],
+  "limits": [
+    "JSON parsing, JSON Schema semantics, URI/reference resolution and value serialization are delegated to the explicitly selected production Codec. No production built-in validator is claimed.",
+    "The checked-in Rust codec recognizes only the fixture schemas and their scalar numeric constraints; it is not a general-purpose JSON Schema implementation.",
+    "Input/frame/schema bounds do not constrain arbitrary codec-internal parsing work, scratch, retained schemas, object allocation or RSS; callers must configure those separately.",
+    "Independent verification covers offline representative schemas/instances and actual Rust frame output, not live Schema Registry/Kafka interoperability or complete ecosystem qualification.",
+    "Reference oracle rpds-py wheel is pinned for Python 3.12/Linux x86_64; another platform needs a separate reviewed peer wheel pin.",
+    "The feature is opt-in, adds no Rust dependency and performs no lookup, publication, registration or registry mutation."
+  ],
+  "blocked_reason": null,
+  "tested_base_sha": "3bfc0896b43689bfac7ed7c3fc555d2db3d71246",
+  "source_sha256": {
+    "partitionline-schema/Cargo.toml": "3c9f96160a5fb5872e24c1058515b9a5625bdb76cfee51c39343c3edd64574f3",
+    "partitionline-schema/Cargo.lock": "6ce23e56b4d08376280ac81aac7b7212de228ce5914655c5df75a0a94e7c32e0",
+    "partitionline-schema/src/lib.rs": "cbb623f014e41fb87cdc9ab3920599125167414d9e7b9ba5686492caf1bf4fca",
+    "partitionline-schema/src/json_schema.rs": "30348be4b2e7552f374b0e16f00aa216425d29b8a3edf7898513ebda3f5016d3",
+    "partitionline-schema/tests/json_schema.rs": "3018b73fbc801af0e9b340d37f47ef57c2e294993251785d735ede7fb8b259c6",
+    "partitionline-schema/README.md": "a7cfbb8fda25502666f251d3d498eceb305835f497f8495bb25ee6195f49813b",
+    "partitionline-schema/tests/oracles/json_schema/README.md": "b98932650093e235e7c057df5b4ef784375078fc1b36fdf5f1c72b11d70837f5",
+    "partitionline-schema/tests/oracles/json_schema/generate.py": "58ae9fbd8cdac1ffd8caf3a1acd2bb9ace8b01d609ea0be8452153ff5d6d76b4",
+    "partitionline-schema/tests/oracles/json_schema/peer-lock.json": "1960c61b5b0da5d1aa9334de705e88bbdacaf148feb71883b21066a95abdb115",
+    "partitionline-schema/tests/oracles/json_schema/requirements.txt": "485efb9af7b3bdbcef6e18d0514c875b0d0c850d8b2611d30d9594b492abfa89",
+    "partitionline-schema/tests/fixtures/json_schema/manifest.json": "795285deebca59db672f798e82cf0be7ad80c8f0bb08a2a904fe77d5774adc60",
+    "partitionline-schema/tests/fixtures/json_schema/.gitattributes": "f64114263a644197ed7bd8b8bb2510e1f62395a1699c1c40290a1ee3fc011173"
+  }
+}
