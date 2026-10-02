@@ -3768,7 +3768,9 @@ impl Consumer {
                         } else {
                             continue;
                         }
-                        if abort_from.is_some_and(|first| offset >= first) {
+                        if isolation == crate::IsolationLevel::ReadCommitted
+                            && abort_from.is_some_and(|first| offset >= first)
+                        {
                             continue;
                         }
                         let rec_b = single_record_bytes(&rec);
