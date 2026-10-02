@@ -1,0 +1,12 @@
+[package]
+name = "partitionline-zstd-decision-spike"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+
+[workspace]
+
+[dependencies]
+ruzstd = { version = "=0.8.1", default-features = false, features = ["std", "hash"] }
+zstd-rs = "=0.1.0"

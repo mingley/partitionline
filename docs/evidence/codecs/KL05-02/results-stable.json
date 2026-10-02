@@ -1,0 +1,1137 @@
+{
+  "reference": "Zstandard CLI 1.5.7",
+  "bounded_payload_max_bytes": 393216,
+  "per_process_timeout_seconds": 30,
+  "payload_count": 6,
+  "reference_frame_count": 18,
+  "reference_frames": [
+    {
+      "payload": "empty",
+      "profile": "level1-known-check",
+      "frame": "empty-level1-known-check.zst",
+      "raw_bytes": 0,
+      "frame_bytes": 13,
+      "sha256": "f96deff1816083fdff8bc3e46c3fe6ca46a6bb49f4d5a00627616c13237a512c",
+      "standard_magic": true,
+      "single_segment": true,
+      "content_size": 0,
+      "checksum": true,
+      "window_bytes": 0
+    },
+    {
+      "payload": "empty",
+      "profile": "level3-stream-check",
+      "frame": "empty-level3-stream-check.zst",
+      "raw_bytes": 0,
+      "frame_bytes": 13,
+      "sha256": "f96deff1816083fdff8bc3e46c3fe6ca46a6bb49f4d5a00627616c13237a512c",
+      "standard_magic": true,
+      "single_segment": true,
+      "content_size": 0,
+      "checksum": true,
+      "window_bytes": 0
+    },
+    {
+      "payload": "empty",
+      "profile": "level19-known-no-check",
+      "frame": "empty-level19-known-no-check.zst",
+      "raw_bytes": 0,
+      "frame_bytes": 9,
+      "sha256": "6fb8543883dafcc2ed0934866b8b3f775231f5b0933add08bf502e9e84944cbd",
+      "standard_magic": true,
+      "single_segment": true,
+      "content_size": 0,
+      "checksum": false,
+      "window_bytes": 0
+    },
+    {
+      "payload": "tiny",
+      "profile": "level1-known-check",
+      "frame": "tiny-level1-known-check.zst",
+      "raw_bytes": 1,
+      "frame_bytes": 14,
+      "sha256": "a381180f02b3220490a6a96473cc5b1cdc1e773815be503a889dcbf2ad76b883",
+      "standard_magic": true,
+      "single_segment": true,
+      "content_size": 1,
+      "checksum": true,
+      "window_bytes": 1
+    },
+    {
+      "payload": "tiny",
+      "profile": "level3-stream-check",
+      "frame": "tiny-level3-stream-check.zst",
+      "raw_bytes": 1,
+      "frame_bytes": 14,
+      "sha256": "c81f94504435771a0824902f0c7b5f0938b26db0bce8457c9a13d226a1a793ce",
+      "standard_magic": true,
+      "single_segment": false,
+      "content_size": null,
+      "checksum": true,
+      "window_bytes": 131072
+    },
+    {
+      "payload": "tiny",
+      "profile": "level19-known-no-check",
+      "frame": "tiny-level19-known-no-check.zst",
+      "raw_bytes": 1,
+      "frame_bytes": 10,
+      "sha256": "0cef3ff8071f74052c0cc36a590c643f64552766d72a07168846a0e1b103dead",
+      "standard_magic": true,
+      "single_segment": true,
+      "content_size": 1,
+      "checksum": false,
+      "window_bytes": 1
+    },
+    {
+      "payload": "runs",
+      "profile": "level1-known-check",
+      "frame": "runs-level1-known-check.zst",
+      "raw_bytes": 131072,
+      "frame_bytes": 26,
+      "sha256": "6410bc71bd28042e20db0ee0bb4a90c4935baffadc0ef787532a6b5506ed3b6c",
+      "standard_magic": true,
+      "single_segment": true,
+      "content_size": 131072,
+      "checksum": true,
+      "window_bytes": 131072
+    },
+    {
+      "payload": "runs",
+      "profile": "level3-stream-check",
+      "frame": "runs-level3-stream-check.zst",
+      "raw_bytes": 131072,
+      "frame_bytes": 26,
+      "sha256": "bec4881c6b8b2ffdb5769c0fd6e664b162e7d541099fc6a21c9ebbe4495c2762",
+      "standard_magic": true,
+      "single_segment": false,
+      "content_size": null,
+      "checksum": true,
+      "window_bytes": 131072
+    },
+    {
+      "payload": "runs",
+      "profile": "level19-known-no-check",
+      "frame": "runs-level19-known-no-check.zst",
+      "raw_bytes": 131072,
+      "frame_bytes": 21,
+      "sha256": "de029d32bd5988d41c08e6612a85c5346de53571819d519540f2579af093f989",
+      "standard_magic": true,
+      "single_segment": true,
+      "content_size": 131072,
+      "checksum": false,
+      "window_bytes": 131072
+    },
+    {
+      "payload": "records",
+      "profile": "level1-known-check",
+      "frame": "records-level1-known-check.zst",
+      "raw_bytes": 131073,
+      "frame_bytes": 107,
+      "sha256": "eff012a125b025dbfaa4716eb99ce30e9c7ae0116338dd26b62f2c7d6b23a83f",
+      "standard_magic": true,
+      "single_segment": true,
+      "content_size": 131073,
+      "checksum": true,
+      "window_bytes": 131073
+    },
+    {
+      "payload": "records",
+      "profile": "level3-stream-check",
+      "frame": "records-level3-stream-check.zst",
+      "raw_bytes": 131073,
+      "frame_bytes": 104,
+      "sha256": "8d95d91a48d0f9e103162591b3945c2dc9b8de7c27693e71906ea9a94e96c52d",
+      "standard_magic": true,
+      "single_segment": false,
+      "content_size": null,
+      "checksum": true,
+      "window_bytes": 131072
+    },
+    {
+      "payload": "records",
+      "profile": "level19-known-no-check",
+      "frame": "records-level19-known-no-check.zst",
+      "raw_bytes": 131073,
+      "frame_bytes": 99,
+      "sha256": "8944c53853a3079e9c1c19583466e65542d2009701cf8f2cc6cb70020571c5ad",
+      "standard_magic": true,
+      "single_segment": false,
+      "content_size": 131073,
+      "checksum": false,
+      "window_bytes": 131072
+    },
+    {
+      "payload": "entropy",
+      "profile": "level1-known-check",
+      "frame": "entropy-level1-known-check.zst",
+      "raw_bytes": 262144,
+      "frame_bytes": 262163,
+      "sha256": "4f81906456860e3ccc725dc210d97272697d1ca8d8a5bed01f3d04d3e796b592",
+      "standard_magic": true,
+      "single_segment": true,
+      "content_size": 262144,
+      "checksum": true,
+      "window_bytes": 262144
+    },
+    {
+      "payload": "entropy",
+      "profile": "level3-stream-check",
+      "frame": "entropy-level3-stream-check.zst",
+      "raw_bytes": 262144,
+      "frame_bytes": 262163,
+      "sha256": "37d0fe06ffd0ed5433c5f3c6c73785ed0d2eb30e30050bd32c87f574cdd28487",
+      "standard_magic": true,
+      "single_segment": false,
+      "content_size": null,
+      "checksum": true,
+      "window_bytes": 131072
+    },
+    {
+      "payload": "entropy",
+      "profile": "level19-known-no-check",
+      "frame": "entropy-level19-known-no-check.zst",
+      "raw_bytes": 262144,
+      "frame_bytes": 262160,
+      "sha256": "539f5b733e09887fae33042af292c7e6676638ba53a5f27b352c8d3755bcc901",
+      "standard_magic": true,
+      "single_segment": false,
+      "content_size": 262144,
+      "checksum": false,
+      "window_bytes": 131072
+    },
+    {
+      "payload": "mixed",
+      "profile": "level1-known-check",
+      "frame": "mixed-level1-known-check.zst",
+      "raw_bytes": 393216,
+      "frame_bytes": 262253,
+      "sha256": "91a7a3be8419a72f14f29ae40a1c269781e02f7ae74763d4e2cced6c7026b9e5",
+      "standard_magic": true,
+      "single_segment": true,
+      "content_size": 393216,
+      "checksum": true,
+      "window_bytes": 393216
+    },
+    {
+      "payload": "mixed",
+      "profile": "level3-stream-check",
+      "frame": "mixed-level3-stream-check.zst",
+      "raw_bytes": 393216,
+      "frame_bytes": 262259,
+      "sha256": "1894b0e697e725f0d8f45ad8921c7f4710de4199abf16ac7decdc87e653db2d3",
+      "standard_magic": true,
+      "single_segment": false,
+      "content_size": null,
+      "checksum": true,
+      "window_bytes": 131072
+    },
+    {
+      "payload": "mixed",
+      "profile": "level19-known-no-check",
+      "frame": "mixed-level19-known-no-check.zst",
+      "raw_bytes": 393216,
+      "frame_bytes": 262245,
+      "sha256": "957756606eafe3790433589d781309e8213e72fa49995343c93d751fa0370ed1",
+      "standard_magic": true,
+      "single_segment": false,
+      "content_size": 393216,
+      "checksum": false,
+      "window_bytes": 131072
+    }
+  ],
+  "decoder_cases": [
+    {
+      "candidate": "ruzstd",
+      "frame": "empty-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "empty-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "empty-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "empty-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "empty-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "empty-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "tiny-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "tiny-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "tiny-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "tiny-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "tiny-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "tiny-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "runs-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "runs-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "runs-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "runs-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "runs-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "runs-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "records-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "records-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "records-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "records-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "records-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "records-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "entropy-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "entropy-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "entropy-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "entropy-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "entropy-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "entropy-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "mixed-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "mixed-level1-known-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "mixed-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "mixed-level3-stream-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "mixed-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "mixed-level19-known-no-check.zst",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    }
+  ],
+  "encoder_cases": [
+    {
+      "candidate": "ruzstd",
+      "payload": "empty",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 0,
+      "frame_bytes": 13,
+      "sha256": "5d7d236ed6dc591a61e9dd484c8a96d80765fd42d1f56edead0ff1bea2c40322",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "empty",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 0,
+      "frame_bytes": 13,
+      "sha256": "f96deff1816083fdff8bc3e46c3fe6ca46a6bb49f4d5a00627616c13237a512c",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "empty",
+      "level": 3,
+      "passed": true,
+      "raw_bytes": 0,
+      "frame_bytes": 13,
+      "sha256": "f96deff1816083fdff8bc3e46c3fe6ca46a6bb49f4d5a00627616c13237a512c",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "empty",
+      "level": 19,
+      "passed": true,
+      "raw_bytes": 0,
+      "frame_bytes": 13,
+      "sha256": "f96deff1816083fdff8bc3e46c3fe6ca46a6bb49f4d5a00627616c13237a512c",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "payload": "tiny",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 1,
+      "frame_bytes": 14,
+      "sha256": "cdb8ca02cecf8e6f9a53f23e92d81c5ff3fe5050a2c3572c457666f57217813b",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "tiny",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 1,
+      "frame_bytes": 14,
+      "sha256": "a381180f02b3220490a6a96473cc5b1cdc1e773815be503a889dcbf2ad76b883",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "tiny",
+      "level": 3,
+      "passed": true,
+      "raw_bytes": 1,
+      "frame_bytes": 14,
+      "sha256": "a381180f02b3220490a6a96473cc5b1cdc1e773815be503a889dcbf2ad76b883",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "tiny",
+      "level": 19,
+      "passed": true,
+      "raw_bytes": 1,
+      "frame_bytes": 14,
+      "sha256": "a381180f02b3220490a6a96473cc5b1cdc1e773815be503a889dcbf2ad76b883",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "payload": "runs",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 131072,
+      "frame_bytes": 17,
+      "sha256": "f5dc2530eac59dbcbd2ef90057da25e26445a1e0673f5fc64481c207db86898e",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "runs",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 131072,
+      "frame_bytes": 26,
+      "sha256": "6410bc71bd28042e20db0ee0bb4a90c4935baffadc0ef787532a6b5506ed3b6c",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "runs",
+      "level": 3,
+      "passed": true,
+      "raw_bytes": 131072,
+      "frame_bytes": 26,
+      "sha256": "6410bc71bd28042e20db0ee0bb4a90c4935baffadc0ef787532a6b5506ed3b6c",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "runs",
+      "level": 19,
+      "passed": true,
+      "raw_bytes": 131072,
+      "frame_bytes": 25,
+      "sha256": "0e3f57953224e3eb7f33ab656f9909c2d7ae45b1827d8f882ef92567fb184aaa",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "payload": "records",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 131073,
+      "frame_bytes": 182,
+      "sha256": "80798a97e73910b5d6cf8ffcdcc09c235c474216ada0ef840550279a9640b9d1",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "records",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 131073,
+      "frame_bytes": 106,
+      "sha256": "77e83bffae5ed977d4830ce5d10bd940f2a0ad2f162d7dc9efc09387648f15d4",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "records",
+      "level": 3,
+      "passed": true,
+      "raw_bytes": 131073,
+      "frame_bytes": 106,
+      "sha256": "6e100d3961094bcfbf07374d455b178741559514fac1853e1d3964b599fd59bd",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "records",
+      "level": 19,
+      "passed": true,
+      "raw_bytes": 131073,
+      "frame_bytes": 106,
+      "sha256": "6e100d3961094bcfbf07374d455b178741559514fac1853e1d3964b599fd59bd",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "payload": "entropy",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 262144,
+      "frame_bytes": 262163,
+      "sha256": "37d0fe06ffd0ed5433c5f3c6c73785ed0d2eb30e30050bd32c87f574cdd28487",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "entropy",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 262144,
+      "frame_bytes": 262163,
+      "sha256": "4f81906456860e3ccc725dc210d97272697d1ca8d8a5bed01f3d04d3e796b592",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "entropy",
+      "level": 3,
+      "passed": true,
+      "raw_bytes": 262144,
+      "frame_bytes": 262163,
+      "sha256": "4f81906456860e3ccc725dc210d97272697d1ca8d8a5bed01f3d04d3e796b592",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "entropy",
+      "level": 19,
+      "passed": true,
+      "raw_bytes": 262144,
+      "frame_bytes": 262163,
+      "sha256": "4f81906456860e3ccc725dc210d97272697d1ca8d8a5bed01f3d04d3e796b592",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "payload": "mixed",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 393216,
+      "frame_bytes": 262331,
+      "sha256": "7bb1ebb40014df65fed1425a0b03aadd6456c7e11007c9644e34bc40cd5c7adc",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "mixed",
+      "level": 1,
+      "passed": true,
+      "raw_bytes": 393216,
+      "frame_bytes": 262252,
+      "sha256": "f70699488b4065c6e583533b8fb536237e9d4f563cd7de7cc19bbaa8a8f43213",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "mixed",
+      "level": 3,
+      "passed": true,
+      "raw_bytes": 393216,
+      "frame_bytes": 262252,
+      "sha256": "f70699488b4065c6e583533b8fb536237e9d4f563cd7de7cc19bbaa8a8f43213",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "payload": "mixed",
+      "level": 19,
+      "passed": true,
+      "raw_bytes": 393216,
+      "frame_bytes": 262252,
+      "sha256": "0eecacadc094d8dfd7859709e391815201a2efc3f1a8876d5be79816883be930",
+      "encode_exit_code": 0,
+      "peer_exit_code": 0,
+      "error": ""
+    }
+  ],
+  "rejection_cases": [
+    {
+      "candidate": "ruzstd",
+      "frame": "tiny-level1-known-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "tiny-level1-known-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "tiny-level3-stream-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "tiny-level3-stream-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "tiny-level19-known-no-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "tiny-level19-known-no-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "runs-level1-known-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "runs-level1-known-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "runs-level3-stream-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "runs-level3-stream-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "runs-level19-known-no-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "runs-level19-known-no-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "records-level1-known-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "records-level1-known-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "records-level3-stream-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "records-level3-stream-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "records-level19-known-no-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "records-level19-known-no-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "entropy-level1-known-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "entropy-level1-known-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "entropy-level3-stream-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "entropy-level3-stream-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "entropy-level19-known-no-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "entropy-level19-known-no-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "mixed-level1-known-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "mixed-level1-known-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "mixed-level3-stream-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "mixed-level3-stream-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "mixed-level19-known-no-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"output cap exceeded\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "mixed-level19-known-no-check.zst",
+      "case": "output-cap-minus-one",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: OutputLimit"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "checksum-flip.zst",
+      "case": "checksum-flip",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: \"checksum mismatch\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "checksum-flip.zst",
+      "case": "checksum-flip",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: Checksum"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "truncated-checksum.zst",
+      "case": "truncated-checksum",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: Custom { kind: Other, error: FailedToReadChecksum(Error { kind: UnexpectedEof, message: \"failed to fill whole buffer\" }) }"
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "truncated-checksum.zst",
+      "case": "truncated-checksum",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: Truncated"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "bad-magic.zst",
+      "case": "bad-magic",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: ReadFrameHeaderError(BadMagicNumber(4247762217))"
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "bad-magic.zst",
+      "case": "bad-magic",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: BadMagic"
+    },
+    {
+      "candidate": "ruzstd",
+      "frame": "excess-window.zst",
+      "case": "excess-window",
+      "rejected": false,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "zstd-rs",
+      "frame": "excess-window.zst",
+      "case": "excess-window",
+      "rejected": true,
+      "exit_code": 1,
+      "error": "Error: WindowTooLarge"
+    }
+  ],
+  "multiple_frame_cases": [
+    {
+      "candidate": "ruzstd",
+      "case": "concatenated",
+      "passed": false,
+      "exit_code": 1,
+      "error": "Error: \"trailing frame bytes\""
+    },
+    {
+      "candidate": "zstd-rs",
+      "case": "concatenated",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    },
+    {
+      "candidate": "ruzstd",
+      "case": "skippable-prefix",
+      "passed": false,
+      "exit_code": 1,
+      "error": "Error: ReadFrameHeaderError(SkipFrame { magic_number: 407710288, length: 4 })"
+    },
+    {
+      "candidate": "zstd-rs",
+      "case": "skippable-prefix",
+      "passed": true,
+      "exit_code": 0,
+      "error": ""
+    }
+  ],
+  "counts": {
+    "decoder_passes": 36,
+    "decoder_cases": 36,
+    "encoder_peer_passes": 24,
+    "encoder_cases": 24,
+    "rejections": 37,
+    "rejection_cases": 38,
+    "subprocess_commands": 144
+  },
+  "limits": [
+    "Raw standard zstd frames only; no Kafka record-batch envelope, Java/librdkafka broker or live Kafka qualification.",
+    "No throughput, RSS, architecture comparison, fuzz campaign or downstream deployment claim.",
+    "ruzstd adapter applies cap-plus-one and explicit checksum/trailing-byte checks; internal history is not bounded by this output cap."
+  ]
+}

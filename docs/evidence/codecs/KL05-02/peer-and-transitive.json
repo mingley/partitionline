@@ -1,0 +1,171 @@
+[
+  {
+    "crate": "zstd",
+    "version": "0.14.0",
+    "rust_version": "1.64",
+    "license": "BSD-3-Clause",
+    "registry_url": "https://crates.io/api/v1/crates/zstd/0.14.0",
+    "created_at": "2026-09-04T19:02:35.959541Z",
+    "dependencies": [
+      {
+        "crate_id": "clap",
+        "req": "^4.0",
+        "kind": "dev",
+        "optional": false,
+        "default_features": true,
+        "features": [
+          "derive"
+        ],
+        "target": null
+      },
+      {
+        "crate_id": "humansize",
+        "req": "^2.0",
+        "kind": "dev",
+        "optional": false,
+        "default_features": true,
+        "features": [],
+        "target": null
+      },
+      {
+        "crate_id": "partial-io",
+        "req": "^0.5",
+        "kind": "dev",
+        "optional": false,
+        "default_features": true,
+        "features": [],
+        "target": null
+      },
+      {
+        "crate_id": "walkdir",
+        "req": "^2.2",
+        "kind": "dev",
+        "optional": false,
+        "default_features": true,
+        "features": [],
+        "target": null
+      },
+      {
+        "crate_id": "zstd-safe",
+        "req": "^8.0.0",
+        "kind": "normal",
+        "optional": false,
+        "default_features": false,
+        "features": [
+          "std"
+        ],
+        "target": null
+      }
+    ]
+  },
+  {
+    "crate": "zstd-safe",
+    "version": "8.0.0",
+    "rust_version": "1.64",
+    "license": "BSD-3-Clause",
+    "registry_url": "https://crates.io/api/v1/crates/zstd-safe/8.0.0",
+    "created_at": "2026-09-04T19:02:25.906365Z",
+    "dependencies": [
+      {
+        "crate_id": "zstd-sys",
+        "req": "^2.1.0",
+        "kind": "normal",
+        "optional": false,
+        "default_features": false,
+        "features": [],
+        "target": null
+      }
+    ]
+  },
+  {
+    "crate": "zstd-sys",
+    "version": "2.1.0+zstd.1.5.7",
+    "rust_version": "1.64",
+    "license": "BSD-3-Clause",
+    "registry_url": "https://crates.io/api/v1/crates/zstd-sys/2.1.0+zstd.1.5.7",
+    "created_at": "2026-09-04T19:02:16.559799Z",
+    "dependencies": [
+      {
+        "crate_id": "cc",
+        "req": "^1.0.45",
+        "kind": "build",
+        "optional": false,
+        "default_features": true,
+        "features": [
+          "parallel"
+        ],
+        "target": null
+      },
+      {
+        "crate_id": "pkg-config",
+        "req": "^0.3.28",
+        "kind": "build",
+        "optional": false,
+        "default_features": true,
+        "features": [],
+        "target": null
+      },
+      {
+        "crate_id": "bindgen",
+        "req": "^0.72",
+        "kind": "build",
+        "optional": true,
+        "default_features": false,
+        "features": [
+          "runtime"
+        ],
+        "target": null
+      },
+      {
+        "crate_id": "cmake",
+        "req": "^0.1",
+        "kind": "build",
+        "optional": true,
+        "default_features": true,
+        "features": [],
+        "target": null
+      }
+    ]
+  },
+  {
+    "crate": "twox-hash",
+    "version": "2.1.4",
+    "rust_version": "1.81",
+    "license": "MIT",
+    "registry_url": "https://crates.io/api/v1/crates/twox-hash/2.1.4",
+    "created_at": "2026-08-27T13:07:54.928244Z",
+    "dependencies": [
+      {
+        "crate_id": "serde_json",
+        "req": "^1.0.117",
+        "kind": "dev",
+        "optional": false,
+        "default_features": true,
+        "features": [],
+        "target": null
+      },
+      {
+        "crate_id": "rand",
+        "req": ">=0.9.0, <=0.11.0",
+        "kind": "normal",
+        "optional": true,
+        "default_features": false,
+        "features": [
+          "thread_rng"
+        ],
+        "target": null
+      },
+      {
+        "crate_id": "serde",
+        "req": "^1.0.0",
+        "kind": "normal",
+        "optional": true,
+        "default_features": false,
+        "features": [
+          "derive"
+        ],
+        "target": null
+      }
+    ]
+  }
+]

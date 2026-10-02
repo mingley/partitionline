@@ -1,0 +1,51 @@
+{
+  "normal_build_graph": "partitionline-zstd-decision-spike v0.0.0\n\u251c\u2500\u2500 ruzstd v0.8.1\n\u2502   \u2514\u2500\u2500 twox-hash v2.1.4\n\u2514\u2500\u2500 zstd-rs v0.1.0\n",
+  "proposed_partitionline_graph": {
+    "feature": "zstd",
+    "default": false,
+    "dependency": {
+      "crate": "zstd-rs",
+      "version": "=0.1.0",
+      "optional": true
+    },
+    "added_runtime_packages": [
+      "zstd-rs 0.1.0"
+    ],
+    "transitive_runtime_packages": [],
+    "native_compression_packages": [],
+    "default_feature_changes": [],
+    "policy_changes": [],
+    "applied": false
+  },
+  "toolchains": [
+    {
+      "rustc": "1.85.0",
+      "build_exit_code": 0,
+      "locked_spike_passed": true
+    },
+    {
+      "rustc": "1.99.0 (b940084d7 2026-09-28)",
+      "build_exit_code": 0,
+      "locked_spike_passed": true
+    }
+  ],
+  "rejected_msrv_probe": {
+    "crate": "ruzstd",
+    "version": "0.8.2",
+    "toolchain": "1.85.0",
+    "build_exit_code": 101,
+    "errors": 8,
+    "diagnostic": "E0658: unstable library feature unsigned_is_multiple_of",
+    "files": [
+      "src/bit_io/bit_reader.rs",
+      "src/bit_io/bit_writer.rs",
+      "src/fse/fse_decoder.rs",
+      "src/huff0/huff0_decoder.rs"
+    ],
+    "scope": "Unmodified registry source. No MSRV workaround or vendored patch was applied."
+  },
+  "limits": [
+    "This graph is the isolated spike, not an added partitionline dependency.",
+    "No cargo-audit or cargo-deny pass is claimed for an unapplied dependency change. Implementation must run the repository supply-chain lanes."
+  ]
+}

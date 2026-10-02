@@ -1,0 +1,100 @@
+{
+  "id": "KL05-02",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "fd1ee1e54e9ca3142c54a9c0628cd141cbd4a189",
+  "date": "2026-10-02",
+  "decision": {
+    "decoder": "zstd-rs =0.1.0",
+    "encoder": "zstd-rs =0.1.0",
+    "feature": "optional non-default zstd",
+    "crate_sha256": "41514ccc30389f95bb9e6ab6d5634f17121c7b4fead6722a5fceec1c7891d78f",
+    "upstream_vcs_sha": "bac4c37d86e5307537c145823a106f7ed8f386d7",
+    "license": "MIT OR Apache-2.0",
+    "declared_msrv": "1.85",
+    "runtime_dependencies": [],
+    "build_dependencies": [],
+    "unsafe_code": "forbid(unsafe_code) in candidate; partitionline lint unchanged",
+    "manifest_change_applied": false,
+    "policy_change_requested": false,
+    "maintainer_policy_approval": null,
+    "approval_scope": "The optional pure-Rust candidate requests no native/unsafe/default policy exception. This evidence does not record implementation approval. Any future default backend, backend using unsafe internally, or native/policy exception requires the explicit maintainer approval in the plan."
+  },
+  "commands": [
+    "Crates.io metadata and checksum-verified archive reads for ruzstd 0.8.1/0.8.2/0.9.0 and zstd-rs 0.1.0; dependency metadata for zstd 0.14.0, zstd-safe 8.0.0, zstd-sys 2.1.0+zstd.1.5.7, twox-hash 2.1.4",
+    "Read-only GitHub pinned source/workflow/repository/run metadata for both pure-Rust repositories",
+    "cargo +1.85.0 build --manifest-path $WORK/zstd/harness/Cargo.toml with ruzstd =0.8.2 (expected incompatibility: exit 101, eight E0658 errors)",
+    "cargo +1.85.0 build --manifest-path $WORK/zstd/harness/Cargo.toml after exact ruzstd =0.8.1 pin (exit 0)",
+    "python3 $WORK/zstd/evaluate.py --binary $WORK/zstd/harness/target/debug/partitionline-zstd-decision-spike --out $WORK/zstd/corpus-msrv (144 bounded subprocess commands, exit 0)",
+    "cargo +stable build --locked --manifest-path $WORK/zstd/harness/Cargo.toml (Rust 1.99.0, exit 0)",
+    "python3 $WORK/zstd/evaluate.py --binary $WORK/zstd/harness/target/debug/partitionline-zstd-decision-spike --out $WORK/zstd/corpus-stable (144 bounded subprocess commands, exit 0)",
+    "cargo +stable tree --locked --manifest-path $WORK/zstd/harness/Cargo.toml -e normal,build (three registry packages, no native codec, exit 0)",
+    "taskset -c 0-2,4 cargo +stable fmt --manifest-path docs/evidence/codecs/KL05-02/harness/Cargo.toml (exit 0)",
+    "taskset -c 0-2,4 cargo +1.85.0 build --locked --manifest-path docs/evidence/codecs/KL05-02/harness/Cargo.toml with scratch CARGO_TARGET_DIR (exit 0)",
+    "taskset -c 0-2,4 cargo +stable build --locked --manifest-path docs/evidence/codecs/KL05-02/harness/Cargo.toml with scratch CARGO_TARGET_DIR (exit 0)"
+  ],
+  "results": {
+    "toolchains": ["Rust 1.85.0", "Rust 1.99.0"],
+    "payloads": 6,
+    "largest_payload_bytes": 393216,
+    "independent_reference_frames": 18,
+    "subprocess_timeout_seconds": 30,
+    "subprocess_commands_per_toolchain": 144,
+    "per_toolchain": {
+      "single_frame_decodes": {"passed": 36, "total": 36},
+      "encoder_frames_decoded_by_reference": {"passed": 24, "total": 24},
+      "cap_rejections": {"rejected": 30, "total": 30},
+      "malformed_or_excess_window_rejections": {"rejected": 7, "total": 8},
+      "selected_zstd_rs": {
+        "decode_passed": 18,
+        "encode_peer_passed": 18,
+        "encoded_levels": [1, 3, 19],
+        "cap_rejections": 15,
+        "malformed_or_excess_window_rejections": 4,
+        "concatenated_and_skippable_frame_passed": 2
+      },
+      "ruzstd_0_8_1": {
+        "decode_passed": 18,
+        "encode_peer_passed": 6,
+        "encoded_level": "Fastest",
+        "cap_rejections": 15,
+        "malformed_or_excess_window_rejections": 3,
+        "unexpected_excess_window_acceptance": "2 TiB advertised initial window with an empty raw block; initial FrameDecoderState construction omits the reset-only 100 MiB check",
+        "multiple_frame_cases": "Single-frame spike adapter explicitly rejects concatenation/trailing data and skippable-prefix input."
+      }
+    },
+    "stable_and_msrv_results_identical": true,
+    "retained_reference_fixture_bytes": 265,
+    "upstream_pinned_ci": {
+      "ci_run": 36489341448,
+      "release_run": 36490837566,
+      "both_conclusions": "success"
+    },
+    "maintenance_risk": "zstd-rs 0.1.0 and its public repository date from 2026-09-28; CI/fuzz-smoke evidence does not establish long-term maintenance or security response."
+  },
+  "artifacts": [
+    "docs/zstd-spike.md",
+    "docs/evidence/codecs/KL05-02/README.md",
+    "docs/evidence/codecs/KL05-02/harness/Cargo.toml",
+    "docs/evidence/codecs/KL05-02/harness/Cargo.lock",
+    "docs/evidence/codecs/KL05-02/harness/src/main.rs",
+    "docs/evidence/codecs/KL05-02/evaluate.py",
+    "docs/evidence/codecs/KL05-02/results-msrv.json",
+    "docs/evidence/codecs/KL05-02/results-stable.json",
+    "docs/evidence/codecs/KL05-02/commands.json",
+    "docs/evidence/codecs/KL05-02/candidates.json",
+    "docs/evidence/codecs/KL05-02/peer-and-transitive.json",
+    "docs/evidence/codecs/KL05-02/upstream.json",
+    "docs/evidence/codecs/KL05-02/build-graph.json",
+    "docs/evidence/codecs/KL05-02/frames/"
+  ],
+  "limits": [
+    "Decision and isolated spike only; no core source, Cargo.toml, Cargo.lock, deny policy or default change. Zstd decode/encode/wire helper remain missing in partitionline.",
+    "Standard frame evaluation only; no independent Kafka record-batch envelope, Java/librdkafka peer, live broker or bidirectional Kafka qualification.",
+    "No throughput/RSS/architecture result or fuzz campaign was run locally. Upstream success is recorded separately from local evidence.",
+    "zstd-rs cap counts appended logical bytes; decoder scratch, 32-byte slack, vector capacity and encoder matching state need resource accounting in implementation.",
+    "The selected encoder exists and is policy-compliant for an optional non-default graph, but production implementation and supply-chain validation remain KL05-03/04 work.",
+    "The old ruzstd =0.8.1 fallback uses unsafe internally, has unsupported encoder levels and needs adapter-owned checksum/window/output checks; it is not recommended or approved for addition."
+  ],
+  "blocked_reason": null
+}

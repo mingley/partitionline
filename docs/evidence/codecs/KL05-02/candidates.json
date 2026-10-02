@@ -1,0 +1,286 @@
+{
+  "survey_date": "2026-10-02",
+  "candidates": [
+    {
+      "crate": "ruzstd",
+      "version": "0.8.1",
+      "registry_url": "https://crates.io/api/v1/crates/ruzstd/0.8.1",
+      "download_url": "https://crates.io/api/v1/crates/ruzstd/0.8.1/download",
+      "crate_sha256": "3640bec8aad418d7d03c72ea2de10d5c646a598f9883c7babc160d91e3c1b26c",
+      "created_at": "2025-05-03T14:02:15.305057Z",
+      "yanked": false,
+      "rust_version": null,
+      "license": "MIT",
+      "repository": "https://github.com/KillingSpark/zstd-rs",
+      "git_sha": "c51eda1c8fd60a4acf28d4fbfb12f0657bd25bc9",
+      "package_path_in_vcs": "",
+      "normalized_manifest": {
+        "package": {
+          "edition": "2018",
+          "rust-version": null,
+          "license": "MIT",
+          "build": false
+        },
+        "features": {
+          "default": [
+            "hash",
+            "std"
+          ],
+          "fuzz_exports": [],
+          "hash": [
+            "dep:twox-hash"
+          ],
+          "rustc-dep-of-std": [
+            "dep:compiler_builtins",
+            "dep:core",
+            "dep:alloc"
+          ],
+          "std": []
+        },
+        "dependencies": {
+          "alloc": {
+            "version": "1.0.0",
+            "optional": true,
+            "package": "rustc-std-workspace-alloc"
+          },
+          "compiler_builtins": {
+            "version": "0.1.2",
+            "optional": true
+          },
+          "core": {
+            "version": "1.0.0",
+            "optional": true,
+            "package": "rustc-std-workspace-core"
+          },
+          "twox-hash": {
+            "version": "2.0",
+            "features": [
+              "xxhash64"
+            ],
+            "optional": true,
+            "default-features": false
+          }
+        },
+        "dev_dependencies": {
+          "criterion": {
+            "version": "0.5"
+          },
+          "rand": {
+            "version": "0.8.5",
+            "features": [
+              "small_rng"
+            ]
+          },
+          "zstd": {
+            "version": "0.13.2"
+          }
+        },
+        "target_dev_dependencies": {}
+      }
+    },
+    {
+      "crate": "ruzstd",
+      "version": "0.8.2",
+      "registry_url": "https://crates.io/api/v1/crates/ruzstd/0.8.2",
+      "download_url": "https://crates.io/api/v1/crates/ruzstd/0.8.2/download",
+      "crate_sha256": "e5ff0cc5e135c8870a775d3320910cd9b564ec036b4dc0b8741629020be63f01",
+      "created_at": "2025-11-02T11:16:38.024042Z",
+      "yanked": false,
+      "rust_version": null,
+      "license": "MIT",
+      "repository": "https://github.com/KillingSpark/zstd-rs",
+      "git_sha": "fcc40ba1bc766ba38eca852cb64550c827d7068d",
+      "package_path_in_vcs": "ruzstd",
+      "normalized_manifest": {
+        "package": {
+          "edition": "2018",
+          "rust-version": null,
+          "license": "MIT",
+          "build": false
+        },
+        "features": {
+          "default": [
+            "hash",
+            "std"
+          ],
+          "dict_builder": [
+            "std",
+            "dep:fastrand"
+          ],
+          "fuzz_exports": [],
+          "hash": [
+            "dep:twox-hash"
+          ],
+          "rustc-dep-of-std": [
+            "dep:compiler_builtins",
+            "dep:core",
+            "dep:alloc"
+          ],
+          "std": []
+        },
+        "dependencies": {
+          "alloc": {
+            "version": "1.0.0",
+            "optional": true,
+            "package": "rustc-std-workspace-alloc"
+          },
+          "compiler_builtins": {
+            "version": "0.1.2",
+            "optional": true
+          },
+          "core": {
+            "version": "1.0.0",
+            "optional": true,
+            "package": "rustc-std-workspace-core"
+          },
+          "fastrand": {
+            "version": "2.3.0",
+            "optional": true
+          },
+          "twox-hash": {
+            "version": "2.0",
+            "features": [
+              "xxhash64"
+            ],
+            "optional": true,
+            "default-features": false
+          }
+        },
+        "dev_dependencies": {
+          "criterion": {
+            "version": "0.5"
+          },
+          "rand": {
+            "version": "0.8.5",
+            "features": [
+              "small_rng"
+            ]
+          },
+          "zstd": {
+            "version": "0.13.2"
+          }
+        },
+        "target_dev_dependencies": {}
+      }
+    },
+    {
+      "crate": "ruzstd",
+      "version": "0.9.0",
+      "registry_url": "https://crates.io/api/v1/crates/ruzstd/0.9.0",
+      "download_url": "https://crates.io/api/v1/crates/ruzstd/0.9.0/download",
+      "crate_sha256": "a252f5e20f038fe7b4ea53e073e65398d652c864cc162fc77c56c2f13717b888",
+      "created_at": "2026-07-26T17:43:36.145978Z",
+      "yanked": false,
+      "rust_version": "1.87",
+      "license": "MIT",
+      "repository": "https://github.com/KillingSpark/zstd-rs",
+      "git_sha": "f833802b674e6b9360a259d25c20940e25a54e79",
+      "package_path_in_vcs": "ruzstd",
+      "normalized_manifest": {
+        "package": {
+          "edition": "2018",
+          "rust-version": "1.87",
+          "license": "MIT",
+          "build": false
+        },
+        "features": {
+          "default": [
+            "hash",
+            "std"
+          ],
+          "dict_builder": [
+            "std",
+            "dep:fastrand"
+          ],
+          "fuzz_exports": [],
+          "hash": [
+            "dep:twox-hash"
+          ],
+          "rustc-dep-of-std": [
+            "dep:core",
+            "dep:alloc"
+          ],
+          "std": []
+        },
+        "dependencies": {
+          "alloc": {
+            "version": "1.0.0",
+            "optional": true,
+            "package": "rustc-std-workspace-alloc"
+          },
+          "core": {
+            "version": "1.0.0",
+            "optional": true,
+            "package": "rustc-std-workspace-core"
+          },
+          "fastrand": {
+            "version": "2.3.0",
+            "optional": true
+          },
+          "twox-hash": {
+            "version": "2.0",
+            "features": [
+              "xxhash64"
+            ],
+            "optional": true,
+            "default-features": false
+          }
+        },
+        "dev_dependencies": {
+          "criterion": {
+            "version": "0.5"
+          },
+          "rand": {
+            "version": "0.8.5",
+            "features": [
+              "small_rng"
+            ]
+          },
+          "zstd": {
+            "version": "0.13.2"
+          }
+        },
+        "target_dev_dependencies": {}
+      }
+    },
+    {
+      "crate": "zstd-rs",
+      "version": "0.1.0",
+      "registry_url": "https://crates.io/api/v1/crates/zstd-rs/0.1.0",
+      "download_url": "https://crates.io/api/v1/crates/zstd-rs/0.1.0/download",
+      "crate_sha256": "41514ccc30389f95bb9e6ab6d5634f17121c7b4fead6722a5fceec1c7891d78f",
+      "created_at": "2026-09-28T22:15:48.629913Z",
+      "yanked": false,
+      "rust_version": "1.85",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/Avarok-Cybersecurity/zstd-rs",
+      "git_sha": "bac4c37d86e5307537c145823a106f7ed8f386d7",
+      "package_path_in_vcs": "zstd-rs",
+      "normalized_manifest": {
+        "package": {
+          "edition": "2021",
+          "rust-version": "1.85",
+          "license": "MIT OR Apache-2.0",
+          "build": false
+        },
+        "features": {},
+        "dependencies": {},
+        "dev_dependencies": {},
+        "target_dev_dependencies": {
+          "cfg(not(target_arch = \"wasm32\"))": {
+            "dev-dependencies": {
+              "zstd": {
+                "version": "0.13",
+                "features": [
+                  "zdict_builder",
+                  "experimental"
+                ],
+                "default-features": false
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

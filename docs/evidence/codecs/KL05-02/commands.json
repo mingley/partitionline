@@ -1,0 +1,1700 @@
+[
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-1",
+      "--check",
+      "--zstd=wlog=19",
+      "-o",
+      "$CORPUS/empty-level1-known-check.zst",
+      "$CORPUS/empty.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/empty-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/empty-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-3",
+      "--check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/empty-level3-stream-check.zst",
+      "-"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/empty-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/empty-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-19",
+      "--no-check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/empty-level19-known-no-check.zst",
+      "$CORPUS/empty.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/empty-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/empty-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-encode",
+      "$CORPUS/empty.raw",
+      "$CORPUS/empty-ruzstd-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/empty-ruzstd-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/empty.raw",
+      "$CORPUS/empty-zstd-rs-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/empty-zstd-rs-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/empty.raw",
+      "$CORPUS/empty-zstd-rs-level3.zst",
+      "3"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/empty-zstd-rs-level3.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/empty.raw",
+      "$CORPUS/empty-zstd-rs-level19.zst",
+      "19"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/empty-zstd-rs-level19.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-1",
+      "--check",
+      "--zstd=wlog=19",
+      "-o",
+      "$CORPUS/tiny-level1-known-check.zst",
+      "$CORPUS/tiny.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/tiny-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/tiny-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/tiny-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/tiny-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-3",
+      "--check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/tiny-level3-stream-check.zst",
+      "-"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/tiny-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/tiny-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/tiny-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/tiny-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-19",
+      "--no-check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/tiny-level19-known-no-check.zst",
+      "$CORPUS/tiny.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/tiny-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/tiny-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/tiny-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/tiny-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "0"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-encode",
+      "$CORPUS/tiny.raw",
+      "$CORPUS/tiny-ruzstd-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/tiny-ruzstd-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/tiny.raw",
+      "$CORPUS/tiny-zstd-rs-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/tiny-zstd-rs-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/tiny.raw",
+      "$CORPUS/tiny-zstd-rs-level3.zst",
+      "3"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/tiny-zstd-rs-level3.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/tiny.raw",
+      "$CORPUS/tiny-zstd-rs-level19.zst",
+      "19"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/tiny-zstd-rs-level19.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-1",
+      "--check",
+      "--zstd=wlog=19",
+      "-o",
+      "$CORPUS/runs-level1-known-check.zst",
+      "$CORPUS/runs.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/runs-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/runs-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131071"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/runs-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/runs-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131071"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-3",
+      "--check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/runs-level3-stream-check.zst",
+      "-"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/runs-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/runs-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131071"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/runs-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/runs-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131071"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-19",
+      "--no-check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/runs-level19-known-no-check.zst",
+      "$CORPUS/runs.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/runs-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/runs-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131071"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/runs-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/runs-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131071"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-encode",
+      "$CORPUS/runs.raw",
+      "$CORPUS/runs-ruzstd-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/runs-ruzstd-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/runs.raw",
+      "$CORPUS/runs-zstd-rs-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/runs-zstd-rs-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/runs.raw",
+      "$CORPUS/runs-zstd-rs-level3.zst",
+      "3"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/runs-zstd-rs-level3.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/runs.raw",
+      "$CORPUS/runs-zstd-rs-level19.zst",
+      "19"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/runs-zstd-rs-level19.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-1",
+      "--check",
+      "--zstd=wlog=19",
+      "-o",
+      "$CORPUS/records-level1-known-check.zst",
+      "$CORPUS/records.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/records-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131073"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/records-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/records-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131073"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/records-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-3",
+      "--check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/records-level3-stream-check.zst",
+      "-"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/records-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131073"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/records-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/records-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131073"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/records-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-19",
+      "--no-check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/records-level19-known-no-check.zst",
+      "$CORPUS/records.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/records-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131073"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/records-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/records-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131073"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/records-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "131072"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-encode",
+      "$CORPUS/records.raw",
+      "$CORPUS/records-ruzstd-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/records-ruzstd-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/records.raw",
+      "$CORPUS/records-zstd-rs-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/records-zstd-rs-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/records.raw",
+      "$CORPUS/records-zstd-rs-level3.zst",
+      "3"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/records-zstd-rs-level3.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/records.raw",
+      "$CORPUS/records-zstd-rs-level19.zst",
+      "19"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/records-zstd-rs-level19.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-1",
+      "--check",
+      "--zstd=wlog=19",
+      "-o",
+      "$CORPUS/entropy-level1-known-check.zst",
+      "$CORPUS/entropy.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/entropy-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262144"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/entropy-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262143"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/entropy-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262144"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/entropy-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262143"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-3",
+      "--check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/entropy-level3-stream-check.zst",
+      "-"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/entropy-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262144"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/entropy-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262143"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/entropy-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262144"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/entropy-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262143"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-19",
+      "--no-check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/entropy-level19-known-no-check.zst",
+      "$CORPUS/entropy.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/entropy-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262144"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/entropy-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262143"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/entropy-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262144"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/entropy-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "262143"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-encode",
+      "$CORPUS/entropy.raw",
+      "$CORPUS/entropy-ruzstd-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/entropy-ruzstd-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/entropy.raw",
+      "$CORPUS/entropy-zstd-rs-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/entropy-zstd-rs-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/entropy.raw",
+      "$CORPUS/entropy-zstd-rs-level3.zst",
+      "3"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/entropy-zstd-rs-level3.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/entropy.raw",
+      "$CORPUS/entropy-zstd-rs-level19.zst",
+      "19"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/entropy-zstd-rs-level19.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-1",
+      "--check",
+      "--zstd=wlog=19",
+      "-o",
+      "$CORPUS/mixed-level1-known-check.zst",
+      "$CORPUS/mixed.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/mixed-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393216"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/mixed-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393215"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/mixed-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393216"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/mixed-level1-known-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393215"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-3",
+      "--check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/mixed-level3-stream-check.zst",
+      "-"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/mixed-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393216"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/mixed-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393215"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/mixed-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393216"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/mixed-level3-stream-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393215"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-f",
+      "--single-thread",
+      "-19",
+      "--no-check",
+      "--zstd=wlog=17",
+      "-o",
+      "$CORPUS/mixed-level19-known-no-check.zst",
+      "$CORPUS/mixed.raw"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/mixed-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393216"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/mixed-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393215"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"output cap exceeded\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/mixed-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393216"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/mixed-level19-known-no-check.zst",
+      "$CORPUS/decoded.tmp",
+      "393215"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: OutputLimit"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-encode",
+      "$CORPUS/mixed.raw",
+      "$CORPUS/mixed-ruzstd-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/mixed-ruzstd-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/mixed.raw",
+      "$CORPUS/mixed-zstd-rs-level1.zst",
+      "1"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/mixed-zstd-rs-level1.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/mixed.raw",
+      "$CORPUS/mixed-zstd-rs-level3.zst",
+      "3"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/mixed-zstd-rs-level3.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-encode",
+      "$CORPUS/mixed.raw",
+      "$CORPUS/mixed-zstd-rs-level19.zst",
+      "19"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zstd",
+      "-q",
+      "-d",
+      "--stdout",
+      "--no-pass-through",
+      "$CORPUS/mixed-zstd-rs-level19.zst"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/checksum-flip.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"checksum mismatch\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/checksum-flip.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: Checksum"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/truncated-checksum.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: Custom { kind: Other, error: FailedToReadChecksum(Error { kind: UnexpectedEof, message: \"failed to fill whole buffer\" }) }"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/truncated-checksum.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: Truncated"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/bad-magic.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: ReadFrameHeaderError(BadMagicNumber(4247762217))"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/bad-magic.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: BadMagic"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/excess-window.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/excess-window.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: WindowTooLarge"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/concatenated.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: \"trailing frame bytes\""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/concatenated.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "ruzstd-decode",
+      "$CORPUS/skippable-prefix.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 1,
+    "stderr": "Error: ReadFrameHeaderError(SkipFrame { magic_number: 407710288, length: 4 })"
+  },
+  {
+    "argv": [
+      "$SPIKE",
+      "zstd-rs-decode",
+      "$CORPUS/skippable-prefix.zst",
+      "$CORPUS/decoded.tmp",
+      "524288"
+    ],
+    "exit_code": 0,
+    "stderr": ""
+  }
+]
