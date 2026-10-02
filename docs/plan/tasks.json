@@ -15358,7 +15358,8 @@
         "KL11-03",
         "KL11-04",
         "KL11-05",
-        "KL11-60"
+        "KL11-60",
+        "KL11-65"
       ],
       "files": [
         "partitionline-broker/src/produce.rs"
@@ -16406,7 +16407,8 @@
       "status": "pending",
       "owner": null,
       "depends_on": [
-        "KL11-35"
+        "KL11-35",
+        "KL11-66"
       ],
       "files": [
         "partitionline-broker/src/security/sasl.rs"
@@ -18770,6 +18772,80 @@
         "docs/plan/evidence/KL11-64.json",
         "docs/plan/tasks.json"
       ]
+    },
+    {
+      "id": "KL11-65",
+      "title": "Bind validated ordinary Kafka batches to assigned durable offsets",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL11-03",
+        "KL11-60"
+      ],
+      "files": [
+        "partitionline-broker/src/partition.rs",
+        "partitionline-broker/tests/partition.rs"
+      ],
+      "deliverable": "A bounded partition log composes whole-input validation, offset rewriting and one durable journal append; recovery validates Kafka payloads and their persisted logical ranges.",
+      "acceptance": [
+        "Only completely validated ordinary uncompressed magic2 batches enter storage; preserve payload/CRC bytes while assigning all batch base offsets contiguously.",
+        "An input containing multiple batches appends atomically as one checksummed journal entry, synchronizing before success. Enforce signed Kafka offset domain and configured byte/count/index/disk/output bounds.",
+        "Reopen checks every persisted entry against structural validation, exact count and contiguous batch offsets, even if an attacker recomputes the outer journal CRC. Fail closed without fabricated wire support.",
+        "Whole-entry fetch explicitly returns entry containing offset and bounded entries/bytes; independent fixture decoder verifies actual assigned batch IDs/payloads through restart, torn tail and corrupted input.",
+        "Caller-supplied exclusive storage paths/threads remain explicit. No codecs, producer deduplication, transaction, replication or wire support claim from this storage subset."
+      ],
+      "validation": [
+        "Run real-file append/restart/truncation/corruption/budget/offset-domain tests stable and1.85.",
+        "Use independently generated Apache batches and decode actual persisted bytes with pinned Apache Java; preserve failed attempts."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/partition.rs",
+        "partitionline-broker/tests/partition.rs",
+        "docs/evidence/broker/KL11-65/",
+        "docs/plan/evidence/KL11-65.json",
+        "docs/plan/tasks.json"
+      ],
+      "integration_coordinator": "Root implements module and stages shared lib export under KL11-12; no journal/record source or metadata/router edits."
+    },
+    {
+      "id": "KL11-66",
+      "title": "Implement bounded salted credentials and SASL PLAIN/SCRAM mechanism state",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL11-35"
+      ],
+      "files": [
+        "partitionline-broker/src/security/sasl.rs",
+        "partitionline-broker/tests/sasl.rs"
+      ],
+      "deliverable": "Optional safe Rust bounded server credential and PLAIN/SCRAM-SHA256/SHA512 mechanism primitives, independent of later connection-level Kafka SASL dispatch.",
+      "acceptance": [
+        "Pin Kafka/RFC5802/7677 mechanism behavior and independent Java proofs/messages including valid, wrongproof, nonce, username escaping, channel-binding, duplicate fields and malformed messages.",
+        "Persist no plaintext passwords or salted-password/client-key forms; credential verifier/salt/iteration forms only. Enforce work, message, nonce, identity and credential-count bounds.",
+        "Use tested constant-time cryptographic verification and cryptographically strong nonces/salts; redact credentials/password/proof/nonce data from Debug/errors.",
+        "Explicitly bound concurrent expensive credential derivation/authentication outside Tokio executor; cancellation releases admission while ambiguous in-flight work remains bounded.",
+        "Default broker/client graphs stay unchanged; optional core-approved dependency families only, root owns shared manifest/lock/module exports. Do not advertise SASL wire APIs without later full connection lifecycle integration."
+      ],
+      "validation": [
+        "Stable/MSRV strict format/lint/docs and actual independent mechanism oracle fixtures/proof tests.",
+        "Malformed/budget/badproof/rotation/replay/concurrency/cancellation cases demonstrate bounds and no false successful identity."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/security/sasl.rs",
+        "partitionline-broker/tests/sasl.rs",
+        "partitionline-broker/tests/fixtures/sasl/",
+        "docs/evidence/broker/KL11-66/",
+        "docs/plan/evidence/KL11-66.json",
+        "docs/plan/tasks.json"
+      ],
+      "integration_coordinator": "Worker owns mechanism/credentials/tests/oracles. Root exclusively owns Cargo/lock/security mod/sharedlib. This foundation precedes KL11-36 actual Kafka SASL dispatch, live peer sessions and admin."
     }
   ]
 }
