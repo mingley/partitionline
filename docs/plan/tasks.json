@@ -18083,7 +18083,6 @@
       "write_set": [
         "partitionline-broker/src/produce.rs",
         "partitionline-broker/src/metadata.rs",
-        "partitionline-broker/src/protocol.rs",
         "partitionline-broker/tests/produce.rs",
         "partitionline-broker/tests/metadata.rs",
         "tests/conformance/broker/implemented-api-versions.json",
@@ -18094,7 +18093,7 @@
         "docs/plan/evidence/KL11-06.json",
         "docs/plan/tasks.json"
       ],
-      "integration_coordinator": "c_peer owns bounded Produce3\u201313 and optional shared catalog/storage actor extension; no fake Fetch advertisement. Root alone edits shared lib/Cargo/lock and plan. KL11-68 owns independent fixtures/peers. Raft/SASL compose separate profiles; common header/gate changes require root coordination."
+      "integration_coordinator": "c_peer owns bounded Produce3\u201313 and optional shared catalog/storage actor extension; no fake Fetch advertisement. Root alone edits shared lib/Cargo/lock and plan. KL11-68 owns independent fixtures/peers. Raft/SASL compose separate profiles; common header/gate changes require root coordination. Shared protocol.rs is reserved to the root coordinator under13; registry/verifier changes in06 are also integrated only by root."
     },
     {
       "id": "KL11-07",
@@ -18783,11 +18782,12 @@
       "title": "Implement pinned Raft Vote/Begin/End epoch RPCs",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-04",
-        "KL11-12"
+        "KL11-12",
+        "KL11-69"
       ],
       "files": [
         "partitionline-broker/src/raft/protocol.rs"
@@ -18796,13 +18796,32 @@
       "acceptance": [
         "Exact versioned Apache fixtures and cross-peer negotiation prove fields/error codes.",
         "All stale/fenced/malformed paths fail with bounded work.",
-        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold.",
+        "Initial tested controller profile is fixed trusted membership, one metadata partition, Vote/Begin/End epoch version0 only, ApiVersions0\u20134. Unsupported directory/pre-vote versions remain unadvertised and tracked by KL11-70.",
+        "Map Kafka wire epoch/log epoch through checked +1 core representation, persist coreterm1 initialization before exposure and verify nonempty wireepoch0 logs.",
+        "End preferred-successor timing matches pinned supported ranks, with max31 successors to exclude Java shift-wrap behavior; duplicates/nonmembers and larger lists fail before mutation.",
+        "Controller profile advertisement remains distinct from standalone/metadata/data/SASL listener profiles, backed by actual runtime dispatch."
       ],
       "validation": [
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/raft/protocol.rs",
+        "partitionline-broker/src/raft/election.rs",
+        "partitionline-broker/src/raft/mod.rs",
+        "partitionline-broker/tests/raft_protocol.rs",
+        "partitionline-broker/src/protocol.rs",
+        "tests/conformance/broker/implemented-api-versions.json",
+        "tests/conformance/broker/features.json",
+        "scripts/check-broker-api-matrix.py",
+        "tests/ci/test_broker_api_matrix.py",
+        "docs/evidence/broker/KL11-13/",
+        "docs/plan/evidence/KL11-13.json",
+        "docs/plan/tasks.json"
+      ],
+      "integration_coordinator": "rpc_reuse owns raft production/test/evidence files. KL11-69 independently owns fixtures/oracles. Root exclusively edits shared protocol.rs, registries/verifier CI and plan to avoid KL11-06/36 overlapping writes. All profile advertisement changes need frozen behavioral evidence."
     },
     {
       "id": "KL11-14",
@@ -19643,26 +19662,50 @@
       "title": "Authenticate PLAIN/SCRAM and manage salted credentials",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-35",
         "KL11-66"
       ],
       "files": [
-        "partitionline-broker/src/security/sasl.rs"
+        "partitionline-broker/src/security/session.rs",
+        "partitionline-broker/src/security/credentials.rs"
       ],
       "deliverable": "Bounded SASL PLAIN/SCRAM handshakes with secure credential storage/admin.",
       "acceptance": [
         "Pinned Java/C clients prove challenge proofs, errors and identity; redact secrets.",
         "Persist only salted/verifier forms; cap concurrent authentication work.",
-        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold.",
+        "Bound authentication to the actual transport socket with per-connection state and typed identity; preserve Handler trait/default unauthenticated profile and redact Peer/credential/frame Debug.",
+        "Implement pinned Handshake17v0\u20131/Authenticate36v0\u20132, preauthApiVersions, legacy raw tokens only in negotiatedv0, strict state/round/byte/deadline/correlation bounds. TLS-only PLAIN by default; explicit SCRAM plaintext profile.",
+        "No application dispatch before proof success. Authentication and Alter51 original frame buffers and extracted secrets are owned zeroizing buffers; capture credential generation for the admitted exchange.",
+        "Persist only salted verifier forms on bounded serialized storage actor, synchronize mutation before immutable publication, fail closed on corruption/ambiguous I/O, complete admitted per-user commit even if caller drops. Alter51 SaltedPassword is transient only; Describe50 emits credential metadata without verifier bytes. Admin identity allowlist is explicit.",
+        "Return session_lifetime_ms0 until real KIP368 reauthentication is implemented and independently qualified by KL11-71; no inferred reauth support.",
+        "Listener-specific API advertisement includes only actual wired handlers; standalone/default metadata profiles remain unchanged."
       ],
       "validation": [
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/security/session.rs",
+        "partitionline-broker/src/security/credentials.rs",
+        "partitionline-broker/src/security/sasl.rs",
+        "partitionline-broker/src/transport.rs",
+        "partitionline-broker/tests/sasl_sessions.rs",
+        "partitionline-broker/tests/sasl_credentials.rs",
+        "partitionline-broker/tests/transport.rs",
+        "partitionline-broker/tests/tls.rs",
+        "partitionline-broker/tests/fixtures/sasl-wire/",
+        "docs/evidence/broker/KL11-36/",
+        "docs/plan/evidence/KL11-36.json",
+        "docs/plan/tasks.json",
+        "partitionline-broker/src/security/mod.rs",
+        "partitionline-broker/src/lib.rs"
+      ],
+      "integration_coordinator": "consumer_lookups owns connection/session/credential/transport production and tests, plus wire oracle/peer evidence within36. Root alone edits shared security/lib exports, protocol registries/verifiers and plan. Coordinate public Peer additions with06/13 while preserving Handler trait. Source-freeze credential foundation before socket integration if useful;36 closes only after all named live/admin/durability gates."
     },
     {
       "id": "KL11-37",
@@ -20429,7 +20472,9 @@
         "KL11-60",
         "KL11-61",
         "KL11-62",
-        "KL11-63"
+        "KL11-63",
+        "KL11-70",
+        "KL11-71"
       ],
       "files": [
         "docs/plan/evidence/KL11-56.json"
@@ -25875,6 +25920,93 @@
         "docs/plan/tasks.json"
       ],
       "integration_coordinator": "avro_adapter owns fixtures/oracles/peer probes only; production/router/registry owned separately. Root exclusively edits shared plan and integrates source pins."
+    },
+    {
+      "id": "KL11-69",
+      "title": "Generate independent fixed-controller Vote/Begin/End epoch oracles",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL11-57",
+        "KL11-12"
+      ],
+      "files": [
+        "partitionline-broker/tests/fixtures/raft-protocol/",
+        "docs/evidence/broker/KL11-69/"
+      ],
+      "deliverable": "Authentic three-release KRaftv0 request/response fixtures and semantic/error/timing probes for fixed trusted membership, separate from production handler.",
+      "acceptance": [
+        "Pin actual Apache schemas/classes/raft implementation; reproduce bytes for Vote52v0,Begin53v0,End54v0 and controllerApiVersions0\u20134.",
+        "Probe epoch0/nonempty logs, cluster null/mismatch, partition/log/candidate errors, stale/fenced epochs, leader conflicts, ranked preferred successors and bounded exclusions; distinguish actual Java outcomes from deliberately stricter static profile rejection.",
+        "Record exact commands/jar/source/checksums, counterexamples and unchanged fixture receipts. No production edits or global KRaft qualification from fixtures."
+      ],
+      "validation": [
+        "Strict compile/replay all three pinned current Apache releases.",
+        "Decode actual frozen Rust controller responses and exercise real bounded handler transitions once implementation exists."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/tests/fixtures/raft-protocol/",
+        "docs/evidence/broker/KL11-69/",
+        "docs/plan/evidence/KL11-69.json",
+        "docs/plan/tasks.json"
+      ],
+      "integration_coordinator": "open_loop owns independent fixtures/probes; rpc_reuse owns13 production. Root alone edits shared plan/profiles."
+    },
+    {
+      "id": "KL11-70",
+      "title": "Complete modern KRaft directory identity and pre-vote profiles",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-13",
+        "KL11-14",
+        "KL11-15"
+      ],
+      "files": [
+        "partitionline-broker/src/raft/protocol.rs",
+        "partitionline-broker/src/raft/replication.rs"
+      ],
+      "deliverable": "Current upstream KRaft directory identities/endpoints, pre-vote and supported successor/membership semantics beyond the initial fixedv0 controller profile.",
+      "acceptance": [
+        "Implement actual latest upstream version1/2 fields and runtime semantics; only advertise after authentic fixtures/live negotiation and seeded fault histories pass.",
+        "Prove directory fencing, pre-vote without premature persistent vote/epoch mutation, mixed-version fallback and safe membership/successor handling. Retain narrowv0 regressions and unsupported-profile boundaries."
+      ],
+      "validation": [
+        "Pinned current Apache protocol and independent controller histories stable/MSRV.",
+        "Partition/quorum-loss/stale-directory/pre-vote counterexamples and strict bounded resource gates."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-71",
+      "title": "Implement bounded Kafka SASL connection reauthentication",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-36",
+        "KL11-37"
+      ],
+      "files": [
+        "partitionline-broker/src/security/session.rs",
+        "partitionline-broker/src/transport.rs"
+      ],
+      "deliverable": "Actual KIP368 session lifetime and bounded reauthentication state across PLAIN/SCRAM/OIDC supported listener profiles.",
+      "acceptance": [
+        "Advertise positive session lifetime only with actual enforced expiry/reauthentication; prevent application bypass, credential/identity confusion or concurrent-reply corruption.",
+        "Independent Java/C/Rust peers prove refresh/expiry/rotation/cancellation and in-flight request boundaries; preserve zero-lifetime compatibility and redact/zeroize owned auth buffers."
+      ],
+      "validation": [
+        "Stable/MSRV pinned current client histories with seeded deadline/reauth failures.",
+        "Strict listener/profile/generation/resource and shutdown gates."
+      ],
+      "evidence": []
     }
   ]
 }
