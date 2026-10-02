@@ -6,7 +6,7 @@
     "4.2.1",
     "4.3.1"
   ],
-  "upstream_pin_gate": "KL11-04",
+  "upstream_pin_gate": "KL11-57",
   "implemented_api_versions": [],
   "features": [
     {
@@ -15,9 +15,46 @@
       "name": "PRODUCE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "3-13",
+          "response": "3-13",
+          "request_flexible": "9+",
+          "response_flexible": "9+",
+          "stable": "3-13"
+        },
+        "4.2.1": {
+          "request": "3-13",
+          "response": "3-13",
+          "request_flexible": "9+",
+          "response_flexible": "9+",
+          "stable": "3-13"
+        },
+        "4.3.1": {
+          "request": "3-13",
+          "response": "3-13",
+          "request_flexible": "9+",
+          "response_flexible": "9+",
+          "stable": "3-13"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.1",
@@ -25,9 +62,49 @@
       "name": "FETCH",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "4-18",
+          "response": "4-18",
+          "request_flexible": "12+",
+          "response_flexible": "12+",
+          "stable": "4-18"
+        },
+        "4.2.1": {
+          "request": "4-18",
+          "response": "4-18",
+          "request_flexible": "12+",
+          "response_flexible": "12+",
+          "stable": "4-18"
+        },
+        "4.3.1": {
+          "request": "4-18",
+          "response": "4-18",
+          "request_flexible": "12+",
+          "response_flexible": "12+",
+          "stable": "4-18"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.2",
@@ -35,9 +112,46 @@
       "name": "LIST_OFFSETS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-10",
+          "response": "1-10",
+          "request_flexible": "6+",
+          "response_flexible": "6+",
+          "stable": "1-10"
+        },
+        "4.2.1": {
+          "request": "1-11",
+          "response": "1-11",
+          "request_flexible": "6+",
+          "response_flexible": "6+",
+          "stable": "1-11"
+        },
+        "4.3.1": {
+          "request": "1-11",
+          "response": "1-11",
+          "request_flexible": "6+",
+          "response_flexible": "6+",
+          "stable": "1-11"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.3",
@@ -45,49 +159,210 @@
       "name": "METADATA",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-13",
+          "response": "0-13",
+          "request_flexible": "9+",
+          "response_flexible": "9+",
+          "stable": "0-13"
+        },
+        "4.2.1": {
+          "request": "0-13",
+          "response": "0-13",
+          "request_flexible": "9+",
+          "response_flexible": "9+",
+          "stable": "0-13"
+        },
+        "4.3.1": {
+          "request": "0-13",
+          "response": "0-13",
+          "request_flexible": "9+",
+          "response_flexible": "9+",
+          "stable": "0-13"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.4",
       "api_key": 4,
-      "name": "requires_upstream_classification",
+      "name": "LEADER_AND_ISR",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        },
+        "4.2.1": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        },
+        "4.3.1": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Removed in Apache Kafka 4.0; assigned key retained to prevent reuse. No broker handler is required for a removed upstream API.",
+      "upstream_disposition": "removed_api_key_reserved",
+      "upstream_applicability": "not_applicable_removed_upstream",
+      "upstream_listeners": {
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.5",
       "api_key": 5,
-      "name": "requires_upstream_classification",
+      "name": "STOP_REPLICA",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        },
+        "4.2.1": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        },
+        "4.3.1": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Removed in Apache Kafka 4.0; assigned key retained to prevent reuse. No broker handler is required for a removed upstream API.",
+      "upstream_disposition": "removed_api_key_reserved",
+      "upstream_applicability": "not_applicable_removed_upstream",
+      "upstream_listeners": {
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.6",
       "api_key": 6,
-      "name": "requires_upstream_classification",
+      "name": "UPDATE_METADATA",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        },
+        "4.2.1": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        },
+        "4.3.1": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Removed in Apache Kafka 4.0; assigned key retained to prevent reuse. No broker handler is required for a removed upstream API.",
+      "upstream_disposition": "removed_api_key_reserved",
+      "upstream_applicability": "not_applicable_removed_upstream",
+      "upstream_listeners": {
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.7",
       "api_key": 7,
-      "name": "requires_upstream_classification",
+      "name": "CONTROLLED_SHUTDOWN",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        },
+        "4.2.1": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        },
+        "4.3.1": {
+          "request": "none",
+          "response": "none",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "none"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Removed in Apache Kafka 4.0; assigned key retained to prevent reuse. No broker handler is required for a removed upstream API.",
+      "upstream_disposition": "removed_api_key_reserved",
+      "upstream_applicability": "not_applicable_removed_upstream",
+      "upstream_listeners": {
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.8",
@@ -95,9 +370,46 @@
       "name": "OFFSET_COMMIT",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "2-10",
+          "response": "2-10",
+          "request_flexible": "8+",
+          "response_flexible": "8+",
+          "stable": "2-9"
+        },
+        "4.2.1": {
+          "request": "2-10",
+          "response": "2-10",
+          "request_flexible": "8+",
+          "response_flexible": "8+",
+          "stable": "2-10"
+        },
+        "4.3.1": {
+          "request": "2-10",
+          "response": "2-10",
+          "request_flexible": "8+",
+          "response_flexible": "8+",
+          "stable": "2-10"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.9",
@@ -105,9 +417,46 @@
       "name": "OFFSET_FETCH",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-10",
+          "response": "1-10",
+          "request_flexible": "6+",
+          "response_flexible": "6+",
+          "stable": "1-9"
+        },
+        "4.2.1": {
+          "request": "1-10",
+          "response": "1-10",
+          "request_flexible": "6+",
+          "response_flexible": "6+",
+          "stable": "1-10"
+        },
+        "4.3.1": {
+          "request": "1-10",
+          "response": "1-10",
+          "request_flexible": "6+",
+          "response_flexible": "6+",
+          "stable": "1-10"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.10",
@@ -115,9 +464,46 @@
       "name": "FIND_COORDINATOR",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-6",
+          "response": "0-6",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-6"
+        },
+        "4.2.1": {
+          "request": "0-6",
+          "response": "0-6",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-6"
+        },
+        "4.3.1": {
+          "request": "0-6",
+          "response": "0-6",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-6"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.11",
@@ -125,9 +511,46 @@
       "name": "JOIN_GROUP",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-9",
+          "response": "0-9",
+          "request_flexible": "6+",
+          "response_flexible": "6+",
+          "stable": "0-9"
+        },
+        "4.2.1": {
+          "request": "0-9",
+          "response": "0-9",
+          "request_flexible": "6+",
+          "response_flexible": "6+",
+          "stable": "0-9"
+        },
+        "4.3.1": {
+          "request": "0-9",
+          "response": "0-9",
+          "request_flexible": "6+",
+          "response_flexible": "6+",
+          "stable": "0-9"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.12",
@@ -135,9 +558,46 @@
       "name": "HEARTBEAT",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "0-4"
+        },
+        "4.2.1": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "0-4"
+        },
+        "4.3.1": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "0-4"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.13",
@@ -145,9 +605,46 @@
       "name": "LEAVE_GROUP",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "0-5"
+        },
+        "4.2.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "0-5"
+        },
+        "4.3.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "0-5"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.14",
@@ -155,9 +652,46 @@
       "name": "SYNC_GROUP",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "0-5"
+        },
+        "4.2.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "0-5"
+        },
+        "4.3.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "0-5"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.15",
@@ -165,9 +699,46 @@
       "name": "DESCRIBE_GROUPS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-6",
+          "response": "0-6",
+          "request_flexible": "5+",
+          "response_flexible": "5+",
+          "stable": "0-6"
+        },
+        "4.2.1": {
+          "request": "0-6",
+          "response": "0-6",
+          "request_flexible": "5+",
+          "response_flexible": "5+",
+          "stable": "0-6"
+        },
+        "4.3.1": {
+          "request": "0-6",
+          "response": "0-6",
+          "request_flexible": "5+",
+          "response_flexible": "5+",
+          "stable": "0-6"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.16",
@@ -175,9 +746,46 @@
       "name": "LIST_GROUPS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        },
+        "4.2.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        },
+        "4.3.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.17",
@@ -185,9 +793,49 @@
       "name": "SASL_HANDSHAKE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.18",
@@ -195,9 +843,49 @@
       "name": "API_VERSIONS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-4"
+        },
+        "4.2.1": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-4"
+        },
+        "4.3.1": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-4"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.19",
@@ -205,9 +893,49 @@
       "name": "CREATE_TOPICS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "2-7",
+          "response": "2-7",
+          "request_flexible": "5+",
+          "response_flexible": "5+",
+          "stable": "2-7"
+        },
+        "4.2.1": {
+          "request": "2-7",
+          "response": "2-7",
+          "request_flexible": "5+",
+          "response_flexible": "5+",
+          "stable": "2-7"
+        },
+        "4.3.1": {
+          "request": "2-7",
+          "response": "2-7",
+          "request_flexible": "5+",
+          "response_flexible": "5+",
+          "stable": "2-7"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.20",
@@ -215,9 +943,49 @@
       "name": "DELETE_TOPICS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-6",
+          "response": "1-6",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "1-6"
+        },
+        "4.2.1": {
+          "request": "1-6",
+          "response": "1-6",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "1-6"
+        },
+        "4.3.1": {
+          "request": "1-6",
+          "response": "1-6",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "1-6"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.21",
@@ -225,9 +993,46 @@
       "name": "DELETE_RECORDS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        },
+        "4.2.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        },
+        "4.3.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.22",
@@ -235,9 +1040,46 @@
       "name": "INIT_PRODUCER_ID",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-6",
+          "response": "0-6",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-5"
+        },
+        "4.2.1": {
+          "request": "0-6",
+          "response": "0-6",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-5"
+        },
+        "4.3.1": {
+          "request": "0-6",
+          "response": "0-6",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-5"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.23",
@@ -245,9 +1087,46 @@
       "name": "OFFSET_FOR_LEADER_EPOCH",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "2-4",
+          "response": "2-4",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "2-4"
+        },
+        "4.2.1": {
+          "request": "2-4",
+          "response": "2-4",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "2-4"
+        },
+        "4.3.1": {
+          "request": "2-4",
+          "response": "2-4",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "2-4"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.24",
@@ -255,9 +1134,46 @@
       "name": "ADD_PARTITIONS_TO_TXN",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        },
+        "4.2.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        },
+        "4.3.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.25",
@@ -265,9 +1181,46 @@
       "name": "ADD_OFFSETS_TO_TXN",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-4"
+        },
+        "4.2.1": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-4"
+        },
+        "4.3.1": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-4"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.26",
@@ -275,9 +1228,46 @@
       "name": "END_TXN",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        },
+        "4.2.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        },
+        "4.3.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.27",
@@ -285,9 +1275,46 @@
       "name": "WRITE_TXN_MARKERS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1",
+          "response": "1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "1"
+        },
+        "4.2.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "1-2"
+        },
+        "4.3.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "1-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.28",
@@ -295,9 +1322,46 @@
       "name": "TXN_OFFSET_COMMIT",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        },
+        "4.2.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        },
+        "4.3.1": {
+          "request": "0-5",
+          "response": "0-5",
+          "request_flexible": "3+",
+          "response_flexible": "3+",
+          "stable": "0-5"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.29",
@@ -305,9 +1369,49 @@
       "name": "DESCRIBE_ACLS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        },
+        "4.2.1": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        },
+        "4.3.1": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.30",
@@ -315,9 +1419,49 @@
       "name": "CREATE_ACLS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        },
+        "4.2.1": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        },
+        "4.3.1": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.31",
@@ -325,9 +1469,49 @@
       "name": "DELETE_ACLS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        },
+        "4.2.1": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        },
+        "4.3.1": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.32",
@@ -335,9 +1519,49 @@
       "name": "DESCRIBE_CONFIGS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-4",
+          "response": "1-4",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "1-4"
+        },
+        "4.2.1": {
+          "request": "1-4",
+          "response": "1-4",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "1-4"
+        },
+        "4.3.1": {
+          "request": "1-4",
+          "response": "1-4",
+          "request_flexible": "4+",
+          "response_flexible": "4+",
+          "stable": "1-4"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.33",
@@ -345,9 +1569,49 @@
       "name": "ALTER_CONFIGS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        },
+        "4.2.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        },
+        "4.3.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.34",
@@ -355,9 +1619,46 @@
       "name": "ALTER_REPLICA_LOG_DIRS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-2"
+        },
+        "4.2.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-2"
+        },
+        "4.3.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.35",
@@ -365,9 +1666,46 @@
       "name": "DESCRIBE_LOG_DIRS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-4",
+          "response": "1-4",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-4"
+        },
+        "4.2.1": {
+          "request": "1-4",
+          "response": "1-4",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-4"
+        },
+        "4.3.1": {
+          "request": "1-5",
+          "response": "1-5",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-5"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.36",
@@ -375,9 +1713,49 @@
       "name": "SASL_AUTHENTICATE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        },
+        "4.2.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        },
+        "4.3.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.37",
@@ -385,9 +1763,49 @@
       "name": "CREATE_PARTITIONS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-3",
+          "response": "0-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-3"
+        },
+        "4.2.1": {
+          "request": "0-3",
+          "response": "0-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-3"
+        },
+        "4.3.1": {
+          "request": "0-3",
+          "response": "0-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-3"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.38",
@@ -395,9 +1813,49 @@
       "name": "CREATE_DELEGATION_TOKEN",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        },
+        "4.2.1": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        },
+        "4.3.1": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.39",
@@ -405,9 +1863,49 @@
       "name": "RENEW_DELEGATION_TOKEN",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-2"
+        },
+        "4.2.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-2"
+        },
+        "4.3.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.40",
@@ -415,9 +1913,49 @@
       "name": "EXPIRE_DELEGATION_TOKEN",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-2"
+        },
+        "4.2.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-2"
+        },
+        "4.3.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.41",
@@ -425,9 +1963,49 @@
       "name": "DESCRIBE_DELEGATION_TOKEN",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        },
+        "4.2.1": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        },
+        "4.3.1": {
+          "request": "1-3",
+          "response": "1-3",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "1-3"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.42",
@@ -435,9 +2013,46 @@
       "name": "DELETE_GROUPS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        },
+        "4.2.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        },
+        "4.3.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.43",
@@ -445,9 +2060,49 @@
       "name": "ELECT_LEADERS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        },
+        "4.2.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        },
+        "4.3.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "2+",
+          "response_flexible": "2+",
+          "stable": "0-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.44",
@@ -455,9 +2110,49 @@
       "name": "INCREMENTAL_ALTER_CONFIGS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.45",
@@ -465,9 +2160,49 @@
       "name": "ALTER_PARTITION_REASSIGNMENTS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.46",
@@ -475,9 +2210,49 @@
       "name": "LIST_PARTITION_REASSIGNMENTS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.47",
@@ -485,9 +2260,46 @@
       "name": "OFFSET_DELETE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "none",
+          "response_flexible": "none",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.48",
@@ -495,9 +2307,46 @@
       "name": "DESCRIBE_CLIENT_QUOTAS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.49",
@@ -505,9 +2354,49 @@
       "name": "ALTER_CLIENT_QUOTAS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.50",
@@ -515,9 +2404,49 @@
       "name": "DESCRIBE_USER_SCRAM_CREDENTIALS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.51",
@@ -525,39 +2454,190 @@
       "name": "ALTER_USER_SCRAM_CREDENTIALS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.52",
       "api_key": 52,
-      "name": "requires_upstream_classification",
+      "name": "VOTE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        },
+        "4.2.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        },
+        "4.3.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.53",
       "api_key": 53,
-      "name": "requires_upstream_classification",
+      "name": "BEGIN_QUORUM_EPOCH",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.54",
       "api_key": 54,
-      "name": "requires_upstream_classification",
+      "name": "END_QUORUM_EPOCH",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.55",
@@ -565,19 +2645,96 @@
       "name": "DESCRIBE_QUORUM",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        },
+        "4.2.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        },
+        "4.3.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.56",
       "api_key": 56,
-      "name": "requires_upstream_classification",
+      "name": "ALTER_PARTITION",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "2-3",
+          "response": "2-3",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "2-3"
+        },
+        "4.2.1": {
+          "request": "2-3",
+          "response": "2-3",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "2-3"
+        },
+        "4.3.1": {
+          "request": "2-3",
+          "response": "2-3",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "2-3"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.57",
@@ -585,29 +2742,143 @@
       "name": "UPDATE_FEATURES",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        },
+        "4.2.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        },
+        "4.3.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.58",
       "api_key": 58,
-      "name": "requires_upstream_classification",
+      "name": "ENVELOPE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.59",
       "api_key": 59,
-      "name": "requires_upstream_classification",
+      "name": "FETCH_SNAPSHOT",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.60",
@@ -615,9 +2886,49 @@
       "name": "DESCRIBE_CLUSTER",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        },
+        "4.2.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        },
+        "4.3.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.61",
@@ -625,29 +2936,140 @@
       "name": "DESCRIBE_PRODUCERS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.62",
       "api_key": 62,
-      "name": "requires_upstream_classification",
+      "name": "BROKER_REGISTRATION",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-4"
+        },
+        "4.2.1": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-4"
+        },
+        "4.3.1": {
+          "request": "0-4",
+          "response": "0-4",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-4"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.63",
       "api_key": 63,
-      "name": "requires_upstream_classification",
+      "name": "BROKER_HEARTBEAT",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.64",
@@ -655,9 +3077,49 @@
       "name": "UNREGISTER_BROKER",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.65",
@@ -665,9 +3127,46 @@
       "name": "DESCRIBE_TRANSACTIONS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.66",
@@ -675,9 +3174,46 @@
       "name": "LIST_TRANSACTIONS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        },
+        "4.2.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        },
+        "4.3.1": {
+          "request": "0-2",
+          "response": "0-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.67",
@@ -685,9 +3221,46 @@
       "name": "ALLOCATE_PRODUCER_IDS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.68",
@@ -695,9 +3268,46 @@
       "name": "CONSUMER_GROUP_HEARTBEAT",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.69",
@@ -705,19 +3315,93 @@
       "name": "CONSUMER_GROUP_DESCRIBE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.70",
       "api_key": 70,
-      "name": "requires_upstream_classification",
+      "name": "CONTROLLER_REGISTRATION",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.71",
@@ -725,9 +3409,46 @@
       "name": "GET_TELEMETRY_SUBSCRIPTIONS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.72",
@@ -735,9 +3456,46 @@
       "name": "PUSH_TELEMETRY",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.73",
@@ -745,9 +3503,46 @@
       "name": "ASSIGN_REPLICAS_TO_DIRS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.74",
@@ -755,9 +3550,46 @@
       "name": "LIST_CONFIG_RESOURCES",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.75",
@@ -765,9 +3597,46 @@
       "name": "DESCRIBE_TOPIC_PARTITIONS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.76",
@@ -775,9 +3644,46 @@
       "name": "SHARE_GROUP_HEARTBEAT",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1",
+          "response": "1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1"
+        },
+        "4.2.1": {
+          "request": "1",
+          "response": "1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1"
+        },
+        "4.3.1": {
+          "request": "1",
+          "response": "1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.77",
@@ -785,9 +3691,46 @@
       "name": "SHARE_GROUP_DESCRIBE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1",
+          "response": "1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1"
+        },
+        "4.2.1": {
+          "request": "1",
+          "response": "1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1"
+        },
+        "4.3.1": {
+          "request": "1",
+          "response": "1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.78",
@@ -795,9 +3738,46 @@
       "name": "SHARE_FETCH",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1",
+          "response": "1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1"
+        },
+        "4.2.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1-2"
+        },
+        "4.3.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.79",
@@ -805,9 +3785,46 @@
       "name": "SHARE_ACKNOWLEDGE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1",
+          "response": "1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1"
+        },
+        "4.2.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1-2"
+        },
+        "4.3.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "1-2"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.80",
@@ -815,9 +3832,49 @@
       "name": "ADD_RAFT_VOTER",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.81",
@@ -825,89 +3882,425 @@
       "name": "REMOVE_RAFT_VOTER",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker",
+          "controller"
+        ],
+        "4.2.1": [
+          "broker",
+          "controller"
+        ],
+        "4.3.1": [
+          "broker",
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.82",
       "api_key": 82,
-      "name": "requires_upstream_classification",
+      "name": "UPDATE_RAFT_VOTER",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "controller"
+        ],
+        "4.2.1": [
+          "controller"
+        ],
+        "4.3.1": [
+          "controller"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.83",
       "api_key": 83,
-      "name": "requires_upstream_classification",
+      "name": "INITIALIZE_SHARE_GROUP_STATE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.84",
       "api_key": 84,
-      "name": "requires_upstream_classification",
+      "name": "READ_SHARE_GROUP_STATE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.85",
       "api_key": 85,
-      "name": "requires_upstream_classification",
+      "name": "WRITE_SHARE_GROUP_STATE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.86",
       "api_key": 86,
-      "name": "requires_upstream_classification",
+      "name": "DELETE_SHARE_GROUP_STATE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.87",
       "api_key": 87,
-      "name": "requires_upstream_classification",
+      "name": "READ_SHARE_GROUP_STATE_SUMMARY",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.88",
       "api_key": 88,
-      "name": "requires_upstream_classification",
+      "name": "STREAMS_GROUP_HEARTBEAT",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "none"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.89",
       "api_key": 89,
-      "name": "requires_upstream_classification",
+      "name": "STREAMS_GROUP_DESCRIBE",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "none"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.90",
@@ -915,9 +4308,46 @@
       "name": "DESCRIBE_SHARE_GROUP_OFFSETS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.91",
@@ -925,9 +4355,46 @@
       "name": "ALTER_SHARE_GROUP_OFFSETS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "api.92",
@@ -935,9 +4402,46 @@
       "name": "DELETE_SHARE_GROUP_OFFSETS",
       "implementation": "missing",
       "qualification": "not_run",
-      "version_ranges": null,
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
       "owner_task": "KL11-04",
-      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
     },
     {
       "id": "contract.KL11-02",
