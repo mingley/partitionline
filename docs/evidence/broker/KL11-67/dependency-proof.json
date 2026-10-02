@@ -1,0 +1,1040 @@
+{
+  "source_sha": "a5ca44afab5460bf43161365c005cd6b3769aff2",
+  "tested_base_sha": "37d72a18eef933f9005b9f7453763945882f104e",
+  "broker_default_active_graph_identical": true,
+  "client_active_graph_identical": true,
+  "client_lock_byte_identical": true,
+  "original_broker_package_versions_preserved": true,
+  "codec_packages_absent_from_broker_default": true,
+  "native_codec_packages_absent": true,
+  "default_active_graph": [
+    [
+      "bytes",
+      "1.12.1",
+      [
+        "default",
+        "std"
+      ]
+    ],
+    [
+      "cfg-if",
+      "1.0.5",
+      []
+    ],
+    [
+      "crc32c",
+      "0.6.8",
+      []
+    ],
+    [
+      "getrandom",
+      "0.4.3",
+      []
+    ],
+    [
+      "libc",
+      "0.2.189",
+      [
+        "default",
+        "std"
+      ]
+    ],
+    [
+      "mio",
+      "1.2.3",
+      [
+        "net",
+        "os-ext",
+        "os-poll"
+      ]
+    ],
+    [
+      "partitionline-broker",
+      "0.1.0",
+      [
+        "default"
+      ]
+    ],
+    [
+      "pin-project-lite",
+      "0.2.17",
+      []
+    ],
+    [
+      "proc-macro2",
+      "1.0.107",
+      [
+        "default",
+        "proc-macro"
+      ]
+    ],
+    [
+      "quote",
+      "1.0.47",
+      [
+        "default",
+        "proc-macro"
+      ]
+    ],
+    [
+      "rustc_version",
+      "0.4.1",
+      []
+    ],
+    [
+      "semver",
+      "1.0.28",
+      [
+        "default",
+        "std"
+      ]
+    ],
+    [
+      "socket2",
+      "0.6.5",
+      [
+        "all"
+      ]
+    ],
+    [
+      "syn",
+      "3.0.6",
+      [
+        "clone-impls",
+        "default",
+        "derive",
+        "full",
+        "parsing",
+        "printing",
+        "proc-macro"
+      ]
+    ],
+    [
+      "tokio",
+      "1.53.1",
+      [
+        "bytes",
+        "default",
+        "io-util",
+        "libc",
+        "macros",
+        "mio",
+        "net",
+        "rt",
+        "rt-multi-thread",
+        "socket2",
+        "sync",
+        "time",
+        "tokio-macros"
+      ]
+    ],
+    [
+      "tokio-macros",
+      "2.7.2",
+      []
+    ],
+    [
+      "unicode-ident",
+      "1.0.26",
+      []
+    ]
+  ],
+  "codec_active_graph": [
+    [
+      "adler2",
+      "2.0.1",
+      []
+    ],
+    [
+      "bytes",
+      "1.12.1",
+      [
+        "default",
+        "std"
+      ]
+    ],
+    [
+      "cfg-if",
+      "1.0.5",
+      []
+    ],
+    [
+      "crc32c",
+      "0.6.8",
+      []
+    ],
+    [
+      "crc32fast",
+      "1.5.2",
+      [
+        "std"
+      ]
+    ],
+    [
+      "flate2",
+      "1.1.10",
+      [
+        "any_impl",
+        "miniz_oxide",
+        "runtime_detection",
+        "rust_backend"
+      ]
+    ],
+    [
+      "getrandom",
+      "0.4.3",
+      []
+    ],
+    [
+      "libc",
+      "0.2.189",
+      [
+        "default",
+        "std"
+      ]
+    ],
+    [
+      "lz4_flex",
+      "0.14.0",
+      [
+        "alloc",
+        "checked-decode",
+        "default",
+        "frame",
+        "safe-decode",
+        "safe-encode",
+        "std"
+      ]
+    ],
+    [
+      "miniz_oxide",
+      "0.9.1",
+      [
+        "default",
+        "simd",
+        "simd-adler32",
+        "with-alloc"
+      ]
+    ],
+    [
+      "mio",
+      "1.2.3",
+      [
+        "net",
+        "os-ext",
+        "os-poll"
+      ]
+    ],
+    [
+      "partitionline-broker",
+      "0.1.0",
+      [
+        "codecs",
+        "default"
+      ]
+    ],
+    [
+      "pin-project-lite",
+      "0.2.17",
+      []
+    ],
+    [
+      "proc-macro2",
+      "1.0.107",
+      [
+        "default",
+        "proc-macro"
+      ]
+    ],
+    [
+      "quote",
+      "1.0.47",
+      [
+        "default",
+        "proc-macro"
+      ]
+    ],
+    [
+      "rustc_version",
+      "0.4.1",
+      []
+    ],
+    [
+      "semver",
+      "1.0.28",
+      [
+        "default",
+        "std"
+      ]
+    ],
+    [
+      "simd-adler32",
+      "0.3.10",
+      []
+    ],
+    [
+      "snap",
+      "1.1.2",
+      []
+    ],
+    [
+      "socket2",
+      "0.6.5",
+      [
+        "all"
+      ]
+    ],
+    [
+      "syn",
+      "3.0.6",
+      [
+        "clone-impls",
+        "default",
+        "derive",
+        "full",
+        "parsing",
+        "printing",
+        "proc-macro"
+      ]
+    ],
+    [
+      "tokio",
+      "1.53.1",
+      [
+        "bytes",
+        "default",
+        "io-util",
+        "libc",
+        "macros",
+        "mio",
+        "net",
+        "rt",
+        "rt-multi-thread",
+        "socket2",
+        "sync",
+        "time",
+        "tokio-macros"
+      ]
+    ],
+    [
+      "tokio-macros",
+      "2.7.2",
+      []
+    ],
+    [
+      "twox-hash",
+      "2.1.4",
+      [
+        "xxhash32"
+      ]
+    ],
+    [
+      "unicode-ident",
+      "1.0.26",
+      []
+    ],
+    [
+      "zstd-rs",
+      "0.1.0",
+      []
+    ]
+  ],
+  "added_active_packages": [
+    "adler2",
+    "crc32fast",
+    "flate2",
+    "lz4_flex",
+    "miniz_oxide",
+    "simd-adler32",
+    "snap",
+    "twox-hash",
+    "zstd-rs"
+  ],
+  "packages": [
+    {
+      "name": "adler2",
+      "version": "2.0.1",
+      "license": "0BSD OR MIT OR Apache-2.0",
+      "declared_msrv": null,
+      "features": [],
+      "checksum": "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
+    },
+    {
+      "name": "bytes",
+      "version": "1.12.1",
+      "license": "MIT",
+      "declared_msrv": "1.57",
+      "features": [
+        "default",
+        "std"
+      ],
+      "checksum": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
+    },
+    {
+      "name": "cfg-if",
+      "version": "1.0.5",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.32",
+      "features": [],
+      "checksum": "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
+    },
+    {
+      "name": "crc32c",
+      "version": "0.6.8",
+      "license": "Apache-2.0/MIT",
+      "declared_msrv": null,
+      "features": [],
+      "checksum": "3a47af21622d091a8f0fb295b88bc886ac74efcc613efc19f5d0b21de5c89e47"
+    },
+    {
+      "name": "crc32fast",
+      "version": "1.5.2",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.63",
+      "features": [
+        "std"
+      ],
+      "checksum": "01a7799fd6b852db0e61728dde9a204c423b44d689dbd432522543614b490e78"
+    },
+    {
+      "name": "flate2",
+      "version": "1.1.10",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.67.0",
+      "features": [
+        "any_impl",
+        "miniz_oxide",
+        "runtime_detection",
+        "rust_backend"
+      ],
+      "checksum": "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb"
+    },
+    {
+      "name": "getrandom",
+      "version": "0.4.3",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.85",
+      "features": [],
+      "checksum": "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
+    },
+    {
+      "name": "libc",
+      "version": "0.2.189",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.65",
+      "features": [
+        "default",
+        "std"
+      ],
+      "checksum": "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
+    },
+    {
+      "name": "lz4_flex",
+      "version": "0.14.0",
+      "license": "MIT",
+      "declared_msrv": "1.81",
+      "features": [
+        "alloc",
+        "checked-decode",
+        "default",
+        "frame",
+        "safe-decode",
+        "safe-encode",
+        "std"
+      ],
+      "checksum": "ecbdfe44b1bd960b68170b417450a628c43f7cf56bb3c5317e61cb230ee7f226"
+    },
+    {
+      "name": "miniz_oxide",
+      "version": "0.9.1",
+      "license": "MIT OR Zlib OR Apache-2.0",
+      "declared_msrv": null,
+      "features": [
+        "default",
+        "simd",
+        "simd-adler32",
+        "with-alloc"
+      ],
+      "checksum": "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c"
+    },
+    {
+      "name": "mio",
+      "version": "1.2.3",
+      "license": "MIT",
+      "declared_msrv": "1.71",
+      "features": [
+        "net",
+        "os-ext",
+        "os-poll"
+      ],
+      "checksum": "4b18443e9c262bfe8fa82f51666e2642c53393f7e5c27b3e1aeab922cff5b9d8"
+    },
+    {
+      "name": "partitionline-broker",
+      "version": "0.1.0",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.85",
+      "features": [
+        "codecs",
+        "default"
+      ],
+      "checksum": null
+    },
+    {
+      "name": "pin-project-lite",
+      "version": "0.2.17",
+      "license": "Apache-2.0 OR MIT",
+      "declared_msrv": "1.37",
+      "features": [],
+      "checksum": "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0.107",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.71",
+      "features": [
+        "default",
+        "proc-macro"
+      ],
+      "checksum": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
+    },
+    {
+      "name": "quote",
+      "version": "1.0.47",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.71",
+      "features": [
+        "default",
+        "proc-macro"
+      ],
+      "checksum": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
+    },
+    {
+      "name": "rustc_version",
+      "version": "0.4.1",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.32",
+      "features": [],
+      "checksum": "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92"
+    },
+    {
+      "name": "semver",
+      "version": "1.0.28",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.68",
+      "features": [
+        "default",
+        "std"
+      ],
+      "checksum": "8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd"
+    },
+    {
+      "name": "simd-adler32",
+      "version": "0.3.10",
+      "license": "MIT",
+      "declared_msrv": null,
+      "features": [],
+      "checksum": "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea"
+    },
+    {
+      "name": "snap",
+      "version": "1.1.2",
+      "license": "BSD-3-Clause",
+      "declared_msrv": null,
+      "features": [],
+      "checksum": "199905e6153d6405f9728fe44daace35f8f837bbf830bb6e85fbd5828709a886"
+    },
+    {
+      "name": "socket2",
+      "version": "0.6.5",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.70",
+      "features": [
+        "all"
+      ],
+      "checksum": "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
+    },
+    {
+      "name": "syn",
+      "version": "3.0.6",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.71",
+      "features": [
+        "clone-impls",
+        "default",
+        "derive",
+        "full",
+        "parsing",
+        "printing",
+        "proc-macro"
+      ],
+      "checksum": "8593e8e72159ed2257d083c7a454a85cbf854f37a0966d8d483aff8c8a3ebcee"
+    },
+    {
+      "name": "tokio",
+      "version": "1.53.1",
+      "license": "MIT",
+      "declared_msrv": "1.71",
+      "features": [
+        "bytes",
+        "default",
+        "io-util",
+        "libc",
+        "macros",
+        "mio",
+        "net",
+        "rt",
+        "rt-multi-thread",
+        "socket2",
+        "sync",
+        "time",
+        "tokio-macros",
+        "windows-sys"
+      ],
+      "checksum": "202caea871b69668250d242070849eb495be178ed697a3e98aebce5bc81a0bed"
+    },
+    {
+      "name": "tokio-macros",
+      "version": "2.7.2",
+      "license": "MIT",
+      "declared_msrv": "1.71",
+      "features": [],
+      "checksum": "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e"
+    },
+    {
+      "name": "twox-hash",
+      "version": "2.1.4",
+      "license": "MIT",
+      "declared_msrv": "1.81",
+      "features": [
+        "xxhash32"
+      ],
+      "checksum": "5283634e518fe9e82c7b20520bb4bc209009fd16c82077c802f8111ecbb0117a"
+    },
+    {
+      "name": "unicode-ident",
+      "version": "1.0.26",
+      "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "declared_msrv": "1.71",
+      "features": [],
+      "checksum": "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
+    },
+    {
+      "name": "zstd-rs",
+      "version": "0.1.0",
+      "license": "MIT OR Apache-2.0",
+      "declared_msrv": "1.85",
+      "features": [],
+      "checksum": "41514ccc30389f95bb9e6ab6d5634f17121c7b4fead6722a5fceec1c7891d78f"
+    }
+  ],
+  "graph_scope": "Active normal/build graph on x86_64-unknown-linux-gnu from Cargo tree; metadata weak optional edges can overapproximate activation.",
+  "metadata_only_packages": [
+    [
+      "r-efi",
+      "6.0.0"
+    ],
+    [
+      "wasi",
+      "0.11.1+wasi-snapshot-preview1"
+    ],
+    [
+      "windows-link",
+      "0.2.1"
+    ],
+    [
+      "windows-sys",
+      "0.61.2"
+    ],
+    [
+      "zlib-rs",
+      "0.6.8"
+    ]
+  ],
+  "vetted_zstd": {
+    "version": "0.1.0",
+    "checksum": "41514ccc30389f95bb9e6ab6d5634f17121c7b4fead6722a5fceec1c7891d78f",
+    "vcs": {
+      "git": {
+        "sha1": "bac4c37d86e5307537c145823a106f7ed8f386d7"
+      },
+      "path_in_vcs": "zstd-rs"
+    },
+    "no_runtime_or_build_dependencies": true,
+    "unsafe_code_forbidden": true
+  },
+  "pinned_backend_sources_sha256": {
+    "flate2-1.1.10": {
+      "Cargo.toml": "1365f28dd7ad9f83ebcc9afd545d7cdcedb284bf6e059081b0e1d1847ce6a94e",
+      ".cargo_vcs_info.json": "e795bbfec4d73750ebdcfffeaf8d464a91b6bd7c92c9a271253976bce7b766d9",
+      "src/bufreader.rs": "20ffc9cb16f0b01ae50be49aaf33f3592e2805b7d6bd76b7ea04da72c428d281",
+      "src/crc.rs": "718a64d51a4b94bab43819397bae3078b7b45bbf8ce52861f028559110c899be",
+      "src/deflate/bufread.rs": "11d568b35dcdf403c139fcef4be814fc96abf01d3d1411ff8e0a53c35143ec89",
+      "src/deflate/mod.rs": "5d59db1eb65875d2bb8812ca5b989e922dd1d3116e83986beebbe9f0368da06f",
+      "src/deflate/read.rs": "62768dea99067f3ffd76f08c99b502eef239fdf818c7a0a4c653fbc278106c0a",
+      "src/deflate/write.rs": "b9bc5cfc4bc6515e2e82c430bdecd4b9cc5986234756802a48a4258ee468f372",
+      "src/ffi/c.rs": "33eccd974551c3d03d8f100fd729ad5dc1a5265c7556c53bb895f6b66e1daf2f",
+      "src/ffi/miniz_oxide.rs": "127a669987b36b435ccee0d02ad4aaeb3aa05d8328bfd1d0384cc42364973d2e",
+      "src/ffi/mod.rs": "5b82d9100a238356200886d986ecc9dd3d50994010e1dc3367c85ddad8072caa",
+      "src/ffi/zlib_rs.rs": "d6b912d9dcfaffb320c556b96d4ccfe2e2a03fa04939c36824298207bb764450",
+      "src/gz/bufread.rs": "e9d05085fe3bffd6c138c00f7ae6a728468d2575227819325adc31a2f9ce6aab",
+      "src/gz/mod.rs": "4e7c40f63c24dbc6b2a0cd831431283a82fce7c693e259e59113a0c85ed73094",
+      "src/gz/read.rs": "5397522b06d660bba339d9a28e2056c86c59c59332e74ad4acd6594df4cec277",
+      "src/gz/write.rs": "99566a064bc30a054a8a3bbafdb6303c8b2f089001e82c902b8ffae9ce485d08",
+      "src/lib.rs": "94302ac67bb05639da9eefd2f7fc715be35aed602cc4c672132129def26ecf07",
+      "src/mem.rs": "96d29977a5cbd84d820c07406405fc6f7ad917a073de8c293493358bf58e8a44",
+      "src/zio.rs": "7534bdd7cc2fcfc1ba976c9ad5f1780df3ece2c66aeaee201b1112ea7240c182",
+      "src/zlib/bufread.rs": "9231f4b860e25322339343e307187abdd63dcba329c2de2e06434f6579b32ecd",
+      "src/zlib/mod.rs": "3f1df624fcd70c560a1173a8f03906411077ba250d2687b0378718273bb2e3aa",
+      "src/zlib/read.rs": "e3677ad2b1327dfea8ea149eb1a824ede3a2a8480c1d2d0df3cd373317b34f8c",
+      "src/zlib/write.rs": "4de6f8820807e33ed616b6fa79a26f4515b550143be9416ed82bb8b99fc1db7e"
+    },
+    "miniz_oxide-0.9.1": {
+      "Cargo.toml": "50b7813993bf57d2ece90fa780a330d1d5177723b8606c7d214f51d265d30c74",
+      ".cargo_vcs_info.json": "be3ba6d6a990751cc8b518e317cc96ad12b8d67a53a49b1ca592732716608bea",
+      "src/deflate/buffer.rs": "fc62bafa153abfc74dbcb526f7f59cf1d7a9045ee0210e73d05c33b75f99c915",
+      "src/deflate/core.rs": "69224613e89fa46fe8f7429b374d27416ab05237682a12678ac58c6f253f6d09",
+      "src/deflate/mod.rs": "adedff53960b3fbef46cc83d907131c69b379e72668a116d1cc090fec4276504",
+      "src/deflate/stored.rs": "581385d31c42f1a2f6761be5b889f016f9edf3048b6ca66a1c3ff7762c75d6ac",
+      "src/deflate/stream.rs": "abd7c0475fe85aaf8640d845a2a5e63096dfdcefd6c4ac875a7f2feccad952f6",
+      "src/deflate/zlib.rs": "ee4226bf52b7c1111844733de7ba38d86c9e4d2f3d24744c0d068224f35e6b70",
+      "src/inflate/core.rs": "41a52ea2145885701df41e77b4427aecfa0669971bbc7abb7c90bfe2cfe9fd74",
+      "src/inflate/mod.rs": "24a041eeb9404079395fd8ac5a51b8e2494fdf46a511681bb727e0b2b7017b57",
+      "src/inflate/output_buffer.rs": "0979b55279bc7e6281b58752308ab1faa2fcd48e7115b7f1293eda3187cbdb54",
+      "src/inflate/stream.rs": "e6dd9e06e927dbe5a59299db1bc96bf1c55cad8ef995fccec314ecf056622884",
+      "src/lib.rs": "87da790f8aeba6da7d9f9ef3e2b48a0d6ad785a0199666754f03b4d1aa3973dc",
+      "src/serde/big_array.rs": "0c9f166514f26eba1a00aa6b8d82fd4bb7cacd25695825b95b3ecee4859079c0",
+      "src/serde/mod.rs": "a93e69079dfbc22412ae7502d248cbb4c29c9e4f3167f0847ae9ea3e7186f616",
+      "src/shared.rs": "511f1d9a603ded80a91c59da2d6a092b7a3d2f9b43b26b8cfa00fb5ebe9541ff"
+    },
+    "lz4_flex-0.14.0": {
+      "Cargo.toml": "efdd72c2f1dbf2967c6ce36371e48950c50daddd1fa1634467d362a9224687c2",
+      ".cargo_vcs_info.json": "978a0dfe488528d8d8215f306352bca334b4d4753c11dae592e875d736f6616b",
+      "src/block/compress.rs": "08225a806718562f053637f32e2aa7020897d569aba01b6357c7e44b747b55b1",
+      "src/block/decompress.rs": "e1c00de65ae0c8f94105b7f7dcf1ea12eba87368fb40b29eedc61716ab3d99b9",
+      "src/block/decompress_safe.rs": "0cd498a960055366fa5549b12329c85aa080def5f088111d76327382c1d817b5",
+      "src/block/hashtable.rs": "5b7cebc20eef3153b359a54528a30df31f61fcb38ea59350b592a0b02e8ac997",
+      "src/block/mod.rs": "9f48789c8a13510bea3407ec22115d8d6dea0ff614ed741dba2293ffe0a2b66f",
+      "src/fastcpy.rs": "c3dbe266822f115c526de7a50c4073f1f9ec26e7838ac7959443ca040cb15440",
+      "src/fastcpy_unsafe.rs": "cfbd64aa10a1511490ea4d67855e9b038bedafd7739335de7e062c23db1576f3",
+      "src/frame/compress.rs": "e7f3b609aa20d07cea89890b006ba5ee2327fb8c3486aa3db26896cfdc6e7750",
+      "src/frame/decompress.rs": "de1e237c3d7419259f47a3cec3ae0f2bf005ff59a21d929460c98bb0770a163e",
+      "src/frame/header.rs": "c9926623a51e20325e717df62bdf1ad0ca24b787e7e04e8122a38d8a28587cc4",
+      "src/frame/mod.rs": "97f44388951671638b517c3eeeef45a291d85bf9e51446847574b97a6c33e295",
+      "src/lib.rs": "a61ef4b28733e7bdd1b758387dece2d8be72059155f9b87d87916b464329b923",
+      "src/sink.rs": "563b4358c3185b8fc1e89ff4924b235c513a5da861e81c2c557dc29158efbc38"
+    },
+    "snap-1.1.2": {
+      "Cargo.toml": "8ff6cc30438545d37cc4aeeff554a42078c541fb51a69a925c0f7e6a7e7d267a",
+      ".cargo_vcs_info.json": "098770817f501227a572f1800f5077a4a979a068c0f268dc51cf0be6944a6e49",
+      "src/bytes.rs": "2eb9783acdf949ef96a9031d2bd43ead65db50a41a60ad98dc117cd61655c7c4",
+      "src/compress.rs": "e6f3160be400c2a4869d71210a2558ba8b438b835b632a12b7ff487660db093f",
+      "src/crc32.rs": "9f3858bef802640c595705c496f462d0343c4adcff9bdf333a43306fb67db7ae",
+      "src/crc32_table.rs": "e999470ca10bb7914887747be838d05d0f5059ae99a8b8c57b0be7de3931e72a",
+      "src/decompress.rs": "973383160b1ba1e6c078ae173dbec9ab6b2a8d86e4fbb6aabe4d2a9376a25104",
+      "src/error.rs": "61e474876cb019ccd34981d8fd5f491e6684d3bfe2e444f0752faddcdc5c0491",
+      "src/frame.rs": "4f69a9526a5dd0367631fc7a764bea877f7f0b4c33ee30d4ece62913c42ea48d",
+      "src/lib.rs": "1f4dc31068bc60a327ecd632993eaa40feb0b2198affdb1a00a7a9538b23b527",
+      "src/raw.rs": "a7048da3a4b76b75e4b3d071ee9959dbf12c5b3a36dabb2f7878513507c80cb9",
+      "src/read.rs": "500881e24c820f4fb3f63af1c1de3fc65b0e8aeaee136d4dab20fd15d11c466d",
+      "src/tag.rs": "9ac94977c5ab3ea687b9441ea3c615f64a23eac11a4bade19cfa3be5968cb718",
+      "src/varint.rs": "6d63fca6323c91f193628a41b6e75f5b3443777467e6a5665907bbbba549e6c7",
+      "src/write.rs": "086edd9fb1442b6bc8bf8c6a80023eccc4ca627de57ccc62279691c9ff7f0786"
+    },
+    "zstd-rs-0.1.0": {
+      "Cargo.toml": "988c094c0bcb269b0c510bca99714d59523ac04e1cbabf36a82ced8895d9a6c5",
+      ".cargo_vcs_info.json": "b1083a8f32eb7f7a67286997aa42367e1185a1358380fab94800194b2668c381",
+      "src/bits.rs": "4fc784d83ea31dd1a9c1387bc701bcdebe15bc11fec409e5e83ef96ce6031ffd",
+      "src/decode/execute.rs": "3bb937fd19013e8680eb96f118df5fbaa9bd5362887383c1da4fa169df2107a8",
+      "src/decode/literals.rs": "282f8b6f008071bebc89caddd8cfb8645591cdd83094e8af6822a7e106ac9392",
+      "src/decode/mod.rs": "67e40e0a7d5f57e2ea90de925cf690392977f8052a015f30f348cb4ccdb57f6b",
+      "src/decode/seqtable.rs": "29e3ac2285105748803a1b4c6a27d30075d9d6cd65daced8095b0651f9d05e82",
+      "src/decode/sequences.rs": "c322ea9ab3ee4c9089ab3c42956f9f9e4fafe2222735cd5d00d6e5f4b9bc86be",
+      "src/decode/state.rs": "6229c6d89a65d4c27547f4e6c300d5743dab6a6f4059dce62e5f3af3d5383312",
+      "src/decode/tables.rs": "5a941421ede7e89b589c38a9b7abdfa65c1ec612e56ec5592ef28bcf890e0880",
+      "src/dict/mod.rs": "e3ba7afebaefdc19b4d5f868fc74884c93a601eff1075bce1cabc0f2a364c30d",
+      "src/encode/block.rs": "accf2e4f8db70470101941f4b760d8f2bcc36aed690ceca1808d455d232f9682",
+      "src/encode/cost.rs": "f0a3268d342cf2cb1a98ca433ce5861af89d75884cd7dc98c35252950a3149d7",
+      "src/encode/dictionary.rs": "d704f567fb1eca3a27d86a3d873d7a571a3a78bf792c6d0c404d0b9d8a1f988b",
+      "src/encode/entropy.rs": "d7f9e50be49ae9bb07565d5d5f6db3d6a2af49050b073a41dceb40122fb208ac",
+      "src/encode/literals.rs": "2b6e3a691f93f1518812140cce43773d007075731e3fc04238f7d6b9a3fa103f",
+      "src/encode/matchers/dfast.rs": "2543cb178a5e251a74b7e57f8a1b44a9e12dd327d769c7264933b3439fc308b6",
+      "src/encode/matchers/fast.rs": "1a194b4cab4d62c83006cfa56788e836b977299458693cfc1c35a3be9ef8a6c0",
+      "src/encode/matchers/hc.rs": "a353c2e27702083c041372c509678439a7c378161cadb403cdc6c0531c36127d",
+      "src/encode/matchers/lazy.rs": "1190966c60f66ac376c6ee605aa874acb03ccbe710c2d627f3355ec00a8cf8d3",
+      "src/encode/matchers/mod.rs": "92c5db26d72b125d5ddfd9d33928c724369209d48f015db4dbcf09f8f09bd0f9",
+      "src/encode/matchers/opt/matches.rs": "d2a235a5bcf0cdcdc4a4c34305a6cdffe9dfc5b8f5578fa6a0408d9cfb45ebb3",
+      "src/encode/matchers/opt/mod.rs": "76f936472cee72fec840669c68bbb4894035631ed2693975c8d5739793cf5169",
+      "src/encode/matchers/opt/price.rs": "dc1a5fcdde792c67587994905a072016452bd51ffb730917c92dac01c540574d",
+      "src/encode/matchers/prim.rs": "bc66b4555d63cc22c10386df3ab26086da10969481e0ae62643bfa6fe3841a1a",
+      "src/encode/mod.rs": "29bace75201ba95b24159d78cb0a5bdcffa31cd9f3ae67b566c3926dbfcaf8b5",
+      "src/encode/params.rs": "9ac088d1e815c27d5eb4ae75b6b836244c5741e2795116e4ef5af9f26c59f966",
+      "src/encode/seqstore.rs": "485ce5f3baa4bdebeecee65667e2ac6ecc5037280afe3e440772c2eb3a77857d",
+      "src/encode/sequences.rs": "cc9dd1f9061e702172762121a08c4d20df09bd650ecaa984fdff63c39510db22",
+      "src/error.rs": "3ab8c1fa7152f49b7fe03834185c3b583b319f6163692fdb7b424ef2286ef237",
+      "src/frame.rs": "28db1017aa67699046e09a384dfee1a4ae5c53df04c3d403029fd0e3189505b1",
+      "src/fse/ctable.rs": "254f995a5de6af8c68b8466a3dbdd18042a2c3d6f824e5e3df4eff909d20c246",
+      "src/fse/dtable.rs": "de1af117e6012178f95fc8e6ec3b60fa48e941a90722823ac1c426573f9f73f8",
+      "src/fse/mod.rs": "50ecad0c5953f9d97e64a1a29b56ffc54010126107e50a6e1ef16d2e0251408a",
+      "src/fse/ncount.rs": "b8f0c36a597d27ec49b2f4129a9aa9fe345a9c5cfe762b733e9eb54db86fb8a8",
+      "src/fse/normalize.rs": "a4560242c7346bcdbd97ebc5b50dc30023a752b6a90cacd73be4b38d99958a2c",
+      "src/huf/build.rs": "317d77b9cce44ad8000fe99006725a3f589b04e2f90eb13ca6a32bca87fee52d",
+      "src/huf/ctable.rs": "916f05b471302859f766552752c257ab546f418ac77ba9ed19474ac6c1cf4868",
+      "src/huf/dtable.rs": "92d55c4f5d31ec6944f38baae894302686ff4ae0eabf158df5e6ad0dac14b3fc",
+      "src/huf/fast.rs": "31d78bfab0e55e91eabec87bcd741a85e3c7d57356196b74d46d453d7f2a22ac",
+      "src/huf/mod.rs": "836ef62a3ff5463ec170883c95f0b8b8f02c1ccceb0b8ad81bd2095a8ca87245",
+      "src/huf/weights.rs": "c9dc29cd0f4fc1604b43f25ddd1849f6f36df15db2bc6b18df18fc2f35cae736",
+      "src/lib.rs": "1aaa22cf41567b150e8d86ce734feb029f3e928645ae319d9a64b6a491af8db3",
+      "src/par.rs": "848e4f13d7efb281864f76144d8b224bf21d8e73acc53860d3b487ffa4a4c65b",
+      "src/xxh64.rs": "6c41a234da8270da9b9565872272cc25f6f6419f3bac7e5c4b71f94aefa36f12"
+    }
+  },
+  "commands": [
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "/workspace/work/broker-codecs-baseline37/partitionline-broker/Cargo.toml"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "tree",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/broker-codecs-baseline37/partitionline-broker/Cargo.toml",
+        "--target",
+        "x86_64-unknown-linux-gnu",
+        "--edges",
+        "normal,build",
+        "--prefix",
+        "none",
+        "--no-dedupe",
+        "--format",
+        "{p}|{f}"
+      ],
+      "exit_code": 0,
+      "stdout": "partitionline-broker v0.1.0 (/workspace/work/broker-codecs-baseline37/partitionline-broker)|default\nbytes v1.12.1|default,std\ncrc32c v0.6.8|\nrustc_version v0.4.1|\nsemver v1.0.28|default,std\ngetrandom v0.4.3|\ncfg-if v1.0.5|\nlibc v0.2.189|default,std\ntokio v1.53.1|bytes,default,io-util,libc,macros,mio,net,rt,rt-multi-thread,socket2,sync,time,tokio-macros\nbytes v1.12.1|default,std\nlibc v0.2.189|default,std\nmio v1.2.3|net,os-ext,os-poll\nlibc v0.2.189|default,std\npin-project-lite v0.2.17|\nsocket2 v0.6.5|all\nlibc v0.2.189|default,std\ntokio-macros v2.7.2 (proc-macro)|\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nsyn v3.0.6|clone-impls,default,derive,full,parsing,printing,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nunicode-ident v1.0.26|\n"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "tree",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+        "--target",
+        "x86_64-unknown-linux-gnu",
+        "--edges",
+        "normal,build",
+        "--prefix",
+        "none",
+        "--no-dedupe",
+        "--format",
+        "{p}|{f}"
+      ],
+      "exit_code": 0,
+      "stdout": "partitionline-broker v0.1.0 (/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker)|default\nbytes v1.12.1|default,std\ncrc32c v0.6.8|\nrustc_version v0.4.1|\nsemver v1.0.28|default,std\ngetrandom v0.4.3|\ncfg-if v1.0.5|\nlibc v0.2.189|default,std\ntokio v1.53.1|bytes,default,io-util,libc,macros,mio,net,rt,rt-multi-thread,socket2,sync,time,tokio-macros\nbytes v1.12.1|default,std\nlibc v0.2.189|default,std\nmio v1.2.3|net,os-ext,os-poll\nlibc v0.2.189|default,std\npin-project-lite v0.2.17|\nsocket2 v0.6.5|all\nlibc v0.2.189|default,std\ntokio-macros v2.7.2 (proc-macro)|\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nsyn v3.0.6|clone-impls,default,derive,full,parsing,printing,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nunicode-ident v1.0.26|\n"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "/workspace/work/broker-codecs-baseline37/Cargo.toml"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "tree",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/broker-codecs-baseline37/Cargo.toml",
+        "--target",
+        "x86_64-unknown-linux-gnu",
+        "--edges",
+        "normal,build",
+        "--prefix",
+        "none",
+        "--no-dedupe",
+        "--format",
+        "{p}|{f}"
+      ],
+      "exit_code": 0,
+      "stdout": "partitionline v0.1.0 (/workspace/work/broker-codecs-baseline37)|default,zlib-rs\nbase64 v0.23.1|alloc,default,simd-unsafe,std\nbytes v1.12.1|default,std\ncrc32c v0.6.8|\nrustc_version v0.4.1|\nsemver v1.0.28|default,std\nflate2 v1.1.10|any_impl,any_zlib,miniz_oxide,runtime_detection,rust_backend,zlib-rs\ncrc32fast v1.5.1|std\ncfg-if v1.0.4|\nminiz_oxide v0.9.1|default,simd,simd-adler32,with-alloc\nadler2 v2.0.1|\nsimd-adler32 v0.3.10|\nzlib-rs v0.6.8|rust-allocator,std\ngetrandom v0.4.3|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nhmac v0.13.0|\ndigest v0.11.3|alloc,block-api,default,mac,oid\nblock-buffer v0.12.1|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nconst-oid v0.10.2|\ncrypto-common v0.2.2|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nctutils v0.4.2|\ncmov v0.5.4|\nlz4_flex v0.14.0|alloc,checked-decode,default,frame,safe-decode,safe-encode,std\ntwox-hash v2.1.2|xxhash32\nparking_lot v0.12.5|default\nlock_api v0.4.14|atomic_usize,default\nscopeguard v1.2.0|\nparking_lot_core v0.9.12|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nsmallvec v1.15.2|\npbkdf2 v0.13.0|hmac\ndigest v0.11.3|alloc,block-api,default,mac,oid\nblock-buffer v0.12.1|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nconst-oid v0.10.2|\ncrypto-common v0.2.2|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nctutils v0.4.2|\ncmov v0.5.4|\nhmac v0.13.0|\ndigest v0.11.3|alloc,block-api,default,mac,oid\nblock-buffer v0.12.1|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nconst-oid v0.10.2|\ncrypto-common v0.2.2|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nctutils v0.4.2|\ncmov v0.5.4|\nrustls v0.23.45|ring,std,tls12\nonce_cell v1.21.4|alloc,race,std\nring v0.17.14|alloc,default,dev_urandom_fallback\ncfg-if v1.0.4|\ngetrandom v0.2.17|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nuntrusted v0.9.0|\ncc v1.4.4|\nfind-msvc-tools v0.1.11|\nshlex v2.0.1|default,std\nrustls-pki-types v1.15.1|alloc,default,std\nzeroize v1.9.0|alloc,default\nrustls-webpki v0.103.15|alloc,ring,std\nring v0.17.14|alloc,default,dev_urandom_fallback\ncfg-if v1.0.4|\ngetrandom v0.2.17|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nuntrusted v0.9.0|\ncc v1.4.4|\nfind-msvc-tools v0.1.11|\nshlex v2.0.1|default,std\nrustls-pki-types v1.15.1|alloc,default,std\nzeroize v1.9.0|alloc,default\nuntrusted v0.9.0|\nsubtle v2.6.1|\nzeroize v1.9.0|alloc,default\nsha2 v0.11.0|alloc,default,oid\ncfg-if v1.0.4|\ncpufeatures v0.3.1|\ndigest v0.11.3|alloc,block-api,default,mac,oid\nblock-buffer v0.12.1|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nconst-oid v0.10.2|\ncrypto-common v0.2.2|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nctutils v0.4.2|\ncmov v0.5.4|\nsnap v1.1.2|\ntokio v1.53.1|bytes,default,fs,io-util,libc,macros,mio,net,rt,rt-multi-thread,signal,signal-hook-registry,socket2,sync,time,tokio-macros\nbytes v1.12.1|default,std\nlibc v0.2.189|default,std\nmio v1.2.2|net,os-ext,os-poll\nlibc v0.2.189|default,std\npin-project-lite v0.2.17|\nsignal-hook-registry v1.4.8|\nerrno v0.3.14|default,std\nlibc v0.2.189|default,std\nlibc v0.2.189|default,std\nsocket2 v0.6.5|all\nlibc v0.2.189|default,std\ntokio-macros v2.7.2 (proc-macro)|\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nsyn v3.0.4|clone-impls,default,derive,full,parsing,printing,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nunicode-ident v1.0.24|\ntokio-rustls v0.26.5|ring,tls12\nrustls v0.23.45|ring,std,tls12\nonce_cell v1.21.4|alloc,race,std\nring v0.17.14|alloc,default,dev_urandom_fallback\ncfg-if v1.0.4|\ngetrandom v0.2.17|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nuntrusted v0.9.0|\ncc v1.4.4|\nfind-msvc-tools v0.1.11|\nshlex v2.0.1|default,std\nrustls-pki-types v1.15.1|alloc,default,std\nzeroize v1.9.0|alloc,default\nrustls-webpki v0.103.15|alloc,ring,std\nring v0.17.14|alloc,default,dev_urandom_fallback\ncfg-if v1.0.4|\ngetrandom v0.2.17|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nuntrusted v0.9.0|\ncc v1.4.4|\nfind-msvc-tools v0.1.11|\nshlex v2.0.1|default,std\nrustls-pki-types v1.15.1|alloc,default,std\nzeroize v1.9.0|alloc,default\nuntrusted v0.9.0|\nsubtle v2.6.1|\nzeroize v1.9.0|alloc,default\ntokio v1.53.1|bytes,default,fs,io-util,libc,macros,mio,net,rt,rt-multi-thread,signal,signal-hook-registry,socket2,sync,time,tokio-macros\nbytes v1.12.1|default,std\nlibc v0.2.189|default,std\nmio v1.2.2|net,os-ext,os-poll\nlibc v0.2.189|default,std\npin-project-lite v0.2.17|\nsignal-hook-registry v1.4.8|\nerrno v0.3.14|default,std\nlibc v0.2.189|default,std\nlibc v0.2.189|default,std\nsocket2 v0.6.5|all\nlibc v0.2.189|default,std\ntokio-macros v2.7.2 (proc-macro)|\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nsyn v3.0.4|clone-impls,default,derive,full,parsing,printing,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nunicode-ident v1.0.24|\nwebpki-roots v1.0.9|\nrustls-pki-types v1.15.1|alloc,default,std\nzeroize v1.9.0|alloc,default\n"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "/workspace/work/broker-codecs-source-a5ca44af/Cargo.toml"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "tree",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/broker-codecs-source-a5ca44af/Cargo.toml",
+        "--target",
+        "x86_64-unknown-linux-gnu",
+        "--edges",
+        "normal,build",
+        "--prefix",
+        "none",
+        "--no-dedupe",
+        "--format",
+        "{p}|{f}"
+      ],
+      "exit_code": 0,
+      "stdout": "partitionline v0.1.0 (/workspace/work/broker-codecs-source-a5ca44af)|default,zlib-rs\nbase64 v0.23.1|alloc,default,simd-unsafe,std\nbytes v1.12.1|default,std\ncrc32c v0.6.8|\nrustc_version v0.4.1|\nsemver v1.0.28|default,std\nflate2 v1.1.10|any_impl,any_zlib,miniz_oxide,runtime_detection,rust_backend,zlib-rs\ncrc32fast v1.5.1|std\ncfg-if v1.0.4|\nminiz_oxide v0.9.1|default,simd,simd-adler32,with-alloc\nadler2 v2.0.1|\nsimd-adler32 v0.3.10|\nzlib-rs v0.6.8|rust-allocator,std\ngetrandom v0.4.3|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nhmac v0.13.0|\ndigest v0.11.3|alloc,block-api,default,mac,oid\nblock-buffer v0.12.1|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nconst-oid v0.10.2|\ncrypto-common v0.2.2|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nctutils v0.4.2|\ncmov v0.5.4|\nlz4_flex v0.14.0|alloc,checked-decode,default,frame,safe-decode,safe-encode,std\ntwox-hash v2.1.2|xxhash32\nparking_lot v0.12.5|default\nlock_api v0.4.14|atomic_usize,default\nscopeguard v1.2.0|\nparking_lot_core v0.9.12|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nsmallvec v1.15.2|\npbkdf2 v0.13.0|hmac\ndigest v0.11.3|alloc,block-api,default,mac,oid\nblock-buffer v0.12.1|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nconst-oid v0.10.2|\ncrypto-common v0.2.2|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nctutils v0.4.2|\ncmov v0.5.4|\nhmac v0.13.0|\ndigest v0.11.3|alloc,block-api,default,mac,oid\nblock-buffer v0.12.1|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nconst-oid v0.10.2|\ncrypto-common v0.2.2|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nctutils v0.4.2|\ncmov v0.5.4|\nrustls v0.23.45|ring,std,tls12\nonce_cell v1.21.4|alloc,race,std\nring v0.17.14|alloc,default,dev_urandom_fallback\ncfg-if v1.0.4|\ngetrandom v0.2.17|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nuntrusted v0.9.0|\ncc v1.4.4|\nfind-msvc-tools v0.1.11|\nshlex v2.0.1|default,std\nrustls-pki-types v1.15.1|alloc,default,std\nzeroize v1.9.0|alloc,default\nrustls-webpki v0.103.15|alloc,ring,std\nring v0.17.14|alloc,default,dev_urandom_fallback\ncfg-if v1.0.4|\ngetrandom v0.2.17|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nuntrusted v0.9.0|\ncc v1.4.4|\nfind-msvc-tools v0.1.11|\nshlex v2.0.1|default,std\nrustls-pki-types v1.15.1|alloc,default,std\nzeroize v1.9.0|alloc,default\nuntrusted v0.9.0|\nsubtle v2.6.1|\nzeroize v1.9.0|alloc,default\nsha2 v0.11.0|alloc,default,oid\ncfg-if v1.0.4|\ncpufeatures v0.3.1|\ndigest v0.11.3|alloc,block-api,default,mac,oid\nblock-buffer v0.12.1|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nconst-oid v0.10.2|\ncrypto-common v0.2.2|\nhybrid-array v0.4.14|\ntypenum v1.20.1|const-generics\nctutils v0.4.2|\ncmov v0.5.4|\nsnap v1.1.2|\ntokio v1.53.1|bytes,default,fs,io-util,libc,macros,mio,net,rt,rt-multi-thread,signal,signal-hook-registry,socket2,sync,time,tokio-macros\nbytes v1.12.1|default,std\nlibc v0.2.189|default,std\nmio v1.2.2|net,os-ext,os-poll\nlibc v0.2.189|default,std\npin-project-lite v0.2.17|\nsignal-hook-registry v1.4.8|\nerrno v0.3.14|default,std\nlibc v0.2.189|default,std\nlibc v0.2.189|default,std\nsocket2 v0.6.5|all\nlibc v0.2.189|default,std\ntokio-macros v2.7.2 (proc-macro)|\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nsyn v3.0.4|clone-impls,default,derive,full,parsing,printing,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nunicode-ident v1.0.24|\ntokio-rustls v0.26.5|ring,tls12\nrustls v0.23.45|ring,std,tls12\nonce_cell v1.21.4|alloc,race,std\nring v0.17.14|alloc,default,dev_urandom_fallback\ncfg-if v1.0.4|\ngetrandom v0.2.17|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nuntrusted v0.9.0|\ncc v1.4.4|\nfind-msvc-tools v0.1.11|\nshlex v2.0.1|default,std\nrustls-pki-types v1.15.1|alloc,default,std\nzeroize v1.9.0|alloc,default\nrustls-webpki v0.103.15|alloc,ring,std\nring v0.17.14|alloc,default,dev_urandom_fallback\ncfg-if v1.0.4|\ngetrandom v0.2.17|\ncfg-if v1.0.4|\nlibc v0.2.189|default,std\nuntrusted v0.9.0|\ncc v1.4.4|\nfind-msvc-tools v0.1.11|\nshlex v2.0.1|default,std\nrustls-pki-types v1.15.1|alloc,default,std\nzeroize v1.9.0|alloc,default\nuntrusted v0.9.0|\nsubtle v2.6.1|\nzeroize v1.9.0|alloc,default\ntokio v1.53.1|bytes,default,fs,io-util,libc,macros,mio,net,rt,rt-multi-thread,signal,signal-hook-registry,socket2,sync,time,tokio-macros\nbytes v1.12.1|default,std\nlibc v0.2.189|default,std\nmio v1.2.2|net,os-ext,os-poll\nlibc v0.2.189|default,std\npin-project-lite v0.2.17|\nsignal-hook-registry v1.4.8|\nerrno v0.3.14|default,std\nlibc v0.2.189|default,std\nlibc v0.2.189|default,std\nsocket2 v0.6.5|all\nlibc v0.2.189|default,std\ntokio-macros v2.7.2 (proc-macro)|\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nsyn v3.0.4|clone-impls,default,derive,full,parsing,printing,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.24|\nunicode-ident v1.0.24|\nwebpki-roots v1.0.9|\nrustls-pki-types v1.15.1|alloc,default,std\nzeroize v1.9.0|alloc,default\n"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+        "--features",
+        "codecs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "tree",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+        "--target",
+        "x86_64-unknown-linux-gnu",
+        "--edges",
+        "normal,build",
+        "--prefix",
+        "none",
+        "--no-dedupe",
+        "--format",
+        "{p}|{f}",
+        "--features",
+        "codecs"
+      ],
+      "exit_code": 0,
+      "stdout": "partitionline-broker v0.1.0 (/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker)|codecs,default\nbytes v1.12.1|default,std\ncrc32c v0.6.8|\nrustc_version v0.4.1|\nsemver v1.0.28|default,std\nflate2 v1.1.10|any_impl,miniz_oxide,runtime_detection,rust_backend\ncrc32fast v1.5.2|std\ncfg-if v1.0.5|\nminiz_oxide v0.9.1|default,simd,simd-adler32,with-alloc\nadler2 v2.0.1|\nsimd-adler32 v0.3.10|\ngetrandom v0.4.3|\ncfg-if v1.0.5|\nlibc v0.2.189|default,std\nlz4_flex v0.14.0|alloc,checked-decode,default,frame,safe-decode,safe-encode,std\ntwox-hash v2.1.4|xxhash32\nsnap v1.1.2|\ntokio v1.53.1|bytes,default,io-util,libc,macros,mio,net,rt,rt-multi-thread,socket2,sync,time,tokio-macros\nbytes v1.12.1|default,std\nlibc v0.2.189|default,std\nmio v1.2.3|net,os-ext,os-poll\nlibc v0.2.189|default,std\npin-project-lite v0.2.17|\nsocket2 v0.6.5|all\nlibc v0.2.189|default,std\ntokio-macros v2.7.2 (proc-macro)|\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nsyn v3.0.6|clone-impls,default,derive,full,parsing,printing,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nquote v1.0.47|default,proc-macro\nproc-macro2 v1.0.107|default,proc-macro\nunicode-ident v1.0.26|\nunicode-ident v1.0.26|\nzstd-rs v0.1.0|\n"
+    }
+  ],
+  "pinned_backend_archive_verification": {
+    "flate2-1.1.10": {
+      "checksum": "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb",
+      "inspected_source_files_match_locked_archive": true
+    },
+    "miniz_oxide-0.9.1": {
+      "checksum": "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c",
+      "inspected_source_files_match_locked_archive": true
+    },
+    "lz4_flex-0.14.0": {
+      "checksum": "ecbdfe44b1bd960b68170b417450a628c43f7cf56bb3c5317e61cb230ee7f226",
+      "inspected_source_files_match_locked_archive": true
+    },
+    "snap-1.1.2": {
+      "checksum": "199905e6153d6405f9728fe44daace35f8f837bbf830bb6e85fbd5828709a886",
+      "inspected_source_files_match_locked_archive": true
+    },
+    "zstd-rs-0.1.0": {
+      "checksum": "41514ccc30389f95bb9e6ab6d5634f17121c7b4fead6722a5fceec1c7891d78f",
+      "inspected_source_files_match_locked_archive": true
+    }
+  },
+  "scratch_accounting": {
+    "gzip_bytes": 524288,
+    "snappy_bytes": 0,
+    "lz4": "3 * advertised block size + 65536; source plus worst linked-block destination",
+    "zstd_bytes": 1048576,
+    "output": "min(sum(compressed decoded-batch ceiling or exact uncompressed lengths), normalized ceiling) + 32-byte zstd slack",
+    "concurrency": "backend contexts run sequentially; output plus maximum admitted scratch checked before context creation",
+    "limit": "requested/reported Vec capacity plus conservative pinned source scratch; not allocator metadata, stack, caller-retained buffers or RSS"
+  }
+}

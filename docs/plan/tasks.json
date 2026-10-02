@@ -19711,7 +19711,8 @@
       "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-35",
-        "KL11-66"
+        "KL11-66",
+        "KL11-72"
       ],
       "files": [
         "partitionline-broker/src/security/session.rs",
@@ -19743,14 +19744,13 @@
         "partitionline-broker/tests/sasl_credentials.rs",
         "partitionline-broker/tests/transport.rs",
         "partitionline-broker/tests/tls.rs",
-        "partitionline-broker/tests/fixtures/sasl-wire/",
         "docs/evidence/broker/KL11-36/",
         "docs/plan/evidence/KL11-36.json",
         "docs/plan/tasks.json",
         "partitionline-broker/src/security/mod.rs",
         "partitionline-broker/src/lib.rs"
       ],
-      "integration_coordinator": "consumer_lookups owns connection/session/credential/transport production and tests, plus wire oracle/peer evidence within36. Root alone edits shared security/lib exports, protocol registries/verifiers and plan. Coordinate public Peer additions with06/13 while preserving Handler trait. Source-freeze credential foundation before socket integration if useful;36 closes only after all named live/admin/durability gates."
+      "integration_coordinator": "consumer_lookups owns connection/session/credential/transport production and tests, plus wire oracle/peer evidence within36. Root alone edits shared security/lib exports, protocol registries/verifiers and plan. Coordinate public Peer additions with06/13 while preserving Handler trait. Source-freeze credential foundation before socket integration if useful;36 closes only after all named live/admin/durability gates. KL11-72 owns independent SASL wire fixtures/oracles/live Java/C probes;36 production worker consumes them without editing."
     },
     {
       "id": "KL11-37",
@@ -25895,7 +25895,7 @@
       "title": "Decode Kafka gzip/Snappy/LZ4/Zstandard batches with bounded pure Rust codecs",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-60",
@@ -25917,7 +25917,939 @@
         "Stable/MSRV default and codec-enabled behavioral tests; strict format/lint/docs.",
         "Independent Apache/JNI encoders and parser histories/negative fixtures with exact source/jar pins; bounded malformed/window/decoded-size tests."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+                "schema_version": 1,
+                "task_id": "KL11-67",
+                "task": "KL11-67",
+                "status": "done",
+                "result": "passed",
+                "acceptance_met": true,
+                "source_sha": "a5ca44afab5460bf43161365c005cd6b3769aff2",
+                "tested_base_sha": "37d72a18eef933f9005b9f7453763945882f104e",
+                "validated_at_utc": "2026-10-02T22:22:00.087930+00:00",
+                "scope": "Optional bounded pure Rust broker gzip/Snappy/LZ4/Zstandard ordinary-batch normalization feeding existing unchanged admission validator; claimed foundation acceptance met, no wire advertisement or production/performance qualification.",
+                "provenance": {
+                        "method": "All final Rust gates ran in an immutable git archive of exact pushed source; tracked broker and root Cargo bytes compared to Git objects. Actual pinned Apache/JNI producer/parser replay generated44 identical fixture bytes in two executions. Active dependency graphs and cache source archives independently verified.",
+                        "source_sha256": {
+                                "partitionline-broker/src/codecs.rs": "28112daa3779f18da53d8dd3cb4db41019e6404f47ce710d744fb353baa5a0b4",
+                                "partitionline-broker/tests/codecs.rs": "bbbf91db7a7170b89446f6743b8846041a917f3030893b4eb76e0f03bf9ebba5",
+                                "partitionline-broker/Cargo.toml": "542845f7a6775f95fa45c420b306279a00ffe75ce593f67d86e099c79f7cbde6",
+                                "partitionline-broker/Cargo.lock": "8bc7c85afb118a8a6147a9f621ca4e8ceb17b8c831f421fe2d88b4804adbbeae",
+                                "partitionline-broker/src/lib.rs": "af755656c98716e49c0d13777f9f57a6645b15d05c5eb703e008264c92e65271",
+                                "docs/evidence/broker/KL11-67/CodecsOracle.java": "c9fc605c4e4b07e2d2192abec88dc32c1eaecde559c21955b815e0a91efdd6fe",
+                                "docs/evidence/broker/KL11-67/run-apache-oracle.py": "df0fd9c220cd39f33035b2f7a753562970bafd44aa62b9e31cebd3033c02154a"
+                        },
+                        "unchanged_source_sha256": {
+                                "partitionline-broker/src/records.rs": "dfa1c02190cb712c78d8541fc55fab7a936c5e80b9f50a92bc432ce23f4e11e7",
+                                "partitionline-broker/src/journal.rs": "40b360da2d2880aaf4d810b634822c478de85eaef418ac9c9cf7e5c485efa5fe",
+                                "Cargo.toml": "b07fc38a514ab0e14954ff1261701b6a878e35ae7d9b91b081a19e14704d3c13",
+                                "Cargo.lock": "d35e6ba903c4f8b811997d06b9edf4e3612c3636dede83d07dda86570eddbca9"
+                        },
+                        "validation": "docs/evidence/broker/KL11-67/final-a5ca44af/validation.json",
+                        "details": "docs/evidence/broker/KL11-67/provenance.json"
+                },
+                "commands": [
+                        {
+                                "gate": "package-clean",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clean",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "-p",
+                                        "partitionline-broker"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/stable-package-clean.log",
+                                "log_sha256": "f6582cf0a943f14564b6c975d597498f5169a3e7b48b41687cd281841287ab05",
+                                "passed_test_count": 0,
+                                "toolchain": "stable"
+                        },
+                        {
+                                "gate": "fmt",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "fmt",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--",
+                                        "--check"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/stable-fmt.log",
+                                "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "passed_test_count": 0,
+                                "toolchain": "stable"
+                        },
+                        {
+                                "gate": "default",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--all-targets"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/stable-default.log",
+                                "log_sha256": "01021908366e798b8322d6d63f5453e3c4306ae214af56919aa01637c1ba765c",
+                                "passed_test_count": 111,
+                                "toolchain": "stable"
+                        },
+                        {
+                                "gate": "codecs",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--all-targets",
+                                        "--features",
+                                        "codecs"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/stable-codecs.log",
+                                "log_sha256": "33a54a84dfa1b165370f78237371ba3d415a7f4844f6d4430515927303b0dfdd",
+                                "passed_test_count": 123,
+                                "toolchain": "stable"
+                        },
+                        {
+                                "gate": "all-features",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--all-targets",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/stable-all-features.log",
+                                "log_sha256": "8ac037c7a823d8a3412d4129784a4be20bb4a7d5a80368a2d1c7929c2d841c3a",
+                                "passed_test_count": 155,
+                                "toolchain": "stable"
+                        },
+                        {
+                                "gate": "clippy",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clippy",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--all-targets",
+                                        "--all-features",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/stable-clippy.log",
+                                "log_sha256": "3688bc72cb756acd61b364a18c8e9c7fefa914aeefc8612c1e8afed9dc34b7bb",
+                                "passed_test_count": 0,
+                                "toolchain": "stable"
+                        },
+                        {
+                                "gate": "rustdoc",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "doc",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--all-features",
+                                        "--no-deps"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/stable-rustdoc.log",
+                                "log_sha256": "076d12d65f9783fa13af98cdebde88e4f174a48dedacfded42a86e0481556e35",
+                                "passed_test_count": 0,
+                                "toolchain": "stable"
+                        },
+                        {
+                                "gate": "doctest-default",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--doc"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/stable-doctest-default.log",
+                                "log_sha256": "6d6c7697887282cd486189ca62a9ec3293540fa3a8c01cf8e39a7e5be5adf6f4",
+                                "passed_test_count": 0,
+                                "toolchain": "stable"
+                        },
+                        {
+                                "gate": "doctest-all-features",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--doc",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/stable-doctest-all-features.log",
+                                "log_sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878",
+                                "passed_test_count": 0,
+                                "toolchain": "stable"
+                        },
+                        {
+                                "gate": "package-clean",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clean",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "-p",
+                                        "partitionline-broker"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/1.85.0-package-clean.log",
+                                "log_sha256": "00ab5f2357f0321a065d264221088993a43ecdec1540e910bb1da948754f948a",
+                                "passed_test_count": 0,
+                                "toolchain": "1.85.0"
+                        },
+                        {
+                                "gate": "fmt",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "fmt",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--",
+                                        "--check"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/1.85.0-fmt.log",
+                                "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "passed_test_count": 0,
+                                "toolchain": "1.85.0"
+                        },
+                        {
+                                "gate": "default",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--all-targets"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/1.85.0-default.log",
+                                "log_sha256": "48f6813a85fd313d4a12d4dd51cb2cb747bf2d926463bd63a4372018a6d30208",
+                                "passed_test_count": 111,
+                                "toolchain": "1.85.0"
+                        },
+                        {
+                                "gate": "codecs",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--all-targets",
+                                        "--features",
+                                        "codecs"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/1.85.0-codecs.log",
+                                "log_sha256": "96e8eaa2b0f8f6a0034128bdfe820ebfffe097a810fbe53a25c2f8ca8b78c740",
+                                "passed_test_count": 123,
+                                "toolchain": "1.85.0"
+                        },
+                        {
+                                "gate": "all-features",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--all-targets",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/1.85.0-all-features.log",
+                                "log_sha256": "bdc379739b9c48c999ffc94681d0d65625a33c55cf0b1c7d286faab042183c68",
+                                "passed_test_count": 155,
+                                "toolchain": "1.85.0"
+                        },
+                        {
+                                "gate": "clippy",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clippy",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--all-targets",
+                                        "--all-features",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/1.85.0-clippy.log",
+                                "log_sha256": "a6a84e055f0cac944c247d51ab9329e3a79f488ba6d2c150c390da5efe943148",
+                                "passed_test_count": 0,
+                                "toolchain": "1.85.0"
+                        },
+                        {
+                                "gate": "rustdoc",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "doc",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--all-features",
+                                        "--no-deps"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/1.85.0-rustdoc.log",
+                                "log_sha256": "3cff05f290e951861f50e1ac4c620c709f3cf812600de42325bcd9e042b2cfc4",
+                                "passed_test_count": 0,
+                                "toolchain": "1.85.0"
+                        },
+                        {
+                                "gate": "doctest-default",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--doc"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/1.85.0-doctest-default.log",
+                                "log_sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878",
+                                "passed_test_count": 0,
+                                "toolchain": "1.85.0"
+                        },
+                        {
+                                "gate": "doctest-all-features",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target-dir",
+                                        "/workspace/work/target-broker-codecs",
+                                        "--doc",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-a5ca44af/1.85.0-doctest-all-features.log",
+                                "log_sha256": "2dfd5f0e43f0164b2d5643e6ef7260a6d9ee5c7e92d085be049c3da47145d30d",
+                                "passed_test_count": 0,
+                                "toolchain": "1.85.0"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+                                        "-d",
+                                        "/workspace/work/broker-codecs-oracle-final-a5ca44af/classes",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/docs/evidence/broker/KL11-67/CodecsOracle.java"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-apache-a5ca44af/apache-compile.log",
+                                "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "kind": "independent_apache_oracle"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-Xms16m",
+                                        "-Xmx64m",
+                                        "-cp",
+                                        "/workspace/work/broker-codecs-oracle-final-a5ca44af/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+                                        "CodecsOracle",
+                                        "/workspace/work/broker-codecs-oracle-final-a5ca44af/execute"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-apache-a5ca44af/apache-execute.log",
+                                "log_sha256": "bb15b2f1200e9def913c2168082d16436994bf8bbc5dd911ca143a2b740adb88",
+                                "kind": "independent_apache_oracle"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "-Xms16m",
+                                        "-Xmx64m",
+                                        "-cp",
+                                        "/workspace/work/broker-codecs-oracle-final-a5ca44af/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+                                        "CodecsOracle",
+                                        "/workspace/work/broker-codecs-oracle-final-a5ca44af/reproduce"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-67/final-apache-a5ca44af/apache-reproduce.log",
+                                "log_sha256": "bb15b2f1200e9def913c2168082d16436994bf8bbc5dd911ca143a2b740adb88",
+                                "kind": "independent_apache_oracle"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "metadata",
+                                        "--locked",
+                                        "--offline",
+                                        "--format-version",
+                                        "1",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-baseline37/partitionline-broker/Cargo.toml"
+                                ],
+                                "exit_code": 0,
+                                "kind": "dependency_graph_proof",
+                                "details": "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                "details_command_index": 0
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "tree",
+                                        "--locked",
+                                        "--offline",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-baseline37/partitionline-broker/Cargo.toml",
+                                        "--target",
+                                        "x86_64-unknown-linux-gnu",
+                                        "--edges",
+                                        "normal,build",
+                                        "--prefix",
+                                        "none",
+                                        "--no-dedupe",
+                                        "--format",
+                                        "{p}|{f}"
+                                ],
+                                "exit_code": 0,
+                                "kind": "dependency_graph_proof",
+                                "details": "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                "details_command_index": 1
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "metadata",
+                                        "--locked",
+                                        "--offline",
+                                        "--format-version",
+                                        "1",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml"
+                                ],
+                                "exit_code": 0,
+                                "kind": "dependency_graph_proof",
+                                "details": "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                "details_command_index": 2
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "tree",
+                                        "--locked",
+                                        "--offline",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target",
+                                        "x86_64-unknown-linux-gnu",
+                                        "--edges",
+                                        "normal,build",
+                                        "--prefix",
+                                        "none",
+                                        "--no-dedupe",
+                                        "--format",
+                                        "{p}|{f}"
+                                ],
+                                "exit_code": 0,
+                                "kind": "dependency_graph_proof",
+                                "details": "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                "details_command_index": 3
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "metadata",
+                                        "--locked",
+                                        "--offline",
+                                        "--format-version",
+                                        "1",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-baseline37/Cargo.toml"
+                                ],
+                                "exit_code": 0,
+                                "kind": "dependency_graph_proof",
+                                "details": "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                "details_command_index": 4
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "tree",
+                                        "--locked",
+                                        "--offline",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-baseline37/Cargo.toml",
+                                        "--target",
+                                        "x86_64-unknown-linux-gnu",
+                                        "--edges",
+                                        "normal,build",
+                                        "--prefix",
+                                        "none",
+                                        "--no-dedupe",
+                                        "--format",
+                                        "{p}|{f}"
+                                ],
+                                "exit_code": 0,
+                                "kind": "dependency_graph_proof",
+                                "details": "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                "details_command_index": 5
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "metadata",
+                                        "--locked",
+                                        "--offline",
+                                        "--format-version",
+                                        "1",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/Cargo.toml"
+                                ],
+                                "exit_code": 0,
+                                "kind": "dependency_graph_proof",
+                                "details": "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                "details_command_index": 6
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "tree",
+                                        "--locked",
+                                        "--offline",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/Cargo.toml",
+                                        "--target",
+                                        "x86_64-unknown-linux-gnu",
+                                        "--edges",
+                                        "normal,build",
+                                        "--prefix",
+                                        "none",
+                                        "--no-dedupe",
+                                        "--format",
+                                        "{p}|{f}"
+                                ],
+                                "exit_code": 0,
+                                "kind": "dependency_graph_proof",
+                                "details": "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                "details_command_index": 7
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "metadata",
+                                        "--locked",
+                                        "--offline",
+                                        "--format-version",
+                                        "1",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--features",
+                                        "codecs"
+                                ],
+                                "exit_code": 0,
+                                "kind": "dependency_graph_proof",
+                                "details": "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                "details_command_index": 8
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "tree",
+                                        "--locked",
+                                        "--offline",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-codecs-source-a5ca44af/partitionline-broker/Cargo.toml",
+                                        "--target",
+                                        "x86_64-unknown-linux-gnu",
+                                        "--edges",
+                                        "normal,build",
+                                        "--prefix",
+                                        "none",
+                                        "--no-dedupe",
+                                        "--format",
+                                        "{p}|{f}",
+                                        "--features",
+                                        "codecs"
+                                ],
+                                "exit_code": 0,
+                                "kind": "dependency_graph_proof",
+                                "details": "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                "details_command_index": 9
+                        }
+                ],
+                "acceptance": [
+                        {
+                                "contract": "Use optional core-approved pure Rust codec families and the vetted zstd-rs0.1.0 backend. Keep default activation and published client graphs unchanged; no hidden native Kafka/SASL/codec dependencies.",
+                                "result": "met",
+                                "evidence": [
+                                        "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                        "docs/evidence/broker/KL11-67/final-a5ca44af/validation.json"
+                                ]
+                        },
+                        {
+                                "contract": "Validate compressed-batch CRC/length/work limits before decode, cap each codec window/decoded output and aggregate allocations, reject malformed/truncated/trailing frames and counts safely. Specify any deliberate stricter behavior relative to actual upstream decoding.",
+                                "result": "met",
+                                "evidence": [
+                                        "docs/evidence/broker/KL11-67/README.md",
+                                        "docs/evidence/broker/KL11-67/final-a5ca44af/validation.json",
+                                        "docs/evidence/broker/KL11-67/independent-review-by-open-loop.json"
+                                ]
+                        },
+                        {
+                                "contract": "Preserve ordinary record offsets/timestamps/keys/values/headers while normalizing only compression attributes/length/CRC. Validate the entire decoded input before admission; unsupported idempotent/transaction/control semantics do not become success.",
+                                "result": "met",
+                                "evidence": [
+                                        "docs/evidence/broker/KL11-67/final-apache-a5ca44af/apache-oracle.json",
+                                        "docs/evidence/broker/KL11-67/final-a5ca44af/validation.json"
+                                ]
+                        },
+                        {
+                                "contract": "Actual pinned Apache-generated compressed fixtures across all four codecs decode to identical independently verified record histories, including concatenated/multi-batch forms where supported; retain all failures/hostile controls.",
+                                "result": "met",
+                                "evidence": [
+                                        "docs/evidence/broker/KL11-67/CodecsOracle.java",
+                                        "docs/evidence/broker/KL11-67/run-apache-oracle.py",
+                                        "docs/evidence/broker/KL11-67/final-apache-a5ca44af/apache-oracle.json"
+                                ]
+                        },
+                        {
+                                "contract": "Output/CPU/work bounds and decoder memory limits are explicit, including dictionary/window/frame handling and failure cleanup. No production/performance claim from codec fixtures.",
+                                "result": "met",
+                                "evidence": [
+                                        "docs/evidence/broker/KL11-67/README.md",
+                                        "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                        "docs/evidence/broker/KL11-67/independent-review-by-open-loop.json",
+                                        "docs/evidence/broker/KL11-67/development-failures.json"
+                                ]
+                        }
+                ],
+                "results": {
+                        "outcome": "passed",
+                        "claimed_foundation_complete": true,
+                        "ordinary_test_executions": 778,
+                        "tests_by_lane": {
+                                "stable": {
+                                        "default": 111,
+                                        "codecs": 123,
+                                        "all-features": 155
+                                },
+                                "1.85.0": {
+                                        "default": 111,
+                                        "codecs": 123,
+                                        "all-features": 155
+                                }
+                        },
+                        "distinct_codec_regressions": 12,
+                        "rust_command_count": 18,
+                        "rust_gate_commands": 16,
+                        "package_clean_commands": 2,
+                        "apache_command_count": 3,
+                        "apache_fixture_count": 44,
+                        "apache_fixture_reproductions": 2,
+                        "upstream_accepted": 26,
+                        "upstream_rejected": 18,
+                        "rust_admitted_fixtures": 16,
+                        "rust_rejected_fixtures": 28,
+                        "default_active_packages": 17,
+                        "codec_active_packages": 26,
+                        "codec_added_active_packages": [
+                                "adler2",
+                                "crc32fast",
+                                "flate2",
+                                "lz4_flex",
+                                "miniz_oxide",
+                                "simd-adler32",
+                                "snap",
+                                "twox-hash",
+                                "zstd-rs"
+                        ],
+                        "dependency_proof_commands": 10,
+                        "client_and_broker_defaults_unchanged": true,
+                        "records_and_journal_unchanged": true,
+                        "original_broker_lock_versions_preserved": true,
+                        "failed_final_gates": 0,
+                        "advertisement": "none",
+                        "qualification": "no broker policy/durability/production/performance claim"
+                },
+                "retained_failures": [
+                        {
+                                "attempt": "development-stable01.log",
+                                "actual_exit": 101,
+                                "kind": "test helper borrow-check failure",
+                                "resolution": "Compute test batch length before borrowing its mutable header slice."
+                        },
+                        {
+                                "attempt": "initial module and independent read-only review",
+                                "kind": "aggregate codec unit accounting",
+                                "resolution": "Retain non-gzip preflight units while charging actual gzip members; avoid double-charge on Snappy/LZ4 rescan. Mixed regression verifies actual five-unit requirement; no initial-bug runtime reproduction is claimed."
+                        },
+                        {
+                                "attempt": "development-stable03-test.log",
+                                "actual_exit": 101,
+                                "kind": "incorrect pinned test unit expectation",
+                                "resolution": "Actual Zstd JNI stream contains a final empty block. Four-unit success expectation was incorrect; four rejected/five accepted now verified."
+                        },
+                        {
+                                "attempt": "development-stable04-clippy.log",
+                                "actual_exit": 101,
+                                "kind": "strict test-helper lint failure",
+                                "resolution": "Use bounded File/read helpers returning Result, handle fixture length errors before reading, and use unwrap only within test assertions."
+                        },
+                        {
+                                "attempt": "development-stable01/02/04 compile logs",
+                                "kind": "development lock context",
+                                "resolution": "Initial root lock regeneration selected libc0.2.190. Root restored all prior versions including0.2.189 before frozen final source; initial development runs are not final pins."
+                        },
+                        {
+                                "attempt": "dependency-proof-first-failure.txt",
+                                "actual_exit": 1,
+                                "kind": "metadata weak-edge overcount",
+                                "resolution": "Cargo metadata included inactive zlib-rs through weak optional std edge. Active Cargo tree normal/build graph is authoritative and retained. No production dependency/source changed."
+                        },
+                        {
+                                "attempt": "Apache protected count-bomb controls",
+                                "kind": "expected bounded external peer resource failure",
+                                "resolution": "All four actual Apache parser results are OutOfMemoryError under64MiB JVM cap. Preserve them as resource failures, not semantic safe-count rejection. Rust rejects declared count before allocation/decode."
+                        }
+                ],
+                "limitations": [
+                        "Optional ordinary magic-2 normalization foundation only: no Produce/Fetch integration, API advertisement, append, broker offset assignment, replication, deduplication, transaction or production/performance qualification.",
+                        "Positive byte/count/workspace/window limits admit requested/reported output capacity and conservative pinned source scratch; not allocator metadata, stack, RSS, wall-clock deadline or global OOM recovery. Caller bounds retained input/results and concurrency; upstream scratch uses ordinary infallible allocation.",
+                        "Gzip later member boundaries/checksums are validated during bounded decode, with aggregate member budget charged before context construction. Dictionary/skippable/legacy forms, optional gzip headers and trailing bytes are rejected; concatenated LZ4 is an explicit local supported extension.",
+                        "Apache parser outcomes are independent low-level results, not Apache broker/LogValidator/Produce policy. Trailing/idempotent/transactional acceptance differs; split concatenated LZ4 is rejected upstream but normalized to the independently verified plain history here.",
+                        "All four Apache count bombs actually trigger OutOfMemoryError under the retained64MiB JVM cap. This is an external bounded resource failure, not evidence of a safe semantic count rejection; Rust rejects count budgets before decode/allocation.",
+                        "Graph/source/test evidence is Linux x86_64 and stable1.99.0/MSRV1.85.0. Cargo metadata weak optional edges overapproximate activation; active normal/build Cargo tree evidence discloses inactive zlib-rs nodes."
+                ],
+                "artifacts": [
+                        {
+                                "path": "docs/evidence/broker/KL11-67/README.md",
+                                "sha256": "54ea4483ba6a613b9965d238c27ad5602510da3fe13e16c4dc2bed7eb3c5ec15",
+                                "bytes": 11020
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-67/provenance.json",
+                                "sha256": "64fa7b80a5aedc81111183a6574b7a817585d9cc46006804fd44006ca43eda20",
+                                "bytes": 2524
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-67/checksums.json",
+                                "sha256": "4d8ac4dedd1d63a7ceb0ffe1bef3708257dd34c5a1ceda3c450c1b9462a8c275",
+                                "bytes": 6043
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-67/final-a5ca44af/validation.json",
+                                "sha256": "453a18544b374f6293666f4ffdd1de8156aef0b764a663e87436f1c40391006d",
+                                "bytes": 233006
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-67/final-a5ca44af/commands.json",
+                                "sha256": "55163237eddc4cc74443cff2593c0b519c30df0ff6b5ea23577309855196340d",
+                                "bytes": 10243
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-67/final-apache-a5ca44af/apache-oracle.json",
+                                "sha256": "9526b7c84003c246291df57d8b956682765abfd5e0bb37d3a82b6611e2333b8e",
+                                "bytes": 378948
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-67/dependency-proof.json",
+                                "sha256": "3f38401edc5de9f80d4594e1b99d1b65de3f441ab495cfb8f4ad4250bdceb1ac",
+                                "bytes": 44184
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-67/independent-review-by-open-loop.json",
+                                "sha256": "445a7e7625d6f6ac4794faded04667f3e3eef96ec1ad5fe513000d89a747eeb0",
+                                "bytes": 13227
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-67/development-failures.json",
+                                "sha256": "d8ab42e9230175a9b9ef89f1478923aea820f5b78ff9f453372708cb9ff57c28",
+                                "bytes": 2138
+                        }
+                ]
+        }
+      ],
       "write_set": [
         "partitionline-broker/src/codecs.rs",
         "partitionline-broker/tests/codecs.rs",
@@ -26052,6 +26984,41 @@
         "Strict listener/profile/generation/resource and shutdown gates."
       ],
       "evidence": []
+    },
+    {
+      "id": "KL11-72",
+      "title": "Generate independent SASL listener and credential-admin wire proofs",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL11-57",
+        "KL11-66"
+      ],
+      "files": [
+        "partitionline-broker/tests/fixtures/sasl-wire/",
+        "docs/evidence/broker/KL11-72/"
+      ],
+      "deliverable": "Authentic current Apache SASL handshake/authenticate and SCRAM admin fixtures plus independent Java/C connection/admin/restart histories for actual36 listener profiles.",
+      "acceptance": [
+        "Pin three current Apache schemas/server/client classes and native peer; generate Handshake17v0\u20131,Authenticate36v0\u20132 and scopedDescribe50/Alter51 exact bodies/errors using independently verified crypto fixtures.",
+        "Run actual independent successful and failed PLAIN/SCRAM sessions on realTLS/plaintext listeners, including legacy raw tokens, identity/state/deadline/generation/rotation/illegal-application-before-auth boundaries and correlation handling.",
+        "Verify credential create/describe/delete/rotation/restart and authorized/unauthorized admin outcomes; SaltedPassword/proof/password never becomes persisted verifier output or unredacted logs.",
+        "Distinguish explicit stricter listener policies/defaultTLS-onlyPLAIN/lifetime0 from authentic upstream outcomes; preserve all failed attempts/source/command/history/checksum receipts. No full KIP368 claim."
+      ],
+      "validation": [
+        "Strict compile/replay exact fixture bytes against all three pinned Java releases.",
+        "Actual pinned Java/C sessions and admin histories against immutable real Rust36 sources with retained server shutdown/journal evidence."
+      ],
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/tests/fixtures/sasl-wire/",
+        "docs/evidence/broker/KL11-72/",
+        "docs/plan/evidence/KL11-72.json",
+        "docs/plan/tasks.json"
+      ],
+      "integration_coordinator": "zstd_decision owns independent72 wire fixtures/probes;consumer_lookups owns36 production. Root alone edits shared plans/profile registry/exports; no production edits from oracle worker."
     }
   ]
 }

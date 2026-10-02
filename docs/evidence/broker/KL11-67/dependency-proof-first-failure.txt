@@ -1,0 +1,11 @@
+The first actual final dependency-proof invocation returned exit 1 at:
+
+  assert not names & {'zstd-sys', 'zstd-safe', 'zlib-rs', 'libz-sys', 'openssl-sys', 'lz4-sys', 'ring'}
+  AssertionError
+
+Cause: using every Cargo metadata resolve node as an active package set incorrectly
+included zlib-rs through flate2's weak optional zlib-rs?/std feature edge. The actual
+codecs Cargo tree and compilation use only crc32fast/miniz_oxide for flate2; no
+zlib-rs activation exists. The corrected proof uses Cargo tree's active normal/
+build graph on x86_64-unknown-linux-gnu, retains exact tree command/stdout, and
+separately reports metadata-only nodes. No production source/dependency changed.

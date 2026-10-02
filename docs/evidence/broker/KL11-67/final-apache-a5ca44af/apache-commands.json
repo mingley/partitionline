@@ -1,0 +1,57 @@
+[
+  {
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "--add-modules",
+      "jdk.compiler",
+      "com.sun.tools.javac.Main",
+      "-Xlint:all",
+      "-Werror",
+      "-cp",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+      "-d",
+      "/workspace/work/broker-codecs-oracle-final-a5ca44af/classes",
+      "/workspace/work/broker-codecs-source-a5ca44af/docs/evidence/broker/KL11-67/CodecsOracle.java"
+    ],
+    "exit_code": 0,
+    "log": "apache-compile.log",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xms16m",
+      "-Xmx64m",
+      "-cp",
+      "/workspace/work/broker-codecs-oracle-final-a5ca44af/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+      "CodecsOracle",
+      "/workspace/work/broker-codecs-oracle-final-a5ca44af/execute"
+    ],
+    "exit_code": 0,
+    "log": "apache-execute.log",
+    "log_sha256": "bb15b2f1200e9def913c2168082d16436994bf8bbc5dd911ca143a2b740adb88"
+  },
+  {
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xms16m",
+      "-Xmx64m",
+      "-cp",
+      "/workspace/work/broker-codecs-oracle-final-a5ca44af/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+      "CodecsOracle",
+      "/workspace/work/broker-codecs-oracle-final-a5ca44af/reproduce"
+    ],
+    "exit_code": 0,
+    "log": "apache-reproduce.log",
+    "log_sha256": "bb15b2f1200e9def913c2168082d16436994bf8bbc5dd911ca143a2b740adb88"
+  }
+]

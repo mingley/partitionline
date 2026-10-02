@@ -1,0 +1,41 @@
+[
+  {
+    "attempt": "development-stable01.log",
+    "actual_exit": 101,
+    "kind": "test helper borrow-check failure",
+    "resolution": "Compute test batch length before borrowing its mutable header slice."
+  },
+  {
+    "attempt": "initial module and independent read-only review",
+    "kind": "aggregate codec unit accounting",
+    "resolution": "Retain non-gzip preflight units while charging actual gzip members; avoid double-charge on Snappy/LZ4 rescan. Mixed regression verifies actual five-unit requirement; no initial-bug runtime reproduction is claimed."
+  },
+  {
+    "attempt": "development-stable03-test.log",
+    "actual_exit": 101,
+    "kind": "incorrect pinned test unit expectation",
+    "resolution": "Actual Zstd JNI stream contains a final empty block. Four-unit success expectation was incorrect; four rejected/five accepted now verified."
+  },
+  {
+    "attempt": "development-stable04-clippy.log",
+    "actual_exit": 101,
+    "kind": "strict test-helper lint failure",
+    "resolution": "Use bounded File/read helpers returning Result, handle fixture length errors before reading, and use unwrap only within test assertions."
+  },
+  {
+    "attempt": "development-stable01/02/04 compile logs",
+    "kind": "development lock context",
+    "resolution": "Initial root lock regeneration selected libc0.2.190. Root restored all prior versions including0.2.189 before frozen final source; initial development runs are not final pins."
+  },
+  {
+    "attempt": "dependency-proof-first-failure.txt",
+    "actual_exit": 1,
+    "kind": "metadata weak-edge overcount",
+    "resolution": "Cargo metadata included inactive zlib-rs through weak optional std edge. Active Cargo tree normal/build graph is authoritative and retained. No production dependency/source changed."
+  },
+  {
+    "attempt": "Apache protected count-bomb controls",
+    "kind": "expected bounded external peer resource failure",
+    "resolution": "All four actual Apache parser results are OutOfMemoryError under64MiB JVM cap. Preserve them as resource failures, not semantic safe-count rejection. Rust rejects declared count before allocation/decode."
+  }
+]

@@ -1,0 +1,146 @@
+[
+  {
+    "toolchain": "stable",
+    "name": "fmt",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "fmt",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--",
+      "--check"
+    ],
+    "exit_code": 0,
+    "log": "stable-fmt.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "counts": []
+  },
+  {
+    "toolchain": "stable",
+    "name": "protocol",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "protocol"
+    ],
+    "exit_code": 0,
+    "log": "stable-protocol.log",
+    "sha256": "139d2e33c2a8ac1e4de42c3c4a4b555c4a852e25446c03bec48495b8b3ae7779",
+    "counts": [
+      [
+        "9",
+        "0",
+        "0"
+      ]
+    ]
+  },
+  {
+    "toolchain": "stable",
+    "name": "clippy",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "clippy",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--lib",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "log": "stable-clippy.log",
+    "sha256": "a187f2ab40db4fd6b9f82e1d354dff98385190ad57a826efc9a535254381f225",
+    "counts": []
+  },
+  {
+    "toolchain": "1.85.0",
+    "name": "fmt",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "fmt",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--",
+      "--check"
+    ],
+    "exit_code": 0,
+    "log": "1.85.0-fmt.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "counts": []
+  },
+  {
+    "toolchain": "1.85.0",
+    "name": "protocol",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "protocol"
+    ],
+    "exit_code": 0,
+    "log": "1.85.0-protocol.log",
+    "sha256": "127d279fb6d962c0fdbcfec596c737f3c1641c5f6f3ceb99e93f202c8fa5dcb0",
+    "counts": [
+      [
+        "9",
+        "0",
+        "0"
+      ]
+    ]
+  },
+  {
+    "toolchain": "1.85.0",
+    "name": "clippy",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "clippy",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--lib",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "log": "1.85.0-clippy.log",
+    "sha256": "b556a90b98148435411e01c52a6a5243ea9af95c87d783197076b3b0653cd3d5",
+    "counts": []
+  }
+]

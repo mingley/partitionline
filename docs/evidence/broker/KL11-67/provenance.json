@@ -1,0 +1,54 @@
+{
+  "task": "KL11-67",
+  "source_sha": "a5ca44afab5460bf43161365c005cd6b3769aff2",
+  "tested_base_sha": "37d72a18eef933f9005b9f7453763945882f104e",
+  "source_sha256": {
+    "partitionline-broker/src/codecs.rs": "28112daa3779f18da53d8dd3cb4db41019e6404f47ce710d744fb353baa5a0b4",
+    "partitionline-broker/tests/codecs.rs": "bbbf91db7a7170b89446f6743b8846041a917f3030893b4eb76e0f03bf9ebba5",
+    "partitionline-broker/Cargo.toml": "542845f7a6775f95fa45c420b306279a00ffe75ce593f67d86e099c79f7cbde6",
+    "partitionline-broker/Cargo.lock": "8bc7c85afb118a8a6147a9f621ca4e8ceb17b8c831f421fe2d88b4804adbbeae",
+    "partitionline-broker/src/lib.rs": "af755656c98716e49c0d13777f9f57a6645b15d05c5eb703e008264c92e65271",
+    "docs/evidence/broker/KL11-67/CodecsOracle.java": "c9fc605c4e4b07e2d2192abec88dc32c1eaecde559c21955b815e0a91efdd6fe",
+    "docs/evidence/broker/KL11-67/run-apache-oracle.py": "df0fd9c220cd39f33035b2f7a753562970bafd44aa62b9e31cebd3033c02154a"
+  },
+  "unchanged_source_sha256": {
+    "partitionline-broker/src/records.rs": "dfa1c02190cb712c78d8541fc55fab7a936c5e80b9f50a92bc432ce23f4e11e7",
+    "partitionline-broker/src/journal.rs": "40b360da2d2880aaf4d810b634822c478de85eaef418ac9c9cf7e5c485efa5fe",
+    "Cargo.toml": "b07fc38a514ab0e14954ff1261701b6a878e35ae7d9b91b081a19e14704d3c13",
+    "Cargo.lock": "d35e6ba903c4f8b811997d06b9edf4e3612c3636dede83d07dda86570eddbca9"
+  },
+  "all_exact_source_gates_passed": true,
+  "command_count": 18,
+  "package_clean_commands": 2,
+  "gate_commands": 16,
+  "test_executions": 778,
+  "tests_by_lane": {
+    "stable": {
+      "default": 111,
+      "codecs": 123,
+      "all-features": 155
+    },
+    "1.85.0": {
+      "default": 111,
+      "codecs": 123,
+      "all-features": 155
+    }
+  },
+  "distinct_codec_regressions": 12,
+  "default_graph_packages": 17,
+  "codec_graph_packages": 26,
+  "apache_fixture_count": 44,
+  "apache_upstream_accepted": 26,
+  "apache_upstream_rejected": 18,
+  "rust_accepted_fixtures": 16,
+  "rust_rejected_fixtures": 28,
+  "apache_execution_commands": 3,
+  "apache_fixture_reproductions": 2,
+  "dependency_proof_commands": 10,
+  "independent_review_file": "independent-review-by-open-loop.json",
+  "independent_review_sha256": "445a7e7625d6f6ac4794faded04667f3e3eef96ec1ad5fe513000d89a747eeb0",
+  "limits": "README.md and dependency-proof.json",
+  "advertisement": "none; Produce/Fetch integration remains separate",
+  "qualification": "no broker policy/durability/production/performance claim",
+  "failures": "development-failures.json"
+}
