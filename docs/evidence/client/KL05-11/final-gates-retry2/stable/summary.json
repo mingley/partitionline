@@ -1,0 +1,1103 @@
+{
+  "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+  "toolchain": "stable",
+  "cwd": "/workspace/work/produce-v13/final-source",
+  "target_dir": "/workspace/work/target-produce-v13",
+  "cpu_affinity": "0-2,4",
+  "commands": [
+    {
+      "name": "rustc-version",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+stable",
+        "--version",
+        "--verbose"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.011511044998769648,
+      "log": "final-gates-retry2/stable/rustc-version.log",
+      "log_sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "suite_counts": []
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.252246177999041,
+      "log": "final-gates-retry2/stable/fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "suite_counts": []
+    },
+    {
+      "name": "build-examples-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--examples",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 36.07199439500255,
+      "log": "final-gates-retry2/stable/build-examples-default.log",
+      "log_sha256": "66d47ae74bba38fcb8d8acd8449f733075427bdd43b575a9db024dc40279f013",
+      "suite_counts": []
+    },
+    {
+      "name": "tests-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 106.74533758699909,
+      "log": "final-gates-retry2/stable/tests-default.log",
+      "log_sha256": "222e6b72839a4b869978e416f0114da3af99dc924944a6c5328e8f40997c189a",
+      "suite_counts": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 33,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "name": "build-examples-all-features",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--examples",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 24.693915559000743,
+      "log": "final-gates-retry2/stable/build-examples-all-features.log",
+      "log_sha256": "e34868f543c8f4e8d2c146de3000769ae9497000635b91178fffb956935500c1",
+      "suite_counts": []
+    },
+    {
+      "name": "tests-all-features",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 104.39063740599886,
+      "log": "final-gates-retry2/stable/tests-all-features.log",
+      "log_sha256": "d531464b128c428ecd2ee50b33cef0b0e5cbd4a79d4a73e206a280c5691c191c",
+      "suite_counts": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 33,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "name": "java-live",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "protocol_oracles",
+        "--all-features",
+        "produce_v13_rust_output_decodes",
+        "--jobs",
+        "2",
+        "--",
+        "--nocapture"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.5429455929988762,
+      "log": "final-gates-retry2/stable/java-live.log",
+      "log_sha256": "79847ce30574a5dca2c9c449851e969267f0a74bde9814aff5203eb28382627a",
+      "suite_counts": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 33
+        }
+      ],
+      "actual_java_decode_processes": 3
+    },
+    {
+      "name": "metrics-lib",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--lib",
+        "metrics::tests",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.047208077001414495,
+      "log": "final-gates-retry2/stable/metrics-lib.log",
+      "log_sha256": "3518e9c07298e91df6ced021c51d8d0a0362c053ec96c63f14819e7e3da7edfb",
+      "suite_counts": [
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1090
+        }
+      ]
+    },
+    {
+      "name": "credential-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.48069938700064085,
+      "log": "final-gates-retry2/stable/credential-default.log",
+      "log_sha256": "5f70871446b4e99c5e211fc991b7e2d7f64d24d1132e81c7bbc9aa72c4f04b19",
+      "suite_counts": [
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "name": "credential-tracing",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--features",
+        "tracing",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.5399852640002791,
+      "log": "final-gates-retry2/stable/credential-tracing.log",
+      "log_sha256": "3cff64c3e14be938002ce9aa83d788da7736dad9397145685cd3c85225ad1890",
+      "suite_counts": [
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "2",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 26.945907765999436,
+      "log": "final-gates-retry2/stable/clippy.log",
+      "log_sha256": "85bc264c16f0f91348c05b8c16f0f2a5eaa5f954d89d03d30986e39c2bb84fec",
+      "suite_counts": []
+    },
+    {
+      "name": "docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--no-deps",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.0918457450025016,
+      "log": "final-gates-retry2/stable/docs.log",
+      "log_sha256": "fe4aa863f4a85c73acbb4191986e83da5566cea2809bc5b1d2c5129ff0545fcc",
+      "suite_counts": []
+    }
+  ],
+  "status": "passed"
+}

@@ -1,0 +1,48 @@
+   Compiling typenum v1.20.1
+   Compiling hybrid-array v0.4.15
+   Compiling libc v0.2.189
+   Compiling proc-macro2 v1.0.107
+   Compiling cmov v0.5.4
+   Compiling quote v1.0.47
+   Compiling zeroize v1.9.0
+   Compiling unicode-ident v1.0.26
+   Compiling block-buffer v0.12.1
+   Compiling ctutils v0.4.2
+   Compiling crypto-common v0.2.2
+   Compiling semver v1.0.28
+   Compiling const-oid v0.10.2
+   Compiling digest v0.11.3
+   Compiling rustc_version v0.4.1
+   Compiling syn v3.0.6
+   Compiling crc32c v0.6.8
+   Compiling getrandom v0.4.3
+   Compiling cfg-if v1.0.5
+   Compiling tokio-macros v2.7.2
+   Compiling hmac v0.13.0
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling cpufeatures v0.3.1
+   Compiling bytes v1.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling tokio v1.53.1
+   Compiling sha2 v0.11.0
+   Compiling pbkdf2 v0.13.0
+   Compiling base64 v0.23.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 11.64s
+     Running tests/sasl.rs (/workspace/work/broker-sasl/target/debug/deps/sasl-5fb93a8a11f38e6c)
+
+running 10 tests
+test imported_forms_and_all_hard_bounds_reject_invalid_values ... ok
+test credential_generation_rotation_and_snapshot_admission_bound ... ok
+test malformed_first_is_terminal_and_limits_are_checked ... ok
+test optional_extensions_are_ignored_but_bound_to_the_exact_proof ... ok
+test plain_wrong_password_unknown_identity_authz_and_malformed ... ok
+test kafka_raw_utf8_passwords_and_identities_are_preserved ... ok
+test scram_escaped_name_self_authz_and_unrelated_authz ... ok
+test strong_fresh_nonces_salts_and_redacted_debug_errors ... ok
+test scram_wrong_password_nonce_channel_binding_proof_and_replay ... ok
+test valid_scram_both_hashes_and_plain_from_verifiers ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s
+

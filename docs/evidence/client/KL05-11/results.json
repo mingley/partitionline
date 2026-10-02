@@ -1,0 +1,1757 @@
+{
+  "task": "KL05-11",
+  "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+  "status": "passed",
+  "acceptance_met": true,
+  "source_integrity": {
+    "manifest": "source-integrity.json",
+    "archive_sha256": "bd8972b44139271fb854e82776e1bf7232659f51d815a029b26528c354cb683f",
+    "tracked_file_count": 4299,
+    "post_check_all_tracked_files_match": true
+  },
+  "full_core_cells": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "log": "final-gates-retry2/stable/tests-default.log",
+      "suite_results": 48,
+      "passed": 1801,
+      "failed": 0,
+      "ignored": 4,
+      "suites": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 33,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "toolchain": "stable",
+      "features": "all",
+      "log": "final-gates-retry2/stable/tests-all-features.log",
+      "suite_results": 48,
+      "passed": 1802,
+      "failed": 0,
+      "ignored": 4,
+      "suites": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 33,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "log": "final-gates-retry1/msrv/tests-default.log",
+      "suite_results": 48,
+      "passed": 1801,
+      "failed": 0,
+      "ignored": 4,
+      "suites": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 33,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all",
+      "log": "final-gates-retry2/msrv/tests-all-features.log",
+      "suite_results": 48,
+      "passed": 1802,
+      "failed": 0,
+      "ignored": 4,
+      "suites": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 33,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    }
+  ],
+  "focused": {
+    "runtime_new_cases": 6,
+    "runtime_produce_filter_precommit": 54,
+    "full_surface_per_final_cell": 330,
+    "protocol_oracles_per_final_cell": {
+      "passed": 33,
+      "ignored": 1
+    },
+    "new_oracle_tests": 3,
+    "truncated_request_prefixes": 217,
+    "truncated_response_prefixes": 108,
+    "mapping_rejections": 4,
+    "metrics_per_toolchain": 10,
+    "credential_default_per_toolchain": 28,
+    "credential_tracing_per_toolchain": 29,
+    "doctests_per_toolchain": 4,
+    "protocol_coverage_python_tests": 15
+  },
+  "independent_java": {
+    "versions": [
+      "4.1.2",
+      "4.2.1",
+      "4.3.1"
+    ],
+    "generated_cells_per_release": 6,
+    "request_response_bodies_per_release": 12,
+    "total_current_release_body_validations": 36,
+    "fresh_rust_decode_processes_per_toolchain": 3,
+    "native_record_crc_validation": true,
+    "identities": [
+      {
+        "identity": "java-final/java-4.1.2-final/identity.json",
+        "apache_client_version": "4.1.2",
+        "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+        "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+        "cells": [
+          {
+            "cell": "empty",
+            "version": 13,
+            "request_sha256": "96897b9c583efc0d209bebc4c6de995d790f3d1b6b90487600094421be9e2edd",
+            "response_sha256": "ea2c10c9040ba379012a276667a531eab37cde1b8c56135750bb72dbbdb13b7b",
+            "request_bytes": 9,
+            "response_bytes": 6
+          },
+          {
+            "cell": "paired",
+            "version": 13,
+            "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+            "response_sha256": "881b22d302a0a13f4a0898f7cc31388d3bf35097c24901d8df09c1f1bafe34d6",
+            "request_bytes": 217,
+            "response_bytes": 108
+          },
+          {
+            "cell": "reversed",
+            "version": 13,
+            "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+            "response_sha256": "accf69d82637eeb8435817c6a3cd37a2519c9f144d38888d1a1d174d4a6cea1f",
+            "request_bytes": 217,
+            "response_bytes": 108
+          },
+          {
+            "cell": "errors",
+            "version": 13,
+            "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+            "response_sha256": "1d2ff814d309059f555eb4d1b0d9d3f77c5cef993c0bf0be7115365e25a953eb",
+            "request_bytes": 217,
+            "response_bytes": 122
+          },
+          {
+            "cell": "tagged",
+            "version": 13,
+            "request_sha256": "b712f635228261e2481e91e7ba1330af6406accdcd9fbbf38811af5d143d559c",
+            "response_sha256": "79635709aebfb92be74813bb648194e0bbd805023071994b9e55176e0251ccf3",
+            "request_bytes": 234,
+            "response_bytes": 150
+          },
+          {
+            "cell": "zero-id",
+            "version": 13,
+            "request_sha256": "35ecd27ea462bdad5b8a4b5ca778d4583e5f7b0caee381a58387d06a9ba750bc",
+            "response_sha256": "7e59040c08af75b2b31961c00b2b634203cd393b0dbc675799ec8f0368a21f65",
+            "request_bytes": 217,
+            "response_bytes": 108
+          }
+        ],
+        "commands": {
+          "java-version": [
+            "/usr/bin/java",
+            "-version"
+          ],
+          "compile": [
+            "/usr/bin/java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "--source",
+            "21",
+            "--target",
+            "21",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "-d",
+            "/workspace/work/produce-v13/final-java/java-4.1.2-final",
+            "/workspace/work/produce-v13/final-java/java-4.1.2-final/ProduceV13Fixtures.java"
+          ],
+          "execute": [
+            "/usr/bin/java",
+            "-cp",
+            "/workspace/work/produce-v13/final-java/java-4.1.2-final:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "ProduceV13Fixtures",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+            "tests/fixtures/protocol_oracles",
+            "--verify"
+          ]
+        },
+        "status": "passed"
+      },
+      {
+        "identity": "java-final/java-4.2.1-final/identity.json",
+        "apache_client_version": "4.2.1",
+        "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+        "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+        "cells": [
+          {
+            "cell": "empty",
+            "version": 13,
+            "request_sha256": "96897b9c583efc0d209bebc4c6de995d790f3d1b6b90487600094421be9e2edd",
+            "response_sha256": "ea2c10c9040ba379012a276667a531eab37cde1b8c56135750bb72dbbdb13b7b",
+            "request_bytes": 9,
+            "response_bytes": 6
+          },
+          {
+            "cell": "paired",
+            "version": 13,
+            "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+            "response_sha256": "881b22d302a0a13f4a0898f7cc31388d3bf35097c24901d8df09c1f1bafe34d6",
+            "request_bytes": 217,
+            "response_bytes": 108
+          },
+          {
+            "cell": "reversed",
+            "version": 13,
+            "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+            "response_sha256": "accf69d82637eeb8435817c6a3cd37a2519c9f144d38888d1a1d174d4a6cea1f",
+            "request_bytes": 217,
+            "response_bytes": 108
+          },
+          {
+            "cell": "errors",
+            "version": 13,
+            "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+            "response_sha256": "1d2ff814d309059f555eb4d1b0d9d3f77c5cef993c0bf0be7115365e25a953eb",
+            "request_bytes": 217,
+            "response_bytes": 122
+          },
+          {
+            "cell": "tagged",
+            "version": 13,
+            "request_sha256": "b712f635228261e2481e91e7ba1330af6406accdcd9fbbf38811af5d143d559c",
+            "response_sha256": "79635709aebfb92be74813bb648194e0bbd805023071994b9e55176e0251ccf3",
+            "request_bytes": 234,
+            "response_bytes": 150
+          },
+          {
+            "cell": "zero-id",
+            "version": 13,
+            "request_sha256": "35ecd27ea462bdad5b8a4b5ca778d4583e5f7b0caee381a58387d06a9ba750bc",
+            "response_sha256": "7e59040c08af75b2b31961c00b2b634203cd393b0dbc675799ec8f0368a21f65",
+            "request_bytes": 217,
+            "response_bytes": 108
+          }
+        ],
+        "commands": {
+          "java-version": [
+            "/usr/bin/java",
+            "-version"
+          ],
+          "compile": [
+            "/usr/bin/java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "--source",
+            "21",
+            "--target",
+            "21",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "-d",
+            "/workspace/work/produce-v13/final-java/java-4.2.1-final",
+            "/workspace/work/produce-v13/final-java/java-4.2.1-final/ProduceV13Fixtures.java"
+          ],
+          "execute": [
+            "/usr/bin/java",
+            "-cp",
+            "/workspace/work/produce-v13/final-java/java-4.2.1-final:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "ProduceV13Fixtures",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+            "tests/fixtures/protocol_oracles",
+            "--verify"
+          ]
+        },
+        "status": "passed"
+      },
+      {
+        "identity": "java-final/java-4.3.1-final/identity.json",
+        "apache_client_version": "4.3.1",
+        "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+        "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+        "cells": [
+          {
+            "cell": "empty",
+            "version": 13,
+            "request_sha256": "96897b9c583efc0d209bebc4c6de995d790f3d1b6b90487600094421be9e2edd",
+            "response_sha256": "ea2c10c9040ba379012a276667a531eab37cde1b8c56135750bb72dbbdb13b7b",
+            "request_bytes": 9,
+            "response_bytes": 6
+          },
+          {
+            "cell": "paired",
+            "version": 13,
+            "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+            "response_sha256": "881b22d302a0a13f4a0898f7cc31388d3bf35097c24901d8df09c1f1bafe34d6",
+            "request_bytes": 217,
+            "response_bytes": 108
+          },
+          {
+            "cell": "reversed",
+            "version": 13,
+            "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+            "response_sha256": "accf69d82637eeb8435817c6a3cd37a2519c9f144d38888d1a1d174d4a6cea1f",
+            "request_bytes": 217,
+            "response_bytes": 108
+          },
+          {
+            "cell": "errors",
+            "version": 13,
+            "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+            "response_sha256": "1d2ff814d309059f555eb4d1b0d9d3f77c5cef993c0bf0be7115365e25a953eb",
+            "request_bytes": 217,
+            "response_bytes": 122
+          },
+          {
+            "cell": "tagged",
+            "version": 13,
+            "request_sha256": "b712f635228261e2481e91e7ba1330af6406accdcd9fbbf38811af5d143d559c",
+            "response_sha256": "79635709aebfb92be74813bb648194e0bbd805023071994b9e55176e0251ccf3",
+            "request_bytes": 234,
+            "response_bytes": 150
+          },
+          {
+            "cell": "zero-id",
+            "version": 13,
+            "request_sha256": "35ecd27ea462bdad5b8a4b5ca778d4583e5f7b0caee381a58387d06a9ba750bc",
+            "response_sha256": "7e59040c08af75b2b31961c00b2b634203cd393b0dbc675799ec8f0368a21f65",
+            "request_bytes": 217,
+            "response_bytes": 108
+          }
+        ],
+        "commands": {
+          "java-version": [
+            "/usr/bin/java",
+            "-version"
+          ],
+          "compile": [
+            "/usr/bin/java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "--source",
+            "21",
+            "--target",
+            "21",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "-d",
+            "/workspace/work/produce-v13/final-java/java-4.3.1-final",
+            "/workspace/work/produce-v13/final-java/java-4.3.1-final/ProduceV13Fixtures.java"
+          ],
+          "execute": [
+            "/usr/bin/java",
+            "-cp",
+            "/workspace/work/produce-v13/final-java/java-4.3.1-final:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "ProduceV13Fixtures",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+            "tests/fixtures/protocol_oracles",
+            "--verify"
+          ]
+        },
+        "status": "passed"
+      }
+    ]
+  },
+  "strict_gates": {
+    "stable": [
+      "fmt",
+      "all-target/all-feature Clippy -Dwarnings",
+      "all-feature docs -Dwarnings"
+    ],
+    "1.85.0": [
+      "fmt",
+      "all-target/all-feature Clippy -Dwarnings",
+      "all-feature docs -Dwarnings"
+    ]
+  },
+  "integration_reuse": {
+    "KL09-62": "Exact-source strict all-target/all-feature Clippy plus explicit metrics and default/tracing credential tests were executed on both toolchains; these logs are available to the coordinator. This statement does not close that card."
+  },
+  "attempt_history": [
+    {
+      "scope": "precommit",
+      "logs": "precommit/",
+      "outcome": "superseded",
+      "details": "Retained compile failures for a held mock lock and temporary future borrow, strict-lint failures (new tuple aliases/checked casts, MSRV Boolean idiom, eight existing oracle format_collect expressions), one old latest-version unit helper failure, and the preexisting client_api redundant lint expectation fixed by root. Subsequent focused checks passed; immutable final checks below are authoritative."
+    },
+    {
+      "scope": "Java preparation",
+      "logs": "java-attempts/",
+      "outcome": "superseded",
+      "details": "JRE compiler fallback originally rejected --release21 without ct.sym; switched to source/target21. Kafka4.3.1 moved record classes to record.internal; exact rendered imports are retained. Corrected independently pinned generators passed all three releases."
+    },
+    {
+      "scope": "immutable final attempt1",
+      "logs": "final-gates/",
+      "outcome": "failed",
+      "details": "Both all-target default runs failed10 verifiable-contract cases because standalone example binaries were absent. cargo test --all-targets builds example test binaries, so the runner now explicitly builds standalone examples before each feature cell. Full-suite success is not claimed for this attempt."
+    },
+    {
+      "scope": "immutable final attempt2",
+      "logs": "final-gates-retry1/",
+      "outcome": "partial",
+      "details": "Both default full runs passed1801/0fail/4ignored. Both all-feature builds then failed due filesystem exhaustion (stable LLVM linker bus error and MSRV temporary-directory ENOSPC); neither failed all-feature build supplies a behavioral result."
+    },
+    {
+      "scope": "bounded-cache recovery",
+      "logs": "precommit/clean-stable-debug2.log",
+      "outcome": "recovered",
+      "details": "Preserved53 executable identities and compressed exact stable default test executables before cargo clean of this worker target. No production source change. Final runner disables incremental compilation and dev/test debug info, with two build jobs and CPU0-2,4 affinity."
+    },
+    {
+      "scope": "immutable final attempt3",
+      "logs": "final-gates-retry2/",
+      "outcome": "passed",
+      "details": "Stable default and all-feature suites rerun with debug0; MSRV default pass from attempt2 is retained, unchanged-source all-feature resumed with debug0. All affected final behavior/lint/docs/Java gates passed; no additional sampling or acceptance waiver."
+    }
+  ],
+  "limitations": [
+    "The current Java proof executes released kafka-clients codecs, including native record CRC validation; it is not a live Kafka broker test.",
+    "The six independent Produce13 cells cover selected request/response semantics, not every legal Kafka field combination.",
+    "Produce3-12 fallback is covered by runtime and local codec tests and retained older fixtures; the separate exhaustive independent older-version conformance case remains blocked.",
+    "TransactionV2 is selected from the initialization-time finalized transaction.version and EndTxn capability snapshot. Dynamic transaction feature upgrade requires producer recreation and is not qualified here.",
+    "Four preexisting tests requiring explicit live broker/manual harnesses remain ignored in each full test cell.",
+    "No performance claim, production qualification or live distributed EOS qualification is inferred from these tests.",
+    "Retained executable archive bytes remain in scratch with a durable hash inventory; the large binary archive is not committed to the repository."
+  ]
+}

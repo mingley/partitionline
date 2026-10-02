@@ -1,0 +1,1 @@
+Initial rustfmt invocation did not set RUSTUP_HOME, so rustup could not choose a default toolchain. Exit1; retried with explicit environment and +stable successfully. No source parse failure.

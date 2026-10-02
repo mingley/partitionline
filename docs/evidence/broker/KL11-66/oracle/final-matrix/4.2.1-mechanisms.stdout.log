@@ -1,0 +1,1 @@
+PASS server_scram=48 parser=36 plain=12 rfc=1 rfc_extensions=2 client_proof=12

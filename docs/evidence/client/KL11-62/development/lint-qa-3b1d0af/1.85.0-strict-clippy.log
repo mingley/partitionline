@@ -1,0 +1,156 @@
+    Checking partitionline v0.1.0 (/workspace/work/full-goal/client-lint-3b1d0af)
+error: use of `format!` to build up a string from an iterator
+    --> tests/protocol_oracles.rs:1660:31
+     |
+1660 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: call `fold` instead
+    --> tests/protocol_oracles.rs:1660:46
+     |
+1660 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                              ^^^
+help: ... and use the `write!` macro here
+    --> tests/protocol_oracles.rs:1660:54
+     |
+1660 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                      ^^^^^^^^^^^^^^^^^^
+     = note: this can be written more efficiently by appending to a `String` directly
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#format_collect
+     = note: `-D clippy::format-collect` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::format_collect)]`
+
+error: use of `format!` to build up a string from an iterator
+    --> tests/protocol_oracles.rs:1705:32
+     |
+1705 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: call `fold` instead
+    --> tests/protocol_oracles.rs:1705:48
+     |
+1705 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                ^^^
+help: ... and use the `write!` macro here
+    --> tests/protocol_oracles.rs:1705:56
+     |
+1705 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                        ^^^^^^^^^^^^^^^^^^
+     = note: this can be written more efficiently by appending to a `String` directly
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#format_collect
+
+error: use of `format!` to build up a string from an iterator
+    --> tests/protocol_oracles.rs:2469:31
+     |
+2469 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: call `fold` instead
+    --> tests/protocol_oracles.rs:2469:46
+     |
+2469 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                              ^^^
+help: ... and use the `write!` macro here
+    --> tests/protocol_oracles.rs:2469:54
+     |
+2469 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                      ^^^^^^^^^^^^^^^^^^
+     = note: this can be written more efficiently by appending to a `String` directly
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#format_collect
+
+error: use of `format!` to build up a string from an iterator
+    --> tests/protocol_oracles.rs:2535:32
+     |
+2535 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: call `fold` instead
+    --> tests/protocol_oracles.rs:2535:48
+     |
+2535 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                ^^^
+help: ... and use the `write!` macro here
+    --> tests/protocol_oracles.rs:2535:56
+     |
+2535 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                        ^^^^^^^^^^^^^^^^^^
+     = note: this can be written more efficiently by appending to a `String` directly
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#format_collect
+
+error: use of `format!` to build up a string from an iterator
+    --> tests/protocol_oracles.rs:3108:31
+     |
+3108 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: call `fold` instead
+    --> tests/protocol_oracles.rs:3108:46
+     |
+3108 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                              ^^^
+help: ... and use the `write!` macro here
+    --> tests/protocol_oracles.rs:3108:54
+     |
+3108 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                      ^^^^^^^^^^^^^^^^^^
+     = note: this can be written more efficiently by appending to a `String` directly
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#format_collect
+
+error: use of `format!` to build up a string from an iterator
+    --> tests/protocol_oracles.rs:3184:32
+     |
+3184 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: call `fold` instead
+    --> tests/protocol_oracles.rs:3184:48
+     |
+3184 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                ^^^
+help: ... and use the `write!` macro here
+    --> tests/protocol_oracles.rs:3184:56
+     |
+3184 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                        ^^^^^^^^^^^^^^^^^^
+     = note: this can be written more efficiently by appending to a `String` directly
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#format_collect
+
+error: use of `format!` to build up a string from an iterator
+    --> tests/protocol_oracles.rs:3796:31
+     |
+3796 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: call `fold` instead
+    --> tests/protocol_oracles.rs:3796:46
+     |
+3796 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                              ^^^
+help: ... and use the `write!` macro here
+    --> tests/protocol_oracles.rs:3796:54
+     |
+3796 |         let req_hex: String = req_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                      ^^^^^^^^^^^^^^^^^^
+     = note: this can be written more efficiently by appending to a `String` directly
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#format_collect
+
+error: use of `format!` to build up a string from an iterator
+    --> tests/protocol_oracles.rs:3843:32
+     |
+3843 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: call `fold` instead
+    --> tests/protocol_oracles.rs:3843:48
+     |
+3843 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                ^^^
+help: ... and use the `write!` macro here
+    --> tests/protocol_oracles.rs:3843:56
+     |
+3843 |         let resp_hex: String = resp_buf.iter().map(|b| format!("{b:02x}")).collect();
+     |                                                        ^^^^^^^^^^^^^^^^^^
+     = note: this can be written more efficiently by appending to a `String` directly
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#format_collect
+
+error: could not compile `partitionline` (test "protocol_oracles") due to 8 previous errors

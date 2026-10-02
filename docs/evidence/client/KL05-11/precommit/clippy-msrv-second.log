@@ -1,0 +1,13 @@
+    Checking partitionline v0.1.0 (/workspace/partitionline)
+error: this lint expectation is unfulfilled
+ --> tests/client_api.rs:3:5
+  |
+3 |     dead_code,
+  |     ^^^^^^^^^
+  |
+  = note: tests/common mock helpers are shared; this file uses a subset
+  = note: `-D unfulfilled-lint-expectations` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(unfulfilled_lint_expectations)]`
+
+error: could not compile `partitionline` (test "client_api") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

@@ -1,0 +1,355 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-62",
+  "status": "done",
+  "acceptance_met": true,
+  "result": "passed",
+  "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+  "validated_at_utc": "2026-10-02T22:05:55.088630+00:00",
+  "commands": [
+    {
+      "name": "metrics-lib",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--lib",
+        "metrics::tests",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.047208077001414495,
+      "log": "docs/evidence/client/KL05-11/final-gates-retry2/stable/metrics-lib.log",
+      "log_sha256": "3518e9c07298e91df6ced021c51d8d0a0362c053ec96c63f14819e7e3da7edfb",
+      "suite_counts": [
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1090
+        }
+      ],
+      "toolchain": "stable"
+    },
+    {
+      "name": "credential-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.48069938700064085,
+      "log": "docs/evidence/client/KL05-11/final-gates-retry2/stable/credential-default.log",
+      "log_sha256": "5f70871446b4e99c5e211fc991b7e2d7f64d24d1132e81c7bbc9aa72c4f04b19",
+      "suite_counts": [
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "toolchain": "stable"
+    },
+    {
+      "name": "credential-tracing",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--features",
+        "tracing",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.5399852640002791,
+      "log": "docs/evidence/client/KL05-11/final-gates-retry2/stable/credential-tracing.log",
+      "log_sha256": "3cff64c3e14be938002ce9aa83d788da7736dad9397145685cd3c85225ad1890",
+      "suite_counts": [
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "toolchain": "stable"
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "2",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 26.945907765999436,
+      "log": "docs/evidence/client/KL05-11/final-gates-retry2/stable/clippy.log",
+      "log_sha256": "85bc264c16f0f91348c05b8c16f0f2a5eaa5f954d89d03d30986e39c2bb84fec",
+      "suite_counts": [],
+      "toolchain": "stable"
+    },
+    {
+      "name": "metrics-lib",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--lib",
+        "metrics::tests",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.05155222900066292,
+      "log": "docs/evidence/client/KL05-11/final-gates-retry2/msrv/metrics-lib.log",
+      "log_sha256": "55f0f438ccc1ab032c92d3e01ae2b10b86cdf710fd7634b990b5da81fb08baf1",
+      "suite_counts": [
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1090
+        }
+      ],
+      "toolchain": "1.85.0"
+    },
+    {
+      "name": "credential-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.5037994090016582,
+      "log": "docs/evidence/client/KL05-11/final-gates-retry2/msrv/credential-default.log",
+      "log_sha256": "8a4ca55161427fa1dd87479f990f9bb958e92456bf202b0fd6b5518e5aacd5db",
+      "suite_counts": [
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "toolchain": "1.85.0"
+    },
+    {
+      "name": "credential-tracing",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--features",
+        "tracing",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.5931088249999448,
+      "log": "docs/evidence/client/KL05-11/final-gates-retry2/msrv/credential-tracing.log",
+      "log_sha256": "4d74b7b2472f21b07bb2a0e43b4f2d0e5cd66a459a2e52eda1db0b2f7690b983",
+      "suite_counts": [
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "toolchain": "1.85.0"
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "2",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 40.522107478998805,
+      "log": "docs/evidence/client/KL05-11/final-gates-retry2/msrv/clippy.log",
+      "log_sha256": "26bfddba5ac8cf9127e10ea948a1327e9d820702d8c4204a50ffb764e9b72f19",
+      "suite_counts": [],
+      "toolchain": "1.85.0"
+    }
+  ],
+  "results": {
+    "stable": {
+      "strict_all_target_all_feature_clippy": "passed",
+      "metrics": 10,
+      "credential_default": 28,
+      "credential_tracing": 29
+    },
+    "msrv1.85": {
+      "strict_all_target_all_feature_clippy": "passed",
+      "metrics": 10,
+      "credential_default": 28,
+      "credential_tracing": 29
+    },
+    "behavior": "Existing assertions/metric comparison preserved; no suppressed warning gate.",
+    "coordinated_hot_file_corrections": "Producer Drop lifetimes/oracle hex helpers exclusively under KL05-11.",
+    "failures": "Retained history-helper, test-only indexing, oracle format_collect and redundant lint-expectation failures, with documented mixed developmental contexts.",
+    "qualification": "No performance or full production qualification claim."
+  },
+  "artifacts": [
+    "docs/evidence/client/KL11-62/artifact-checksums.json",
+    "docs/evidence/client/KL05-11/SHA256SUMS"
+  ]
+}

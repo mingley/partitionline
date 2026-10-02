@@ -1,0 +1,253 @@
+{
+  "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+  "toolchain": "1.85.0",
+  "cwd": "/workspace/work/produce-v13/final-source",
+  "target_dir": "/workspace/work/target-produce-v13-msrv",
+  "cpu_affinity": "0-2,4",
+  "commands": [
+    {
+      "name": "rustc-version",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+1.85.0",
+        "--version",
+        "--verbose"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.011746394000510918,
+      "log": "final-gates/msrv/rustc-version.log",
+      "log_sha256": "be9e105cd61ce407c0e06d80a25240f93cc48de72942117e1886f09aa08f9a2a",
+      "suite_counts": []
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.3685943970012886,
+      "log": "final-gates/msrv/fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "suite_counts": []
+    },
+    {
+      "name": "tests-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "2"
+      ],
+      "status": "failed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 101,
+      "elapsed_seconds": 133.68547574100012,
+      "log": "final-gates/msrv/tests-default.log",
+      "log_sha256": "34549cc6ab1890a6f0a09cd7bccf8bbc2ebe37ec548fe2f8a774137bc9bf0739",
+      "suite_counts": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 33,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 10,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    }
+  ]
+}

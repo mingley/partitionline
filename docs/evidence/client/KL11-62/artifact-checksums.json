@@ -1,0 +1,25 @@
+{
+  "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+  "files": {
+    "docs/evidence/client/KL11-62/README.md": "db9cbe03a8cd7385b78e9bf6d54c876c040cbc451bf0c6bdbc7051086e310c1e",
+    "docs/evidence/client/KL11-62/development/lint-qa/1.85.0-strict-clippy.log": "e48161d3f281085c0ec87a3db4fcbc323a99c14b741b851a9ef779ce3592ed21",
+    "docs/evidence/client/KL11-62/development/lint-qa/commands.json": "93a3794a79080a5936437c7070398cef2b0771e72d4a1162ef596cff9f232cbc",
+    "docs/evidence/client/KL11-62/development/lint-qa/stable-credential-default.log": "feabbfedf26fcb7ad87703d78bcdac1a06f9c43d4d5789e7b11d7fd1546ac0df",
+    "docs/evidence/client/KL11-62/development/lint-qa/stable-credential-tracing.log": "a4dbdf01ad420da44c072c0c1aa06429af12a0005fb6d07056f9886156a95736",
+    "docs/evidence/client/KL11-62/development/lint-qa/stable-metrics.log": "4b8164167d10dd8ea012716c46f37faf2870064be6c8426e473dbddbab9eb2d6",
+    "docs/evidence/client/KL11-62/development/lint-qa/stable-strict-clippy.log": "9532b8c8f4290f4cf095a0f70a83a5e863fda655c75a5497e243224aafaf61d8",
+    "docs/evidence/client/KL11-62/development/lint-qa-3b1d0af/1.85.0-strict-clippy.log": "48d9978d78e8f52e665da0b86c8df8b5c9a42301211bbcd4f60e82d8a9c62f5e",
+    "docs/evidence/client/KL11-62/development/lint-qa-3b1d0af/commands.json": "9ca2ac33cfdfbade7e4359066250f6af721260ff1def470e9b5294a527934aa1",
+    "docs/evidence/client/KL11-62/development/lint-qa-3b1d0af/stable-credential-default.log": "a43a92912dc84fd1cc5ee273047f52eb949cff0f44d680e34b6f5b1e0de11a78",
+    "docs/evidence/client/KL11-62/development/lint-qa-3b1d0af/stable-credential-tracing.log": "29b4de8d1b14a49e324e98dca89c7367f65200ef8145ad77b21826ed7fd65138",
+    "docs/evidence/client/KL11-62/development/lint-qa-3b1d0af/stable-metrics.log": "84d90deb36ab994cb1205816f970829e4c0ec683643b1a9eeac7bd5ca14f7ef3",
+    "docs/evidence/client/KL11-62/development/lint-qa-3b1d0af/stable-strict-clippy.log": "1795a5095d0fb75bc452c43cbb39fad1bdaa3aafc0c8ccb300eb3441294b0451",
+    "docs/evidence/client/KL11-62/development/lint-qa-development/1.85.0-strict-clippy.log": "e48161d3f281085c0ec87a3db4fcbc323a99c14b741b851a9ef779ce3592ed21",
+    "docs/evidence/client/KL11-62/development/lint-qa-development/commands.json": "93a3794a79080a5936437c7070398cef2b0771e72d4a1162ef596cff9f232cbc",
+    "docs/evidence/client/KL11-62/development/lint-qa-development/stable-credential-default.log": "feabbfedf26fcb7ad87703d78bcdac1a06f9c43d4d5789e7b11d7fd1546ac0df",
+    "docs/evidence/client/KL11-62/development/lint-qa-development/stable-credential-tracing.log": "a4dbdf01ad420da44c072c0c1aa06429af12a0005fb6d07056f9886156a95736",
+    "docs/evidence/client/KL11-62/development/lint-qa-development/stable-metrics.log": "4b8164167d10dd8ea012716c46f37faf2870064be6c8426e473dbddbab9eb2d6",
+    "docs/evidence/client/KL11-62/development/lint-qa-development/stable-strict-clippy.log": "9532b8c8f4290f4cf095a0f70a83a5e863fda655c75a5497e243224aafaf61d8",
+    "docs/evidence/client/KL11-62/results.json": "cd6393baef17470a760d3dad4a2e803abcee7c052c8f75746e0e342fc369e24a"
+  }
+}

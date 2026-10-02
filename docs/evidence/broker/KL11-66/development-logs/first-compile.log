@@ -1,0 +1,1248 @@
+   Compiling typenum v1.20.1
+   Compiling hybrid-array v0.4.15
+   Compiling libc v0.2.189
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling cmov v0.5.4
+   Compiling zeroize v1.9.0
+   Compiling unicode-ident v1.0.26
+   Compiling block-buffer v0.12.1
+   Compiling ctutils v0.4.2
+   Compiling crypto-common v0.2.2
+   Compiling const-oid v0.10.2
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling digest v0.11.3
+   Compiling syn v3.0.6
+   Compiling crc32c v0.6.8
+   Compiling getrandom v0.4.3
+   Compiling cfg-if v1.0.5
+   Compiling tokio-macros v2.7.2
+   Compiling hmac v0.13.0
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling bytes v1.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling cpufeatures v0.3.1
+   Compiling sha2 v0.11.0
+   Compiling tokio v1.53.1
+   Compiling pbkdf2 v0.13.0
+   Compiling base64 v0.23.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/source/partitionline-broker)
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:431:36
+    |
+431 |         if !self.0.limits.password(&password.0)
+    |                           -------- ^^^^^^^^^^^ expected `&[u8]`, found `&Zeroizing<Vec<u8>>`
+    |                           |
+    |                           arguments to this method are incorrect
+    |
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<u8>>`
+note: method defined here
+   --> src/security/sasl.rs:130:8
+    |
+130 |     fn password(self, password: &[u8]) -> bool {
+    |        ^^^^^^^^       ---------------
+
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:440:31
+    |
+440 |             derive(algorithm, &password.0, salt, iterations)
+    |             ------            ^^^^^^^^^^^ expected `&[u8]`, found `&Zeroizing<Vec<u8>>`
+    |             |
+    |             arguments to this function are incorrect
+    |
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<u8>>`
+note: function defined here
+   --> src/security/sasl.rs:274:4
+    |
+274 | fn derive(
+    |    ^^^^^^
+275 |     algorithm: Algorithm,
+276 |     password: &[u8],
+    |     ---------------
+
+error[E0599]: no method named `len` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:449:22
+    |
+449 |         if message.0.len() > self.0.limits.message_bytes {
+    |                      ^^^ method not found in `Zeroizing<Vec<u8>>`
+
+error[E0599]: no method named `split` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:456:43
+    |
+456 |             let parts: Vec<_> = message.0.split(|b| *b == 0).take(4).collect();
+    |                                           ^^^^^ method not found in `Zeroizing<Vec<u8>>`
+
+error[E0308]: arguments to this method are incorrect
+   --> src/security/sasl.rs:485:18
+    |
+485 |                 .equal(&candidate.stored_key, &credential.stored_key)
+    |                  ^^^^^
+    |
+note: expected `&[u8]`, found `&Zeroizing<Vec<u8>>`
+   --> src/security/sasl.rs:485:24
+    |
+485 |                 .equal(&candidate.stored_key, &credential.stored_key)
+    |                        ^^^^^^^^^^^^^^^^^^^^^
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<u8>>`
+note: expected `&[u8]`, found `&Zeroizing<Vec<u8>>`
+   --> src/security/sasl.rs:485:47
+    |
+485 |                 .equal(&candidate.stored_key, &credential.stored_key)
+    |                                               ^^^^^^^^^^^^^^^^^^^^^^
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<u8>>`
+note: method defined here
+   --> src/security/sasl.rs:184:8
+    |
+184 |     fn equal(self, a: &[u8], b: &[u8]) -> bool {
+    |        ^^^^^       --------  --------
+
+error[E0599]: no method named `len` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:643:22
+    |
+643 |         if message.0.len() > limits.message_bytes {
+    |                      ^^^ method not found in `Zeroizing<Vec<u8>>`
+
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:647:51
+    |
+647 |             .work(move || verify_final(challenge, &message.0, limits, generation))
+    |                           ------------            ^^^^^^^^^^ expected `&[u8]`, found `&Zeroizing<Vec<u8>>`
+    |                           |
+    |                           arguments to this function are incorrect
+    |
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<u8>>`
+note: function defined here
+   --> src/security/sasl.rs:709:4
+    |
+709 | fn verify_final(
+    |    ^^^^^^^^^^^^
+710 |     challenge: Challenge,
+711 |     message: &[u8],
+    |     --------------
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:199:19
+    |
+199 | pub struct Secret(Zeroizing<Vec<u8>>);
+    |                   ^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:236:17
+    |
+236 |     stored_key: Zeroizing<Vec<u8>>,
+    |                 ^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:165:54
+    |
+165 |     fn mac(self, key: &[u8], bytes: &[u8]) -> Result<Zeroizing<Vec<u8>>, Error> {
+    |                                                      ^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:169:21
+    |
+169 |                     Hmac::<Sha256>::new_from_slice(key).map_err(|_| Error::InvalidCredential)?;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:171:30
+    |
+171 |                 let output = Zeroizing::new(mac.finalize().into_bytes());
+    |                              ^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+    = note: the full name for the type has been written to '/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-b11859b60daed9e9.long-type-13527441539098984494.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:171:30
+    |
+171 |                 let output = Zeroizing::new(mac.finalize().into_bytes());
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+    = note: the full name for the type has been written to '/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-b11859b60daed9e9.long-type-13527441539098984494.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0599]: no method named `to_vec` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:172:42
+    |
+172 |                 Ok(Zeroizing::new(output.to_vec()))
+    |                                          ^^^^^^ method not found in `Zeroizing<Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>>`
+    |
+    = note: the full name for the type has been written to '/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-b11859b60daed9e9.long-type-2778842615689989550.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:176:21
+    |
+176 |                     Hmac::<Sha512>::new_from_slice(key).map_err(|_| Error::InvalidCredential)?;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:178:30
+    |
+178 |                 let output = Zeroizing::new(mac.finalize().into_bytes());
+    |                              ^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+    = note: the full name for the type has been written to '/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-b11859b60daed9e9.long-type-7765581015327885703.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:178:30
+    |
+178 |                 let output = Zeroizing::new(mac.finalize().into_bytes());
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Array<u8, UInt<UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>, B0>>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+    = note: the full name for the type has been written to '/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-b11859b60daed9e9.long-type-7765581015327885703.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0599]: no method named `to_vec` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:179:42
+    |
+179 |                 Ok(Zeroizing::new(output.to_vec()))
+    |                                          ^^^^^^ method not found in `Zeroizing<Array<u8, UInt<UInt<UInt<UInt<_, B0>, B0>, B0>, B0>>>`
+    |
+    = note: the full name for the type has been written to '/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-b11859b60daed9e9.long-type-16085427624287115722.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:203:14
+    |
+203 |         Self(Zeroizing::new(bytes))
+    |              ^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:203:14
+    |
+203 |         Self(Zeroizing::new(bytes))
+    |              ^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:236:5
+    |
+231 | #[derive(Clone)]
+    |          ----- in this derive macro expansion
+...
+236 |     stored_key: Zeroizing<Vec<u8>>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:237:5
+    |
+231 | #[derive(Clone)]
+    |          ----- in this derive macro expansion
+...
+237 |     server_key: Zeroizing<Vec<u8>>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+    = note: required for `Zeroizing<Vec<u8>>` to implement `Clone`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:259:25
+    |
+259 |             stored_key: Zeroizing::new(form.stored_key),
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:259:25
+    |
+259 |             stored_key: Zeroizing::new(form.stored_key),
+    |                         ^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:260:25
+    |
+260 |             server_key: Zeroizing::new(form.server_key),
+    |                         ^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:260:25
+    |
+260 |             server_key: Zeroizing::new(form.server_key),
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0599]: no method named `to_vec` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:269:41
+    |
+269 |             stored_key: self.stored_key.to_vec(),
+    |                                         ^^^^^^ method not found in `Zeroizing<Vec<u8>>`
+
+error[E0599]: no method named `to_vec` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:270:41
+    |
+270 |             server_key: self.server_key.to_vec(),
+    |                                         ^^^^^^ method not found in `Zeroizing<Vec<u8>>`
+
+error[E0277]: the trait bound `Vec<{integer}>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:280:22
+    |
+280 |     let mut salted = Zeroizing::new(vec![0; algorithm.size()]);
+    |                      ^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<{integer}>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<{integer}>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<{integer}>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:280:22
+    |
+280 |     let mut salted = Zeroizing::new(vec![0; algorithm.size()]);
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<{integer}>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<{integer}>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:282:81
+    |
+282 |         Algorithm::Sha256 => pbkdf2_hmac::<Sha256>(password, &salt, iterations, &mut salted),
+    |                              ---------------------                              ^^^^^^^^^^^ expected `&mut [u8]`, found `&mut Zeroizing<Vec<{integer}>>`
+    |                              |
+    |                              arguments to this function are incorrect
+    |
+    = note: expected mutable reference `&mut [u8]`
+               found mutable reference `&mut Zeroizing<Vec<{integer}>>`
+note: function defined here
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pbkdf2-0.13.0/src/lib.rs:224:8
+    |
+224 | pub fn pbkdf2_hmac<D: EagerHash>(password: &[u8], salt: &[u8], rounds: u32, res: &mut [u8]) {
+    |        ^^^^^^^^^^^
+
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:283:81
+    |
+283 |         Algorithm::Sha512 => pbkdf2_hmac::<Sha512>(password, &salt, iterations, &mut salted),
+    |                              ---------------------                              ^^^^^^^^^^^ expected `&mut [u8]`, found `&mut Zeroizing<Vec<{integer}>>`
+    |                              |
+    |                              arguments to this function are incorrect
+    |
+    = note: expected mutable reference `&mut [u8]`
+               found mutable reference `&mut Zeroizing<Vec<{integer}>>`
+note: function defined here
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pbkdf2-0.13.0/src/lib.rs:224:8
+    |
+224 | pub fn pbkdf2_hmac<D: EagerHash>(password: &[u8], salt: &[u8], rounds: u32, res: &mut [u8]) {
+    |        ^^^^^^^^^^^
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:285:32
+    |
+285 |     let client_key = algorithm.mac(&salted, b"Client Key")?;
+    |                                ^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:285:36
+    |
+285 |     let client_key = algorithm.mac(&salted, b"Client Key")?;
+    |                                --- ^^^^^^^ expected `&[u8]`, found `&Zeroizing<Vec<{integer}>>`
+    |                                |
+    |                                arguments to this method are incorrect
+    |
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<{integer}>>`
+note: method defined here
+   --> src/security/sasl.rs:165:8
+    |
+165 |     fn mac(self, key: &[u8], bytes: &[u8]) -> Result<Zeroizing<Vec<u8>>, Error> {
+    |        ^^^       ----------
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:285:22
+    |
+285 |     let client_key = algorithm.mac(&salted, b"Client Key")?;
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:285:22
+    |
+285 |     let client_key = algorithm.mac(&salted, b"Client Key")?;
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:286:52
+    |
+286 |     let stored_key = Zeroizing::new(algorithm.hash(&client_key));
+    |                                               ---- ^^^^^^^^^^^ expected `&[u8]`, found `&Zeroizing<Vec<u8>>`
+    |                                               |
+    |                                               arguments to this method are incorrect
+    |
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<u8>>`
+note: method defined here
+   --> src/security/sasl.rs:159:8
+    |
+159 |     fn hash(self, bytes: &[u8]) -> Vec<u8> {
+    |        ^^^^       ------------
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:286:22
+    |
+286 |     let stored_key = Zeroizing::new(algorithm.hash(&client_key));
+    |                      ^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:286:22
+    |
+286 |     let stored_key = Zeroizing::new(algorithm.hash(&client_key));
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:287:32
+    |
+287 |     let server_key = algorithm.mac(&salted, b"Server Key")?;
+    |                                ^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:287:36
+    |
+287 |     let server_key = algorithm.mac(&salted, b"Server Key")?;
+    |                                --- ^^^^^^^ expected `&[u8]`, found `&Zeroizing<Vec<{integer}>>`
+    |                                |
+    |                                arguments to this method are incorrect
+    |
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<{integer}>>`
+note: method defined here
+   --> src/security/sasl.rs:165:8
+    |
+165 |     fn mac(self, key: &[u8], bytes: &[u8]) -> Result<Zeroizing<Vec<u8>>, Error> {
+    |        ^^^       ----------
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:287:22
+    |
+287 |     let server_key = algorithm.mac(&salted, b"Server Key")?;
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:287:22
+    |
+287 |     let server_key = algorithm.mac(&salted, b"Server Key")?;
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:292:9
+    |
+292 |         stored_key,
+    |         ^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:728:17
+    |
+728 |     let proof = Zeroizing::new(
+    |                 ^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:728:17
+    |
+728 |       let proof = Zeroizing::new(
+    |  _________________^
+729 | |         STANDARD
+730 | |             .decode(field(&fields, 'p')?)
+731 | |             .map_err(|_| Error::InvalidMessage)?,
+732 | |     );
+    | |_____^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0599]: no method named `len` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:734:14
+    |
+734 |     if proof.len() != algorithm.size() {
+    |              ^^^ method not found in `Zeroizing<Vec<u8>>`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:742:31
+    |
+742 |     let signature = algorithm.mac(&challenge.credential.stored_key, auth.as_bytes())?;
+    |                               ^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:742:35
+    |
+742 |     let signature = algorithm.mac(&challenge.credential.stored_key, auth.as_bytes())?;
+    |                               --- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&Zeroizing<Vec<u8>>`
+    |                               |
+    |                               arguments to this method are incorrect
+    |
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<u8>>`
+note: method defined here
+   --> src/security/sasl.rs:165:8
+    |
+165 |     fn mac(self, key: &[u8], bytes: &[u8]) -> Result<Zeroizing<Vec<u8>>, Error> {
+    |        ^^^       ----------
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:742:21
+    |
+742 |     let signature = algorithm.mac(&challenge.credential.stored_key, auth.as_bytes())?;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:742:21
+    |
+742 |     let signature = algorithm.mac(&challenge.credential.stored_key, auth.as_bytes())?;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<{integer}>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:743:26
+    |
+743 |     let mut client_key = Zeroizing::new(vec![0; algorithm.size()]);
+    |                          ^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<{integer}>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<{integer}>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<{integer}>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:743:26
+    |
+743 |     let mut client_key = Zeroizing::new(vec![0; algorithm.size()]);
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<{integer}>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<{integer}>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0599]: no method named `iter_mut` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:745:10
+    |
+744 |       for ((out, p), s) in client_key
+    |  __________________________-
+745 | |         .iter_mut()
+    | |         -^^^^^^^^ method not found in `Zeroizing<Vec<{integer}>>`
+    | |_________|
+    |
+
+error[E0599]: no method named `iter` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:746:20
+    |
+746 |         .zip(proof.iter())
+    |                    ^^^^ method not found in `Zeroizing<Vec<u8>>`
+
+error[E0599]: no method named `iter` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:747:24
+    |
+747 |         .zip(signature.iter())
+    |                        ^^^^ method not found in `Zeroizing<Vec<u8>>`
+
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:751:40
+    |
+751 |     let mut candidate = algorithm.hash(&client_key);
+    |                                   ---- ^^^^^^^^^^^ expected `&[u8]`, found `&Zeroizing<Vec<{integer}>>`
+    |                                   |
+    |                                   arguments to this method are incorrect
+    |
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<{integer}>>`
+note: method defined here
+   --> src/security/sasl.rs:159:8
+    |
+159 |     fn hash(self, bytes: &[u8]) -> Vec<u8> {
+    |        ^^^^       ------------
+
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:752:45
+    |
+752 |     let valid = algorithm.equal(&candidate, &challenge.credential.stored_key);
+    |                           -----             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&Zeroizing<Vec<u8>>`
+    |                           |
+    |                           arguments to this method are incorrect
+    |
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<u8>>`
+note: method defined here
+   --> src/security/sasl.rs:184:8
+    |
+184 |     fn equal(self, a: &[u8], b: &[u8]) -> bool {
+    |        ^^^^^                 --------
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:757:38
+    |
+757 |     let server_signature = algorithm.mac(&challenge.credential.server_key, auth.as_bytes())?;
+    |                                      ^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0308]: mismatched types
+   --> src/security/sasl.rs:757:42
+    |
+757 |     let server_signature = algorithm.mac(&challenge.credential.server_key, auth.as_bytes())?;
+    |                                      --- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&Zeroizing<Vec<u8>>`
+    |                                      |
+    |                                      arguments to this method are incorrect
+    |
+    = note: expected reference `&[u8]`
+               found reference `&Zeroizing<Vec<u8>>`
+note: method defined here
+   --> src/security/sasl.rs:165:8
+    |
+165 |     fn mac(self, key: &[u8], bytes: &[u8]) -> Result<Zeroizing<Vec<u8>>, Error> {
+    |        ^^^       ----------
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:757:28
+    |
+757 |     let server_signature = algorithm.mac(&challenge.credential.server_key, auth.as_bytes())?;
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0277]: the trait bound `Vec<u8>: DefaultIsZeroes` is not satisfied
+   --> src/security/sasl.rs:757:28
+    |
+757 |     let server_signature = algorithm.mac(&challenge.credential.server_key, auth.as_bytes())?;
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `DefaultIsZeroes` is not implemented for `Vec<u8>`
+    |
+    = help: the following other types implement trait `DefaultIsZeroes`:
+              ()
+              PhantomPinned
+              bool
+              char
+              f32
+              f64
+              i128
+              i16
+            and 10 others
+    = note: required for `Vec<u8>` to implement `Zeroize`
+note: required by a bound in `Zeroizing`
+   --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0/src/lib.rs:604:25
+    |
+604 | pub struct Zeroizing<Z: Zeroize + ?Sized>(Z);
+    |                         ^^^^^^^ required by this bound in `Zeroizing`
+
+error[E0599]: no method named `as_slice` found for struct `Zeroizing<Z>` in the current scope
+   --> src/security/sasl.rs:759:67
+    |
+759 |         message: format!("v={}", STANDARD.encode(server_signature.as_slice())).into_bytes(),
+    |                                                                   ^^^^^^^^ method not found in `Zeroizing<Vec<u8>>`
+
+Some errors have detailed explanations: E0277, E0308, E0599.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `partitionline-broker` (lib) due to 64 previous errors

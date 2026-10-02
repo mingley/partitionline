@@ -1,0 +1,4 @@
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-sasl/source/partitionline-broker)
+error: couldn't create a temp dir: No space left on device (os error 28) at path "/workspace/work/broker-sasl/target/debug/deps/rmetacxVuUM"
+
+error: could not compile `partitionline-broker` (lib) due to 1 previous error

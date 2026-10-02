@@ -1,0 +1,20 @@
+   Compiling partitionline v0.1.0 (/workspace/work/full-goal/client-lint-3b1d0af)
+    Finished `test` profile [unoptimized] target(s) in 22.38s
+     Running unittests src/lib.rs (/workspace/work/target-qa/debug/deps/partitionline-af37b16a5d920fc8)
+
+running 12 tests
+test metrics::tests::format_bytes_matches_java_utils ... ok
+test metrics::tests::latency_tracker_p50_p99_of_one_to_hundred ... ok
+test metrics::tests::fetch_topics_sorted_and_grouped ... ok
+test metrics::tests::latency_tracker_min_max_mean ... ok
+test metrics::tests::metrics_default_zero ... ok
+test metrics::tests::percentile_index_ceil_rank ... ok
+test metrics::tests::quota_matches_java_metrics ... ok
+test metrics::tests::record_batch_empty_is_noop ... ok
+test metrics::tests::record_batch_exact_totals_one_sample_per_batch ... ok
+test metrics::tests::throttle_stats_ignore_zero_and_saturate_without_labels ... ok
+test protocol::admin::tests::push_telemetry_request_metrics_content_type_matches_java ... ok
+test protocol::admin::tests::push_telemetry_request_metrics_data_matches_java ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 1088 filtered out; finished in 0.00s
+

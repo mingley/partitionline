@@ -1,0 +1,23 @@
+    Checking partitionline v0.1.0 (/workspace/work/full-goal/client-lint-6f04f6)
+error: use of `format!` to build up a string from an iterator
+  --> examples/common/bench_history.rs:86:5
+   |
+86 |     value.iter().map(|byte| format!("{byte:02x}")).collect()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: call `fold` instead
+  --> examples/common/bench_history.rs:86:18
+   |
+86 |     value.iter().map(|byte| format!("{byte:02x}")).collect()
+   |                  ^^^
+help: ... and use the `write!` macro here
+  --> examples/common/bench_history.rs:86:29
+   |
+86 |     value.iter().map(|byte| format!("{byte:02x}")).collect()
+   |                             ^^^^^^^^^^^^^^^^^^^^^
+   = note: this can be written more efficiently by appending to a `String` directly
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#format_collect
+   = note: `-D clippy::format-collect` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::format_collect)]`
+
+error: could not compile `partitionline` (example "bench_produce") due to 1 previous error

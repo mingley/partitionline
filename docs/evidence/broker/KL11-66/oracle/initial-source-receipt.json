@@ -1,0 +1,11 @@
+{
+  "source_sha": "2f86915786c88bf62c60a9468719e9117ae1c20d",
+  "source_path": "/workspace/work/sasl-oracle/source-2f86915786c88bf62c60a9468719e9117ae1c20d",
+  "source_archive_sha256": "c021bde4822dc057e3178c5bce8e30d72601cae3aa46a405d7705cad85c5d6fa",
+  "source_archive_bytes": 46090240,
+  "git_object_byte_matches": 4879,
+  "kind": "Preliminary archive identity receipt only; superseded before Java matrix execution.",
+  "java_oracle_executions": 0,
+  "superseded_by_source_sha": "029355f95687bb0528eb70f7872ce2e901adf4de",
+  "reason": "Coordinator-owned security module declaration order formatting correction; generator, mechanism, tests and fixture blobs unchanged."
+}

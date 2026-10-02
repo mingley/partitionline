@@ -1,0 +1,62 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 29.36s
+     Running tests/full_surface.rs (/workspace/work/target-produce-v13/debug/deps/full_surface-0961984063d40298)
+
+running 54 tests
+test admin_describe_producers_for ... ok
+test admin_create_then_produce_fetch ... ok
+test flush_fails_on_broker_produce_error ... ok
+test gzip_produce_fetch ... ok
+test idempotent_produce_gets_pid_and_offset ... ok
+test idempotent_epoch_exhaustion_renews_producer_identity ... ok
+test idempotent_unknown_producer_id_after_lost_ack_still_recovers ... ok
+test idempotent_unknown_producer_id_other_partition_progresses ... ok
+test describe_producers_follows_partition_leader ... ok
+test allocate_producer_ids_follows_controller ... ok
+test init_producer_id_rediscovers_after_not_coordinator ... ok
+test lz4_produce_fetch ... ok
+test produce_fetch_follow_metadata_leader ... ok
+test idempotent_unknown_producer_id_bumps_epoch_and_retries ... ok
+test idempotent_unknown_producer_id_retained_batch_resequenced ... ok
+test produce_mixed_version_multi_partition_distinct_leaders ... ok
+test produce_mixed_version_two_brokers_both_leader_orders ... ok
+test idempotent_unknown_producer_id_repeated_errors_bump_each_time ... ok
+test produce_reconnect_honors_backoff ... ok
+test produce_reconnects_when_connection_idle ... ok
+test produce_follows_node_endpoints_without_metadata ... ok
+test produce_refreshes_metadata_after_max_age ... ok
+test produce_retry_honors_backoff ... ok
+test produce_retries_retriable_then_succeeds ... ok
+test produce_throttle_close_timeout_interrupts_long_wait ... ok
+test produce_mixed_version_leader_movement_and_reconnection ... ok
+test produce_throttle_expiry_consumes_original_delivery_budget ... ok
+test produce_throttle_applies_to_second_connection_for_same_broker ... ok
+test produce_throttle_flush_cannot_bypass_quota ... ok
+test produce_throttle_survives_idle_reconnection_and_version_change ... ok
+test produce_v12_skip_does_not_suppress_add_partitions_after_move_to_v7 ... ok
+test produce_throttle_reads_inflight_acks_without_unmuting_queued_work ... ok
+test produce_v13_retains_older_name_versions_and_metadata_fallback ... ok
+test produce_v13_response_identity_uses_sent_snapshot_after_metadata_change ... ok
+test produce_v13_transaction_v2_semantics_and_classic_ceiling ... ok
+test produce_v13_unsent_uuid_and_missing_metadata_id_fail_clearly ... ok
+test produce_v13_uses_metadata_topic_ids_and_preserves_public_names ... ok
+test producer_skips_dead_bootstrap ... ok
+test sasl_oauthbearer_then_produce ... ok
+test sasl_oidc_https_then_produce ... ok
+test sasl_oidc_then_produce ... ok
+test sasl_plain_then_produce ... ok
+test produce_v13_stale_id_refreshes_without_extending_delivery_budget ... ok
+test produce_throttle_does_not_delay_other_broker ... ok
+test snappy_produce_fetch ... ok
+test tls_produce_fetch ... ok
+test transactional_fatal_produce_errors_fence_producer ... ok
+test transactional_fenced_produce_is_fatal_classic ... ok
+test transactional_fenced_produce_is_fatal_v2 ... ok
+test transactional_producer_finds_txn_coordinator ... ok
+test transactional_replacement_producer_fences_first ... ok
+test produce_throttle_version_boundary_and_invalid_values ... ok
+test sasl_scram_sha256_then_produce ... ok
+test sasl_scram_sha512_then_produce ... ok
+
+test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 276 filtered out; finished in 2.04s
+

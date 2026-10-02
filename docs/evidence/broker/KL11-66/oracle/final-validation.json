@@ -1,0 +1,57 @@
+{
+  "source_sha": "029355f95687bb0528eb70f7872ce2e901adf4de",
+  "verdict": "passed",
+  "total_case_executions": 333,
+  "expected_literal_rfc_mutant_failures": 3,
+  "source_snapshot_file_count": 4879,
+  "independently_rehashed_retained_reference_files": 39,
+  "release_receipts": [
+    {
+      "version": "4.1.2",
+      "actual_table_and_outcome_row_counts": {
+        "apache-scram.tsv": 48,
+        "apache-messages.tsv": 36,
+        "apache-plain.tsv": 12,
+        "rfc-scram-sha256.tsv": 1,
+        "rfc-scram-extensions.tsv": 2,
+        "outcomes.tsv": 110
+      },
+      "all_raw_log_hashes_match": true,
+      "all_compiled_class_hashes_match": true,
+      "published_fixture_bytes_match_exact_snapshot_and_current_owned_files": true,
+      "literal_rfc_mutant_failed_as_expected": true
+    },
+    {
+      "version": "4.2.1",
+      "actual_table_and_outcome_row_counts": {
+        "apache-scram.tsv": 48,
+        "apache-messages.tsv": 36,
+        "apache-plain.tsv": 12,
+        "rfc-scram-sha256.tsv": 1,
+        "rfc-scram-extensions.tsv": 2,
+        "outcomes.tsv": 110
+      },
+      "all_raw_log_hashes_match": true,
+      "all_compiled_class_hashes_match": true,
+      "published_fixture_bytes_match_exact_snapshot_and_current_owned_files": true,
+      "literal_rfc_mutant_failed_as_expected": true
+    },
+    {
+      "version": "4.3.1",
+      "actual_table_and_outcome_row_counts": {
+        "apache-scram.tsv": 48,
+        "apache-messages.tsv": 36,
+        "apache-plain.tsv": 12,
+        "rfc-scram-sha256.tsv": 1,
+        "rfc-scram-extensions.tsv": 2,
+        "outcomes.tsv": 110
+      },
+      "all_raw_log_hashes_match": true,
+      "all_compiled_class_hashes_match": true,
+      "published_fixture_bytes_match_exact_snapshot_and_current_owned_files": true,
+      "literal_rfc_mutant_failed_as_expected": true
+    }
+  ],
+  "production_qualification": false,
+  "rust_builds_performed_by_this_reviewer": false
+}

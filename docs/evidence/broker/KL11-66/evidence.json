@@ -1,0 +1,659 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-66",
+  "status": "complete",
+  "acceptance_met": true,
+  "source_sha": "029355f95687bb0528eb70f7872ce2e901adf4de",
+  "initial_implementation_sha": "2f86915786c88bf62c60a9468719e9117ae1c20d",
+  "baseline_sha": "15f2ac8f909414c712519bdea55ca9b97aea10aa",
+  "scope": "Bounded optional salted credential and PLAIN/SCRAM server state foundation.",
+  "source_inputs_sha256": {
+    "partitionline-broker/src/security/sasl.rs": "63afc3ba72a5fa4a2e50a0b58dd3022e7f383c7281ef18bcdfc87c9ae7722c4a",
+    "partitionline-broker/tests/sasl.rs": "d19a5eff6e8f942d709854cea6346af8a3028898b621cb4d6218ff914dcdb15c",
+    "partitionline-broker/Cargo.toml": "818b2016caf934fbdbd4bb1ab757b80502aba30624ecc2f235e175b625eb58a6",
+    "partitionline-broker/Cargo.lock": "411cc15158c6ead356251de362ebf2506acfbfa65a1b67ae15adcef9e4aa1572",
+    "partitionline-broker/src/security/mod.rs": "b2fee76b7f5585f1255e20531ed8c7c5d28523595fafd7346396f8397040ae3b",
+    "partitionline-broker/src/lib.rs": "fd208b661ea2d627fd48bb953d362202e8da68954d8234e8d07ce4bd29ea29a3",
+    "docs/evidence/broker/KL11-66/run-rust-qa.py": "43c4281e1f55503915464d8f1f2d13d4a0cedc32cb2b91010e015c111d0458af",
+    "docs/evidence/broker/KL11-66/check-dependency-graph.py": "b95ffd93b462475f66aa19b85c01d8ed32b2e4744a2dd8dea19ec62eed382007",
+    "docs/evidence/broker/KL11-66/oracle/SaslMechanismOracle.java": "73e23b583fb7144e488e33a210bfb25e7d8700d727ee6b347d71d3324ec700bc",
+    "docs/evidence/broker/KL11-66/oracle/run-oracle.py": "627365426ebc519644b668472d77481f1cfd4b3dd4766869d522f50eb60abeaf",
+    "partitionline-broker/tests/fixtures/sasl/apache-messages.tsv": "001711ed05fbf9a5779d577a646103bc43f4036c3cf9de08c3a0694b61502147",
+    "partitionline-broker/tests/fixtures/sasl/apache-plain.tsv": "ff2a535f6db02b0d99d895e634659f897efd64c8b16db067ff8ab05582beba7e",
+    "partitionline-broker/tests/fixtures/sasl/apache-scram.tsv": "b7967a38b463b1ee13beeca95d31fc63c723556e90e7c39f9981c5e909d654c1",
+    "partitionline-broker/tests/fixtures/sasl/rfc-scram-extensions.tsv": "e1898e6c47faac12fb81363a3ef4e3215eeff4d851972964571e3955bcf5e9ca",
+    "partitionline-broker/tests/fixtures/sasl/rfc-scram-sha256.tsv": "b46246435b3ab6b5a4db5ea55b963bc9813c5a74b0835e373b6b910d59f94309"
+  },
+  "frozen_rust_archive_sha256": "fc5d7f855d66ba0b09c503591afdf662fb73c6b5ea97cf6a096fad358a3bf83a",
+  "rust_counts": {
+    "stable": {
+      "default-tests": {
+        "passed": 111,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      "sasl-tests": {
+        "passed": 128,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      "all-tests": {
+        "passed": 143,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    "1.85.0": {
+      "default-tests": {
+        "passed": 111,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      "sasl-tests": {
+        "passed": 128,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      "all-tests": {
+        "passed": 143,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    }
+  },
+  "rust_commands": [
+    {
+      "toolchain": "stable",
+      "cell": "versions",
+      "command": [
+        "rustc",
+        "+stable",
+        "-vV"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/stable-versions.log",
+      "log_sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/stable-fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "default-tests",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/stable-default-tests.log",
+      "log_sha256": "3951b0430a063828e8932c3ca6d6b5102f8df91fae8a6fb64249cef184d63edd",
+      "passed": 111,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    {
+      "toolchain": "stable",
+      "cell": "sasl-tests",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/stable-sasl-tests.log",
+      "log_sha256": "2a0e77a9ad7788bc8ecbbffec80f9e643d97fdb62f2830eb647efa09132d7f1f",
+      "passed": 128,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    {
+      "toolchain": "stable",
+      "cell": "all-tests",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/stable-all-tests.log",
+      "log_sha256": "d598799e53efc6eb4d12b0dfcb6e3d753adb97db371b61ccb07015357ff3886f",
+      "passed": 143,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    {
+      "toolchain": "stable",
+      "cell": "default-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/stable-default-clippy.log",
+      "log_sha256": "81091f99ea239f7ec1c43e869c958dd04b9d797d4d81d8caff9f60ae2cbab017"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "sasl-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/stable-sasl-clippy.log",
+      "log_sha256": "37ad9d5c26ce27f419e7a8f5f25d96c6e03d51aacc01b3dfd5195c543dda953f"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "all-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/stable-all-clippy.log",
+      "log_sha256": "919741cca822d0062c1e4744230b625e72eca53fd9f9f94d0ba787afab9d6fae"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/stable-docs.log",
+      "log_sha256": "4ceafa2da26dd6c6fe0bf19fc5e67093ac85514d25b50bb25a88703ccdcadfde"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "versions",
+      "command": [
+        "rustc",
+        "+1.85.0",
+        "-vV"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/1.85.0-versions.log",
+      "log_sha256": "be9e105cd61ce407c0e06d80a25240f93cc48de72942117e1886f09aa08f9a2a"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/1.85.0-fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "default-tests",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/1.85.0-default-tests.log",
+      "log_sha256": "692f9e245a957af43aef2144c125e5a1582e64176bcb4d0aa4507c53f3643446",
+      "passed": 111,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "sasl-tests",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/1.85.0-sasl-tests.log",
+      "log_sha256": "826c467cfec6126920ea4071f2858a4fc1bf7a530768e1091ae413888e27f70e",
+      "passed": 128,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "all-tests",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/1.85.0-all-tests.log",
+      "log_sha256": "3d297292bc5ccf14307bd06fca03591d9d42f627f60aaa846ec569bb2d7a3e8e",
+      "passed": 143,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "default-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/1.85.0-default-clippy.log",
+      "log_sha256": "311d45c2e766bd8c68c5c0f5afde49aeb92961a11baa4d6f5913821e59a1d0e5"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "sasl-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/1.85.0-sasl-clippy.log",
+      "log_sha256": "eb976df7e201608de41807ff9df3625490a4b0a7dcd34c7da0751195372aed20"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "all-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/1.85.0-all-clippy.log",
+      "log_sha256": "9bb384ddab00695ab7ecb20016ea84fa40cac23486c5ef9d4eda530ea4bfbed6"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/corrected-final-qa/source/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps",
+        "--target-dir",
+        "/workspace/work/broker-sasl/target",
+        "-j1"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-66/rust-qa/1.85.0-docs.log",
+      "log_sha256": "50c12e7ad87af54506a8bd01987b339ffc2bd53e5df1184722c3ab8a8725a8bb"
+    }
+  ],
+  "new_sasl_test_functions": {
+    "private": 7,
+    "public": 10
+  },
+  "independent_oracle": {
+    "source_sha": "029355f95687bb0528eb70f7872ce2e901adf4de",
+    "releases": [
+      "4.1.2",
+      "4.2.1",
+      "4.3.1"
+    ],
+    "cases_per_release": 111,
+    "total_case_executions": 333,
+    "expected_failing_rfc_mutants": 3,
+    "byte_identical_outputs": true,
+    "literal_published_rfc7677_match": true,
+    "method": "Actual Apache mechanism objects/parsers and independent crypto references; documented test-only deterministic Java RNG hook.",
+    "review_verdict": "no blocking finding within the stated bounded mechanism foundation scope",
+    "results": "docs/evidence/broker/KL11-66/oracle/final-matrix/results.json",
+    "validation": "docs/evidence/broker/KL11-66/oracle/final-validation.json",
+    "source_snapshot_proof": "docs/evidence/broker/KL11-66/oracle/frozen-source.json",
+    "review": "docs/evidence/broker/KL11-66/oracle/independent-mechanism-review.json",
+    "oracle_checksum_entries": 239,
+    "oracle_checksum_manifest_sha256": "ae2c1ac3d475d06fd95e144c4d06837cf0b2f7a12de23ab6374a530e655a732c"
+  },
+  "default_graphs": {
+    "active_target": "x86_64-unknown-linux-gnu",
+    "unchanged": {
+      "client": true,
+      "broker": true
+    },
+    "package_nodes": {
+      "client": 60,
+      "broker": 17
+    },
+    "proof": "docs/evidence/broker/KL11-66/dependency-graphs/results.json"
+  },
+  "acceptance": [
+    {
+      "requirement": "Pin Kafka/RFC behavior and independent valid/wrongproof/nonce/escaping/binding/duplicate/malformed proof fixtures.",
+      "proof": [
+        "48 actual Apache SCRAM server transcripts across SHA256/SHA512, 12 PLAIN decisions, 36 Java parser cases, 12 actual Apache client proof cases, literal RFC7677 vector and 2 exact-AuthMessage extension references per release; 333 executions across 4.1.2/4.2.1/4.3.1.",
+        "Rust replays all48 server transcripts+12 PLAIN+literalRFC+2extension references and12 client-first parser fixtures; server-first/final parsing remains Java/client scope.",
+        "Actual ASCII-only SCRAM username rejection and UTF8 SCRAM password/PLAIN identity acceptance pinned independently.",
+        "Unknown optional extensions are ignored semantically and cryptographically bound to exact raw AuthMessage; deliberately stricter mandatory/duplicate/GS2 binding and terminal failure behavior documented."
+      ],
+      "artifacts": [
+        "oracle/final-matrix/results.json",
+        "oracle/final-validation.json",
+        "oracle/independent-mechanism-review.json",
+        "rust-qa/results.json"
+      ]
+    },
+    {
+      "requirement": "Persist only salted verifier forms and enforce all requested budgets.",
+      "proof": [
+        "Credential and CredentialForm contain only Algorithm/Salt/Iterations/StoredKey/ServerKey; derive never automatically stores a password or its other derivatives.",
+        "Validated message65536, identity1024, password16384, salt1024, nonce4096, iteration1000000, entries4096, admission256 and worker64 hard ceilings; bounded configurable defaults are documented.",
+        "Message parsing has at most16 distinct attributes; imports require salt>=16, iterations>=4096 and exact32/64-byte key sizes.",
+        "Identity-count/duplicate/badkey/iteration/nonce/message/password tests and generation rotation/replay cases pass."
+      ]
+    },
+    {
+      "requirement": "Tested constant-time crypto API, cryptographic entropy and redacted diagnostics.",
+      "proof": [
+        "RustCrypto digest0.11.3 CtOutput::Eq invokes ctutils0.4.2 CtEq for exact32/64-byte outputs; both hashes tested equal/first-middle-last mismatches/bothdirections/wronglength, plus actual independent badproof cases.",
+        "getrandom0.4.3 fill supplies32-byte generated salts and32-byte nonce suffixes; freshness and length tests pass.",
+        "Secret/Credential/CredentialForm/Service/ScramSession/Identity/ScramResult Debug implementations and fixed Error categories redact inputs.",
+        "Application buffers use zeroize1.9 alloc; lifetime limitations for library/compiler/caller temporaries explicitly retained."
+      ],
+      "artifacts": [
+        "crypto-api-review.json",
+        "rust-qa/results.json"
+      ]
+    },
+    {
+      "requirement": "Bound expensive work off Tokio and release caller admission on cancellation while in-flight work stays bounded.",
+      "proof": [
+        "Two failfast semaphore budgets, Tokio spawn_blocking, owned worker permit through actual queued/running completion, cancellation flag before/after job.",
+        "Deterministic current-thread test proves different executor/worker ThreadIds, abort releases admission immediately, unfinished worker remains1, new derive returnsBusy, completion permits later success.",
+        "A single-thread blocking-pool test proves queued cancelled job never executes after pool unblocks and cannot admit excess workers.",
+        "Tokio short try-lock credential access returnsBusy and releases admission under contention."
+      ]
+    },
+    {
+      "requirement": "Default graphs unchanged, only approved optional dependencies, no premature SASL wire API claim.",
+      "proof": [
+        "Locked active Linux graphs exactly match baseline: client60 and broker17 package nodes including features and dependency edges.",
+        "Only optional base640.23/hmac0.13/pbkdf20.13/sha20.11/zeroize1.9 added to sasl; default broker feature set remains empty, existing getrandom/Tokio reused.",
+        "Stable and Rust1.85 independently pass default, SASL-only and all-feature full-broker suites, strict alltarget Clippy, fmt and strict rustdoc.",
+        "SASL mechanism module is not connected to Kafka dispatch/transport/admin; full connection lifecycle, verifiedTLS PLAIN gating, reauthentication and live sessions remain KL11-36."
+      ],
+      "artifacts": [
+        "dependency-graphs/results.json",
+        "rust-qa/results.json"
+      ]
+    }
+  ],
+  "limitations": [
+    "Mechanism/credential foundation only; no Kafka SASL framing, connection lifecycle, reauthentication, live-broker/client interoperability or production qualification claim.",
+    "Kafka raw UTF8 passwords are preserved without SASLprep; SCRAM username ASCII restriction matches Apache, PLAIN identities are UTF8. RFC evidence is the pinned vector/AuthMessage subset, not general SASLprep conformance.",
+    "PLAIN prefers SHA256 verifier when both are stored, else SHA512; caller-owned credential persistence remains outside the service.",
+    "Admitted SCRAM/PLAIN operations retain original immutable credential generations; rotation changes new admissions, not revocation of already admitted exchanges.",
+    "Cancelling PBKDF2 cannot preempt its blocking computation; admission drops immediately but queued/running worker and secret remain bounded until actual completion.",
+    "CtOutput API/source verification is not statistical timing certification or an all-architecture/compiler guarantee; it does not equalize unknown-user or malformed-message timing.",
+    "Zeroizing ownership does not guarantee clearing every PBKDF2 U array, HMAC key-pad/hash temporary, compiler/register/stack copy or caller-made copy.",
+    "Default graph equality was actually checked for x86_64-unknown-linux-gnu; no unmeasured target graph claim.",
+    "Three expected RFC mutant failures validate the independent oracle; precommit failures and initial2f module-format failure are preserved, no new skipped or ignored tests."
+  ],
+  "preserved_failures": {
+    "precommit_logs": "docs/evidence/broker/KL11-66/development-logs/provenance.json",
+    "initial_immutable_source": {
+      "source_sha": "2f86915786c88bf62c60a9468719e9117ae1c20d",
+      "failed_cell": "stable fmt",
+      "cause": "Root-owned security/mod.rs declaration order required rustfmt. Corrected by029355f9; mechanism/test/fixture/producer blobs unchanged.",
+      "results": "docs/evidence/broker/KL11-66/preserved-initial-qa/results.json"
+    },
+    "oracle_development_runs": [
+      "oracle/development-matrix",
+      "oracle/development-matrix-v2",
+      "oracle/development-matrix-v3"
+    ],
+    "expected_rfc_mutants": "Retained in each development/final matrix with expected exit1 and partial output."
+  },
+  "production_qualification": false,
+  "environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "RUSTDOCFLAGS": "-D warnings",
+    "rust_cpu_affinity": "0,1",
+    "measurement": "No performance measurement or public comparative claim."
+  },
+  "checksums_manifest": "docs/evidence/broker/KL11-66/SHA256SUMS"
+}

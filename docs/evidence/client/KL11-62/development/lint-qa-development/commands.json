@@ -1,0 +1,23 @@
+{
+  "source_sha": "0f382e8142d9657a719c505b91a4c4e49baf1a8f",
+  "commands": [
+    {
+      "toolchain": "stable",
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 101,
+      "elapsed_seconds": 23.445140954001545,
+      "log": "/workspace/work/full-goal/lint-qa/stable-strict-clippy.log"
+    }
+  ]
+}

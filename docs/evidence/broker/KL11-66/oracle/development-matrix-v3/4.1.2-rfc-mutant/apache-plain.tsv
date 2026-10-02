@@ -1,0 +1,13 @@
+name	message_hex	server_accepted	authenticated_identity_hex
+canonical-basic	00757365720070656e63696c	true	75736572
+canonical-self-authzid	7573657200757365720070656e63696c	true	75736572
+canonical-escaped-identity	006573636170652c757365723d6f6b0070656e63696c	true	6573636170652c757365723d6f6b
+canonical-utf8	00e794a8e688b70070c3a47373f09f92ab	true	e794a8e688b7
+canonical-wrong-password	00757365720077726f6e67	false	
+canonical-unknown-user	006d697373696e670070656e63696c	false	
+canonical-other-authzid	6f7468657200757365720070656e63696c	false	
+canonical-empty-user	000070656e63696c	false	
+canonical-empty-password	007573657200	false	
+canonical-no-separator	75736572	false	
+canonical-one-separator	757365720070656e63696c	false	
+canonical-extra-separator	00757365720070656e63696c006578747261	false	

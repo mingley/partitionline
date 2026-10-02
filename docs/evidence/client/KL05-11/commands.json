@@ -1,0 +1,2776 @@
+{
+  "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+  "commands": [
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "rustc-version",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+stable",
+        "--version",
+        "--verbose"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.011511044998769648,
+      "log": "final-gates-retry2/stable/rustc-version.log",
+      "log_sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.252246177999041,
+      "log": "final-gates-retry2/stable/fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "build-examples-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--examples",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 36.07199439500255,
+      "log": "final-gates-retry2/stable/build-examples-default.log",
+      "log_sha256": "66d47ae74bba38fcb8d8acd8449f733075427bdd43b575a9db024dc40279f013",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "tests-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 106.74533758699909,
+      "log": "final-gates-retry2/stable/tests-default.log",
+      "log_sha256": "222e6b72839a4b869978e416f0114da3af99dc924944a6c5328e8f40997c189a",
+      "suite_counts": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 33,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "build-examples-all-features",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--examples",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 24.693915559000743,
+      "log": "final-gates-retry2/stable/build-examples-all-features.log",
+      "log_sha256": "e34868f543c8f4e8d2c146de3000769ae9497000635b91178fffb956935500c1",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "tests-all-features",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 104.39063740599886,
+      "log": "final-gates-retry2/stable/tests-all-features.log",
+      "log_sha256": "d531464b128c428ecd2ee50b33cef0b0e5cbd4a79d4a73e206a280c5691c191c",
+      "suite_counts": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 33,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "java-live",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "protocol_oracles",
+        "--all-features",
+        "produce_v13_rust_output_decodes",
+        "--jobs",
+        "2",
+        "--",
+        "--nocapture"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.5429455929988762,
+      "log": "final-gates-retry2/stable/java-live.log",
+      "log_sha256": "79847ce30574a5dca2c9c449851e969267f0a74bde9814aff5203eb28382627a",
+      "suite_counts": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 33
+        }
+      ],
+      "actual_java_decode_processes": 3
+    },
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "metrics-lib",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--lib",
+        "metrics::tests",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.047208077001414495,
+      "log": "final-gates-retry2/stable/metrics-lib.log",
+      "log_sha256": "3518e9c07298e91df6ced021c51d8d0a0362c053ec96c63f14819e7e3da7edfb",
+      "suite_counts": [
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1090
+        }
+      ]
+    },
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "credential-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.48069938700064085,
+      "log": "final-gates-retry2/stable/credential-default.log",
+      "log_sha256": "5f70871446b4e99c5e211fc991b7e2d7f64d24d1132e81c7bbc9aa72c4f04b19",
+      "suite_counts": [
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "credential-tracing",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--features",
+        "tracing",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.5399852640002791,
+      "log": "final-gates-retry2/stable/credential-tracing.log",
+      "log_sha256": "3cff64c3e14be938002ce9aa83d788da7736dad9397145685cd3c85225ad1890",
+      "suite_counts": [
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "2",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 26.945907765999436,
+      "log": "final-gates-retry2/stable/clippy.log",
+      "log_sha256": "85bc264c16f0f91348c05b8c16f0f2a5eaa5f954d89d03d30986e39c2bb84fec",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--no-deps",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.0918457450025016,
+      "log": "final-gates-retry2/stable/docs.log",
+      "log_sha256": "fe4aa863f4a85c73acbb4191986e83da5566cea2809bc5b1d2c5129ff0545fcc",
+      "suite_counts": []
+    },
+    {
+      "name": "doctests",
+      "toolchain": "stable",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--doc",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "log": "final-gates-retry2/stable/doctests.log",
+      "log_sha256": "6a5f35b618cee4b3034deaae3ff81fd4fdec19882439058c80c2ac735f1f9aae",
+      "counts": {
+        "suite_results": 1,
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "suites": [
+          {
+            "passed": 4,
+            "failed": 0,
+            "ignored": 0,
+            "measured": 0,
+            "filtered": 0
+          }
+        ]
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "rustc-version",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+1.85.0",
+        "--version",
+        "--verbose"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.011612439000600716,
+      "log": "final-gates-retry1/msrv/rustc-version.log",
+      "log_sha256": "be9e105cd61ce407c0e06d80a25240f93cc48de72942117e1886f09aa08f9a2a",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.383633411998744,
+      "log": "final-gates-retry1/msrv/fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "build-examples-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--examples",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 24.494882125000004,
+      "log": "final-gates-retry1/msrv/build-examples-default.log",
+      "log_sha256": "85e762e38c4d80e4beac970b620415f835a1d0c8f479c47aa14cb1d726a998be",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "tests-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 54.7750781629984,
+      "log": "final-gates-retry1/msrv/tests-default.log",
+      "log_sha256": "70c4038855d9298c0335832661cc18978875cd09e31d9d60e253686011feedbb",
+      "suite_counts": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 33,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "build-examples-all-features",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--examples",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 36.797290853999584,
+      "log": "final-gates-retry1/msrv/build-examples-all-features.log",
+      "log_sha256": "2e6a9b478dcf73f245caab22d071afce6e3fe66adf01475b3ade0d6243a69e6d",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "rustc-version",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+1.85.0",
+        "--version",
+        "--verbose"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.012301069000386633,
+      "log": "final-gates-retry2/msrv/rustc-version.log",
+      "log_sha256": "be9e105cd61ce407c0e06d80a25240f93cc48de72942117e1886f09aa08f9a2a",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.444243876998371,
+      "log": "final-gates-retry2/msrv/fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "build-examples-all-features",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--examples",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.07078486499813152,
+      "log": "final-gates-retry2/msrv/build-examples-all-features.log",
+      "log_sha256": "da617cec9cb409cc7d90040e129ad90b46ac0d3bfc0d87a5184fe72f43403805",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "tests-all-features",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 79.01641041400217,
+      "log": "final-gates-retry2/msrv/tests-all-features.log",
+      "log_sha256": "049467fb207ebc3f9e7322ac84584eb216893c0e7c47b0693d5fd547d0948eb3",
+      "suite_counts": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 33,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "java-live",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--test",
+        "protocol_oracles",
+        "--all-features",
+        "produce_v13_rust_output_decodes",
+        "--jobs",
+        "2",
+        "--",
+        "--nocapture"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.5823201130006055,
+      "log": "final-gates-retry2/msrv/java-live.log",
+      "log_sha256": "b33155dbd5a50fa30f865eaf740c298294f42a9a5240a39483dda8414f953248",
+      "suite_counts": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 33
+        }
+      ],
+      "actual_java_decode_processes": 3
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "metrics-lib",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--lib",
+        "metrics::tests",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.05155222900066292,
+      "log": "final-gates-retry2/msrv/metrics-lib.log",
+      "log_sha256": "55f0f438ccc1ab032c92d3e01ae2b10b86cdf710fd7634b990b5da81fb08baf1",
+      "suite_counts": [
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1090
+        }
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "credential-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.5037994090016582,
+      "log": "final-gates-retry2/msrv/credential-default.log",
+      "log_sha256": "8a4ca55161427fa1dd87479f990f9bb958e92456bf202b0fd6b5518e5aacd5db",
+      "suite_counts": [
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "credential-tracing",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--features",
+        "tracing",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.5931088249999448,
+      "log": "final-gates-retry2/msrv/credential-tracing.log",
+      "log_sha256": "4d74b7b2472f21b07bb2a0e43b4f2d0e5cd66a459a2e52eda1db0b2f7690b983",
+      "suite_counts": [
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "2",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 40.522107478998805,
+      "log": "final-gates-retry2/msrv/clippy.log",
+      "log_sha256": "26bfddba5ac8cf9127e10ea948a1327e9d820702d8c4204a50ffb764e9b72f19",
+      "suite_counts": []
+    },
+    {
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "name": "docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--no-deps",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "status": "passed",
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.9214889899994887,
+      "log": "final-gates-retry2/msrv/docs.log",
+      "log_sha256": "18b94de70b99c3b19e7d753d2182724c9eeaf2fbaf9fe23129f8c5f7579bbdb1",
+      "suite_counts": []
+    },
+    {
+      "name": "doctests",
+      "toolchain": "1.85.0",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--doc",
+        "--all-features",
+        "--jobs",
+        "2"
+      ],
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-produce-v13-msrv",
+        "PARTITIONLINE_PRODUCE_V13_JARS": "/workspace/work/broker-wire/jars",
+        "PARTITIONLINE_PRODUCE_V13_CLASSES": "/workspace/work/produce-v13/final-java",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "log": "final-gates-retry2/msrv/doctests.log",
+      "log_sha256": "a62dfcbcd0fae11f3732d0dad1d1d4e26599e27f449c46c4ec993ee59e48b117",
+      "counts": {
+        "suite_results": 1,
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "suites": [
+          {
+            "passed": 4,
+            "failed": 0,
+            "ignored": 0,
+            "measured": 0,
+            "filtered": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "protocol-coverage",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "status": "passed",
+      "exit_code": 0,
+      "log": "final-coverage.log",
+      "log_sha256": "f6fdd630d0fee532ad8dc57a9e0a4d1fbc392d919905de1edda089e801022703",
+      "invocation_note": "Historical final log retained; exact command recorded by subsequent same-source bounded Python verification below."
+    },
+    {
+      "name": "protocol-coverage-tests",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "status": "passed",
+      "exit_code": 0,
+      "passed": 15,
+      "log": "final-coverage-tests.log",
+      "log_sha256": "a2559acc15f77968f7464de870fe0ada0f420ba08fbb0aff8b84929e3f68d0a6",
+      "invocation_note": "Historical final log retained; exact command recorded by subsequent same-source bounded Python verification below."
+    },
+    {
+      "name": "protocol-coverage",
+      "command": [
+        "python3",
+        "scripts/check-protocol-coverage.py"
+      ],
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "status": "passed",
+      "log": "protocol-coverage-recorded-final.log",
+      "log_sha256": "f6fdd630d0fee532ad8dc57a9e0a4d1fbc392d919905de1edda089e801022703"
+    },
+    {
+      "name": "protocol-coverage-tests",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "tests.conformance.test_check_protocol_coverage"
+      ],
+      "cwd": "/workspace/work/produce-v13/final-source",
+      "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "status": "passed",
+      "log": "protocol-coverage-tests-recorded-final.log",
+      "log_sha256": "c84fbd8382acfa5821333d1a51c05636cc45b3f24bf3d356b55bd2f9f7b7efe1"
+    }
+  ],
+  "java_fixture_commands": [
+    {
+      "identity": "java-final/java-4.1.2-final/identity.json",
+      "apache_client_version": "4.1.2",
+      "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "cells": [
+        {
+          "cell": "empty",
+          "version": 13,
+          "request_sha256": "96897b9c583efc0d209bebc4c6de995d790f3d1b6b90487600094421be9e2edd",
+          "response_sha256": "ea2c10c9040ba379012a276667a531eab37cde1b8c56135750bb72dbbdb13b7b",
+          "request_bytes": 9,
+          "response_bytes": 6
+        },
+        {
+          "cell": "paired",
+          "version": 13,
+          "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+          "response_sha256": "881b22d302a0a13f4a0898f7cc31388d3bf35097c24901d8df09c1f1bafe34d6",
+          "request_bytes": 217,
+          "response_bytes": 108
+        },
+        {
+          "cell": "reversed",
+          "version": 13,
+          "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+          "response_sha256": "accf69d82637eeb8435817c6a3cd37a2519c9f144d38888d1a1d174d4a6cea1f",
+          "request_bytes": 217,
+          "response_bytes": 108
+        },
+        {
+          "cell": "errors",
+          "version": 13,
+          "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+          "response_sha256": "1d2ff814d309059f555eb4d1b0d9d3f77c5cef993c0bf0be7115365e25a953eb",
+          "request_bytes": 217,
+          "response_bytes": 122
+        },
+        {
+          "cell": "tagged",
+          "version": 13,
+          "request_sha256": "b712f635228261e2481e91e7ba1330af6406accdcd9fbbf38811af5d143d559c",
+          "response_sha256": "79635709aebfb92be74813bb648194e0bbd805023071994b9e55176e0251ccf3",
+          "request_bytes": 234,
+          "response_bytes": 150
+        },
+        {
+          "cell": "zero-id",
+          "version": 13,
+          "request_sha256": "35ecd27ea462bdad5b8a4b5ca778d4583e5f7b0caee381a58387d06a9ba750bc",
+          "response_sha256": "7e59040c08af75b2b31961c00b2b634203cd393b0dbc675799ec8f0368a21f65",
+          "request_bytes": 217,
+          "response_bytes": 108
+        }
+      ],
+      "commands": {
+        "java-version": [
+          "/usr/bin/java",
+          "-version"
+        ],
+        "compile": [
+          "/usr/bin/java",
+          "--add-modules",
+          "jdk.compiler",
+          "com.sun.tools.javac.Main",
+          "--source",
+          "21",
+          "--target",
+          "21",
+          "-cp",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "-d",
+          "/workspace/work/produce-v13/final-java/java-4.1.2-final",
+          "/workspace/work/produce-v13/final-java/java-4.1.2-final/ProduceV13Fixtures.java"
+        ],
+        "execute": [
+          "/usr/bin/java",
+          "-cp",
+          "/workspace/work/produce-v13/final-java/java-4.1.2-final:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "ProduceV13Fixtures",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+          "tests/fixtures/protocol_oracles",
+          "--verify"
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "identity": "java-final/java-4.2.1-final/identity.json",
+      "apache_client_version": "4.2.1",
+      "source_commit_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "cells": [
+        {
+          "cell": "empty",
+          "version": 13,
+          "request_sha256": "96897b9c583efc0d209bebc4c6de995d790f3d1b6b90487600094421be9e2edd",
+          "response_sha256": "ea2c10c9040ba379012a276667a531eab37cde1b8c56135750bb72dbbdb13b7b",
+          "request_bytes": 9,
+          "response_bytes": 6
+        },
+        {
+          "cell": "paired",
+          "version": 13,
+          "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+          "response_sha256": "881b22d302a0a13f4a0898f7cc31388d3bf35097c24901d8df09c1f1bafe34d6",
+          "request_bytes": 217,
+          "response_bytes": 108
+        },
+        {
+          "cell": "reversed",
+          "version": 13,
+          "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+          "response_sha256": "accf69d82637eeb8435817c6a3cd37a2519c9f144d38888d1a1d174d4a6cea1f",
+          "request_bytes": 217,
+          "response_bytes": 108
+        },
+        {
+          "cell": "errors",
+          "version": 13,
+          "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+          "response_sha256": "1d2ff814d309059f555eb4d1b0d9d3f77c5cef993c0bf0be7115365e25a953eb",
+          "request_bytes": 217,
+          "response_bytes": 122
+        },
+        {
+          "cell": "tagged",
+          "version": 13,
+          "request_sha256": "b712f635228261e2481e91e7ba1330af6406accdcd9fbbf38811af5d143d559c",
+          "response_sha256": "79635709aebfb92be74813bb648194e0bbd805023071994b9e55176e0251ccf3",
+          "request_bytes": 234,
+          "response_bytes": 150
+        },
+        {
+          "cell": "zero-id",
+          "version": 13,
+          "request_sha256": "35ecd27ea462bdad5b8a4b5ca778d4583e5f7b0caee381a58387d06a9ba750bc",
+          "response_sha256": "7e59040c08af75b2b31961c00b2b634203cd393b0dbc675799ec8f0368a21f65",
+          "request_bytes": 217,
+          "response_bytes": 108
+        }
+      ],
+      "commands": {
+        "java-version": [
+          "/usr/bin/java",
+          "-version"
+        ],
+        "compile": [
+          "/usr/bin/java",
+          "--add-modules",
+          "jdk.compiler",
+          "com.sun.tools.javac.Main",
+          "--source",
+          "21",
+          "--target",
+          "21",
+          "-cp",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "-d",
+          "/workspace/work/produce-v13/final-java/java-4.2.1-final",
+          "/workspace/work/produce-v13/final-java/java-4.2.1-final/ProduceV13Fixtures.java"
+        ],
+        "execute": [
+          "/usr/bin/java",
+          "-cp",
+          "/workspace/work/produce-v13/final-java/java-4.2.1-final:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "ProduceV13Fixtures",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+          "tests/fixtures/protocol_oracles",
+          "--verify"
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "identity": "java-final/java-4.3.1-final/identity.json",
+      "apache_client_version": "4.3.1",
+      "source_commit_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "cells": [
+        {
+          "cell": "empty",
+          "version": 13,
+          "request_sha256": "96897b9c583efc0d209bebc4c6de995d790f3d1b6b90487600094421be9e2edd",
+          "response_sha256": "ea2c10c9040ba379012a276667a531eab37cde1b8c56135750bb72dbbdb13b7b",
+          "request_bytes": 9,
+          "response_bytes": 6
+        },
+        {
+          "cell": "paired",
+          "version": 13,
+          "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+          "response_sha256": "881b22d302a0a13f4a0898f7cc31388d3bf35097c24901d8df09c1f1bafe34d6",
+          "request_bytes": 217,
+          "response_bytes": 108
+        },
+        {
+          "cell": "reversed",
+          "version": 13,
+          "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+          "response_sha256": "accf69d82637eeb8435817c6a3cd37a2519c9f144d38888d1a1d174d4a6cea1f",
+          "request_bytes": 217,
+          "response_bytes": 108
+        },
+        {
+          "cell": "errors",
+          "version": 13,
+          "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+          "response_sha256": "1d2ff814d309059f555eb4d1b0d9d3f77c5cef993c0bf0be7115365e25a953eb",
+          "request_bytes": 217,
+          "response_bytes": 122
+        },
+        {
+          "cell": "tagged",
+          "version": 13,
+          "request_sha256": "b712f635228261e2481e91e7ba1330af6406accdcd9fbbf38811af5d143d559c",
+          "response_sha256": "79635709aebfb92be74813bb648194e0bbd805023071994b9e55176e0251ccf3",
+          "request_bytes": 234,
+          "response_bytes": 150
+        },
+        {
+          "cell": "zero-id",
+          "version": 13,
+          "request_sha256": "35ecd27ea462bdad5b8a4b5ca778d4583e5f7b0caee381a58387d06a9ba750bc",
+          "response_sha256": "7e59040c08af75b2b31961c00b2b634203cd393b0dbc675799ec8f0368a21f65",
+          "request_bytes": 217,
+          "response_bytes": 108
+        }
+      ],
+      "commands": {
+        "java-version": [
+          "/usr/bin/java",
+          "-version"
+        ],
+        "compile": [
+          "/usr/bin/java",
+          "--add-modules",
+          "jdk.compiler",
+          "com.sun.tools.javac.Main",
+          "--source",
+          "21",
+          "--target",
+          "21",
+          "-cp",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "-d",
+          "/workspace/work/produce-v13/final-java/java-4.3.1-final",
+          "/workspace/work/produce-v13/final-java/java-4.3.1-final/ProduceV13Fixtures.java"
+        ],
+        "execute": [
+          "/usr/bin/java",
+          "-cp",
+          "/workspace/work/produce-v13/final-java/java-4.3.1-final:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "ProduceV13Fixtures",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+          "tests/fixtures/protocol_oracles",
+          "--verify"
+        ]
+      },
+      "status": "passed"
+    }
+  ]
+}

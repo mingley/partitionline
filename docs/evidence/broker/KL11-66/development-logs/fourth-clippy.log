@@ -1,0 +1,8 @@
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-sasl/source/partitionline-broker)
+error: couldn't read `tests/../../docs/evidence/broker/KL11-59/topic-name-cases.tsv`: No such file or directory (os error 2)
+   --> tests/catalog.rs:178:19
+    |
+178 |     let vectors = include_str!("../../docs/evidence/broker/KL11-59/topic-name-cases.tsv");
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: could not compile `partitionline-broker` (test "catalog") due to 1 previous error

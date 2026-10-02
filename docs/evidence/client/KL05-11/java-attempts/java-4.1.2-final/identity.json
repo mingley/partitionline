@@ -1,0 +1,95 @@
+{
+  "apache_client_version": "4.1.2",
+  "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+  "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+  "slf4j_jar_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+  "generator_sha256": "7ff0f99d09c0167bc69b092794a879d5a51d4af375f0dcab61691d0db70a3972",
+  "exit_codes": {
+    "java-version": 0,
+    "compile": 0,
+    "execute": 0
+  },
+  "commands": {
+    "java-version": [
+      "/usr/bin/java",
+      "-version"
+    ],
+    "compile": [
+      "/usr/bin/java",
+      "--add-modules",
+      "jdk.compiler",
+      "com.sun.tools.javac.Main",
+      "--source",
+      "21",
+      "--target",
+      "21",
+      "-cp",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "-d",
+      "/workspace/work/produce-v13/java-4.1.2-final",
+      "/workspace/work/produce-v13/java-4.1.2-final/ProduceV13Fixtures.java"
+    ],
+    "execute": [
+      "/usr/bin/java",
+      "-cp",
+      "/workspace/work/produce-v13/java-4.1.2-final:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "ProduceV13Fixtures",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+      "tests/fixtures/protocol_oracles",
+      "--verify"
+    ]
+  },
+  "mode": "verify",
+  "compiled_source_sha256": "7ff0f99d09c0167bc69b092794a879d5a51d4af375f0dcab61691d0db70a3972",
+  "cells": [
+    {
+      "cell": "empty",
+      "version": 13,
+      "request_sha256": "96897b9c583efc0d209bebc4c6de995d790f3d1b6b90487600094421be9e2edd",
+      "response_sha256": "ea2c10c9040ba379012a276667a531eab37cde1b8c56135750bb72dbbdb13b7b",
+      "request_bytes": 9,
+      "response_bytes": 6
+    },
+    {
+      "cell": "paired",
+      "version": 13,
+      "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+      "response_sha256": "881b22d302a0a13f4a0898f7cc31388d3bf35097c24901d8df09c1f1bafe34d6",
+      "request_bytes": 217,
+      "response_bytes": 108
+    },
+    {
+      "cell": "reversed",
+      "version": 13,
+      "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+      "response_sha256": "accf69d82637eeb8435817c6a3cd37a2519c9f144d38888d1a1d174d4a6cea1f",
+      "request_bytes": 217,
+      "response_bytes": 108
+    },
+    {
+      "cell": "errors",
+      "version": 13,
+      "request_sha256": "3d315ce2fa584e403207603067af506b6b8339fbd243a36f510f877ff7ef818c",
+      "response_sha256": "1d2ff814d309059f555eb4d1b0d9d3f77c5cef993c0bf0be7115365e25a953eb",
+      "request_bytes": 217,
+      "response_bytes": 122
+    },
+    {
+      "cell": "tagged",
+      "version": 13,
+      "request_sha256": "b712f635228261e2481e91e7ba1330af6406accdcd9fbbf38811af5d143d559c",
+      "response_sha256": "79635709aebfb92be74813bb648194e0bbd805023071994b9e55176e0251ccf3",
+      "request_bytes": 234,
+      "response_bytes": 150
+    },
+    {
+      "cell": "zero-id",
+      "version": 13,
+      "request_sha256": "35ecd27ea462bdad5b8a4b5ca778d4583e5f7b0caee381a58387d06a9ba750bc",
+      "response_sha256": "7e59040c08af75b2b31961c00b2b634203cd393b0dbc675799ec8f0368a21f65",
+      "request_bytes": 217,
+      "response_bytes": 108
+    }
+  ],
+  "status": "passed"
+}

@@ -1,0 +1,93 @@
+{
+  "source_sha": "029355f95687bb0528eb70f7872ce2e901adf4de",
+  "reviewer": "independent oracle worker /root/open_loop; production authored by /root/consumer_lookups",
+  "method": "Manual read-only review of the frozen Rust implementation and tests; no production edits and no duplicated Rust build. Frozen file identity independently checked against exact git objects.",
+  "verdict": "no blocking finding within the stated bounded mechanism foundation scope",
+  "reviewed_source_sha256": {
+    "partitionline-broker/src/security/sasl.rs": "63afc3ba72a5fa4a2e50a0b58dd3022e7f383c7281ef18bcdfc87c9ae7722c4a",
+    "partitionline-broker/tests/sasl.rs": "d19a5eff6e8f942d709854cea6346af8a3028898b621cb4d6218ff914dcdb15c"
+  },
+  "checks": [
+    {
+      "topic": "credential-form",
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "first_line": 214,
+      "last_line": 300,
+      "finding": "Persisted form contains only algorithm, public salt, iteration count, StoredKey and ServerKey; import rejects undersized salt, unsupported iteration work and wrong fixed key sizes. Internal password/salted password/client key/key ownership uses zeroizing wrappers."
+    },
+    {
+      "topic": "work-admission",
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "first_line": 390,
+      "last_line": 418,
+      "finding": "Worker semaphore is acquired fail-fast before spawn_blocking and moved into its closure. Caller cancellation sets a separate flag; queued jobs check before work, running jobs keep their permit through actual completion and discard success after cancellation."
+    },
+    {
+      "topic": "plain",
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "first_line": 444,
+      "last_line": 490,
+      "finding": "Exact three NUL-delimited components, valid UTF-8 and bounded identities/passwords precede lookup/derivation; empty/self authorization policy is enforced and fixed-size stored-key verification uses CtOutput."
+    },
+    {
+      "topic": "generation",
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "first_line": 345,
+      "last_line": 371,
+      "finding": "Replacement checks bounded record count, duplicate identity/algorithm entries and checked generation advancement; short try_write/try_read sections fail Busy rather than blocking an executor. Admitted sessions retain their original immutable generation."
+    },
+    {
+      "topic": "first-message",
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "first_line": 562,
+      "last_line": 633,
+      "finding": "First attempt is terminal on every error, including randomness or malformed input. GS2 n, empty/self authorization, checked escapes, ASCII SCRAM name, nonce and combined length limits are enforced before bounded challenge retention."
+    },
+    {
+      "topic": "final-message",
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "first_line": 635,
+      "last_line": 642,
+      "finding": "finish consumes the session, takes its challenge exactly once and sends proof verification to a bounded blocking job. Cancellation drops session admission while the actual worker retains its own permit."
+    },
+    {
+      "topic": "grammar",
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "first_line": 647,
+      "last_line": 682,
+      "finding": "Messages are bounded valid UTF-8 without control characters; at most 16 unique alphabetic attributes are admitted, unsupported mandatory m is rejected, and the required n/r and c/r/p order is validated by callers."
+    },
+    {
+      "topic": "proof",
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "first_line": 705,
+      "last_line": 766,
+      "finding": "The original first-bare, exact server-first and original final-without-proof bytes form AuthMessage. Binding equals base64(exact GS2), nonce equals the full challenge nonce and decoded proof has exact digest size before secret-output comparison through RustCrypto CtOutput::Eq. Server signature is returned only after authentication."
+    },
+    {
+      "topic": "oracle-replay",
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "first_line": 780,
+      "last_line": 892,
+      "finding": "Private deterministic fixture replay compares derived StoredKey/ServerKey and exact successful challenge/final signature against authentic Apache and literal/derived RFC fixtures; deliberate hardening outcomes remain separate from Apache acceptance."
+    },
+    {
+      "topic": "deterministic-cancellation",
+      "path": "partitionline-broker/src/security/sasl.rs",
+      "first_line": 1027,
+      "last_line": 1165,
+      "finding": "Tests hold a real blocking worker or occupy a one-thread blocking queue, abort the caller, observe separate admissions/workers, reject competing work, then prove release occurs on actual completion or queued skip."
+    }
+  ],
+  "boundaries": [
+    "Only server mechanism primitives are reviewed: no Kafka dispatch, TLS/channel lifecycle, live Kafka session, reauthentication, delegation-token or full interoperability assertion.",
+    "Kafka raw UTF-8 password handling and ASCII-only SCRAM username parsing are intentional. Unicode PLAIN identities are supported; general SASLprep/Unicode RFC preparation conformance is excluded.",
+    "Existing admitted sessions deliberately retain their bounded whole credential generation; rotation governs subsequent admissions. The credential count bounds one generation, rather than promising only one retained generation process-wide.",
+    "Fixed-size secret equality uses the constant-time dependency API. Tests of first/middle/last mismatch are functional checks, not a statistical timing proof; malformed-message and unknown-user timing are not uniform.",
+    "Caller copies, exported persistence buffers, compiler/register copies and PBKDF2 internal raw temporaries are outside an all-memory scrubbing guarantee.",
+    "Cancelled running PBKDF2 cannot be preempted; it retains the bounded worker permit and secret until actual completion. No cancelled caller can receive its success.",
+    "Finite source review and oracle cases do not establish production security qualification or exhaustive parsing/cryptographic correctness."
+  ],
+  "rust_execution_attribution": "Frozen stable/MSRV Rust gates are performed separately by the mechanism worker; this artifact records source review only.",
+  "frozen_identity_verified_after_matrix": true
+}

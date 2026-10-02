@@ -1,0 +1,326 @@
+{
+  "source_sha": "7ee1a405fed66a6bc2f600ffd5485eb7fe5a01bb",
+  "scope": "Exact default test executables referenced by both full-run logs, plus both feature variants of standalone verifiable examples retained when present. Examples may have been overwritten by all-feature build at canonical path; hashed variant files are preserved.",
+  "binaries": [
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/partitionline-80ec805f930edf61",
+      "retained_file": "partitionline-80ec805f930edf61",
+      "sha256": "09f14058ec3b962aee5ac169642eccb2787fe783514d09e0b8ef3e0d74a8df75",
+      "bytes": 107134456
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/auth_lifecycle-abafa02270593467",
+      "retained_file": "auth_lifecycle-abafa02270593467",
+      "sha256": "826a616033a55ff7a7bd6762f1a4d8a7386e9639351f85775cb893c85805a785",
+      "bytes": 114621400
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/bench_latency_open_loop-ff90a5bc18e8095e",
+      "retained_file": "bench_latency_open_loop-ff90a5bc18e8095e",
+      "sha256": "3fb3fb753a96fdf4c6a1fc52d332c366c606844547c5c9804c1af87d6096432b",
+      "bytes": 96090240
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/bench_record_history-bff1af90f593f0c3",
+      "retained_file": "bench_record_history-bff1af90f593f0c3",
+      "sha256": "469c1f079094395ea2c4088fa7941fa595b57efcfc500dabe0e0eabf0d326fc4",
+      "bytes": 58398776
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/broker_compatibility-8add2890577e0774",
+      "retained_file": "broker_compatibility-8add2890577e0774",
+      "sha256": "40414457f2a34e5f31e3565f4bb62406fe74b35f33ac2da7f0091f0a122afede",
+      "bytes": 95529352
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/buffer_ownership-cb624dafa623f40a",
+      "retained_file": "buffer_ownership-cb624dafa623f40a",
+      "sha256": "ccff3964acf6f82aebc928e789364eb179e860b86e49623ee72b9b1e57391de9",
+      "bytes": 94483016
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/client_api-036058e59a22689a",
+      "retained_file": "client_api-036058e59a22689a",
+      "sha256": "013a53bac7ccf7253af41ef9d82a47610d6611699e0f9cb8294a4bca93dc0528",
+      "bytes": 126781912
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/consumer_close_commit-4f3f0d72a72e1188",
+      "retained_file": "consumer_close_commit-4f3f0d72a72e1188",
+      "sha256": "d82e03943954954221f046597cca31a1e9b770b275ebe0b7b41ddef61fd8c023",
+      "bytes": 105153656
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/consumer_fetch_semantics-3410cd8345d8d2ba",
+      "retained_file": "consumer_fetch_semantics-3410cd8345d8d2ba",
+      "sha256": "8bb254ab3b94b4781b89b6081db00a84880560dd30568c8a3363992db3532a46",
+      "bytes": 129796640
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/credential_redact-207642f2afbfe94e",
+      "retained_file": "credential_redact-207642f2afbfe94e",
+      "sha256": "edbbd1b6a15899912406e25e45ef0df1647d425de9993b1fb190c164015cbbe1",
+      "bytes": 101868128
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/e2e-9f223344cd4dd95c",
+      "retained_file": "e2e-9f223344cd4dd95c",
+      "sha256": "28923f19070b787717114dbe771bc247487649a9fdd0cec0808dca8a8f4af793",
+      "bytes": 101575952
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/fetch_buffer_budget-7bdbaf142ed8efa4",
+      "retained_file": "fetch_buffer_budget-7bdbaf142ed8efa4",
+      "sha256": "5d46dd382bc71039f4d6d0ec41836b9a03586fb887bb8ba0c60eb7e249e2b278",
+      "bytes": 105478632
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/full_surface-0961984063d40298",
+      "retained_file": "full_surface-0961984063d40298",
+      "sha256": "ab70be1c170327581e07c09234a2f2b8742704149f2f05014d3dcfb1bde2a4f2",
+      "bytes": 159477248
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/fuzz_campaign_meta-d2482b55f3aead87",
+      "retained_file": "fuzz_campaign_meta-d2482b55f3aead87",
+      "sha256": "caf67c00c6b90e873d8f8f3a5136b4117a9a630c3bdaa8d04c4bc203c215e93d",
+      "bytes": 60337768
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/fuzz_decode_smoke-864184521d23af79",
+      "retained_file": "fuzz_decode_smoke-864184521d23af79",
+      "sha256": "2599cc7e77a3c1efbedb8f869befb838ed0eae60ca3311ddf56a064a8b41a7bb",
+      "bytes": 60038560
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/kip848_live-df50f57d153f6efb",
+      "retained_file": "kip848_live-df50f57d153f6efb",
+      "sha256": "7dd32a2cfb12629ae0fc2dd44605230e1738839508daece482f66ece256a8c56",
+      "bytes": 78418688
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/mock_produce-a0e57add91534aa2",
+      "retained_file": "mock_produce-a0e57add91534aa2",
+      "sha256": "c6e3153eaccd58a87e51fd127538126853f9392d7deae6859525efde641dd7cd",
+      "bytes": 94400784
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/network_deadlines-247f30c890e6c3ce",
+      "retained_file": "network_deadlines-247f30c890e6c3ce",
+      "sha256": "b56e380e9bd939ca4627224849d5d8f6c4db4e3df47db5ba8b83de0c8955d0e4",
+      "bytes": 71739104
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/produce_cancel-cfde4576cb2be2ed",
+      "retained_file": "produce_cancel-cfde4576cb2be2ed",
+      "sha256": "8020df485c520adcb3b6a4cd2be2a3e91352396aa011e6182d194c5d08ac5954",
+      "bytes": 96790800
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/protocol_oracles-a2587d1a849584c1",
+      "retained_file": "protocol_oracles-a2587d1a849584c1",
+      "sha256": "93088eabdad4a050e2bb9ddbd3ffbcde306d73a85c2a6d280329e58f85263e87",
+      "bytes": 71203928
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/roundtrip-488164e2595cf627",
+      "retained_file": "roundtrip-488164e2595cf627",
+      "sha256": "44d08a30699eb5027134623b51b09979c74288ed61087231c1eff4cccd6d1ff6",
+      "bytes": 97891096
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/deps/verifiable_contract-8c3eb4dcb07e468f",
+      "retained_file": "verifiable_contract-8c3eb4dcb07e468f",
+      "sha256": "587649c5884e62d6dc0058e09a6968f573070df3c16337b44746dbf4568b9dcc",
+      "bytes": 101441008
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/admin-56363252fbb301c0",
+      "retained_file": "admin-56363252fbb301c0",
+      "sha256": "2d64f9043fb1aea03b010ba82f049ef187406cbc6a54024922658f165ae296a4",
+      "bytes": 7203184
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/bench_fetch-c700c417a7c5b44e",
+      "retained_file": "bench_fetch-c700c417a7c5b44e",
+      "sha256": "23101c2678812bd8c68365f3157c09ca199629594265bc3f872d92406d751e4f",
+      "bytes": 7203344
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/bench_latency-dda23a462a6ec58b",
+      "retained_file": "bench_latency-dda23a462a6ec58b",
+      "sha256": "19f197d7210fbebc9ed7a29b7a9e1a484901ca6b97c9460500d6fa580df5b6d1",
+      "bytes": 7203392
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/bench_produce-9e1e66122f4d84db",
+      "retained_file": "bench_produce-9e1e66122f4d84db",
+      "sha256": "dbf21118227bf1f5fdbf55d8bdfbfb6bda415dc0e292cc936bb61d9afa869e77",
+      "bytes": 7203392
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/consume-737079942797306e",
+      "retained_file": "consume-737079942797306e",
+      "sha256": "2f4a9864295bbcf4cd46aad585fec113761ba4190fd6fae3af61cbe1f7687c17",
+      "bytes": 7203224
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/consume_intercept-1595217b269d462b",
+      "retained_file": "consume_intercept-1595217b269d462b",
+      "sha256": "d4e6d3da4fd8c71c518dd59015eff3024e9a7dd6c49747b84d9661bab91879d5",
+      "bytes": 7203496
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/cooperative-0d63d9c55f638ad0",
+      "retained_file": "cooperative-0d63d9c55f638ad0",
+      "sha256": "36afe2e98c00e98d35bb76ed584544c3d71f07536c1dcac1fc283808c235ee4d",
+      "bytes": 7203344
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/describe_quorum-9d7af7a8c656620f",
+      "retained_file": "describe_quorum-9d7af7a8c656620f",
+      "sha256": "cf0a8044cab3b048d6fd99a0bca0a7c69cca7e11d6519c91319916d612121303",
+      "bytes": 7203448
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/eos-6ff66cd145aa55d3",
+      "retained_file": "eos-6ff66cd145aa55d3",
+      "sha256": "fdcb8ede7222a0af305119085fa8ad662d9ee6cdb831ec2f5c2243a4cbd13973",
+      "bytes": 7203136
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/group-481b63f410a9920c",
+      "retained_file": "group-481b63f410a9920c",
+      "sha256": "716e2a089a5ea1966e6147fd969f71b0086332ab3578d6e756d002c5d1f8566b",
+      "bytes": 7203176
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/intercept-ddefb2fd1fa2cc40",
+      "retained_file": "intercept-ddefb2fd1fa2cc40",
+      "sha256": "a25871cc9bf70a3921a7dcbee960c7de85bdb1b5b41a1e46af5cf5c56e164a9b",
+      "bytes": 7203280
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/kip848-c0acfa953005ef08",
+      "retained_file": "kip848-c0acfa953005ef08",
+      "sha256": "348e9d5d6764cc68a21f210d69d83a976eefa1b2e8d93a49d7916b54a38fcc4f",
+      "bytes": 7203216
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/metrics-379f8a2fd25a3e65",
+      "retained_file": "metrics-379f8a2fd25a3e65",
+      "sha256": "253261d6888eb0a1f0386ab47f6360909a4d32025bb68c49997853302e8384b2",
+      "bytes": 7203224
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/oauth-25a20eaad7b1d9b1",
+      "retained_file": "oauth-25a20eaad7b1d9b1",
+      "sha256": "2ded5748ffa655ffd049380e81ee6ee9e3c3b470bd888fd03211e030b80a2043",
+      "bytes": 7203184
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/offsets-7100f04daac7d235",
+      "retained_file": "offsets-7100f04daac7d235",
+      "sha256": "74c8043c9131604461e8965f7a8e7cd91a2d1018ff4af47283265f12c8761a01",
+      "bytes": 7203232
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/pause-0ef26ebdd1322d01",
+      "retained_file": "pause-0ef26ebdd1322d01",
+      "sha256": "56eb80f0ab0141becb406c6c3a72a06d3e518cba926900f609ceb00c6fc67938",
+      "bytes": 7203184
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/produce-8ed380819774a5c0",
+      "retained_file": "produce-8ed380819774a5c0",
+      "sha256": "bc843e550650304483528391f7a178f96ac44de89f18e59eeb261e6df914b1ce",
+      "bytes": 7203232
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/produce_cancel-c8fd3d5aaa4616ea",
+      "retained_file": "produce_cancel-c8fd3d5aaa4616ea",
+      "sha256": "498e1b9d8cbb99a153468e978ad110161abbcc4269b9b00d0eb851fe97dd8d9d",
+      "bytes": 7203424
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/roundtrip-6e6e74ec6da32d09",
+      "retained_file": "roundtrip-6e6e74ec6da32d09",
+      "sha256": "955ae59009cfd36eba0c94c13a2ea2d3c276b3c251dfa74ed4f2efe7f3cc2fe0",
+      "bytes": 7203280
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/sasl-1d0ba89210fd2aed",
+      "retained_file": "sasl-1d0ba89210fd2aed",
+      "sha256": "38d3a7250b6848987d4b2397259a21411e39574c7b9e0723dedc9a6cb12cd55c",
+      "bytes": 7203160
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/share-a754b3193e0aae50",
+      "retained_file": "share-a754b3193e0aae50",
+      "sha256": "ee98c357aa04eaaf5905c036abd99940b40a0ff93ae0b34d0f57c44d73f4a9a3",
+      "bytes": 7203184
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/tls-cff1c8d0de2bac4e",
+      "retained_file": "tls-cff1c8d0de2bac4e",
+      "sha256": "b54815bede1840169f8de5b15d27dbef20cea2e0481f81b597d4a2b8512abfa3",
+      "bytes": 7203136
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/txn-0e2ac9af9d599d08",
+      "retained_file": "txn-0e2ac9af9d599d08",
+      "sha256": "3e7bb02c71613f6a108a972c76b86c3d82afd2da83e8f936272e257154087e02",
+      "bytes": 7203136
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/verifiable_consumer-0de5d339fc4adda3",
+      "retained_file": "verifiable_consumer-0de5d339fc4adda3",
+      "sha256": "35102250e2004e9aba6a34d8f36c107676366d55e835457664499020050794b7",
+      "bytes": 7203536
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/verifiable_producer-4dab98511ff462c4",
+      "retained_file": "verifiable_producer-4dab98511ff462c4",
+      "sha256": "bc7f065b9eac2fce34930e5772e0bf9b14bd00e404fa32bf835414db9aeec0e4",
+      "bytes": 7203536
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/wakeup-164f7ef30d78adb9",
+      "retained_file": "wakeup-164f7ef30d78adb9",
+      "sha256": "c7089a73c08f879aa79929a3b05edec4652c0ff590d235a7783ca91bab88aa97",
+      "bytes": 7203216
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/verifiable_producer-fabeed48a890f540",
+      "retained_file": "verifiable_producer-fabeed48a890f540",
+      "sha256": "ea046dde5baa49794befb7f6fb8101bac6c9c84f238385d2527402cf07842581",
+      "bytes": 75444776
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/verifiable_producer-5853a95e3cade325",
+      "retained_file": "verifiable_producer-5853a95e3cade325",
+      "sha256": "170ad3dc65079a6609111f768c2c92a6414e463cc76301eeea65883559835e47",
+      "bytes": 7203536
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/verifiable_producer-dfb6ab9b3e0e098c",
+      "retained_file": "verifiable_producer-dfb6ab9b3e0e098c",
+      "sha256": "1cd9329f739eeaf8ea2406cf9ad8f35b97c63efd3e2f975eecc54b816fdedbce",
+      "bytes": 76427632
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/verifiable_consumer-4b16c4acaa9fa4e7",
+      "retained_file": "verifiable_consumer-4b16c4acaa9fa4e7",
+      "sha256": "ed762c8ad6665e69cead33dfb595aa802c76a2664b997d9e44a8f1fe43a7eed7",
+      "bytes": 80055352
+    },
+    {
+      "original_path": "/workspace/work/target-produce-v13/debug/examples/verifiable_consumer-b9d336b4c32fa95a",
+      "retained_file": "verifiable_consumer-b9d336b4c32fa95a",
+      "sha256": "07a034c2c0ccaaaa25826565f3806c666a2dbf25d837c7ef9e52c49db629fd54",
+      "bytes": 81261984
+    }
+  ],
+  "compressed_archive_sha256": "5e7302350a076a936adfbdc7f5464afdfebfbf6e32b78c0f2cb2876b98866292",
+  "compressed_archive_bytes": 688172274
+}

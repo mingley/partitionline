@@ -1,0 +1,42 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.73s
+     Running tests/protocol_oracles.rs (/workspace/work/target-produce-v13/debug/deps/protocol_oracles-a2587d1a849584c1)
+
+running 34 tests
+test add_raft_voter_nullable_fields_match_apache ... ok
+test apache_fetch_boundary_fixtures_decode_offline ... ok
+test apache_list_offsets_boundary_fixtures_decode_offline ... ok
+test add_raft_voter_apache_v0_fixtures ... ok
+test apache_metadata_boundary_fixtures_decode_offline ... ok
+test apache_produce_boundary_fixtures_decode_offline ... ok
+test apache_produce_v9_smoke_fixture_decodes ... ok
+test current_group_nullable_struct_marker_matches_apache_signed_byte_semantics ... ok
+test describe_log_dirs_v5_independent_java_fixtures ... ok
+test describe_log_dirs_v5_truncation_and_version_bounds_fail_closed ... ok
+test fetch_short_tail_and_malformed_records_oracles ... ok
+test fetch_version_gate_and_field_order_mutations_fail ... ok
+test current_group_nullable_assignment_independent_apache_fixtures ... ok
+test list_offsets_version_gate_and_field_order_mutations_fail ... ok
+test live_broker_decoded_semantics ... ignored, live broker; scripts/ci-protocol-oracles.sh REQUIRE_BROKER=1
+test list_offsets_v11_independent_apache_fixtures ... ok
+test metadata_version_gate_and_field_order_mutations_fail ... ok
+test list_offsets_v11_truncation_and_future_versions_fail_closed ... ok
+test produce_v13_pinned_topic_id_fixtures_and_legacy_fallback ... ok
+test produce_v13_rejects_missing_ambiguous_and_truncated_identities ... ok
+test advertised_matrix_semantic_oracles ... ok
+test produce_version_gate_and_field_order_mutations_fail ... ok
+test remove_raft_voter_apache_v0_fixtures ... ok
+test remove_raft_voter_nullable_fields_match_apache ... ok
+test rust_fetch_output_decodes_with_apache_when_java_available ... ok
+test rust_metadata_output_decodes_with_apache_when_java_available ... ok
+test share_acknowledge_v0_v1_fixtures_decode_offline ... ok
+test share_fetch_null_records_and_error_paths_decode_offline ... ok
+test share_fetch_v0_delta_fixture_decodes_offline ... ok
+test rust_list_offsets_output_decodes_with_apache_when_java_available ... ok
+test share_fetch_v1_delta_fixture_decodes_offline ... ok
+test share_v2_pin_and_explicit_rejection_oracle ... ok
+test rust_produce_output_decodes_with_apache_when_java_available ... ok
+test produce_v13_rust_output_decodes_with_current_apache_when_requested ... ok
+
+test result: ok. 33 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.60s
+

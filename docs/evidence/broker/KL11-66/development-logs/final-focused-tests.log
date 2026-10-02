@@ -1,0 +1,66 @@
+   Compiling zeroize v1.9.0
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.14
+   Compiling cc v1.5.1
+   Compiling ring v0.17.14
+   Compiling block-buffer v0.12.1
+   Compiling getrandom v0.2.17
+   Compiling untrusted v0.9.0
+   Compiling digest v0.11.3
+   Compiling rustls-pki-types v1.15.1
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling subtle v2.6.1
+   Compiling once_cell v1.21.4
+   Compiling hmac v0.13.0
+   Compiling sha2 v0.11.0
+   Compiling pbkdf2 v0.13.0
+   Compiling tokio-rustls v0.26.6
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 11.69s
+     Running unittests src/lib.rs (/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-b238062968f65ee0)
+
+running 24 tests
+test catalog::tests::complete_unconfirmed_tombstone_keeps_previous_state_until_recovery ... ok
+test catalog::tests::complete_unconfirmed_create_is_invisible_until_synced_replay ... ok
+test journal::tests::bounded_index_capacity_and_rejections_never_write ... ok
+test journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed ... ok
+test journal::tests::complete_recovery_sync_failure_never_reports_durable_state ... ok
+test journal::tests::early_zero_read_does_not_become_a_successful_tail_repair ... ok
+test journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair ... ok
+test journal::tests::partial_header_and_payload_writes_poison_without_advancing ... ok
+test journal::tests::success_synchronizes_complete_bytes_before_return ... ok
+test journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls ... ok
+test journal::tests::tail_repair_truncate_and_sync_errors_never_report_success ... ok
+test journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss ... ok
+test journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery ... ok
+test raft::election::tests::failed_higher_term_persistence_disables_old_leader_before_any_reply ... ok
+test raft::election::tests::higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed ... ok
+test raft::election::tests::strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch ... ok
+test raft::election::tests::synchronization_precedes_grant_and_ambiguous_failure_requires_recovery ... ok
+test security::sasl::tests::apache_first_message_parser_scope_and_stricter_policy ... ok
+test security::sasl::tests::authentic_apache_plain_decisions ... ok
+test security::sasl::tests::cancellation_releases_admission_and_running_worker_remains_bounded ... ok
+test security::sasl::tests::cancelled_queued_work_does_not_execute_after_pool_unblocks ... ok
+test security::sasl::tests::constant_time_api_rejects_first_middle_last_and_wrong_length ... ok
+test security::sasl::tests::contended_credential_access_is_bounded_and_releases_admission ... ok
+test security::sasl::tests::authentic_apache_and_literal_rfc_scram_proofs ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.41s
+
+     Running tests/sasl.rs (/workspace/work/broker-sasl/target/debug/deps/sasl-bb6a89abf4453e12)
+
+running 10 tests
+test imported_forms_and_all_hard_bounds_reject_invalid_values ... ok
+test credential_generation_rotation_and_snapshot_admission_bound ... ok
+test malformed_first_is_terminal_and_limits_are_checked ... ok
+test optional_extensions_are_ignored_but_bound_to_the_exact_proof ... ok
+test plain_wrong_password_unknown_identity_authz_and_malformed ... ok
+test scram_escaped_name_self_authz_and_unrelated_authz ... ok
+test kafka_raw_utf8_passwords_and_identities_are_preserved ... ok
+test strong_fresh_nonces_salts_and_redacted_debug_errors ... ok
+test scram_wrong_password_nonce_channel_binding_proof_and_replay ... ok
+test valid_scram_both_hashes_and_plain_from_verifiers ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.55s
+

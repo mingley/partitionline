@@ -1,0 +1,14 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 26.94s
+     Running tests/full_surface.rs (/workspace/work/target-produce-v13/debug/deps/full_surface-0961984063d40298)
+
+running 6 tests
+test produce_v13_transaction_v2_semantics_and_classic_ceiling ... ok
+test produce_v13_unsent_uuid_and_missing_metadata_id_fail_clearly ... ok
+test produce_v13_uses_metadata_topic_ids_and_preserves_public_names ... ok
+test produce_v13_retains_older_name_versions_and_metadata_fallback ... ok
+test produce_v13_stale_id_refreshes_without_extending_delivery_budget ... ok
+test produce_v13_response_identity_uses_sent_snapshot_after_metadata_change ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 324 filtered out; finished in 0.13s
+

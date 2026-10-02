@@ -1,0 +1,46 @@
+{
+  "source_base": "15f2ac8f909414c712519bdea55ca9b97aea10aa",
+  "type": "precommit isolated source with minimal coordinator dependency/exports + owned SASL changes; not final pushed source",
+  "current_main_at_freeze": "37d72a18eef933f9005b9f7453763945882f104e",
+  "owned_frozen_sha256": {
+    "partitionline-broker/src/security/sasl.rs": "63afc3ba72a5fa4a2e50a0b58dd3022e7f383c7281ef18bcdfc87c9ae7722c4a",
+    "partitionline-broker/tests/sasl.rs": "d19a5eff6e8f942d709854cea6346af8a3028898b621cb4d6218ff914dcdb15c",
+    "partitionline-broker/tests/fixtures/sasl/apache-messages.tsv": "001711ed05fbf9a5779d577a646103bc43f4036c3cf9de08c3a0694b61502147",
+    "partitionline-broker/tests/fixtures/sasl/apache-plain.tsv": "ff2a535f6db02b0d99d895e634659f897efd64c8b16db067ff8ab05582beba7e",
+    "partitionline-broker/tests/fixtures/sasl/apache-scram.tsv": "b7967a38b463b1ee13beeca95d31fc63c723556e90e7c39f9981c5e909d654c1",
+    "partitionline-broker/tests/fixtures/sasl/rfc-scram-extensions.tsv": "e1898e6c47faac12fb81363a3ef4e3215eeff4d851972964571e3955bcf5e9ca",
+    "partitionline-broker/tests/fixtures/sasl/rfc-scram-sha256.tsv": "b46246435b3ab6b5a4db5ea55b963bc9813c5a74b0835e373b6b910d59f94309"
+  },
+  "logs": {
+    "fifth-clippy.log": "d9698d61d66d389a33aa10f7407dbfff1c855eeeb3304d1d7281e43dea98bf44",
+    "final-focused-tests.log": "9a9fd13410527ecbd3d7b1551abb5a128eab560b7589f9836d9983721c4934b8",
+    "first-clippy.log": "edbc48bcafa3ad44073e966cb757395be93808129c435e4ec4f9fa06ef5ff560",
+    "first-compile.log": "8fdee8788892facd9185cb71d43f9e31df6ecff55fc8ee793a9b7b28bb172c69",
+    "fourth-clippy.log": "e25f47ec5a7a293fd8c795102e4b788d185fb2f8b3af540eccdeb10dffa32b5a",
+    "initial-rustfmt-environment.txt": "7f0c930dee467c70970cff6333923c49c158e8e13977ead37ada26f702928f1f",
+    "pre-freeze-all-clippy.log": "2b18083d88d5159f7b882df89d4f9867c4047bed9d488acd1fc68d5ee347e653",
+    "pre-freeze-all-tests.log": "ac37c6e9707067e76bc4b19abd0b85fa785d9f21ea9bed6f664800d89a46e775",
+    "ready-focused-tests.log": "4a515cfcb53f45b1c71f8a90cfd0f02d8ce14676943f5cbf9dfd73162d88f66d",
+    "ready-strict-clippy.log": "413798a461a368d8ce9cd5b10c3a95c6f6ba02e8f92a29e085e30b19c7c04bdd",
+    "second-clippy.log": "986a06b1e5bec35d0972c3cf5d107c110633f404162fab9aa50bfff312a1be70",
+    "second-compile.log": "38048b7f51f026ac6c6c687ea7f53b3e1e08596ded45f212702b85219d481ddc",
+    "third-clippy.log": "f9175e700764b14853dbef1471997b6af3f034bc2b3e2dbbd71b1c77e19778be",
+    "utf8-public-tests.log": "d989ff25eae40f6d3646dfb9acadd701981961dc812b8abe99dadbac1e66f45e"
+  },
+  "preserved_failures": [
+    "Initial rustfmt environment lacked RUSTUP_HOME; retried explicit environment.",
+    "first-compile: zeroize alloc was disabled, Zeroizing<Vec> not available; initial hybrid-array wrapper also unsupported, replaced with zeroizing CtOutput.",
+    "first-clippy: forbidden std::sync::RwLock; changed to Tokio try locks.",
+    "second-clippy: one multiline read() replacement missed; corrected to try_read.",
+    "third-clippy: ENOSPC from shared-host caches; coordinator cleaned inactive caches.",
+    "fourth-clippy: isolated archive omitted historical topic-name fixture; completed archive inputs.",
+    "Evidence aggregation initially asserted20 QA commands; actual9cells perchain make18. Assertion failed before any finalJSON write; corrected without changing tests/checks."
+  ],
+  "final_shadow_checks": {
+    "focused_unit": 24,
+    "focused_public_sasl": 10,
+    "ignored": 0,
+    "strict_all_target_all_feature_clippy": "pass"
+  },
+  "no_waivers": true
+}

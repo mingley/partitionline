@@ -1,0 +1,10 @@
+Diff in /workspace/work/broker-sasl/final-qa/source/partitionline-broker/src/security/mod.rs:1:
+ //! Optional transport and authentication security primitives.
+ 
+-#[cfg(feature = "tls")]
+-pub mod tls;
+ #[cfg(feature = "sasl")]
+ pub mod sasl;
++#[cfg(feature = "tls")]
++pub mod tls;
+ 

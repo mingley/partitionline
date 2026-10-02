@@ -1,0 +1,9 @@
+{
+  "version": "4.1.2",
+  "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz",
+  "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+  "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+  "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+  "jar_build_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+  "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c"
+}

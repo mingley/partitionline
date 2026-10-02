@@ -1,0 +1,21 @@
+/workspace/partitionline/tests/conformance/java/ProduceV13Fixtures.java:17: error: cannot find symbol
+import org.apache.kafka.common.record.MemoryRecords;
+                                     ^
+  symbol:   class MemoryRecords
+  location: package org.apache.kafka.common.record
+/workspace/partitionline/tests/conformance/java/ProduceV13Fixtures.java:18: error: cannot find symbol
+import org.apache.kafka.common.record.SimpleRecord;
+                                     ^
+  symbol:   class SimpleRecord
+  location: package org.apache.kafka.common.record
+/workspace/partitionline/tests/conformance/java/ProduceV13Fixtures.java:55: error: cannot find symbol
+                    MemoryRecords.withRecords(Compression.NONE,new SimpleRecord(42L+i,
+                                                                   ^
+  symbol:   class SimpleRecord
+  location: class ProduceV13Fixtures
+/workspace/partitionline/tests/conformance/java/ProduceV13Fixtures.java:55: error: cannot find symbol
+                    MemoryRecords.withRecords(Compression.NONE,new SimpleRecord(42L+i,
+                    ^
+  symbol:   variable MemoryRecords
+  location: class ProduceV13Fixtures
+4 errors

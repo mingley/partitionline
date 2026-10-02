@@ -1,0 +1,88 @@
+{
+  "source_sha": "3b1d0af2592dc87f6daef0123adb4901a7ab920f",
+  "commands": [
+    {
+      "toolchain": "stable",
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 44.1111563509985,
+      "log": "/workspace/work/full-goal/lint-qa-3b1d0af/stable-strict-clippy.log"
+    },
+    {
+      "toolchain": "stable",
+      "name": "metrics",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--lib",
+        "metrics"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 22.40544799000054,
+      "log": "/workspace/work/full-goal/lint-qa-3b1d0af/stable-metrics.log"
+    },
+    {
+      "toolchain": "stable",
+      "name": "credential-default",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 72.52780864899978,
+      "log": "/workspace/work/full-goal/lint-qa-3b1d0af/stable-credential-default.log"
+    },
+    {
+      "toolchain": "stable",
+      "name": "credential-tracing",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--features",
+        "tracing"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 13.812215551999543,
+      "log": "/workspace/work/full-goal/lint-qa-3b1d0af/stable-credential-tracing.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 101,
+      "elapsed_seconds": 15.04705524000019,
+      "log": "/workspace/work/full-goal/lint-qa-3b1d0af/1.85.0-strict-clippy.log"
+    }
+  ]
+}

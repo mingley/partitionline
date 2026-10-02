@@ -1,0 +1,74 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+error: future cannot be sent between threads safely
+    --> tests/common/mod.rs:1817:17
+     |
+1817 | /                 tokio::spawn(async move {
+1818 | |                     let Ok(stream) = acceptor.accept(tcp).await else {
+1819 | |                         return;
+1820 | |                     };
+1821 | |                     handle_conn(stream, 1, st).await;
+1822 | |                 });
+     | |__________________^ future created by async block is not `Send`
+     |
+     = help: within `{async block@tests/common/mod.rs:1817:30: 1817:40}`, the trait `Send` is not implemented for `*mut ()`
+note: future is not `Send` as this value is used across an await
+    --> tests/common/mod.rs:6655:47
+     |
+6390 |                 let mut st = state.lock();
+     |                     ------ has type `parking_lot::lock_api::MutexGuard<'_, parking_lot::RawMutex, State>` which is not `Send`
+...
+6655 |                     tokio::time::sleep(delay).await;
+     |                                               ^^^^^ await occurs here, with `mut st` maybe used later
+note: required by a bound in `tokio::spawn`
+    --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/task/spawn.rs:176:21
+     |
+ 174 |     pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+     |            ----- required by a bound in this function
+ 175 |     where
+ 176 |         F: Future + Send + 'static,
+     |                     ^^^^ required by this bound in `spawn`
+
+error: future cannot be sent between threads safely
+    --> tests/common/mod.rs:1594:26
+     |
+1594 |             tokio::spawn(handle_conn(stream, node_id, st));
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ future returned by `handle_conn` is not `Send`
+     |
+     = help: within `impl Future<Output = ()>`, the trait `Send` is not implemented for `*mut ()`
+note: future is not `Send` as this value is used across an await
+    --> tests/common/mod.rs:6655:47
+     |
+6390 |                 let mut st = state.lock();
+     |                     ------ has type `parking_lot::lock_api::MutexGuard<'_, parking_lot::RawMutex, State>` which is not `Send`
+...
+6655 |                     tokio::time::sleep(delay).await;
+     |                                               ^^^^^ await occurs here, with `mut st` maybe used later
+note: required by a bound in `tokio::spawn`
+    --> /workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/task/spawn.rs:176:21
+     |
+ 174 |     pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+     |            ----- required by a bound in this function
+ 175 |     where
+ 176 |         F: Future + Send + 'static,
+     |                     ^^^^ required by this bound in `spawn`
+
+error[E0505]: cannot move out of `producer` because it is borrowed
+     --> tests/full_surface.rs:15580:5
+      |
+15569 |     let producer = Producer::new(config).await.unwrap();
+      |         -------- binding `producer` declared here
+15570 |     let send = producer.send(ProduceRecord::to("t").value(&b"old-generation"[..]));
+      |                -------- borrow of `producer` occurs here
+...
+15580 |     producer.close().await.unwrap();
+      |     ^^^^^^^^ move out of `producer` occurs here
+15581 | }
+      | - borrow might be used here, when `send` is dropped and runs the destructor for type `impl Future<Output = Result<RecordMetadata, partitionline::Error>>`
+      |
+help: consider cloning the value if the performance cost is acceptable
+      |
+15570 |     let send = producer.clone().send(ProduceRecord::to("t").value(&b"old-generation"[..]));
+      |                        ++++++++
+
+For more information about this error, try `rustc --explain E0505`.
+error: could not compile `partitionline` (test "full_surface") due to 3 previous errors

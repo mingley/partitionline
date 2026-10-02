@@ -1,0 +1,21 @@
+    Checking partitionline v0.1.0 (/workspace/work/full-goal/client-lint-0f382e8)
+error: indexing may panic
+  --> tests/../examples/common/bench_history.rs:89:29
+   |
+89 |         out.push(char::from(HEX[usize::from(byte >> 4)]));
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using `.get(n)` or `.get_mut(n)` instead
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#indexing_slicing
+   = note: requested on the command line with `-D clippy::indexing-slicing`
+
+error: indexing may panic
+  --> tests/../examples/common/bench_history.rs:90:29
+   |
+90 |         out.push(char::from(HEX[usize::from(byte & 15)]));
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using `.get(n)` or `.get_mut(n)` instead
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#indexing_slicing
+
+error: could not compile `partitionline` (test "bench_record_history") due to 2 previous errors

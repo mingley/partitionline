@@ -1,0 +1,31 @@
+{
+  "apache_client_version": "4.1.2",
+  "source_commit_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+  "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+  "slf4j_jar_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+  "generator_sha256": "5cb6a9431eedba2b70fe3f3a619a59c83951e98de9830f6e17ab2a9741a9e5e0",
+  "exit_codes": {
+    "java-version": 0,
+    "compile": 2
+  },
+  "commands": {
+    "java-version": [
+      "/usr/bin/java",
+      "-version"
+    ],
+    "compile": [
+      "/usr/bin/java",
+      "--add-modules",
+      "jdk.compiler",
+      "com.sun.tools.javac.Main",
+      "--release",
+      "21",
+      "-cp",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "-d",
+      "/workspace/work/produce-v13/java-4.1.2",
+      "/workspace/partitionline/tests/conformance/java/ProduceV13Fixtures.java"
+    ]
+  },
+  "mode": "verify"
+}

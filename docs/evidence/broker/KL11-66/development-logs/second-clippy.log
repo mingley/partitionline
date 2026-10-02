@@ -1,0 +1,19 @@
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-sasl/source/partitionline-broker)
+error[E0599]: no method named `map_err` found for opaque type `impl Future<Output = RwLockReadGuard<'_, Arc<Snapshot>>>` in the current scope
+   --> src/security/sasl.rs:391:14
+    |
+387 |           Ok(self
+    |  ____________-
+388 | |             .0
+389 | |             .snapshot
+390 | |             .read()
+391 | |             .map_err(|_| Error::Unavailable)?
+    | |             -^^^^^^^ method not found in `impl Future<Output = RwLockReadGuard<'_, Arc<Snapshot>>>`
+    | |_____________|
+    |
+    |
+    = note: the full name for the type has been written to '/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-34a47450907cce30.long-type-4356732358228999275.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `partitionline-broker` (lib) due to 1 previous error

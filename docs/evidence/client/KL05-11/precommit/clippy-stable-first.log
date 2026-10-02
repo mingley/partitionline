@@ -1,0 +1,71 @@
+    Checking once_cell v1.21.4
+   Compiling syn v2.0.119
+    Checking rustls v0.23.45
+    Checking tracing-core v0.1.36
+    Checking tokio-rustls v0.26.5
+   Compiling tracing-attributes v0.1.31
+    Checking tracing v0.1.44
+    Checking partitionline v0.1.0 (/workspace/partitionline)
+error: very complex type used. Consider factoring parts into `type` definitions
+    --> src/protocol/api.rs:2945:6
+     |
+2945 |   ) -> Result<(
+     |  ______^
+2946 | |     Option<String>,
+2947 | |     i16,
+2948 | |     i32,
+2949 | |     Vec<ProduceTopicData>,
+2950 | |     Vec<[u8; 16]>,
+2951 | | )> {
+     | |__^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+     = note: `-D clippy::type-complexity` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::type_complexity)]`
+
+error: very complex type used. Consider factoring parts into `type` definitions
+    --> src/protocol/api.rs:2958:6
+     |
+2958 |   ) -> Result<(
+     |  ______^
+2959 | |     Option<String>,
+2960 | |     i16,
+2961 | |     i32,
+2962 | |     Vec<ProduceTopicData>,
+2963 | |     Vec<[u8; 16]>,
+2964 | | )> {
+     | |__^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+
+error: very complex type used. Consider factoring parts into `type` definitions
+    --> src/protocol/api.rs:3207:6
+     |
+3207 |   ) -> Result<(
+     |  ______^
+3208 | |     Vec<ProducePartitionResponse>,
+3209 | |     Vec<NodeEndpoint>,
+3210 | |     i32,
+3211 | |     Vec<[u8; 16]>,
+3212 | | )> {
+     | |__^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+
+error: very complex type used. Consider factoring parts into `type` definitions
+    --> src/protocol/api.rs:3219:6
+     |
+3219 |   ) -> Result<(
+     |  ______^
+3220 | |     Vec<ProducePartitionResponse>,
+3221 | |     Vec<NodeEndpoint>,
+3222 | |     i32,
+3223 | |     Vec<[u8; 16]>,
+3224 | | )> {
+     | |__^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+
+error: could not compile `partitionline` (lib) due to 4 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `partitionline` (lib test) due to 4 previous errors

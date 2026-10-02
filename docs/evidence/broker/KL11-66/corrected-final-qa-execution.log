@@ -1,0 +1,19 @@
+stable versions: exit=0 
+stable fmt: exit=0 
+stable default-tests: exit=0 {'passed': 111, 'failed': 0, 'ignored': 0, 'measured': 0, 'filtered': 0}
+stable sasl-tests: exit=0 {'passed': 128, 'failed': 0, 'ignored': 0, 'measured': 0, 'filtered': 0}
+stable all-tests: exit=0 {'passed': 143, 'failed': 0, 'ignored': 0, 'measured': 0, 'filtered': 0}
+stable default-clippy: exit=0 
+stable sasl-clippy: exit=0 
+stable all-clippy: exit=0 
+stable docs: exit=0 
+1.85.0 versions: exit=0 
+1.85.0 fmt: exit=0 
+1.85.0 default-tests: exit=0 {'passed': 111, 'failed': 0, 'ignored': 0, 'measured': 0, 'filtered': 0}
+1.85.0 sasl-tests: exit=0 {'passed': 128, 'failed': 0, 'ignored': 0, 'measured': 0, 'filtered': 0}
+1.85.0 all-tests: exit=0 {'passed': 143, 'failed': 0, 'ignored': 0, 'measured': 0, 'filtered': 0}
+1.85.0 default-clippy: exit=0 
+1.85.0 sasl-clippy: exit=0 
+1.85.0 all-clippy: exit=0 
+1.85.0 docs: exit=0 
+All frozen-source Rust checks passed.

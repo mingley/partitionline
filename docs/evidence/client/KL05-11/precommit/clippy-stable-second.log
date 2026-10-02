@@ -1,0 +1,125 @@
+    Checking partitionline v0.1.0 (/workspace/partitionline)
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+    --> tests/protocol_oracles.rs:5203:51
+     |
+5203 |             assert_eq!(topic.partitions[0].index, (i * 3) as i32);
+     |                                                   ^^^^^^^^^^^^^^
+     |
+     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+     = note: requested on the command line with `-D clippy::cast-possible-truncation`
+help: ... or use `try_from` and handle the error accordingly
+     |
+5203 -             assert_eq!(topic.partitions[0].index, (i * 3) as i32);
+5203 +             assert_eq!(topic.partitions[0].index, i32::try_from(i * 3));
+     |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+    --> tests/protocol_oracles.rs:5203:51
+     |
+5203 |             assert_eq!(topic.partitions[0].index, (i * 3) as i32);
+     |                                                   ^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+     = note: requested on the command line with `-D clippy::cast-possible-wrap`
+
+error: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
+    --> tests/protocol_oracles.rs:5205:47
+     |
+5205 |             assert_eq!(record.timestamp, 42 + i as i64);
+     |                                               ^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+    --> tests/protocol_oracles.rs:5229:40
+     |
+5229 |             assert_eq!(part.partition, (index * 3) as i32);
+     |                                        ^^^^^^^^^^^^^^^^^^
+     |
+     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+     |
+5229 -             assert_eq!(part.partition, (index * 3) as i32);
+5229 +             assert_eq!(part.partition, i32::try_from(index * 3));
+     |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+    --> tests/protocol_oracles.rs:5229:40
+     |
+5229 |             assert_eq!(part.partition, (index * 3) as i32);
+     |                                        ^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
+    --> tests/protocol_oracles.rs:5243:27
+     |
+5243 |                     100 + index as i64 * 3
+     |                           ^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+    --> tests/protocol_oracles.rs:5395:24
+     |
+5395 |                 index: (i * 3) as i32,
+     |                        ^^^^^^^^^^^^^^
+     |
+     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+     |
+5395 -                 index: (i * 3) as i32,
+5395 +                 index: i32::try_from(i * 3),
+     |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+    --> tests/protocol_oracles.rs:5395:24
+     |
+5395 |                 index: (i * 3) as i32,
+     |                        ^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
+    --> tests/protocol_oracles.rs:5398:37
+     |
+5398 |                     timestamp: 42 + i as i64,
+     |                                     ^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+    --> tests/protocol_oracles.rs:5410:17
+     |
+5410 |                 (i * 3) as i32,
+     |                 ^^^^^^^^^^^^^^
+     |
+     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+     |
+5410 -                 (i * 3) as i32,
+5410 +                 i32::try_from(i * 3),
+     |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+    --> tests/protocol_oracles.rs:5410:17
+     |
+5410 |                 (i * 3) as i32,
+     |                 ^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
+    --> tests/protocol_oracles.rs:5412:23
+     |
+5412 |                 100 + i as i64 * 3,
+     |                       ^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: could not compile `partitionline` (test "protocol_oracles") due to 12 previous errors
+warning: build failed, waiting for other jobs to finish...

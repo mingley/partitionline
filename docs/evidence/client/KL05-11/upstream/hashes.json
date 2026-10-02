@@ -1,0 +1,29 @@
+{
+  "4.1.2": {
+    "clients/src/main/java/org/apache/kafka/clients/producer/internals/Sender.java": "8868be685bffac61635aff8fdea094d4cf5426514e0d1e8779809366d5cd993e",
+    "clients/src/main/java/org/apache/kafka/clients/producer/internals/ProducerMetadata.java": "bb74e8db6b318222c4ceadd332591ceb1883a3044fa56c9cdd86cbccc298823e",
+    "clients/src/main/java/org/apache/kafka/common/requests/ProduceRequest.java": "d4ba703f2909907e12cde4bda8249e8046f404b1e8ef9df8b89bbfa3ead121ff",
+    "clients/src/main/java/org/apache/kafka/common/requests/ProduceResponse.java": "be23d2555ba28c32e348b46cf6ce15754ff57162632a1e0e8919579df74ba1dd",
+    "clients/src/main/resources/common/message/ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+    "clients/src/main/resources/common/message/ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+    "clients/src/main/java/org/apache/kafka/clients/producer/internals/TransactionManager.java": "da4d9e26ab7f33a65e0b23c9619ace9e9820474af7abb87f0e91984e301a34b7"
+  },
+  "4.2.1": {
+    "clients/src/main/java/org/apache/kafka/clients/producer/internals/Sender.java": "5e892e56d9124dfea621c69effd4ba605ea22344da06de30e9d8fae558161e2c",
+    "clients/src/main/java/org/apache/kafka/clients/producer/internals/ProducerMetadata.java": "bb74e8db6b318222c4ceadd332591ceb1883a3044fa56c9cdd86cbccc298823e",
+    "clients/src/main/java/org/apache/kafka/common/requests/ProduceRequest.java": "d4ba703f2909907e12cde4bda8249e8046f404b1e8ef9df8b89bbfa3ead121ff",
+    "clients/src/main/java/org/apache/kafka/common/requests/ProduceResponse.java": "be23d2555ba28c32e348b46cf6ce15754ff57162632a1e0e8919579df74ba1dd",
+    "clients/src/main/resources/common/message/ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+    "clients/src/main/resources/common/message/ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+    "clients/src/main/java/org/apache/kafka/clients/producer/internals/TransactionManager.java": "887405534015e587077a410c2b10a8984bab963dd77938dde2d65f8b2fb7ade4"
+  },
+  "4.3.1": {
+    "clients/src/main/java/org/apache/kafka/clients/producer/internals/Sender.java": "88699c91309674364721de87d229ba6de0fb1616b943ebc5d863a6b39cea117c",
+    "clients/src/main/java/org/apache/kafka/clients/producer/internals/ProducerMetadata.java": "bb74e8db6b318222c4ceadd332591ceb1883a3044fa56c9cdd86cbccc298823e",
+    "clients/src/main/java/org/apache/kafka/common/requests/ProduceRequest.java": "59ef5c83921c7940fe238eca44a683c7b61114fb4bb318a5b53111119fad0d60",
+    "clients/src/main/java/org/apache/kafka/common/requests/ProduceResponse.java": "f716aa94a3cf28e88cb92fbbb124d8202b63750f230258da724be53152a21ca0",
+    "clients/src/main/resources/common/message/ProduceRequest.json": "779c104bdd1753731b946384ea1fc1af08c6c6fd47f2496eadc6530a2db35966",
+    "clients/src/main/resources/common/message/ProduceResponse.json": "ea483c690ec06f83b3dcd95c5ec53f239702f754a16963d62300b156a233614a",
+    "clients/src/main/java/org/apache/kafka/clients/producer/internals/TransactionManager.java": "eb2b4c0151a5d0dbf423b2dde4bb17ba2a173d55dc6048edc58ee5609a7bdf92"
+  }
+}

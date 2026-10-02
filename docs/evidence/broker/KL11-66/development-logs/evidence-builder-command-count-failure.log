@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/work/broker-sasl/archive-evidence.py", line 10, in <module>
+    assert len(qa['commands'])==20
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

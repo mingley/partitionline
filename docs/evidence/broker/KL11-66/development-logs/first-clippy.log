@@ -1,0 +1,66 @@
+    Checking libc v0.2.189
+    Checking zeroize v1.9.0
+   Compiling find-msvc-tools v0.1.14
+   Compiling shlex v2.0.1
+   Compiling cc v1.5.1
+    Checking cfg-if v1.0.5
+    Checking typenum v1.20.1
+    Checking hybrid-array v0.4.15
+   Compiling ring v0.17.14
+    Checking cmov v0.5.4
+    Checking ctutils v0.4.2
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+    Checking getrandom v0.2.17
+    Checking const-oid v0.10.2
+    Checking untrusted v0.9.0
+    Checking digest v0.11.3
+    Checking rustls-pki-types v1.15.1
+   Compiling rustls v0.23.45
+    Checking rustls-webpki v0.103.15
+    Checking mio v1.2.3
+    Checking socket2 v0.6.5
+    Checking pin-project-lite v0.2.17
+    Checking once_cell v1.21.4
+    Checking bytes v1.12.1
+    Checking subtle v2.6.1
+    Checking tokio v1.53.1
+    Checking hmac v0.13.0
+    Checking cpufeatures v0.3.1
+    Checking sha2 v0.11.0
+    Checking pbkdf2 v0.13.0
+    Checking crc32c v0.6.8
+    Checking tokio-rustls v0.26.6
+    Checking getrandom v0.4.3
+    Checking base64 v0.23.1
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-sasl/source/partitionline-broker)
+error: use of a disallowed type `std::sync::RwLock`
+  --> src/security/sasl.rs:34:14
+   |
+34 |         Arc, RwLock,
+   |              ^^^^^^
+   |
+   = note: Easy to hold across await. Use tokio::sync::RwLock, or parking_lot for short non-async sections.
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types
+   = note: `-D clippy::disallowed-types` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::disallowed_types)]`
+
+error: use of a disallowed type `std::sync::RwLock`
+   --> src/security/sasl.rs:303:15
+    |
+303 |     snapshot: RwLock<Arc<Snapshot>>,
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: Easy to hold across await. Use tokio::sync::RwLock, or parking_lot for short non-async sections.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types
+
+error: use of a disallowed type `std::sync::RwLock`
+   --> src/security/sasl.rs:335:23
+    |
+335 |             snapshot: RwLock::new(Arc::new(Snapshot {
+    |                       ^^^^^^
+    |
+    = note: Easy to hold across await. Use tokio::sync::RwLock, or parking_lot for short non-async sections.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types
+
+error: could not compile `partitionline-broker` (lib) due to 3 previous errors
