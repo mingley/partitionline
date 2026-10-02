@@ -133,3 +133,12 @@ equal-semantics comparison. A qualification campaign still needs full receipt
 IDs, matched effective settings, warmup, randomized repetitions, sample floors,
 resource measurement, uncertainty and controlled-host signoff. Suite HOLD stays
 active; no adapter smoke or harness run creates a public comparison claim.
+
+## Behavioral conformance reuse (KL01-13)
+
+`build-behavioral.sh` links the selected pinned upstream 0125 immediate-flush
+regression against this same isolated native library. The original source,
+explicit harness/API adaptations, paired Rust adapter, independent receipt
+auditor and failing controls live in
+[tests/conformance/librdkafka](../../../tests/conformance/librdkafka/README.md).
+This adds no main-crate runtime dependency and makes no whole-suite claim.

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-09-21",
+  "updated": "2026-10-02",
   "audited_source": "cb7e97d3b92a8555aea34d59266a2990c206395f",
   "plan_source": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
   "description": "Versioned conformance case registry mapping advertised Kafka APIs, versions, broker qualification cells, and behavioral regressions to immutable source pins and honest dispositions.",
@@ -28,7 +28,8 @@
     "live-broker",
     "apache-java",
     "verifiable-scenario",
-    "none"
+    "none",
+    "librdkafka-behavioral"
   ],
   "api_families": {
     "Produce": {
@@ -1700,6 +1701,25 @@
       "evidence": "docs/plan/evidence/KL01-17.json",
       "artifacts": [
         "docs/plan/evidence/KL01-17.json"
+      ]
+    },
+    {
+      "id": "librdkafka-0125-flush-overrides-linger",
+      "api_family": "Produce",
+      "api_version": null,
+      "profile": "core",
+      "adapter": "librdkafka-behavioral",
+      "source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "immutable_source_pin": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "source_kind": "upstream_behavioral_assertion",
+      "peer_version_pin": "2.15.0",
+      "peer_pin": "2.15.0",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "KL01-13: selected pinned main_0125_immediate_flush assertion executed unchanged through documented test-helper shim, plus equivalent partitionline schedule. 10000-ms natural linger and <=2500-ms flush bound preserved; independent native C consumption verifies every ID/payload/offset and broker HW. Omit-flush and duplicate/loss controls fail and remain recorded. Only this selected assertion; sibling mock and full C/C++ suite are not run.",
+      "evidence": "docs/plan/evidence/KL01-13.json",
+      "artifacts": [
+        "docs/evidence/conformance/KL01-13/run-02/summary.json"
       ]
     }
   ]

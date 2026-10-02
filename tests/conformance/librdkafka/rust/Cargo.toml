@@ -1,0 +1,12 @@
+[package]
+name = "partitionline-librdkafka-0125"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+partitionline = { path = "../../../.." }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }

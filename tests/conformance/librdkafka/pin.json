@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/confluentinc/librdkafka.git",
+  "tag": "v2.15.0",
+  "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "source_path": "tests/0125-immediate_flush.c",
+  "source_sha256": "1528ed781bf3aae5f1ea0a503e0059bd6c6de5c7f529279cbdda2445f423eb8e",
+  "selected_entry": "main_0125_immediate_flush",
+  "selected_assertion": "do_test_flush_overrides_linger_ms_time",
+  "excluded_sibling": "main_0125_immediate_flush_mock"
+}
