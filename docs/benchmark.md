@@ -1,5 +1,23 @@
 # Benchmark vs librdkafka C
 
+## Reproducible native C peer (KL04-04)
+
+The checked-in [librdkafka C peer](https://github.com/mingley/partitionline/blob/8920ad999266cd87a8de94450fc6325063105c6c/benchmarks/peers/librdkafka/README.md)
+builds historical **v2.15.0** at source commit
+`9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab` in an isolated directory.
+No newer baseline is selected. It uses the native C producer and consumer,
+emits effective settings and callback failures, and retains successful and
+failed result-schema artifacts. It introduces no C/FFI dependency into this
+crate. Historical tables below remain historical evidence.
+
+`scripts/lab-a-produce.sh` now automates both clients, randomized order and a
+fresh-topic HW audit per run, retaining logs, C artifacts and independent
+HW counts. The earlier manual C reproduction commands remain historical
+recipes. The automated harness is an unsigned integrity check: its zero-warmup,
+null-key workload does not qualify a benchmark campaign or establish a win.
+See the peer README for pins, settings, standalone receipt verification and
+[KL04-04 validation evidence](https://github.com/mingley/partitionline/blob/8920ad999266cd87a8de94450fc6325063105c6c/docs/evidence/perf/KL04-04/README.md). Suite HOLD stays active.
+
 Produce is acked records/second (Lab A vs librdkafka 2.15.0 C). Fetch is
 consumed records/second from a topic this crate already filled. The signed
 produce tables below are Lab A. The fetch writeup is **this-VM 2026-08-28,

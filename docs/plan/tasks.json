@@ -1422,14 +1422,117 @@
     {
       "id": "KL04-04",
       "title": "Check in a reproducible librdkafka C benchmark peer",
-      "priority": "P1", "kind": "benchmark", "status": "in_progress", "owner": "codex-goal-20261002",
+      "priority": "P1", "kind": "benchmark", "status": "done", "owner": "codex-goal-20261002",
       "depends_on": ["KL04-01", "KL04-02"],
       "files": ["new: benchmarks/peers/librdkafka/", "scripts/lab-a-produce.sh", "docs/benchmark.md"],
       "deliverable": "A source-pinned C peer build and adapter replacing the manual comparison step.",
       "acceptance": ["Preserve the v2.15.0 historical reference and explicitly pin any newer comparison baseline.", "Match effective queue, linger, partitioning, batching, security and durability semantics; emit configuration and callback failure counts.", "Keep C build artifacts/dependencies out of the partitionline crate and never use a rust-rdkafka wrapper result as the C-only bar."],
       "validation": ["Build the pinned reviewed source in its isolated benchmark environment.", "Validate one successful and one deliberately failed delivery artifact."],
       "write_set": ["benchmarks/peers/librdkafka/", "scripts/lab-a-produce.sh", "docs/benchmark.md", "docs/plan/evidence/KL04-04.json", "docs/evidence/perf/KL04-04/", "docs/plan/tasks.json"],
-      "evidence": []
+      "evidence": [
+        {
+                "id": "KL04-04",
+                "status": "done",
+                "acceptance_met": true,
+                "source_sha": "8920ad999266cd87a8de94450fc6325063105c6c",
+                "commands": [
+                        "C_PEER_BUILD_DIR=/workspace/work/c-peer taskset -c 0-2,4 bash benchmarks/peers/librdkafka/build.sh",
+                        "C_PEER_BUILD_DIR=/workspace/work/c-peer python3 benchmarks/peers/librdkafka/run.py emit-config",
+                        "python3 -m unittest discover -s benchmarks/peers/librdkafka -p test_adapter.py -v",
+                        "python3 -m unittest discover -s benchmarks/tests -p test_report.py -v",
+                        "KAFKA_BOOTSTRAP=127.0.0.1:19094 KAFKA_TOPIC=c-peer-kl04-04-success-02 COUNT=256 WARMUP=10000 ACKS=-1 IDEMPOTENT=1 BROKER_IMAGE=native:apache-kafka-3.9.1 BROKER_VERSION=3.9.1 C_PEER_BUILD_DIR=/workspace/work/c-peer python3 benchmarks/peers/librdkafka/run.py roundtrip --result docs/evidence/perf/KL04-04/success.json",
+                        "KAFKA_BOOTSTRAP=127.0.0.1:19094 KAFKA_TOPIC=c-peer-kl04-04-oversize COUNT=32 WARMUP=0 PAYLOAD_BYTES=1000 ACKS=-1 IDEMPOTENT=1 DELIVERY_TIMEOUT_MS=1000 FLUSH_TIMEOUT_MS=3000 BROKER_IMAGE=native:apache-kafka-3.9.1 BROKER_VERSION=3.9.1 C_PEER_BUILD_DIR=/workspace/work/c-peer python3 benchmarks/peers/librdkafka/run.py roundtrip --result docs/evidence/perf/KL04-04/delivery-failure.json",
+                        "python3 scripts/benchmark-report.py docs/evidence/perf/KL04-04/success.json",
+                        "python3 scripts/benchmark-report.py docs/evidence/perf/KL04-04/delivery-failure.json (expected rejection)",
+                        "jsonschema.validate(success and delivery-failure artifacts, benchmarks/result-schema.json)",
+                        "CLIENTS=librdkafka C_PEER_BINARY=/workspace/work/c-peer/c-peer KAFKA_BOOTSTRAP=127.0.0.1:19094 KAFKA_HOME=/workspace/work/c-peer/kafka_2.13-3.9.1 BROKER_BACKEND=native TOPIC=c-peer-kl04-04-harness-02 COUNT=32 RUNS=1 ARTIFACT_DIR=/workspace/work/c-peer/harness-02 bash scripts/lab-a-produce.sh",
+                        "CLIENTS=librdkafka C_PEER_BINARY=/workspace/work/c-peer/c-peer KAFKA_BOOTSTRAP=127.0.0.1:19094 KAFKA_HOME=/workspace/work/c-peer/kafka_2.13-3.9.1 BROKER_BACKEND=native TOPIC=c-peer-kl04-04-oversize SKIP_TOPIC_RESET=1 COUNT=32 PAYLOAD_BYTES=1000 RUNS=1 ARTIFACT_DIR=/workspace/work/c-peer/harness-failure bash scripts/lab-a-produce.sh (expected exit 1)",
+                        "bash -n scripts/lab-a-produce.sh benchmarks/peers/librdkafka/build.sh",
+                        "python3 -m py_compile benchmarks/peers/librdkafka/run.py",
+                        "git diff --check"
+                ],
+                "results": {
+                        "source_pin": {
+                                "tag": "v2.15.0",
+                                "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+                                "newer_baseline_selected": false
+                        },
+                        "native_c_build": "PASS (C11, -O3, -Wall -Wextra -Werror; no Rust wrapper)",
+                        "adapter_guardrail_tests": {
+                                "passed": 6,
+                                "failed": 0
+                        },
+                        "shared_validator_tests": {
+                                "passed": 17,
+                                "failed": 0
+                        },
+                        "success": {
+                                "exit_code": 0,
+                                "warmup_acknowledged": 10000,
+                                "offered": 256,
+                                "accepted": 256,
+                                "acknowledged": 256,
+                                "hw_delta": 256,
+                                "consumed_verified": 256,
+                                "callback_failures": 0,
+                                "schema_valid": true,
+                                "shared_validator_valid": true
+                        },
+                        "deliberate_delivery_failure": {
+                                "exit_code": 1,
+                                "offered": 32,
+                                "accepted": 32,
+                                "acknowledged": 0,
+                                "hw_delta": 0,
+                                "callback_failures": 32,
+                                "error": "MSG_SIZE_TOO_LARGE (broker code 10)",
+                                "schema_valid": true,
+                                "shared_validator_valid": false
+                        },
+                        "retained_initial_failure": "Detached broker exited; 10000 warmup callbacks timed out; 256 timed acknowledgments were unaudited and unverified. Failed result and exact raw counts retained; schema/validator reject.",
+                        "retained_failed_injection_experiment": "RF1/minISR2 probe unexpectedly acknowledged and independently verified 32 records. Exact successful delivery measurement retained, explicitly labeled failed_to_inject_delivery_error in validation.json; never substituted for delivery-failure evidence.",
+                        "harness_success": "Native backend: 32 requested/acknowledged/HW delta, exit 0",
+                        "harness_failure": "Oversize native backend: 0 acknowledged/HW delta, exit 1; logs and independent audit retained",
+                        "artifact_checksums": "All result companion SHA-256 and byte-count checks pass",
+                        "runtime_dependencies": "No changes to partitionline Cargo dependencies or package include; native artifacts are outside the crate package"
+                },
+                "artifacts": [
+                        "benchmarks/peers/librdkafka/source-pin.json",
+                        "benchmarks/peers/librdkafka/build.sh",
+                        "benchmarks/peers/librdkafka/peer.c",
+                        "benchmarks/peers/librdkafka/run.py",
+                        "benchmarks/peers/librdkafka/test_adapter.py",
+                        "benchmarks/peers/librdkafka/README.md",
+                        "scripts/lab-a-produce.sh",
+                        "docs/benchmark.md",
+                        "docs/evidence/perf/KL04-04/README.md",
+                        "docs/evidence/perf/KL04-04/validation.json",
+                        "docs/evidence/perf/KL04-04/broker-provenance.json",
+                        "docs/evidence/perf/KL04-04/success.json",
+                        "docs/evidence/perf/KL04-04/delivery-failure.json",
+                        "docs/evidence/perf/KL04-04/initial-broker-loss.json",
+                        "docs/evidence/perf/KL04-04/min-isr-probe.json",
+                        "docs/evidence/perf/KL04-04/harness/",
+                        "docs/evidence/perf/KL04-04/harness-failure/",
+                        "docs/plan/evidence/KL04-04.json"
+                ],
+                "limits": [
+                        "Adapter correctness evidence only; no equal-semantics performance campaign or comparison claim",
+                        "Suite HOLD remains active; no scenario cell receives passed disposition",
+                        "Historical v2.15.0 source retained; no newer comparison baseline selected",
+                        "Plaintext/idempotent success and intentional broker failure validated; secure/compression campaigns not executed",
+                        "Open-loop latency, transactions, group/share, OAuth/OIDC refresh and GSSAPI unsupported by this driver",
+                        "Host system build libraries are version-recorded rather than a hermetic OS/dependency image",
+                        "Producer-only/null-key harness cannot verify record IDs; full receipt validation belongs to seeded roundtrip/campaign drivers",
+                        "Harness warmup is zero because the existing Rust example does not separately expose warmup records; five randomized repetitions are an integrity default, not qualification",
+                        "Broker resources, allocations and average RSS unmeasured; C CPU/peak RSS include audit stage",
+                        "Shared main had concurrent implementation changes during runs; source clean=false and driver/library hashes retained"
+                ],
+                "blocked_reason": null,
+                "tested_base_sha": "ec800396c0b75eb901b2fafce9309b4bdfca9218",
+                "committed_source_note": "The pinned implementation commit contains the same native C/adapter/harness sources and artifacts identified by their tested source/binary/checksum provenance; committing them changes no native source or runtime dependency."
+        }
+      ]
     },
     {
       "id": "KL04-05",

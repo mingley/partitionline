@@ -2,7 +2,7 @@
   "id": "KL04-04",
   "status": "done",
   "acceptance_met": true,
-  "source_sha": "ec800396c0b75eb901b2fafce9309b4bdfca9218",
+  "source_sha": "8920ad999266cd87a8de94450fc6325063105c6c",
   "commands": [
     "C_PEER_BUILD_DIR=/workspace/work/c-peer taskset -c 0-2,4 bash benchmarks/peers/librdkafka/build.sh",
     "C_PEER_BUILD_DIR=/workspace/work/c-peer python3 benchmarks/peers/librdkafka/run.py emit-config",
@@ -20,12 +20,43 @@
     "git diff --check"
   ],
   "results": {
-    "source_pin": {"tag": "v2.15.0", "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab", "newer_baseline_selected": false},
+    "source_pin": {
+      "tag": "v2.15.0",
+      "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "newer_baseline_selected": false
+    },
     "native_c_build": "PASS (C11, -O3, -Wall -Wextra -Werror; no Rust wrapper)",
-    "adapter_guardrail_tests": {"passed": 6, "failed": 0},
-    "shared_validator_tests": {"passed": 17, "failed": 0},
-    "success": {"exit_code": 0, "warmup_acknowledged": 10000, "offered": 256, "accepted": 256, "acknowledged": 256, "hw_delta": 256, "consumed_verified": 256, "callback_failures": 0, "schema_valid": true, "shared_validator_valid": true},
-    "deliberate_delivery_failure": {"exit_code": 1, "offered": 32, "accepted": 32, "acknowledged": 0, "hw_delta": 0, "callback_failures": 32, "error": "MSG_SIZE_TOO_LARGE (broker code 10)", "schema_valid": true, "shared_validator_valid": false},
+    "adapter_guardrail_tests": {
+      "passed": 6,
+      "failed": 0
+    },
+    "shared_validator_tests": {
+      "passed": 17,
+      "failed": 0
+    },
+    "success": {
+      "exit_code": 0,
+      "warmup_acknowledged": 10000,
+      "offered": 256,
+      "accepted": 256,
+      "acknowledged": 256,
+      "hw_delta": 256,
+      "consumed_verified": 256,
+      "callback_failures": 0,
+      "schema_valid": true,
+      "shared_validator_valid": true
+    },
+    "deliberate_delivery_failure": {
+      "exit_code": 1,
+      "offered": 32,
+      "accepted": 32,
+      "acknowledged": 0,
+      "hw_delta": 0,
+      "callback_failures": 32,
+      "error": "MSG_SIZE_TOO_LARGE (broker code 10)",
+      "schema_valid": true,
+      "shared_validator_valid": false
+    },
     "retained_initial_failure": "Detached broker exited; 10000 warmup callbacks timed out; 256 timed acknowledgments were unaudited and unverified. Failed result and exact raw counts retained; schema/validator reject.",
     "retained_failed_injection_experiment": "RF1/minISR2 probe unexpectedly acknowledged and independently verified 32 records. Exact successful delivery measurement retained, explicitly labeled failed_to_inject_delivery_error in validation.json; never substituted for delivery-failure evidence.",
     "harness_success": "Native backend: 32 requested/acknowledged/HW delta, exit 0",
@@ -65,5 +96,7 @@
     "Broker resources, allocations and average RSS unmeasured; C CPU/peak RSS include audit stage",
     "Shared main had concurrent implementation changes during runs; source clean=false and driver/library hashes retained"
   ],
-  "blocked_reason": null
+  "blocked_reason": null,
+  "tested_base_sha": "ec800396c0b75eb901b2fafce9309b4bdfca9218",
+  "committed_source_note": "The pinned implementation commit contains the same native C/adapter/harness sources and artifacts identified by their tested source/binary/checksum provenance; committing them changes no native source or runtime dependency."
 }
