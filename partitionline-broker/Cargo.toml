@@ -1,0 +1,28 @@
+[package]
+name = "partitionline-broker"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Experimental Rust Kafka broker; production qualification tracked in KL11"
+
+[dependencies]
+bytes = "1"
+crc32c = "0.6"
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"
+unreachable_pub = "warn"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+await_holding_lock = "deny"
+

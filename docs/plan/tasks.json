@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-09-30",
+  "updated": "2026-10-02",
   "audited_source": "cb7e97d3b92a8555aea34d59266a2990c206395f",
   "guide": "docs/plan/README.md",
   "audit": "docs/audits/2026-09-21.md",
@@ -386,13 +386,39 @@
     {
       "id": "KL01-13",
       "title": "Adapt one librdkafka behavioral regression",
-      "priority": "P1", "kind": "test-infrastructure", "status": "pending", "owner": null,
-      "depends_on": ["KL01-01", "KL03-18", "KL04-04"],
-      "files": ["new: tests/conformance/librdkafka/", "benchmarks/peers/librdkafka/", "tests/conformance/cases.json"],
+      "priority": "P1",
+      "kind": "test-infrastructure",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL01-01",
+        "KL03-18",
+        "KL04-04"
+      ],
+      "files": [
+        "new: tests/conformance/librdkafka/",
+        "benchmarks/peers/librdkafka/",
+        "tests/conformance/cases.json"
+      ],
       "deliverable": "An independent behavioral peer adapter, beginning with one named upstream delivery or offset regression.",
-      "acceptance": ["Reuse the pinned C peer build rather than introducing a second native dependency stack.", "Preserve the upstream behavioral assertion and record any necessary API-shape adaptation explicitly.", "Run equivalent input/fault histories against both clients; one adapted case does not imply the entire C/C++ suite passes."],
-      "validation": ["Run the selected pinned upstream case and the partitionline adapter equivalent.", "Validate both history/result artifacts, including an intentionally failing variant."],
-      "evidence": []
+      "acceptance": [
+        "Reuse the pinned C peer build rather than introducing a second native dependency stack.",
+        "Preserve the upstream behavioral assertion and record any necessary API-shape adaptation explicitly.",
+        "Run equivalent input/fault histories against both clients; one adapted case does not imply the entire C/C++ suite passes."
+      ],
+      "validation": [
+        "Run the selected pinned upstream case and the partitionline adapter equivalent.",
+        "Validate both history/result artifacts, including an intentionally failing variant."
+      ],
+      "evidence": [],
+      "write_set": [
+        "tests/conformance/librdkafka/",
+        "benchmarks/peers/librdkafka/",
+        "tests/conformance/cases.json",
+        "docs/plan/evidence/KL01-13.json",
+        "docs/evidence/conformance/KL01-13/",
+        "docs/plan/tasks.json"
+      ]
     },
     {
       "id": "KL01-14",
@@ -1706,13 +1732,41 @@
     {
       "id": "KL04-07",
       "title": "Gate benchmark runs on record histories",
-      "priority": "P1", "kind": "benchmark", "status": "pending", "owner": null,
-      "depends_on": ["KL03-18", "KL04-02"],
-      "files": ["examples/bench_produce.rs", "examples/bench_fetch.rs", "scripts/lab-a-integrity.sh"],
+      "priority": "P1",
+      "kind": "benchmark",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL03-18",
+        "KL04-02"
+      ],
+      "files": [
+        "examples/bench_produce.rs",
+        "examples/bench_fetch.rs",
+        "scripts/lab-a-integrity.sh"
+      ],
       "deliverable": "Deterministic ID/payload/order evidence in benchmark records and independent verification.",
-      "acceptance": ["Acks=0 is not labeled acknowledged throughput; malformed/zero work counts fail explicitly.", "Detect duplicate/missing swaps even when totals match; transactional control offsets are not counted as application records.", "A correctness failure invalidates performance claims but preserves the raw run artifact."],
-      "validation": ["Run record-history checker fixtures including matching-count corruption.", "Run one small isolated produce/fetch benchmark and verify every ID/hash."],
-      "evidence": []
+      "acceptance": [
+        "Acks=0 is not labeled acknowledged throughput; malformed/zero work counts fail explicitly.",
+        "Detect duplicate/missing swaps even when totals match; transactional control offsets are not counted as application records.",
+        "A correctness failure invalidates performance claims but preserves the raw run artifact."
+      ],
+      "validation": [
+        "Run record-history checker fixtures including matching-count corruption.",
+        "Run one small isolated produce/fetch benchmark and verify every ID/hash."
+      ],
+      "evidence": [],
+      "write_set": [
+        "examples/bench_produce.rs",
+        "examples/bench_fetch.rs",
+        "scripts/lab-a-integrity.sh",
+        "scripts/bench-record-history.py",
+        "tests/ci/test_bench_record_history.py",
+        "docs/benchmark.md",
+        "docs/plan/evidence/KL04-07.json",
+        "docs/evidence/perf/KL04-07/",
+        "docs/plan/tasks.json"
+      ]
     },
     {
       "id": "KL04-08",
@@ -5895,13 +5949,39 @@
     {
       "id": "KL09-45",
       "title": "Drain per-partition pending queues without full rescans",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL09-10", "KL09-11", "KL03-22"],
-      "files": ["src/consumer.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL09-10",
+        "KL09-11",
+        "KL03-22"
+      ],
+      "files": [
+        "src/consumer.rs"
+      ],
       "deliverable": "Buffered records live in drainable per-partition queues, so a capped poll no longer clones, hashes and rebuilds the whole pending queue.",
-      "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Return order, pause retention and uncommitted-offset behavior are identical (KL03-06 tests)."],
-      "validation": ["cargo test --locked --test consumer_fetch_semantics", "cargo test --locked --test consumer_close_commit", "cargo test --locked --test fetch_buffer_budget", "A/B cell nb-fetch-capped-paused (CPU per poll): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": []
+      "acceptance": [
+        "Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.",
+        "Return order, pause retention and uncommitted-offset behavior are identical (KL03-06 tests)."
+      ],
+      "validation": [
+        "cargo test --locked --test consumer_fetch_semantics",
+        "cargo test --locked --test consumer_close_commit",
+        "cargo test --locked --test fetch_buffer_budget",
+        "A/B cell nb-fetch-capped-paused (CPU per poll): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/consumer.rs",
+        "tests/consumer_fetch_semantics.rs",
+        "tests/consumer_close_commit.rs",
+        "tests/fetch_buffer_budget.rs",
+        "docs/plan/evidence/KL09-45.json",
+        "docs/evidence/perf/KL09-45/",
+        "docs/plan/tasks.json"
+      ]
     },
     {
       "id": "KL09-46",
@@ -6156,13 +6236,39 @@
     {
       "id": "KL09-53",
       "title": "Pre-encode immutable request header bytes",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL09-52", "KL09-04", "KL09-05"],
-      "files": ["src/net.rs", "src/protocol/header.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL09-52",
+        "KL09-04",
+        "KL09-05"
+      ],
+      "files": [
+        "src/net.rs",
+        "src/protocol/header.rs"
+      ],
       "deliverable": "Request headers write pre-encoded immutable bytes (client_id and version-specific fields) and patch only the correlation ID and frame length.",
-      "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Wire bytes are identical for flexible and classic header versions (golden fixtures plus Java conformance)."],
-      "validation": ["cargo test --locked --test protocol_oracles", "cargo test --locked --test network_deadlines", "bash scripts/ci-protocol-oracles.sh", "A/B cell micro-request (instructions per request header): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
-      "evidence": []
+      "acceptance": [
+        "Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.",
+        "Wire bytes are identical for flexible and classic header versions (golden fixtures plus Java conformance)."
+      ],
+      "validation": [
+        "cargo test --locked --test protocol_oracles",
+        "cargo test --locked --test network_deadlines",
+        "bash scripts/ci-protocol-oracles.sh",
+        "A/B cell micro-request (instructions per request header): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/net.rs",
+        "src/protocol/header.rs",
+        "tests/request_header_cache.rs",
+        "docs/plan/evidence/KL09-53.json",
+        "docs/evidence/perf/KL09-53/",
+        "docs/plan/tasks.json"
+      ]
     },
     {
       "id": "KL09-54",
@@ -7776,6 +7882,1727 @@
         "A/B cell nb-connect (ms to first ack with an unreachable bootstrap host): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"
       ],
       "write_set": [],
+      "evidence": []
+    },
+    {
+      "id": "KL11-01",
+      "title": "Define the full Rust broker completion contract and crate boundary",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [],
+      "files": [
+        "docs/plan/broker-implementation.md",
+        "tests/conformance/broker/features.json",
+        "partitionline-broker/Cargo.toml",
+        "partitionline-broker/Cargo.lock",
+        "partitionline-broker/src/lib.rs",
+        "partitionline-broker/README.md",
+        "Cargo.toml"
+      ],
+      "deliverable": "An explicit client-and-server goal with finite protocol/storage/security/operations gates and an independent experimental broker crate.",
+      "acceptance": [
+        "Preserve the existing client dependency/default graph and all prior task ownership.",
+        "All required server features start missing/not-run; benchmark null broker does not count as production storage.",
+        "Cover current Kafka 4.x data, control, coordinator, security and operational APIs; pin exact upstream versions before implementing their wire matrix.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": [],
+      "write_set": [
+        "docs/plan/broker-implementation.md",
+        "tests/conformance/broker/features.json",
+        "partitionline-broker/Cargo.toml",
+        "partitionline-broker/Cargo.lock",
+        "partitionline-broker/src/lib.rs",
+        "partitionline-broker/README.md",
+        "Cargo.toml",
+        "docs/plan/evidence/KL11-01.json",
+        "docs/plan/tasks.json"
+      ]
+    },
+    {
+      "id": "KL11-02",
+      "title": "Bound broker framed transport and shutdown",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-01"
+      ],
+      "files": [
+        "partitionline-broker/src/transport.rs",
+        "partitionline-broker/tests/transport.rs"
+      ],
+      "deliverable": "A Tokio length-prefixed request transport with connection/frame/deadline bounds and joined shutdown.",
+      "acceptance": [
+        "Reject negative/oversized lengths before allocation; partial reads/writes have absolute deadlines.",
+        "Bound concurrent connections and handler work; close all sockets/tasks on cancellation and shutdown.",
+        "Handler errors close only the affected connection; preserve pipelined response order.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-03",
+      "title": "Persist bounded partition journal entries with crash recovery",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-01"
+      ],
+      "files": [
+        "partitionline-broker/src/journal.rs",
+        "partitionline-broker/tests/journal.rs"
+      ],
+      "deliverable": "A safe append-only checksummed journal with monotonic offsets, explicit fsync, bounded reads and torn-tail recovery.",
+      "acceptance": [
+        "A successful durable append syncs data; disk errors fail closed and do not silently advance offset.",
+        "Reject interior corruption, invalid/overflowed lengths and offsets before unbounded allocation; recover only a demonstrably incomplete final entry.",
+        "Enforce entry/disk/index budgets; test restart, checksum damage, partial append and offset overflow.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-04",
+      "title": "Pin Kafka broker APIs and implement request headers/ApiVersions",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-02"
+      ],
+      "files": [
+        "partitionline-broker/src/protocol.rs",
+        "tests/conformance/broker/api-matrix.json"
+      ],
+      "deliverable": "Pinned classic/flexible headers and honest ApiVersions for actually implemented handlers.",
+      "acceptance": [
+        "Use exact Apache source pins and golden fixtures; advertise only supported API/version pairs.",
+        "Unknown/unsupported APIs, tags, lengths and malformed UTF-8 fail according to the pinned wire contract.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-05",
+      "title": "Persist topic metadata and serve Metadata/CreateTopics/DeleteTopics",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-03",
+        "KL11-04"
+      ],
+      "files": [
+        "partitionline-broker/src/catalog.rs",
+        "partitionline-broker/src/metadata.rs"
+      ],
+      "deliverable": "Persistent validated topic identities/partitions and basic topic administration.",
+      "acceptance": [
+        "Names/IDs, errors and validate-only behavior match independent clients; forbid path traversal.",
+        "Metadata survives restart atomically and does not expose partially created topics.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-06",
+      "title": "Append validated Kafka Produce batches to the durable log",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-03",
+        "KL11-04",
+        "KL11-05"
+      ],
+      "files": [
+        "partitionline-broker/src/produce.rs"
+      ],
+      "deliverable": "Kafka Produce with bounded batch validation, assigned offsets, durable local acknowledgments and correct acks=0 behavior.",
+      "acceptance": [
+        "Validate CRC, magic, record counts, compression/length limits and non-transactional record semantics before append.",
+        "Return exact base offsets/error codes; distinguish configured fsync durability; no acknowledgment before its selected guarantee.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-07",
+      "title": "Serve bounded Fetch and ListOffsets from persisted batches",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-06"
+      ],
+      "files": [
+        "partitionline-broker/src/fetch.rs"
+      ],
+      "deliverable": "Durable fetch/list-offset behavior with batch boundaries and offset limits.",
+      "acceptance": [
+        "Offsets/order/payloads survive restart; errors and oversized-first-batch rules match the pinned contract.",
+        "Honor wait/min/max bytes and request cancellation within budgets; no hidden data loss under capped reads.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-08",
+      "title": "Run independent clients against the persisted single-node broker",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-07"
+      ],
+      "files": [
+        "scripts/broker-interop.py",
+        "tests/conformance/broker/interop/"
+      ],
+      "deliverable": "Pinned Java/C/Rust client produce/fetch/admin histories against the real Rust log.",
+      "acceptance": [
+        "Verify every seeded ID/hash/order through restart and deliberately corrupted input.",
+        "Preserve all failed attempts; local single-node interop does not qualify replication or production.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-09",
+      "title": "Roll journal segments and maintain bounded offset/time indexes",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-03",
+        "KL11-07"
+      ],
+      "files": [
+        "partitionline-broker/src/segments.rs"
+      ],
+      "deliverable": "Crash-safe segment rolling and seek indexes.",
+      "acceptance": [
+        "Atomic replacement/index recovery preserves all committed records and rejects stale/corrupt indexes.",
+        "Bound open files/index memory and disk; independent timestamp and offset seeks agree.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-10",
+      "title": "Apply retention and DeleteRecords without violating offset bounds",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-09"
+      ],
+      "files": [
+        "partitionline-broker/src/retention.rs"
+      ],
+      "deliverable": "Safe retention and log-start-offset advancement.",
+      "acceptance": [
+        "Do not delete retained/unreplicated records; readers see correct offset-out-of-range behavior.",
+        "Restart/partial deletion histories preserve a monotonic log start.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-11",
+      "title": "Compact keyed logs with tombstone retention",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-09",
+        "KL11-10"
+      ],
+      "files": [
+        "partitionline-broker/src/compaction.rs"
+      ],
+      "deliverable": "Deterministic bounded compaction matching Kafka key/tombstone semantics.",
+      "acceptance": [
+        "Respect retention windows, transactional/control records and last value per key.",
+        "Interrupted swaps recover with no invented/missing retained values; bound compaction scratch.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-12",
+      "title": "Persist Raft terms/votes and elect a metadata leader",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-03"
+      ],
+      "files": [
+        "partitionline-broker/src/raft/election.rs"
+      ],
+      "deliverable": "Term/vote persistence and bounded randomized metadata quorum elections.",
+      "acceptance": [
+        "Never vote twice in a term or accept stale leaders; restart and partition histories maintain quorum safety.",
+        "Deterministic seeded election tests and an independent state-machine oracle exercise losing candidates.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-13",
+      "title": "Implement pinned Raft Vote/Begin/End epoch RPCs",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-04",
+        "KL11-12"
+      ],
+      "files": [
+        "partitionline-broker/src/raft/protocol.rs"
+      ],
+      "deliverable": "Kafka-compatible KRaft election messages and epoch transitions.",
+      "acceptance": [
+        "Exact versioned Apache fixtures and cross-peer negotiation prove fields/error codes.",
+        "All stale/fenced/malformed paths fail with bounded work.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-14",
+      "title": "Replicate and commit the metadata quorum log",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-12",
+        "KL11-13"
+      ],
+      "files": [
+        "partitionline-broker/src/raft/replication.rs"
+      ],
+      "deliverable": "Quorum commit index, leader/follower replication and membership safety.",
+      "acceptance": [
+        "Committed metadata survives a minority failure; no split-brain committed histories.",
+        "Test catch-up, truncation, partitions, stale epochs and membership changes.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-15",
+      "title": "Create/install metadata snapshots and recover controller state",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-14"
+      ],
+      "files": [
+        "partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "deliverable": "Checksummed atomic metadata snapshots and bounded catch-up.",
+      "acceptance": [
+        "Snapshot install plus log replay yields the same state; reject incomplete/foreign snapshots.",
+        "Bound transfer buffers and retain recoverable old snapshot through interrupted replacement.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-16",
+      "title": "Register brokers and fence stale controller/broker epochs",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-05",
+        "KL11-14",
+        "KL11-15"
+      ],
+      "files": [
+        "partitionline-broker/src/controller/registration.rs"
+      ],
+      "deliverable": "KRaft broker/controller registration, heartbeats and durable fencing.",
+      "acceptance": [
+        "Versioned registration/session semantics match pinned current Kafka definitions.",
+        "Expired/stale brokers cannot serve writes or mutate controller state.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-17",
+      "title": "Assign partitions and maintain leader/ISR metadata",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-16"
+      ],
+      "files": [
+        "partitionline-broker/src/controller/partitions.rs"
+      ],
+      "deliverable": "Controller placement, partition leader epochs and ISR transitions.",
+      "acceptance": [
+        "Validate assignment changes and prevent unclean data loss unless explicitly configured.",
+        "Persist and replay reassignments/leader epochs under controller failover.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-18",
+      "title": "Replicate partition logs through follower Fetch",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-07",
+        "KL11-17"
+      ],
+      "files": [
+        "partitionline-broker/src/replication.rs"
+      ],
+      "deliverable": "Follower log replication with epoch/truncation/catch-up bounds.",
+      "acceptance": [
+        "Leader/follower log bytes and offsets match; stale leaders are fenced.",
+        "Bound replication buffers/requests and prove interruption/restart histories.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-19",
+      "title": "Enforce high watermarks, min ISR and replicated acknowledgments",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-18"
+      ],
+      "files": [
+        "partitionline-broker/src/high_watermark.rs"
+      ],
+      "deliverable": "acks=all/minISR and committed visibility based on replica progress.",
+      "acceptance": [
+        "Never acknowledge the selected durability guarantee before it holds.",
+        "Leader loss after ack preserves committed IDs; below-minISR rejects correctly.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-20",
+      "title": "Recover leader epochs and replica divergence after failover",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-19"
+      ],
+      "files": [
+        "partitionline-broker/src/recovery.rs"
+      ],
+      "deliverable": "Safe epoch recovery and bounded replica truncation.",
+      "acceptance": [
+        "Seeded leader/crash/partition histories show zero unexplained loss or duplicates.",
+        "OffsetForLeaderEpoch and high watermark never expose truncated/uncommitted records.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-21",
+      "title": "Serve validated broker/topic dynamic configurations",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-05",
+        "KL11-16"
+      ],
+      "files": [
+        "partitionline-broker/src/configs.rs"
+      ],
+      "deliverable": "Describe/Alter/IncrementalAlterConfigs with typed bounds and atomic persistence.",
+      "acceptance": [
+        "Reject invalid/sensitive/read-only updates; validate-only has no mutation.",
+        "Dynamic updates preserve existing tasks and budgets under concurrent requests.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-22",
+      "title": "Enforce client/connection/replication request quotas",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-02",
+        "KL11-21"
+      ],
+      "files": [
+        "partitionline-broker/src/quotas.rs"
+      ],
+      "deliverable": "Bounded fairness, throttle responses and quota administration.",
+      "acceptance": [
+        "Overload respects declared memory/task/connection limits without starving unrelated clients.",
+        "Quota changes and disconnects cannot leak permits or erase accepted work.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-23",
+      "title": "Persist producer IDs, epochs and idempotent sequences",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-06",
+        "KL11-19"
+      ],
+      "files": [
+        "partitionline-broker/src/idempotence.rs"
+      ],
+      "deliverable": "Producer allocation/fencing and per-partition deduplication with recovery.",
+      "acceptance": [
+        "Duplicate retries return original offsets; invalid/out-of-order sequences follow Kafka errors.",
+        "Restart, epoch exhaustion and lost-ack histories do not invent additional committed records.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-24",
+      "title": "Persist transaction coordinator state and epoch fencing",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-23",
+        "KL11-14"
+      ],
+      "files": [
+        "partitionline-broker/src/transactions/coordinator.rs"
+      ],
+      "deliverable": "Durable transaction lifecycle and producer/coordinator fencing.",
+      "acceptance": [
+        "Init/Begin/Add/End transaction state changes survive coordinator failover.",
+        "Expired/old epochs cannot commit; ambiguous completion is explicit.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-25",
+      "title": "Write transaction markers and enforce LSO/read_committed",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-24",
+        "KL11-07"
+      ],
+      "files": [
+        "partitionline-broker/src/transactions/markers.rs"
+      ],
+      "deliverable": "Atomic transaction marker histories and committed fetch isolation.",
+      "acceptance": [
+        "No aborted or incomplete transaction is exposed; later commits under the same PID remain visible.",
+        "Failover/retry markers and control offsets preserve independent consumer histories.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-26",
+      "title": "Commit consumer offsets atomically with transactions",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-25",
+        "KL11-29"
+      ],
+      "files": [
+        "partitionline-broker/src/transactions/offsets.rs"
+      ],
+      "deliverable": "Transactional offset commit and fencing by group generation/member metadata.",
+      "acceptance": [
+        "Data and offsets become visible atomically; stale groups/producers fail.",
+        "Crash and lost-ack histories independently prove consume-transform-produce semantics.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-27",
+      "title": "Implement classic consumer group Join/Sync coordinator",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-14",
+        "KL11-05"
+      ],
+      "files": [
+        "partitionline-broker/src/groups/classic.rs"
+      ],
+      "deliverable": "Durable classic membership, protocol election and generation assignments.",
+      "acceptance": [
+        "Pinned Java/C/Rust groups converge at valid generation; no overlapping partition ownership.",
+        "Joining, timeout and coordinator failover follow exact error/retry semantics.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-28",
+      "title": "Bound group heartbeat, rebalance and leave lifecycle",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-27"
+      ],
+      "files": [
+        "partitionline-broker/src/groups/lifecycle.rs"
+      ],
+      "deliverable": "Session/rebalance/member timers and group lifecycle.",
+      "acceptance": [
+        "Expiration, graceful leave and process loss revoke ownership within declared budgets.",
+        "Static membership and cooperative revocation do not commit undelivered records.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-29",
+      "title": "Persist group offsets and expose group administration",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-27",
+        "KL11-28"
+      ],
+      "files": [
+        "partitionline-broker/src/groups/offsets.rs"
+      ],
+      "deliverable": "OffsetCommit/Fetch/Delete plus group describe/list/delete with persistence.",
+      "acceptance": [
+        "Versioned metadata/generation errors match independent clients; offsets survive restart.",
+        "Atomic per-request partial errors and deletes do not erase unrelated groups.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-30",
+      "title": "Prove cooperative/static group transition histories",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-28",
+        "KL11-29"
+      ],
+      "files": [
+        "tests/conformance/broker/groups/"
+      ],
+      "deliverable": "Independent cooperative/static membership and rebalance histories.",
+      "acceptance": [
+        "No duplicate simultaneous ownership; processed offsets alone are committed.",
+        "Preserve every failed attempt and test coordinator/member crashes.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-31",
+      "title": "Implement KIP-848 modern consumer groups",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-29"
+      ],
+      "files": [
+        "partitionline-broker/src/groups/consumer.rs"
+      ],
+      "deliverable": "Modern consumer heartbeat/describe and server-side assignor state.",
+      "acceptance": [
+        "Current negotiated versions and epoch transitions match pinned Apache clients.",
+        "Incremental assignment/leave/fencing work across coordinator failover.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-32",
+      "title": "Implement share/streams group membership coordination",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-31"
+      ],
+      "files": [
+        "partitionline-broker/src/groups/share.rs",
+        "partitionline-broker/src/groups/streams.rs"
+      ],
+      "deliverable": "KIP-932 share membership and current streams group wire/state contracts.",
+      "acceptance": [
+        "Versioned heartbeat/describe fields and assignment epochs match pinned definitions.",
+        "Persist server-owned assignment state and fence stale members.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-33",
+      "title": "Implement share fetch locks, partial acknowledgments and expiry",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-32",
+        "KL11-07"
+      ],
+      "files": [
+        "partitionline-broker/src/share_delivery.rs"
+      ],
+      "deliverable": "Bounded share delivery locks and accept/release/reject/expiry behavior.",
+      "acceptance": [
+        "Independent histories verify redelivery limits and partial acknowledgments exactly.",
+        "Restart/coordinator/leader loss cannot leak permanent locks or acknowledge undelivered records.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-34",
+      "title": "Persist share group state and offset administration",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-33",
+        "KL11-14"
+      ],
+      "files": [
+        "partitionline-broker/src/share_state.rs"
+      ],
+      "deliverable": "Share state read/write/init/summary/delete and offset APIs.",
+      "acceptance": [
+        "Atomic state transitions and generations match current Apache wire definitions.",
+        "Replay and timeout histories preserve delivery counts and acknowledged state.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-35",
+      "title": "Terminate TLS/mTLS and rotate trust/client identity",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-02"
+      ],
+      "files": [
+        "partitionline-broker/src/security/tls.rs"
+      ],
+      "deliverable": "Verified TLS listeners, bounded handshakes and rotation.",
+      "acceptance": [
+        "No plaintext fallback; reject wrong/expired/untrusted credentials and missing client certs.",
+        "Existing/new sessions obey documented rotation behavior and socket budgets.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-36",
+      "title": "Authenticate PLAIN/SCRAM and manage salted credentials",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-35"
+      ],
+      "files": [
+        "partitionline-broker/src/security/sasl.rs"
+      ],
+      "deliverable": "Bounded SASL PLAIN/SCRAM handshakes with secure credential storage/admin.",
+      "acceptance": [
+        "Pinned Java/C clients prove challenge proofs, errors and identity; redact secrets.",
+        "Persist only salted/verifier forms; cap concurrent authentication work.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-37",
+      "title": "Validate OIDC tokens and reauthenticate live sessions",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-36"
+      ],
+      "files": [
+        "partitionline-broker/src/security/oidc.rs"
+      ],
+      "deliverable": "Cryptographically validating OAUTHBEARER/OIDC with expiry/refresh/key rotation.",
+      "acceptance": [
+        "Validate signature/issuer/audience/time; reject expired/revoked/malformed tokens.",
+        "IdP/JWKS outages and session expiry fail closed with bounded cached state.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-38",
+      "title": "Implement the approved optional Kerberos/GSSAPI boundary",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-36"
+      ],
+      "files": [
+        "partitionline-broker/src/security/gssapi.rs"
+      ],
+      "deliverable": "Optional reviewed GSSAPI authentication with explicit dependency/policy bounds.",
+      "acceptance": [
+        "Use the approved backend and isolated KDC oracle; no silent native/default dependency change.",
+        "Test ticket expiry, principal mapping, failure/redaction and unavailable credentials.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-39",
+      "title": "Authorize every broker operation with persistent ACLs",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-36",
+        "KL11-21"
+      ],
+      "files": [
+        "partitionline-broker/src/security/acl.rs"
+      ],
+      "deliverable": "Principal/resource/operation authorization and ACL admin.",
+      "acceptance": [
+        "Fail closed for unauthorized actions, including metadata/control/coordinator mutations.",
+        "Wildcard/pattern/superuser policies and persistence match independent security tests.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-40",
+      "title": "Issue/renew/expire delegation tokens with authorization",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-39"
+      ],
+      "files": [
+        "partitionline-broker/src/security/tokens.rs"
+      ],
+      "deliverable": "Bounded delegation-token lifecycle and admin APIs.",
+      "acceptance": [
+        "Enforce owner/renewer/expiry semantics; secret token material is redacted.",
+        "Restart and revocation reject expired or unauthorized use.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-41",
+      "title": "Complete cluster/replica/log-directory/feature/quorum administration",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-20",
+        "KL11-21",
+        "KL11-39"
+      ],
+      "files": [
+        "partitionline-broker/src/admin.rs"
+      ],
+      "deliverable": "Remaining current broker admin and controller forwarding surfaces.",
+      "acceptance": [
+        "Every API/version in the pinned matrix has a tested disposition; no advertised dummy success.",
+        "Atomic validated mutations survive mixed-version controller/broker failover.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-42",
+      "title": "Serve retained remote/tiered log segments safely",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-09",
+        "KL11-10",
+        "KL11-20"
+      ],
+      "files": [
+        "partitionline-broker/src/tiered.rs"
+      ],
+      "deliverable": "Optional tiered segment offload/restore with verified integrity and retention.",
+      "acceptance": [
+        "Declared backends preserve keys/offsets/checksums across outages and restart.",
+        "Bound transfer scratch/disk; incomplete offload cannot delete local committed data.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-43",
+      "title": "Expose bounded metrics/telemetry and operational diagnostics",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-22",
+        "KL11-39"
+      ],
+      "files": [
+        "partitionline-broker/src/metrics.rs"
+      ],
+      "deliverable": "Operational counters/telemetry with bounded cardinality and redaction.",
+      "acceptance": [
+        "No credentials/payloads in logs; cap label/subscription memory and telemetry payloads.",
+        "Measure enabled overhead and preserve backpressure under observer outages.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-44",
+      "title": "Prove broker overload, deadlines and shutdown ownership",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-19",
+        "KL11-22",
+        "KL11-28",
+        "KL11-33",
+        "KL11-37"
+      ],
+      "files": [
+        "partitionline-broker/tests/resource_lifecycle.rs"
+      ],
+      "deliverable": "2x offered-load and cancellation ownership evidence across supported broker paths.",
+      "acceptance": [
+        "Every accepted operation has a durable/failed/ambiguous outcome; no hung completions.",
+        "Actual bytes/tasks/sockets/disk obey declared budgets and recover after drain.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-45",
+      "title": "Run seeded distributed data-plane and transaction crash histories",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-20",
+        "KL11-25",
+        "KL11-26",
+        "KL11-30",
+        "KL11-34"
+      ],
+      "files": [
+        "scripts/broker-fault-campaign.py",
+        "docs/evidence/broker/faults/"
+      ],
+      "deliverable": "At least1000 seeded broker/controller/client faults per claimed profile.",
+      "acceptance": [
+        "Independent ID/hash/order observers verify every accepted outcome and transaction isolation.",
+        "Quorum loss, partitions, fsync errors and lost acknowledgments preserve failures and uncertainty.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-46",
+      "title": "Prove rolling upgrade and mixed-version cluster behavior",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-41",
+        "KL11-45"
+      ],
+      "files": [
+        "scripts/broker-upgrade-campaign.py"
+      ],
+      "deliverable": "Upgrade/downgrade feature gates and mixed-version protocol histories.",
+      "acceptance": [
+        "Pin source/binary/config identities; preserve data and supported metadata features.",
+        "Unsupported downgrade is explicit and rollback restores the proven state.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-47",
+      "title": "Fuzz broker framing, storage recovery and API decoding",
+      "priority": "P0",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-04",
+        "KL11-09",
+        "KL11-41"
+      ],
+      "files": [
+        "fuzz/broker/"
+      ],
+      "deliverable": "Sustained malformed-wire/log fuzz campaigns with bounded work.",
+      "acceptance": [
+        "Minimized failures become regressions; at least24h campaigns per parser/recovery family.",
+        "No panic/OOM/hang/unsafe; keep all failing artifacts and exact tool/source pins.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-48",
+      "title": "Complete independent current-version broker compatibility matrix",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-08",
+        "KL11-31",
+        "KL11-34",
+        "KL11-40",
+        "KL11-41",
+        "KL11-42",
+        "KL11-46"
+      ],
+      "files": [
+        "tests/conformance/broker/compatibility.json"
+      ],
+      "deliverable": "All pinned supported Java/C/Rust client and broker API/version/profile cells.",
+      "acceptance": [
+        "Required missing/unsupported/failed cases remain blocking; no denominator shrink.",
+        "Cross-check current4.1.2/4.2.1/4.3.1 pins and independent behavioral/wire results.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-49",
+      "title": "Integrate the complete client leadership campaign",
+      "priority": "P1",
+      "kind": "benchmark",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-08",
+        "KL09-70"
+      ],
+      "files": [
+        "docs/evidence/client-leadership/"
+      ],
+      "deliverable": "Exact-source equal-semantics client comparisons over all required profiles.",
+      "acceptance": [
+        "Use the existing KL09 claim/guardrail rules; include every losing cell and uncertainty.",
+        "Required client task prerequisites must be added/finished before promotion; multi-host x86_64/arm64 and independent reproduction are required.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-50",
+      "title": "Benchmark the Rust broker against pinned Kafka-compatible servers",
+      "priority": "P1",
+      "kind": "benchmark",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-19",
+        "KL11-25",
+        "KL11-31",
+        "KL11-33",
+        "KL11-35",
+        "KL11-39",
+        "KL11-42"
+      ],
+      "files": [
+        "benchmarks/servers/",
+        "docs/evidence/server-performance/"
+      ],
+      "deliverable": "Equal-hardware/durability/security server workload matrix against relevant pinned peers.",
+      "acceptance": [
+        "Measure verified useful records/bytes, CPU/RSS/disk and p50/p99/p99.9 at matched offered loads.",
+        "Keep all failures and losing cells; paired confidence intervals, x86_64/arm64 and independent reproduction.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-51",
+      "title": "Rank and optimize measured server bottlenecks",
+      "priority": "P1",
+      "kind": "analysis",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-50"
+      ],
+      "files": [
+        "docs/plan/server-performance.md"
+      ],
+      "deliverable": "A measured bottleneck ranking and atomic accepted/rejected optimization child tasks.",
+      "acceptance": [
+        "Create bounded child cards before edits; correctness/resource guardrails apply.",
+        "Profile-level fastest claims require superiority in every named required cell, not selective wins.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-52",
+      "title": "Complete24h broker resource and overload qualification",
+      "priority": "P0",
+      "kind": "conformance",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-44",
+        "KL11-45",
+        "KL11-48"
+      ],
+      "files": [
+        "scripts/broker-soak.py",
+        "docs/evidence/broker/soak/"
+      ],
+      "deliverable": "Continuous24h bounded-resource and overload histories on the candidate.",
+      "acceptance": [
+        "Retain exact job IDs/source/config, hourly traces and stop conditions; a launched job is not a pass.",
+        "RSS/task/socket/disk limits and ID/transaction integrity hold through faults and drain.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-53",
+      "title": "Complete7day broker operational continuity qualification",
+      "priority": "P0",
+      "kind": "conformance",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-52",
+        "KL11-46"
+      ],
+      "files": [
+        "scripts/broker-production-soak.py",
+        "docs/evidence/broker/production/"
+      ],
+      "deliverable": "Seven-day recovery/backup/restore/upgrade security and data continuity record.",
+      "acceptance": [
+        "No unexplained integrity failure or unbounded growth; preserve all restarts/failures.",
+        "Record independent operational diagnosis and rollback exercises on the candidate.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-54",
+      "title": "Package the broker and provide reproducible operator setup",
+      "priority": "P1",
+      "kind": "documentation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-08",
+        "KL11-35",
+        "KL11-39",
+        "KL11-43",
+        "KL11-46"
+      ],
+      "files": [
+        "partitionline-broker/README.md",
+        "docs/broker-operations.md",
+        "scripts/broker-package.sh"
+      ],
+      "deliverable": "Verified install/start/configure/observe/backup/restore/upgrade workflows.",
+      "acceptance": [
+        "Actual packaged binaries/config examples run on declared supported platforms.",
+        "Secure deployment guidance, defaults and capacity limits match tested behavior; no automatic live deployment.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-55",
+      "title": "Reconcile client/server documentation and full completion status",
+      "priority": "P1",
+      "kind": "documentation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-48",
+        "KL11-49",
+        "KL11-51",
+        "KL11-53",
+        "KL11-54"
+      ],
+      "files": [
+        "README.md",
+        "TODO.md",
+        "docs/ROADMAP.md",
+        "docs/STATUS.md"
+      ],
+      "deliverable": "Current evidence-backed support/status/docs with no stale active-work assertions.",
+      "acceptance": [
+        "Every canonical client/server card has a truthful terminal outcome; no remaining missing required feature.",
+        "Named fastest/production claims cite exact qualified release/platform/workload evidence and independent signoff.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL11-56",
+      "title": "Qualify the complete Rust Kafka client and broker goal",
+      "priority": "P0",
+      "kind": "analysis",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL11-55",
+        "KL01-01",
+        "KL01-02",
+        "KL01-03",
+        "KL01-04",
+        "KL01-05",
+        "KL01-06",
+        "KL01-07",
+        "KL01-08",
+        "KL01-09",
+        "KL01-10",
+        "KL01-11",
+        "KL01-12",
+        "KL01-13",
+        "KL01-14",
+        "KL01-15",
+        "KL01-16",
+        "KL01-17",
+        "KL02-01",
+        "KL02-02",
+        "KL02-03",
+        "KL02-04",
+        "KL02-05",
+        "KL02-06",
+        "KL02-07",
+        "KL02-08",
+        "KL02-09",
+        "KL02-10",
+        "KL03-01",
+        "KL03-02",
+        "KL03-03",
+        "KL03-04",
+        "KL03-05",
+        "KL03-06",
+        "KL03-07",
+        "KL03-08",
+        "KL03-09",
+        "KL03-10",
+        "KL03-11",
+        "KL03-12",
+        "KL03-13",
+        "KL03-14",
+        "KL03-15",
+        "KL03-16",
+        "KL03-17",
+        "KL03-18",
+        "KL03-19",
+        "KL03-20",
+        "KL03-21",
+        "KL03-22",
+        "KL04-01",
+        "KL04-02",
+        "KL04-03",
+        "KL04-04",
+        "KL04-05",
+        "KL04-06",
+        "KL04-07",
+        "KL04-08",
+        "KL04-09",
+        "KL04-10",
+        "KL04-11",
+        "KL04-12",
+        "KL04-13",
+        "KL04-14",
+        "KL05-01",
+        "KL05-02",
+        "KL05-03",
+        "KL05-04",
+        "KL05-05",
+        "KL05-06",
+        "KL05-07",
+        "KL05-08",
+        "KL05-09",
+        "KL05-10",
+        "KL05-11",
+        "KL05-12",
+        "KL05-13",
+        "KL05-14",
+        "KL05-15",
+        "KL05-16",
+        "KL05-17",
+        "KL05-18",
+        "KL05-19",
+        "KL05-20",
+        "KL05-21",
+        "KL05-22",
+        "KL05-23",
+        "KL05-24",
+        "KL05-25",
+        "KL05-26",
+        "KL05-27",
+        "KL06-01",
+        "KL06-02",
+        "KL06-03",
+        "KL06-04",
+        "KL06-05",
+        "KL06-06",
+        "KL06-07",
+        "KL06-08",
+        "KL06-09",
+        "KL06-10",
+        "KL07-01",
+        "KL07-02",
+        "KL07-03",
+        "KL07-04",
+        "KL07-05",
+        "KL07-06",
+        "KL07-07",
+        "KL07-08",
+        "KL07-09",
+        "KL07-10",
+        "KL07-11",
+        "KL07-12",
+        "KL07-13",
+        "KL07-14",
+        "KL07-15",
+        "KL08-01",
+        "KL08-02",
+        "KL08-03",
+        "KL08-04",
+        "KL08-05",
+        "KL08-06",
+        "KL08-07",
+        "KL08-08",
+        "KL08-09",
+        "KL08-10",
+        "KL08-11",
+        "KL08-12",
+        "KL08-13",
+        "KL08-14",
+        "KL08-15",
+        "KL08-16",
+        "KL08-17",
+        "KL08-18",
+        "KL08-19",
+        "KL08-20",
+        "KL08-21",
+        "KL09-01",
+        "KL09-02",
+        "KL09-03",
+        "KL09-04",
+        "KL09-05",
+        "KL09-06",
+        "KL09-07",
+        "KL09-08",
+        "KL09-09",
+        "KL09-10",
+        "KL09-11",
+        "KL09-12",
+        "KL09-13",
+        "KL09-14",
+        "KL09-15",
+        "KL09-16",
+        "KL09-17",
+        "KL09-18",
+        "KL09-19",
+        "KL09-20",
+        "KL09-21",
+        "KL09-22",
+        "KL09-23",
+        "KL09-24",
+        "KL09-25",
+        "KL09-26",
+        "KL09-27",
+        "KL09-28",
+        "KL09-29",
+        "KL09-30",
+        "KL09-31",
+        "KL09-32",
+        "KL09-33",
+        "KL09-34",
+        "KL09-35",
+        "KL09-36",
+        "KL09-37",
+        "KL09-38",
+        "KL09-39",
+        "KL09-40",
+        "KL09-41",
+        "KL09-42",
+        "KL09-43",
+        "KL09-44",
+        "KL09-45",
+        "KL09-46",
+        "KL09-47",
+        "KL09-48",
+        "KL09-49",
+        "KL09-50",
+        "KL09-51",
+        "KL09-52",
+        "KL09-53",
+        "KL09-54",
+        "KL09-55",
+        "KL09-56",
+        "KL09-57",
+        "KL09-58",
+        "KL09-59",
+        "KL09-60",
+        "KL09-61",
+        "KL09-62",
+        "KL09-63",
+        "KL09-64",
+        "KL09-65",
+        "KL09-66",
+        "KL09-67",
+        "KL09-68",
+        "KL09-69",
+        "KL09-70",
+        "KL10-01",
+        "KL10-02",
+        "KL10-03",
+        "KL10-04",
+        "KL10-05",
+        "KL10-06",
+        "KL10-07",
+        "KL10-08",
+        "KL10-09",
+        "KL10-10",
+        "KL10-11",
+        "KL10-12",
+        "KL10-13",
+        "KL10-14",
+        "KL10-15",
+        "KL10-16",
+        "KL10-17",
+        "KL09-71",
+        "KL09-72"
+      ],
+      "files": [
+        "docs/plan/evidence/KL11-56.json"
+      ],
+      "deliverable": "A final fail-closed full-feature, production and leadership audit.",
+      "acceptance": [
+        "All required client/server implementation, compatibility, security, resource, operations and performance gates are satisfied.",
+        "No outstanding required work or unresolved failures; exact candidate CI/package/support/benchmark evidence is complete.",
+        "Do not infer a universal fastest-world assertion from a finite benchmark set; state the tested competitive scope.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
       "evidence": []
     }
   ]

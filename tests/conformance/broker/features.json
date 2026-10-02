@@ -1,0 +1,1328 @@
+{
+  "schema_version": 1,
+  "scope": "Rust Kafka-compatible broker; distinct from nullbroker and client profiles",
+  "target_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "upstream_pin_gate": "KL11-04",
+  "implemented_api_versions": [],
+  "features": [
+    {
+      "id": "api.0",
+      "api_key": 0,
+      "name": "PRODUCE",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.1",
+      "api_key": 1,
+      "name": "FETCH",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.2",
+      "api_key": 2,
+      "name": "LIST_OFFSETS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.3",
+      "api_key": 3,
+      "name": "METADATA",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.4",
+      "api_key": 4,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.5",
+      "api_key": 5,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.6",
+      "api_key": 6,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.7",
+      "api_key": 7,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.8",
+      "api_key": 8,
+      "name": "OFFSET_COMMIT",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.9",
+      "api_key": 9,
+      "name": "OFFSET_FETCH",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.10",
+      "api_key": 10,
+      "name": "FIND_COORDINATOR",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.11",
+      "api_key": 11,
+      "name": "JOIN_GROUP",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.12",
+      "api_key": 12,
+      "name": "HEARTBEAT",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.13",
+      "api_key": 13,
+      "name": "LEAVE_GROUP",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.14",
+      "api_key": 14,
+      "name": "SYNC_GROUP",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.15",
+      "api_key": 15,
+      "name": "DESCRIBE_GROUPS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.16",
+      "api_key": 16,
+      "name": "LIST_GROUPS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.17",
+      "api_key": 17,
+      "name": "SASL_HANDSHAKE",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.18",
+      "api_key": 18,
+      "name": "API_VERSIONS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.19",
+      "api_key": 19,
+      "name": "CREATE_TOPICS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.20",
+      "api_key": 20,
+      "name": "DELETE_TOPICS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.21",
+      "api_key": 21,
+      "name": "DELETE_RECORDS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.22",
+      "api_key": 22,
+      "name": "INIT_PRODUCER_ID",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.23",
+      "api_key": 23,
+      "name": "OFFSET_FOR_LEADER_EPOCH",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.24",
+      "api_key": 24,
+      "name": "ADD_PARTITIONS_TO_TXN",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.25",
+      "api_key": 25,
+      "name": "ADD_OFFSETS_TO_TXN",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.26",
+      "api_key": 26,
+      "name": "END_TXN",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.27",
+      "api_key": 27,
+      "name": "WRITE_TXN_MARKERS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.28",
+      "api_key": 28,
+      "name": "TXN_OFFSET_COMMIT",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.29",
+      "api_key": 29,
+      "name": "DESCRIBE_ACLS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.30",
+      "api_key": 30,
+      "name": "CREATE_ACLS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.31",
+      "api_key": 31,
+      "name": "DELETE_ACLS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.32",
+      "api_key": 32,
+      "name": "DESCRIBE_CONFIGS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.33",
+      "api_key": 33,
+      "name": "ALTER_CONFIGS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.34",
+      "api_key": 34,
+      "name": "ALTER_REPLICA_LOG_DIRS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.35",
+      "api_key": 35,
+      "name": "DESCRIBE_LOG_DIRS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.36",
+      "api_key": 36,
+      "name": "SASL_AUTHENTICATE",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.37",
+      "api_key": 37,
+      "name": "CREATE_PARTITIONS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.38",
+      "api_key": 38,
+      "name": "CREATE_DELEGATION_TOKEN",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.39",
+      "api_key": 39,
+      "name": "RENEW_DELEGATION_TOKEN",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.40",
+      "api_key": 40,
+      "name": "EXPIRE_DELEGATION_TOKEN",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.41",
+      "api_key": 41,
+      "name": "DESCRIBE_DELEGATION_TOKEN",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.42",
+      "api_key": 42,
+      "name": "DELETE_GROUPS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.43",
+      "api_key": 43,
+      "name": "ELECT_LEADERS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.44",
+      "api_key": 44,
+      "name": "INCREMENTAL_ALTER_CONFIGS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.45",
+      "api_key": 45,
+      "name": "ALTER_PARTITION_REASSIGNMENTS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.46",
+      "api_key": 46,
+      "name": "LIST_PARTITION_REASSIGNMENTS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.47",
+      "api_key": 47,
+      "name": "OFFSET_DELETE",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.48",
+      "api_key": 48,
+      "name": "DESCRIBE_CLIENT_QUOTAS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.49",
+      "api_key": 49,
+      "name": "ALTER_CLIENT_QUOTAS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.50",
+      "api_key": 50,
+      "name": "DESCRIBE_USER_SCRAM_CREDENTIALS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.51",
+      "api_key": 51,
+      "name": "ALTER_USER_SCRAM_CREDENTIALS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.52",
+      "api_key": 52,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.53",
+      "api_key": 53,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.54",
+      "api_key": 54,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.55",
+      "api_key": 55,
+      "name": "DESCRIBE_QUORUM",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.56",
+      "api_key": 56,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.57",
+      "api_key": 57,
+      "name": "UPDATE_FEATURES",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.58",
+      "api_key": 58,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.59",
+      "api_key": 59,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.60",
+      "api_key": 60,
+      "name": "DESCRIBE_CLUSTER",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.61",
+      "api_key": 61,
+      "name": "DESCRIBE_PRODUCERS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.62",
+      "api_key": 62,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.63",
+      "api_key": 63,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.64",
+      "api_key": 64,
+      "name": "UNREGISTER_BROKER",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.65",
+      "api_key": 65,
+      "name": "DESCRIBE_TRANSACTIONS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.66",
+      "api_key": 66,
+      "name": "LIST_TRANSACTIONS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.67",
+      "api_key": 67,
+      "name": "ALLOCATE_PRODUCER_IDS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.68",
+      "api_key": 68,
+      "name": "CONSUMER_GROUP_HEARTBEAT",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.69",
+      "api_key": 69,
+      "name": "CONSUMER_GROUP_DESCRIBE",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.70",
+      "api_key": 70,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.71",
+      "api_key": 71,
+      "name": "GET_TELEMETRY_SUBSCRIPTIONS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.72",
+      "api_key": 72,
+      "name": "PUSH_TELEMETRY",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.73",
+      "api_key": 73,
+      "name": "ASSIGN_REPLICAS_TO_DIRS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.74",
+      "api_key": 74,
+      "name": "LIST_CONFIG_RESOURCES",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.75",
+      "api_key": 75,
+      "name": "DESCRIBE_TOPIC_PARTITIONS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.76",
+      "api_key": 76,
+      "name": "SHARE_GROUP_HEARTBEAT",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.77",
+      "api_key": 77,
+      "name": "SHARE_GROUP_DESCRIBE",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.78",
+      "api_key": 78,
+      "name": "SHARE_FETCH",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.79",
+      "api_key": 79,
+      "name": "SHARE_ACKNOWLEDGE",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.80",
+      "api_key": 80,
+      "name": "ADD_RAFT_VOTER",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.81",
+      "api_key": 81,
+      "name": "REMOVE_RAFT_VOTER",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.82",
+      "api_key": 82,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.83",
+      "api_key": 83,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.84",
+      "api_key": 84,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.85",
+      "api_key": 85,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.86",
+      "api_key": 86,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.87",
+      "api_key": 87,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.88",
+      "api_key": 88,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.89",
+      "api_key": 89,
+      "name": "requires_upstream_classification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.90",
+      "api_key": 90,
+      "name": "DESCRIBE_SHARE_GROUP_OFFSETS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.91",
+      "api_key": 91,
+      "name": "ALTER_SHARE_GROUP_OFFSETS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "api.92",
+      "api_key": 92,
+      "name": "DELETE_SHARE_GROUP_OFFSETS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": null,
+      "owner_task": "KL11-04",
+      "note": "Classify and pin exact current upstream definitions before advertisement; legacy/retired distinctions need evidence."
+    },
+    {
+      "id": "contract.KL11-02",
+      "name": "Bound broker framed transport and shutdown",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-02"
+    },
+    {
+      "id": "contract.KL11-03",
+      "name": "Persist bounded partition journal entries with crash recovery",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-03"
+    },
+    {
+      "id": "contract.KL11-04",
+      "name": "Pin Kafka broker APIs and implement request headers/ApiVersions",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-04"
+    },
+    {
+      "id": "contract.KL11-05",
+      "name": "Persist topic metadata and serve Metadata/CreateTopics/DeleteTopics",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-05"
+    },
+    {
+      "id": "contract.KL11-06",
+      "name": "Append validated Kafka Produce batches to the durable log",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-06"
+    },
+    {
+      "id": "contract.KL11-07",
+      "name": "Serve bounded Fetch and ListOffsets from persisted batches",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-07"
+    },
+    {
+      "id": "contract.KL11-08",
+      "name": "Run independent clients against the persisted single-node broker",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-08"
+    },
+    {
+      "id": "contract.KL11-09",
+      "name": "Roll journal segments and maintain bounded offset/time indexes",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-09"
+    },
+    {
+      "id": "contract.KL11-10",
+      "name": "Apply retention and DeleteRecords without violating offset bounds",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-10"
+    },
+    {
+      "id": "contract.KL11-11",
+      "name": "Compact keyed logs with tombstone retention",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-11"
+    },
+    {
+      "id": "contract.KL11-12",
+      "name": "Persist Raft terms/votes and elect a metadata leader",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-12"
+    },
+    {
+      "id": "contract.KL11-13",
+      "name": "Implement pinned Raft Vote/Begin/End epoch RPCs",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-13"
+    },
+    {
+      "id": "contract.KL11-14",
+      "name": "Replicate and commit the metadata quorum log",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-14"
+    },
+    {
+      "id": "contract.KL11-15",
+      "name": "Create/install metadata snapshots and recover controller state",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-15"
+    },
+    {
+      "id": "contract.KL11-16",
+      "name": "Register brokers and fence stale controller/broker epochs",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-16"
+    },
+    {
+      "id": "contract.KL11-17",
+      "name": "Assign partitions and maintain leader/ISR metadata",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-17"
+    },
+    {
+      "id": "contract.KL11-18",
+      "name": "Replicate partition logs through follower Fetch",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-18"
+    },
+    {
+      "id": "contract.KL11-19",
+      "name": "Enforce high watermarks, min ISR and replicated acknowledgments",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-19"
+    },
+    {
+      "id": "contract.KL11-20",
+      "name": "Recover leader epochs and replica divergence after failover",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-20"
+    },
+    {
+      "id": "contract.KL11-21",
+      "name": "Serve validated broker/topic dynamic configurations",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-21"
+    },
+    {
+      "id": "contract.KL11-22",
+      "name": "Enforce client/connection/replication request quotas",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-22"
+    },
+    {
+      "id": "contract.KL11-23",
+      "name": "Persist producer IDs, epochs and idempotent sequences",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-23"
+    },
+    {
+      "id": "contract.KL11-24",
+      "name": "Persist transaction coordinator state and epoch fencing",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-24"
+    },
+    {
+      "id": "contract.KL11-25",
+      "name": "Write transaction markers and enforce LSO/read_committed",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-25"
+    },
+    {
+      "id": "contract.KL11-26",
+      "name": "Commit consumer offsets atomically with transactions",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-26"
+    },
+    {
+      "id": "contract.KL11-27",
+      "name": "Implement classic consumer group Join/Sync coordinator",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-27"
+    },
+    {
+      "id": "contract.KL11-28",
+      "name": "Bound group heartbeat, rebalance and leave lifecycle",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-28"
+    },
+    {
+      "id": "contract.KL11-29",
+      "name": "Persist group offsets and expose group administration",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-29"
+    },
+    {
+      "id": "contract.KL11-30",
+      "name": "Prove cooperative/static group transition histories",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-30"
+    },
+    {
+      "id": "contract.KL11-31",
+      "name": "Implement KIP-848 modern consumer groups",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-31"
+    },
+    {
+      "id": "contract.KL11-32",
+      "name": "Implement share/streams group membership coordination",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-32"
+    },
+    {
+      "id": "contract.KL11-33",
+      "name": "Implement share fetch locks, partial acknowledgments and expiry",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-33"
+    },
+    {
+      "id": "contract.KL11-34",
+      "name": "Persist share group state and offset administration",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-34"
+    },
+    {
+      "id": "contract.KL11-35",
+      "name": "Terminate TLS/mTLS and rotate trust/client identity",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-35"
+    },
+    {
+      "id": "contract.KL11-36",
+      "name": "Authenticate PLAIN/SCRAM and manage salted credentials",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-36"
+    },
+    {
+      "id": "contract.KL11-37",
+      "name": "Validate OIDC tokens and reauthenticate live sessions",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-37"
+    },
+    {
+      "id": "contract.KL11-38",
+      "name": "Implement the approved optional Kerberos/GSSAPI boundary",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-38"
+    },
+    {
+      "id": "contract.KL11-39",
+      "name": "Authorize every broker operation with persistent ACLs",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-39"
+    },
+    {
+      "id": "contract.KL11-40",
+      "name": "Issue/renew/expire delegation tokens with authorization",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-40"
+    },
+    {
+      "id": "contract.KL11-41",
+      "name": "Complete cluster/replica/log-directory/feature/quorum administration",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-41"
+    },
+    {
+      "id": "contract.KL11-42",
+      "name": "Serve retained remote/tiered log segments safely",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-42"
+    },
+    {
+      "id": "contract.KL11-43",
+      "name": "Expose bounded metrics/telemetry and operational diagnostics",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-43"
+    },
+    {
+      "id": "contract.KL11-44",
+      "name": "Prove broker overload, deadlines and shutdown ownership",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-44"
+    },
+    {
+      "id": "contract.KL11-45",
+      "name": "Run seeded distributed data-plane and transaction crash histories",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-45"
+    },
+    {
+      "id": "contract.KL11-46",
+      "name": "Prove rolling upgrade and mixed-version cluster behavior",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-46"
+    },
+    {
+      "id": "contract.KL11-47",
+      "name": "Fuzz broker framing, storage recovery and API decoding",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-47"
+    },
+    {
+      "id": "contract.KL11-48",
+      "name": "Complete independent current-version broker compatibility matrix",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-48"
+    },
+    {
+      "id": "contract.KL11-49",
+      "name": "Integrate the complete client leadership campaign",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-49"
+    },
+    {
+      "id": "contract.KL11-50",
+      "name": "Benchmark the Rust broker against pinned Kafka-compatible servers",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-50"
+    },
+    {
+      "id": "contract.KL11-51",
+      "name": "Rank and optimize measured server bottlenecks",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-51"
+    },
+    {
+      "id": "contract.KL11-52",
+      "name": "Complete24h broker resource and overload qualification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-52"
+    },
+    {
+      "id": "contract.KL11-53",
+      "name": "Complete7day broker operational continuity qualification",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-53"
+    },
+    {
+      "id": "contract.KL11-54",
+      "name": "Package the broker and provide reproducible operator setup",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-54"
+    },
+    {
+      "id": "contract.KL11-55",
+      "name": "Reconcile client/server documentation and full completion status",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-55"
+    },
+    {
+      "id": "contract.KL11-56",
+      "name": "Qualify the complete Rust Kafka client and broker goal",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-56"
+    }
+  ]
+}
