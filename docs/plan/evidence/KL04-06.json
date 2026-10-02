@@ -1,0 +1,145 @@
+{
+  "id": "KL04-06",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "670c45fbb823e137a1e6785ee5dea1b62a9488ed",
+  "source_sha_note": "Base commit; exact tested worktree files are hashed in provenance.json. Coordinator records completion commit.",
+  "commands": [
+    "CARGO_HOME=/workspace/work/cargo RUSTUP_HOME=/workspace/work/rustup PATH=/workspace/work/cargo/bin:$PATH CARGO_TARGET_DIR=/workspace/work/target-openloop cargo test --offline --test bench_latency_open_loop -- --nocapture --test-threads=1",
+    "cargo check --offline --example bench_latency",
+    "cargo build --offline --example bench_latency",
+    "cargo test --offline --example bench_latency",
+    "cargo clippy --offline --example bench_latency --test bench_latency_open_loop -- -D warnings",
+    "rustfmt --edition 2021 --config skip_children=true --check examples/bench_latency.rs tests/bench_latency_open_loop.rs",
+    "bash scripts/ci-latency-gate.sh --self-test",
+    "python3 docs/evidence/perf/KL04-06/check-invalid-settings.py /workspace/work/target-openloop/debug/examples/bench_latency",
+    "python3 docs/evidence/perf/KL04-06/validate-artifacts.py",
+    "sha256sum --check docs/evidence/perf/KL04-06/SHA256SUMS"
+  ],
+  "results": {
+    "test_suite": "tests/bench_latency_open_loop.rs",
+    "test_count": 10,
+    "tests_passed": 10,
+    "tests_failed": 0,
+    "invalid_cli_cases_passed": 15,
+    "raw_jsonl_artifacts_validated": 4,
+    "scheduler": "absolute fixed-rate rational nanoseconds; bounded send tasks; catch up without resetting intended arrivals",
+    "enqueue_observation": "per-record acceptance lower/upper bounds around serialized send-future polls; no library API changes",
+    "acknowledgment_observation": "per-record delivery-future completion; response/wakeup observation overhead declared",
+    "deterministic_peer_pause": {
+      "offered": 10,
+      "accepted": 10,
+      "acknowledged": 10,
+      "pause_ns": 10000000,
+      "end_to_end_each_ns": 11000000
+    },
+    "deterministic_runtime_pause": {
+      "intended_arrivals_ns": [
+        0,
+        9000000
+      ],
+      "resume_ns": 10000000,
+      "end_to_end_latency_ns": [
+        2000000,
+        11000000
+      ],
+      "enqueue_to_ack_upper_ns": 1000000
+    },
+    "mock_runs": [
+      {
+        "artifact": "mock-buffer-backpressure.jsonl",
+        "samples": 8,
+        "outcomes": {
+          "offered": 8,
+          "accepted": 2,
+          "acknowledged": 2,
+          "consumed": 0,
+          "rejected": 0,
+          "timed_out": 6,
+          "unknown": 0
+        }
+      },
+      {
+        "artifact": "mock-saturation.jsonl",
+        "samples": 20,
+        "outcomes": {
+          "offered": 20,
+          "accepted": 2,
+          "acknowledged": 2,
+          "consumed": 0,
+          "rejected": 18,
+          "timed_out": 0,
+          "unknown": 0
+        }
+      },
+      {
+        "artifact": "mock-stall.jsonl",
+        "samples": 40,
+        "outcomes": {
+          "offered": 40,
+          "accepted": 40,
+          "acknowledged": 40,
+          "consumed": 0,
+          "rejected": 0,
+          "timed_out": 0,
+          "unknown": 0
+        }
+      },
+      {
+        "artifact": "mock-timeouts.jsonl",
+        "samples": 8,
+        "outcomes": {
+          "offered": 8,
+          "accepted": 8,
+          "acknowledged": 0,
+          "consumed": 0,
+          "rejected": 0,
+          "timed_out": 8,
+          "unknown": 0
+        }
+      }
+    ],
+    "sample_floor": 10000,
+    "percentile_validation": "p50=5000, p95=9500, p99=9900, p99.9=9990 for 1..10000 microseconds; all four null below declared floor",
+    "legacy_ci": "sequential-smoke default keeps produce_ack/fetch_rpc and p50_us/p99_us; policy self-test retains historical 1344/750 miss, 5000us shared-runner ceiling, and Suite HOLD",
+    "build": "standalone example builds and test harness compiles; dedicated tests, clippy with denied warnings, and targeted rustfmt pass"
+  },
+  "artifacts": [
+    "examples/bench_latency.rs",
+    "tests/bench_latency_open_loop.rs",
+    "docs/open-loop-latency.md",
+    "docs/plan/evidence/KL04-06.json",
+    "docs/evidence/perf/KL04-06/SHA256SUMS",
+    "docs/evidence/perf/KL04-06/artifact-validation.json",
+    "docs/evidence/perf/KL04-06/build.log",
+    "docs/evidence/perf/KL04-06/check-invalid-settings.py",
+    "docs/evidence/perf/KL04-06/ci-policy.log",
+    "docs/evidence/perf/KL04-06/clippy.log",
+    "docs/evidence/perf/KL04-06/example-test.log",
+    "docs/evidence/perf/KL04-06/fmt.log",
+    "docs/evidence/perf/KL04-06/invalid-settings.json",
+    "docs/evidence/perf/KL04-06/mock-buffer-backpressure.jsonl",
+    "docs/evidence/perf/KL04-06/mock-saturation.jsonl",
+    "docs/evidence/perf/KL04-06/mock-stall.jsonl",
+    "docs/evidence/perf/KL04-06/mock-timeouts.jsonl",
+    "docs/evidence/perf/KL04-06/provenance.json",
+    "docs/evidence/perf/KL04-06/tests.log",
+    "docs/evidence/perf/KL04-06/validate-artifacts.py"
+  ],
+  "limits": [
+    "Implementation and scheduler regression evidence only; live Kafka saturation campaigns and equal-semantics comparisons remain unexecuted",
+    "Enqueue time is explicitly bounded by send-poll observation; acknowledgment time is delivery-future completion, not wire receipt",
+    "Mock diagnostic sample counts are below the qualification floor and emit no latency percentiles",
+    "No independent receive/high-watermark/payload verification; consumed=0 and independent_receive_ns=null",
+    "Suite HOLD remains active; no controlled-host qualification or scenario cell passed disposition"
+  ],
+  "blocked_reason": null,
+  "tested_base_sha": "ec800396c0b75eb901b2fafce9309b4bdfca9218",
+  "coordinator_checks": [
+    "cargo fmt --all -- --check (exit 0)",
+    "cargo clippy --locked --all-targets --all-features -- -D warnings (exit 0)",
+    "cargo build --locked --example verifiable_producer --example verifiable_consumer (exit 0)",
+    "cargo test --locked --all-targets (exit 0)",
+    "bash scripts/ci-docs.sh --offline: strict Rustdoc and four doctests (exit 0)"
+  ]
+}

@@ -1,0 +1,15 @@
+23ce361484ff0b7b0f17de8d5faaf78adfc0ad2744f7f8b8d045dbb27f50f9ed  docs/evidence/perf/KL04-06/artifact-validation.json
+612182b3882fbdb5e06590afad7be27c60bdba90c51ca414f948a2100ec57161  docs/evidence/perf/KL04-06/build.log
+b9b2894e7f49e15d1e5a5f00a8ded2bc1c8e89f1e3df37c510f4cc1c784556a4  docs/evidence/perf/KL04-06/check-invalid-settings.py
+bd20818d8558d59844d08f6f20557df2253cd1bf2d07e9d3d7c7d502f174abd2  docs/evidence/perf/KL04-06/ci-policy.log
+36774a694c312675885e142f189f7c121a85f82440563d7b11b1b6b4007a64d4  docs/evidence/perf/KL04-06/clippy.log
+ee34d9d882ff12a4c1c0b7b4fd364c2c971d38f27774137c4381b30caacd5456  docs/evidence/perf/KL04-06/example-test.log
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  docs/evidence/perf/KL04-06/fmt.log
+d76168d55f277661f6b4f0330204e8fb8db4db1c93797a2d258775820ba91269  docs/evidence/perf/KL04-06/invalid-settings.json
+70e3e94327eb4198f5392ee9c3b6df87d1173b0581135de572cc7d5027da7da5  docs/evidence/perf/KL04-06/mock-buffer-backpressure.jsonl
+3f025b763533f1806f502a07f4499b2b80b7a2d3c0bd145df6396a867cf3d56d  docs/evidence/perf/KL04-06/mock-saturation.jsonl
+161eddbadb4bf821ab9df91ce94693111e3b6a4c51f26e8566d7e99b7994f065  docs/evidence/perf/KL04-06/mock-stall.jsonl
+d295af7312b7b79f91da204e305df42adf9ec7281969cde4ebf04b42dc0c7a84  docs/evidence/perf/KL04-06/mock-timeouts.jsonl
+335b32993e19c31496f5fa348f23392f3b951fc2f8ad98dca84be0721e39910d  docs/evidence/perf/KL04-06/provenance.json
+7219b83a90393e5b014fcc4d28897cbddc7f82f888aab6682b2a71b372cba55f  docs/evidence/perf/KL04-06/tests.log
+8d040d2ce36ee81b4fdc32a1e733cad3ac51ed0e3b00decd13402942cb9c664e  docs/evidence/perf/KL04-06/validate-artifacts.py

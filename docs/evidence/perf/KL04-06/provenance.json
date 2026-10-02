@@ -1,0 +1,41 @@
+{
+  "kind": "scheduler_regression_evidence",
+  "timestamp_utc": "2026-10-02T16:06:17.106673+00:00",
+  "base_git_commit": "ec800396c0b75eb901b2fafce9309b4bdfca9218",
+  "git_branch": "main",
+  "source_observation": "shared worktree with uncommitted source; exact tested files pinned below",
+  "toolchains": {
+    "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "build_tool": "cargo 1.99.0 (5f94df478 2026-08-27)"
+  },
+  "host": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "machine": "x86_64"
+  },
+  "profile": "dev; unoptimized; local mock broker; no Kafka campaign",
+  "binary": {
+    "path": "/workspace/work/target-openloop/debug/examples/bench_latency",
+    "sha256": "7f3375f091124be07983cef0242c9dbb2e63fb3c4ca27f99a47b0df83e5a9f56"
+  },
+  "sources": [
+    {
+      "path": "examples/bench_latency.rs",
+      "sha256": "4a5806acbd84bd78bb1ec008eb401a974f296cc5f18808a05c29279ac2e3e4d9"
+    },
+    {
+      "path": "tests/bench_latency_open_loop.rs",
+      "sha256": "c5603de2e09105bbda5808ca65eda9ced6624934bce8d1951ce4f1f9282a9974"
+    },
+    {
+      "path": "docs/open-loop-latency.md",
+      "sha256": "bf033bf6f2da152edd7ffa838795bbf1352824d40e00181669b89375f4cc884d"
+    }
+  ],
+  "qualification": false,
+  "suite_hold": "active",
+  "limitations": [
+    "Enqueue timing is bracketed by serialized send-future polls",
+    "Acknowledgment timestamp observes delivery-future completion",
+    "Mock tests and unit diagnostics only; no equal-semantics comparison, independent consumption, or signoff"
+  ]
+}

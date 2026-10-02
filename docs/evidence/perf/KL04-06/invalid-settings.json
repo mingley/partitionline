@@ -1,0 +1,98 @@
+{
+  "status": "passed",
+  "case_count": 15,
+  "cases": [
+    {
+      "settings": {
+        "RATE_PER_SECOND": "oops"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "RATE_PER_SECOND": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "COUNT": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "COUNT": "-1"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "COUNT": "18446744073709551615",
+        "RATE_PER_SECOND": "1000000000"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "COUNT": "20000000000",
+        "RATE_PER_SECOND": "1"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "MAX_PENDING": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "SAMPLE_FLOOR": "9999"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "MAX_BLOCK_MS": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "DELIVERY_TIMEOUT_MS": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "REQUEST_TIMEOUT_MS": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "ACKS": "0"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "ACKS": "oops"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "MODE": "fetch"
+      },
+      "rejected_before_connection": true
+    },
+    {
+      "settings": {
+        "LATENCY_MODE": "oops"
+      },
+      "rejected_before_connection": true
+    }
+  ]
+}

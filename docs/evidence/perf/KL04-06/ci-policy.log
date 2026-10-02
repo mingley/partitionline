@@ -1,0 +1,1 @@
+ci-latency-gate: --self-test OK — SKIP_LATENCY_GATE=1; GHA 5000µs; local 500+50%=750; 1344/750 historical; Suite HOLD

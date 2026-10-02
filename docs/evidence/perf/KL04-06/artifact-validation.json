@@ -1,0 +1,58 @@
+{
+  "status": "passed",
+  "artifact_count": 4,
+  "runs": [
+    {
+      "artifact": "mock-buffer-backpressure.jsonl",
+      "samples": 8,
+      "outcomes": {
+        "offered": 8,
+        "accepted": 2,
+        "acknowledged": 2,
+        "consumed": 0,
+        "rejected": 0,
+        "timed_out": 6,
+        "unknown": 0
+      }
+    },
+    {
+      "artifact": "mock-saturation.jsonl",
+      "samples": 20,
+      "outcomes": {
+        "offered": 20,
+        "accepted": 2,
+        "acknowledged": 2,
+        "consumed": 0,
+        "rejected": 18,
+        "timed_out": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "artifact": "mock-stall.jsonl",
+      "samples": 40,
+      "outcomes": {
+        "offered": 40,
+        "accepted": 40,
+        "acknowledged": 40,
+        "consumed": 0,
+        "rejected": 0,
+        "timed_out": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "artifact": "mock-timeouts.jsonl",
+      "samples": 8,
+      "outcomes": {
+        "offered": 8,
+        "accepted": 8,
+        "acknowledged": 0,
+        "consumed": 0,
+        "rejected": 0,
+        "timed_out": 8,
+        "unknown": 0
+      }
+    }
+  ]
+}
